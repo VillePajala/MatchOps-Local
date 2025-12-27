@@ -304,6 +304,17 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         if (team) {
           setHomeTeamName(team.name);
           setIsTeamNameAutoFilled(true);
+
+          // Auto-apply team's bound season/tournament settings
+          if (team.boundSeasonId) {
+            setSelectedSeasonId(team.boundSeasonId);
+            setSelectedTournamentId(null);
+            applySeasonSettings(team.boundSeasonId);
+          } else if (team.boundTournamentId) {
+            setSelectedTournamentId(team.boundTournamentId);
+            setSelectedSeasonId(null);
+            applyTournamentSettings(team.boundTournamentId);
+          }
         }
       } catch (error) {
         logger.error('[NewGameSetupModal] Error loading team roster:', error);

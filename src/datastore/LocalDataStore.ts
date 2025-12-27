@@ -213,29 +213,73 @@ const createTeamCompositeKey = (
 
 /**
  * Creates a composite key for season uniqueness checking.
- * Allows same name if clubSeason differs (e.g., "EKK Kortteli 24/25" vs "EKK Kortteli 25/26").
+ * Allows same name if any distinguishing factor differs.
+ *
  * @param name - Season name
  * @param clubSeason - Club season (e.g., "24/25", "off-season", or undefined)
+ * @param gameType - Sport type (soccer/futsal)
+ * @param gender - Gender (boys/girls)
+ * @param ageGroup - Age group (e.g., "U12", "U14")
+ * @param leagueId - League ID
  * @returns Composite key string for uniqueness check
+ *
+ * @example
+ * // These are all DIFFERENT seasons despite same name:
+ * "Spring League" + "24/25" + soccer + boys + U12 + sm-sarja
+ * "Spring League" + "24/25" + soccer + girls + U12 + sm-sarja  // different gender
+ * "Spring League" + "24/25" + futsal + boys + U12 + sm-sarja   // different gameType
+ * "Spring League" + "24/25" + soccer + boys + U14 + sm-sarja   // different ageGroup
  */
-const createSeasonCompositeKey = (name: string, clubSeason?: string): string => {
-  const parts = [normalizeNameForCompare(name)];
-  // Include clubSeason in key - undefined and 'off-season' are treated as distinct values
-  parts.push(`clubSeason:${clubSeason ?? 'none'}`);
+const createSeasonCompositeKey = (
+  name: string,
+  clubSeason?: string,
+  gameType?: string,
+  gender?: string,
+  ageGroup?: string,
+  leagueId?: string
+): string => {
+  const parts = [
+    normalizeNameForCompare(name),
+    `clubSeason:${clubSeason ?? 'none'}`,
+    `gameType:${gameType ?? 'none'}`,
+    `gender:${gender ?? 'none'}`,
+    `ageGroup:${ageGroup ?? 'none'}`,
+    `leagueId:${leagueId ?? 'none'}`,
+  ];
   return parts.join('::');
 };
 
 /**
  * Creates a composite key for tournament uniqueness checking.
- * Allows same name if clubSeason differs (e.g., "Helsinki Cup 24/25" vs "Helsinki Cup 25/26").
+ * Allows same name if any distinguishing factor differs.
+ *
  * @param name - Tournament name
  * @param clubSeason - Club season (e.g., "24/25", "off-season", or undefined)
+ * @param gameType - Sport type (soccer/futsal)
+ * @param gender - Gender (boys/girls)
+ * @param ageGroup - Age group (e.g., "U12", "U14")
  * @returns Composite key string for uniqueness check
+ *
+ * @example
+ * // These are all DIFFERENT tournaments despite same name:
+ * "Helsinki Cup" + "24/25" + soccer + boys + U12
+ * "Helsinki Cup" + "24/25" + soccer + girls + U12  // different gender
+ * "Helsinki Cup" + "24/25" + futsal + boys + U12   // different gameType
  */
-const createTournamentCompositeKey = (name: string, clubSeason?: string): string => {
-  const parts = [normalizeNameForCompare(name)];
-  // Include clubSeason in key - undefined and 'off-season' are treated as distinct values
-  parts.push(`clubSeason:${clubSeason ?? 'none'}`);
+const createTournamentCompositeKey = (
+  name: string,
+  clubSeason?: string,
+  gameType?: string,
+  gender?: string,
+  ageGroup?: string
+): string => {
+  const parts = [
+    normalizeNameForCompare(name),
+    `clubSeason:${clubSeason ?? 'none'}`,
+    `gameType:${gameType ?? 'none'}`,
+    `gender:${gender ?? 'none'}`,
+    `ageGroup:${ageGroup ?? 'none'}`,
+  ];
   return parts.join('::');
 };
 
@@ -745,10 +789,24 @@ export class LocalDataStore implements DataStore {
       // Calculate clubSeason first to use in uniqueness check
       const newClubSeason = calculateClubSeason(extra?.startDate, start, end);
 
-      // Allow same name if clubSeason differs (e.g., "EKK Kortteli 24/25" vs "EKK Kortteli 25/26")
-      const compositeKey = createSeasonCompositeKey(trimmedName, newClubSeason);
+      // Allow same name if any distinguishing factor differs
+      const compositeKey = createSeasonCompositeKey(
+        trimmedName,
+        newClubSeason,
+        extra?.gameType,
+        extra?.gender,
+        extra?.ageGroup,
+        extra?.leagueId
+      );
       const duplicateExists = currentSeasons.some(
-        (season) => createSeasonCompositeKey(season.name, season.clubSeason) === compositeKey
+        (season) => createSeasonCompositeKey(
+          season.name,
+          season.clubSeason,
+          season.gameType,
+          season.gender,
+          season.ageGroup,
+          season.leagueId
+        ) === compositeKey
       );
 
       if (duplicateExists) {
@@ -798,10 +856,24 @@ export class LocalDataStore implements DataStore {
       // Recalculate clubSeason from startDate
       const newClubSeason = calculateClubSeason(season.startDate, start, end);
 
-      // Allow same name if clubSeason differs (e.g., "EKK Kortteli 24/25" vs "EKK Kortteli 25/26")
-      const compositeKey = createSeasonCompositeKey(trimmedName, newClubSeason);
+      // Allow same name if any distinguishing factor differs
+      const compositeKey = createSeasonCompositeKey(
+        trimmedName,
+        newClubSeason,
+        season.gameType,
+        season.gender,
+        season.ageGroup,
+        season.leagueId
+      );
       const duplicateExists = currentSeasons.some(
-        (item) => item.id !== season.id && createSeasonCompositeKey(item.name, item.clubSeason) === compositeKey
+        (item) => item.id !== season.id && createSeasonCompositeKey(
+          item.name,
+          item.clubSeason,
+          item.gameType,
+          item.gender,
+          item.ageGroup,
+          item.leagueId
+        ) === compositeKey
       );
 
       if (duplicateExists) {
@@ -884,10 +956,22 @@ export class LocalDataStore implements DataStore {
       // Calculate clubSeason first to use in uniqueness check
       const newClubSeason = calculateClubSeason(extra?.startDate, start, end);
 
-      // Allow same name if clubSeason differs (e.g., "Helsinki Cup 24/25" vs "Helsinki Cup 25/26")
-      const compositeKey = createTournamentCompositeKey(trimmedName, newClubSeason);
+      // Allow same name if any distinguishing factor differs
+      const compositeKey = createTournamentCompositeKey(
+        trimmedName,
+        newClubSeason,
+        extra?.gameType,
+        extra?.gender,
+        extra?.ageGroup
+      );
       const duplicateExists = currentTournaments.some(
-        (tournament) => createTournamentCompositeKey(tournament.name, tournament.clubSeason) === compositeKey
+        (tournament) => createTournamentCompositeKey(
+          tournament.name,
+          tournament.clubSeason,
+          tournament.gameType,
+          tournament.gender,
+          tournament.ageGroup
+        ) === compositeKey
       );
 
       if (duplicateExists) {
@@ -940,10 +1024,22 @@ export class LocalDataStore implements DataStore {
       // Recalculate clubSeason from startDate
       const newClubSeason = calculateClubSeason(tournament.startDate, start, end);
 
-      // Allow same name if clubSeason differs (e.g., "Helsinki Cup 24/25" vs "Helsinki Cup 25/26")
-      const compositeKey = createTournamentCompositeKey(trimmedName, newClubSeason);
+      // Allow same name if any distinguishing factor differs
+      const compositeKey = createTournamentCompositeKey(
+        trimmedName,
+        newClubSeason,
+        tournament.gameType,
+        tournament.gender,
+        tournament.ageGroup
+      );
       const duplicateExists = currentTournaments.some(
-        (item) => item.id !== tournament.id && createTournamentCompositeKey(item.name, item.clubSeason) === compositeKey
+        (item) => item.id !== tournament.id && createTournamentCompositeKey(
+          item.name,
+          item.clubSeason,
+          item.gameType,
+          item.gender,
+          item.ageGroup
+        ) === compositeKey
       );
 
       if (duplicateExists) {

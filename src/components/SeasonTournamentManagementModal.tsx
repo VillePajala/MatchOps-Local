@@ -25,13 +25,15 @@ interface SeasonTournamentManagementModalProps {
     deleteSeasonMutation: UseMutationResult<boolean, Error, string, unknown>;
     updateTournamentMutation: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
     deleteTournamentMutation: UseMutationResult<boolean, Error, string, unknown>;
+    onOpenSettings?: () => void;
 }
 
 const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalProps> = ({
     isOpen, onClose, seasons, tournaments, masterRoster,
     addSeasonMutation, addTournamentMutation,
     updateSeasonMutation, deleteSeasonMutation,
-    updateTournamentMutation, deleteTournamentMutation
+    updateTournamentMutation, deleteTournamentMutation,
+    onOpenSettings
 }) => {
     const { t } = useTranslation();
 
@@ -387,6 +389,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         onClose={() => setCreateSeasonModalOpen(false)}
         mode="create"
         addSeasonMutation={addSeasonMutation}
+        onOpenSettings={onOpenSettings}
       />
 
       {/* Season Edit Modal */}
@@ -397,6 +400,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         season={seasons.find(s => s.id === selectedSeasonId) || null}
         updateSeasonMutation={updateSeasonMutation}
         stats={selectedSeasonId ? stats[selectedSeasonId] : undefined}
+        onOpenSettings={onOpenSettings}
       />
 
       {/* Tournament Create Modal */}
@@ -406,6 +410,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         mode="create"
         masterRoster={masterRoster}
         addTournamentMutation={addTournamentMutation}
+        onOpenSettings={onOpenSettings}
       />
 
       {/* Tournament Edit Modal */}
@@ -417,6 +422,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         masterRoster={masterRoster}
         updateTournamentMutation={updateTournamentMutation}
         stats={selectedTournamentId ? stats[selectedTournamentId] : undefined}
+        onOpenSettings={onOpenSettings}
       />
 
       {/* Delete Confirmation Modal */}

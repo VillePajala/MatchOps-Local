@@ -22,6 +22,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { getTournaments } from '@/utils/tournaments';
 import { getSeasons } from '@/utils/seasons';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import logger from '@/utils/logger';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import UnifiedTeamModal from './UnifiedTeamModal';
@@ -317,9 +318,29 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
           {/* Teams List */}
           {(() => {
+            const searchLower = searchText.toLowerCase();
             const filteredTeams = teams
               .filter(team => showArchived || !team.archived)
-              .filter(team => team.name.toLowerCase().includes(searchText.toLowerCase()));
+              .filter(team => {
+                if (!searchText) return true;
+                // Search by team name
+                if (team.name.toLowerCase().includes(searchLower)) return true;
+                // Search by ageGroup
+                if (team.ageGroup?.toLowerCase().includes(searchLower)) return true;
+                // Search by gameType
+                if (team.gameType?.toLowerCase().includes(searchLower)) return true;
+                // Search by season name (with club season)
+                if (team.boundSeasonId && seasonMap[team.boundSeasonId]) {
+                  const seasonName = getSeasonDisplayName(seasonMap[team.boundSeasonId]);
+                  if (seasonName.toLowerCase().includes(searchLower)) return true;
+                }
+                // Search by tournament name (with club season)
+                if (team.boundTournamentId && tournamentMap[team.boundTournamentId]) {
+                  const tournamentName = getTournamentDisplayName(tournamentMap[team.boundTournamentId]);
+                  if (tournamentName.toLowerCase().includes(searchLower)) return true;
+                }
+                return false;
+              });
 
             if (teams.length === 0) {
               return (
@@ -452,6 +473,16 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
                         {/* Right: Context labels - wrap upward from bottom right */}
                         <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
+                          {/* Age group */}
+                          {team.ageGroup && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              aria-label={t('teamManager.ageGroupContext', 'Age group: {{ageGroup}}', { ageGroup: team.ageGroup })}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                              {team.ageGroup}
+                            </span>
+                          )}
                           {/* Game type */}
                           {team.gameType === 'futsal' && (
                             <span
@@ -459,27 +490,27 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               aria-label={t('teamManager.gameTypeContext', 'Game type: Futsal')}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
-                              {t('common.futsal', 'Futsal')}
+                              {t('common.gameTypeFutsal', 'Futsal')}
                             </span>
                           )}
-                          {/* Season */}
+                          {/* Season - shows full name with club season */}
                           {team.boundSeasonId && seasonMap[team.boundSeasonId] && (
                             <span
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
-                              aria-label={t('teamManager.seasonContext', 'Season: {{name}}', { name: seasonMap[team.boundSeasonId].name })}
+                              aria-label={t('teamManager.seasonContext', 'Season: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                              {seasonMap[team.boundSeasonId].name}
+                              {getSeasonDisplayName(seasonMap[team.boundSeasonId])}
                             </span>
                           )}
-                          {/* Tournament */}
+                          {/* Tournament - shows full name with club season */}
                           {team.boundTournamentId && tournamentMap[team.boundTournamentId] && (
                             <span
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
-                              aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: tournamentMap[team.boundTournamentId].name })}
+                              aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: getTournamentDisplayName(tournamentMap[team.boundTournamentId]) })}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                              {tournamentMap[team.boundTournamentId].name}
+                              {getTournamentDisplayName(tournamentMap[team.boundTournamentId])}
                             </span>
                           )}
                         </div>

@@ -104,6 +104,7 @@ export type TranslationKey =
   | 'common.none'
   | 'common.notSet'
   | 'common.ok'
+  | 'common.openSettings'
   | 'common.player'
   | 'common.processing'
   | 'common.record'

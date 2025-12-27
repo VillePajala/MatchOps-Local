@@ -1,8 +1,8 @@
 {
-  "version": "35755dbc",
+  "version": "bfc7fd97",
   "date": "2025-12-27",
   "notes": {
-    "en": "Add club season labels to seasons and tournaments",
-    "fi": "Lisää pelikauden tunnisteet kausiin ja turnauksiin"
+    "en": "Centralize default club season date constants",
+    "fi": "Centralize default club season date constants"
   }
 }
