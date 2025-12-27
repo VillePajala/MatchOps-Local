@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Season, GameType, Gender } from '@/types';
 import { UseMutationResult, useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
-import { getAppSettings } from '@/utils/appSettings';
+import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import {
   FINNISH_YOUTH_LEAGUES,
@@ -89,8 +89,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
     if (!startDate) return null;
     const result = getClubSeasonForDate(
       startDate,
-      settings?.clubSeasonStartDate || '2000-11-15',
-      settings?.clubSeasonEndDate || '2000-10-20'
+      settings?.clubSeasonStartDate || DEFAULT_CLUB_SEASON_START_DATE,
+      settings?.clubSeasonEndDate || DEFAULT_CLUB_SEASON_END_DATE
     );
     return result !== 'off-season' ? result : null;
   }, [startDate, settings?.clubSeasonStartDate, settings?.clubSeasonEndDate]);

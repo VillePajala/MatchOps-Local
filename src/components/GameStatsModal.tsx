@@ -14,7 +14,7 @@ import { getTeams as utilGetTeams } from '@/utils/teams';
 import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
 import { extractClubSeasonsFromGames, getClubSeasonForDate } from '@/utils/clubSeason';
-import { getAppSettings } from '@/utils/appSettings';
+import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
@@ -219,8 +219,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   });
 
   // Derive settings values with defaults
-  const clubSeasonStartDate = settings?.clubSeasonStartDate ?? '2000-11-15';
-  const clubSeasonEndDate = settings?.clubSeasonEndDate ?? '2000-10-20';
+  const clubSeasonStartDate = settings?.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE;
+  const clubSeasonEndDate = settings?.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE;
   const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
 
   // Player pool for Player tab search: prefer full master roster; fall back to current game's available players

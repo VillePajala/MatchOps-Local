@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { GameEvent, PlayerStatRow } from '@/types';
 import { GameStatsParams, SavedGame } from '../types';
 import { filterGameIds } from '../utils/gameFilters';
+import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
 interface UseGameStatsResult {
   stats: PlayerStatRow[];
@@ -34,8 +35,8 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
     selectedGameTypeFilter,
     selectedGenderFilter,
     selectedClubSeason = 'all',
-    clubSeasonStartDate = '2000-11-15',
-    clubSeasonEndDate = '2000-10-20',
+    clubSeasonStartDate = DEFAULT_CLUB_SEASON_START_DATE,
+    clubSeasonEndDate = DEFAULT_CLUB_SEASON_END_DATE,
     sortColumn,
     sortDirection,
     filterText,
