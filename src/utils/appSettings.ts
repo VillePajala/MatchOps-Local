@@ -27,6 +27,16 @@ import type { AppSettings } from '@/types/settings';
 // Re-export for backwards compatibility
 export type { AppSettings } from '@/types/settings';
 
+// Import club season defaults for use in this file
+import {
+  DEFAULT_CLUB_SEASON_START_DATE,
+  DEFAULT_CLUB_SEASON_END_DATE
+} from '@/config/clubSeasonDefaults';
+
+// Re-export club season defaults for backwards compatibility
+// Import from @/config/clubSeasonDefaults for new code
+export { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE };
+
 /**
  * Default application settings
  */
@@ -37,8 +47,8 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   hasSeenAppGuide: false,
   useDemandCorrection: false,
   hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: '2000-11-15', // November 15th (year is template)
-  clubSeasonEndDate: '2000-10-20',   // October 20th (year is template)
+  clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
+  clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
 };
 
 /**

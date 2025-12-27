@@ -55,6 +55,7 @@ import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
 import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
+import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
 // Team index storage format: { [teamId: string]: Team }
 type TeamsIndex = Record<string, Team>;
@@ -72,8 +73,8 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   hasSeenAppGuide: false,
   useDemandCorrection: false,
   hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: '2000-11-15', // November 15th (year is template)
-  clubSeasonEndDate: '2000-10-20',   // October 20th (year is template)
+  clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
+  clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
 };
 
 /**

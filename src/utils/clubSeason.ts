@@ -6,6 +6,7 @@
  */
 
 import logger from '@/utils/logger';
+import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
 /**
  * Parses a 2-digit year string to a full 4-digit year
@@ -50,8 +51,8 @@ function parseSeasonYear(shortYear: string): number {
  */
 export function getClubSeasonForDate(
   dateStr: string,
-  startDate: string = '2000-11-15',
-  endDate: string = '2000-10-20'
+  startDate: string = DEFAULT_CLUB_SEASON_START_DATE,
+  endDate: string = DEFAULT_CLUB_SEASON_END_DATE
 ): string {
   // Validate ISO format (YYYY-MM-DD) to protect against corrupted data
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -129,8 +130,8 @@ export function getClubSeasonForDate(
  */
 export function getClubSeasonDisplayLabel(
   seasonLabel: string,
-  startDate: string = '2000-11-15',
-  endDate: string = '2000-10-20'
+  startDate: string = DEFAULT_CLUB_SEASON_START_DATE,
+  endDate: string = DEFAULT_CLUB_SEASON_END_DATE
 ): string {
   if (seasonLabel === 'off-season') {
     return 'Off-Season';
@@ -171,8 +172,8 @@ export function getClubSeasonDisplayLabel(
  */
 export function extractClubSeasonsFromGames(
   games: { gameDate?: string }[],
-  startDate: string = '2000-11-15',
-  endDate: string = '2000-10-20'
+  startDate: string = DEFAULT_CLUB_SEASON_START_DATE,
+  endDate: string = DEFAULT_CLUB_SEASON_END_DATE
 ): string[] {
   const seasons = new Set<string>();
 
@@ -220,8 +221,8 @@ export function extractClubSeasonsFromGames(
 export function filterGamesByClubSeason<T extends { gameDate?: string }>(
   games: T[],
   seasonLabel: string,
-  startDate: string = '2000-11-15',
-  endDate: string = '2000-10-20'
+  startDate: string = DEFAULT_CLUB_SEASON_START_DATE,
+  endDate: string = DEFAULT_CLUB_SEASON_END_DATE
 ): T[] {
   if (seasonLabel === 'all') {
     return games;
@@ -244,8 +245,8 @@ export function filterGamesByClubSeason<T extends { gameDate?: string }>(
  */
 export function getClubSeasonDateRange(
   seasonLabel: string,
-  startDate: string = '2000-11-15',
-  endDate: string = '2000-10-20'
+  startDate: string = DEFAULT_CLUB_SEASON_START_DATE,
+  endDate: string = DEFAULT_CLUB_SEASON_END_DATE
 ): { startDate: string; endDate: string } | null {
   if (seasonLabel === 'off-season' || seasonLabel === 'all') {
     return null;
