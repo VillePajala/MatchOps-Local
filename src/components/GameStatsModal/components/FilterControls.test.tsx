@@ -12,11 +12,11 @@ jest.mock('react-i18next', () => ({
 }));
 
 // Test data factories
+// Note: startDate/endDate removed to avoid club season suffix in display names.
+// Tests focus on filter functionality, not display name formatting.
 const createSeason = (overrides: Partial<Season> = {}): Season => ({
   id: 'season-1',
   name: 'Season 2024',
-  startDate: '2024-01-01',
-  endDate: '2024-12-31',
   ...overrides,
 });
 
@@ -29,8 +29,6 @@ const createTournamentSeries = (overrides: Partial<TournamentSeries> = {}): Tour
 const createTournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   id: 'tournament-1',
   name: 'Cup 2024',
-  startDate: '2024-06-01',
-  endDate: '2024-06-30',
   ...overrides,
 });
 

@@ -2,6 +2,9 @@
  * @jest-environment jsdom
  */
 
+// Import fake-indexeddb BEFORE any other imports to polyfill IndexedDB
+import 'fake-indexeddb/auto';
+
 import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
 import {
   createMockFieldPlayers,
@@ -29,7 +32,19 @@ describe('Edge Cases and Error Handling Tests', () => {
 
   describe('Data Corruption and Recovery', () => {
     it('should handle corrupted localStorage gracefully', async () => {
-      // Mock corrupted localStorage data
+      // Clear all IndexedDB databases to ensure clean state
+      const databases = await indexedDB.databases?.() ?? [];
+      for (const db of databases) {
+        if (db.name) {
+          indexedDB.deleteDatabase(db.name);
+        }
+      }
+
+      // Store original localStorage
+      const originalLocalStorage = window.localStorage;
+
+      // Mock corrupted localStorage data - simulating what would happen
+      // if legacy migration code encounters corrupted data
       const mockLocalStorage = {
         getItem: jest.fn((key: string) => {
           if (key === 'soccerSavedGames') return '{invalid-json}';
@@ -39,21 +54,35 @@ describe('Edge Cases and Error Handling Tests', () => {
         setItem: jest.fn(),
         removeItem: jest.fn(),
         clear: jest.fn(),
+        length: 0,
+        key: jest.fn(() => null),
       };
 
       Object.defineProperty(window, 'localStorage', {
         value: mockLocalStorage,
+        writable: true,
+        configurable: true,
       });
 
-      render(<HomePage />);
+      try {
+        render(<HomePage />);
 
-      // Should handle corrupted data without crashing
-      await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+        // Should handle corrupted data without crashing
+        // With IndexedDB as primary storage, localStorage corruption shouldn't block loading
+        await waitFor(() => {
+          expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        }, { timeout: 10000 }); // Increased timeout for IndexedDB initialization
 
-      // App should render and show some key content
-      expect(screen.getByTestId('home-page')).toBeInTheDocument();
+        // App should render and show some key content
+        expect(screen.getByTestId('home-page')).toBeInTheDocument();
+      } finally {
+        // Restore original localStorage
+        Object.defineProperty(window, 'localStorage', {
+          value: originalLocalStorage,
+          writable: true,
+          configurable: true,
+        });
+      }
     });
 
     it('should recover from quota exceeded errors', async () => {
