@@ -1334,6 +1334,7 @@
     "gameImportError": "Virhe pelien tuonnissa: ",
     "seasonPeriodTitle": "Ajanjakso",
     "seasonPeriodDescription": "Määritä ajanjakso tilastojen suodatusta varten (esim. lokakuu - toukokuu). Vain kuukausi ja päivä vaikuttavat - vuosi on vain mallipohja.",
+    "seasonDatesNote": "Huom: Päivämäärien muuttaminen vaikuttaa vain uusiin kausiin. Olemassa olevat kaudet säilyttävät alkuperäiset kausitunnisteensa.",
     "periodStartLabel": "Jakson alku",
     "periodEndLabel": "Jakson loppu",
     "monthLabel": "Kuukausi",

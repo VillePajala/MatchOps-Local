@@ -1334,6 +1334,7 @@
     "gameImportError": "Error importing games: ",
     "seasonPeriodTitle": "Season Period",
     "seasonPeriodDescription": "Define when your season runs (for filtering statistics). Month and day only - the year is just a template (e.g., October to May).",
+    "seasonDatesNote": "Note: Changing dates affects new seasons only. Existing seasons retain their original club season labels.",
     "periodStartLabel": "Period Start",
     "periodEndLabel": "Period End",
     "monthLabel": "Month",
