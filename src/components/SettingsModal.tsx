@@ -581,6 +581,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <p id="club-season-description" className="text-sm text-slate-300">
                 {t('settingsModal.seasonPeriodDescription', 'Define when your season runs (for filtering statistics). Month and day only - the year is just a template (e.g., October to May).')}
               </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {t('settingsModal.seasonDatesNote', 'Note: Changing dates affects new seasons only. Existing seasons retain their original club season labels.')}
+              </p>
               <div className="space-y-3">
                 {/* Period Start */}
                 <div>
