@@ -24,6 +24,7 @@ interface TournamentDetailsModalProps {
   addTournamentMutation?: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
   updateTournamentMutation?: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
   stats?: { games: number; goals: number };
+  onOpenSettings?: () => void;
 }
 
 const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
@@ -35,6 +36,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   addTournamentMutation,
   updateTournamentMutation,
   stats,
+  onOpenSettings,
 }) => {
   const { t } = useTranslation();
 
@@ -295,13 +297,25 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                 <div className="bg-amber-900/30 border border-amber-600/50 rounded-lg p-3">
                   <div className="flex items-start gap-2">
                     <HiExclamationTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                    <div>
+                    <div className="flex-1">
                       <p className="text-amber-200 text-sm">
                         {t('tournamentDetailsModal.seasonDatesNotConfigured', 'Season dates not configured')}
                       </p>
                       <p className="text-amber-300/70 text-xs mt-1">
                         {t('tournamentDetailsModal.configureInSettings', 'Configure in Settings to calculate club seasons correctly.')}
                       </p>
+                      {onOpenSettings && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenSettings();
+                          }}
+                          className="mt-2 text-xs text-amber-300 hover:text-amber-100 underline underline-offset-2 transition-colors"
+                        >
+                          {t('common.openSettings', 'Open Settings')}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

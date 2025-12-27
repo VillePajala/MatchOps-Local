@@ -54,6 +54,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const [boundSeasonId, setBoundSeasonId] = useState<string>('');
   const [boundTournamentId, setBoundTournamentId] = useState<string>('');
   const [gameType, setGameType] = useState<'soccer' | 'futsal' | ''>('');
+  const [activeTab, setActiveTab] = useState<'none' | 'season' | 'tournament'>('none');
 
   // Roster state
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
@@ -108,6 +109,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setBoundSeasonId('');
         setBoundTournamentId('');
         setGameType('');
+        setActiveTab('none');
         setSelectedPlayerIds([]);
         setDuplicateError(null);
         setIsEditingRoster(false);
@@ -120,6 +122,14 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setBoundSeasonId(team.boundSeasonId || '');
         setBoundTournamentId(team.boundTournamentId || '');
         setGameType(team.gameType || '');
+        // Set activeTab based on existing bindings
+        if (team.boundSeasonId) {
+          setActiveTab('season');
+        } else if (team.boundTournamentId) {
+          setActiveTab('tournament');
+        } else {
+          setActiveTab('none');
+        }
         setDuplicateError(null);
         setIsEditingRoster(false);
         // Roster will be loaded via query
@@ -146,6 +156,65 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, boundSeasonId, boundTournamentId, gameType]);
+
+  // Get the selected season/tournament for auto-inheritance
+  const selectedSeason = boundSeasonId ? seasons.find(s => s.id === boundSeasonId) : null;
+  const selectedTournament = boundTournamentId ? tournaments.find(t => t.id === boundTournamentId) : null;
+
+  // Derived gameType from association (for display purposes)
+  const inheritedGameType = selectedSeason?.gameType || selectedTournament?.gameType;
+  const hasAssociation = !!boundSeasonId || !!boundTournamentId;
+
+  // Handle tab change - clears the other binding
+  const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {
+    setActiveTab(tab);
+    if (tab === 'none') {
+      setBoundSeasonId('');
+      setBoundTournamentId('');
+    } else if (tab === 'season') {
+      setBoundTournamentId('');
+    } else if (tab === 'tournament') {
+      setBoundSeasonId('');
+    }
+  };
+
+  // Handle season selection - inherits properties
+  const handleSeasonChange = (seasonId: string) => {
+    setBoundSeasonId(seasonId);
+
+    if (seasonId) {
+      const season = seasons.find(s => s.id === seasonId);
+      if (season) {
+        // Inherit gameType from season
+        if (season.gameType) {
+          setGameType(season.gameType);
+        }
+        // Prefill ageGroup from season (only if not already set)
+        if (season.ageGroup && !ageGroup) {
+          setAgeGroup(season.ageGroup);
+        }
+      }
+    }
+  };
+
+  // Handle tournament selection - inherits properties
+  const handleTournamentChange = (tournamentId: string) => {
+    setBoundTournamentId(tournamentId);
+
+    if (tournamentId) {
+      const tournament = tournaments.find(t => t.id === tournamentId);
+      if (tournament) {
+        // Inherit gameType from tournament
+        if (tournament.gameType) {
+          setGameType(tournament.gameType);
+        }
+        // Prefill ageGroup from tournament (only if not already set)
+        if (tournament.ageGroup && !ageGroup) {
+          setAgeGroup(tournament.ageGroup);
+        }
+      }
+    }
+  };
 
   // Mutation for updating team placement with optimistic updates
   const updatePlacementMutation = useMutation({
@@ -458,64 +527,107 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                       <h4 className="text-sm font-medium text-slate-300 mb-2">
                         {t('teamDetailsModal.contextSection', 'Team Context')}
                       </h4>
-                      <p className="text-xs text-slate-400 mb-3">
-                        {t('teamDetailsModal.contextHelp', 'Optional: Bind to season, tournament, or game type to differentiate teams with the same name.')}
-                      </p>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {/* Season Binding */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">
-                            {t('teamDetailsModal.boundSeason', 'Season')}
-                          </label>
+                      {/* Tab buttons - same style as NewGameSetupModal */}
+                      <div className="flex gap-2 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('none')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'none'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.eiMitaan', 'None')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('season')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'season'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.kausi', 'Season')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('tournament')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'tournament'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.turnaus', 'Tournament')}
+                        </button>
+                      </div>
+
+                      {/* Season Selection */}
+                      {activeTab === 'season' && (
+                        <div className="mb-3">
                           <select
                             value={boundSeasonId}
-                            onChange={(e) => setBoundSeasonId(e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                            onChange={(e) => handleSeasonChange(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
-                            <option value="">{t('teamDetailsModal.noSeasonSelected', '-- None --')}</option>
-                            {seasons.map((s) => (
+                            <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
+                            {seasons.filter(s => !s.archived).map((s) => (
                               <option key={s.id} value={s.id}>
                                 {getSeasonDisplayName(s)}
                               </option>
                             ))}
                           </select>
                         </div>
+                      )}
 
-                        {/* Tournament Binding */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">
-                            {t('teamDetailsModal.boundTournament', 'Tournament')}
-                          </label>
+                      {/* Tournament Selection */}
+                      {activeTab === 'tournament' && (
+                        <div className="mb-3">
                           <select
                             value={boundTournamentId}
-                            onChange={(e) => setBoundTournamentId(e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                            onChange={(e) => handleTournamentChange(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
-                            <option value="">{t('teamDetailsModal.noTournamentSelected', '-- None --')}</option>
-                            {tournaments.map((tourn) => (
+                            <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
+                            {tournaments.filter(t => !t.archived).map((tourn) => (
                               <option key={tourn.id} value={tourn.id}>
                                 {getTournamentDisplayName(tourn)}
                               </option>
                             ))}
                           </select>
                         </div>
+                      )}
 
-                        {/* Game Type */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">
-                            {t('teamDetailsModal.gameTypeLabel', 'Game Type')}
-                          </label>
+                      {/* Game Type - inherited from association or manual selection */}
+                      <div>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                          {t('teamDetailsModal.gameTypeLabel', 'Game Type')}
+                          {hasAssociation && inheritedGameType && (
+                            <span className="ml-2 text-slate-500">
+                              ({t('teamDetailsModal.inheritedFromAssociation', 'from association')})
+                            </span>
+                          )}
+                        </label>
+                        {hasAssociation && inheritedGameType ? (
+                          // Show inherited value as read-only
+                          <div className="w-full px-3 py-2 text-sm bg-slate-600 border border-slate-500 rounded-md text-slate-300">
+                            {inheritedGameType === 'soccer' ? t('common.gameTypeSoccer', 'Soccer') : t('common.gameTypeFutsal', 'Futsal')}
+                          </div>
+                        ) : (
+                          // Manual selection when no association
                           <select
                             value={gameType}
                             onChange={(e) => setGameType(e.target.value as 'soccer' | 'futsal' | '')}
-                            className="w-full px-2 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 text-sm bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             <option value="">{t('teamDetailsModal.anyGameType', '-- Any --')}</option>
-                            <option value="soccer">{t('common.soccer', 'Soccer')}</option>
-                            <option value="futsal">{t('common.futsal', 'Futsal')}</option>
+                            <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
+                            <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
                           </select>
-                        </div>
+                        )}
                       </div>
                     </div>
 
