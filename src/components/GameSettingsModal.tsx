@@ -1029,7 +1029,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     // Removed: setNewTournamentName('') - state no longer exists (tournament creation moved to dedicated modal)
   };
 
-  // Team selection handler with roster auto-load
+  // Team selection handler with roster auto-load and bound season/tournament application
   const handleTeamSelection = async (teamId: string | null) => {
     // Increment request counter to track this request
     const requestId = ++teamSelectionRequestRef.current;
@@ -1037,8 +1037,35 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     setSelectedTeamId(teamId);
     onTeamIdChange(teamId);
 
+    // Build updates object - start with teamId
+    const updates: Partial<AppState> = { teamId: teamId || undefined };
+
+    // Apply team's bound season/tournament if present
+    if (teamId) {
+      const team = teams.find(t => t.id === teamId);
+      if (team?.boundSeasonId) {
+        // Team is bound to a season - apply it
+        updates.seasonId = team.boundSeasonId;
+        updates.tournamentId = ''; // Clear tournament (mutual exclusivity)
+        onSeasonIdChange(team.boundSeasonId);
+        onTournamentIdChange('');
+        appliedSeasonRef.current = team.boundSeasonId;
+        appliedTournamentRef.current = null;
+        setActiveTab('season');
+      } else if (team?.boundTournamentId) {
+        // Team is bound to a tournament - apply it
+        updates.tournamentId = team.boundTournamentId;
+        updates.seasonId = ''; // Clear season (mutual exclusivity)
+        onTournamentIdChange(team.boundTournamentId);
+        onSeasonIdChange('');
+        appliedTournamentRef.current = team.boundTournamentId;
+        appliedSeasonRef.current = null;
+        setActiveTab('tournament');
+      }
+    }
+
     mutateGameDetails(
-      { teamId: teamId || undefined },
+      updates,
       { source: 'stateSync' }
     );
 
