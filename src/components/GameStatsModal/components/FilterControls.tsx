@@ -7,6 +7,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Season, Tournament, Team } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
+import { getTeamDisplayName } from '@/utils/teams';
 import type { TranslationKey } from '@/i18n-types';
 import type { GameType } from '@/types/game';
 import { StatsTab } from '../types';
@@ -136,7 +137,7 @@ export function FilterControls({
           <option value="legacy">{t('loadGameModal.legacyGamesFilter', 'Legacy Games')}</option>
           {teams.map((team) => (
             <option key={team.id} value={team.id}>
-              {team.name}
+              {getTeamDisplayName(team, seasons, tournaments, { futsalLabel: t('common.gameTypeFutsal', 'Futsal') })}
             </option>
           ))}
         </select>
