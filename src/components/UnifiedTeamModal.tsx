@@ -165,6 +165,44 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const inheritedGameType = selectedSeason?.gameType || selectedTournament?.gameType;
   const hasAssociation = !!boundSeasonId || !!boundTournamentId;
 
+  // Sort seasons by startDate (newest first), then by name for consistent dropdown order
+  const sortedSeasons = useMemo(() => {
+    return [...seasons]
+      .filter(s => !s.archived)
+      .sort((a, b) => {
+        // Sort by startDate descending (newest first), nulls last
+        if (a.startDate && b.startDate) {
+          const dateCompare = b.startDate.localeCompare(a.startDate);
+          if (dateCompare !== 0) return dateCompare;
+        } else if (a.startDate) {
+          return -1;
+        } else if (b.startDate) {
+          return 1;
+        }
+        // Secondary sort by name
+        return a.name.localeCompare(b.name);
+      });
+  }, [seasons]);
+
+  // Sort tournaments by startDate (newest first), then by name for consistent dropdown order
+  const sortedTournaments = useMemo(() => {
+    return [...tournaments]
+      .filter(t => !t.archived)
+      .sort((a, b) => {
+        // Sort by startDate descending (newest first), nulls last
+        if (a.startDate && b.startDate) {
+          const dateCompare = b.startDate.localeCompare(a.startDate);
+          if (dateCompare !== 0) return dateCompare;
+        } else if (a.startDate) {
+          return -1;
+        } else if (b.startDate) {
+          return 1;
+        }
+        // Secondary sort by name
+        return a.name.localeCompare(b.name);
+      });
+  }, [tournaments]);
+
   // Handle tab change - clears the other binding
   const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {
     setActiveTab(tab);
@@ -574,7 +612,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
-                            {seasons.filter(s => !s.archived).map((s) => (
+                            {sortedSeasons.map((s) => (
                               <option key={s.id} value={s.id}>
                                 {getSeasonDisplayName(s)}
                               </option>
@@ -592,7 +630,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
-                            {tournaments.filter(t => !t.archived).map((tourn) => (
+                            {sortedTournaments.map((tourn) => (
                               <option key={tourn.id} value={tourn.id}>
                                 {getTournamentDisplayName(tourn)}
                               </option>

@@ -287,6 +287,44 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       : LEVELS;
   }, [tournamentId, tournaments]);
 
+  // Sort seasons by startDate (newest first), then by name for consistent dropdown order
+  const sortedSeasons = useMemo(() => {
+    return [...seasons]
+      .filter(s => !s.archived)
+      .sort((a, b) => {
+        // Sort by startDate descending (newest first), nulls last
+        if (a.startDate && b.startDate) {
+          const dateCompare = b.startDate.localeCompare(a.startDate);
+          if (dateCompare !== 0) return dateCompare;
+        } else if (a.startDate) {
+          return -1;
+        } else if (b.startDate) {
+          return 1;
+        }
+        // Secondary sort by name
+        return a.name.localeCompare(b.name);
+      });
+  }, [seasons]);
+
+  // Sort tournaments by startDate (newest first), then by name for consistent dropdown order
+  const sortedTournaments = useMemo(() => {
+    return [...tournaments]
+      .filter(t => !t.archived)
+      .sort((a, b) => {
+        // Sort by startDate descending (newest first), nulls last
+        if (a.startDate && b.startDate) {
+          const dateCompare = b.startDate.localeCompare(a.startDate);
+          if (dateCompare !== 0) return dateCompare;
+        } else if (a.startDate) {
+          return -1;
+        } else if (b.startDate) {
+          return 1;
+        }
+        // Secondary sort by name
+        return a.name.localeCompare(b.name);
+      });
+  }, [tournaments]);
+
   // Track if we've already applied season/tournament updates to prevent infinite loops
   const appliedSeasonRef = useRef<string | null>(null);
   const appliedTournamentRef = useRef<string | null>(null);
@@ -1589,7 +1627,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   >
                     <option value="">{t('gameSettingsModal.selectSeason', '-- Select Season --')}</option>
-                    {seasons.filter(season => !season.archived).map((season) => (
+                    {sortedSeasons.map((season) => (
                       <option key={season.id} value={season.id}>
                         {getSeasonDisplayName(season)}
                       </option>
@@ -1725,7 +1763,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   >
                     <option value="">{t('gameSettingsModal.selectTournament', '-- Select Tournament --')}</option>
-                    {tournaments.filter(tournament => !tournament.archived).map((tournament) => (
+                    {sortedTournaments.map((tournament) => (
                       <option key={tournament.id} value={tournament.id}>
                         {getTournamentDisplayName(tournament)}
                       </option>
