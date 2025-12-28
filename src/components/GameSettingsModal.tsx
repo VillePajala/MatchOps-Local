@@ -1043,6 +1043,37 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     );
 
     if (teamId) {
+      const selectedTeam = teams.find(team => team.id === teamId);
+      if (selectedTeam?.boundTournamentId) {
+        const boundTournamentId = selectedTeam.boundTournamentId;
+        appliedSeasonRef.current = null;
+        appliedTournamentRef.current = null;
+        onTournamentIdChange(boundTournamentId);
+        onSeasonIdChange('');
+        mutateGameDetails(
+          { tournamentId: boundTournamentId, seasonId: '' },
+          {
+            source: 'teamSelection',
+            targetId: boundTournamentId,
+            expectedState: { tournamentId: boundTournamentId, seasonId: '' },
+          }
+        );
+      } else if (selectedTeam?.boundSeasonId) {
+        const boundSeasonId = selectedTeam.boundSeasonId;
+        appliedSeasonRef.current = null;
+        appliedTournamentRef.current = null;
+        onSeasonIdChange(boundSeasonId);
+        onTournamentIdChange('');
+        mutateGameDetails(
+          { seasonId: boundSeasonId, tournamentId: '' },
+          {
+            source: 'teamSelection',
+            targetId: boundSeasonId,
+            expectedState: { seasonId: boundSeasonId, tournamentId: '' },
+          }
+        );
+      }
+
       try {
         // Load team roster
         const teamRoster = await getTeamRoster(teamId);
