@@ -272,6 +272,8 @@ export const countGamesForTeam = async (teamId: string): Promise<number> => {
 interface TeamContextDisplayOptions {
   /** Label to use for futsal game type (for i18n support). Defaults to 'Futsal'. */
   futsalLabel?: string;
+  /** If true, show only the base name of season/tournament without clubSeason suffix. */
+  excludeClubSeason?: boolean;
 }
 
 /**
@@ -302,14 +304,16 @@ export const getTeamContextDisplay = (
   if (team.boundSeasonId) {
     const season = seasons.find(s => s.id === team.boundSeasonId);
     if (season) {
-      parts.push(getSeasonDisplayName(season));
+      // Use base name only if excludeClubSeason is true, otherwise full display name
+      parts.push(options?.excludeClubSeason ? season.name : getSeasonDisplayName(season));
     }
   }
 
   if (team.boundTournamentId) {
     const tournament = tournaments.find(t => t.id === team.boundTournamentId);
     if (tournament) {
-      parts.push(getTournamentDisplayName(tournament));
+      // Use base name only if excludeClubSeason is true, otherwise full display name
+      parts.push(options?.excludeClubSeason ? tournament.name : getTournamentDisplayName(tournament));
     }
   }
 
