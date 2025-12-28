@@ -5,6 +5,7 @@ import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/
 import { useTranslation } from 'react-i18next';
 import { Team, Player, Tournament, Season } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
+import { sortByStartDateName } from '@/utils/sortByStartDate';
 import {
   useAddTeamMutation,
   useUpdateTeamMutation,
@@ -165,43 +166,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const inheritedGameType = selectedSeason?.gameType || selectedTournament?.gameType;
   const hasAssociation = !!boundSeasonId || !!boundTournamentId;
 
-  // Sort seasons by startDate (newest first), then by name for consistent dropdown order
-  const sortedSeasons = useMemo(() => {
-    return [...seasons]
-      .filter(s => !s.archived)
-      .sort((a, b) => {
-        // Sort by startDate descending (newest first), nulls last
-        if (a.startDate && b.startDate) {
-          const dateCompare = b.startDate.localeCompare(a.startDate);
-          if (dateCompare !== 0) return dateCompare;
-        } else if (a.startDate) {
-          return -1;
-        } else if (b.startDate) {
-          return 1;
-        }
-        // Secondary sort by name
-        return a.name.localeCompare(b.name);
-      });
-  }, [seasons]);
-
-  // Sort tournaments by startDate (newest first), then by name for consistent dropdown order
-  const sortedTournaments = useMemo(() => {
-    return [...tournaments]
-      .filter(t => !t.archived)
-      .sort((a, b) => {
-        // Sort by startDate descending (newest first), nulls last
-        if (a.startDate && b.startDate) {
-          const dateCompare = b.startDate.localeCompare(a.startDate);
-          if (dateCompare !== 0) return dateCompare;
-        } else if (a.startDate) {
-          return -1;
-        } else if (b.startDate) {
-          return 1;
-        }
-        // Secondary sort by name
-        return a.name.localeCompare(b.name);
-      });
-  }, [tournaments]);
+  const sortedSeasons = useMemo(() => sortByStartDateName(seasons), [seasons]);
+  const sortedTournaments = useMemo(() => sortByStartDateName(tournaments), [tournaments]);
 
   // Handle tab change - clears the other binding
   const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {

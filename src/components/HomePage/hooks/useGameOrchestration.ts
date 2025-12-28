@@ -576,6 +576,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   expectedState?: {
     seasonId?: string;
     tournamentId?: string;
+    teamId?: string;
     gameLocation?: string;
     ageGroup?: string;
     tournamentLevel?: string;

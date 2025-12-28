@@ -8,6 +8,7 @@ import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'reac
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender } from '@/types';
 import { AppState } from '@/types';
 import { getTeamRoster, getTeamDisplayName } from '@/utils/teams';
+import { sortByStartDateName } from '@/utils/sortByStartDate';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -63,6 +64,7 @@ type MutationMetaBase = {
   expectedState?: {
     seasonId?: string;
     tournamentId?: string;
+    teamId?: string;
     gameLocation?: string;
     ageGroup?: string;
     tournamentLevel?: string;
@@ -287,43 +289,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       : LEVELS;
   }, [tournamentId, tournaments]);
 
-  // Sort seasons by startDate (newest first), then by name for consistent dropdown order
-  const sortedSeasons = useMemo(() => {
-    return [...seasons]
-      .filter(s => !s.archived)
-      .sort((a, b) => {
-        // Sort by startDate descending (newest first), nulls last
-        if (a.startDate && b.startDate) {
-          const dateCompare = b.startDate.localeCompare(a.startDate);
-          if (dateCompare !== 0) return dateCompare;
-        } else if (a.startDate) {
-          return -1;
-        } else if (b.startDate) {
-          return 1;
-        }
-        // Secondary sort by name
-        return a.name.localeCompare(b.name);
-      });
-  }, [seasons]);
-
-  // Sort tournaments by startDate (newest first), then by name for consistent dropdown order
-  const sortedTournaments = useMemo(() => {
-    return [...tournaments]
-      .filter(t => !t.archived)
-      .sort((a, b) => {
-        // Sort by startDate descending (newest first), nulls last
-        if (a.startDate && b.startDate) {
-          const dateCompare = b.startDate.localeCompare(a.startDate);
-          if (dateCompare !== 0) return dateCompare;
-        } else if (a.startDate) {
-          return -1;
-        } else if (b.startDate) {
-          return 1;
-        }
-        // Secondary sort by name
-        return a.name.localeCompare(b.name);
-      });
-  }, [tournaments]);
+  const sortedSeasons = useMemo(() => sortByStartDateName(seasons), [seasons]);
+  const sortedTournaments = useMemo(() => sortByStartDateName(tournaments), [tournaments]);
 
   // Track if we've already applied season/tournament updates to prevent infinite loops
   const appliedSeasonRef = useRef<string | null>(null);
@@ -1037,54 +1004,47 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     setSelectedTeamId(teamId);
     onTeamIdChange(teamId);
 
-    mutateGameDetails(
-      { teamId: teamId || undefined },
-      { source: 'stateSync' }
-    );
-
     if (teamId) {
       const selectedTeam = teams.find(team => team.id === teamId);
+      let updates: Partial<AppState> = { teamId };
+      let meta: MutationMetaBase = { source: 'stateSync' };
+
       if (selectedTeam?.boundTournamentId) {
         const boundTournamentId = selectedTeam.boundTournamentId;
         appliedSeasonRef.current = null;
         appliedTournamentRef.current = null;
         onTournamentIdChange(boundTournamentId);
         onSeasonIdChange('');
-        try {
-          await mutateGameDetailsAsync(
-            { tournamentId: boundTournamentId, seasonId: '' },
-            {
-              source: 'stateSync',
-              targetId: boundTournamentId,
-              expectedState: { tournamentId: boundTournamentId, seasonId: '' },
-            }
-          );
-        } catch (error) {
-          logger.error('[GameSettingsModal] Team bound tournament mutation failed:', error);
-          if (isMountedRef.current) {
-            setError(t('gameSettingsModal.errors.tournamentUpdateFailed', 'Failed to apply tournament settings'));
-          }
-        }
+        updates = { teamId, tournamentId: boundTournamentId, seasonId: '' };
+        meta = {
+          source: 'stateSync',
+          targetId: boundTournamentId,
+          expectedState: { teamId, tournamentId: boundTournamentId, seasonId: '' },
+        };
       } else if (selectedTeam?.boundSeasonId) {
         const boundSeasonId = selectedTeam.boundSeasonId;
         appliedSeasonRef.current = null;
         appliedTournamentRef.current = null;
         onSeasonIdChange(boundSeasonId);
         onTournamentIdChange('');
-        try {
-          await mutateGameDetailsAsync(
-            { seasonId: boundSeasonId, tournamentId: '' },
-            {
-              source: 'stateSync',
-              targetId: boundSeasonId,
-              expectedState: { seasonId: boundSeasonId, tournamentId: '' },
-            }
-          );
-        } catch (error) {
-          logger.error('[GameSettingsModal] Team bound season mutation failed:', error);
-          if (isMountedRef.current) {
-            setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
-          }
+        updates = { teamId, seasonId: boundSeasonId, tournamentId: '' };
+        meta = {
+          source: 'stateSync',
+          targetId: boundSeasonId,
+          expectedState: { teamId, seasonId: boundSeasonId, tournamentId: '' },
+        };
+      }
+
+      if (requestId !== teamSelectionRequestRef.current) {
+        return;
+      }
+
+      try {
+        await mutateGameDetailsAsync(updates, meta);
+      } catch (error) {
+        logger.error('[GameSettingsModal] Team selection mutation failed:', error);
+        if (isMountedRef.current) {
+          setError(t('gameSettingsModal.errors.updateFailed', 'Failed to save changes'));
         }
       }
 
@@ -1126,6 +1086,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     } else {
       // No team selected - keep current selection (don't auto-select all)
       // User can manually select players if needed
+      mutateGameDetails(
+        { teamId: teamId || undefined },
+        { source: 'stateSync' }
+      );
     }
   };
 

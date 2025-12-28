@@ -7,6 +7,7 @@ import { Player, Season, Tournament, Team, Personnel, GameType, Gender } from '@
 import logger from '@/utils/logger';
 import { getTeamRoster, getTeamDisplayName } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
+import { sortByStartDateName } from '@/utils/sortByStartDate';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
@@ -193,43 +194,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     return tournaments.find(t => t.id === selectedTournamentId) || null;
   }, [tournaments, selectedTournamentId]);
 
-  // Sort seasons by startDate (newest first), then by name for consistent dropdown order
-  const sortedSeasons = useMemo(() => {
-    return [...seasons]
-      .filter(s => !s.archived)
-      .sort((a, b) => {
-        // Sort by startDate descending (newest first), nulls last
-        if (a.startDate && b.startDate) {
-          const dateCompare = b.startDate.localeCompare(a.startDate);
-          if (dateCompare !== 0) return dateCompare;
-        } else if (a.startDate) {
-          return -1; // a has date, b doesn't -> a first
-        } else if (b.startDate) {
-          return 1; // b has date, a doesn't -> b first
-        }
-        // Secondary sort by name
-        return a.name.localeCompare(b.name);
-      });
-  }, [seasons]);
-
-  // Sort tournaments by startDate (newest first), then by name for consistent dropdown order
-  const sortedTournaments = useMemo(() => {
-    return [...tournaments]
-      .filter(t => !t.archived)
-      .sort((a, b) => {
-        // Sort by startDate descending (newest first), nulls last
-        if (a.startDate && b.startDate) {
-          const dateCompare = b.startDate.localeCompare(a.startDate);
-          if (dateCompare !== 0) return dateCompare;
-        } else if (a.startDate) {
-          return -1;
-        } else if (b.startDate) {
-          return 1;
-        }
-        // Secondary sort by name
-        return a.name.localeCompare(b.name);
-      });
-  }, [tournaments]);
+  const sortedSeasons = useMemo(() => sortByStartDateName(seasons), [seasons]);
+  const sortedTournaments = useMemo(() => sortByStartDateName(tournaments), [tournaments]);
 
   // Filter to only valid series (with levels in LEVELS constant)
   const validSeries = useMemo(() => {

@@ -320,11 +320,11 @@ describe('<GameSettingsModal />', () => {
         expect(mutateAsync).toHaveBeenCalledWith(
           expect.objectContaining({
             gameId: 'game123',
-            updates: { tournamentId: 't1', seasonId: '' },
+            updates: { teamId: 'team-1', tournamentId: 't1', seasonId: '' },
             meta: expect.objectContaining({
               source: 'stateSync',
               targetId: 't1',
-              expectedState: { tournamentId: 't1', seasonId: '' },
+              expectedState: { teamId: 'team-1', tournamentId: 't1', seasonId: '' },
             }),
           })
         );
@@ -385,11 +385,11 @@ describe('<GameSettingsModal />', () => {
         expect(mutateAsync).toHaveBeenCalledWith(
           expect.objectContaining({
             gameId: 'game123',
-            updates: { seasonId: 's2', tournamentId: '' },
+            updates: { teamId: 'team-2', seasonId: 's2', tournamentId: '' },
             meta: expect.objectContaining({
               source: 'stateSync',
               targetId: 's2',
-              expectedState: { seasonId: 's2', tournamentId: '' },
+              expectedState: { teamId: 'team-2', seasonId: 's2', tournamentId: '' },
             }),
           })
         );
