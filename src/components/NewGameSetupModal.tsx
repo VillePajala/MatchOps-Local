@@ -193,6 +193,44 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     return tournaments.find(t => t.id === selectedTournamentId) || null;
   }, [tournaments, selectedTournamentId]);
 
+  // Sort seasons by startDate (newest first), then by name for consistent dropdown order
+  const sortedSeasons = useMemo(() => {
+    return [...seasons]
+      .filter(s => !s.archived)
+      .sort((a, b) => {
+        // Sort by startDate descending (newest first), nulls last
+        if (a.startDate && b.startDate) {
+          const dateCompare = b.startDate.localeCompare(a.startDate);
+          if (dateCompare !== 0) return dateCompare;
+        } else if (a.startDate) {
+          return -1; // a has date, b doesn't -> a first
+        } else if (b.startDate) {
+          return 1; // b has date, a doesn't -> b first
+        }
+        // Secondary sort by name
+        return a.name.localeCompare(b.name);
+      });
+  }, [seasons]);
+
+  // Sort tournaments by startDate (newest first), then by name for consistent dropdown order
+  const sortedTournaments = useMemo(() => {
+    return [...tournaments]
+      .filter(t => !t.archived)
+      .sort((a, b) => {
+        // Sort by startDate descending (newest first), nulls last
+        if (a.startDate && b.startDate) {
+          const dateCompare = b.startDate.localeCompare(a.startDate);
+          if (dateCompare !== 0) return dateCompare;
+        } else if (a.startDate) {
+          return -1;
+        } else if (b.startDate) {
+          return 1;
+        }
+        // Secondary sort by name
+        return a.name.localeCompare(b.name);
+      });
+  }, [tournaments]);
+
   // Filter to only valid series (with levels in LEVELS constant)
   const validSeries = useMemo(() => {
     if (!selectedTournament?.series) return [];
@@ -695,7 +733,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           >
                             <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
-                            {seasons.filter(season => !season.archived).map((season) => (
+                            {sortedSeasons.map((season) => (
                               <option key={season.id} value={season.id}>
                                 {getSeasonDisplayName(season)}
                               </option>
@@ -752,7 +790,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           >
                             <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
-                            {tournaments.filter(tournament => !tournament.archived).map((tournament) => (
+                            {sortedTournaments.map((tournament) => (
                               <option key={tournament.id} value={tournament.id}>
                                 {getTournamentDisplayName(tournament)}
                               </option>
