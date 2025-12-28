@@ -8,6 +8,7 @@ import { Player, Season, Tournament, AppState } from '@/types';
 import { GameEvent, GameEventType } from './GameSettingsModal';
 import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/savedGames';
 import * as rosterUtils from '@/utils/masterRoster';
+import * as teamUtils from '@/utils/teams';
 import { useTranslation } from 'react-i18next';
 import { UseMutationResult } from '@tanstack/react-query';
 import { ToastProvider } from '@/contexts/ToastProvider';
@@ -112,6 +113,14 @@ jest.mock('@/utils/savedGames', () => ({
   removeGameEvent: jest.fn(),
 }));
 jest.mock('@/utils/masterRoster', () => ({ getMasterRoster: jest.fn() }));
+jest.mock('@/utils/teams', () => {
+  const actual = jest.requireActual('@/utils/teams');
+  return {
+    ...actual,
+    getTeamRoster: jest.fn(),
+    getTeamDisplayName: jest.fn((team: { name: string }) => team.name),
+  };
+});
 
 const mockPlayers: Player[] = [
   { id: 'p1', name: 'Player One', isGoalie: false },
@@ -181,6 +190,7 @@ const defaultProps: GameSettingsModalProps = {
   onGenderChange: jest.fn(),
   updateGameDetailsMutation: {
     mutate: jest.fn(),
+    mutateAsync: jest.fn().mockResolvedValue({ id: 'game123' }),
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
   seasons: mockSeasons,
   tournaments: mockTournaments,
@@ -195,6 +205,7 @@ describe('<GameSettingsModal />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (rosterUtils.getMasterRoster as jest.Mock).mockReturnValue(mockPlayers);
+    (teamUtils.getTeamRoster as jest.Mock).mockResolvedValue([]);
     (updateGameDetails as jest.Mock).mockResolvedValue({ id: 'game123' });
     (updateGameEvent as jest.Mock).mockResolvedValue({ id: 'event1' });
     (removeGameEvent as jest.Mock).mockResolvedValue(true);
@@ -256,6 +267,183 @@ describe('<GameSettingsModal />', () => {
       expect(onAgeGroupChange).toHaveBeenCalledWith('u13');
       expect(onNumPeriodsChange).toHaveBeenCalledWith(2);
       expect(onPeriodDurationChange).toHaveBeenCalledWith(30);
+    });
+  });
+
+  /**
+   * Tests team selection with bound tournament/season context
+   * @integration
+   */
+  describe('Team selection with bound context', () => {
+    test('applies boundTournamentId and clears seasonId when team is selected', async () => {
+      const user = userEvent.setup();
+      const onSelectedPlayersChange = jest.fn();
+      const onSeasonIdChange = jest.fn();
+      const onTournamentIdChange = jest.fn();
+      const mutateAsync = jest.fn().mockResolvedValue({ id: 'game123' });
+
+      (teamUtils.getTeamRoster as jest.Mock).mockResolvedValue([
+        { id: 'team-player-1', name: 'Player One' },
+      ]);
+
+      renderModal({
+        ...defaultProps,
+        onSelectedPlayersChange,
+        onSeasonIdChange,
+        onTournamentIdChange,
+        teams: [
+          {
+            id: 'team-1',
+            name: 'Team One',
+            boundTournamentId: 't1',
+            createdAt: '2024-01-01',
+            updatedAt: '2024-01-01',
+          },
+        ],
+        updateGameDetailsMutation: {
+          mutate: jest.fn(),
+          mutateAsync,
+        } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+      });
+
+      await user.selectOptions(
+        screen.getByLabelText('gameSettingsModal.selectTeamLabel'),
+        'team-1'
+      );
+
+      await waitFor(() => {
+        expect(onTournamentIdChange).toHaveBeenCalledWith('t1');
+        expect(onSeasonIdChange).toHaveBeenCalledWith('');
+      });
+
+      await waitFor(() => {
+        expect(mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            gameId: 'game123',
+            updates: { tournamentId: 't1', seasonId: '' },
+            meta: expect.objectContaining({
+              source: 'stateSync',
+              targetId: 't1',
+              expectedState: { tournamentId: 't1', seasonId: '' },
+            }),
+          })
+        );
+      });
+
+      await waitFor(() => {
+        expect(teamUtils.getTeamRoster).toHaveBeenCalledWith('team-1');
+        expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p1']);
+      });
+
+      const mutateOrder = (mutateAsync as jest.Mock).mock.invocationCallOrder[0];
+      const rosterOrder = (teamUtils.getTeamRoster as jest.Mock).mock.invocationCallOrder[0];
+      expect(mutateOrder).toBeLessThan(rosterOrder);
+    });
+
+    test('applies boundSeasonId and clears tournamentId when team is selected', async () => {
+      const user = userEvent.setup();
+      const onSelectedPlayersChange = jest.fn();
+      const onSeasonIdChange = jest.fn();
+      const onTournamentIdChange = jest.fn();
+      const mutateAsync = jest.fn().mockResolvedValue({ id: 'game123' });
+
+      (teamUtils.getTeamRoster as jest.Mock).mockResolvedValue([
+        { id: 'team-player-2', name: 'Player Two' },
+      ]);
+
+      renderModal({
+        ...defaultProps,
+        onSelectedPlayersChange,
+        onSeasonIdChange,
+        onTournamentIdChange,
+        teams: [
+          {
+            id: 'team-2',
+            name: 'Team Two',
+            boundSeasonId: 's2',
+            createdAt: '2024-01-01',
+            updatedAt: '2024-01-01',
+          },
+        ],
+        updateGameDetailsMutation: {
+          mutate: jest.fn(),
+          mutateAsync,
+        } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+      });
+
+      await user.selectOptions(
+        screen.getByLabelText('gameSettingsModal.selectTeamLabel'),
+        'team-2'
+      );
+
+      await waitFor(() => {
+        expect(onSeasonIdChange).toHaveBeenCalledWith('s2');
+        expect(onTournamentIdChange).toHaveBeenCalledWith('');
+      });
+
+      await waitFor(() => {
+        expect(mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            gameId: 'game123',
+            updates: { seasonId: 's2', tournamentId: '' },
+            meta: expect.objectContaining({
+              source: 'stateSync',
+              targetId: 's2',
+              expectedState: { seasonId: 's2', tournamentId: '' },
+            }),
+          })
+        );
+      });
+
+      await waitFor(() => {
+        expect(teamUtils.getTeamRoster).toHaveBeenCalledWith('team-2');
+        expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p2']);
+      });
+    });
+
+    test('does not change season or tournament when team has no bound context', async () => {
+      const user = userEvent.setup();
+      const onSelectedPlayersChange = jest.fn();
+      const onSeasonIdChange = jest.fn();
+      const onTournamentIdChange = jest.fn();
+      const mutateAsync = jest.fn().mockResolvedValue({ id: 'game123' });
+
+      (teamUtils.getTeamRoster as jest.Mock).mockResolvedValue([]);
+
+      renderModal({
+        ...defaultProps,
+        onSelectedPlayersChange,
+        onSeasonIdChange,
+        onTournamentIdChange,
+        teams: [
+          {
+            id: 'team-3',
+            name: 'Team Three',
+            createdAt: '2024-01-01',
+            updatedAt: '2024-01-01',
+          },
+        ],
+        updateGameDetailsMutation: {
+          mutate: jest.fn(),
+          mutateAsync,
+        } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+      });
+
+      await user.selectOptions(
+        screen.getByLabelText('gameSettingsModal.selectTeamLabel'),
+        'team-3'
+      );
+
+      await waitFor(() => {
+        expect(onSeasonIdChange).not.toHaveBeenCalled();
+        expect(onTournamentIdChange).not.toHaveBeenCalled();
+        expect(mutateAsync).not.toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(teamUtils.getTeamRoster).toHaveBeenCalledWith('team-3');
+        expect(onSelectedPlayersChange).toHaveBeenCalledWith([]);
+      });
     });
   });
 

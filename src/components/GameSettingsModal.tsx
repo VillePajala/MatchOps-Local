@@ -1050,28 +1050,42 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         appliedTournamentRef.current = null;
         onTournamentIdChange(boundTournamentId);
         onSeasonIdChange('');
-        mutateGameDetails(
-          { tournamentId: boundTournamentId, seasonId: '' },
-          {
-            source: 'stateSync',
-            targetId: boundTournamentId,
-            expectedState: { tournamentId: boundTournamentId, seasonId: '' },
+        try {
+          await mutateGameDetailsAsync(
+            { tournamentId: boundTournamentId, seasonId: '' },
+            {
+              source: 'stateSync',
+              targetId: boundTournamentId,
+              expectedState: { tournamentId: boundTournamentId, seasonId: '' },
+            }
+          );
+        } catch (error) {
+          logger.error('[GameSettingsModal] Team bound tournament mutation failed:', error);
+          if (isMountedRef.current) {
+            setError(t('gameSettingsModal.errors.tournamentUpdateFailed', 'Failed to apply tournament settings'));
           }
-        );
+        }
       } else if (selectedTeam?.boundSeasonId) {
         const boundSeasonId = selectedTeam.boundSeasonId;
         appliedSeasonRef.current = null;
         appliedTournamentRef.current = null;
         onSeasonIdChange(boundSeasonId);
         onTournamentIdChange('');
-        mutateGameDetails(
-          { seasonId: boundSeasonId, tournamentId: '' },
-          {
-            source: 'stateSync',
-            targetId: boundSeasonId,
-            expectedState: { seasonId: boundSeasonId, tournamentId: '' },
+        try {
+          await mutateGameDetailsAsync(
+            { seasonId: boundSeasonId, tournamentId: '' },
+            {
+              source: 'stateSync',
+              targetId: boundSeasonId,
+              expectedState: { seasonId: boundSeasonId, tournamentId: '' },
+            }
+          );
+        } catch (error) {
+          logger.error('[GameSettingsModal] Team bound season mutation failed:', error);
+          if (isMountedRef.current) {
+            setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
           }
-        );
+        }
       }
 
       try {
