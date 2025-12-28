@@ -1053,7 +1053,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         mutateGameDetails(
           { tournamentId: boundTournamentId, seasonId: '' },
           {
-            source: 'teamSelection',
+            source: 'stateSync',
             targetId: boundTournamentId,
             expectedState: { tournamentId: boundTournamentId, seasonId: '' },
           }
@@ -1067,7 +1067,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         mutateGameDetails(
           { seasonId: boundSeasonId, tournamentId: '' },
           {
-            source: 'teamSelection',
+            source: 'stateSync',
             targetId: boundSeasonId,
             expectedState: { seasonId: boundSeasonId, tournamentId: '' },
           }
