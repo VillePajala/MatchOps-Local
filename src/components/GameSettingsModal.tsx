@@ -292,11 +292,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const hasSeries = validSeries.length > 0;
 
   // Validate current series selection exists in tournament
+  // Never auto-default to a series - old games must manually set series
   const effectiveSeriesId = useMemo(() => {
     if (!tournamentSeriesId) return null;
+    // Only return the seriesId if it exists in the tournament's series
     return validSeries.some(s => s.id === tournamentSeriesId)
       ? tournamentSeriesId
-      : (validSeries[0]?.id || null);
+      : null;
   }, [tournamentSeriesId, validSeries]);
 
   // Fallback to LEVELS for tournaments without series
