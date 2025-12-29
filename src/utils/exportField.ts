@@ -220,8 +220,9 @@ const loadLogo = (): Promise<HTMLImageElement | null> => {
 
 /**
  * Draw game info header section (above the field, not overlaying it)
+ * @internal Exported for testing
  */
-const drawHeader = (
+export const drawHeader = (
   ctx: CanvasRenderingContext2D,
   width: number,
   headerHeight: number,
