@@ -1612,6 +1612,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleGameTimeChange = sessionCoordination.handlers.setGameTime;
   const handleAgeGroupChange = sessionCoordination.handlers.setAgeGroup;
   const handleTournamentLevelChange = sessionCoordination.handlers.setTournamentLevel;
+  const handleTournamentSeriesIdChange = sessionCoordination.handlers.setTournamentSeriesId;
   const handleSetDemandFactor = sessionCoordination.handlers.setDemandFactor;
   const handleSetHomeOrAway = sessionCoordination.handlers.setHomeOrAway;
   const handleSetSeasonId = sessionCoordination.handlers.setSeasonId;
@@ -2105,6 +2106,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       handleGameNotesChange,
       handleAgeGroupChange,
       handleTournamentLevelChange,
+      handleTournamentSeriesIdChange,
       handleAwardFairPlayCard,
       handleSetNumberOfPeriods,
       handleSetPeriodDuration,

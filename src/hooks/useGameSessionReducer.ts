@@ -122,7 +122,7 @@ export type GameSessionAction =
   | { type: 'SET_GAME_TIME'; payload: string }
   | { type: 'SET_AGE_GROUP'; payload: string }
   | { type: 'SET_TOURNAMENT_LEVEL'; payload: string }
-  | { type: 'SET_TOURNAMENT_SERIES_ID'; payload: string }
+  | { type: 'SET_TOURNAMENT_SERIES_ID'; payload: string | undefined }
   | { type: 'SET_DEMAND_FACTOR'; payload: number }
   | { type: 'ADD_GAME_EVENT'; payload: GameEvent }
   | { type: 'UPDATE_GAME_EVENT'; payload: GameEvent }

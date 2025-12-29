@@ -167,6 +167,7 @@ interface ModalManagerHandlers {
   gameNotesChange: (notes: string) => void;
   ageGroupChange: (ageGroup: string) => void;
   tournamentLevelChange: (level: string) => void;
+  tournamentSeriesIdChange: (seriesId: string | undefined) => void;
   awardFairPlayCard: (playerId: string | null, time: number) => void;
   setNumberOfPeriods: (periods: number) => void;
   setPeriodDuration: (minutes: number) => void;
@@ -385,6 +386,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           gameNotes={data.gameSessionState.gameNotes}
           ageGroup={data.gameSessionState.ageGroup}
           tournamentLevel={data.gameSessionState.tournamentLevel}
+          tournamentSeriesId={data.gameSessionState.tournamentSeriesId}
           gameEvents={data.gameSessionState.gameEvents}
           availablePlayers={data.availablePlayers}
           availablePersonnel={data.personnel}
@@ -403,6 +405,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onGameNotesChange={handlers.gameNotesChange}
           onAgeGroupChange={handlers.ageGroupChange}
           onTournamentLevelChange={handlers.tournamentLevelChange}
+          onTournamentSeriesIdChange={handlers.tournamentSeriesIdChange}
           onUpdateGameEvent={handlers.updateGameEvent}
           onAwardFairPlayCard={handlers.awardFairPlayCard}
           onDeleteGameEvent={handlers.deleteGameEvent}
