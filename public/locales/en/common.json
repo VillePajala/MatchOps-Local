@@ -793,6 +793,7 @@
     "createTournament": "Create new tournament",
     "newTournamentPlaceholder": "Enter new tournament name...",
     "levelLabel": "Level",
+    "seriesLabel": "Series",
     "fairPlayCardTitle": "Fair Play Card",
     "fairPlayCardDescription": "Select a player to award the Fair Play Card, or clear the current selection.",
     "selectPlayerForFairPlay": "-- Select Player --",

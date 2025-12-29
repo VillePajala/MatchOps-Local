@@ -1833,6 +1833,65 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 </div>
               )}
 
+              {/* Series / Level Selection - only shown when tournament is selected */}
+              {tournamentId && (
+                <div className="mb-4">
+                  <label htmlFor="seriesLevelInput" className="block text-sm font-medium text-slate-300 mb-1">
+                    {hasSeries
+                      ? t('gameSettingsModal.seriesLabel', 'Series')
+                      : t('gameSettingsModal.levelLabel', 'Level')}
+                  </label>
+                  {hasSeries ? (
+                    <select
+                      id="seriesLevelInput"
+                      value={effectiveSeriesId || ''}
+                      onChange={(e) => {
+                        const seriesId = e.target.value || undefined;
+                        const series = validSeries.find(s => s.id === seriesId);
+                        onTournamentSeriesIdChange(seriesId);
+                        onTournamentLevelChange(series?.level || '');
+                        mutateGameDetails(
+                          {
+                            tournamentSeriesId: seriesId || '',
+                            tournamentLevel: series?.level || '',
+                          },
+                          { source: 'stateSync' }
+                        );
+                      }}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    >
+                      <option value="">{t('common.none', 'None')}</option>
+                      {validSeries.map((series) => (
+                        <option key={series.id} value={series.id}>
+                          {t(`common.level${series.level}` as TranslationKey, series.level)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      id="seriesLevelInput"
+                      value={tournamentLevel}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        onTournamentLevelChange(value);
+                        mutateGameDetails(
+                          { tournamentLevel: value },
+                          { source: 'stateSync', expectedState: { tournamentLevel: value } }
+                        );
+                      }}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    >
+                      <option value="">{t('common.none', 'None')}</option>
+                      {availableLevels.map((lvl) => (
+                        <option key={lvl} value={lvl}>
+                          {t(`common.level${lvl}` as TranslationKey, lvl)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
               {/* Age Group */}
               <div className="mb-4">
                 <label htmlFor="ageGroupSelect" className="block text-sm font-medium text-slate-300 mb-1">
@@ -2053,64 +2112,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     spellCheck="true"
                   />
                 </div>
-
-                {tournamentId && (
-                  <div className="mb-4">
-                    <label htmlFor="levelInput" className="block text-sm font-medium text-slate-300 mb-1">
-                      {hasSeries
-                        ? t('gameSettingsModal.seriesLabel', 'Series')
-                        : t('gameSettingsModal.levelLabel', 'Level')}
-                    </label>
-                    {hasSeries ? (
-                      <select
-                        id="levelInput"
-                        value={effectiveSeriesId || ''}
-                        onChange={(e) => {
-                          const seriesId = e.target.value || undefined;
-                          const series = validSeries.find(s => s.id === seriesId);
-                          onTournamentSeriesIdChange(seriesId);
-                          onTournamentLevelChange(series?.level || '');
-                          mutateGameDetails(
-                            {
-                              tournamentSeriesId: seriesId || '',
-                              tournamentLevel: series?.level || '',
-                            },
-                            { source: 'stateSync' }
-                          );
-                        }}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                      >
-                        <option value="">{t('common.none', 'None')}</option>
-                        {validSeries.map((series) => (
-                          <option key={series.id} value={series.id}>
-                            {t(`common.level${series.level}` as TranslationKey, series.level)}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <select
-                        id="levelInput"
-                        value={tournamentLevel}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          onTournamentLevelChange(value);
-                          mutateGameDetails(
-                            { tournamentLevel: value },
-                            { source: 'stateSync', expectedState: { tournamentLevel: value } }
-                          );
-                        }}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                      >
-                        <option value="">{t('common.none', 'None')}</option>
-                        {availableLevels.map((lvl) => (
-                          <option key={lvl} value={lvl}>
-                            {t(`common.level${lvl}` as TranslationKey, lvl)}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                )}
 
                 {/* Home/Away Selection */}
                 <div className="mb-4">

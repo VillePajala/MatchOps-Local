@@ -1247,6 +1247,7 @@
     "createTournament": "Luo uusi turnaus",
     "newTournamentPlaceholder": "Syötä uuden turnauksen nimi...",
     "levelLabel": "Taso",
+    "seriesLabel": "Sarja",
     "fairPlayCardTitle": "Fair Play -kortti",
     "fairPlayCardDescription": "Valitse pelaaja Fair Play -kortin saajaksi tai tyhjennä valinta.",
     "selectPlayerForFairPlay": "-- Valitse pelaaja --",
