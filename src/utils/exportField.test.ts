@@ -10,6 +10,7 @@ import {
   truncateText,
   isExportSupported,
   exportFieldAsImage,
+  drawHeader,
   FieldExportOptions,
 } from './exportField';
 
@@ -218,6 +219,96 @@ describe('exportField', () => {
       // Should have some text before ellipsis
       expect(result.length).toBeGreaterThan(1);
       expect(result.endsWith('…')).toBe(true);
+    });
+  });
+
+  describe('drawHeader', () => {
+    let mockCtx: CanvasRenderingContext2D;
+    let fillTextCalls: Array<{ text: string; x: number; y: number }>;
+
+    beforeEach(() => {
+      fillTextCalls = [];
+      mockCtx = {
+        save: jest.fn(),
+        restore: jest.fn(),
+        fillRect: jest.fn(),
+        fillText: jest.fn((text: string, x: number, y: number) => {
+          fillTextCalls.push({ text, x, y });
+        }),
+        drawImage: jest.fn(),
+        measureText: jest.fn(() => ({ width: 100 })),
+        fillStyle: '',
+        font: '',
+        textAlign: 'center',
+        textBaseline: 'middle',
+      } as unknown as CanvasRenderingContext2D;
+    });
+
+    it('should prioritize tournament over season in metadata', () => {
+      drawHeader(mockCtx, 800, 200, {
+        seasonName: 'Spring 2025',
+        tournamentName: 'City Cup',
+        gameDate: '2025-06-15',
+        score: { home: 2, away: 1 },
+        homeOrAway: 'home',
+      }, null);
+
+      // Find calls that contain tournament or season
+      const tournamentCall = fillTextCalls.find(c => c.text.includes('🏆 City Cup'));
+      const seasonCall = fillTextCalls.find(c => c.text.includes('📅 Spring 2025'));
+
+      expect(tournamentCall).toBeDefined();
+      expect(seasonCall).toBeUndefined();
+    });
+
+    it('should show season when tournament is not present', () => {
+      drawHeader(mockCtx, 800, 200, {
+        seasonName: 'Spring 2025',
+        gameDate: '2025-06-15',
+        score: { home: 2, away: 1 },
+        homeOrAway: 'home',
+      }, null);
+
+      const seasonCall = fillTextCalls.find(c => c.text.includes('📅 Spring 2025'));
+      expect(seasonCall).toBeDefined();
+    });
+
+    it('should render location in secondary metadata row', () => {
+      drawHeader(mockCtx, 800, 200, {
+        gameLocation: 'Central Stadium',
+        gameDate: '2025-06-15',
+        score: { home: 2, away: 1 },
+        homeOrAway: 'home',
+      }, null);
+
+      const locationCall = fillTextCalls.find(c => c.text.includes('📍 Central Stadium'));
+      expect(locationCall).toBeDefined();
+    });
+
+    it('should render primary metadata (date, time, age group) in first metadata row', () => {
+      drawHeader(mockCtx, 800, 200, {
+        gameDate: '2025-06-15',
+        gameTime: '14:30',
+        ageGroup: 'U12',
+        score: { home: 2, away: 1 },
+        homeOrAway: 'home',
+      }, null);
+
+      // Primary metadata should be in one row with separators
+      const primaryCall = fillTextCalls.find(c =>
+        c.text.includes('14:30') && c.text.includes('U12')
+      );
+      expect(primaryCall).toBeDefined();
+    });
+
+    it('should handle missing optional metadata gracefully', () => {
+      // Should not throw when minimal options provided
+      expect(() => {
+        drawHeader(mockCtx, 800, 200, {
+          score: { home: 0, away: 0 },
+          homeOrAway: 'home',
+        }, null);
+      }).not.toThrow();
     });
   });
 

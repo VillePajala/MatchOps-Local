@@ -354,7 +354,17 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     img.onload = () => setBallImage(img);
   }, []);
 
-  // Render field at high resolution for export (bypasses CSS-resolution cache)
+  /**
+   * Renders the field at high resolution for export.
+   *
+   * @remarks
+   * In tactical view mode, only tactical elements (discs, ball, drawings) are rendered.
+   * Regular player/opponent discs are excluded to match the on-screen tactical display.
+   * The ball is rendered with circular clipping to mask the white background of the PNG.
+   *
+   * @param exportScale - Resolution multiplier (default: 2 for retina quality)
+   * @returns High-resolution canvas element, or null if canvas unavailable
+   */
   const renderForExport = useCallback((exportScale: number = 2): HTMLCanvasElement | null => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -588,79 +598,79 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // Draw players with polished enamel effect (only in non-tactical view)
     if (!isTacticsBoardView) {
-    players.forEach(player => {
-      if (typeof player.relX !== 'number' || typeof player.relY !== 'number') return;
-      const absX = player.relX * W;
-      const absY = player.relY * H;
+      players.forEach(player => {
+        if (typeof player.relX !== 'number' || typeof player.relY !== 'number') return;
+        const absX = player.relX * W;
+        const absY = player.relY * H;
 
-      // Polished enamel disc effect (matches on-screen display)
-      const baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+        // Polished enamel disc effect (matches on-screen display)
+        const baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
 
-      // 1. Base Disc Color
-      ctx.beginPath();
-      ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      ctx.fillStyle = baseColor.toString();
-      ctx.fill();
+        // 1. Base Disc Color
+        ctx.beginPath();
+        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
+        ctx.fillStyle = baseColor.toString();
+        ctx.fill();
 
-      // 2. Create clipping mask for gradient effects
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      ctx.clip();
+        // 2. Create clipping mask for gradient effects
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
+        ctx.clip();
 
-      // 3. Top-left Highlight (Sheen)
-      const highlightGradient = ctx.createRadialGradient(
-        absX - playerRadius * 0.3, absY - playerRadius * 0.3, 0,
-        absX - playerRadius * 0.3, absY - playerRadius * 0.3, playerRadius * 1.2
-      );
-      highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
-      highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = highlightGradient;
-      ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
+        // 3. Top-left Highlight (Sheen)
+        const highlightGradient = ctx.createRadialGradient(
+          absX - playerRadius * 0.3, absY - playerRadius * 0.3, 0,
+          absX - playerRadius * 0.3, absY - playerRadius * 0.3, playerRadius * 1.2
+        );
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = highlightGradient;
+        ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
 
-      // 4. Bottom-right Inner Shadow for depth
-      const shadowGradient = ctx.createRadialGradient(
-        absX + playerRadius * 0.4, absY + playerRadius * 0.4, 0,
-        absX + playerRadius * 0.4, absY + playerRadius * 0.4, playerRadius * 1.5
-      );
-      shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-      shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = shadowGradient;
-      ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
+        // 4. Bottom-right Inner Shadow for depth
+        const shadowGradient = ctx.createRadialGradient(
+          absX + playerRadius * 0.4, absY + playerRadius * 0.4, 0,
+          absX + playerRadius * 0.4, absY + playerRadius * 0.4, playerRadius * 1.5
+        );
+        shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
+        shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = shadowGradient;
+        ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
 
-      // 5. Restore and add white border
-      ctx.restore();
-      ctx.beginPath();
-      ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.lineWidth = 1.5 * scale;
-      ctx.stroke();
+        // 5. Restore and add white border
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.stroke();
 
-      // Player name with engraved effect (matches on-screen display)
-      if (showPlayerNames) {
-        const text = player.nickname || player.name || '';
-        ctx.font = `600 ${12 * scale}px Rajdhani, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        // Player name with engraved effect (matches on-screen display)
+        if (showPlayerNames) {
+          const text = player.nickname || player.name || '';
+          ctx.font = `600 ${12 * scale}px Rajdhani, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
 
-        // 1. Dark shadow on top-left for "pressed-in" look
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        ctx.fillText(text, absX - 0.5 * scale, absY - 0.5 * scale);
+          // 1. Dark shadow on top-left for "pressed-in" look
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+          ctx.fillText(text, absX - 0.5 * scale, absY - 0.5 * scale);
 
-        // 2. Light highlight on bottom-right
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-        ctx.fillText(text, absX + 0.5 * scale, absY + 0.5 * scale);
+          // 2. Light highlight on bottom-right
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.fillText(text, absX + 0.5 * scale, absY + 0.5 * scale);
 
-        // 3. Main text fill
-        ctx.fillStyle = '#F0F0F0';
-        ctx.fillText(text, absX, absY);
-      }
-    });
-    } // end if (!isTacticsBoardView)
+          // 3. Main text fill
+          ctx.fillStyle = '#F0F0F0';
+          ctx.fillText(text, absX, absY);
+        }
+      });
+    }
 
     // Draw ball (only in tactics board view) with circular clipping to remove white background
     if (isTacticsBoardView && tacticalBallPosition && ballImage) {
-      const ballRadius = 12 * scale;
+      const ballRadius = PLAYER_RADIUS * 0.6 * scale;
       const bx = tacticalBallPosition.relX * W;
       const by = tacticalBallPosition.relY * H;
 
