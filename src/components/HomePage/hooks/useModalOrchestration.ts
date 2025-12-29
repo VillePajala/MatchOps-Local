@@ -138,6 +138,7 @@ export interface ModalHandlers {
   handleGameNotesChange: (notes: string) => void;
   handleAgeGroupChange: (ageGroup: string) => void;
   handleTournamentLevelChange: (level: string) => void;
+  handleTournamentSeriesIdChange: (seriesId: string | undefined) => void;
   handleAwardFairPlayCard: (playerId: string | null, time: number) => void;
   handleSetNumberOfPeriods: (periods: number) => void;
   handleSetPeriodDuration: (duration: number) => void;
@@ -277,6 +278,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleGameNotesChange,
     handleAgeGroupChange,
     handleTournamentLevelChange,
+    handleTournamentSeriesIdChange,
     handleAwardFairPlayCard,
     handleSetNumberOfPeriods,
     handleSetPeriodDuration,
@@ -576,6 +578,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       gameNotesChange: handleGameNotesChange,
       ageGroupChange: handleAgeGroupChange,
       tournamentLevelChange: handleTournamentLevelChange,
+      tournamentSeriesIdChange: handleTournamentSeriesIdChange,
       awardFairPlayCard: handleAwardFairPlayCard,
       setNumberOfPeriods: handleSetNumberOfPeriods,
       setPeriodDuration: handleSetPeriodDuration,
