@@ -267,6 +267,31 @@ export const countGamesForTeam = async (teamId: string): Promise<number> => {
 };
 
 /**
+ * Gets the tournament series a team is bound to.
+ * Helper to reduce duplication of series lookup logic across components.
+ *
+ * @param team - The team entity
+ * @param tournaments - Array of all tournaments for lookup
+ * @returns The TournamentSeries object if found, null otherwise
+ *
+ * @example
+ * const series = getTeamBoundSeries(team, tournaments);
+ * if (series) {
+ *   console.log(`Team is in ${series.level} series`);
+ * }
+ */
+export const getTeamBoundSeries = (
+  team: Team,
+  tournaments: Tournament[]
+): { id: string; level: string } | null => {
+  if (!team.boundTournamentSeriesId || !team.boundTournamentId) {
+    return null;
+  }
+  const tournament = tournaments.find(t => t.id === team.boundTournamentId);
+  return tournament?.series?.find(s => s.id === team.boundTournamentSeriesId) ?? null;
+};
+
+/**
  * Options for team context display functions.
  */
 interface TeamContextDisplayOptions {
@@ -274,6 +299,8 @@ interface TeamContextDisplayOptions {
   futsalLabel?: string;
   /** If true, show only the base name of season/tournament without clubSeason suffix. */
   excludeClubSeason?: boolean;
+  /** Function to get localized series label by level. Defaults to returning the level as-is. */
+  seriesLabel?: (level: string) => string;
 }
 
 /**
@@ -314,6 +341,12 @@ export const getTeamContextDisplay = (
     if (tournament) {
       // Use base name only if excludeClubSeason is true, otherwise full display name
       parts.push(options?.excludeClubSeason ? tournament.name : getTournamentDisplayName(tournament));
+
+      // Add series level if team is bound to a specific series
+      const series = getTeamBoundSeries(team, tournaments);
+      if (series) {
+        parts.push(options?.seriesLabel?.(series.level) ?? series.level);
+      }
     }
   }
 

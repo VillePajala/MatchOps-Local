@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel, GameType, Gender } from '@/types';
 import logger from '@/utils/logger';
-import { getTeamRoster, getTeamDisplayName } from '@/utils/teams';
+import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import AssessmentSlider from './AssessmentSlider';
@@ -352,6 +352,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             setSelectedTournamentId(team.boundTournamentId);
             setSelectedSeasonId(null);
             applyTournamentSettings(team.boundTournamentId);
+
+            // Also apply team's specific series if bound to one
+            const series = getTeamBoundSeries(team, tournaments);
+            if (series) {
+              setSelectedTournamentSeriesId(series.id);
+              setTournamentLevel(series.level);
+            }
           }
         }
       } catch (error) {

@@ -18,6 +18,7 @@ import {
   deleteTeam,
   countGamesForTeam,
   getAllTeamRosters,
+  getTeamBoundSeries,
 } from '@/utils/teams';
 import { useQuery } from '@tanstack/react-query';
 import { getTournaments } from '@/utils/tournaments';
@@ -513,6 +514,20 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               {getTournamentDisplayName(tournamentMap[team.boundTournamentId])}
                             </span>
                           )}
+                          {/* Tournament Series */}
+                          {(() => {
+                            const series = getTeamBoundSeries(team, tournaments);
+                            if (!series) return null;
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                                aria-label={t('teamManager.seriesContext', 'Series: {{level}}', { level: series.level })}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                {t(`common.level${series.level}`, series.level)}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>

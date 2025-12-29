@@ -53,6 +53,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   // Note: Empty strings used for form control; converted to undefined on save (see handleSave)
   const [boundSeasonId, setBoundSeasonId] = useState<string>('');
   const [boundTournamentId, setBoundTournamentId] = useState<string>('');
+  const [boundTournamentSeriesId, setBoundTournamentSeriesId] = useState<string>('');
   const [gameType, setGameType] = useState<'soccer' | 'futsal' | ''>('');
   const [activeTab, setActiveTab] = useState<'none' | 'season' | 'tournament'>('none');
 
@@ -108,6 +109,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setArchived(false);
         setBoundSeasonId('');
         setBoundTournamentId('');
+        setBoundTournamentSeriesId('');
         setGameType('');
         setActiveTab('none');
         setSelectedPlayerIds([]);
@@ -121,6 +123,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setArchived(team.archived || false);
         setBoundSeasonId(team.boundSeasonId || '');
         setBoundTournamentId(team.boundTournamentId || '');
+        setBoundTournamentSeriesId(team.boundTournamentSeriesId || '');
         setGameType(team.gameType || '');
         // Set activeTab based on existing bindings
         if (team.boundSeasonId) {
@@ -209,8 +212,10 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     if (tab === 'none') {
       setBoundSeasonId('');
       setBoundTournamentId('');
+      setBoundTournamentSeriesId('');
     } else if (tab === 'season') {
       setBoundTournamentId('');
+      setBoundTournamentSeriesId('');
     } else if (tab === 'tournament') {
       setBoundSeasonId('');
     }
@@ -238,6 +243,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   // Handle tournament selection - inherits properties
   const handleTournamentChange = (tournamentId: string) => {
     setBoundTournamentId(tournamentId);
+    // Clear series when tournament changes (series belong to specific tournament)
+    setBoundTournamentSeriesId('');
 
     if (tournamentId) {
       const tournament = tournaments.find(t => t.id === tournamentId);
@@ -429,6 +436,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
           archived,
           boundSeasonId: boundSeasonId || undefined,
           boundTournamentId: boundTournamentId || undefined,
+          boundTournamentSeriesId: boundTournamentSeriesId || undefined,
           gameType: gameType || undefined,
         });
 
@@ -453,6 +461,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
             archived,
             boundSeasonId: boundSeasonId || undefined,
             boundTournamentId: boundTournamentId || undefined,
+            boundTournamentSeriesId: boundTournamentSeriesId || undefined,
             gameType: gameType || undefined,
           },
         });
@@ -633,6 +642,28 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             {sortedTournaments.map((tourn) => (
                               <option key={tourn.id} value={tourn.id}>
                                 {getTournamentDisplayName(tourn)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Tournament Series Selection - only show if tournament has series */}
+                      {activeTab === 'tournament' && boundTournamentId && selectedTournament?.series && selectedTournament.series.length > 0 && (
+                        <div className="mb-3">
+                          <label htmlFor="boundTournamentSeriesSelect" className="block text-xs font-medium text-slate-400 mb-1">
+                            {t('teamDetailsModal.seriesLabel', 'Series')}
+                          </label>
+                          <select
+                            id="boundTournamentSeriesSelect"
+                            value={boundTournamentSeriesId}
+                            onChange={(e) => setBoundTournamentSeriesId(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="">{t('teamDetailsModal.selectSeries', '-- Select Series --')}</option>
+                            {selectedTournament.series.map((series) => (
+                              <option key={series.id} value={series.id}>
+                                {t(`common.level${series.level}`, series.level)}
                               </option>
                             ))}
                           </select>
