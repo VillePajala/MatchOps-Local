@@ -1,8 +1,8 @@
 {
-  "version": "bfc7fd97",
-  "date": "2025-12-27",
+  "version": "8dbb5c91",
+  "date": "2025-12-29",
   "notes": {
-    "en": "Centralize default club season date constants",
-    "fi": "Centralize default club season date constants"
+    "en": "Preserve player selection when assigning team to existing games",
+    "fi": "Preserve player selection when assigning team to existing games"
   }
 }

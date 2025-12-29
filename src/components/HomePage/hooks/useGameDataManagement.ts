@@ -66,7 +66,7 @@ export interface UseGameDataManagementParams {
   currentGameId: string | null;
 
   /** Setter for available players - called when master roster syncs */
-  setAvailablePlayers: (players: Player[]) => void;
+  setAvailablePlayers: (players: Player[] | ((prev: Player[]) => Player[])) => void;
 
   /**
    * Setter for seasons list - called when seasons data loads
@@ -251,8 +251,9 @@ export function useGameDataManagement(
    * Sync master roster from React Query to local state
    *
    * @remarks
-   * Only updates availablePlayers when NOT in an active game (currentGameId is DEFAULT_GAME_ID).
-   * This prevents overwriting per-game goalie selections when master roster updates.
+   * For default game: Replace availablePlayers entirely with master roster
+   * For active games: Merge player details (name, jerseyNumber) from master roster
+   *                   while preserving per-game isGoalie status
    */
   useEffect(() => {
     if (isMasterRosterQueryLoading) {
@@ -267,13 +268,33 @@ export function useGameDataManagement(
     }
 
     if (masterRosterQueryResultData && Array.isArray(masterRosterQueryResultData)) {
-      // Only update if we're on the default game (not a saved/loaded game)
-      // This prevents overwriting per-game goalie status when master roster updates
       if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
+        // Default game: use master roster directly
         logger.log('[TanStack Query] Syncing master roster to availablePlayers (default game)');
         setAvailablePlayers(masterRosterQueryResultData);
       } else {
-        logger.log('[TanStack Query] Skipping master roster sync (active game with per-game state)');
+        // Active game: merge player details while preserving per-game goalie status
+        logger.log('[TanStack Query] Merging master roster updates (preserving per-game goalie status)');
+        setAvailablePlayers((currentPlayers: Player[]) => {
+          // Build lookup map of current per-game goalie assignments
+          const perGameGoalieMap = new Map<string, boolean>();
+          currentPlayers.forEach((p: Player) => {
+            if (p.isGoalie !== undefined) {
+              perGameGoalieMap.set(p.id, p.isGoalie);
+            }
+          });
+
+          // Merge: use master roster data but preserve per-game isGoalie
+          return masterRosterQueryResultData.map(masterPlayer => {
+            const hasPerGameGoalie = perGameGoalieMap.has(masterPlayer.id);
+            // If player exists in current game with explicit goalie status, preserve it
+            if (hasPerGameGoalie) {
+              return { ...masterPlayer, isGoalie: perGameGoalieMap.get(masterPlayer.id) };
+            }
+            // New player from master roster - use master's isGoalie
+            return masterPlayer;
+          });
+        });
       }
     }
   }, [

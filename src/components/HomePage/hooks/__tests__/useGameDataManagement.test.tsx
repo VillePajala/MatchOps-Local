@@ -303,10 +303,13 @@ describe('useGameDataManagement', () => {
       });
     });
 
-    it('should NOT sync master roster when currentGameId is set (active game)', async () => {
-      const players = [createPlayer({ name: 'Player 1' })];
+    it('should merge master roster while preserving per-game goalie status for active games', async () => {
+      const masterRoster = [
+        createPlayer({ id: 'p1', name: 'Player 1 Updated', isGoalie: false }),
+        createPlayer({ id: 'p2', name: 'Player 2', isGoalie: true }),
+      ];
       mockedUseGameDataQueries.mockReturnValue({
-        masterRoster: players,
+        masterRoster,
         seasons: [],
         tournaments: [],
         savedGames: null,
@@ -325,9 +328,26 @@ describe('useGameDataManagement', () => {
       renderHook(() => useGameDataManagement(params), { wrapper: createWrapper() });
 
       await waitFor(() => {
-        // Should NOT be called because we're in an active game
-        expect(setAvailablePlayers).not.toHaveBeenCalled();
+        // Should be called with a merge function for active games
+        expect(setAvailablePlayers).toHaveBeenCalled();
       });
+
+      // Verify the merge function preserves per-game goalie status
+      const mergeFunction = setAvailablePlayers.mock.calls[0][0];
+      expect(typeof mergeFunction).toBe('function');
+
+      // Simulate current game players with different goalie status
+      const currentGamePlayers = [
+        createPlayer({ id: 'p1', name: 'Player 1 Old', isGoalie: true }), // Goalie in this game
+        createPlayer({ id: 'p2', name: 'Player 2', isGoalie: false }), // Not goalie in this game
+      ];
+
+      const mergedResult = mergeFunction(currentGamePlayers);
+
+      // Should have updated names from master roster but preserved per-game goalie status
+      expect(mergedResult[0].name).toBe('Player 1 Updated');
+      expect(mergedResult[0].isGoalie).toBe(true); // Preserved from game
+      expect(mergedResult[1].isGoalie).toBe(false); // Preserved from game
     });
 
     it('should set empty array on roster load error', async () => {
