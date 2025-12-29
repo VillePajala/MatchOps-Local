@@ -1104,40 +1104,49 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     );
 
     if (teamId) {
-      try {
-        // Load team roster
-        const teamRoster = await getTeamRoster(teamId);
+      // Only auto-select players if game has NO current selection
+      // This preserves existing player selection for old games being assigned to teams
+      const hasExistingSelection = selectedPlayerIds && selectedPlayerIds.length > 0;
 
-        // Check if this is still the current request
-        if (requestId !== teamSelectionRequestRef.current) {
-          return; // A newer request has been made, abandon this one
+      if (hasExistingSelection) {
+        // Keep existing player selection - don't override
+        logger.log('[GameSettingsModal] Team assigned but keeping existing player selection');
+      } else {
+        try {
+          // Load team roster for new games without player selection
+          const teamRoster = await getTeamRoster(teamId);
+
+          // Check if this is still the current request
+          if (requestId !== teamSelectionRequestRef.current) {
+            return; // A newer request has been made, abandon this one
+          }
+
+          if (teamRoster && teamRoster.length > 0) {
+            // Create a set of team player names for comparison (since IDs differ)
+            const teamPlayerNames = new Set(
+              teamRoster.map((p: Player) => p.name.toLowerCase().trim())
+            );
+
+            // Select master roster players that match team roster names
+            const selectedIds = availablePlayers
+              .filter((p: Player) => teamPlayerNames.has(p.name.toLowerCase().trim()))
+              .map((p: Player) => p.id);
+
+            onSelectedPlayersChange(selectedIds);
+          } else {
+            // Team roster is empty - no players pre-selected
+            onSelectedPlayersChange([]);
+          }
+        } catch (error) {
+          logger.error('[GameSettingsModal] Error loading team roster:', error);
+
+          // Check if this is still the current request
+          if (requestId !== teamSelectionRequestRef.current) {
+            return;
+          }
+
+          // Don't change player selection on error
         }
-
-        if (teamRoster && teamRoster.length > 0) {
-          // Create a set of team player names for comparison (since IDs differ)
-          const teamPlayerNames = new Set(
-            teamRoster.map((p: Player) => p.name.toLowerCase().trim())
-          );
-
-          // Select master roster players that match team roster names
-          const selectedIds = availablePlayers
-            .filter((p: Player) => teamPlayerNames.has(p.name.toLowerCase().trim()))
-            .map((p: Player) => p.id);
-
-          onSelectedPlayersChange(selectedIds);
-        } else {
-          // Team roster is empty - no players pre-selected
-          onSelectedPlayersChange([]);
-        }
-      } catch (error) {
-        logger.error('[GameSettingsModal] Error loading team roster:', error);
-
-        // Check if this is still the current request
-        if (requestId !== teamSelectionRequestRef.current) {
-          return;
-        }
-
-        // Don't change player selection on error
       }
     } else {
       // No team selected - keep current selection (don't auto-select all)
