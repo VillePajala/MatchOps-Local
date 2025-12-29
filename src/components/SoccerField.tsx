@@ -586,7 +586,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       });
     }
 
-    // Draw players with polished enamel effect
+    // Draw players with polished enamel effect (only in non-tactical view)
+    if (!isTacticsBoardView) {
     players.forEach(player => {
       if (typeof player.relX !== 'number' || typeof player.relY !== 'number') return;
       const absX = player.relX * W;
@@ -655,13 +656,40 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         ctx.fillText(text, absX, absY);
       }
     });
+    } // end if (!isTacticsBoardView)
 
-    // Draw ball (only in tactics board view)
+    // Draw ball (only in tactics board view) with circular clipping to remove white background
     if (isTacticsBoardView && tacticalBallPosition && ballImage) {
-      const ballSize = 24 * scale;
+      const ballRadius = 12 * scale;
       const bx = tacticalBallPosition.relX * W;
       const by = tacticalBallPosition.relY * H;
-      ctx.drawImage(ballImage, bx - ballSize / 2, by - ballSize / 2, ballSize, ballSize);
+
+      // Save context for clipping
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 5 * scale;
+      ctx.shadowOffsetX = 2 * scale;
+      ctx.shadowOffsetY = 3 * scale;
+
+      // Create circular clipping path to mask out white background
+      ctx.beginPath();
+      ctx.arc(bx, by, ballRadius, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      // Draw image slightly larger to cut off edge artifacts
+      const imageSize = ballRadius * 2.1;
+      ctx.drawImage(ballImage, bx - imageSize / 2, by - imageSize / 2, imageSize, imageSize);
+
+      // Restore from clipping mask
+      ctx.restore();
+
+      // Draw border on top to hide any artifacts
+      ctx.beginPath();
+      ctx.arc(bx, by, ballRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.lineWidth = 1 * scale;
+      ctx.stroke();
     }
 
     // Draw tactical discs (matches on-screen display with shadow effect)
