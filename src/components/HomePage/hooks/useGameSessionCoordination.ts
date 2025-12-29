@@ -77,6 +77,7 @@ export interface UseGameSessionCoordinationReturn {
     setAgeGroup: (group: string) => void;
     setTournamentLevel: (level: string) => void;
     setTournamentSeriesId: (seriesId: string | undefined) => void;
+    setTeamId: (teamId: string | undefined) => void;
     setNumberOfPeriods: (periods: number) => void;
     setPeriodDuration: (minutes: number) => void;
     setDemandFactor: (factor: number) => void;
@@ -359,6 +360,10 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_TOURNAMENT_SERIES_ID', payload: seriesId });
   }, [dispatchGameSession]);
 
+  const handleTeamIdChange = useCallback((teamId: string | undefined) => {
+    dispatchGameSession({ type: 'SET_TEAM_ID', payload: teamId });
+  }, [dispatchGameSession]);
+
   // --- Handlers for Game Structure ---
   const handleSetNumberOfPeriods = useCallback((periods: number) => {
     // Keep the check inside
@@ -527,6 +532,7 @@ export function useGameSessionCoordination({
       setAgeGroup: handleAgeGroupChange,
       setTournamentLevel: handleTournamentLevelChange,
       setTournamentSeriesId: handleTournamentSeriesIdChange,
+      setTeamId: handleTeamIdChange,
       setNumberOfPeriods: handleSetNumberOfPeriods,
       setPeriodDuration: handleSetPeriodDuration,
       setDemandFactor: handleSetDemandFactor,

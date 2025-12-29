@@ -167,6 +167,7 @@ const createProps = (): ModalManagerProps => ({
     ageGroupChange: noop,
     tournamentLevelChange: noop,
     tournamentSeriesIdChange: noop,
+    teamIdChange: noop,
     awardFairPlayCard: noop,
     setNumberOfPeriods: noop,
     setPeriodDuration: noop,

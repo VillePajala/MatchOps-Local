@@ -168,6 +168,7 @@ interface ModalManagerHandlers {
   ageGroupChange: (ageGroup: string) => void;
   tournamentLevelChange: (level: string) => void;
   tournamentSeriesIdChange: (seriesId: string | undefined) => void;
+  teamIdChange: (teamId: string | undefined) => void;
   awardFairPlayCard: (playerId: string | null, time: number) => void;
   setNumberOfPeriods: (periods: number) => void;
   setPeriodDuration: (minutes: number) => void;
@@ -434,7 +435,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           tournaments={data.tournaments}
           masterRoster={data.masterRoster}
           teams={data.teams}
-          onTeamIdChange={() => {}} // No-op: teamId updates handled by updateGameDetailsMutation
+          onTeamIdChange={(teamId) => handlers.teamIdChange(teamId ?? undefined)}
         />
 
         <SettingsModal
