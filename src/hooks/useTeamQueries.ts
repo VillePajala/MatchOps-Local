@@ -44,12 +44,14 @@ export const useAddTeamMutation = () => {
 
 export const useUpdateTeamMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ teamId, updates }: { teamId: string; updates: Partial<Omit<Team, 'id' | 'createdAt'>> }) => 
+    mutationFn: ({ teamId, updates }: { teamId: string; updates: Partial<Omit<Team, 'id' | 'createdAt'>> }) =>
       updateTeam(teamId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+      // Also invalidate savedGames so games display updated team names immediately
+      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
     },
   });
 };
