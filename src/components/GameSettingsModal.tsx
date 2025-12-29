@@ -7,7 +7,7 @@ import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender } from '@/types';
 import { AppState } from '@/types';
-import { getTeamRoster, getTeamDisplayName } from '@/utils/teams';
+import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -1061,6 +1061,20 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         appliedTournamentRef.current = team.boundTournamentId;
         appliedSeasonRef.current = null;
         setActiveTab('tournament');
+
+        // Apply team's specific series if bound to one, otherwise clear stale series
+        const series = getTeamBoundSeries(team, tournaments);
+        if (series) {
+          updates.tournamentSeriesId = series.id;
+          updates.tournamentLevel = series.level;
+          onTournamentLevelChange(series.level);
+        } else {
+          // Clear any stale series from previous team selection
+          // This prevents orphaned series data when switching to a team without series binding
+          updates.tournamentSeriesId = '';
+          updates.tournamentLevel = '';
+          onTournamentLevelChange('');
+        }
       }
     }
 

@@ -459,7 +459,7 @@ describe('Error handling', () => {
  * @see src/datastore/__tests__/LocalDataStore.test.ts
  */
 
-import { getTeamContextDisplay, getTeamDisplayName } from './teams';
+import { getTeamContextDisplay, getTeamDisplayName, getTeamBoundSeries } from './teams';
 import type { Season, Tournament } from '@/types';
 
 describe('Team Context Display Helpers', () => {
@@ -480,7 +480,15 @@ describe('Team Context Display Helpers', () => {
 
   // Note: No startDate to avoid year suffix in display names
   const tournaments: Tournament[] = [
-    { id: 'tournament-1', name: 'Helsinki Cup 2024', gameType: 'soccer' },
+    {
+      id: 'tournament-1',
+      name: 'Helsinki Cup 2024',
+      gameType: 'soccer',
+      series: [
+        { id: 'series-kilpa', level: 'Kilpa' },
+        { id: 'series-haaste', level: 'Haaste' },
+      ],
+    },
     { id: 'tournament-2', name: 'Summer Tournament', gameType: 'futsal' },
   ];
 
@@ -672,6 +680,161 @@ describe('Team Context Display Helpers', () => {
       });
       const result = getTeamDisplayName(team, seasons, tournaments);
       expect(result).toBe('Pepo Lila');
+    });
+  });
+
+  describe('getTeamBoundSeries', () => {
+    /**
+     * Tests that bound series is found when team has both tournament and series binding
+     * @critical
+     */
+    it('should return series when team has valid tournament and series binding', () => {
+      const team = createTestTeam({
+        boundTournamentId: 'tournament-1',
+        boundTournamentSeriesId: 'series-kilpa',
+      });
+      const result = getTeamBoundSeries(team, tournaments);
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe('series-kilpa');
+      expect(result?.level).toBe('Kilpa');
+    });
+
+    /**
+     * Tests that null is returned when team has no series binding
+     */
+    it('should return null when team has no boundTournamentSeriesId', () => {
+      const team = createTestTeam({
+        boundTournamentId: 'tournament-1',
+      });
+      const result = getTeamBoundSeries(team, tournaments);
+      expect(result).toBeNull();
+    });
+
+    /**
+     * Tests that null is returned when team has no tournament binding
+     */
+    it('should return null when team has no boundTournamentId', () => {
+      const team = createTestTeam({
+        boundTournamentSeriesId: 'series-kilpa',
+      });
+      const result = getTeamBoundSeries(team, tournaments);
+      expect(result).toBeNull();
+    });
+
+    /**
+     * Tests that null is returned when team has neither binding
+     */
+    it('should return null when team has no bindings', () => {
+      const team = createTestTeam();
+      const result = getTeamBoundSeries(team, tournaments);
+      expect(result).toBeNull();
+    });
+
+    /**
+     * Tests handling of invalid tournament reference
+     * @edge-case
+     */
+    it('should return null when tournament is not found', () => {
+      const team = createTestTeam({
+        boundTournamentId: 'non-existent-tournament',
+        boundTournamentSeriesId: 'series-kilpa',
+      });
+      const result = getTeamBoundSeries(team, tournaments);
+      expect(result).toBeNull();
+    });
+
+    /**
+     * Tests handling of invalid series reference
+     * @edge-case
+     */
+    it('should return null when series is not found in tournament', () => {
+      const team = createTestTeam({
+        boundTournamentId: 'tournament-1',
+        boundTournamentSeriesId: 'non-existent-series',
+      });
+      const result = getTeamBoundSeries(team, tournaments);
+      expect(result).toBeNull();
+    });
+
+    /**
+     * Tests handling of tournament without series array
+     * @edge-case
+     */
+    it('should return null when tournament has no series', () => {
+      const team = createTestTeam({
+        boundTournamentId: 'tournament-2', // Summer Tournament has no series
+        boundTournamentSeriesId: 'series-kilpa',
+      });
+      const result = getTeamBoundSeries(team, tournaments);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getTeamContextDisplay with series', () => {
+    /**
+     * Tests that series level is included in context display
+     * @critical
+     */
+    it('should include series level in context display', () => {
+      const team = createTestTeam({
+        boundTournamentId: 'tournament-1',
+        boundTournamentSeriesId: 'series-kilpa',
+      });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Helsinki Cup 2024 / Kilpa');
+    });
+
+    /**
+     * Tests series with custom seriesLabel option for i18n
+     */
+    it('should use custom seriesLabel when provided', () => {
+      const team = createTestTeam({
+        boundTournamentId: 'tournament-1',
+        boundTournamentSeriesId: 'series-kilpa',
+      });
+      const result = getTeamContextDisplay(team, seasons, tournaments, {
+        seriesLabel: (level) => `Series: ${level}`,
+      });
+      expect(result).toBe('Helsinki Cup 2024 / Series: Kilpa');
+    });
+
+    /**
+     * Tests full context with season, tournament, series, and game type
+     */
+    it('should combine season, tournament, series, and gameType', () => {
+      const team = createTestTeam({
+        boundSeasonId: 'season-1',
+        boundTournamentId: 'tournament-1',
+        boundTournamentSeriesId: 'series-haaste',
+        gameType: 'futsal',
+      });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Kausi 2024-25 / Helsinki Cup 2024 / Haaste / Futsal');
+    });
+
+    /**
+     * Tests that invalid series binding is skipped gracefully
+     * @edge-case
+     */
+    it('should skip invalid series binding gracefully', () => {
+      const team = createTestTeam({
+        boundTournamentId: 'tournament-1',
+        boundTournamentSeriesId: 'non-existent-series',
+      });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Helsinki Cup 2024');
+    });
+
+    /**
+     * Tests series without tournament binding (invalid state but should handle gracefully)
+     * @edge-case
+     */
+    it('should not show series when tournament binding is missing', () => {
+      const team = createTestTeam({
+        boundTournamentSeriesId: 'series-kilpa',
+      });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('');
     });
   });
 });

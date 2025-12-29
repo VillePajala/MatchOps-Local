@@ -245,6 +245,14 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                                 {item.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
                                             </span>
                                         )}
+                                        {/* Tournament Series - Amber dots */}
+                                        {type === 'tournament' && (item as Tournament).series?.map(series => (
+                                            <span key={series.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true"></span>
+                                                <span className="sr-only">{t('common.seriesLabel', 'Series')}: </span>
+                                                {t(`common.level${series.level}`, series.level)}
+                                            </span>
+                                        ))}
                                     </div>
                                 </div>
                                 <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>

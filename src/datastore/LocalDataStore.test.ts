@@ -477,6 +477,55 @@ describe('LocalDataStore', () => {
         expect(team.name).toBe('Test Team');
         expect(team.boundSeasonId).toBe('season_1');
       });
+
+      it('should allow duplicate name with different boundTournamentSeriesId', async () => {
+        const existingTeam = {
+          ...mockTeam,
+          boundTournamentId: 'tournament_1',
+          boundTournamentSeriesId: 'series_1',
+        };
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify({ team_123: existingTeam })) // teams index
+          .mockResolvedValueOnce(JSON.stringify({})); // team rosters
+
+        // Same name, same tournament, different series - should succeed
+        const team = await dataStore.createTeam({
+          name: 'Test Team',
+          boundTournamentId: 'tournament_1',
+          boundTournamentSeriesId: 'series_2',
+        });
+
+        expect(team.name).toBe('Test Team');
+        expect(team.boundTournamentSeriesId).toBe('series_2');
+      });
+
+      it('should throw ValidationError when series is set without tournament', async () => {
+        // Note: No mock setup needed - validation throws BEFORE any storage calls
+        // Series without tournament - should fail validation
+        await expect(
+          dataStore.createTeam({
+            name: 'Test Team',
+            boundTournamentSeriesId: 'series_1',
+          })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should allow team with tournament and series binding', async () => {
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify({})) // teams index
+          .mockResolvedValueOnce(JSON.stringify({})); // team rosters
+
+        // Tournament with series - should succeed
+        const team = await dataStore.createTeam({
+          name: 'Test Team',
+          boundTournamentId: 'tournament_1',
+          boundTournamentSeriesId: 'series_1',
+        });
+
+        expect(team.name).toBe('Test Team');
+        expect(team.boundTournamentId).toBe('tournament_1');
+        expect(team.boundTournamentSeriesId).toBe('series_1');
+      });
     });
 
     describe('updateTeam', () => {
@@ -534,6 +583,61 @@ describe('LocalDataStore', () => {
         await expect(
           dataStore.updateTeam('team_2', { boundSeasonId: 'season_1' })
         ).rejects.toThrow(AlreadyExistsError);
+      });
+
+      it('should throw ValidationError when update adds series without tournament', async () => {
+        // Team has no tournament binding
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: mockTeam }));
+
+        // Try to add series without tournament - should fail
+        await expect(
+          dataStore.updateTeam('team_123', { boundTournamentSeriesId: 'series_1' })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should throw ValidationError when update removes tournament but keeps series', async () => {
+        const teamWithTournament = {
+          ...mockTeam,
+          boundTournamentId: 'tournament_1',
+          boundTournamentSeriesId: 'series_1',
+        };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: teamWithTournament }));
+
+        // Try to remove tournament while keeping series - should fail
+        await expect(
+          dataStore.updateTeam('team_123', { boundTournamentId: undefined })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should allow update that adds both tournament and series', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: mockTeam }));
+
+        // Add tournament and series together - should succeed
+        const updated = await dataStore.updateTeam('team_123', {
+          boundTournamentId: 'tournament_1',
+          boundTournamentSeriesId: 'series_1',
+        });
+
+        expect(updated?.boundTournamentId).toBe('tournament_1');
+        expect(updated?.boundTournamentSeriesId).toBe('series_1');
+      });
+
+      it('should allow update that clears both tournament and series', async () => {
+        const teamWithTournament = {
+          ...mockTeam,
+          boundTournamentId: 'tournament_1',
+          boundTournamentSeriesId: 'series_1',
+        };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: teamWithTournament }));
+
+        // Clear both tournament and series - should succeed
+        const updated = await dataStore.updateTeam('team_123', {
+          boundTournamentId: undefined,
+          boundTournamentSeriesId: undefined,
+        });
+
+        expect(updated?.boundTournamentId).toBeUndefined();
+        expect(updated?.boundTournamentSeriesId).toBeUndefined();
       });
     });
 

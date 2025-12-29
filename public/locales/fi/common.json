@@ -130,6 +130,7 @@
     "gameTypeSoccer": "Jalkapallo",
     "gameTypeFutsal": "Futsal",
     "gameTypeLabel": "Lajityyppi",
+    "seriesLabel": "Sarja",
     "genderBoys": "Pojat",
     "genderGirls": "Tytöt",
     "genderLabel": "Sukupuoli",
@@ -872,7 +873,10 @@
     "gameTypeLabel": "Pelityyppi",
     "noSeasonSelected": "-- Ei valittu --",
     "noTournamentSelected": "-- Ei valittu --",
-    "anyGameType": "-- Mikä tahansa --"
+    "anyGameType": "-- Mikä tahansa --",
+    "seriesLabel": "Sarja",
+    "selectSeries": "-- Valitse sarja --",
+    "inheritedFromAssociation": "peritty sidonnasta"
   },
   "playerDetailsModal": {
     "createTitle": "Lisää pelaaja",
@@ -1054,7 +1058,12 @@
     "noGamesImpact": "Tähän joukkueeseen ei ole liitetty otteluita.",
     "duplicateNameWarning": "Joukkue nimellä \"{{name}}\" on jo olemassa. Jatketaanko silti?",
     "nameRequired": "Joukkueen nimi vaaditaan",
-    "duplicateNameError": "Joukkue nimellä \"{{name}}\" on jo olemassa. Valitse eri nimi."
+    "duplicateNameError": "Joukkue nimellä \"{{name}}\" on jo olemassa. Valitse eri nimi.",
+    "seriesContext": "Sarja: {{level}}",
+    "ageGroupContext": "Ikäluokka: {{ageGroup}}",
+    "seasonContext": "Kausi: {{name}}",
+    "tournamentContext": "Turnaus: {{name}}",
+    "gameTypeContext": "Pelityyppi: Futsal"
   },
   "unifiedTeamModal": {
     "createTitle": "Luo joukkue",
