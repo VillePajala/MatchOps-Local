@@ -172,6 +172,7 @@ const defaultProps: GameSettingsModalProps = {
   onSetHomeOrAway: mockOnSetHomeOrAway,
   onAgeGroupChange: jest.fn(),
   onTournamentLevelChange: jest.fn(),
+  onTournamentSeriesIdChange: jest.fn(),
   onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
