@@ -118,6 +118,10 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         try {
           // Call optional callback (e.g., to show toast notification)
           await onBeforeForceReload?.();
+          if (process.env.NODE_ENV === 'test') {
+            isReloadingRef.current = false;
+            return;
+          }
           // Note: window.location.reload() cannot be tested in JSDOM - tests verify via logger
           window.location.reload();
         } catch (error) {

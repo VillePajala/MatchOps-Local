@@ -405,12 +405,14 @@ describe('App Settings Utilities', () => {
     });
 
     it('should return false if saving fails', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockSettings = { ...DEFAULT_APP_SETTINGS, currentGameId: 'old' };
       // Simulate error during updateSettings call
       mockDataStore.updateSettings.mockRejectedValueOnce(new Error('Cannot save'));
 
       const result = await saveCurrentGameIdSetting('newGameId');
       expect(result).toBe(false);
+      consoleSpy.mockRestore();
     });
   });
 
@@ -462,12 +464,14 @@ describe('App Settings Utilities', () => {
     });
 
     it('should return false if saving to app settings fails', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockSettings = { ...DEFAULT_APP_SETTINGS, currentGameId: 'game123' };
       // Simulate updateSettings failing
       mockDataStore.updateSettings.mockRejectedValueOnce(new Error('Cannot save app settings'));
 
       const result = await saveLastHomeTeamName('New Team Name');
       expect(result).toBe(false);
+      consoleSpy.mockRestore();
     });
   });
 
@@ -660,13 +664,15 @@ describe('App Settings Utilities', () => {
       });
 
       it('should return false when saveCurrentGameIdSetting cannot get DataStore', async () => {
-        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         mockGetDataStore.mockRejectedValueOnce(new Error('DataStore unavailable'));
 
         const result = await saveCurrentGameIdSetting('game123');
 
         expect(result).toBe(false);
-        consoleSpy.mockRestore();
+        warnSpy.mockRestore();
+        errorSpy.mockRestore();
       });
     });
 

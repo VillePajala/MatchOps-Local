@@ -135,7 +135,11 @@ export const getCurrentGameIdSetting = async (): Promise<string | null> => {
 export const saveCurrentGameIdSetting = async (gameId: string | null): Promise<boolean> => {
   try {
     // Wait for updateAppSettings to resolve
-    await updateAppSettings({ currentGameId: gameId });
+    const updatedSettings = await updateAppSettings({ currentGameId: gameId });
+    if (updatedSettings.currentGameId !== gameId) {
+      logger.warn('Failed to save current game ID setting', { gameId });
+      return false;
+    }
     return true;
   } catch (error) {
     // updateAppSettings already logs errors. We indicate failure here.
@@ -174,7 +178,11 @@ export const getLastHomeTeamName = async (): Promise<string> => {
  */
 export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> => {
   try {
-    await updateAppSettings({ lastHomeTeamName: teamName });
+    const updatedSettings = await updateAppSettings({ lastHomeTeamName: teamName });
+    if (updatedSettings.lastHomeTeamName !== teamName) {
+      logger.warn('Failed to save last home team name', { teamName });
+      return false;
+    }
     return true;
   } catch (error) {
     logger.error('Error saving last home team name:', error);
