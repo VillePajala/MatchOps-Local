@@ -413,6 +413,26 @@ describe('exportField', () => {
       expect(mockLink.download).toBe('field_Eagles_vs_Hawks_2025-06-15.png');
     });
 
+    it('should include season and tournament in overlay export', async () => {
+      const options: FieldExportOptions = {
+        includeOverlay: true,
+        teamName: 'Eagles',
+        opponentName: 'Hawks',
+        gameDate: '2025-06-15',
+        score: { home: 1, away: 0 },
+        homeOrAway: 'home',
+        seasonName: 'Spring 2025',
+        tournamentName: 'City Cup',
+        gameLocation: 'Stadium',
+      };
+
+      await exportFieldAsImage(mockCanvas, options);
+
+      // Verify export completed successfully with season/tournament metadata
+      expect(mockLink.click).toHaveBeenCalled();
+      expect(mockLink.download).toBe('field_Eagles_vs_Hawks_2025-06-15.png');
+    });
+
     it('should add link to body, click, then remove', async () => {
       await exportFieldAsImage(mockCanvas, {});
 

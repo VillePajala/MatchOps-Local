@@ -70,6 +70,10 @@ export interface FieldExportOptions {
   gameLocation?: string;
   /** Age group (e.g., "U12", "P11") */
   ageGroup?: string;
+  /** Season name (e.g., "Spring 2024") */
+  seasonName?: string;
+  /** Tournament name (e.g., "City Cup") */
+  tournamentName?: string;
   /** Game type (used for filename only) */
   gameType?: 'soccer' | 'futsal';
   /** Translated game type label for overlay (e.g., "Jalkapallo", "Futsal") */
@@ -172,8 +176,8 @@ const formatDate = (dateStr: string, locale?: string): string => {
  */
 const calculateHeaderHeight = (width: number): number => {
   const fontSize = Math.max(OVERLAY_FONT_SIZE_MIN, Math.min(OVERLAY_FONT_SIZE_MAX, width / OVERLAY_FONT_SIZE_DIVISOR));
-  // Header has: score row + team names row + metadata row + padding
-  return fontSize * 5 + OVERLAY_PADDING * 3;
+  // Row heights: Score (2.5x) + TeamNames (1.2x) + Meta Row 1 (1.3x) + Meta Row 2 (1.2x) = 6.2x
+  return fontSize * 6.2 + OVERLAY_PADDING * 3;
 };
 
 /**
@@ -273,35 +277,53 @@ const drawHeader = (
   const truncatedMatchup = truncateText(matchupText, width - padding * 2, ctx);
   ctx.fillText(truncatedMatchup, centerX, row2Y);
 
-  // === ROW 3: Metadata (date, time, age group, location) ===
+  // === ROW 3: Primary metadata (date, time, age group) ===
   const row3Y = row2Y + fontSize * 1.8;
-  const metaItems: string[] = [];
+  const primaryMeta: string[] = [];
 
   // Date and time
   if (options.gameDate) {
-    metaItems.push(formatDate(options.gameDate, options.locale));
+    primaryMeta.push(formatDate(options.gameDate, options.locale));
   }
   if (options.gameTime) {
-    metaItems.push(options.gameTime);
+    primaryMeta.push(options.gameTime);
   }
 
   // Age group
   if (options.ageGroup) {
-    metaItems.push(options.ageGroup);
+    primaryMeta.push(options.ageGroup);
+  }
+
+  ctx.font = `${fontSize}px Rajdhani, sans-serif`;
+  ctx.fillStyle = '#94a3b8'; // Slate-400
+  ctx.textAlign = 'center';
+
+  if (primaryMeta.length > 0) {
+    const primaryText = primaryMeta.join('  ·  ');
+    const truncatedPrimary = truncateText(primaryText, width - padding * 2, ctx);
+    ctx.fillText(truncatedPrimary, centerX, row3Y);
+  }
+
+  // === ROW 4: Secondary metadata (season/tournament, location) ===
+  const row4Y = row3Y + fontSize * 1.2;
+  const secondaryMeta: string[] = [];
+
+  // Season or Tournament (show one, prefer tournament if both present)
+  if (options.tournamentName) {
+    secondaryMeta.push(`🏆 ${options.tournamentName}`);
+  } else if (options.seasonName) {
+    secondaryMeta.push(`📅 ${options.seasonName}`);
   }
 
   // Location
   if (options.gameLocation) {
-    metaItems.push(`📍 ${options.gameLocation}`);
+    secondaryMeta.push(`📍 ${options.gameLocation}`);
   }
 
-  if (metaItems.length > 0) {
-    ctx.font = `${fontSize}px Rajdhani, sans-serif`;
-    ctx.fillStyle = '#94a3b8'; // Slate-400
-    ctx.textAlign = 'center';
-    const metaText = metaItems.join('  ·  ');
-    const truncatedMeta = truncateText(metaText, width - padding * 2, ctx);
-    ctx.fillText(truncatedMeta, centerX, row3Y);
+  if (secondaryMeta.length > 0) {
+    const secondaryText = secondaryMeta.join('  ·  ');
+    const truncatedSecondary = truncateText(secondaryText, width - padding * 2, ctx);
+    ctx.fillText(truncatedSecondary, centerX, row4Y);
   }
 
   ctx.restore();
