@@ -123,6 +123,7 @@ export type GameSessionAction =
   | { type: 'SET_AGE_GROUP'; payload: string }
   | { type: 'SET_TOURNAMENT_LEVEL'; payload: string }
   | { type: 'SET_TOURNAMENT_SERIES_ID'; payload: string | undefined }
+  | { type: 'SET_TEAM_ID'; payload: string | undefined }
   | { type: 'SET_DEMAND_FACTOR'; payload: number }
   | { type: 'ADD_GAME_EVENT'; payload: GameEvent }
   | { type: 'UPDATE_GAME_EVENT'; payload: GameEvent }
@@ -284,6 +285,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, tournamentLevel: action.payload };
     case 'SET_TOURNAMENT_SERIES_ID':
       return { ...state, tournamentSeriesId: action.payload };
+    case 'SET_TEAM_ID':
+      return { ...state, teamId: action.payload };
     case 'SET_DEMAND_FACTOR':
       return { ...state, demandFactor: action.payload };
     case 'ADD_GAME_EVENT':
