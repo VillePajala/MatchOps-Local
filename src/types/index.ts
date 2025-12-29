@@ -28,6 +28,7 @@ export interface Team {
   name: string;               // "PEPO U10"
   boundSeasonId?: string;     // Optional: links to season for context differentiation
   boundTournamentId?: string; // Optional: links to tournament for context differentiation
+  boundTournamentSeriesId?: string; // Optional: links to specific series within tournament
   gameType?: GameType;        // Optional: 'soccer' | 'futsal' for context differentiation
   color?: string;             // brand/accent (optional)
   ageGroup?: string;          // Optional: age group (U7-U21) for team organization

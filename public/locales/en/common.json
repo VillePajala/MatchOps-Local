@@ -130,6 +130,7 @@
     "gameTypeSoccer": "Soccer",
     "gameTypeFutsal": "Futsal",
     "gameTypeLabel": "Sport Type",
+    "seriesLabel": "Series",
     "genderBoys": "Boys",
     "genderGirls": "Girls",
     "genderLabel": "Gender",
@@ -972,7 +973,10 @@
     "gameTypeLabel": "Game Type",
     "noSeasonSelected": "-- None --",
     "noTournamentSelected": "-- None --",
-    "anyGameType": "-- Any --"
+    "anyGameType": "-- Any --",
+    "seriesLabel": "Series",
+    "selectSeries": "-- Select Series --",
+    "inheritedFromAssociation": "from association"
   },
   "playerDetailsModal": {
     "createTitle": "Add Player",
@@ -1154,7 +1158,12 @@
     "noGamesImpact": "No games are associated with this team.",
     "duplicateNameWarning": "A team named \"{{name}}\" already exists. Continue anyway?",
     "nameRequired": "Team name is required",
-    "duplicateNameError": "A team named \"{{name}}\" already exists. Please choose a different name."
+    "duplicateNameError": "A team named \"{{name}}\" already exists. Please choose a different name.",
+    "seriesContext": "Series: {{level}}",
+    "ageGroupContext": "Age group: {{ageGroup}}",
+    "seasonContext": "Season: {{name}}",
+    "tournamentContext": "Tournament: {{name}}",
+    "gameTypeContext": "Game type: Futsal"
   },
   "unifiedTeamModal": {
     "createTitle": "Create Team",

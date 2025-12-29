@@ -195,6 +195,7 @@ const normalizeTeamNameForCompare = normalizeNameForCompare;
  * @param name - Normalized team name
  * @param boundSeasonId - Optional season ID for context
  * @param boundTournamentId - Optional tournament ID for context
+ * @param boundTournamentSeriesId - Optional tournament series ID for context
  * @param gameType - Optional game type for context
  * @returns Composite key string for uniqueness check
  */
@@ -202,11 +203,13 @@ const createTeamCompositeKey = (
   name: string,
   boundSeasonId?: string,
   boundTournamentId?: string,
+  boundTournamentSeriesId?: string,
   gameType?: string
 ): string => {
   const parts = [normalizeTeamNameForCompare(name)];
   if (boundSeasonId) parts.push(`season:${boundSeasonId}`);
   if (boundTournamentId) parts.push(`tournament:${boundTournamentId}`);
+  if (boundTournamentSeriesId) parts.push(`series:${boundTournamentSeriesId}`);
   if (gameType) parts.push(`type:${gameType}`);
   return parts.join('::');
 };
@@ -583,6 +586,11 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError(`Team notes cannot exceed ${VALIDATION_LIMITS.TEAM_NOTES_MAX} characters (got ${normalizedNotes.length})`, 'notes', team.notes);
     }
 
+    // Validate series binding requires tournament binding
+    if (team.boundTournamentSeriesId && !team.boundTournamentId) {
+      throw new ValidationError('Cannot bind to tournament series without binding to tournament', 'boundTournamentSeriesId', team.boundTournamentSeriesId);
+    }
+
     return withKeyLock(TEAMS_INDEX_KEY, async () => {
       const teamsIndex = await this.loadTeamsIndex();
 
@@ -591,6 +599,7 @@ export class LocalDataStore implements DataStore {
         trimmedName,
         team.boundSeasonId,
         team.boundTournamentId,
+        team.boundTournamentSeriesId,
         team.gameType
       );
       const duplicateExists = Object.values(teamsIndex).some(existing =>
@@ -598,6 +607,7 @@ export class LocalDataStore implements DataStore {
           existing.name,
           existing.boundSeasonId,
           existing.boundTournamentId,
+          existing.boundTournamentSeriesId,
           existing.gameType
         ) === compositeKey
       );
@@ -612,6 +622,7 @@ export class LocalDataStore implements DataStore {
         name: trimmedName,
         boundSeasonId: team.boundSeasonId,
         boundTournamentId: team.boundTournamentId,
+        boundTournamentSeriesId: team.boundTournamentSeriesId,
         gameType: team.gameType,
         color: team.color,
         ageGroup: normalizedAgeGroup,
@@ -670,18 +681,26 @@ export class LocalDataStore implements DataStore {
       }
 
       // Check for duplicates using composite key (final state after updates)
+      // Use 'key' in updates to detect explicit undefined values (e.g., clearing a field)
       const finalName = updates.name || existing.name;
-      const finalSeasonId = updates.boundSeasonId !== undefined ? updates.boundSeasonId : existing.boundSeasonId;
-      const finalTournamentId = updates.boundTournamentId !== undefined ? updates.boundTournamentId : existing.boundTournamentId;
-      const finalGameType = updates.gameType !== undefined ? updates.gameType : existing.gameType;
+      const finalSeasonId = 'boundSeasonId' in updates ? updates.boundSeasonId : existing.boundSeasonId;
+      const finalTournamentId = 'boundTournamentId' in updates ? updates.boundTournamentId : existing.boundTournamentId;
+      const finalSeriesId = 'boundTournamentSeriesId' in updates ? updates.boundTournamentSeriesId : existing.boundTournamentSeriesId;
+      const finalGameType = 'gameType' in updates ? updates.gameType : existing.gameType;
 
-      const compositeKey = createTeamCompositeKey(finalName, finalSeasonId, finalTournamentId, finalGameType);
+      // Validate series binding requires tournament binding
+      if (finalSeriesId && !finalTournamentId) {
+        throw new ValidationError('Cannot bind to tournament series without binding to tournament', 'boundTournamentSeriesId', finalSeriesId);
+      }
+
+      const compositeKey = createTeamCompositeKey(finalName, finalSeasonId, finalTournamentId, finalSeriesId, finalGameType);
       const duplicateExists = Object.values(teamsIndex).some(team =>
         team.id !== id &&
         createTeamCompositeKey(
           team.name,
           team.boundSeasonId,
           team.boundTournamentId,
+          team.boundTournamentSeriesId,
           team.gameType
         ) === compositeKey
       );
