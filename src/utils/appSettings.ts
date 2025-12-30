@@ -134,10 +134,15 @@ export const getCurrentGameIdSetting = async (): Promise<string | null> => {
  */
 export const saveCurrentGameIdSetting = async (gameId: string | null): Promise<boolean> => {
   try {
-    // Wait for updateAppSettings to resolve
     const updatedSettings = await updateAppSettings({ currentGameId: gameId });
+    // Defensive null check - updateAppSettings should always return settings
+    if (!updatedSettings) {
+      logger.warn('updateAppSettings returned no data', { gameId });
+      return false;
+    }
+    // Note: gameId can be null (clearing game), so strict equality check is correct
     if (updatedSettings.currentGameId !== gameId) {
-      logger.warn('Failed to save current game ID setting', { gameId });
+      logger.warn('Failed to save current game ID setting', { gameId, actual: updatedSettings.currentGameId });
       return false;
     }
     return true;
@@ -179,8 +184,13 @@ export const getLastHomeTeamName = async (): Promise<string> => {
 export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> => {
   try {
     const updatedSettings = await updateAppSettings({ lastHomeTeamName: teamName });
+    // Defensive null check - updateAppSettings should always return settings
+    if (!updatedSettings) {
+      logger.warn('updateAppSettings returned no data', { teamName });
+      return false;
+    }
     if (updatedSettings.lastHomeTeamName !== teamName) {
-      logger.warn('Failed to save last home team name', { teamName });
+      logger.warn('Failed to save last home team name', { teamName, actual: updatedSettings.lastHomeTeamName });
       return false;
     }
     return true;

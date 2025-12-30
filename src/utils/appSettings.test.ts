@@ -665,14 +665,14 @@ describe('App Settings Utilities', () => {
 
       it('should return false when saveCurrentGameIdSetting cannot get DataStore', async () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         mockGetDataStore.mockRejectedValueOnce(new Error('DataStore unavailable'));
 
         const result = await saveCurrentGameIdSetting('game123');
 
         expect(result).toBe(false);
         warnSpy.mockRestore();
-        errorSpy.mockRestore();
+        consoleSpy.mockRestore();
       });
     });
 

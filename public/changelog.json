@@ -1,8 +1,8 @@
 {
-  "version": "8dbb5c91",
+  "version": "55711489",
   "date": "2025-12-29",
   "notes": {
-    "en": "Preserve player selection when assigning team to existing games",
-    "fi": "Preserve player selection when assigning team to existing games"
+    "en": "Tactical export shows only tactical elements; added season/tournament to exports",
+    "fi": "Taktiikkakuva näyttää vain taktiikat; kausi/turnaus lisätty vientikuviin"
   }
 }
