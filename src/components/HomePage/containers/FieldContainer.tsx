@@ -164,17 +164,25 @@ export function FieldContainer({
   const { showToast } = useToast();
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
+  // Memoize season/tournament name lookups separately to avoid recalculating
+  // exportMetadata when arrays change reference but names don't change
+  const seasonName = useMemo(
+    () => gameSessionState.seasonId
+      ? seasons.find(s => s.id === gameSessionState.seasonId)?.name
+      : undefined,
+    [gameSessionState.seasonId, seasons]
+  );
+
+  const tournamentName = useMemo(
+    () => gameSessionState.tournamentId
+      ? tournaments.find(t => t.id === gameSessionState.tournamentId)?.name
+      : undefined,
+    [gameSessionState.tournamentId, tournaments]
+  );
+
   // Memoize export metadata to reduce handleExportField dependencies.
   // Only includes static game info (not timer), so updates only on game/score changes.
   const exportMetadata = useMemo(() => {
-    // Look up season/tournament names from IDs
-    const seasonName = gameSessionState.seasonId
-      ? seasons.find(s => s.id === gameSessionState.seasonId)?.name
-      : undefined;
-    const tournamentName = gameSessionState.tournamentId
-      ? tournaments.find(t => t.id === gameSessionState.tournamentId)?.name
-      : undefined;
-
     return {
       teamName: gameSessionState.teamName,
       opponentName: gameSessionState.opponentName,
@@ -200,14 +208,12 @@ export function FieldContainer({
     gameSessionState.gameTime,
     gameSessionState.gameLocation,
     gameSessionState.ageGroup,
-    gameSessionState.seasonId,
-    gameSessionState.tournamentId,
+    seasonName,
+    tournamentName,
     gameSessionState.gameType,
     gameSessionState.homeOrAway,
     gameSessionState.homeScore,
     gameSessionState.awayScore,
-    seasons,
-    tournaments,
     i18n.language,
   ]);
 
