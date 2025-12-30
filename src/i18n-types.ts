@@ -488,6 +488,7 @@ export type TranslationKey =
   | 'gameSettingsModal.selectSeason'
   | 'gameSettingsModal.selectTeamLabel'
   | 'gameSettingsModal.selectTournament'
+  | 'gameSettingsModal.seriesLabel'
   | 'gameSettingsModal.teamName'
   | 'gameSettingsModal.teamNamePlaceholder'
   | 'gameSettingsModal.teamNameRequired'
