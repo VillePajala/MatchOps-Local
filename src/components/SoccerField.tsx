@@ -51,6 +51,7 @@ export interface SoccerFieldHandle {
 
 // Constants
 const PLAYER_RADIUS = 20;
+const BALL_IMAGE_OVERSCAN = 2.1; // Slightly oversized to eliminate edge artifacts when clipping
 const DOUBLE_TAP_TIME_THRESHOLD = 300; // ms
 const DOUBLE_TAP_POS_THRESHOLD = 15; // pixels
 
@@ -688,7 +689,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       ctx.clip();
 
       // Draw image slightly larger to cut off edge artifacts
-      const imageSize = ballRadius * 2.1;
+      const imageSize = ballRadius * BALL_IMAGE_OVERSCAN;
       ctx.drawImage(ballImage, bx - imageSize / 2, by - imageSize / 2, imageSize, imageSize);
 
       // Restore from clipping mask
@@ -975,7 +976,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       context.clip();
 
       // Slightly enlarge the image to cut off any edge artifacts
-      const imageSize = ballRadius * 2.1;
+      const imageSize = ballRadius * BALL_IMAGE_OVERSCAN;
       context.drawImage(ballImage, absX - imageSize / 2, absY - imageSize / 2, imageSize, imageSize);
       
       // Restore from clipping mask before drawing the border
