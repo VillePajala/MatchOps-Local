@@ -34,12 +34,48 @@ test.describe('Visual Regression Tests', () => {
     // Wait for canvas to be rendered
     const canvas = page.locator('canvas').first();
     await expect(canvas).toBeVisible({ timeout: 5000 });
-    
+
     // Wait a moment for canvas rendering to complete
     await page.waitForTimeout(1000);
 
     // Take a screenshot of just the soccer field area
     await expect(canvas).toHaveScreenshot('soccer-field-canvas.png', {
+      animations: 'disabled',
+    });
+  });
+
+  test('futsal court should match visual baseline', async ({ page }) => {
+    // Create a new game with futsal game type
+    // Click the new game button
+    const newGameButton = page.locator('button:has-text("New Game"), [data-testid="new-game-button"]').first();
+    if (await newGameButton.isVisible()) {
+      await newGameButton.click();
+
+      // Wait for game settings modal
+      await page.waitForTimeout(500);
+
+      // Select futsal game type if the option is visible
+      const futsalOption = page.locator('button:has-text("Futsal"), [data-testid="game-type-futsal"]').first();
+      if (await futsalOption.isVisible({ timeout: 2000 })) {
+        await futsalOption.click();
+      }
+
+      // Start the game
+      const startButton = page.locator('button:has-text("Start"), button:has-text("Create"), [data-testid="start-game-button"]').first();
+      if (await startButton.isVisible({ timeout: 2000 })) {
+        await startButton.click();
+      }
+    }
+
+    // Wait for canvas to be rendered
+    const canvas = page.locator('canvas').first();
+    await expect(canvas).toBeVisible({ timeout: 5000 });
+
+    // Wait a moment for canvas rendering to complete
+    await page.waitForTimeout(1000);
+
+    // Take a screenshot of the futsal court
+    await expect(canvas).toHaveScreenshot('futsal-court-canvas.png', {
       animations: 'disabled',
     });
   });

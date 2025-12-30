@@ -105,9 +105,9 @@ export interface FieldStyleConfig {
   /**
    * Line opacity (0-1).
    * @remarks Currently unused - opacity is embedded in lineColor rgba value.
-   * Kept for potential future per-element opacity control.
+   * @deprecated Use lineColor with rgba() instead. May be removed in future.
    */
-  lineOpacity: number;
+  lineOpacity?: number;
   /** Line width in pixels */
   lineWidth: number;
   /** Whether to show grass texture/stripes (soccer) */
@@ -131,9 +131,9 @@ export interface FieldConfig {
    * - Soccer: ~1.5 (105m x 68m)
    * - Futsal: ~2.0 (40m x 20m)
    * @remarks Currently unused - field fills available space.
-   * Kept for potential future responsive layout calculations.
+   * Documents intended proportions for reference.
    */
-  aspectRatio: number;
+  aspectRatio?: number;
 
   /** Penalty area configuration */
   penaltyArea: PenaltyAreaConfig;
