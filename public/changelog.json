@@ -1,8 +1,8 @@
 {
-  "version": "55711489",
-  "date": "2025-12-29",
+  "version": "a00fb2bb",
+  "date": "2025-12-30",
   "notes": {
-    "en": "Tactical export shows only tactical elements; added season/tournament to exports",
-    "fi": "Taktiikkakuva näyttää vain taktiikat; kausi/turnaus lisätty vientikuviin"
+    "en": "Address code review concerns for futsal field PR",
+    "fi": "Address code review concerns for futsal field PR"
   }
 }

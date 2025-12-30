@@ -30,6 +30,8 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
+import { generateMatchReport } from '@/utils/exportMatchReport';
+import { HiOutlineDocumentArrowDown } from 'react-icons/hi2';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -279,7 +281,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onTeamIdChange,
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
 
   // Memoize valid series from selected tournament (filter by valid levels)
@@ -502,6 +504,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [eventActionsMenuId, setEventActionsMenuId] = useState<string | null>(null);
+
+  // Match report generation state
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [showReportMenu, setShowReportMenu] = useState(false);
+  const reportMenuRef = useRef<HTMLDivElement>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
@@ -517,6 +524,94 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [eventActionsMenuId]);
+
+  // Close report menu when clicking outside
+  useEffect(() => {
+    if (!showReportMenu) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (reportMenuRef.current && !reportMenuRef.current.contains(event.target as Node)) {
+        setShowReportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showReportMenu]);
+
+  // Handle match report generation
+  const handleGenerateReport = useCallback(async (format: 'png' | 'pdf') => {
+    if (!currentGameId) return;
+
+    setShowReportMenu(false);
+    setIsGeneratingReport(true);
+
+    try {
+      // Calculate scores from game events
+      const goalEvents = (gameEvents || []).filter(e => e.type === 'goal' || e.type === 'opponentGoal');
+      const teamGoals = goalEvents.filter(e => e.type === 'goal').length;
+      const opponentGoals = goalEvents.filter(e => e.type === 'opponentGoal').length;
+      const homeScore = homeOrAway === 'home' ? teamGoals : opponentGoals;
+      const awayScore = homeOrAway === 'home' ? opponentGoals : teamGoals;
+
+      // Build game state from current modal state
+      const gameState: AppState = {
+        homeScore,
+        awayScore,
+        teamName,
+        opponentName,
+        gameDate,
+        gameTime: gameTime || '',
+        gameLocation: gameLocation || '',
+        gameNotes: gameNotes || '',
+        ageGroup: ageGroup || '',
+        seasonId: seasonId || '',
+        tournamentId: tournamentId || '',
+        tournamentLevel: tournamentLevel || '',
+        tournamentSeriesId: tournamentSeriesId || '',
+        homeOrAway: homeOrAway || 'home',
+        gameType: gameType || 'soccer',
+        gender,
+        leagueId: leagueId || undefined,
+        customLeagueName: customLeagueName || undefined,
+        gameEvents: gameEvents || [],
+        selectedPlayerIds: selectedPlayerIds || [],
+        availablePlayers,
+        gameStatus: 'gameEnd',
+        isPlayed: true,
+        numberOfPeriods: numPeriods as 1 | 2,
+        periodDurationMinutes: periodDurationMinutes,
+        gamePersonnel: selectedPersonnelIds,
+      } as AppState;
+
+      await generateMatchReport({
+        game: gameState,
+        gameId: currentGameId,
+        players: availablePlayers,
+        seasons,
+        tournaments,
+        personnel: availablePersonnel,
+        fieldCanvas: null, // TODO: Pass field canvas from parent
+        format,
+        locale: i18n.language,
+        translate: (key: string, defaultValue?: string, options?: Record<string, unknown>) =>
+          t(key as TranslationKey, { defaultValue: defaultValue ?? '', ...options }),
+      });
+
+      showToast(t('gameSettingsModal.reportGenerated', 'Report generated successfully'), 'success');
+    } catch (error) {
+      logger.error('Failed to generate match report', error);
+      showToast(t('gameSettingsModal.reportGenerationFailed', 'Failed to generate report'), 'error');
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  }, [
+    currentGameId, teamName, opponentName,
+    gameDate, gameTime, gameLocation, gameNotes, ageGroup,
+    seasonId, tournamentId, tournamentLevel, tournamentSeriesId, homeOrAway, gameType, gameEvents,
+    selectedPlayerIds, availablePlayers, seasons, tournaments,
+    numPeriods, periodDurationMinutes, selectedPersonnelIds, availablePersonnel,
+    leagueId, customLeagueName, gender,
+    t, i18n, showToast,
+  ]);
 
   const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, eventId: string) => {
     const shouldOpenUpward = calculatePosition(e.currentTarget);
@@ -2403,11 +2498,53 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
             </div>
 
-            {/* Game Notes Section */}
+            {/* Match Report Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <h3 className="text-lg font-semibold text-slate-200 mb-4">
-                {t('gameSettingsModal.notesTitle', 'Game Notes')}
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-200">
+                  {t('gameSettingsModal.matchReportTitle', 'Match Report')}
+                </h3>
+                {/* Generate Report Button with Dropdown */}
+                <div className="relative" ref={reportMenuRef}>
+                  <button
+                    onClick={() => setShowReportMenu(!showReportMenu)}
+                    disabled={isGeneratingReport || !currentGameId}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors shadow-sm"
+                    title={t('gameSettingsModal.generateReport', 'Generate Report')}
+                  >
+                    {isGeneratingReport ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>{t('gameSettingsModal.generatingReport', 'Generating...')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <HiOutlineDocumentArrowDown className="h-4 w-4" />
+                        <span>{t('gameSettingsModal.generateReport', 'Generate Report')}</span>
+                      </>
+                    )}
+                  </button>
+                  {showReportMenu && (
+                    <div className="absolute right-0 mt-1 w-48 bg-slate-800 border border-slate-700 rounded-md shadow-lg z-50">
+                      <button
+                        onClick={() => handleGenerateReport('png')}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 rounded-t-md"
+                      >
+                        {t('gameSettingsModal.exportAsPng', 'Export as PNG')}
+                      </button>
+                      <button
+                        onClick={() => handleGenerateReport('pdf')}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 rounded-b-md"
+                      >
+                        {t('gameSettingsModal.exportAsPdf', 'Export as PDF')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
               {inlineEditingField === 'notes' ? (
                 <div className="space-y-3">
                   <textarea
@@ -2416,7 +2553,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     onChange={(e) => setInlineEditValue(e.target.value)}
                     onKeyDown={handleInlineEditKeyDown}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm h-32 resize-none"
-                    placeholder={t('gameSettingsModal.notesPlaceholder', 'Write notes...')}
+                    placeholder={t('gameSettingsModal.matchReportPlaceholder', 'Write match report...')}
                     disabled={isProcessing}
                   />
                   <div className="flex justify-end gap-2">
@@ -2441,7 +2578,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   className="cursor-pointer text-slate-300 hover:text-yellow-400 transition-colors min-h-[8rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50"
                   onClick={() => handleStartInlineEdit('notes')}
                 >
-                  {gameNotes || t('gameSettingsModal.noNotes', 'No notes yet. Click to add.')}
+                  {gameNotes || t('gameSettingsModal.noMatchReport', 'No match report yet. Click to add.')}
                 </div>
               )}
             </div>

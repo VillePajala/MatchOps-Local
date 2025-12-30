@@ -1,5 +1,14 @@
 import '@testing-library/jest-dom';
 import 'jest-canvas-mock';
+import { TextEncoder, TextDecoder } from 'util';
+
+// Add TextEncoder/TextDecoder polyfill for jsPDF and other libraries that need it
+if (typeof global.TextEncoder === 'undefined') {
+  global.TextEncoder = TextEncoder;
+}
+if (typeof global.TextDecoder === 'undefined') {
+  global.TextDecoder = TextDecoder;
+}
 
 // Mock Sentry to avoid import errors in tests
 jest.mock('@sentry/nextjs', () => ({

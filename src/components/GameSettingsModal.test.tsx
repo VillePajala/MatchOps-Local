@@ -53,10 +53,10 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.playersSelected': 'valittu',
         'gameSettingsModal.selectAll': 'Valitse kaikki',
         'gameSettingsModal.eventLogTitle': 'Tapahtumaloki',
-        'gameSettingsModal.notesTitle': 'Pelin muistiinpanot',
+        'gameSettingsModal.matchReportTitle': 'Pelin muistiinpanot',
         'gameSettingsModal.editNotes': 'Muokkaa muistiinpanoja',
         'gameSettingsModal.noNotes': 'Ei muistiinpanoja vielä.',
-        'gameSettingsModal.notesPlaceholder': 'Kirjoita muistiinpanoja...',
+        'gameSettingsModal.matchReportPlaceholder': 'Kirjoita muistiinpanoja...',
         'gameSettingsModal.error': 'Virhe',
         'gameSettingsModal.timeFormatPlaceholder': 'MM:SS',
         'gameSettingsModal.selectScorer': 'Valitse maalintekijä...',
@@ -290,24 +290,24 @@ describe('<GameSettingsModal />', () => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       }, { timeout: 5000 });
       
-      // Find the notes section and click on it to edit
-      const notesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
+      // Find the notes section using the outer container
+      const notesSection = screen.getByRole('heading', { name: t('gameSettingsModal.matchReportTitle') }).closest('.space-y-4');
       if (!notesSection) throw new Error("Notes section not found");
-      
+
       // Find the notes content area and click it to start editing
-      const notesContent = within(notesSection).getByText(defaultProps.gameNotes!);
+      const notesContent = within(notesSection as HTMLElement).getByText(defaultProps.gameNotes!);
       await user.click(notesContent);
-      
+
       // Now find the textarea by its placeholder
-      const notesTextarea = await screen.findByPlaceholderText(t('gameSettingsModal.notesPlaceholder'));
+      const notesTextarea = await screen.findByPlaceholderText(t('gameSettingsModal.matchReportPlaceholder'));
       const newNotes = 'Updated critical strategy notes.';
       await user.clear(notesTextarea);
       await user.type(notesTextarea, newNotes);
-      
+
       // Find the save button
       const saveButton = await screen.findByRole('button', { name: t('common.save') });
-      
-      // Click save 
+
+      // Click save
       await user.click(saveButton);
 
       // Wait for the async calls to complete
@@ -318,31 +318,31 @@ describe('<GameSettingsModal />', () => {
 
       // Wait for the UI to reflect the updated notes using proper assertion
       await waitFor(() => {
-        const updatedNotesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
-        expect(within(updatedNotesSection!).getByText(newNotes)).toBeInTheDocument();
+        const updatedNotesSection = screen.getByRole('heading', { name: t('gameSettingsModal.matchReportTitle') }).closest('.space-y-4');
+        expect(within(updatedNotesSection as HTMLElement).getByText(newNotes)).toBeInTheDocument();
       });
     });
 
     test('cancels game notes edit with Escape key', async () => {
         const user = userEvent.setup();
         renderModal();
-        
-        // Find the notes section and click on it to edit
-        const notesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
+
+        // Find the notes section using the outer container
+        const notesSection = screen.getByRole('heading', { name: t('gameSettingsModal.matchReportTitle') }).closest('.space-y-4');
         if (!notesSection) throw new Error("Notes section not found");
-        
+
         // Find the notes content area and click it to start editing
-        const notesContent = within(notesSection).getByText(defaultProps.gameNotes!);
+        const notesContent = within(notesSection as HTMLElement).getByText(defaultProps.gameNotes!);
         await user.click(notesContent);
         
         // Now find the textarea by its placeholder
-        const notesTextarea = await screen.findByPlaceholderText(t('gameSettingsModal.notesPlaceholder'));
+        const notesTextarea = await screen.findByPlaceholderText(t('gameSettingsModal.matchReportPlaceholder'));
         await user.type(notesTextarea, 'Temporary typing...');
         await user.keyboard('{Escape}');
-  
+
         // The textarea should disappear after pressing Escape
         await waitFor(() => {
-          expect(screen.queryByPlaceholderText(t('gameSettingsModal.notesPlaceholder'))).not.toBeInTheDocument();
+          expect(screen.queryByPlaceholderText(t('gameSettingsModal.matchReportPlaceholder'))).not.toBeInTheDocument();
         });
         
         // The original notes should still be visible
