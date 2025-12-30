@@ -324,6 +324,7 @@ export function FieldContainer({
           players={fcPlayersOnField}
           opponents={fcOpponents}
           drawings={fcIsTactics ? fcTacticalDrawings : fcDrawings}
+          gameType={gameSessionState.gameType}
           onPlayerMove={players.move}
           onPlayerMoveEnd={players.moveEnd}
           onPlayerRemove={players.remove}

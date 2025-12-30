@@ -3,6 +3,12 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Player } from '@/types'; // Import Player from types
 import { Point, Opponent, TacticalDisc } from '@/types'; // Import Point and Opponent from page
+import type { GameType } from '@/types/game';
+import { getFieldConfig } from '@/config/fieldConfigs';
+import {
+  drawFieldBackground,
+  drawFieldMarkings,
+} from '@/utils/fieldDrawing';
 import tinycolor from 'tinycolor2';
 import logger from '@/utils/logger';
 
@@ -12,6 +18,8 @@ interface SoccerFieldProps {
   opponents: Opponent[];
   drawings: Point[][];
   showPlayerNames: boolean;
+  /** Game type determines field visualization (soccer field vs futsal court) */
+  gameType?: GameType;
   onPlayerDrop: (playerId: string, relX: number, relY: number) => void; // Use relative coords
   onPlayerMove: (playerId: string, relX: number, relY: number) => void; // Use relative coords
   onPlayerMoveEnd: () => void;
@@ -96,55 +104,28 @@ const addToCache = (key: string, value: HTMLCanvasElement): void => {
   backgroundCache.set(key, value);
 };
 
-// Helper function to generate a noise pattern on an off-screen canvas
-const createNoisePattern = (
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  opacity: number
-): CanvasPattern | null => {
-  // Check if running in a browser environment
-  if (typeof document === 'undefined') return null;
-
-  const noiseCanvas = document.createElement('canvas');
-  noiseCanvas.width = width;
-  noiseCanvas.height = height;
-  const noiseCtx = noiseCanvas.getContext('2d');
-  if (!noiseCtx) return null;
-
-  const imageData = noiseCtx.createImageData(width, height);
-  const data = imageData.data;
-  const alpha = opacity * 255;
-  for (let i = 0; i < data.length; i += 4) {
-    // A simple black/white noise
-    const randomValue = Math.random() > 0.5 ? 255 : 0;
-    data[i] = randomValue;     // R
-    data[i + 1] = randomValue; // G
-    data[i + 2] = randomValue; // B
-    data[i + 3] = alpha;       // Alpha
-  }
-  noiseCtx.putImageData(imageData, 0, 0);
-
-  const pattern = ctx.createPattern(noiseCanvas, 'repeat');
-  return pattern;
-};
+// Removed: createNoisePattern helper - now imported from @/utils/fieldDrawing
 
 // Removed: formatTime helper - unused function (time display not implemented in SoccerField component)
 
 // Helper function to create and cache the field background
-const createFieldBackground = (
+const createFieldBackgroundCached = (
   context: CanvasRenderingContext2D,
   W: number,
   H: number,
-  isTacticsView: boolean
+  isTacticsView: boolean,
+  gameType: GameType = 'soccer'
 ): HTMLCanvasElement => {
-  const cacheKey = `${W}x${H}-${isTacticsView ? 'tactics' : 'normal'}`;
+  const cacheKey = `${W}x${H}-${isTacticsView ? 'tactics' : 'normal'}-${gameType}`;
 
   // Check if we have a cached version (uses LRU cache)
   const cached = getFromCache(cacheKey);
   if (cached) {
     return cached;
   }
+
+  // Get field configuration for the game type
+  const fieldConfig = getFieldConfig(gameType);
 
   // Create offscreen canvas for background
   const offscreenCanvas = document.createElement('canvas');
@@ -153,155 +134,11 @@ const createFieldBackground = (
   const offscreenCtx = offscreenCanvas.getContext('2d');
   if (!offscreenCtx) throw new Error('Could not get offscreen context');
 
-  // 1. Base solid grass color
-  offscreenCtx.fillStyle = '#427B44';
-  offscreenCtx.fillRect(0, 0, W, H);
+  // Draw field background (surface color, texture, lighting)
+  drawFieldBackground(offscreenCtx, W, H, fieldConfig);
 
-  // 2. Add dual noise patterns
-  const cloudPattern = createNoisePattern(offscreenCtx, 400, 400, 0.02);
-  if (cloudPattern) {
-    offscreenCtx.fillStyle = cloudPattern;
-    offscreenCtx.fillRect(0, 0, W, H);
-  }
-  
-  const grainPattern = createNoisePattern(offscreenCtx, 100, 100, 0.03);
-  if (grainPattern) {
-    offscreenCtx.fillStyle = grainPattern;
-    offscreenCtx.fillRect(0, 0, W, H);
-  }
-
-  // 3. Mowing stripes with soft-light blend mode
-  const numStripes = 9;
-  const stripeWidth = W / numStripes;
-  offscreenCtx.globalCompositeOperation = 'soft-light';
-  
-  for (let i = 0; i < numStripes; i++) {
-    const x = i * stripeWidth;
-    offscreenCtx.fillStyle = (i % 2 === 0) ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)';
-    offscreenCtx.fillRect(x, 0, stripeWidth, H);
-  }
-  
-  offscreenCtx.globalCompositeOperation = 'source-over';
-
-  // 4. Lighting overlays
-  const linearGradient = offscreenCtx.createLinearGradient(0, 0, 0, H);
-  linearGradient.addColorStop(0, 'rgba(0, 0, 0, 0.03)');
-  linearGradient.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
-  offscreenCtx.fillStyle = linearGradient;
-  offscreenCtx.fillRect(0, 0, W, H);
-  
-  const hotspotRadius = H * 0.8;
-  const radialGradient = offscreenCtx.createRadialGradient(
-    W / 2, H * 0.3, 0,
-    W / 2, H * 0.3, hotspotRadius
-  );
-  radialGradient.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
-  radialGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  offscreenCtx.fillStyle = radialGradient;
-  offscreenCtx.fillRect(0, 0, W, H);
-
-  // 5. Draw field lines and markings with shadows
-  offscreenCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-  offscreenCtx.lineWidth = 2;
-  offscreenCtx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-  offscreenCtx.shadowBlur = 2;
-  offscreenCtx.shadowOffsetY = 1;
-  
-  const lineMargin = 5;
-  const centerRadius = Math.min(W, H) * 0.08;
-  const penaltyBoxWidth = W * 0.6;
-  const penaltyBoxHeight = H * 0.18;
-  const goalBoxWidth = W * 0.3;
-  const goalBoxHeight = H * 0.07;
-  const penaltySpotDist = H * 0.12;
-  const cornerRadius = Math.min(W, H) * 0.02;
-
-  // Outer boundary
-  offscreenCtx.beginPath();
-  offscreenCtx.strokeRect(lineMargin, lineMargin, W - 2 * lineMargin, H - 2 * lineMargin);
-
-  // Halfway line
-  offscreenCtx.beginPath();
-  offscreenCtx.moveTo(lineMargin, H / 2);
-  offscreenCtx.lineTo(W - lineMargin, H / 2);
-  offscreenCtx.stroke();
-
-  // Center circle
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(W / 2, H / 2, centerRadius, 0, Math.PI * 2);
-  offscreenCtx.stroke();
-
-  // Top Penalty Area & Arc
-  offscreenCtx.beginPath();
-  const topPenaltyX = (W - penaltyBoxWidth) / 2;
-  offscreenCtx.rect(topPenaltyX, lineMargin, penaltyBoxWidth, penaltyBoxHeight);
-  offscreenCtx.stroke();
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(W / 2, lineMargin + penaltyBoxHeight, centerRadius * 0.8, 0, Math.PI, false);
-  offscreenCtx.stroke();
-
-  // Top Goal Area
-  offscreenCtx.beginPath();
-  const topGoalX = (W - goalBoxWidth) / 2;
-  offscreenCtx.strokeRect(topGoalX, lineMargin, goalBoxWidth, goalBoxHeight);
-  offscreenCtx.stroke();
-
-  // Bottom Penalty Area & Arc
-  offscreenCtx.beginPath();
-  const bottomPenaltyY = H - lineMargin - penaltyBoxHeight;
-  offscreenCtx.rect(topPenaltyX, bottomPenaltyY, penaltyBoxWidth, penaltyBoxHeight);
-  offscreenCtx.stroke();
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(W / 2, H - lineMargin - penaltyBoxHeight, centerRadius * 0.8, Math.PI, 0, false);
-  offscreenCtx.stroke();
-
-  // Bottom Goal Area
-  offscreenCtx.beginPath();
-  const bottomGoalY = H - lineMargin - goalBoxHeight;
-  offscreenCtx.strokeRect(topGoalX, bottomGoalY, goalBoxWidth, goalBoxHeight);
-  offscreenCtx.stroke();
-
-  // Corner Arcs
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(lineMargin, lineMargin, cornerRadius, 0, Math.PI / 2);
-  offscreenCtx.stroke();
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(W - lineMargin, lineMargin, cornerRadius, Math.PI / 2, Math.PI);
-  offscreenCtx.stroke();
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(lineMargin, H - lineMargin, cornerRadius, Math.PI * 1.5, 0);
-  offscreenCtx.stroke();
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(W - lineMargin, H - lineMargin, cornerRadius, Math.PI, Math.PI * 1.5);
-  offscreenCtx.stroke();
-
-  // Reset shadow effects
-  offscreenCtx.shadowColor = 'transparent';
-  offscreenCtx.shadowBlur = 0;
-  offscreenCtx.shadowOffsetY = 0;
-  
-  // Draw filled spots (no shadow)
-  offscreenCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  const spotRadius = 3;
-  // Center Spot
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(W / 2, H / 2, spotRadius, 0, Math.PI * 2);
-  offscreenCtx.fill();
-  // Top Penalty Spot
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(W / 2, lineMargin + penaltySpotDist, spotRadius, 0, Math.PI * 2);
-  offscreenCtx.fill();
-  // Bottom Penalty Spot
-  offscreenCtx.beginPath();
-  offscreenCtx.arc(W / 2, H - lineMargin - penaltySpotDist, spotRadius, 0, Math.PI * 2);
-  offscreenCtx.fill();
-
-  // Draw Goals
-  const goalWidth = W * 0.15;
-  const goalHeight = 5;
-  offscreenCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  offscreenCtx.fillRect((W - goalWidth) / 2, lineMargin, goalWidth, goalHeight);
-  offscreenCtx.fillRect((W - goalWidth) / 2, H - lineMargin - goalHeight, goalWidth, goalHeight);
+  // Draw field markings (lines, areas, spots)
+  drawFieldMarkings(offscreenCtx, W, H, fieldConfig);
 
   // Cache the result using LRU cache (prevents memory leak from unbounded growth)
   addToCache(cacheKey, offscreenCanvas);
@@ -313,6 +150,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   opponents,
   drawings,
   showPlayerNames,
+  gameType = 'soccer',
   onPlayerDrop,
   onPlayerMove,
   onPlayerMoveEnd,
@@ -383,6 +221,9 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const ctx = exportCanvas.getContext('2d');
     if (!ctx) return null;
 
+    // Get field configuration for the current game type
+    const fieldConfig = getFieldConfig(gameType);
+
     // Render background at full export resolution (no cache)
     const bgCanvas = document.createElement('canvas');
     bgCanvas.width = W;
@@ -390,138 +231,11 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const bgCtx = bgCanvas.getContext('2d');
     if (!bgCtx) return null;
 
-    // 1. Base grass color
-    bgCtx.fillStyle = '#427B44';
-    bgCtx.fillRect(0, 0, W, H);
+    // Draw field background using config-based utilities
+    drawFieldBackground(bgCtx, W, H, fieldConfig);
 
-    // 2. Add dual noise patterns for grass texture
-    const cloudPattern = createNoisePattern(bgCtx, 400, 400, 0.02);
-    if (cloudPattern) {
-      bgCtx.fillStyle = cloudPattern;
-      bgCtx.fillRect(0, 0, W, H);
-    }
-    const grainPattern = createNoisePattern(bgCtx, 100, 100, 0.03);
-    if (grainPattern) {
-      bgCtx.fillStyle = grainPattern;
-      bgCtx.fillRect(0, 0, W, H);
-    }
-
-    // 3. Mowing stripes
-    const numStripes = 9;
-    const stripeWidth = W / numStripes;
-    bgCtx.globalCompositeOperation = 'soft-light';
-    for (let i = 0; i < numStripes; i++) {
-      bgCtx.fillStyle = (i % 2 === 0) ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)';
-      bgCtx.fillRect(i * stripeWidth, 0, stripeWidth, H);
-    }
-    bgCtx.globalCompositeOperation = 'source-over';
-
-    // 4. Lighting gradients
-    const linearGradient = bgCtx.createLinearGradient(0, 0, 0, H);
-    linearGradient.addColorStop(0, 'rgba(0, 0, 0, 0.03)');
-    linearGradient.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
-    bgCtx.fillStyle = linearGradient;
-    bgCtx.fillRect(0, 0, W, H);
-
-    const radialGradient = bgCtx.createRadialGradient(W / 2, H * 0.3, 0, W / 2, H * 0.3, H * 0.8);
-    radialGradient.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
-    radialGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    bgCtx.fillStyle = radialGradient;
-    bgCtx.fillRect(0, 0, W, H);
-
-    // 5. Field lines with shadows
-    bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-    bgCtx.lineWidth = 2 * exportScale;
-    bgCtx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-    bgCtx.shadowBlur = 2 * exportScale;
-    bgCtx.shadowOffsetY = 1 * exportScale;
-
-    const lineMargin = 5 * exportScale;
-    const centerRadius = Math.min(W, H) * 0.08;
-    const penaltyBoxWidth = W * 0.6;
-    const penaltyBoxHeight = H * 0.18;
-    const goalBoxWidth = W * 0.3;
-    const goalBoxHeight = H * 0.07;
-    const penaltySpotDist = H * 0.12;
-    const cornerRadius = Math.min(W, H) * 0.02;
-
-    // Outer boundary
-    bgCtx.beginPath();
-    bgCtx.strokeRect(lineMargin, lineMargin, W - 2 * lineMargin, H - 2 * lineMargin);
-
-    // Halfway line
-    bgCtx.beginPath();
-    bgCtx.moveTo(lineMargin, H / 2);
-    bgCtx.lineTo(W - lineMargin, H / 2);
-    bgCtx.stroke();
-
-    // Center circle
-    bgCtx.beginPath();
-    bgCtx.arc(W / 2, H / 2, centerRadius, 0, Math.PI * 2);
-    bgCtx.stroke();
-
-    // Top Penalty Area & Arc
-    const topPenaltyX = (W - penaltyBoxWidth) / 2;
-    bgCtx.beginPath();
-    bgCtx.rect(topPenaltyX, lineMargin, penaltyBoxWidth, penaltyBoxHeight);
-    bgCtx.stroke();
-    bgCtx.beginPath();
-    bgCtx.arc(W / 2, lineMargin + penaltyBoxHeight, centerRadius * 0.8, 0, Math.PI, false);
-    bgCtx.stroke();
-
-    // Top Goal Area
-    const topGoalX = (W - goalBoxWidth) / 2;
-    bgCtx.beginPath();
-    bgCtx.strokeRect(topGoalX, lineMargin, goalBoxWidth, goalBoxHeight);
-
-    // Bottom Penalty Area & Arc
-    const bottomPenaltyY = H - lineMargin - penaltyBoxHeight;
-    bgCtx.beginPath();
-    bgCtx.rect(topPenaltyX, bottomPenaltyY, penaltyBoxWidth, penaltyBoxHeight);
-    bgCtx.stroke();
-    bgCtx.beginPath();
-    bgCtx.arc(W / 2, H - lineMargin - penaltyBoxHeight, centerRadius * 0.8, Math.PI, 0, false);
-    bgCtx.stroke();
-
-    // Bottom Goal Area
-    const bottomGoalY = H - lineMargin - goalBoxHeight;
-    bgCtx.beginPath();
-    bgCtx.strokeRect(topGoalX, bottomGoalY, goalBoxWidth, goalBoxHeight);
-
-    // Corner Arcs
-    bgCtx.beginPath();
-    bgCtx.arc(lineMargin, lineMargin, cornerRadius, 0, Math.PI / 2);
-    bgCtx.stroke();
-    bgCtx.beginPath();
-    bgCtx.arc(W - lineMargin, lineMargin, cornerRadius, Math.PI / 2, Math.PI);
-    bgCtx.stroke();
-    bgCtx.beginPath();
-    bgCtx.arc(lineMargin, H - lineMargin, cornerRadius, Math.PI * 1.5, 0);
-    bgCtx.stroke();
-    bgCtx.beginPath();
-    bgCtx.arc(W - lineMargin, H - lineMargin, cornerRadius, Math.PI, Math.PI * 1.5);
-    bgCtx.stroke();
-
-    // Reset shadow for spots
-    bgCtx.shadowColor = 'transparent';
-    bgCtx.shadowBlur = 0;
-    bgCtx.shadowOffsetY = 0;
-
-    // Draw spots (no shadow)
-    bgCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    const spotRadius = 3 * exportScale;
-    // Center Spot
-    bgCtx.beginPath();
-    bgCtx.arc(W / 2, H / 2, spotRadius, 0, Math.PI * 2);
-    bgCtx.fill();
-    // Top Penalty Spot
-    bgCtx.beginPath();
-    bgCtx.arc(W / 2, lineMargin + penaltySpotDist, spotRadius, 0, Math.PI * 2);
-    bgCtx.fill();
-    // Bottom Penalty Spot
-    bgCtx.beginPath();
-    bgCtx.arc(W / 2, H - lineMargin - penaltySpotDist, spotRadius, 0, Math.PI * 2);
-    bgCtx.fill();
+    // Draw field markings using config-based utilities (handles both soccer and futsal)
+    drawFieldMarkings(bgCtx, W, H, fieldConfig, exportScale);
 
     // Draw background to export canvas
     ctx.drawImage(bgCanvas, 0, 0);
@@ -742,7 +456,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     return exportCanvas;
-  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames]);
+  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, gameType]);
 
   // Expose canvas via ref for export functionality
   useImperativeHandle(ref, () => ({
@@ -789,7 +503,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Draw Cached Background ---
     // Use prerendered background for performance
-    const backgroundCanvas = createFieldBackground(context, W, H, isTacticsBoardView);
+    const backgroundCanvas = createFieldBackgroundCached(context, W, H, isTacticsBoardView, gameType);
     context.drawImage(backgroundCanvas, 0, 0);
 
     // --- Draw Tactical Mode Overlays ---
@@ -1074,7 +788,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Restore context --- 
     context.restore();
-  }, [players, opponents, drawings, showPlayerNames, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage]); // Remove gameEvents dependency
+  }, [players, opponents, drawings, showPlayerNames, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {
