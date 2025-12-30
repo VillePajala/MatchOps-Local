@@ -10,6 +10,31 @@
 import type { FieldConfig } from '@/types/fieldConfig';
 
 /**
+ * Drawing constants for field rendering.
+ * Extracted for maintainability and documentation.
+ */
+const FIELD_CONSTANTS = {
+  /** Margin from canvas edge for field boundary lines (pixels before scaling) */
+  LINE_MARGIN: 5,
+  /** Radius of penalty spots and center spot (pixels before scaling) */
+  SPOT_RADIUS: 3,
+  /** Dash pattern for substitution zone lines (pixels before scaling) */
+  SUBSTITUTION_DASH: 5,
+  /** Shadow settings for outdoor (soccer) fields */
+  SOCCER_SHADOW: {
+    color: 'rgba(0, 0, 0, 0.25)',
+    blur: 2,
+    offsetY: 1,
+  },
+  /** Shadow settings for indoor (futsal) courts - lighter for crisp markings */
+  FUTSAL_SHADOW: {
+    color: 'rgba(0, 0, 0, 0.14)',
+    blur: 1,
+    offsetY: 0.5,
+  },
+} as const;
+
+/**
  * Creates a noise pattern for grass texture effect.
  * @internal Used only by drawFieldBackground
  */
@@ -86,21 +111,67 @@ export function drawFieldBackground(
   }
 
   // 3. Lighting overlays
-  const linearGradient = ctx.createLinearGradient(0, 0, 0, H);
-  linearGradient.addColorStop(0, 'rgba(0, 0, 0, 0.03)');
-  linearGradient.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
-  ctx.fillStyle = linearGradient;
-  ctx.fillRect(0, 0, W, H);
+  if (config.gameType === 'futsal') {
+    // Indoor courts generally look better with a subtle vignette + soft overhead hotspot,
+    // and a gentle diagonal sheen rather than a strong top-to-bottom dark gradient.
 
-  const hotspotRadius = H * 0.8;
-  const radialGradient = ctx.createRadialGradient(
-    W / 2, H * 0.3, 0,
-    W / 2, H * 0.3, hotspotRadius
-  );
-  radialGradient.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
-  radialGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  ctx.fillStyle = radialGradient;
-  ctx.fillRect(0, 0, W, H);
+    // Subtle grain (kept very low to avoid visual noise)
+    const grainPattern = createNoisePattern(ctx, 140, 140, 0.015);
+    if (grainPattern) {
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.fillStyle = grainPattern;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // Overhead hotspot
+    const hotspotRadius = Math.max(W, H) * 0.9;
+    const hotspot = ctx.createRadialGradient(
+      W / 2, H * 0.42, 0,
+      W / 2, H * 0.42, hotspotRadius
+    );
+    hotspot.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+    hotspot.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = hotspot;
+    ctx.fillRect(0, 0, W, H);
+
+    // Vignette
+    const vignetteRadius = Math.max(W, H) * 0.85;
+    const vignette = ctx.createRadialGradient(
+      W / 2, H / 2, vignetteRadius * 0.2,
+      W / 2, H / 2, vignetteRadius
+    );
+    vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    vignette.addColorStop(1, 'rgba(0, 0, 0, 0.22)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, W, H);
+
+    // Diagonal sheen
+    ctx.globalCompositeOperation = 'soft-light';
+    const sheen = ctx.createLinearGradient(0, H * 0.15, W, H * 0.85);
+    sheen.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    sheen.addColorStop(0.5, 'rgba(255, 255, 255, 0.06)');
+    sheen.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    const linearGradient = ctx.createLinearGradient(0, 0, 0, H);
+    linearGradient.addColorStop(0, 'rgba(0, 0, 0, 0.03)');
+    linearGradient.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
+    ctx.fillStyle = linearGradient;
+    ctx.fillRect(0, 0, W, H);
+
+    const hotspotRadius = H * 0.8;
+    const radialGradient = ctx.createRadialGradient(
+      W / 2, H * 0.3, 0,
+      W / 2, H * 0.3, hotspotRadius
+    );
+    radialGradient.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
+    radialGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = radialGradient;
+    ctx.fillRect(0, 0, W, H);
+  }
 }
 
 /**
@@ -116,9 +187,14 @@ function setupLineStyle(
 ): void {
   ctx.strokeStyle = config.style.lineColor;
   ctx.lineWidth = config.style.lineWidth * scale;
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-  ctx.shadowBlur = 2 * scale;
-  ctx.shadowOffsetY = 1 * scale;
+  // Futsal courts read better with crisper markings (less shadow), especially at small sizes.
+  const shadow = config.gameType === 'futsal'
+    ? FIELD_CONSTANTS.FUTSAL_SHADOW
+    : FIELD_CONSTANTS.SOCCER_SHADOW;
+  ctx.shadowColor = shadow.color;
+  ctx.shadowBlur = shadow.blur * scale;
+  ctx.shadowOffsetY = shadow.offsetY * scale;
+  ctx.lineJoin = config.gameType === 'futsal' ? 'round' : 'miter';
 }
 
 /**
@@ -180,7 +256,7 @@ function drawCenterCircle(
   // Center spot (no shadow)
   resetShadow(ctx);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  const spotRadius = 3 * scale;
+  const spotRadius = FIELD_CONSTANTS.SPOT_RADIUS * scale;
   ctx.beginPath();
   ctx.arc(W / 2, H / 2, spotRadius, 0, Math.PI * 2);
   ctx.fill();
@@ -261,7 +337,7 @@ export function drawSoccerMarkings(
   config: FieldConfig,
   scale: number = 1
 ): void {
-  const lineMargin = 5 * scale;
+  const lineMargin = FIELD_CONSTANTS.LINE_MARGIN * scale;
   const centerRadius = Math.min(W, H) * config.centerCircle.radius;
   const penaltyBoxWidth = W * config.penaltyArea.width;
   const penaltyBoxHeight = H * config.penaltyArea.height;
@@ -329,7 +405,7 @@ export function drawSoccerMarkings(
 
   // Penalty spots
   ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  const spotRadius = 3 * scale;
+  const spotRadius = FIELD_CONSTANTS.SPOT_RADIUS * scale;
 
   // Top penalty spot
   ctx.beginPath();
@@ -355,7 +431,7 @@ export function drawFutsalMarkings(
   config: FieldConfig,
   scale: number = 1
 ): void {
-  const lineMargin = 5 * scale;
+  const lineMargin = FIELD_CONSTANTS.LINE_MARGIN * scale;
   const centerX = W / 2;
   const goalHalfWidth = (W * config.goal.width) / 2;
   const leftPostX = centerX - goalHalfWidth;
@@ -410,7 +486,8 @@ export function drawFutsalMarkings(
     const zonePosition = H * config.substitutionZone.position;
 
     // Set dashed line style for substitution zones
-    ctx.setLineDash([5 * scale, 5 * scale]);
+    const dash = FIELD_CONSTANTS.SUBSTITUTION_DASH * scale;
+    ctx.setLineDash([dash, dash]);
 
     // Left side - top zone (above halfway)
     ctx.beginPath();
@@ -445,7 +522,7 @@ export function drawFutsalMarkings(
 
   // Penalty spots
   ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  const spotRadius = 3 * scale;
+  const spotRadius = FIELD_CONSTANTS.SPOT_RADIUS * scale;
 
   // First penalty spot (6m)
   ctx.beginPath();
@@ -492,4 +569,3 @@ export function drawFieldMarkings(
     drawSoccerMarkings(ctx, W, H, config, scale);
   }
 }
-
