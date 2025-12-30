@@ -15,6 +15,14 @@ const OVERLAY_FONT_SIZE_MAX = 32;
 const OVERLAY_FONT_SIZE_DIVISOR = 40;
 const BLOB_CREATION_TIMEOUT_MS = 30000;
 const URL_REVOKE_DELAY_MS = 5000;
+
+// Header row height multipliers (relative to fontSize)
+const HEADER_SCORE_HEIGHT = 2.5;
+const HEADER_TEAM_HEIGHT = 1.2;
+const HEADER_META_ROW_1_SPACING = 1.3;
+const HEADER_META_ROW_2_SPACING = 1.2;
+const HEADER_TOTAL_HEIGHT_MULTIPLIER =
+  HEADER_SCORE_HEIGHT + HEADER_TEAM_HEIGHT + HEADER_META_ROW_1_SPACING + HEADER_META_ROW_2_SPACING;
 const WINDOWS_RESERVED_NAMES = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
 
 /**
@@ -176,8 +184,7 @@ const formatDate = (dateStr: string, locale?: string): string => {
  */
 const calculateHeaderHeight = (width: number): number => {
   const fontSize = Math.max(OVERLAY_FONT_SIZE_MIN, Math.min(OVERLAY_FONT_SIZE_MAX, width / OVERLAY_FONT_SIZE_DIVISOR));
-  // Row heights: Score (2.5x) + TeamNames (1.2x) + Meta Row 1 (1.3x) + Meta Row 2 (1.2x) = 6.2x
-  return fontSize * 6.2 + OVERLAY_PADDING * 3;
+  return fontSize * HEADER_TOTAL_HEIGHT_MULTIPLIER + OVERLAY_PADDING * 3;
 };
 
 /**

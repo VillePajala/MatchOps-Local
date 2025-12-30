@@ -32,6 +32,7 @@ describe('useAppResume', () => {
   let queryClient: QueryClient;
   let originalDateNow: () => number;
   let mockNow: number;
+  let reloadMock: jest.Mock;
 
   // Store original document.hidden descriptor
   const originalHiddenDescriptor = Object.getOwnPropertyDescriptor(
@@ -39,9 +40,17 @@ describe('useAppResume', () => {
     'hidden'
   );
 
+  // Store original location for restoration
+  let originalLocation: Location;
+
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+
+  beforeAll(() => {
+    // Store original location once before all tests
+    originalLocation = window.location;
+  });
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -60,6 +69,26 @@ describe('useAppResume', () => {
       configurable: true,
       get: () => false,
     });
+
+    // Mock window.location.reload to prevent actual page reloads in tests
+    // JSDOM's location is non-configurable, so we delete and recreate with a minimal mock
+    reloadMock = jest.fn();
+    delete (window as any).location;
+    (window as any).location = {
+      reload: reloadMock,
+      href: 'http://localhost/',
+      origin: 'http://localhost',
+      protocol: 'http:',
+      host: 'localhost',
+      hostname: 'localhost',
+      port: '',
+      pathname: '/',
+      search: '',
+      hash: '',
+      assign: jest.fn(),
+      replace: jest.fn(),
+      ancestorOrigins: {} as DOMStringList,
+    };
   });
 
   afterEach(() => {
@@ -71,6 +100,12 @@ describe('useAppResume', () => {
     }
 
     queryClient.clear();
+  });
+
+  afterAll(() => {
+    // Restore original location after all tests
+    delete (window as any).location;
+    (window as any).location = originalLocation;
   });
 
   /**
