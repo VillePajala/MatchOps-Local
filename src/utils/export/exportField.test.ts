@@ -6,16 +6,16 @@
 import {
   sanitizeFilename,
   generateFilename,
-  formatTime,
   truncateText,
   isExportSupported,
   exportFieldAsImage,
   drawHeader,
+  calculateHeaderHeight,
   FieldExportOptions,
-} from './exportField';
+} from './index';
 
 // Mock logger to avoid console noise
-jest.mock('./logger', () => ({
+jest.mock('@/utils/logger', () => ({
   __esModule: true,
   default: {
     log: jest.fn(),
@@ -125,36 +125,6 @@ describe('exportField', () => {
         format: 'jpeg',
       });
       expect(filename).toBe('field_Eagles_vs_Hawks_2025-01-01.jpg');
-    });
-  });
-
-  describe('formatTime', () => {
-    it('should format zero seconds as 0:00', () => {
-      expect(formatTime(0)).toBe('0:00');
-    });
-
-    it('should format single-digit seconds with padding', () => {
-      expect(formatTime(5)).toBe('0:05');
-    });
-
-    it('should format 60 seconds as 1:00', () => {
-      expect(formatTime(60)).toBe('1:00');
-    });
-
-    it('should format 90 seconds as 1:30', () => {
-      expect(formatTime(90)).toBe('1:30');
-    });
-
-    it('should format large values correctly', () => {
-      expect(formatTime(3661)).toBe('61:01'); // 61 minutes, 1 second
-    });
-
-    it('should format typical game time (15 minutes)', () => {
-      expect(formatTime(900)).toBe('15:00');
-    });
-
-    it('should format time with single-digit minutes', () => {
-      expect(formatTime(125)).toBe('2:05');
     });
   });
 
@@ -309,6 +279,58 @@ describe('exportField', () => {
           homeOrAway: 'home',
         }, null);
       }).not.toThrow();
+    });
+  });
+
+  describe('calculateHeaderHeight', () => {
+    it('should return smaller height when no metadata present', () => {
+      const heightWithMeta = calculateHeaderHeight(800, {
+        gameDate: '2025-01-01',
+        gameTime: '14:00',
+        seasonName: 'Spring 2025',
+      });
+      const heightWithoutMeta = calculateHeaderHeight(800, {});
+
+      expect(heightWithoutMeta).toBeLessThan(heightWithMeta);
+    });
+
+    it('should increase height for primary metadata (date, time, age group)', () => {
+      const baseHeight = calculateHeaderHeight(800, {});
+      const withPrimaryMeta = calculateHeaderHeight(800, {
+        gameDate: '2025-01-01',
+      });
+
+      expect(withPrimaryMeta).toBeGreaterThan(baseHeight);
+    });
+
+    it('should increase height for secondary metadata (season, tournament, location)', () => {
+      const baseHeight = calculateHeaderHeight(800, {});
+      const withSecondaryMeta = calculateHeaderHeight(800, {
+        seasonName: 'Spring 2025',
+      });
+
+      expect(withSecondaryMeta).toBeGreaterThan(baseHeight);
+    });
+
+    it('should scale with canvas width', () => {
+      const narrowHeight = calculateHeaderHeight(400, { gameDate: '2025-01-01' });
+      const wideHeight = calculateHeaderHeight(1200, { gameDate: '2025-01-01' });
+
+      // Wider canvas = larger font = taller header
+      expect(wideHeight).toBeGreaterThan(narrowHeight);
+    });
+
+    it('should return consistent height for same inputs', () => {
+      const options = { gameDate: '2025-01-01', tournamentName: 'Cup' };
+      const height1 = calculateHeaderHeight(800, options);
+      const height2 = calculateHeaderHeight(800, options);
+
+      expect(height1).toBe(height2);
+    });
+
+    it('should handle undefined options', () => {
+      const height = calculateHeaderHeight(800);
+      expect(height).toBeGreaterThan(0);
     });
   });
 
