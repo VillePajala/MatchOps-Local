@@ -55,7 +55,7 @@ jest.mock('@/contexts/ToastProvider', () => ({
 
 const mockExportFieldAsImage = jest.fn();
 const mockIsExportSupported = jest.fn(() => true);
-jest.mock('@/utils/exportField', () => ({
+jest.mock('@/utils/export', () => ({
   exportFieldAsImage: (...args: unknown[]) => mockExportFieldAsImage(...args),
   isExportSupported: () => mockIsExportSupported(),
 }));
