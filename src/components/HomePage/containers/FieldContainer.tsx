@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useMemo } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineCamera } from 'react-icons/hi2';
@@ -7,7 +7,8 @@ import TimerOverlay from '@/components/TimerOverlay';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
 import { FirstGameGuide } from '@/components/HomePage/components/FirstGameGuide';
 import { DEFAULT_GAME_ID } from '@/config/constants';
-import { exportFieldAsImage, isExportSupported } from '@/utils/exportField';
+import { exportFieldAsImage, isExportSupported } from '@/utils/export';
+import { useExportMetadata } from '@/hooks/useExportMetadata';
 import { useToast } from '@/contexts/ToastProvider';
 import type {
   Player,
@@ -164,58 +165,13 @@ export function FieldContainer({
   const { showToast } = useToast();
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
-  // Memoize season/tournament name lookups separately to avoid recalculating
-  // exportMetadata when arrays change reference but names don't change
-  const seasonName = useMemo(
-    () => gameSessionState.seasonId
-      ? seasons.find(s => s.id === gameSessionState.seasonId)?.name
-      : undefined,
-    [gameSessionState.seasonId, seasons]
-  );
-
-  const tournamentName = useMemo(
-    () => gameSessionState.tournamentId
-      ? tournaments.find(t => t.id === gameSessionState.tournamentId)?.name
-      : undefined,
-    [gameSessionState.tournamentId, tournaments]
-  );
-
-  // Memoize export metadata to reduce handleExportField dependencies.
-  // Only includes static game info (not timer), so updates only on game/score changes.
-  const exportMetadata = useMemo(() => {
-    return {
-      teamName: gameSessionState.teamName,
-      opponentName: gameSessionState.opponentName,
-      gameDate: gameSessionState.gameDate,
-      gameTime: gameSessionState.gameTime,
-      gameLocation: gameSessionState.gameLocation,
-      ageGroup: gameSessionState.ageGroup,
-      seasonName,
-      tournamentName,
-      gameType: gameSessionState.gameType,
-      filenamePrefix: 'MatchOps',
-      homeOrAway: gameSessionState.homeOrAway,
-      locale: i18n.language,
-      score: {
-        home: gameSessionState.homeScore,
-        away: gameSessionState.awayScore,
-      },
-    };
-  }, [
-    gameSessionState.teamName,
-    gameSessionState.opponentName,
-    gameSessionState.gameDate,
-    gameSessionState.gameTime,
-    gameSessionState.gameLocation,
-    gameSessionState.ageGroup,
-    seasonName,
-    tournamentName,
-    gameSessionState.gameType,
-    gameSessionState.homeOrAway,
-    gameSessionState.homeScore,
-    gameSessionState.awayScore,
-    i18n.language,
-  ]);
+  // Assemble export metadata using dedicated hook
+  const exportMetadata = useExportMetadata({
+    gameSessionState,
+    seasons,
+    tournaments,
+    locale: i18n.language,
+  });
 
   const handleExportField = useCallback(async () => {
     if (!isExportSupported()) {
