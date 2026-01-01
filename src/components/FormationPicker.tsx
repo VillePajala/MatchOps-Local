@@ -15,7 +15,7 @@ import {
 // Match ControlBar design tokens
 const BUTTON_SIZE = 'w-10 h-10';
 const ICON_SIZE = 'w-5 h-5';
-const DROPDOWN_MAX_WIDTH_PX = 224; // Tailwind w-56
+const DROPDOWN_MAX_WIDTH_PX = 384; // Tailwind w-96
 
 type DropdownLayout = {
   left: number;
@@ -74,8 +74,11 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
     const gap = 8;
 
     const width = Math.min(DROPDOWN_MAX_WIDTH_PX, Math.max(0, viewportWidth - viewportPadding * 2));
+    const centeredLeft = (viewportWidth - width) / 2;
+    const anchoredLeft = rect.left;
+    const desiredLeft = viewportWidth < 640 ? centeredLeft : anchoredLeft;
     const left = Math.min(
-      Math.max(rect.left, viewportPadding),
+      Math.max(desiredLeft, viewportPadding),
       Math.max(viewportPadding, viewportWidth - viewportPadding - width)
     );
 
@@ -180,7 +183,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   const dropdownContent = isOpen && typeof document !== 'undefined' ? createPortal(
     <div
       ref={dropdownRef}
-      className="fixed bg-slate-800 border border-slate-600/50 rounded-lg shadow-xl overflow-hidden flex flex-col overscroll-contain"
+      className="fixed bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-600/50 rounded-xl shadow-2xl overflow-hidden flex flex-col overscroll-contain backdrop-blur-md"
       style={{
         left: dropdownLayout.left,
         top: dropdownLayout.top,
@@ -193,18 +196,21 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
       aria-orientation="vertical"
     >
       {/* Header */}
-      <div className="px-3 py-2 border-b border-slate-700/50 bg-slate-800/80 shrink-0">
-        <p className="text-xs text-slate-400">
+      <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-800/50 shrink-0">
+        <p className="text-sm font-semibold text-slate-100">
+          {t('formations.title', 'Place players on field')}
+        </p>
+        <p className="text-xs text-slate-400 mt-1">
           {t('formations.playerCount', '{{count}} players selected', { count: selectedPlayerCount })}
         </p>
       </div>
 
       {/* Scrollable content */}
-      <div className="overflow-y-auto min-h-0 flex-1">
+      <div className="overflow-y-auto min-h-0 flex-1 p-1.5">
         {/* Auto option */}
         <button
           onClick={handleSelectAuto}
-          className="w-full px-3 py-2 text-left text-sm text-slate-100 hover:bg-slate-700/50 flex items-center gap-2 transition-colors"
+          className="w-full px-3 py-2.5 text-left text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg flex items-center gap-2 transition-colors"
           role="menuitem"
         >
           <span className="font-medium">{t('formations.auto', 'Auto')}</span>
@@ -215,10 +221,10 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
 
         {/* Field size groups */}
         {FIELD_SIZES.map(size => (
-          <div key={size}>
+          <div key={size} className="mt-1">
             {/* Size header */}
-            <div className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-t border-slate-700/50 ${
-              size === recommendedSize ? 'text-green-400 bg-green-900/20' : 'text-slate-500 bg-slate-800/50'
+            <div className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md ${
+              size === recommendedSize ? 'text-green-400 bg-green-900/30' : 'text-slate-500'
             }`}>
               {size}
               {size === recommendedSize && (
@@ -233,7 +239,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
               <button
                 key={preset.id}
                 onClick={() => handleSelectPreset(preset)}
-                className="w-full px-3 py-2 pl-6 text-left text-sm text-slate-200 hover:bg-slate-700/50 transition-colors flex items-center justify-between"
+                className="w-full px-3 py-2.5 pl-6 text-left text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors flex items-center justify-between"
                 role="menuitem"
               >
                 <span>{preset.name}</span>

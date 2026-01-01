@@ -415,6 +415,7 @@ export type TranslationKey =
   | 'formations.playerCount'
   | 'formations.players'
   | 'formations.recommended'
+  | 'formations.title'
   | 'fullBackup.confirmRestore'
   | 'fullBackup.confirmRestoreTitle'
   | 'fullBackup.confirmRestoreWarning'

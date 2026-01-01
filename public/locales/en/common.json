@@ -77,6 +77,7 @@
     "resetFieldTactics": "Clear all tactical discs, drawings, and ball position from the tactics board."
   },
   "formations": {
+    "title": "Place players on field",
     "auto": "Auto",
     "autoDescription": "Based on player count",
     "recommended": "Recommended",
