@@ -39,7 +39,12 @@ import { useTouchInteractions } from '@/hooks/useTouchInteractions';
 import type { TacticalState } from '@/hooks/useTacticalHistory';
 import type { Player, AppState, TacticalDisc, Point } from '@/types';
 import logger from '@/utils/logger';
-import { calculateFormationPositions } from '@/utils/formations';
+import {
+  calculateFormationPositions,
+  applyFormationPreset,
+  generateSidelinePositions,
+} from '@/utils/formations';
+import { getPresetById } from '@/config/formationPresets';
 
 /**
  * Parameters for useFieldCoordination hook
@@ -104,7 +109,7 @@ export interface UseFieldCoordinationReturn {
   handlePlayerDropViaTouch: (relX: number, relY: number) => void;
   handlePlayerDragCancelViaTouch: () => void;
   handleDeselectPlayer: () => void;
-  handlePlaceAllPlayers: () => void;
+  handlePlaceAllPlayers: (presetId: string | null) => void;
 
   // Opponent handlers (from useGameState)
   handleAddOpponent: () => void;
@@ -471,36 +476,37 @@ export function useFieldCoordination({
   /**
    * Place ALL available players on the field in formation
    *
-   * Places ALL players from the player bar, not just selected ones.
-   * This ensures the "Place All Players" button actually places all players.
+   * Places players from the player bar that are selected for this game.
+   * Supports both auto mode (based on player count) and preset formations.
    *
-   * TODO: Future enhancement - Use configurable formations:
-   * - Selected formation (e.g., 4-3-3, 3-4-3) determines positions
-   * - Extra players beyond formation size placed neatly on field side
-   * - See roadmap.md for detailed implementation plan
+   * When called, clears existing players and re-places all selected players
+   * according to the specified formation. This allows switching formations
+   * without manually clearing the field first.
+   *
+   * @param presetId - Formation preset ID to use, or null for auto mode
    */
-  const handlePlaceAllPlayers = useCallback(() => {
-    // Get players selected for this game that are not currently on field
-    const playersNotOnField = availablePlayers.filter(player =>
-      selectedPlayerIds.includes(player.id) &&
-      !playersOnField.some(fieldPlayer => fieldPlayer.id === player.id)
+  const handlePlaceAllPlayers = useCallback((presetId: string | null) => {
+    // Get ALL players selected for this game (clear field and place all)
+    const playersToPlace = availablePlayers.filter(player =>
+      selectedPlayerIds.includes(player.id)
     );
 
-    if (playersNotOnField.length === 0) {
-      logger.log('All available players are already on the field');
+    if (playersToPlace.length === 0) {
+      logger.log('No players selected for this game');
       return;
     }
 
-    logger.log(`Placing ${playersNotOnField.length} players on the field...`);
+    logger.log(`Placing ${playersToPlace.length} players on the field (preset: ${presetId ?? 'auto'})...`);
 
-    const newFieldPlayers: Player[] = [...playersOnField];
+    // Start with empty field - we're placing a new formation
+    const newFieldPlayers: Player[] = [];
 
     // Find designated goalie or use first player as goalkeeper
-    const designatedGoalie = playersNotOnField.find(p => p.isGoalie);
-    const goalie = designatedGoalie || playersNotOnField[0];
+    const designatedGoalie = playersToPlace.find(p => p.isGoalie);
+    const goalie = designatedGoalie || playersToPlace[0];
 
     // Get remaining field players (exclude whoever is being placed as goalie)
-    const fieldPlayers = playersNotOnField.filter(p => p.id !== goalie.id);
+    const fieldPlayers = playersToPlace.filter(p => p.id !== goalie.id);
 
     // Always place a goalkeeper at the goal position
     newFieldPlayers.push({
@@ -509,8 +515,26 @@ export function useFieldCoordination({
       relY: 0.95
     });
 
-    // Calculate formation positions for remaining field players
-    const positions = calculateFormationPositions(fieldPlayers.length);
+    // Determine positions based on preset or auto mode
+    let positions;
+    let overflow = 0;
+
+    if (presetId) {
+      // Use specified formation preset
+      const preset = getPresetById(presetId);
+      if (preset) {
+        const result = applyFormationPreset(preset.positions, fieldPlayers.length);
+        positions = result.positions;
+        overflow = result.overflow;
+        logger.log(`Using preset ${preset.name}: ${positions.length} positions, ${overflow} overflow`);
+      } else {
+        logger.warn(`Preset ${presetId} not found, falling back to auto`);
+        positions = calculateFormationPositions(fieldPlayers.length);
+      }
+    } else {
+      // Auto mode: calculate based on player count
+      positions = calculateFormationPositions(fieldPlayers.length);
+    }
 
     // Place field players in formation positions
     fieldPlayers.forEach((player, index) => {
@@ -523,12 +547,29 @@ export function useFieldCoordination({
       }
     });
 
+    // Handle overflow players (place on sideline)
+    if (overflow > 0) {
+      const overflowPlayers = fieldPlayers.slice(positions.length);
+      const sidelinePositions = generateSidelinePositions(overflow);
+
+      overflowPlayers.forEach((player, index) => {
+        if (index < sidelinePositions.length) {
+          newFieldPlayers.push({
+            ...player,
+            relX: sidelinePositions[index].relX,
+            relY: sidelinePositions[index].relY
+          });
+        }
+      });
+
+      logger.log(`Placed ${overflow} overflow players on sideline`);
+    }
+
     setPlayersOnField(newFieldPlayers);
     saveStateToHistory({ playersOnField: newFieldPlayers });
 
-    logger.log(`Successfully placed ${playersNotOnField.length} players on the field`);
+    logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
   }, [
-    playersOnField,
     availablePlayers,
     selectedPlayerIds,
     setPlayersOnField,

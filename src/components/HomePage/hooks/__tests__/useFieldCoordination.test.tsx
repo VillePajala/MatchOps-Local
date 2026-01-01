@@ -912,7 +912,7 @@ describe('useFieldCoordination', () => {
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
       act(() => {
-        result.current.handlePlaceAllPlayers();
+        result.current.handlePlaceAllPlayers(null); // null = auto mode
       });
 
       expect(mockSetPlayersOnField).toHaveBeenCalled();
@@ -927,10 +927,11 @@ describe('useFieldCoordination', () => {
     });
 
     /**
-     * Tests that already-placed players are not duplicated
+     * Tests that all players are placed when switching formations
+     * (previously placed players are re-placed in new positions)
      * @critical - Formation placement
      */
-    it('should not place players already on field', () => {
+    it('should replace all players when switching formations', () => {
       const mockSetPlayersOnField = jest.fn();
       const players = TestFixtures.players.fullTeam({ count: 3 });
       const alreadyOnField = [{ ...players[0], relX: 0.5, relY: 0.9 }];
@@ -952,36 +953,35 @@ describe('useFieldCoordination', () => {
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
       act(() => {
-        result.current.handlePlaceAllPlayers();
+        result.current.handlePlaceAllPlayers(null); // null = auto mode
       });
 
-      // Should only place the 2 players not already on field
+      // All 3 selected players should be placed (clears field first)
       const placedPlayers = mockSetPlayersOnField.mock.calls[0][0];
-      expect(placedPlayers).toHaveLength(3); // 1 already placed + 2 new
+      expect(placedPlayers).toHaveLength(3);
     });
 
     /**
-     * Tests handling when all available players are already on field
+     * Tests handling when no players are selected for the game
      * @edge-case
      */
-    it('should do nothing when all available players already on field', () => {
+    it('should do nothing when no players are selected for the game', () => {
       const mockSetPlayersOnField = jest.fn();
       const players = TestFixtures.players.fullTeam({ count: 2 });
-      const playersOnField = players.map(p => ({ ...p, relX: 0.5, relY: 0.5 }));
 
       mockParams.availablePlayers = players;
-      mockParams.selectedPlayerIds = players.map(p => p.id);
+      mockParams.selectedPlayerIds = []; // No players selected
 
       mockUseGameState.mockReturnValue({
         ...getDefaultMockGameState(),
-        playersOnField: playersOnField,
+        playersOnField: [],
         setPlayersOnField: mockSetPlayersOnField,
       });
 
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
       act(() => {
-        result.current.handlePlaceAllPlayers();
+        result.current.handlePlaceAllPlayers(null);
       });
 
       expect(mockSetPlayersOnField).not.toHaveBeenCalled();
@@ -1016,7 +1016,7 @@ describe('useFieldCoordination', () => {
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
       act(() => {
-        result.current.handlePlaceAllPlayers();
+        result.current.handlePlaceAllPlayers(null);
       });
 
       // Should place ONLY the 2 selected players (not all 5 available)
@@ -1058,7 +1058,7 @@ describe('useFieldCoordination', () => {
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
       act(() => {
-        result.current.handlePlaceAllPlayers();
+        result.current.handlePlaceAllPlayers(null);
       });
 
       const placedPlayers = mockSetPlayersOnField.mock.calls[0][0];
@@ -1095,7 +1095,7 @@ describe('useFieldCoordination', () => {
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
       act(() => {
-        result.current.handlePlaceAllPlayers();
+        result.current.handlePlaceAllPlayers(null);
       });
 
       // Should call with 6 (7 players - 1 goalie)

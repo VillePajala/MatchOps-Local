@@ -51,6 +51,7 @@ describe('Menu → Modal deferral guard', () => {
         onAddHomeDisc={noop}
         onAddOpponentDisc={noop}
         onPlaceAllPlayers={noop}
+        selectedPlayerCount={0}
         onToggleTrainingResources={noop}
         onToggleGameStatsModal={noop}
         onOpenLoadGameModal={onOpenLoadGameModal}
