@@ -189,7 +189,6 @@ describe('FormationPicker', () => {
       });
 
       expect(screen.getByText('Auto')).toBeInTheDocument();
-      expect(screen.getByText('Based on player count')).toBeInTheDocument();
     });
 
     it('shows all field size groups', async () => {

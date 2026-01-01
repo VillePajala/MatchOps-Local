@@ -224,8 +224,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
     : `${numberOfPeriods} x ${periodDurationMinutes} min`;
 
   return (
-    <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-4 pt-12 ${bgColor} backdrop-blur-lg`}>
-      <div className="w-full max-w-lg flex flex-col items-center mt-6 sm:mt-8 md:mt-12">
+    <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
+      <div className="w-full max-w-lg flex flex-col items-center mt-2 sm:mt-4 md:mt-6">
         {/* Game Score Display - MOVED TO TOP ABOVE TIMER */}
         <div className="mb-4">
           <div className="flex items-center justify-center gap-3 text-xl font-semibold">
@@ -259,14 +259,14 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         </div>
       
         {/* Timer Display */}
-        <div className="mb-3">
+        <div className="mb-2">
           <span className={`text-9xl sm:text-[10rem] font-bold tabular-nums ${textColor}`}>
             {formatTime(timeElapsedInSeconds)}
           </span>
         </div>
-        
+
         {/* Time Since Last Substitution + Period pill + Game specs */}
-        <div className="mb-4 text-center flex items-center justify-center gap-3">
+        <div className="mb-3 text-center flex items-center justify-center gap-3">
           {gameStatus !== 'notStarted' && (
             <span className="text-sm font-medium text-slate-400">
               {t('timerOverlay.timeSinceLastSubCombined', 'Viim. vaihto:')}{' '}
@@ -282,7 +282,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         </div>
 
         {/* Timer Controls */}
-        <div className="flex items-center gap-3 mb-5"> 
+        <div className="flex items-center gap-3 mb-3"> 
           <button 
             onClick={onStartPauseTimer} 
             disabled={gameStatus === 'gameEnd' || !isLoaded} // Disable when game ended OR NOT LOADED
@@ -305,7 +305,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         </div>
         
         {/* Game Setup & Interval Controls Section */}
-        <div className="bg-slate-800/80 backdrop-blur-sm p-3 rounded-lg w-full mb-4 space-y-4">
+        <div className="bg-slate-800/80 backdrop-blur-sm p-2 rounded-lg w-full mb-3 space-y-2">
           {/* Substitution Interval Control (only when game not started) */}
           {gameStatus === 'notStarted' && (
               <div className="flex items-center justify-center">
@@ -328,7 +328,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             )}
             
           {/* Main Action Buttons Section - Improved layout */}
-          <div className="flex flex-col space-y-3">
+          <div className="flex flex-col space-y-2">
             {/* Primary Action Button - Remove pulsingClass */}
             <div className="flex justify-center">
               <button 
@@ -364,9 +364,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
         {/* Play Time History - show recent items only to reduce clutter */}
         {completedIntervalDurations.length > 0 && (
-          <div className="bg-slate-800/60 backdrop-blur-sm p-3 rounded-lg max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700/50">
-            <h3 className="text-sm font-semibold mb-1 text-center text-slate-300">{t('timerOverlay.historyTitle', 'Play Time History')}</h3>
-            <ul className="list-none text-lg space-y-1 text-center">
+          <div className="bg-slate-800/60 backdrop-blur-sm p-2 rounded-lg max-h-24 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700/50">
+            <h3 className="text-xs font-semibold mb-1 text-center text-slate-300">{t('timerOverlay.historyTitle', 'Play Time History')}</h3>
+            <ul className="list-none text-sm space-y-0.5 text-center">
               {completedIntervalDurations.slice(0, 5).map((log, displayIndex) => {
                 const minutes = Math.floor(log.duration / 60);
                 const seconds = log.duration % 60;
