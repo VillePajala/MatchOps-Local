@@ -230,10 +230,11 @@ export function generateSidelinePositions(count: number): FieldPosition[] {
   const positions: FieldPosition[] = [];
   const startY = 0.92;  // Start from bottom corner
   const spacing = 0.06; // Tight spacing between subs
+  const relX = 0.945;   // Slightly inside the touch boundary
 
   for (let i = 0; i < count; i++) {
     positions.push({
-      relX: 0.97,  // Right edge of field
+      relX,  // Right sideline (slightly inside)
       relY: startY - i * spacing,  // Stack upward from bottom
     });
   }
