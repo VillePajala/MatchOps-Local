@@ -77,7 +77,7 @@
     "resetFieldTactics": "Tyhjennä kaikki taktiset kiekot, piirustukset ja pallon sijainti taktiselta taulusta."
   },
   "formations": {
-    "title": "Asettele pelaajat kentälle",
+    "title": "Pelimuodostelmat",
     "auto": "Automaattinen",
     "autoDescription": "Pelaajamäärän mukaan",
     "recommended": "Suositeltu",

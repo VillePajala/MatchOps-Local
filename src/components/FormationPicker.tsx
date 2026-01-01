@@ -40,33 +40,33 @@ const MenuContent: React.FC<{
 }> = ({ selectedPlayerCount, recommendedSize, onSelectAuto, onSelectPreset, isMobile }) => {
   const { t } = useTranslation();
 
-  // Size classes based on mobile/desktop - mobile is compact to fit on screen
+  // Size classes - mobile matches other modal styling (like RosterSettingsModal)
   const headerClass = isMobile
-    ? "relative z-10 flex justify-center items-center pt-4 pb-2 px-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 shrink-0"
+    ? "relative z-10 flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 shrink-0"
     : "relative z-10 px-4 py-3 border-b border-slate-700/20 shrink-0 text-center";
   const titleClass = isMobile
-    ? "text-lg font-bold text-yellow-400 tracking-wide drop-shadow-lg"
+    ? "text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg"
     : "text-sm font-bold text-yellow-400";
-  const subtitleClass = isMobile ? "text-xs text-slate-400 mt-0.5" : "text-xs text-slate-400 mt-0.5";
+  const subtitleClass = isMobile ? "text-sm text-slate-400 mt-1" : "text-xs text-slate-400 mt-0.5";
   const contentClass = isMobile
-    ? "relative z-10 overflow-y-auto flex-1 p-3 pb-16 space-y-2"
+    ? "relative z-10 overflow-y-auto flex-1 p-6 pb-20 space-y-4"
     : "relative z-10 overflow-y-auto min-h-0 flex-1 p-2 space-y-2";
   const autoButtonClass = isMobile
-    ? "w-full px-3 py-1.5 text-center text-sm rounded-md font-medium transition-colors bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
+    ? "w-full px-4 py-2 text-center text-sm rounded-md font-medium transition-colors bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
     : "w-full px-3 py-2 text-center text-sm rounded-md font-medium transition-colors bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg";
-  const cardClass = isMobile ? "p-2 rounded-lg" : "p-2 rounded-lg";
+  const cardClass = isMobile ? "p-4 rounded-lg" : "p-2 rounded-lg";
   const sizeHeaderClass = isMobile
-    ? "px-1 py-0.5 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-1"
+    ? "px-1 py-1 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2"
     : "px-1 py-0.5 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-1.5";
   const badgeClass = isMobile
-    ? "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-yellow-500/20 text-yellow-400 normal-case"
+    ? "inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-yellow-500/20 text-yellow-400 normal-case"
     : "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-yellow-500/20 text-yellow-400 normal-case";
-  const gridClass = isMobile ? "grid grid-cols-2 gap-1.5" : "grid grid-cols-2 gap-1.5";
+  const gridClass = isMobile ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-1.5";
   const presetButtonClass = isMobile
-    ? "px-3 py-2 text-left text-sm rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 text-slate-100 hover:from-slate-600/60 hover:to-slate-800/40"
+    ? "px-4 py-4 text-left text-base rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 text-slate-100 hover:from-slate-600/60 hover:to-slate-800/40"
     : "px-3 py-2 text-left text-sm rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 text-slate-100 hover:from-slate-600/60 hover:to-slate-800/40";
   const presetNameClass = "font-medium";
-  const presetCountClass = isMobile ? "text-slate-400 text-xs ml-1.5" : "text-slate-400 text-xs ml-1.5";
+  const presetCountClass = isMobile ? "text-slate-400 text-sm ml-2" : "text-slate-400 text-xs ml-1.5";
 
   return (
     <>
