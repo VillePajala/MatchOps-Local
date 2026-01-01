@@ -29,6 +29,7 @@ export interface PlayerInteractions {
   moveEnd: () => void;
   remove: (playerId: string) => void;
   drop: (playerId: string, relX: number, relY: number) => void;
+  swap: (playerAId: string, playerBId: string) => void;
 }
 
 /**
@@ -104,6 +105,7 @@ export interface FieldContainerProps {
     tacticalBallPosition: Point | null;
     draggingPlayerFromBarInfo: Player | null;
     isDrawingEnabled: boolean;
+    formationSnapPoints?: Point[];
   };
   timerVM: {
     timeElapsedInSeconds: number;
@@ -284,6 +286,7 @@ export function FieldContainer({
           onPlayerMove={players.move}
           onPlayerMoveEnd={players.moveEnd}
           onPlayerRemove={players.remove}
+          onPlayersSwap={players.swap}
           onOpponentMove={opponents.move}
           onOpponentMoveEnd={opponents.moveEnd}
           onOpponentRemove={opponents.remove}
@@ -304,6 +307,7 @@ export function FieldContainer({
           tacticalBallPosition={fcTacticalBall || { relX: 0.5, relY: 0.5 }}
           onTacticalBallMove={tactical.ballMove}
           isDrawingEnabled={fcIsDrawingEnabled}
+          formationSnapPoints={fieldVM.formationSnapPoints}
         />
       </ErrorBoundary>
 
