@@ -5,8 +5,8 @@ import { createPortal } from 'react-dom';
 import { HiOutlineSquares2X2 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import {
-  FORMATION_PRESETS,
   FIELD_SIZES,
+  PRESETS_BY_SIZE,
   getRecommendedFieldSize,
   type FormationPreset,
   type FieldSize,
@@ -174,11 +174,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
     setIsOpen(false);
   }, [onSelectFormation]);
 
-  // Group presets by field size
-  const presetsBySize = FIELD_SIZES.reduce((acc, size) => {
-    acc[size] = FORMATION_PRESETS.filter(p => p.fieldSize === size);
-    return acc;
-  }, {} as Record<FieldSize, FormationPreset[]>);
+  // Use pre-computed presets grouped by field size (avoids recalculation on every render)
 
   // Dropdown content (rendered via portal)
   const dropdownContent = isOpen && typeof document !== 'undefined' ? createPortal(
@@ -233,7 +229,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
             </div>
 
             {/* Presets for this size */}
-            {presetsBySize[size].map(preset => (
+            {PRESETS_BY_SIZE[size].map(preset => (
               <button
                 key={preset.id}
                 onClick={() => handleSelectPreset(preset)}
