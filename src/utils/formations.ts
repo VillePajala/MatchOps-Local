@@ -164,6 +164,84 @@ function getSmallTeamFormation(playerCount: number): FieldPosition[] {
 }
 
 /**
+ * Result of applying a formation preset
+ */
+export interface FormationResult {
+  /** Positions for players that fit in the formation */
+  positions: FieldPosition[];
+  /** Number of extra players that don't fit in formation */
+  overflow: number;
+}
+
+/**
+ * Apply a formation preset to a given number of players
+ *
+ * If there are more players than the preset supports, the extra players
+ * are counted as "overflow" and should be placed elsewhere (e.g., sideline).
+ *
+ * If there are fewer players than the preset supports, only positions
+ * for the available players are returned (from the front of the formation).
+ *
+ * @param presetPositions - Array of positions from the formation preset
+ * @param playerCount - Number of field players (excluding goalkeeper)
+ * @returns Object containing positions to use and overflow count
+ *
+ * @example
+ * ```typescript
+ * // Apply a 4-3-3 formation to 12 players
+ * const result = applyFormationPreset(preset.positions, 12);
+ * // result.positions has 10 positions (4-3-3)
+ * // result.overflow is 2 (extra players)
+ * ```
+ */
+export function applyFormationPreset(
+  presetPositions: FieldPosition[],
+  playerCount: number
+): FormationResult {
+  const formationSize = presetPositions.length;
+
+  if (playerCount <= formationSize) {
+    // Fewer players than positions: use first N positions
+    return {
+      positions: presetPositions.slice(0, playerCount),
+      overflow: 0,
+    };
+  }
+
+  // More players than positions: all positions used, extra overflow
+  return {
+    positions: presetPositions,
+    overflow: playerCount - formationSize,
+  };
+}
+
+/**
+ * Generate sideline positions for overflow/substitute players
+ *
+ * Places extra players on the right sideline near the bottom corner,
+ * stacked vertically with tight spacing (like substitutes on the bench).
+ *
+ * @param count - Number of overflow players
+ * @returns Array of sideline positions
+ */
+export function generateSidelinePositions(count: number): FieldPosition[] {
+  if (count <= 0) return [];
+
+  const positions: FieldPosition[] = [];
+  const startY = 0.92;  // Start from bottom corner
+  const spacing = 0.06; // Tight spacing between subs
+
+  for (let i = 0; i < count; i++) {
+    positions.push({
+      relX: 0.97,  // Right edge of field
+      relY: startY - i * spacing,  // Stack upward from bottom
+    });
+  }
+
+  return positions;
+}
+
+/**
  * Generate positions dynamically for large teams (11+ field players)
  * Distributes players across 3-4 rows from defense to attack
  * Players positioned lower on field (defensive orientation)

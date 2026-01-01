@@ -23,10 +23,10 @@ import {
   HiOutlineTrash,
   HiOutlineBackspace,
   HiOutlinePlusCircle,
-  HiOutlineSquares2X2,
   HiOutlineXMark,
   HiOutlineIdentification,
 } from 'react-icons/hi2';
+import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
 
@@ -85,7 +85,8 @@ interface ControlBarProps {
   onToggleTacticsBoard: () => void;
   onAddHomeDisc: () => void;
   onAddOpponentDisc: () => void;
-  onPlaceAllPlayers: () => void;
+  onPlaceAllPlayers: (presetId: string | null) => void;
+  selectedPlayerCount: number;
   isDrawingEnabled: boolean;
   onToggleDrawingMode: () => void;
   // Menu (existing functionality)
@@ -125,6 +126,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onAddHomeDisc,
   onAddOpponentDisc,
   onPlaceAllPlayers,
+  selectedPlayerCount,
   isDrawingEnabled,
   onToggleDrawingMode,
   onToggleTrainingResources,
@@ -339,15 +341,11 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               <HiOutlineClipboard className={iconSize} />
             </button>
 
-            {/* Place All Players Button - Square shape */}
-            <button
-              onClick={onPlaceAllPlayers}
-              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
-              title={t('controlBar.placeAllPlayers', 'Place All Players')}
-              aria-label={t('controlBar.placeAllPlayers', 'Place All Players')}
-            >
-              <HiOutlineSquares2X2 className={iconSize} />
-            </button>
+            {/* Formation Picker - Place players with preset formations */}
+            <FormationPicker
+              onSelectFormation={onPlaceAllPlayers}
+              selectedPlayerCount={selectedPlayerCount}
+            />
 
             {/* Clickable Timer Display - Fixed height and width */}
             <button
@@ -646,7 +644,8 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   //
   // MAINTAINER NOTE: If you add a new DATA prop (not a callback), add it here!
   // Current data props: timeElapsedInSeconds, isTimerRunning, canUndo, canRedo,
-  // canTacticalUndo, canTacticalRedo, isTacticsBoardView, isDrawingEnabled, isGameLoaded
+  // canTacticalUndo, canTacticalRedo, isTacticsBoardView, isDrawingEnabled, isGameLoaded,
+  // selectedPlayerCount
   //
   // Return true = props equal (skip re-render), false = props changed (re-render)
   return (
@@ -658,7 +657,8 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
     prevProps.canTacticalRedo === nextProps.canTacticalRedo &&
     prevProps.isTacticsBoardView === nextProps.isTacticsBoardView &&
     prevProps.isDrawingEnabled === nextProps.isDrawingEnabled &&
-    prevProps.isGameLoaded === nextProps.isGameLoaded
+    prevProps.isGameLoaded === nextProps.isGameLoaded &&
+    prevProps.selectedPlayerCount === nextProps.selectedPlayerCount
   );
 });
 
