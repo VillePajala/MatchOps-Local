@@ -27,6 +27,7 @@ interface SoccerFieldProps {
   onDrawingAddPoint: (point: Point) => void; // Point already uses relative
   onDrawingEnd: () => void;
   onPlayerRemove: (playerId: string) => void;
+  onPlayersSwap?: (playerAId: string, playerBId: string) => void;
   // Opponent handlers
   onOpponentMove: (opponentId: string, relX: number, relY: number) => void; // Use relative coords
   onOpponentMoveEnd: (opponentId: string) => void;
@@ -45,6 +46,7 @@ interface SoccerFieldProps {
   tacticalBallPosition: Point | null;
   onTacticalBallMove: (position: Point) => void;
   isDrawingEnabled: boolean;
+  formationSnapPoints?: Point[];
 }
 
 /**
@@ -62,6 +64,10 @@ const PLAYER_RADIUS = 20;
 const BALL_IMAGE_OVERSCAN = 2.1; // Slightly oversized to eliminate edge artifacts when clipping
 const DOUBLE_TAP_TIME_THRESHOLD = 300; // ms
 const DOUBLE_TAP_POS_THRESHOLD = 15; // pixels
+const TAP_TO_DRAG_THRESHOLD = 10; // pixels
+const TAP_TO_DRAG_THRESHOLD_SQ = TAP_TO_DRAG_THRESHOLD * TAP_TO_DRAG_THRESHOLD;
+const FORMATION_SNAP_THRESHOLD_PX = 36; // pixels
+const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP_THRESHOLD_PX;
 
 /**
  * LRU (Least Recently Used) cache for background canvases.
@@ -158,6 +164,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   onDrawingAddPoint,
   onDrawingEnd,
   onPlayerRemove,
+  onPlayersSwap,
   onOpponentMove,
   onOpponentMoveEnd,
   onOpponentRemove,
@@ -172,7 +179,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   onToggleTacticalDiscType,
   tacticalBallPosition,
   onTacticalBallMove,
-  isDrawingEnabled
+  isDrawingEnabled,
+  formationSnapPoints,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState<boolean>(false);
@@ -185,13 +193,124 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [activeTouchId, setActiveTouchId] = useState<number | null>(null);
   const [lastTapInfo, setLastTapInfo] = useState<{ time: number; x: number; y: number; targetId: string | null; targetType: 'player' | 'opponent' | 'tactical' | 'ball' | null } | null>(null);
+  const [selectedPlayerForSwapId, setSelectedPlayerForSwapId] = useState<string | null>(null);
   const [ballImage, setBallImage] = useState<HTMLImageElement | null>(null);
+
+  const touchStartTargetRef = useRef<{
+    clientX: number;
+    clientY: number;
+    targetId: string | null;
+    targetType: 'player' | 'opponent' | 'tactical' | 'ball' | null;
+  } | null>(null);
+  const touchExceededTapThresholdRef = useRef<boolean>(false);
+  const suppressTapActionRef = useRef<boolean>(false);
+  const lastPlayerDragRelPosRef = useRef<Point | null>(null);
+  const touchDraggingPlayerIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const img = new Image();
     img.src = '/ball.png';
     img.onload = () => setBallImage(img);
   }, []);
+
+  useEffect(() => {
+    if (isTacticsBoardView) {
+      setSelectedPlayerForSwapId(null);
+    }
+  }, [isTacticsBoardView]);
+
+  useEffect(() => {
+    if (!selectedPlayerForSwapId) return;
+    if (players.some(p => p.id === selectedPlayerForSwapId)) return;
+    setSelectedPlayerForSwapId(null);
+  }, [players, selectedPlayerForSwapId]);
+
+  // Debug: Log when formationSnapPoints changes
+  useEffect(() => {
+    logger.debug('[SoccerField] formationSnapPoints updated:', {
+      count: formationSnapPoints?.length ?? 0,
+      points: formationSnapPoints
+    });
+  }, [formationSnapPoints]);
+
+  const maybeSnapPlayerToFormation = useCallback((playerId: string, currentRelPos: Point | null) => {
+    logger.debug('[Snap] Called maybeSnapPlayerToFormation', {
+      playerId,
+      currentRelPos,
+      snapPointsCount: formationSnapPoints?.length ?? 0,
+      isTacticsBoardView
+    });
+
+    if (isTacticsBoardView) {
+      logger.debug('[Snap] Skipping - tactics board view');
+      return;
+    }
+    if (!formationSnapPoints || formationSnapPoints.length === 0) {
+      logger.debug('[Snap] Skipping - no formation snap points available');
+      return;
+    }
+    if (!currentRelPos) {
+      logger.debug('[Snap] Skipping - no current position');
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return;
+
+    let bestPoint: Point | null = null;
+    let bestDistSq = Infinity;
+
+    for (const point of formationSnapPoints) {
+      const dxPx = (currentRelPos.relX - point.relX) * rect.width;
+      const dyPx = (currentRelPos.relY - point.relY) * rect.height;
+      const distSq = dxPx * dxPx + dyPx * dyPx;
+      if (distSq < bestDistSq) {
+        bestDistSq = distSq;
+        bestPoint = point;
+      }
+    }
+
+    const bestDistPx = Math.sqrt(bestDistSq);
+    logger.debug('[Snap] Best snap point found', {
+      bestPoint,
+      bestDistPx,
+      thresholdPx: FORMATION_SNAP_THRESHOLD_PX
+    });
+
+    if (!bestPoint || bestDistSq > FORMATION_SNAP_THRESHOLD_SQ) {
+      logger.debug('[Snap] Skipping - distance exceeds threshold');
+      return;
+    }
+
+    // Capture bestPoint for use in closure (TypeScript narrowing)
+    const snapTarget = bestPoint;
+
+    // Avoid snapping into an occupied spot (keep it simple; tap-to-swap handles swaps explicitly).
+    const occupied = players.some(p => {
+      if (p.id === playerId) return false;
+      if (typeof p.relX !== 'number' || typeof p.relY !== 'number') return false;
+      const dxPx = (p.relX - snapTarget.relX) * rect.width;
+      const dyPx = (p.relY - snapTarget.relY) * rect.height;
+      const distSq = dxPx * dxPx + dyPx * dyPx;
+      return distSq <= PLAYER_RADIUS * PLAYER_RADIUS;
+    });
+
+    if (occupied) {
+      logger.debug('[Snap] Skipping - snap position is occupied');
+      return;
+    }
+
+    logger.debug('[Snap] Snapping player to formation position', {
+      playerId,
+      from: currentRelPos,
+      to: snapTarget
+    });
+    onPlayerMove(playerId, snapTarget.relX, snapTarget.relY);
+    lastPlayerDragRelPosRef.current = snapTarget;
+  }, [formationSnapPoints, isTacticsBoardView, onPlayerMove, players]);
 
   /**
    * Renders the field at high resolution for export.
@@ -760,7 +879,20 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
       context.lineWidth = 1.5;
       context.stroke();
-      
+
+      // Draw selection ring for swap mode
+      if (selectedPlayerForSwapId === player.id) {
+        context.save();
+        context.beginPath();
+        context.arc(absX, absY, playerRadius + 4, 0, Math.PI * 2);
+        context.shadowColor = 'rgba(250, 204, 21, 0.6)';
+        context.shadowBlur = 8;
+        context.strokeStyle = 'rgba(250, 204, 21, 0.95)';
+        context.lineWidth = 3;
+        context.stroke();
+        context.restore();
+      }
+
       // --- End Disc Redesign ---
 
       // Draw player name with clean "engraved" effect
@@ -786,9 +918,9 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     });
     }
 
-    // --- Restore context --- 
+    // --- Restore context ---
     context.restore();
-  }, [players, opponents, drawings, showPlayerNames, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType]);
+  }, [players, opponents, drawings, showPlayerNames, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {
@@ -963,12 +1095,12 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   }, [tacticalBallPosition]);
 
   // --- Mouse/Touch Handlers (Logic largely the same, but use CSS size for abs calcs) ---
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (e.button !== 0) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const relPos = getRelativeEventPosition(e);
-    if (!relPos) return;
+    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (e.button !== 0) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const relPos = getRelativeEventPosition(e);
+      if (!relPos) return;
 
     if (isTacticsBoardView) {
       if (e.detail === 2) {
@@ -1028,16 +1160,18 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       }
     }
 
-    // Drag check
-    for (const player of players) {
-      // Pass event clientX/Y and the player object
-      if (isPointInPlayer(e.clientX, e.clientY, player)) {
-        setIsDraggingPlayer(true);
-        setDraggingPlayerId(player.id);
-        if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
-        return;
+      // Drag check
+      for (const player of players) {
+        // Pass event clientX/Y and the player object
+        if (isPointInPlayer(e.clientX, e.clientY, player)) {
+          setSelectedPlayerForSwapId(null);
+          lastPlayerDragRelPosRef.current = { relX: player.relX ?? relPos.relX, relY: player.relY ?? relPos.relY };
+          setIsDraggingPlayer(true);
+          setDraggingPlayerId(player.id);
+          if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
+          return;
+        }
       }
-    }
     for (const opponent of opponents) {
         // Pass event clientX/Y and the opponent object
         if (isPointInOpponent(e.clientX, e.clientY, opponent)) {
@@ -1058,20 +1192,21 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const relPos = getRelativeEventPosition(e);
-    if (!relPos) return;
+    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const relPos = getRelativeEventPosition(e);
+      if (!relPos) return;
 
-    if (isDraggingTacticalDisc && draggingTacticalDiscId) {
-      onTacticalDiscMove(draggingTacticalDiscId, relPos.relX, relPos.relY);
-    } else if (isDraggingPlayer && draggingPlayerId) {
-      onPlayerMove(draggingPlayerId, relPos.relX, relPos.relY); // Pass relative
-    } else if (isDraggingOpponent && draggingOpponentId) {
-      onOpponentMove(draggingOpponentId, relPos.relX, relPos.relY); // Pass relative
-    } else if (isDrawing) {
-      onDrawingAddPoint(relPos); // Pass relative
+      if (isDraggingTacticalDisc && draggingTacticalDiscId) {
+        onTacticalDiscMove(draggingTacticalDiscId, relPos.relX, relPos.relY);
+      } else if (isDraggingPlayer && draggingPlayerId) {
+        lastPlayerDragRelPosRef.current = relPos;
+        onPlayerMove(draggingPlayerId, relPos.relX, relPos.relY); // Pass relative
+      } else if (isDraggingOpponent && draggingOpponentId) {
+        onOpponentMove(draggingOpponentId, relPos.relX, relPos.relY); // Pass relative
+      } else if (isDrawing) {
+        onDrawingAddPoint(relPos); // Pass relative
     } else {
       // Hover check
       let hovering = false;
@@ -1097,26 +1232,31 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
   };
 
-  const handleMouseUp = () => {
-    if (isDraggingBall) {
-      setIsDraggingBall(false);
-    } else if (isDraggingTacticalDisc) {
-      setIsDraggingTacticalDisc(false);
-      setDraggingTacticalDiscId(null);
-    } else if (isDraggingPlayer) {
-      onPlayerMoveEnd();
-      setIsDraggingPlayer(false);
-      setDraggingPlayerId(null);
-    } else if (isDraggingOpponent && draggingOpponentId) {
-        onOpponentMoveEnd(draggingOpponentId);
-        setIsDraggingOpponent(false);
-        setDraggingOpponentId(null);
-    } else if (isDrawing) {
-      onDrawingEnd();
-      setIsDrawing(false);
-    }
-    if (canvasRef.current) canvasRef.current.style.cursor = 'default';
-  };
+    const handleMouseUp = () => {
+      if (isDraggingBall) {
+        setIsDraggingBall(false);
+      } else if (isDraggingTacticalDisc) {
+        setIsDraggingTacticalDisc(false);
+        setDraggingTacticalDiscId(null);
+      } else if (isDraggingPlayer) {
+        if (draggingPlayerId) {
+          const currentPos = lastPlayerDragRelPosRef.current ?? null;
+          maybeSnapPlayerToFormation(draggingPlayerId, currentPos);
+        }
+        onPlayerMoveEnd();
+        setIsDraggingPlayer(false);
+        setDraggingPlayerId(null);
+        lastPlayerDragRelPosRef.current = null;
+      } else if (isDraggingOpponent && draggingOpponentId) {
+          onOpponentMoveEnd(draggingOpponentId);
+          setIsDraggingOpponent(false);
+          setDraggingOpponentId(null);
+      } else if (isDrawing) {
+        onDrawingEnd();
+        setIsDrawing(false);
+      }
+      if (canvasRef.current) canvasRef.current.style.cursor = 'default';
+    };
 
   const handleMouseLeave = () => {
     handleMouseUp(); // Treat leave same as mouse up
@@ -1133,24 +1273,31 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
   // --- Touch Handlers ---
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (e.touches.length > 1) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    const touchId = touch.identifier;
-    setActiveTouchId(touchId);
-    const relPos = getRelativeEventPosition(e, touchId);
-    if (!relPos) { setActiveTouchId(null); return; }
+      if (e.touches.length > 1) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const touchId = touch.identifier;
+      setActiveTouchId(touchId);
+      const relPos = getRelativeEventPosition(e, touchId);
+      if (!relPos) { setActiveTouchId(null); return; }
 
-    // *** Check if placing a tapped player ***
-    if (draggingPlayerFromBarInfo) {
-        logger.log("Field TouchStart: Placing player from bar tap:", draggingPlayerFromBarInfo.id);
-        // Don't preventDefault here for placing, allow potential scroll if placement fails
-        onPlayerDropViaTouch(relPos.relX, relPos.relY);
-        setActiveTouchId(null); 
-        return; 
-    }
+    touchExceededTapThresholdRef.current = false;
+    suppressTapActionRef.current = false;
+    touchStartTargetRef.current = null;
+    touchDraggingPlayerIdRef.current = null;
+
+      // *** Check if placing a tapped player ***
+      if (draggingPlayerFromBarInfo) {
+          logger.log("Field TouchStart: Placing player from bar tap:", draggingPlayerFromBarInfo.id);
+          // Don't preventDefault here for placing, allow potential scroll if placement fails
+          onPlayerDropViaTouch(relPos.relX, relPos.relY);
+          touchExceededTapThresholdRef.current = true;
+          touchStartTargetRef.current = null;
+          setActiveTouchId(null); 
+          return; 
+      }
 
     const now = Date.now();
     let tappedTargetId: string | null = null;
@@ -1168,15 +1315,15 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           break;
         }
       }
-    } else {
-      // Normal view player/opponent interactions
-      for (const player of players) {
-        if (isPointInPlayer(touch.clientX, touch.clientY, player)) {
-          tappedTargetId = player.id;
-          tappedTargetType = 'player';
-          break;
+      } else {
+        // Normal view player/opponent interactions
+        for (const player of players) {
+          if (isPointInPlayer(touch.clientX, touch.clientY, player)) {
+            tappedTargetId = player.id;
+            tappedTargetType = 'player';
+            break;
+          }
         }
-      }
       if (!tappedTargetId) {
         for (const opponent of opponents) {
           if (isPointInOpponent(touch.clientX, touch.clientY, opponent)) {
@@ -1186,107 +1333,172 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           }
         }
       }
-    }
+      }
 
-    // Double Tap Logic
-    const absEventX = touch.clientX - rect.left;
-    const absEventY = touch.clientY - rect.top;
-    if (lastTapInfo && (tappedTargetId && lastTapInfo.targetId === tappedTargetId || tappedTargetType === 'ball' && lastTapInfo.targetType === 'ball')) {
+      touchStartTargetRef.current = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        targetId: tappedTargetId,
+        targetType: tappedTargetType,
+      };
+
+      if (!isTacticsBoardView && tappedTargetType !== 'player') {
+        setSelectedPlayerForSwapId(null);
+      }
+
+      // Double Tap Logic
+      const absEventX = touch.clientX - rect.left;
+      const absEventY = touch.clientY - rect.top;
+      if (lastTapInfo && (tappedTargetId && lastTapInfo.targetId === tappedTargetId || tappedTargetType === 'ball' && lastTapInfo.targetType === 'ball')) {
       const timeDiff = now - lastTapInfo.time;
       const distDiff = Math.sqrt(Math.pow(absEventX - lastTapInfo.x, 2) + Math.pow(absEventY - lastTapInfo.y, 2));
       if (timeDiff < DOUBLE_TAP_TIME_THRESHOLD && distDiff < DOUBLE_TAP_POS_THRESHOLD) {
-        if (tappedTargetType === 'player' && tappedTargetId) {
-          onPlayerRemove(tappedTargetId);
-        } else if (tappedTargetType === 'opponent' && tappedTargetId) {
-          onOpponentRemove(tappedTargetId);
-        } else if (tappedTargetType === 'tactical' && tappedTargetId) {
-          const disc = tacticalDiscs.find(d => d.id === tappedTargetId);
-          if (disc) {
+          if (tappedTargetType === 'player' && tappedTargetId) {
+            onPlayerRemove(tappedTargetId);
+            setSelectedPlayerForSwapId(prev => (prev === tappedTargetId ? null : prev));
+          } else if (tappedTargetType === 'opponent' && tappedTargetId) {
+            onOpponentRemove(tappedTargetId);
+          } else if (tappedTargetType === 'tactical' && tappedTargetId) {
+            const disc = tacticalDiscs.find(d => d.id === tappedTargetId);
+            if (disc) {
             if (disc.type === 'home') {
               onToggleTacticalDiscType(disc.id);
             } else {
               onTacticalDiscRemove(disc.id);
             }
           }
+          }
+          setLastTapInfo(null);
+          setActiveTouchId(null);
+          suppressTapActionRef.current = true;
+          touchStartTargetRef.current = null;
+          touchExceededTapThresholdRef.current = true;
+          e.preventDefault();
+          return;
         }
-        setLastTapInfo(null);
-        setActiveTouchId(null);
-        e.preventDefault();
-        return;
       }
-    }
-    setLastTapInfo({ time: now, x: absEventX, y: absEventY, targetId: tappedTargetId, targetType: tappedTargetType });
+      setLastTapInfo({ time: now, x: absEventX, y: absEventY, targetId: tappedTargetId, targetType: tappedTargetType });
 
-    // Start Dragging or Drawing
-    if (tappedTargetType === 'ball') {
-      setIsDraggingBall(true);
-      e.preventDefault();
-    } else if (tappedTargetType === 'player' && tappedTargetId) {
-      setIsDraggingPlayer(true);
-      setDraggingPlayerId(tappedTargetId);
-      e.preventDefault();
-    } else if (tappedTargetType === 'opponent' && tappedTargetId) {
-      setIsDraggingOpponent(true);
-      setDraggingOpponentId(tappedTargetId);
-      e.preventDefault();
-    } else if (tappedTargetType === 'tactical' && tappedTargetId) {
-      setIsDraggingTacticalDisc(true);
-      setDraggingTacticalDiscId(tappedTargetId);
-      e.preventDefault();
-    } else if (!draggingPlayerFromBarInfo && isDrawingEnabled && isTacticsBoardView) {
-      // Only allow drawing in tactics mode (guard against stale isDrawingEnabled)
-      // If a previous stroke didn't finalize (missed touchend), finalize it now
-      if (isDrawing) {
+      // Start Dragging or Drawing
+      if (tappedTargetType === 'ball') {
+        setIsDraggingBall(true);
+        touchExceededTapThresholdRef.current = true;
+        e.preventDefault();
+      } else if (tappedTargetType === 'player' && tappedTargetId) {
+        // Player drag is started on touch-move once the finger moves past a threshold.
+        e.preventDefault();
+      } else if (tappedTargetType === 'opponent' && tappedTargetId) {
+        setIsDraggingOpponent(true);
+        setDraggingOpponentId(tappedTargetId);
+        touchExceededTapThresholdRef.current = true;
+        e.preventDefault();
+      } else if (tappedTargetType === 'tactical' && tappedTargetId) {
+        setIsDraggingTacticalDisc(true);
+        setDraggingTacticalDiscId(tappedTargetId);
+        touchExceededTapThresholdRef.current = true;
+        e.preventDefault();
+      } else if (!draggingPlayerFromBarInfo && isDrawingEnabled && isTacticsBoardView) {
+        // Only allow drawing in tactics mode (guard against stale isDrawingEnabled)
+        // If a previous stroke didn't finalize (missed touchend), finalize it now
+        if (isDrawing) {
         onDrawingEnd();
         setIsDrawing(false);
       }
-      setIsDrawing(true);
-      onDrawingStart(relPos);
-      e.preventDefault();
-    }
-  }, [
-    isPointInBall, isTacticsBoardView, tacticalDiscs, onToggleTacticalDiscType, onTacticalDiscRemove, isPointInTacticalDisc,
-    players, onPlayerRemove, isPointInPlayer, opponents, onOpponentRemove, isPointInOpponent,
+        setIsDrawing(true);
+        onDrawingStart(relPos);
+        touchExceededTapThresholdRef.current = true;
+        e.preventDefault();
+      }
+    }, [
+      isPointInBall, isTacticsBoardView, tacticalDiscs, onToggleTacticalDiscType, onTacticalDiscRemove, isPointInTacticalDisc,
+      players, onPlayerRemove, isPointInPlayer, opponents, onOpponentRemove, isPointInOpponent,
     draggingPlayerFromBarInfo, onPlayerDropViaTouch,
     lastTapInfo, onDrawingStart, isDrawingEnabled, isDrawing, onDrawingEnd
   ]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (activeTouchId === null) return;
+      if (activeTouchId === null) return;
 
-    const currentTouch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchId);
-    if (!currentTouch) return;
+      const currentTouch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchId);
+      if (!currentTouch) return;
 
-    if (isDraggingBall || isDraggingPlayer || isDraggingOpponent || isDrawing || isDraggingTacticalDisc) {
-      e.preventDefault();
+      let isDraggingPlayerForMove = isDraggingPlayer;
+      let draggingPlayerIdForMove = draggingPlayerId;
+      const touchStartTarget = touchStartTargetRef.current;
+
+      if (
+        !isDraggingPlayerForMove &&
+        !isDraggingBall &&
+        !isDraggingOpponent &&
+        !isDraggingTacticalDisc &&
+        !isDrawing &&
+        !isTacticsBoardView &&
+        touchStartTarget?.targetType === 'player' &&
+        touchStartTarget.targetId
+      ) {
+        const dx = currentTouch.clientX - touchStartTarget.clientX;
+        const dy = currentTouch.clientY - touchStartTarget.clientY;
+        const distSq = dx * dx + dy * dy;
+      if (distSq >= TAP_TO_DRAG_THRESHOLD_SQ) {
+        touchExceededTapThresholdRef.current = true;
+        setSelectedPlayerForSwapId(null);
+        setIsDraggingPlayer(true);
+        setDraggingPlayerId(touchStartTarget.targetId);
+        touchDraggingPlayerIdRef.current = touchStartTarget.targetId;
+        isDraggingPlayerForMove = true;
+        draggingPlayerIdForMove = touchStartTarget.targetId;
+      }
     }
-    
-    const pos = getRelativeEventPosition(e, activeTouchId);
-    if (!pos) return;
 
-    if (isDraggingBall) {
-      onTacticalBallMove(pos);
-    } else if (isDraggingTacticalDisc && draggingTacticalDiscId) {
-      onTacticalDiscMove(draggingTacticalDiscId, pos.relX, pos.relY);
-    } else if (isDraggingPlayer && draggingPlayerId) {
-      onPlayerMove(draggingPlayerId, pos.relX, pos.relY);
+      if (isDraggingBall || isDraggingPlayerForMove || isDraggingOpponent || isDrawing || isDraggingTacticalDisc) {
+        e.preventDefault();
+      }
+
+      const pos = getRelativeEventPosition(e, activeTouchId);
+      if (!pos) return;
+
+      if (isDraggingBall) {
+        onTacticalBallMove(pos);
+      } else if (isDraggingTacticalDisc && draggingTacticalDiscId) {
+        onTacticalDiscMove(draggingTacticalDiscId, pos.relX, pos.relY);
+    } else if (isDraggingPlayerForMove && draggingPlayerIdForMove) {
+      lastPlayerDragRelPosRef.current = pos;
+      touchDraggingPlayerIdRef.current = draggingPlayerIdForMove;
+      onPlayerMove(draggingPlayerIdForMove, pos.relX, pos.relY);
     } else if (isDraggingOpponent && draggingOpponentId) {
       onOpponentMove(draggingOpponentId, pos.relX, pos.relY);
     } else if (isDrawing) {
       onDrawingAddPoint(pos);
     }
-  }, [activeTouchId, isDrawing, isDraggingPlayer, isDraggingOpponent, draggingPlayerId, draggingOpponentId, onPlayerMove, onOpponentMove, onDrawingAddPoint, isDraggingTacticalDisc, draggingTacticalDiscId, onTacticalDiscMove, isDraggingBall, onTacticalBallMove]);
+  }, [activeTouchId, isDrawing, isDraggingPlayer, isDraggingOpponent, draggingPlayerId, draggingOpponentId, onPlayerMove, onOpponentMove, onDrawingAddPoint, isDraggingTacticalDisc, draggingTacticalDiscId, onTacticalDiscMove, isDraggingBall, onTacticalBallMove, isTacticsBoardView]);
 
   const finalizeTouchEnd = useCallback(() => {
-    if (isDraggingBall) {
-      setIsDraggingBall(false);
-    } else if (isDraggingTacticalDisc) {
-      setIsDraggingTacticalDisc(false);
-      setDraggingTacticalDiscId(null);
-    } else if (isDraggingPlayer) {
+      const touchStartTarget = touchStartTargetRef.current;
+      const shouldHandleTap =
+        !suppressTapActionRef.current &&
+        !touchExceededTapThresholdRef.current &&
+        !isDraggingBall &&
+        !isDraggingTacticalDisc &&
+        !isDraggingPlayer &&
+        !isDraggingOpponent &&
+        !isDrawing;
+
+      if (isDraggingBall) {
+        setIsDraggingBall(false);
+      } else if (isDraggingTacticalDisc) {
+        setIsDraggingTacticalDisc(false);
+        setDraggingTacticalDiscId(null);
+    } else if (isDraggingPlayer || touchDraggingPlayerIdRef.current) {
+      const playerId = draggingPlayerId ?? touchDraggingPlayerIdRef.current;
+      if (playerId) {
+        const currentPos = lastPlayerDragRelPosRef.current ?? null;
+        maybeSnapPlayerToFormation(playerId, currentPos);
+      }
       onPlayerMoveEnd();
       setIsDraggingPlayer(false);
       setDraggingPlayerId(null);
+      lastPlayerDragRelPosRef.current = null;
+      touchDraggingPlayerIdRef.current = null;
     } else if (isDraggingOpponent && draggingOpponentId) {
       onOpponentMoveEnd(draggingOpponentId);
       setIsDraggingOpponent(false);
@@ -1299,23 +1511,48 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       setDraggingTacticalDiscId(null);
     }
 
-    if (draggingPlayerFromBarInfo) {
-      onPlayerDragCancelViaTouch();
-    }
+      if (draggingPlayerFromBarInfo) {
+        onPlayerDragCancelViaTouch();
+      }
 
+      if (!isTacticsBoardView && shouldHandleTap) {
+        if (touchStartTarget?.targetType === 'player' && touchStartTarget.targetId) {
+          const tappedPlayerId = touchStartTarget.targetId;
+          if (!selectedPlayerForSwapId) {
+            setSelectedPlayerForSwapId(tappedPlayerId);
+          } else if (selectedPlayerForSwapId === tappedPlayerId) {
+            setSelectedPlayerForSwapId(null);
+          } else {
+            onPlayersSwap?.(selectedPlayerForSwapId, tappedPlayerId);
+            setSelectedPlayerForSwapId(null);
+          }
+        } else if (!touchStartTarget?.targetType) {
+          setSelectedPlayerForSwapId(null);
+        }
+      }
+
+    touchStartTargetRef.current = null;
+    touchExceededTapThresholdRef.current = false;
+    suppressTapActionRef.current = false;
+    touchDraggingPlayerIdRef.current = null;
     setActiveTouchId(null);
   }, [
     isDraggingBall,
     isDraggingTacticalDisc,
     isDraggingPlayer,
-    isDraggingOpponent,
-    draggingOpponentId,
-    isDrawing,
-    draggingPlayerFromBarInfo,
-    onPlayerMoveEnd,
-    onOpponentMoveEnd,
-    onDrawingEnd,
+      isDraggingOpponent,
+      draggingOpponentId,
+      isDrawing,
+      draggingPlayerFromBarInfo,
+      onPlayerMoveEnd,
+      onOpponentMoveEnd,
+      onDrawingEnd,
     onPlayerDragCancelViaTouch,
+    isTacticsBoardView,
+    onPlayersSwap,
+    selectedPlayerForSwapId,
+    draggingPlayerId,
+    maybeSnapPlayerToFormation,
   ]);
 
   // Keep a stable ref for active touch ID to avoid re-registering native listeners

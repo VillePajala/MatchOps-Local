@@ -381,6 +381,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     timerInteractions,
   } = timerManagement;
 
+  // Merge goalie status from playersOnField into playersForCurrentGame
+  // This ensures the PlayerBar reflects the current goalie based on field position
+  const playersWithFieldGoalieStatus = useMemo(() => {
+    const fieldPlayerMap = new Map(
+      fieldCoordination.playersOnField.map(p => [p.id, p])
+    );
+    return playersForCurrentGame.map(player => {
+      const fieldPlayer = fieldPlayerMap.get(player.id);
+      if (fieldPlayer && fieldPlayer.isGoalie !== player.isGoalie) {
+        return { ...player, isGoalie: fieldPlayer.isGoalie };
+      }
+      return player;
+    });
+  }, [playersForCurrentGame, fieldCoordination.playersOnField]);
+
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVMInput = useMemo<BuildGameContainerVMInput>(() => ({
     gameSessionState: {
@@ -399,7 +414,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       currentPeriod: gameSessionState.currentPeriod,
       gameStatus: gameSessionState.gameStatus,
     },
-    playersForCurrentGame,
+    playersForCurrentGame: playersWithFieldGoalieStatus,
     draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
   }), [
     gameSessionState.teamName,
@@ -416,7 +431,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameSessionState.periodDurationMinutes,
     gameSessionState.currentPeriod,
     gameSessionState.gameStatus,
-    playersForCurrentGame,
+    playersWithFieldGoalieStatus,
     fieldCoordination.draggingPlayerFromBarInfo,
   ]);
 
@@ -1862,6 +1877,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       moveEnd: fieldCoordination.handlePlayerMoveEnd,
       remove: fieldCoordination.handlePlayerRemove,
       drop: fieldCoordination.handleDropOnField,
+      swap: fieldCoordination.handlePlayersSwap,
     },
     opponents: {
       move: fieldCoordination.handleOpponentMove,
@@ -1892,6 +1908,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     fieldCoordination.handlePlayerMoveEnd,
     fieldCoordination.handlePlayerRemove,
     fieldCoordination.handleDropOnField,
+    fieldCoordination.handlePlayersSwap,
     // Opponent handlers
     fieldCoordination.handleOpponentMove,
     fieldCoordination.handleOpponentMoveEnd,
@@ -1926,6 +1943,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     tacticalBallPosition: fieldCoordination.tacticalBallPosition,
     draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
     isDrawingEnabled: fieldCoordination.isDrawingEnabled,
+    formationSnapPoints: fieldCoordination.formationSnapPoints,
   }), [
     fieldCoordination.playersOnField,
     fieldCoordination.opponents,
@@ -1936,6 +1954,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     fieldCoordination.tacticalBallPosition,
     fieldCoordination.draggingPlayerFromBarInfo,
     fieldCoordination.isDrawingEnabled,
+    fieldCoordination.formationSnapPoints,
   ]);
 
   // Memoize timerVM to prevent unnecessary re-renders of TimerOverlay
