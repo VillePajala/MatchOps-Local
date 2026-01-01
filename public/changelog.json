@@ -1,8 +1,8 @@
 {
-  "version": "55711489",
-  "date": "2025-12-29",
+  "version": "1e89b0ce",
+  "date": "2026-01-01",
   "notes": {
-    "en": "Tactical export shows only tactical elements; added season/tournament to exports",
-    "fi": "Taktiikkakuva näyttää vain taktiikat; kausi/turnaus lisätty vientikuviin"
+    "en": "Add title and improve dropdown styling",
+    "fi": "Add title and improve dropdown styling"
   }
 }

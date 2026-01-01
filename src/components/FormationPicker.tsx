@@ -15,15 +15,9 @@ import {
 // Match ControlBar design tokens
 const BUTTON_SIZE = 'w-10 h-10';
 const ICON_SIZE = 'w-5 h-5';
-const DROPDOWN_MAX_WIDTH_PX = 384; // Tailwind w-96
-
-type DropdownLayout = {
-  left: number;
-  width: number;
-  maxHeight: number;
-  top?: number;
-  bottom?: number;
-};
+const DROPDOWN_MAX_WIDTH_PX = 300;
+const VIEWPORT_PADDING = 12;
+const MOBILE_BREAKPOINT = 640;
 
 interface FormationPickerProps {
   /** Callback when a formation is selected (preset ID or 'auto') */
@@ -35,14 +29,124 @@ interface FormationPickerProps {
 }
 
 /**
+ * Shared menu content component for both mobile and desktop
+ */
+const MenuContent: React.FC<{
+  selectedPlayerCount: number;
+  recommendedSize: FieldSize;
+  onSelectAuto: () => void;
+  onSelectPreset: (preset: FormationPreset) => void;
+  isMobile: boolean;
+}> = ({ selectedPlayerCount, recommendedSize, onSelectAuto, onSelectPreset, isMobile }) => {
+  const { t } = useTranslation();
+
+  // Size classes based on mobile/desktop - mobile is compact to fit on screen
+  const headerClass = isMobile
+    ? "relative z-10 flex justify-center items-center pt-4 pb-2 px-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 shrink-0"
+    : "relative z-10 px-4 py-3 border-b border-slate-700/20 shrink-0 text-center";
+  const titleClass = isMobile
+    ? "text-lg font-bold text-yellow-400 tracking-wide drop-shadow-lg"
+    : "text-sm font-bold text-yellow-400";
+  const subtitleClass = isMobile ? "text-xs text-slate-400 mt-0.5" : "text-xs text-slate-400 mt-0.5";
+  const contentClass = isMobile
+    ? "relative z-10 overflow-y-auto flex-1 p-3 pb-16 space-y-2"
+    : "relative z-10 overflow-y-auto min-h-0 flex-1 p-2 space-y-2";
+  const autoButtonClass = isMobile
+    ? "w-full px-3 py-1.5 text-center text-sm rounded-md font-medium transition-colors bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
+    : "w-full px-3 py-2 text-center text-sm rounded-md font-medium transition-colors bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg";
+  const cardClass = isMobile ? "p-2 rounded-lg" : "p-2 rounded-lg";
+  const sizeHeaderClass = isMobile
+    ? "px-1 py-0.5 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-1"
+    : "px-1 py-0.5 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-1.5";
+  const badgeClass = isMobile
+    ? "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-yellow-500/20 text-yellow-400 normal-case"
+    : "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-yellow-500/20 text-yellow-400 normal-case";
+  const gridClass = isMobile ? "grid grid-cols-2 gap-1.5" : "grid grid-cols-2 gap-1.5";
+  const presetButtonClass = isMobile
+    ? "px-3 py-2 text-left text-sm rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 text-slate-100 hover:from-slate-600/60 hover:to-slate-800/40"
+    : "px-3 py-2 text-left text-sm rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 text-slate-100 hover:from-slate-600/60 hover:to-slate-800/40";
+  const presetNameClass = "font-medium";
+  const presetCountClass = isMobile ? "text-slate-400 text-xs ml-1.5" : "text-slate-400 text-xs ml-1.5";
+
+  return (
+    <>
+      {/* Background effects (from modalStyles) */}
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+
+      {/* Header */}
+      <div className={headerClass}>
+        <div className="text-center">
+          <h2 className={titleClass}>
+            {t('formations.title', 'Place players on field')}
+          </h2>
+          <p className={subtitleClass}>
+            {t('formations.playerCount', '{{count}} players selected', { count: selectedPlayerCount })}
+          </p>
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div className={contentClass}>
+        {/* Auto option - primary indigo button like "Add Player" */}
+        <button
+          onClick={onSelectAuto}
+          className={autoButtonClass}
+          role="menuitem"
+        >
+          {t('formations.auto', 'Auto')}
+        </button>
+
+        {/* Field size groups */}
+        {FIELD_SIZES.map(size => (
+          <div
+            key={size}
+            className={`bg-gradient-to-br from-slate-900/60 to-slate-800/40 ${cardClass} border shadow-inner ${
+              size === recommendedSize ? 'border-yellow-500/50' : 'border-slate-700'
+            }`}
+          >
+            {/* Size header */}
+            <div
+              className={`${sizeHeaderClass} ${
+                size === recommendedSize ? 'text-yellow-400' : 'text-slate-400'
+              }`}
+            >
+              {size}
+              {size === recommendedSize && (
+                <span className={badgeClass}>
+                  {t('formations.recommended', 'Recommended')}
+                </span>
+              )}
+            </div>
+
+            {/* Presets grid */}
+            <div className={gridClass}>
+              {PRESETS_BY_SIZE[size].map(preset => (
+                <button
+                  key={preset.id}
+                  onClick={() => onSelectPreset(preset)}
+                  className={presetButtonClass}
+                  role="menuitem"
+                >
+                  <span className={presetNameClass}>{preset.name}</span>
+                  <span className={presetCountClass}>
+                    ({preset.playerCount + 1})
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+};
+
+/**
  * Formation preset picker dropdown
  *
- * Shows a button that opens a dropdown with formation presets
- * grouped by field size. Recommends appropriate formations based
- * on the current player count.
- *
- * Uses a portal to render the dropdown outside the ControlBar DOM tree
- * to avoid clipping issues with overflow:auto.
+ * Mobile: Full-screen overlay rendered directly (like TimerOverlay)
+ * Desktop: Anchored dropdown via portal
  */
 const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   onSelectFormation,
@@ -51,82 +155,73 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
 }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownLayout, setDropdownLayout] = useState<DropdownLayout>({
+  const [isMobile, setIsMobile] = useState(false);
+  const [desktopLayout, setDesktopLayout] = useState({
     left: 0,
-    top: 0,
+    bottom: 0,
     width: DROPDOWN_MAX_WIDTH_PX,
     maxHeight: 400,
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const justOpenedRef = useRef(false);
 
-  // Recommended field size based on player count
   const recommendedSize = getRecommendedFieldSize(selectedPlayerCount);
 
-  const updateDropdownLayout = useCallback(() => {
-    if (!buttonRef.current) return;
-
-    const rect = buttonRef.current.getBoundingClientRect();
-    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-
-    const viewportPadding = 12;
-    const gap = 8;
-
-    const width = Math.min(DROPDOWN_MAX_WIDTH_PX, Math.max(0, viewportWidth - viewportPadding * 2));
-    const centeredLeft = (viewportWidth - width) / 2;
-    const anchoredLeft = rect.left;
-    const desiredLeft = viewportWidth < 640 ? centeredLeft : anchoredLeft;
-    const left = Math.min(
-      Math.max(desiredLeft, viewportPadding),
-      Math.max(viewportPadding, viewportWidth - viewportPadding - width)
-    );
-
-    const spaceAbove = rect.top - viewportPadding;
-    const spaceBelow = viewportHeight - rect.bottom - viewportPadding;
-    const placeAbove = spaceAbove >= spaceBelow;
-
-    if (placeAbove) {
-      const maxHeight = Math.max(0, spaceAbove - gap);
-      setDropdownLayout({
-        left: Math.round(left),
-        bottom: Math.round(viewportHeight - rect.top + gap),
-        width: Math.floor(width),
-        maxHeight: Math.floor(maxHeight),
-      });
-      return;
-    }
-
-    const top = rect.bottom + gap;
-    const maxHeight = Math.max(0, viewportHeight - top - viewportPadding);
-    setDropdownLayout({
-      left: Math.round(left),
-      top: Math.round(top),
-      width: Math.floor(width),
-      maxHeight: Math.floor(maxHeight),
-    });
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Update dropdown layout when open + on viewport changes
+  // Update desktop layout when open
+  const updateDesktopLayout = useCallback(() => {
+    if (!buttonRef.current || isMobile) return;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const gap = 8;
+
+    const width = Math.min(DROPDOWN_MAX_WIDTH_PX, viewportWidth - VIEWPORT_PADDING * 2);
+
+    let left = rect.left;
+    if (left + width > viewportWidth - VIEWPORT_PADDING) {
+      left = viewportWidth - VIEWPORT_PADDING - width;
+    }
+    if (left < VIEWPORT_PADDING) {
+      left = VIEWPORT_PADDING;
+    }
+
+    const spaceAbove = rect.top - VIEWPORT_PADDING;
+    const maxHeight = Math.min(400, spaceAbove - gap);
+
+    setDesktopLayout({
+      left: Math.round(left),
+      bottom: Math.round(viewportHeight - rect.top + gap),
+      width: Math.floor(width),
+      maxHeight: Math.max(100, Math.floor(maxHeight)),
+    });
+  }, [isMobile]);
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isMobile) return;
 
-    updateDropdownLayout();
-
-    window.addEventListener('resize', updateDropdownLayout);
-    window.addEventListener('scroll', updateDropdownLayout, true);
-    window.visualViewport?.addEventListener('resize', updateDropdownLayout);
-    window.visualViewport?.addEventListener('scroll', updateDropdownLayout);
+    updateDesktopLayout();
+    window.addEventListener('resize', updateDesktopLayout);
+    window.addEventListener('scroll', updateDesktopLayout, true);
 
     return () => {
-      window.removeEventListener('resize', updateDropdownLayout);
-      window.removeEventListener('scroll', updateDropdownLayout, true);
-      window.visualViewport?.removeEventListener('resize', updateDropdownLayout);
-      window.visualViewport?.removeEventListener('scroll', updateDropdownLayout);
+      window.removeEventListener('resize', updateDesktopLayout);
+      window.removeEventListener('scroll', updateDesktopLayout, true);
     };
-  }, [isOpen, updateDropdownLayout]);
+  }, [isOpen, isMobile, updateDesktopLayout]);
 
-  // Close dropdown on outside click
+  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -142,33 +237,35 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Close on escape key
+  // Close on escape
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
+      if (event.key === 'Escape') setIsOpen(false);
     };
-
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
     }
-
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
   const handleButtonClick = useCallback(() => {
-    if (!disabled) {
-      setIsOpen(prev => !prev);
-    }
+    if (disabled) return;
+    setIsOpen(prev => {
+      if (!prev) {
+        justOpenedRef.current = true;
+        setTimeout(() => {
+          justOpenedRef.current = false;
+        }, 100);
+      }
+      return !prev;
+    });
   }, [disabled]);
 
   const handleSelectAuto = useCallback(() => {
-    onSelectFormation(null);  // null = auto mode
+    onSelectFormation(null);
     setIsOpen(false);
   }, [onSelectFormation]);
 
@@ -177,87 +274,54 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
     setIsOpen(false);
   }, [onSelectFormation]);
 
-  // Use pre-computed presets grouped by field size (avoids recalculation on every render)
-
-  // Dropdown content (rendered via portal)
-  const dropdownContent = isOpen && typeof document !== 'undefined' ? createPortal(
+  // Mobile overlay - use portal to escape ControlBar's stacking context
+  // Matches TimerOverlay positioning exactly: fixed inset-x-0 top-0 bottom-14 z-30
+  const mobileOverlay = isOpen && isMobile && typeof document !== 'undefined' ? createPortal(
     <div
       ref={dropdownRef}
-      className="fixed bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-600/50 rounded-xl shadow-2xl overflow-hidden flex flex-col overscroll-contain backdrop-blur-md"
+      className="fixed inset-x-0 top-0 bottom-20 z-30 flex flex-col bg-slate-800 overflow-hidden"
+      role="menu"
+      aria-orientation="vertical"
+    >
+      <MenuContent
+        selectedPlayerCount={selectedPlayerCount}
+        recommendedSize={recommendedSize}
+        onSelectAuto={handleSelectAuto}
+        onSelectPreset={handleSelectPreset}
+        isMobile={true}
+      />
+    </div>,
+    document.body
+  ) : null;
+
+  // Desktop dropdown - rendered through portal
+  const desktopDropdown = isOpen && !isMobile && typeof document !== 'undefined' ? createPortal(
+    <div
+      ref={dropdownRef}
+      className="fixed overflow-hidden flex flex-col overscroll-contain rounded-lg border border-slate-700 shadow-2xl bg-slate-800"
       style={{
-        left: dropdownLayout.left,
-        top: dropdownLayout.top,
-        bottom: dropdownLayout.bottom,
-        width: dropdownLayout.width,
-        maxHeight: dropdownLayout.maxHeight,
+        left: desktopLayout.left,
+        bottom: desktopLayout.bottom,
+        width: desktopLayout.width,
+        maxHeight: desktopLayout.maxHeight,
         zIndex: 9999,
       }}
       role="menu"
       aria-orientation="vertical"
     >
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-800/50 shrink-0">
-        <p className="text-sm font-semibold text-slate-100">
-          {t('formations.title', 'Place players on field')}
-        </p>
-        <p className="text-xs text-slate-400 mt-1">
-          {t('formations.playerCount', '{{count}} players selected', { count: selectedPlayerCount })}
-        </p>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="overflow-y-auto min-h-0 flex-1 p-1.5">
-        {/* Auto option */}
-        <button
-          onClick={handleSelectAuto}
-          className="w-full px-3 py-2.5 text-left text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg flex items-center gap-2 transition-colors"
-          role="menuitem"
-        >
-          <span className="font-medium">{t('formations.auto', 'Auto')}</span>
-          <span className="text-slate-400 text-xs">
-            {t('formations.autoDescription', 'Based on player count')}
-          </span>
-        </button>
-
-        {/* Field size groups */}
-        {FIELD_SIZES.map(size => (
-          <div key={size} className="mt-1">
-            {/* Size header */}
-            <div className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md ${
-              size === recommendedSize ? 'text-green-400 bg-green-900/30' : 'text-slate-500'
-            }`}>
-              {size}
-              {size === recommendedSize && (
-                <span className="ml-2 text-green-400/80 normal-case font-normal">
-                  {t('formations.recommended', 'Recommended')}
-                </span>
-              )}
-            </div>
-
-            {/* Presets for this size */}
-            {PRESETS_BY_SIZE[size].map(preset => (
-              <button
-                key={preset.id}
-                onClick={() => handleSelectPreset(preset)}
-                className="w-full px-3 py-2.5 pl-6 text-left text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors flex items-center justify-between"
-                role="menuitem"
-              >
-                <span>{preset.name}</span>
-                <span className="text-slate-500 text-xs">
-                  {preset.playerCount + 1} {t('formations.players', 'players')}
-                </span>
-              </button>
-            ))}
-          </div>
-        ))}
-      </div>
+      <MenuContent
+        selectedPlayerCount={selectedPlayerCount}
+        recommendedSize={recommendedSize}
+        onSelectAuto={handleSelectAuto}
+        onSelectPreset={handleSelectPreset}
+        isMobile={false}
+      />
     </div>,
     document.body
   ) : null;
 
   return (
     <>
-      {/* Trigger Button */}
       <button
         ref={buttonRef}
         onClick={handleButtonClick}
@@ -274,9 +338,8 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
       >
         <HiOutlineSquares2X2 className={ICON_SIZE} />
       </button>
-
-      {/* Dropdown via Portal */}
-      {dropdownContent}
+      {mobileOverlay}
+      {desktopDropdown}
     </>
   );
 });

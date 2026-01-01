@@ -127,6 +127,18 @@ const FORMATIONS_5V5: FormationPreset[] = [
       { relX: 0.5, relY: 0.30 }, // Forward
     ],
   },
+  {
+    id: '5v5-2-1-1',
+    name: '2-1-1',
+    labelKey: 'formations.5v5.2-1-1',
+    fieldSize: '5v5',
+    playerCount: 4,
+    positions: [
+      ...row(2, 0.70, 0.25),      // Two defenders
+      { relX: 0.5, relY: 0.50 },  // One midfielder
+      { relX: 0.5, relY: 0.28 },  // One forward
+    ],
+  },
 ];
 
 /**
