@@ -242,6 +242,7 @@ export function useGamePersistence({
       tacticalDiscs: fieldCoordination.tacticalDiscs,
       tacticalDrawings: fieldCoordination.tacticalDrawings,
       tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+      formationSnapPoints: fieldCoordination.formationSnapPoints,
 
       // Per-game roster
       availablePlayers,
@@ -256,6 +257,7 @@ export function useGamePersistence({
     fieldCoordination.tacticalDiscs,
     fieldCoordination.tacticalDrawings,
     fieldCoordination.tacticalBallPosition,
+    fieldCoordination.formationSnapPoints,
     availablePlayers,
   ]);
 
@@ -441,6 +443,7 @@ export function useGamePersistence({
         tacticalDiscs: fieldCoordination.tacticalDiscs,
         tacticalDrawings: fieldCoordination.tacticalDrawings,
         tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+        formationSnapPoints: fieldCoordination.formationSnapPoints,
       },
       delay: 2000,
     },

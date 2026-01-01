@@ -95,6 +95,7 @@ export interface UseFieldCoordinationReturn {
   isDrawingEnabled: boolean;
   isTacticsBoardView: boolean;
   formationSnapPoints: Point[];
+  setFormationSnapPoints: React.Dispatch<React.SetStateAction<Point[]>>;
   tacticalDiscs: TacticalDisc[];
   tacticalDrawings: Point[][];
   tacticalBallPosition: Point | null;
@@ -652,6 +653,7 @@ export function useFieldCoordination({
     isDrawingEnabled,
     isTacticsBoardView,
     formationSnapPoints,
+    setFormationSnapPoints,
     tacticalDiscs,
     tacticalDrawings,
     tacticalBallPosition,

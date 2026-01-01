@@ -1017,6 +1017,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     fieldCoordination.setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
     fieldCoordination.setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
     fieldCoordination.setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
+    fieldCoordination.setFormationSnapPoints(gameData?.formationSnapPoints || []);
     setIsPlayed(gameData?.isPlayed === false ? false : true);
 
     // Load per-game availablePlayers (with per-game goalie status)
@@ -1065,6 +1066,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       tacticalDiscs: gameData?.tacticalDiscs || [],
       tacticalDrawings: gameData?.tacticalDrawings || [],
       tacticalBallPosition: gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 },
+      formationSnapPoints: gameData?.formationSnapPoints || [],
       availablePlayers: gameData?.availablePlayers || gameDataManagement.masterRoster || availablePlayers,
     };
     resetHistory(newHistoryState);
