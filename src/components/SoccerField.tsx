@@ -68,145 +68,6 @@ const TAP_TO_DRAG_THRESHOLD = 10; // pixels
 const TAP_TO_DRAG_THRESHOLD_SQ = TAP_TO_DRAG_THRESHOLD * TAP_TO_DRAG_THRESHOLD;
 const FORMATION_SNAP_THRESHOLD_PX = 36; // pixels
 const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP_THRESHOLD_PX;
-const SUBS_ZONE_PADDING_PX = 6;
-const SUBS_ZONE_EDGE_DETECT_RIGHT_RELX = 0.85;
-const SUBS_ZONE_EDGE_DETECT_LEFT_RELX = 0.15;
-const SUBS_ZONE_CLUSTER_BAND_RELX = 0.04;
-const SUBS_ZONE_STRICT_EDGE_BAND_REL = 0.06;
-const SUBS_ZONE_BENCH_MIN_REL_Y = 0.5;
-const SUBS_ZONE_MIN_TOP_REL = 0.55;
-const SUBS_ZONE_FIXED_BOTTOM_REL = 0.92;
-const SUBS_ZONE_MIN_HEIGHT_REL = 0.12;
-
-type CanvasLikeContext = Pick<
-  CanvasRenderingContext2D,
-  | 'save'
-  | 'restore'
-  | 'beginPath'
-  | 'moveTo'
-  | 'arcTo'
-  | 'closePath'
-  | 'fill'
-  | 'stroke'
-  | 'setLineDash'
-  | 'fillStyle'
-  | 'strokeStyle'
-  | 'lineWidth'
-> & {
-  roundRect?: (x: number, y: number, w: number, h: number, radii: number | number[]) => void;
-};
-
-function addRoundedRectPath(
-  ctx: CanvasLikeContext,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-): void {
-  const radius = Math.max(0, Math.min(r, w / 2, h / 2));
-
-  if (typeof ctx.roundRect === 'function') {
-    ctx.roundRect(x, y, w, h, radius);
-    return;
-  }
-
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + w, y, x + w, y + h, radius);
-  ctx.arcTo(x + w, y + h, x, y + h, radius);
-  ctx.arcTo(x, y + h, x, y, radius);
-  ctx.arcTo(x, y, x + w, y, radius);
-  ctx.closePath();
-}
-
-function drawSubstitutesZone(
-  ctx: CanvasLikeContext,
-  players: Player[],
-  W: number,
-  H: number,
-  playerRadiusPx: number,
-  scale: number
-): void {
-  const positionedPlayers = players.filter(
-    p =>
-      typeof p.relX === 'number' &&
-      typeof p.relY === 'number' &&
-      Number.isFinite(p.relX) &&
-      Number.isFinite(p.relY)
-  );
-
-  if (positionedPlayers.length === 0) return;
-
-  const relXs = positionedPlayers.map(p => p.relX!);
-  const maxRelX = Math.max(...relXs);
-  const minRelX = Math.min(...relXs);
-
-  let sidelinePlayers: Player[] = [];
-  if (maxRelX >= SUBS_ZONE_EDGE_DETECT_RIGHT_RELX) {
-    const strictRight = positionedPlayers.filter(p => (p.relX ?? 0) >= 1 - SUBS_ZONE_STRICT_EDGE_BAND_REL);
-    const strictRightBench = strictRight.filter(p => (p.relY ?? 0) >= SUBS_ZONE_BENCH_MIN_REL_Y);
-    const threshold = maxRelX - SUBS_ZONE_CLUSTER_BAND_RELX;
-    const clusterRight = positionedPlayers.filter(p => (p.relX ?? 0) >= threshold);
-
-    sidelinePlayers = strictRightBench.length > 0 ? strictRightBench : strictRight.length > 0 ? strictRight : clusterRight;
-  } else if (minRelX <= SUBS_ZONE_EDGE_DETECT_LEFT_RELX) {
-    const strictLeft = positionedPlayers.filter(p => (p.relX ?? 0) <= SUBS_ZONE_STRICT_EDGE_BAND_REL);
-    const strictLeftBench = strictLeft.filter(p => (p.relY ?? 0) >= SUBS_ZONE_BENCH_MIN_REL_Y);
-    const threshold = minRelX + SUBS_ZONE_CLUSTER_BAND_RELX;
-    const clusterLeft = positionedPlayers.filter(p => (p.relX ?? 0) <= threshold);
-
-    sidelinePlayers = strictLeftBench.length > 0 ? strictLeftBench : strictLeft.length > 0 ? strictLeft : clusterLeft;
-  } else {
-    return;
-  }
-
-  sidelinePlayers = sidelinePlayers.filter(p => (p.relY ?? 0) >= SUBS_ZONE_BENCH_MIN_REL_Y);
-  if (sidelinePlayers.length === 0) return;
-  if (
-    sidelinePlayers.length === 1 &&
-    (sidelinePlayers[0].relX ?? 0) < 1 - SUBS_ZONE_STRICT_EDGE_BAND_REL &&
-    (sidelinePlayers[0].relX ?? 0) > SUBS_ZONE_STRICT_EDGE_BAND_REL
-  ) {
-    return;
-  }
-
-  const xs = sidelinePlayers.map(p => Math.max(0, Math.min(W, p.relX! * W)));
-  const ys = sidelinePlayers.map(p => Math.max(0, Math.min(H, p.relY! * H)));
-
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-
-  const padding = SUBS_ZONE_PADDING_PX * scale;
-  const left = Math.max(0, minX - playerRadiusPx - padding);
-  const right = Math.min(W, maxX + playerRadiusPx + padding);
-  const bottom = Math.min(H, Math.max(maxY + playerRadiusPx + padding, H * SUBS_ZONE_FIXED_BOTTOM_REL));
-  const minHeightPx = H * SUBS_ZONE_MIN_HEIGHT_REL;
-  const topCandidate = minY - playerRadiusPx - padding;
-  const topWithMinHeight = Math.min(topCandidate, bottom - minHeightPx);
-  const top = Math.max(H * SUBS_ZONE_MIN_TOP_REL, Math.min(topWithMinHeight, bottom - 1));
-
-  const zoneWidth = right - left;
-  const zoneHeight = bottom - top;
-  if (zoneWidth <= 0 || zoneHeight <= 0) return;
-
-  ctx.save();
-  try {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
-    ctx.beginPath();
-    addRoundedRectPath(ctx, left, top, zoneWidth, zoneHeight, 2 * scale);
-    ctx.fill();
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-    ctx.lineWidth = 1.5 * scale;
-    ctx.setLineDash([4 * scale, 4 * scale]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  } finally {
-    ctx.restore();
-  }
-}
 
 /**
  * LRU (Least Recently Used) cache for background canvases.
@@ -503,10 +364,6 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const playerRadius = PLAYER_RADIUS * scale;
     const opponentRadius = PLAYER_RADIUS * 0.9 * scale;
 
-    if (!isTacticsBoardView) {
-      drawSubstitutesZone(ctx, players, W, H, playerRadius, scale);
-    }
-
     // Draw drawings
     ctx.strokeStyle = '#FB923C';
     ctx.lineWidth = 3 * scale;
@@ -767,10 +624,6 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // Use prerendered background for performance
     const backgroundCanvas = createFieldBackgroundCached(context, W, H, isTacticsBoardView, gameType);
     context.drawImage(backgroundCanvas, 0, 0);
-
-    if (!isTacticsBoardView) {
-      drawSubstitutesZone(context, players, W, H, PLAYER_RADIUS, 1);
-    }
 
     // --- Draw Tactical Mode Overlays ---
     if (isTacticsBoardView) {
