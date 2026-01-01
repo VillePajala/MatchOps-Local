@@ -94,6 +94,7 @@ export interface UseFieldCoordinationReturn {
   draggingPlayerFromBarInfo: Player | null;
   isDrawingEnabled: boolean;
   isTacticsBoardView: boolean;
+  formationSnapPoints: Point[];
   tacticalDiscs: TacticalDisc[];
   tacticalDrawings: Point[][];
   tacticalBallPosition: Point | null;
@@ -104,6 +105,7 @@ export interface UseFieldCoordinationReturn {
   handlePlayerMoveEnd: () => void;
   handlePlayerRemove: (playerId: string) => void;
   handleDropOnField: (playerId: string, relX: number, relY: number) => void;
+  handlePlayersSwap: (playerAId: string, playerBId: string) => void;
   handlePlayerDragStartFromBar: (playerInfo: Player) => void;
   handlePlayerTapInBar: (playerInfo: Player | null) => void;
   handlePlayerDropViaTouch: (relX: number, relY: number) => void;
@@ -215,6 +217,7 @@ export function useFieldCoordination({
 
   // --- State for reset field confirmation modal ---
   const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
+  const [formationSnapPoints, setFormationSnapPoints] = useState<Point[]>([]);
 
   // --- Ref to always access latest availablePlayers (fixes goalie toggle race condition) ---
   // When user toggles goalie and immediately places player, the callback closure might
@@ -331,6 +334,27 @@ export function useFieldCoordination({
     );
   }, [setPlayersOnField]);
 
+  // Helper to check if a position is the goalkeeper position
+  const isGoalkeeperPosition = useCallback((relX: number, relY: number): boolean => {
+    const GOALIE_X = 0.5;
+    const GOALIE_Y = 0.95;
+    const THRESHOLD = 0.05; // 5% tolerance
+    return Math.abs(relX - GOALIE_X) < THRESHOLD && Math.abs(relY - GOALIE_Y) < THRESHOLD;
+  }, []);
+
+  // Update isGoalie status based on position for all players on field
+  const updateGoalieStatusByPosition = useCallback((players: Player[]): Player[] => {
+    return players.map(p => {
+      if (typeof p.relX !== 'number' || typeof p.relY !== 'number') return p;
+      const shouldBeGoalie = isGoalkeeperPosition(p.relX, p.relY);
+      if (p.isGoalie !== shouldBeGoalie) {
+        logger.log(`[Goalie] Player ${p.name} isGoalie changed: ${p.isGoalie} -> ${shouldBeGoalie}`);
+        return { ...p, isGoalie: shouldBeGoalie };
+      }
+      return p;
+    });
+  }, [isGoalkeeperPosition]);
+
   /**
    * Handle player movement end (save to history)
    *
@@ -340,16 +364,46 @@ export function useFieldCoordination({
    *
    * Pattern: Get current state via functional setter, store in ref, increment version.
    * The effect then saves to history after state has fully committed.
+   *
+   * Also updates goalie status based on final position.
    */
   const handlePlayerMoveEnd = useCallback(() => {
     setPlayersOnField(currentPlayers => {
+      // Update goalie status based on positions
+      const updatedPlayers = updateGoalieStatusByPosition(currentPlayers);
       // Store current state in ref for the effect to use
-      pendingPlayerMoveEndRef.current = currentPlayers;
+      pendingPlayerMoveEndRef.current = updatedPlayers;
       // Increment version to trigger the save effect
       setPlayerMoveEndVersion(v => v + 1);
-      return currentPlayers; // No change to state
+      return updatedPlayers;
     });
-  }, [setPlayersOnField]);
+  }, [setPlayersOnField, updateGoalieStatusByPosition]);
+
+  const handlePlayersSwap = useCallback((playerAId: string, playerBId: string) => {
+    if (!playerAId || !playerBId || playerAId === playerBId) return;
+
+    setPlayersOnField(prevPlayers => {
+      const playerA = prevPlayers.find(p => p.id === playerAId);
+      const playerB = prevPlayers.find(p => p.id === playerBId);
+
+      if (!playerA || !playerB) return prevPlayers;
+      if (typeof playerA.relX !== 'number' || typeof playerA.relY !== 'number') return prevPlayers;
+      if (typeof playerB.relX !== 'number' || typeof playerB.relY !== 'number') return prevPlayers;
+
+      // Swap positions
+      const swapped = prevPlayers.map(p => {
+        if (p.id === playerAId) return { ...p, relX: playerB.relX, relY: playerB.relY };
+        if (p.id === playerBId) return { ...p, relX: playerA.relX, relY: playerA.relY };
+        return p;
+      });
+
+      // Update goalie status based on new positions
+      return updateGoalieStatusByPosition(swapped);
+    });
+
+    // Record swap as a single history entry
+    handlePlayerMoveEnd();
+  }, [handlePlayerMoveEnd, setPlayersOnField, updateGoalieStatusByPosition]);
 
   /**
    * Handle player removal from field
@@ -390,6 +444,7 @@ export function useFieldCoordination({
       setPlayersOnField([]);
       setOpponents([]);
       setDrawings([]);
+      setFormationSnapPoints([]);
       saveStateToHistory({ playersOnField: [], opponents: [], drawings: [] });
     }
     setShowResetFieldConfirm(false);
@@ -516,7 +571,7 @@ export function useFieldCoordination({
     });
 
     // Determine positions based on preset or auto mode
-    let positions;
+    let positions: Array<{ relX: number; relY: number }>;
     let overflow = 0;
 
     if (presetId) {
@@ -565,8 +620,17 @@ export function useFieldCoordination({
       logger.log(`Placed ${overflow} overflow players on sideline`);
     }
 
-    setPlayersOnField(newFieldPlayers);
-    saveStateToHistory({ playersOnField: newFieldPlayers });
+    // Apply position-based goalie status detection
+    const playersWithGoalieStatus = updateGoalieStatusByPosition(newFieldPlayers);
+
+    setPlayersOnField(playersWithGoalieStatus);
+    saveStateToHistory({ playersOnField: playersWithGoalieStatus });
+    const snapPoints = [
+      { relX: 0.5, relY: 0.95 },
+      ...positions.map(pos => ({ relX: pos.relX, relY: pos.relY })),
+    ];
+    logger.debug('[Formation] Setting snap points:', snapPoints);
+    setFormationSnapPoints(snapPoints);
 
     logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
   }, [
@@ -574,6 +638,7 @@ export function useFieldCoordination({
     selectedPlayerIds,
     setPlayersOnField,
     saveStateToHistory,
+    updateGoalieStatusByPosition,
   ]);
 
   // --- Return all state and handlers ---
@@ -585,6 +650,7 @@ export function useFieldCoordination({
     draggingPlayerFromBarInfo: touchInteractions.selectedPlayer, // Delegated to useTouchInteractions
     isDrawingEnabled,
     isTacticsBoardView,
+    formationSnapPoints,
     tacticalDiscs,
     tacticalDrawings,
     tacticalBallPosition,
@@ -593,6 +659,7 @@ export function useFieldCoordination({
     // Player interaction handlers
     handlePlayerMove,
     handlePlayerMoveEnd,
+    handlePlayersSwap,
     handlePlayerRemove,
     handleDropOnField,
     handlePlayerDragStartFromBar: touchInteractions.handleDragStart, // Delegated to useTouchInteractions

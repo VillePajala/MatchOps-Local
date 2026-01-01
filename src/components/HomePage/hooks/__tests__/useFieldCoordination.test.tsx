@@ -340,7 +340,9 @@ describe('useFieldCoordination', () => {
           updater(existingPlayers);
         }
       });
-      const existingPlayers = [TestFixtures.players.goalkeeper()];
+      // Position goalkeeper at the actual goalie position (0.5, 0.95) so
+      // updateGoalieStatusByPosition doesn't change the isGoalie status
+      const existingPlayers = [TestFixtures.players.goalkeeper({ relX: 0.5, relY: 0.95 })];
 
       mockUseGameState.mockReturnValue({
         ...getDefaultMockGameState(),
@@ -1029,10 +1031,11 @@ describe('useFieldCoordination', () => {
     });
 
     /**
-     * Tests formation placement without goalkeeper
+     * Tests formation placement without designated goalkeeper
+     * The first player gets placed at goalie position and automatically becomes goalkeeper
      * @edge-case
      */
-    it('should place players without goalkeeper correctly', () => {
+    it('should assign goalkeeper status based on position when placing formation', () => {
       const mockSetPlayersOnField = jest.fn();
       const players = [
         TestFixtures.players.fieldPlayer({ id: 'p1', isGoalie: false }),
@@ -1063,7 +1066,13 @@ describe('useFieldCoordination', () => {
 
       const placedPlayers = mockSetPlayersOnField.mock.calls[0][0];
       expect(placedPlayers).toHaveLength(3);
-      expect(placedPlayers.every((p: Player) => !p.isGoalie)).toBe(true);
+      // First player is placed at goalie position (0.5, 0.95) and gets isGoalie: true
+      const goaliePlayer = placedPlayers.find((p: Player) => p.relX === 0.5 && p.relY === 0.95);
+      expect(goaliePlayer).toBeDefined();
+      expect(goaliePlayer?.isGoalie).toBe(true);
+      // Field players are not at goalie position and remain isGoalie: false
+      const fieldPlayers = placedPlayers.filter((p: Player) => p.id !== goaliePlayer?.id);
+      expect(fieldPlayers.every((p: Player) => !p.isGoalie)).toBe(true);
     });
 
     /**

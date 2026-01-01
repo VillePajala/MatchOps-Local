@@ -110,12 +110,13 @@ const baseProps = () => ({
   onTeamNameChange: jest.fn(),
   onOpponentNameChange: jest.fn(),
   interactions: {
-    players: {
-      move: jest.fn(),
-      moveEnd: jest.fn(),
-      remove: jest.fn(),
-      drop: jest.fn(),
-    },
+      players: {
+        move: jest.fn(),
+        moveEnd: jest.fn(),
+        remove: jest.fn(),
+        drop: jest.fn(),
+        swap: jest.fn(),
+      },
     opponents: {
       move: jest.fn(),
       moveEnd: jest.fn(),
