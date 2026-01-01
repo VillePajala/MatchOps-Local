@@ -1,8 +1,8 @@
 {
-  "version": "1e89b0ce",
-  "date": "2026-01-01",
+  "version": "00410f19",
+  "date": "2026-01-02",
   "notes": {
-    "en": "Add title and improve dropdown styling",
-    "fi": "Add title and improve dropdown styling"
+    "en": "Remove subs zone rectangle, keep dimmed discs",
+    "fi": "Remove subs zone rectangle, keep dimmed discs"
   }
 }

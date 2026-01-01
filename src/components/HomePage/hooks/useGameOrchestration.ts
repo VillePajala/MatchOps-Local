@@ -1008,7 +1008,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // Update non-reducer states (these will eventually be migrated or handled differently)
     // For fields not yet in gameSessionState but are in GameData, update their local states if needed.
     // This part will shrink as more state moves to the reducer.
-    fieldCoordination.setPlayersOnField(gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []));
+    // Apply goalie status based on position to ensure consistency after load
+    const loadedPlayers = gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []);
+    const playersWithGoalieStatus = fieldCoordination.updateGoalieStatusByPosition(loadedPlayers);
+    fieldCoordination.setPlayersOnField(playersWithGoalieStatus);
     fieldCoordination.setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
     fieldCoordination.setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
     fieldCoordination.setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));

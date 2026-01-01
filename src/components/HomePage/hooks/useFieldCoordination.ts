@@ -112,6 +112,7 @@ export interface UseFieldCoordinationReturn {
   handlePlayerDragCancelViaTouch: () => void;
   handleDeselectPlayer: () => void;
   handlePlaceAllPlayers: (presetId: string | null) => void;
+  updateGoalieStatusByPosition: (players: Player[]) => Player[];
 
   // Opponent handlers (from useGameState)
   handleAddOpponent: () => void;
@@ -668,6 +669,7 @@ export function useFieldCoordination({
     handlePlayerDragCancelViaTouch: touchInteractions.handleCancel, // Delegated to useTouchInteractions
     handleDeselectPlayer: touchInteractions.handleDeselect, // Delegated to useTouchInteractions
     handlePlaceAllPlayers,
+    updateGoalieStatusByPosition, // For use when loading games
 
     // Opponent handlers (from useGameState)
     handleAddOpponent,
