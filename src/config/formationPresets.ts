@@ -282,3 +282,14 @@ export function getRecommendedFieldSize(playerCount: number): FieldSize {
  * Get all field sizes in order
  */
 export const FIELD_SIZES: FieldSize[] = ['3v3', '5v5', '8v8', '11v11'];
+
+/**
+ * Presets grouped by field size (pre-computed for performance)
+ */
+export const PRESETS_BY_SIZE: Record<FieldSize, FormationPreset[]> = FIELD_SIZES.reduce(
+  (acc, size) => {
+    acc[size] = FORMATION_PRESETS.filter(p => p.fieldSize === size);
+    return acc;
+  },
+  {} as Record<FieldSize, FormationPreset[]>
+);

@@ -1202,4 +1202,190 @@ describe('useFieldCoordination', () => {
       expect(result.current.handleTacticalDiscMove).toBe(mockHandleTacticalDiscMove);
     });
   });
+
+  describe('Formation Snap Points', () => {
+    /**
+     * Tests that formation snap points are set when placing a formation
+     * @integration
+     */
+    it('should set formation snap points when placing formation with preset', () => {
+      const mockSetPlayersOnField = jest.fn();
+      const players = TestFixtures.players.fullTeam({ count: 5 });
+      const selectedIds = players.map(p => p.id);
+
+      mockParams.availablePlayers = players;
+      mockParams.selectedPlayerIds = selectedIds;
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      mockCalculateFormationPositions.mockReturnValue([
+        { relX: 0.25, relY: 0.5 },
+        { relX: 0.5, relY: 0.5 },
+        { relX: 0.75, relY: 0.5 },
+        { relX: 0.5, relY: 0.3 },
+      ]);
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      act(() => {
+        result.current.handlePlaceAllPlayers(null);
+      });
+
+      // Snap points should include goalie position + formation positions
+      expect(result.current.formationSnapPoints).toHaveLength(5); // 1 goalie + 4 field positions
+      expect(result.current.formationSnapPoints[0]).toEqual({ relX: 0.5, relY: 0.95 }); // Goalie position
+    });
+
+    /**
+     * Tests that snap points are cleared when field is reset
+     * @integration
+     */
+    it('should clear snap points when field is reset', () => {
+      const mockSetPlayersOnField = jest.fn();
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [TestFixtures.players.goalkeeper()],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      // Simulate field reset
+      act(() => {
+        result.current.handleResetFieldClick();
+      });
+
+      act(() => {
+        result.current.handleResetFieldConfirmed();
+      });
+
+      expect(result.current.formationSnapPoints).toHaveLength(0);
+    });
+  });
+
+  describe('Player Swap', () => {
+    /**
+     * Tests that handlePlayersSwap swaps two players' positions
+     * @critical - Player swap functionality
+     */
+    it('should swap positions of two players', () => {
+      const mockSetPlayersOnField = jest.fn();
+      const player1 = TestFixtures.players.goalkeeper({ id: 'p1', relX: 0.5, relY: 0.95 });
+      const player2 = TestFixtures.players.fieldPlayer({ id: 'p2', relX: 0.3, relY: 0.5 });
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [player1, player2],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      act(() => {
+        result.current.handlePlayersSwap('p1', 'p2');
+      });
+
+      expect(mockSetPlayersOnField).toHaveBeenCalled();
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
+      const updatedPlayers = updaterFn([player1, player2]);
+
+      // Player 1 should now be at player 2's old position
+      const updatedP1 = updatedPlayers.find((p: { id: string }) => p.id === 'p1');
+      expect(updatedP1.relX).toBe(0.3);
+      expect(updatedP1.relY).toBe(0.5);
+
+      // Player 2 should now be at player 1's old position (goalie)
+      const updatedP2 = updatedPlayers.find((p: { id: string }) => p.id === 'p2');
+      expect(updatedP2.relX).toBe(0.5);
+      expect(updatedP2.relY).toBe(0.95);
+    });
+
+    /**
+     * Tests that goalie status is updated based on position after swap
+     * @critical - Goalie status management
+     */
+    it('should update goalie status based on position after swap', () => {
+      const mockSetPlayersOnField = jest.fn();
+      const player1 = TestFixtures.players.goalkeeper({ id: 'p1', relX: 0.5, relY: 0.95, isGoalie: true });
+      const player2 = TestFixtures.players.fieldPlayer({ id: 'p2', relX: 0.3, relY: 0.5, isGoalie: false });
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [player1, player2],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      act(() => {
+        result.current.handlePlayersSwap('p1', 'p2');
+      });
+
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
+      const updatedPlayers = updaterFn([player1, player2]);
+
+      // Player 2 is now at goalie position, should have isGoalie: true
+      const updatedP2 = updatedPlayers.find((p: { id: string }) => p.id === 'p2');
+      expect(updatedP2.isGoalie).toBe(true);
+
+      // Player 1 is no longer at goalie position, should have isGoalie: false
+      const updatedP1 = updatedPlayers.find((p: { id: string }) => p.id === 'p1');
+      expect(updatedP1.isGoalie).toBe(false);
+    });
+
+    /**
+     * Tests that swap does nothing with invalid player IDs
+     * @edge-case
+     */
+    it('should not swap if player IDs are invalid', () => {
+      const mockSetPlayersOnField = jest.fn();
+      const player1 = TestFixtures.players.goalkeeper({ id: 'p1' });
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [player1],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      act(() => {
+        result.current.handlePlayersSwap('p1', 'nonexistent');
+      });
+
+      // The updater should return unchanged array
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
+      const updatedPlayers = updaterFn([player1]);
+      expect(updatedPlayers).toEqual([player1]);
+    });
+
+    /**
+     * Tests that swapping same player does nothing
+     * @edge-case
+     */
+    it('should not swap if both IDs are the same', () => {
+      const mockSetPlayersOnField = jest.fn();
+      const player1 = TestFixtures.players.goalkeeper({ id: 'p1' });
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [player1],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      act(() => {
+        result.current.handlePlayersSwap('p1', 'p1');
+      });
+
+      // Should not call setState at all for same ID
+      expect(mockSetPlayersOnField).not.toHaveBeenCalled();
+    });
+  });
 });

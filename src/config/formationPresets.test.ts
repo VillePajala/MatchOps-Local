@@ -293,3 +293,25 @@ describe('specific formation validation', () => {
     });
   });
 });
+
+describe('PRESETS_BY_SIZE', () => {
+  it('should be pre-computed and match FIELD_SIZES keys', () => {
+    const { PRESETS_BY_SIZE, FIELD_SIZES } = require('./formationPresets');
+    expect(Object.keys(PRESETS_BY_SIZE).sort()).toEqual([...FIELD_SIZES].sort());
+  });
+
+  it('should contain all presets grouped correctly', () => {
+    const { PRESETS_BY_SIZE, FORMATION_PRESETS } = require('./formationPresets');
+    const totalInGroups = Object.values(PRESETS_BY_SIZE).flat().length;
+    expect(totalInGroups).toBe(FORMATION_PRESETS.length);
+  });
+
+  it('should have each preset in the correct field size group', () => {
+    const { PRESETS_BY_SIZE } = require('./formationPresets');
+    for (const [size, presets] of Object.entries(PRESETS_BY_SIZE)) {
+      for (const preset of presets as { fieldSize: string }[]) {
+        expect(preset.fieldSize).toBe(size);
+      }
+    }
+  });
+});
