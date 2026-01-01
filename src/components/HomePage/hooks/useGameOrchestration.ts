@@ -1997,6 +1997,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     onClearDrawings: fieldCoordination.handleClearDrawingsForView,
     onAddOpponent: fieldCoordination.handleAddOpponent,
     onPlaceAllPlayers: fieldCoordination.handlePlaceAllPlayers,
+    selectedPlayerCount: gameSessionState.selectedPlayerIds.length,
     isTacticsBoardView: fieldCoordination.isTacticsBoardView,
     onToggleTacticsBoard: fieldCoordination.handleToggleTacticsBoard,
     onAddHomeDisc: () => fieldCoordination.handleAddTacticalDisc('home'),

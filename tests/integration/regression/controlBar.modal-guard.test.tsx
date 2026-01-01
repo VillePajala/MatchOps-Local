@@ -45,6 +45,7 @@ function ControlBarHarness() {
         onAddHomeDisc={noop}
         onAddOpponentDisc={noop}
         onPlaceAllPlayers={noop}
+        selectedPlayerCount={0}
         isDrawingEnabled={false}
         onToggleDrawingMode={noop}
         onToggleTrainingResources={noop}

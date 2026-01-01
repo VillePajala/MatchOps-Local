@@ -5,7 +5,13 @@
  * player positioning for different team sizes.
  */
 
-import { calculateFormationPositions, type FieldPosition } from './formations';
+import {
+  calculateFormationPositions,
+  applyFormationPreset,
+  generateSidelinePositions,
+  type FieldPosition,
+  type FormationResult,
+} from './formations';
 
 describe('calculateFormationPositions', () => {
   describe('edge cases', () => {
@@ -197,6 +203,238 @@ describe('calculateFormationPositions', () => {
         expect(pos.relX).toBeDefined();
         expect(pos.relY).toBeDefined();
       });
+    });
+  });
+});
+
+describe('applyFormationPreset', () => {
+  // Sample preset positions for testing (4-position formation)
+  const samplePreset: FieldPosition[] = [
+    { relX: 0.25, relY: 0.70 },
+    { relX: 0.75, relY: 0.70 },
+    { relX: 0.25, relY: 0.40 },
+    { relX: 0.75, relY: 0.40 },
+  ];
+
+  describe('exact player count match', () => {
+    it('returns all preset positions when player count matches exactly', () => {
+      const result = applyFormationPreset(samplePreset, 4);
+      expect(result.positions).toHaveLength(4);
+      expect(result.overflow).toBe(0);
+      expect(result.positions).toEqual(samplePreset);
+    });
+  });
+
+  describe('fewer players than positions', () => {
+    it('returns subset of positions when fewer players', () => {
+      const result = applyFormationPreset(samplePreset, 2);
+      expect(result.positions).toHaveLength(2);
+      expect(result.overflow).toBe(0);
+      expect(result.positions).toEqual(samplePreset.slice(0, 2));
+    });
+
+    it('returns single position for 1 player', () => {
+      const result = applyFormationPreset(samplePreset, 1);
+      expect(result.positions).toHaveLength(1);
+      expect(result.overflow).toBe(0);
+      expect(result.positions[0]).toEqual(samplePreset[0]);
+    });
+
+    it('returns empty positions for 0 players', () => {
+      const result = applyFormationPreset(samplePreset, 0);
+      expect(result.positions).toHaveLength(0);
+      expect(result.overflow).toBe(0);
+    });
+  });
+
+  describe('more players than positions (overflow)', () => {
+    it('returns all positions with overflow count for extra players', () => {
+      const result = applyFormationPreset(samplePreset, 6);
+      expect(result.positions).toHaveLength(4);
+      expect(result.overflow).toBe(2);
+      expect(result.positions).toEqual(samplePreset);
+    });
+
+    it('calculates correct overflow for many extra players', () => {
+      const result = applyFormationPreset(samplePreset, 10);
+      expect(result.positions).toHaveLength(4);
+      expect(result.overflow).toBe(6);
+    });
+
+    it('handles large overflow correctly', () => {
+      const result = applyFormationPreset(samplePreset, 20);
+      expect(result.positions).toHaveLength(4);
+      expect(result.overflow).toBe(16);
+    });
+  });
+
+  describe('return type validation', () => {
+    it('returns FormationResult with correct structure', () => {
+      const result: FormationResult = applyFormationPreset(samplePreset, 3);
+      expect(result).toHaveProperty('positions');
+      expect(result).toHaveProperty('overflow');
+      expect(Array.isArray(result.positions)).toBe(true);
+      expect(typeof result.overflow).toBe('number');
+    });
+
+    it('positions contain valid FieldPosition objects', () => {
+      const result = applyFormationPreset(samplePreset, 4);
+      result.positions.forEach(pos => {
+        expect(pos).toHaveProperty('relX');
+        expect(pos).toHaveProperty('relY');
+        expect(typeof pos.relX).toBe('number');
+        expect(typeof pos.relY).toBe('number');
+      });
+    });
+  });
+
+  describe('empty preset handling', () => {
+    it('returns empty positions and full overflow for empty preset', () => {
+      const result = applyFormationPreset([], 5);
+      expect(result.positions).toHaveLength(0);
+      expect(result.overflow).toBe(5);
+    });
+
+    it('returns empty positions and zero overflow for empty preset with 0 players', () => {
+      const result = applyFormationPreset([], 0);
+      expect(result.positions).toHaveLength(0);
+      expect(result.overflow).toBe(0);
+    });
+  });
+
+  describe('pure function properties', () => {
+    it('returns same result for same input (deterministic)', () => {
+      const result1 = applyFormationPreset(samplePreset, 3);
+      const result2 = applyFormationPreset(samplePreset, 3);
+      expect(result1).toEqual(result2);
+    });
+
+    it('does not mutate input preset array', () => {
+      const originalPreset = [...samplePreset];
+      applyFormationPreset(samplePreset, 2);
+      expect(samplePreset).toEqual(originalPreset);
+    });
+  });
+});
+
+describe('generateSidelinePositions', () => {
+  describe('basic functionality', () => {
+    it('returns empty array for 0 overflow players', () => {
+      const positions = generateSidelinePositions(0);
+      expect(positions).toEqual([]);
+    });
+
+    it('returns empty array for negative count', () => {
+      const positions = generateSidelinePositions(-1);
+      expect(positions).toEqual([]);
+    });
+
+    it('returns 1 position for 1 overflow player', () => {
+      const positions = generateSidelinePositions(1);
+      expect(positions).toHaveLength(1);
+    });
+
+    it('returns correct number of positions for multiple players', () => {
+      expect(generateSidelinePositions(3)).toHaveLength(3);
+      expect(generateSidelinePositions(5)).toHaveLength(5);
+      expect(generateSidelinePositions(10)).toHaveLength(10);
+    });
+  });
+
+  describe('position placement (right sideline, bottom corner)', () => {
+    it('places players on right side of field (relX near 1.0)', () => {
+      const positions = generateSidelinePositions(3);
+      positions.forEach(pos => {
+        expect(pos.relX).toBeGreaterThan(0.9);
+        expect(pos.relX).toBeLessThanOrEqual(1.0);
+      });
+    });
+
+    it('starts from bottom corner (high relY)', () => {
+      const positions = generateSidelinePositions(3);
+      // First player should be near bottom (high relY)
+      expect(positions[0].relY).toBeGreaterThan(0.8);
+    });
+
+    it('stacks players upward (decreasing relY)', () => {
+      const positions = generateSidelinePositions(5);
+      for (let i = 1; i < positions.length; i++) {
+        expect(positions[i].relY).toBeLessThan(positions[i - 1].relY);
+      }
+    });
+
+    it('maintains consistent horizontal position (same relX)', () => {
+      const positions = generateSidelinePositions(4);
+      const firstX = positions[0].relX;
+      positions.forEach(pos => {
+        expect(pos.relX).toBe(firstX);
+      });
+    });
+  });
+
+  describe('spacing', () => {
+    it('uses consistent spacing between players', () => {
+      const positions = generateSidelinePositions(4);
+      const spacings: number[] = [];
+      for (let i = 1; i < positions.length; i++) {
+        spacings.push(positions[i - 1].relY - positions[i].relY);
+      }
+      // All spacings should be equal
+      const firstSpacing = spacings[0];
+      spacings.forEach(spacing => {
+        expect(spacing).toBeCloseTo(firstSpacing, 5);
+      });
+    });
+
+    it('uses tight spacing (around 0.06) for compact sideline placement', () => {
+      const positions = generateSidelinePositions(2);
+      const spacing = positions[0].relY - positions[1].relY;
+      expect(spacing).toBeCloseTo(0.06, 2);
+    });
+  });
+
+  describe('coordinate validation', () => {
+    it('all positions have relX between 0 and 1', () => {
+      const positions = generateSidelinePositions(10);
+      positions.forEach(pos => {
+        expect(pos.relX).toBeGreaterThanOrEqual(0);
+        expect(pos.relX).toBeLessThanOrEqual(1);
+      });
+    });
+
+    it('all positions have relY between 0 and 1', () => {
+      const positions = generateSidelinePositions(10);
+      positions.forEach(pos => {
+        expect(pos.relY).toBeGreaterThanOrEqual(0);
+        expect(pos.relY).toBeLessThanOrEqual(1);
+      });
+    });
+
+    it('positions remain valid even with many overflow players', () => {
+      // With 15 players at 0.06 spacing starting from 0.92,
+      // the 15th player would be at 0.92 - 14*0.06 = 0.08
+      const positions = generateSidelinePositions(15);
+      positions.forEach(pos => {
+        expect(pos.relX).toBeGreaterThanOrEqual(0);
+        expect(pos.relX).toBeLessThanOrEqual(1);
+        expect(pos.relY).toBeGreaterThanOrEqual(0);
+        expect(pos.relY).toBeLessThanOrEqual(1);
+      });
+    });
+  });
+
+  describe('pure function properties', () => {
+    it('returns same result for same input (deterministic)', () => {
+      const result1 = generateSidelinePositions(5);
+      const result2 = generateSidelinePositions(5);
+      expect(result1).toEqual(result2);
+    });
+
+    it('returns new array each time (no shared references)', () => {
+      const result1 = generateSidelinePositions(3);
+      const result2 = generateSidelinePositions(3);
+      expect(result1).not.toBe(result2);
+      expect(result1[0]).not.toBe(result2[0]);
     });
   });
 });
