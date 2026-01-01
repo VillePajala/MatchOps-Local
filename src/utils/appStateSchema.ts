@@ -121,6 +121,7 @@ export const appStateSchema = z.object({
   tacticalDiscs: z.array(tacticalDiscSchema),
   tacticalDrawings: z.array(z.array(pointSchema)),
   tacticalBallPosition: pointSchema.nullable(),
+  formationSnapPoints: z.array(pointSchema).optional(),
   isPlayed: z.boolean().optional(),
   teamId: z.string().optional(),
   gamePersonnel: z.array(z.string()).optional(),

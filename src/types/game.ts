@@ -113,6 +113,8 @@ export interface AppState {
   tacticalDiscs: TacticalDisc[];
   tacticalDrawings: Point[][];
   tacticalBallPosition: Point | null;
+  /** Formation snap points for player positioning assistance */
+  formationSnapPoints?: Point[];
   teamId?: string;              // NEW: the team this game belongs to
   /**
    * League ID for this game - can override the season's league setting.
