@@ -14,10 +14,13 @@ interface ChangelogData {
   };
 }
 
+export type UpdatePhase = 'available' | 'installing' | 'ready';
+
 export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState<string | undefined>();
+  const [updatePhase, setUpdatePhase] = useState<UpdatePhase>('available');
 
   // Fetch changelog when update is detected
   const fetchReleaseNotes = async () => {
@@ -131,15 +134,13 @@ export default function ServiceWorkerRegistration() {
     });
 
     // Listen for controller changes
-    // SAFETY: Do NOT auto-reload on controllerchange - this can cause data loss
-    // if the user has unsaved work (especially scratch games or debounced auto-saves).
-    // Instead, we just log it. The user can reload manually or via Settings > Check for Updates.
-    // The UpdateBanner already provides a safe UX for applying updates.
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      logger.log('[PWA] Service worker controller changed - update will apply on next page load');
-      // Note: The previous behavior was to auto-reload here, which could lose in-progress work.
-      // Now the app continues running with the old code until user chooses to reload.
-    });
+    // When a new SW takes control, transition banner to "ready to reload" phase
+    const handleControllerChange = () => {
+      logger.log('[PWA] Service worker controller changed - update ready, prompting reload');
+      setUpdatePhase('ready');
+      // Don't auto-reload - let user click "Reload to apply" when ready
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
 
     // Cleanup on unmount
     return () => {
@@ -147,6 +148,7 @@ export default function ServiceWorkerRegistration() {
         clearInterval(updateInterval);
       }
       // Clean up event listeners
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
       navigator.serviceWorker.getRegistration().then(registration => {
         if (registration) {
           const cleanup = (registration as ServiceWorkerRegistration & { _cleanup?: () => void })._cleanup;
@@ -156,18 +158,31 @@ export default function ServiceWorkerRegistration() {
     };
   }, []);
 
-  const handleUpdate = () => {
+  const handleInstall = () => {
     if (waitingWorker) {
       logger.log('[PWA] Posting message to waiting worker to skip waiting.');
+      setUpdatePhase('installing');
       waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-      setShowUpdateBanner(false);
+      // Don't close banner - wait for controllerchange to transition to 'ready' phase
     }
+  };
+
+  const handleReload = () => {
+    logger.log('[PWA] User requested reload to apply update.');
+    window.location.reload();
+  };
+
+  const handleDismiss = () => {
+    setShowUpdateBanner(false);
+    setUpdatePhase('available'); // Reset phase for next update
   };
 
   return showUpdateBanner ? (
     <UpdateBanner
-      onUpdate={handleUpdate}
-      onDismiss={() => setShowUpdateBanner(false)}
+      phase={updatePhase}
+      onInstall={handleInstall}
+      onReload={handleReload}
+      onDismiss={handleDismiss}
       notes={releaseNotes}
     />
   ) : null;

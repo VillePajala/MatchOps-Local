@@ -3,14 +3,17 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HiOutlineXMark } from "react-icons/hi2";
+import type { UpdatePhase } from "./ServiceWorkerRegistration";
 
 interface UpdateBannerProps {
-  onUpdate: () => void;
+  phase: UpdatePhase;
+  onInstall: () => void;
+  onReload: () => void;
   onDismiss?: () => void;
   notes?: string;
 }
 
-const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, onDismiss, notes }) => {
+const UpdateBanner: React.FC<UpdateBannerProps> = ({ phase, onInstall, onReload, onDismiss, notes }) => {
   const { t } = useTranslation();
   const [hidden, setHidden] = useState(false);
 
@@ -20,6 +23,33 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, onDismiss, notes 
     setHidden(true);
     onDismiss?.();
   };
+
+  // Determine button text and action based on phase
+  const getButtonConfig = () => {
+    switch (phase) {
+      case 'installing':
+        return {
+          text: t("updateBanner.installingButton", "Asennetaan..."),
+          onClick: () => {}, // No-op while installing
+          disabled: true,
+        };
+      case 'ready':
+        return {
+          text: t("updateBanner.reloadButton", "Lataa uudelleen"),
+          onClick: onReload,
+          disabled: false,
+        };
+      case 'available':
+      default:
+        return {
+          text: t("updateBanner.installButton", "Asenna päivitys"),
+          onClick: onInstall,
+          disabled: false,
+        };
+    }
+  };
+
+  const buttonConfig = getButtonConfig();
 
   return (
     <div
@@ -50,12 +80,16 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, onDismiss, notes 
 
           <div className="min-w-0 space-y-1">
             <p className="text-sm font-semibold tracking-tight text-white">
-              {t("updateBanner.title", "Päivitys saatavilla")}
+              {phase === 'ready'
+                ? t("updateBanner.readyTitle", "Päivitys valmis")
+                : t("updateBanner.title", "Päivitys saatavilla")}
             </p>
             <p className="text-xs leading-relaxed text-slate-200/90">
-              {t("updateBanner.message", "Uusia ominaisuuksia ja parannuksia.")}
+              {phase === 'ready'
+                ? t("updateBanner.readyMessage", "Lataa sivu uudelleen ottaaksesi päivityksen käyttöön.")
+                : t("updateBanner.message", "Uusia ominaisuuksia ja parannuksia.")}
             </p>
-            {notes ? (
+            {notes && phase !== 'ready' ? (
               <p className="mt-1 text-xs font-medium text-sky-100/90">
                 {notes}
               </p>
@@ -64,10 +98,15 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, onDismiss, notes 
 
           <div className="mt-1 flex items-center justify-center">
             <button
-              onClick={onUpdate}
-              className="rounded-full bg-gradient-to-r from-indigo-400 via-indigo-500 to-fuchsia-500 px-5 py-2 text-xs md:text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition duration-150 hover:brightness-110 hover:shadow-[0_10px_28px_rgba(99,102,241,0.35)] active:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 focus:ring-offset-slate-900"
+              onClick={buttonConfig.onClick}
+              disabled={buttonConfig.disabled}
+              className={`rounded-full bg-gradient-to-r from-indigo-400 via-indigo-500 to-fuchsia-500 px-5 py-2 text-xs md:text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 focus:ring-offset-slate-900 ${
+                buttonConfig.disabled
+                  ? 'opacity-60 cursor-not-allowed'
+                  : 'hover:brightness-110 hover:shadow-[0_10px_28px_rgba(99,102,241,0.35)] active:brightness-95'
+              }`}
             >
-              {t("updateBanner.updateButton", "Päivitä nyt")}
+              {buttonConfig.text}
             </button>
           </div>
         </div>
