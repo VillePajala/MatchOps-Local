@@ -65,6 +65,8 @@ The build process includes a custom manifest generation step that runs before Ne
 
 **Data Flow**: The app's data layer relies on **React Query** to fetch, cache, and manage server-side state (persisted in IndexedDB). Asynchronous storage operations in `src/utils/storage.ts` provide IndexedDB access through a unified adapter layer.
 
+**⚠️ React Query Configuration (Issue #262 - Needs Reinvestigation)**: Currently using React Query defaults. Attempted optimization (reduced retries, longer staleTime) caused mobile data loading failures - IndexedDB on mobile has transient failures that require multiple retry attempts. Any future tuning must preserve `retry: 3` or test extensively on mobile devices. See `src/app/QueryProvider.tsx`.
+
 **PWA Structure**: Full PWA with custom service worker (`public/sw.js`), dynamic manifest generation, install prompts and update notifications.
 
 **State Management**:
