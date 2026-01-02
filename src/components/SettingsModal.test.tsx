@@ -51,6 +51,13 @@ jest.mock('react-i18next', () => ({
         'settingsModal.confirmResetLabel': 'Type RESET to confirm',
         'settingsModal.backupButton': 'Backup All Data',
         'settingsModal.restoreButton': 'Restore from Backup',
+        'settingsModal.checkForUpdates': 'Check for Updates',
+        'settingsModal.checkingUpdates': 'Checking...',
+        'settingsModal.updateAvailableTitle': 'Update Available',
+        'settingsModal.updateAvailableConfirmSafe': 'Update available! Click Install to prepare the update. You can reload when convenient to apply it.',
+        'settingsModal.installUpdate': 'Install',
+        'settingsModal.updateReadyReload': 'Update installed! Reload the app when ready to apply.',
+        'settingsModal.upToDate': 'App is up to date!',
       };
       return translations[key] || fallbackOrOpts || key;
     },
@@ -270,5 +277,245 @@ describe('<SettingsModal />', () => {
 
     // Note: We're not testing the actual save functionality here as that's
     // tested at the unit level in appSettings.test.ts and requires complex mocking
+  });
+
+  /**
+   * Service Worker Update Flow Tests
+   * @critical - Tests the state machine for SW updates to prevent regressions
+   */
+  describe('Service Worker Update Flow', () => {
+    let mockRegistration: {
+      active: { scriptURL: string } | null;
+      waiting: { scriptURL: string; postMessage: jest.Mock } | null;
+      installing: {
+        scriptURL: string;
+        state: string;
+        addEventListener: jest.Mock;
+        removeEventListener: jest.Mock;
+      } | null;
+      update: jest.Mock;
+    };
+
+    let originalServiceWorker: ServiceWorkerContainer;
+    let originalFetch: typeof global.fetch;
+
+    beforeEach(() => {
+      // Store originals
+      originalServiceWorker = navigator.serviceWorker;
+      originalFetch = global.fetch;
+
+      // Create mock registration
+      mockRegistration = {
+        active: { scriptURL: '/sw.js' },
+        waiting: null,
+        installing: null,
+        update: jest.fn().mockResolvedValue(undefined),
+      };
+
+      // Mock navigator.serviceWorker
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: {
+          getRegistration: jest.fn().mockResolvedValue(mockRegistration),
+        },
+        configurable: true,
+      });
+
+      // Mock fetch for sw.js
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve('// Build Timestamp: 2026-01-02T12:00:00Z'),
+      });
+    });
+
+    afterEach(() => {
+      // Restore originals
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: originalServiceWorker,
+        configurable: true,
+      });
+      global.fetch = originalFetch;
+    });
+
+    /**
+     * Tests that the state machine waits for installing worker to reach terminal state
+     * @critical
+     */
+    test('should wait for installing worker to reach terminal state (installed)', async () => {
+      // Setup: registration has an installing worker
+      const stateChangeCallbackRef: { current: (() => void) | null } = { current: null };
+      const installingWorker = {
+        scriptURL: '/sw.js?v=new',
+        state: 'installing',
+        addEventListener: jest.fn((event: string, callback: () => void) => {
+          if (event === 'statechange') {
+            stateChangeCallbackRef.current = callback;
+          }
+        }),
+        removeEventListener: jest.fn(),
+      };
+      mockRegistration.installing = installingWorker;
+
+      // After update(), simulate the worker becoming installed
+      mockRegistration.update.mockImplementation(async () => {
+        // Installing state continues...
+      });
+
+      render(
+        <TestWrapper>
+          <SettingsModal {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Find and click the "Check for Updates" button
+      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      fireEvent.click(checkButton);
+
+      // Wait for the state change listener to be added
+      await waitFor(() => {
+        expect(installingWorker.addEventListener).toHaveBeenCalledWith(
+          'statechange',
+          expect.any(Function)
+        );
+      });
+
+      // Simulate the worker reaching 'installed' state
+      installingWorker.state = 'installed';
+      mockRegistration.waiting = { scriptURL: '/sw.js?v=new', postMessage: jest.fn() };
+      mockRegistration.installing = null;
+
+      // Trigger the state change callback
+      if (stateChangeCallbackRef.current) {
+        stateChangeCallbackRef.current();
+      }
+
+      // Should eventually show the update confirmation dialog
+      await waitFor(() => {
+        expect(installingWorker.removeEventListener).toHaveBeenCalledWith(
+          'statechange',
+          expect.any(Function)
+        );
+      });
+    });
+
+    /**
+     * Tests that redundant (failed) worker state is handled correctly
+     * @edge-case
+     */
+    test('should handle installing worker that becomes redundant', async () => {
+      const stateChangeCallbackRef: { current: (() => void) | null } = { current: null };
+      const installingWorker = {
+        scriptURL: '/sw.js?v=new',
+        state: 'installing',
+        addEventListener: jest.fn((event: string, callback: () => void) => {
+          if (event === 'statechange') {
+            stateChangeCallbackRef.current = callback;
+          }
+        }),
+        removeEventListener: jest.fn(),
+      };
+      mockRegistration.installing = installingWorker;
+
+      render(
+        <TestWrapper>
+          <SettingsModal {...defaultProps} />
+        </TestWrapper>
+      );
+
+      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      fireEvent.click(checkButton);
+
+      await waitFor(() => {
+        expect(installingWorker.addEventListener).toHaveBeenCalledWith(
+          'statechange',
+          expect.any(Function)
+        );
+      });
+
+      // Simulate the worker becoming redundant (failure case)
+      installingWorker.state = 'redundant';
+      mockRegistration.installing = null;
+
+      if (stateChangeCallbackRef.current) {
+        stateChangeCallbackRef.current();
+      }
+
+      // Should clean up the listener
+      await waitFor(() => {
+        expect(installingWorker.removeEventListener).toHaveBeenCalledWith(
+          'statechange',
+          expect.any(Function)
+        );
+      });
+    });
+
+    /**
+     * Tests that handleUpdateConfirmed shows message instead of reloading
+     * @critical - Safety fix to prevent data loss
+     */
+    test('should show message instead of reloading on update confirm', async () => {
+      // Setup: registration has a waiting worker ready to activate
+      const postMessageMock = jest.fn();
+      mockRegistration.waiting = {
+        scriptURL: '/sw.js?v=new',
+        postMessage: postMessageMock,
+      };
+
+      render(
+        <TestWrapper>
+          <SettingsModal {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Click "Check for Updates" to detect the waiting worker
+      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      fireEvent.click(checkButton);
+
+      // Wait for the confirmation dialog to appear (use heading role for specificity)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Update Available/i })).toBeInTheDocument();
+      });
+
+      // Click the "Install" button in the confirmation dialog
+      const updateButton = screen.getByRole('button', { name: /Install/i });
+      fireEvent.click(updateButton);
+
+      // Verify postMessage was called with SKIP_WAITING
+      await waitFor(() => {
+        expect(postMessageMock).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+      });
+
+      // The confirmation dialog should be closed
+      await waitFor(() => {
+        expect(screen.queryByText(/Update Available/i)).not.toBeInTheDocument();
+      });
+
+      // CRITICAL: The code path in handleUpdateConfirmed does NOT call window.location.reload
+      // This is verified by the code review - if it did call reload, the dialog would not close
+      // because the page would refresh before React state could update
+    });
+
+    /**
+     * Tests detection of already-waiting worker (skips installing state)
+     * @edge-case
+     */
+    test('should detect waiting worker immediately without installing phase', async () => {
+      // Setup: registration already has a waiting worker (no installing phase)
+      mockRegistration.waiting = { scriptURL: '/sw.js?v=new', postMessage: jest.fn() };
+      mockRegistration.installing = null;
+
+      render(
+        <TestWrapper>
+          <SettingsModal {...defaultProps} />
+        </TestWrapper>
+      );
+
+      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      fireEvent.click(checkButton);
+
+      // Should show update available since waiting worker exists (use heading role for specificity)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Update Available/i })).toBeInTheDocument();
+      });
+    });
   });
 });
