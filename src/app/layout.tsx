@@ -6,7 +6,6 @@ import QueryProvider from './QueryProvider';
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
-import { Analytics } from "@vercel/analytics/react";
 import { manifestConfig } from "@/config/manifest.config.js";
 
 // Configure Rajdhani font
@@ -19,12 +18,6 @@ const rajdhani = Rajdhani({
 // Determine the current branch
 const branch = process.env.VERCEL_GIT_COMMIT_REF || 'development';
 const config = manifestConfig[branch] || manifestConfig.default;
-
-// Analytics configuration - opt-in only
-// Set NEXT_PUBLIC_ANALYTICS_ENABLED=true in Vercel to enable
-const isProduction = process.env.NODE_ENV === 'production';
-const analyticsEnabled = process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true';
-const shouldLoadAnalytics = isProduction && analyticsEnabled;
 
 export const metadata: Metadata = {
   title: config.appName,
@@ -65,8 +58,6 @@ export default function RootLayout({
             <ClientWrapper>{children}</ClientWrapper>
           </QueryProvider>
         </I18nInitializer>
-        {/* Only load Analytics in production or when explicitly enabled */}
-        {shouldLoadAnalytics && <Analytics />}
       </body>
     </html>
   );}
