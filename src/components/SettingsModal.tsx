@@ -19,6 +19,7 @@ import { usePremium } from '@/hooks/usePremium';
 import { HiSparkles } from 'react-icons/hi2';
 import { validateSeasonDates } from '@/utils/clubSeason';
 import { queryKeys } from '@/config/queryKeys';
+import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -501,8 +502,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
                       {t('settingsModal.premiumActive', 'Premium')}
                     </span>
-                    {/* Reset button in non-production environments (for testing) */}
-                    {process.env.VERCEL_ENV !== 'production' && (
+                    {/* Reset button when enforcement is disabled or in development (for testing) */}
+                    {(!PREMIUM_ENFORCEMENT_ENABLED || process.env.NODE_ENV === 'development') && (
                       <button
                         onClick={async () => {
                           await revokePremiumAccess();

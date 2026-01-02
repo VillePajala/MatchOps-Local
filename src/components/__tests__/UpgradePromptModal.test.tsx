@@ -256,30 +256,22 @@ describe('UpgradePromptModal', () => {
         value: 'production',
         writable: true,
       });
-      // Simulate Vercel production (no Play Billing yet)
-      Object.defineProperty(process.env, 'VERCEL_ENV', {
-        value: 'production',
-        writable: true,
-        configurable: true,
-      });
     });
 
-    afterEach(() => {
-      delete (process.env as Record<string, string | undefined>).VERCEL_ENV;
-    });
-
-    it('shows inline coming soon message in production (no upgrade button)', () => {
+    it('shows upgrade button when PREMIUM_ENFORCEMENT_ENABLED is false', () => {
+      // Currently PREMIUM_ENFORCEMENT_ENABLED = false, so upgrade is available everywhere
+      // This test documents current behavior - update when enabling enforcement
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      // In production without Play Billing, upgrade button is replaced with inline message
-      expect(screen.queryByRole('button', { name: /upgrade to premium/i })).not.toBeInTheDocument();
-
-      // Should show inline "coming soon" message
-      expect(screen.getByText(/available soon/i)).toBeInTheDocument();
-
-      // Should show OK button instead
-      expect(screen.getByRole('button', { name: /ok/i })).toBeInTheDocument();
+      // With enforcement disabled, upgrade button should be visible even in production
+      expect(screen.getByRole('button', { name: /upgrade to premium/i })).toBeInTheDocument();
     });
+
+    // TODO: Add test for when PREMIUM_ENFORCEMENT_ENABLED = true:
+    // it('shows inline coming soon message when enforcement is enabled (no upgrade button)', () => {
+    //   // When PREMIUM_ENFORCEMENT_ENABLED is true and no Play Billing,
+    //   // upgrade button should be replaced with "coming soon" message
+    // });
   });
 
   describe('accessibility', () => {
