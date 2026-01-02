@@ -114,13 +114,26 @@ export function useFocusTrap(
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
 
-      // If focus is outside modal, bring it inside
+      // NESTED MODAL SAFETY: If focus is inside this modal, handle Tab.
+      // If focus is NOT inside this modal (e.g., in a nested modal rendered via portal),
+      // do NOT intercept - let the nested modal's handler handle it.
       if (!modal.contains(document.activeElement)) {
+        // Focus is outside this modal. Check if it's in another modal (nested modal case).
+        // If document.activeElement is in a dialog/modal, don't steal focus.
+        const activeElement = document.activeElement as HTMLElement;
+        const isInAnotherModal = activeElement?.closest('[role="dialog"], [aria-modal="true"]');
+        if (isInAnotherModal && isInAnotherModal !== modal) {
+          // Focus is in a different modal - don't interfere
+          return;
+        }
+
+        // Focus is truly outside all modals - bring it into this modal
         event.preventDefault();
         (event.shiftKey ? lastElement : firstElement).focus();
         return;
       }
 
+      // Focus is inside this modal - handle Tab wrapping
       // Shift+Tab on first element -> go to last
       if (event.shiftKey && document.activeElement === firstElement) {
         event.preventDefault();
@@ -138,8 +151,21 @@ export function useFocusTrap(
 
     // Apply inert to main app content using the manager
     // This handles reference counting for nested modals
+    //
+    // SAFETY CHECK: We must verify that:
+    // 1. appRoot exists
+    // 2. appRoot is not the modal itself
+    // 3. modal doesn't contain appRoot (shouldn't happen, but defensive)
+    // 4. appRoot doesn't contain modal (CRITICAL: if modal is inside appRoot,
+    //    setting appRoot to inert would make the modal inert too!)
+    //
+    // For portal-based modals (rendered to document.body), appRoot won't contain modal.
+    // For non-portal modals (rendered inside #__next), we must NOT set inert.
     const appRoot = focusTrapManager.getAppRoot();
-    const shouldManageInert = appRoot && appRoot !== modal && !modal.contains(appRoot);
+    const shouldManageInert = appRoot &&
+      appRoot !== modal &&
+      !modal.contains(appRoot) &&
+      !appRoot.contains(modal);
 
     if (shouldManageInert) {
       focusTrapManager.increment();

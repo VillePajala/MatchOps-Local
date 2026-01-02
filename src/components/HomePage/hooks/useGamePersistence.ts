@@ -406,6 +406,23 @@ export function useGamePersistence({
    * - Error toasts are suppressed to avoid disrupting user workflow
    * - Manual saves (Ctrl+S) show error toasts for immediate feedback
    *
+   * IMPORTANT: DEFAULT_GAME_ID ("unsaved_game") Policy
+   * -------------------------------------------------
+   * Auto-save is INTENTIONALLY disabled for scratch/unsaved games:
+   * - enabled: currentGameId !== DEFAULT_GAME_ID
+   *
+   * This is BY DESIGN for these reasons:
+   * 1. Scratch sessions are ephemeral - for quick demos, testing, or exploration
+   * 2. Users can save anytime via Ctrl+S or the Save button (creates a real game ID)
+   * 3. Avoids cluttering the saved games list with auto-created entries
+   * 4. Matches user mental model: "I haven't saved yet, so it's not persisted"
+   *
+   * RELOAD SAFETY (as of 2026-01-02):
+   * - Service worker auto-reload on controllerchange is disabled
+   * - Settings "Update now" shows a message instead of reloading
+   * - This means scratch games are safe from surprise data loss
+   * - User-initiated reloads (F5, closing tab) will still lose scratch data as expected
+   *
    * Future Enhancement: Consider adding retry logic with exponential backoff
    * for transient errors (network, storage quota). See ARCHITECTURAL_DEBT.md.
    */

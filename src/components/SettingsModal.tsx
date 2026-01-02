@@ -240,23 +240,56 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           logger.log('[PWA] Manual check - forcing registration.update()');
           await registration.update();
 
-          // Wait a bit for the update to process
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          logger.log('[PWA] Manual update check completed - checking for waiting worker');
-          logger.log('[PWA] SW state after update:', {
-            active: registration.active?.scriptURL,
-            waiting: registration.waiting?.scriptURL,
-            installing: registration.installing?.scriptURL,
-          });
-
+          // If already waiting, we're done
           if (registration.waiting) {
             logger.log('[PWA] Update found! Waiting worker detected');
             setUpdateRegistration(registration);
             setShowUpdateConfirm(true);
-          } else if (registration.installing) {
-            logger.log('[PWA] Update installing... please wait');
-            showToast(t('settingsModal.updateInstalling', 'Update is installing... Please wait a moment and check again.'), 'info');
+            return;
+          }
+
+          // If installing, wait for it to finish (proper state machine, not arbitrary timeout)
+          if (registration.installing) {
+            logger.log('[PWA] Update installing... waiting for state change');
+            const installingWorker = registration.installing;
+
+            await new Promise<void>((resolve) => {
+              const onStateChange = () => {
+                logger.log('[PWA] Installing worker state changed:', installingWorker.state);
+                // Wait until it's either installed (becomes waiting) or fails (redundant/activated)
+                if (installingWorker.state === 'installed' ||
+                    installingWorker.state === 'redundant' ||
+                    installingWorker.state === 'activated') {
+                  installingWorker.removeEventListener('statechange', onStateChange);
+                  resolve();
+                }
+              };
+              installingWorker.addEventListener('statechange', onStateChange);
+
+              // Also resolve if already in a terminal state
+              if (installingWorker.state === 'installed' ||
+                  installingWorker.state === 'redundant' ||
+                  installingWorker.state === 'activated') {
+                resolve();
+              }
+            });
+          }
+
+          logger.log('[PWA] Manual update check completed - checking for waiting worker');
+          // Re-read registration state fresh (may have changed during async wait)
+          // Note: Cast to avoid TypeScript narrowing issues from the early return
+          const reg = registration as ServiceWorkerRegistration;
+
+          logger.log('[PWA] SW state after update:', {
+            active: reg.active?.scriptURL,
+            waiting: reg.waiting?.scriptURL,
+            installing: reg.installing?.scriptURL,
+          });
+
+          if (reg.waiting) {
+            logger.log('[PWA] Update found! Waiting worker detected');
+            setUpdateRegistration(registration);
+            setShowUpdateConfirm(true);
           } else {
             logger.log('[PWA] No update available - app is up to date');
             showToast(t('settingsModal.upToDate', 'App is up to date!'), 'success');
@@ -277,7 +310,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleUpdateConfirmed = () => {
     if (updateRegistration?.waiting) {
       updateRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      window.location.reload();
+      // SAFETY: Instead of immediately reloading (which can lose in-progress work),
+      // inform the user that the update is ready and they can reload when convenient.
+      // The controllerchange event no longer auto-reloads, so the app continues running
+      // with the old code until user chooses to reload.
+      showToast(t('settingsModal.updateReadyReload', 'Update installed! Reload the app when ready to apply.'), 'success');
     }
     setShowUpdateConfirm(false);
     setUpdateRegistration(null);
@@ -862,13 +899,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       <ConfirmationModal
         isOpen={showUpdateConfirm}
         title={t('settingsModal.updateAvailableTitle', 'Update Available')}
-        message={t('settingsModal.updateAvailableConfirm', 'Update available! Click OK to reload now, or Cancel to update later.')}
+        message={t('settingsModal.updateAvailableConfirmSafe', 'Update available! Click Install to prepare the update. You can reload when convenient to apply it.')}
         onConfirm={handleUpdateConfirmed}
         onCancel={() => {
           setShowUpdateConfirm(false);
           setUpdateRegistration(null);
         }}
-        confirmLabel={t('common.ok', 'OK')}
+        confirmLabel={t('settingsModal.installUpdate', 'Install')}
         cancelLabel={t('common.cancel', 'Cancel')}
         variant="primary"
       />
