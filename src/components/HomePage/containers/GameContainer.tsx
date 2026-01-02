@@ -85,12 +85,13 @@ export function GameContainer({
       </div>
 
       {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.
-          Fills gap between safe area and screen bottom in PWA standalone mode.
+          Covers the gap between ControlBar and screen bottom in PWA standalone mode.
+          Uses 34px fixed height (typical safe area) + env() for extra safety.
           z-35 puts it above overlays (z-30) but below ControlBar (z-40). */}
       {typeof document !== 'undefined' && createPortal(
         <div
           className="fixed bottom-0 inset-x-0 bg-gradient-to-b from-slate-800 to-slate-900 pointer-events-none"
-          style={{ height: 'env(safe-area-inset-bottom, 0px)', zIndex: 35 }}
+          style={{ height: 'max(34px, env(safe-area-inset-bottom, 34px))', zIndex: 35 }}
           aria-hidden="true"
         />,
         document.body

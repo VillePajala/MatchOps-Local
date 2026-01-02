@@ -101,8 +101,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     return `2000-${monthStr}-${dayStr}`;
   };
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
-  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
-  const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingRestoreContent, setPendingRestoreContent] = useState<string | null>(null);
 
@@ -219,97 +217,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.getRegistration();
         if (registration) {
-          // Log current service worker state
-          logger.log('[PWA] Current SW state before update:', {
-            active: registration.active?.scriptURL,
-            waiting: registration.waiting?.scriptURL,
-            installing: registration.installing?.scriptURL,
-          });
-
-          // Try to fetch sw.js directly to check if it's different
-          try {
-            const swResponse = await fetch('/sw.js', { cache: 'no-store' });
-            const swText = await swResponse.text();
-            const timestampMatch = swText.match(/Build Timestamp: (.*)/);
-            const deployedTimestamp = timestampMatch ? timestampMatch[1] : 'unknown';
-            logger.log('[PWA] Deployed sw.js timestamp:', deployedTimestamp);
-          } catch (e) {
-            logger.error('[PWA] Failed to fetch sw.js directly:', e);
-          }
-
           logger.log('[PWA] Manual check - forcing registration.update()');
           await registration.update();
 
-          // If already waiting, we're done
+          // Check if update was found (waiting worker exists)
+          // The global UpdateBanner (ServiceWorkerRegistration) will handle showing the notification
           if (registration.waiting) {
-            logger.log('[PWA] Update found! Waiting worker detected');
-            setUpdateRegistration(registration);
-            setShowUpdateConfirm(true);
-            return;
-          }
-
-          // If installing, wait for it to finish (proper state machine, not arbitrary timeout)
-          if (registration.installing) {
-            logger.log('[PWA] Update installing... waiting for state change');
-            const installingWorker = registration.installing;
-
-            await new Promise<void>((resolve) => {
-              let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-              const cleanup = () => {
-                installingWorker.removeEventListener('statechange', onStateChange);
-                if (timeoutId) {
-                  clearTimeout(timeoutId);
-                  timeoutId = null;
-                }
-              };
-
-              const onStateChange = () => {
-                logger.log('[PWA] Installing worker state changed:', installingWorker.state);
-                // Wait until it's either installed (becomes waiting) or fails (redundant/activated)
-                if (installingWorker.state === 'installed' ||
-                    installingWorker.state === 'redundant' ||
-                    installingWorker.state === 'activated') {
-                  cleanup();
-                  resolve();
-                }
-              };
-
-              installingWorker.addEventListener('statechange', onStateChange);
-
-              // Also resolve if already in a terminal state
-              if (installingWorker.state === 'installed' ||
-                  installingWorker.state === 'redundant' ||
-                  installingWorker.state === 'activated') {
-                cleanup();
-                resolve();
-                return;
-              }
-
-              // Safety timeout: if worker hangs, resolve after 30s to prevent leaked listener
-              timeoutId = setTimeout(() => {
-                logger.warn('[PWA] Installing worker timeout - resolving anyway');
-                cleanup();
-                resolve();
-              }, 30000);
-            });
-          }
-
-          logger.log('[PWA] Manual update check completed - checking for waiting worker');
-          // Re-read registration state fresh (may have changed during async wait)
-          // Note: Cast to avoid TypeScript narrowing issues from the early return
-          const reg = registration as ServiceWorkerRegistration;
-
-          logger.log('[PWA] SW state after update:', {
-            active: reg.active?.scriptURL,
-            waiting: reg.waiting?.scriptURL,
-            installing: reg.installing?.scriptURL,
-          });
-
-          if (reg.waiting) {
-            logger.log('[PWA] Update found! Waiting worker detected');
-            setUpdateRegistration(registration);
-            setShowUpdateConfirm(true);
+            logger.log('[PWA] Update found - UpdateBanner will show notification');
           } else {
             logger.log('[PWA] No update available - app is up to date');
             showToast(t('settingsModal.upToDate', 'App is up to date!'), 'success');
@@ -325,19 +239,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     } finally {
       setCheckingForUpdates(false);
     }
-  };
-
-  const handleUpdateConfirmed = () => {
-    if (updateRegistration?.waiting) {
-      updateRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      // SAFETY: Instead of immediately reloading (which can lose in-progress work),
-      // inform the user that the update is ready and they can reload when convenient.
-      // The controllerchange event no longer auto-reloads, so the app continues running
-      // with the old code until user chooses to reload.
-      showToast(t('settingsModal.updateReadyReload', 'Update installed! Reload the app when ready to apply.'), 'success');
-    }
-    setShowUpdateConfirm(false);
-    setUpdateRegistration(null);
   };
 
   const handleClubSeasonStartMonthChange = async (month: number) => {
@@ -913,21 +814,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         onClose={() => setShowImportResults(false)}
         importResult={lastResult}
         isImporting={isImporting}
-      />
-
-      {/* Update Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showUpdateConfirm}
-        title={t('settingsModal.updateAvailableTitle', 'Update Available')}
-        message={t('settingsModal.updateAvailableConfirmSafe', 'Update available! Click Install to prepare the update. You can reload when convenient to apply it.')}
-        onConfirm={handleUpdateConfirmed}
-        onCancel={() => {
-          setShowUpdateConfirm(false);
-          setUpdateRegistration(null);
-        }}
-        confirmLabel={t('settingsModal.installUpdate', 'Install')}
-        cancelLabel={t('common.cancel', 'Cancel')}
-        variant="primary"
       />
 
       {/* Restore Confirmation Modal */}
