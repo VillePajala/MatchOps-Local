@@ -53,13 +53,14 @@ The build process includes a custom manifest generation step that runs before Ne
 ## Architecture Overview
 
 ### Tech Stack
-- **Next.js 16.0.7** with App Router
+- **Next.js 16.0.10** with App Router
 - **React 19.2** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker
 - **Browser IndexedDB** for data persistence
 - **React Query** for state management
 - **i18next** for internationalization (English/Finnish)
+- **xlsx** for Excel export (CDN tarball: SheetJS removed npm registry access, CDN is official distribution)
 
 ### Core Architecture
 
