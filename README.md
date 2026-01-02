@@ -12,10 +12,12 @@
 [![React](https://img.shields.io/badge/React-19.2-blue.svg)](https://reactjs.org/)
 [![Tests](https://img.shields.io/badge/tests-2535+-green.svg)](#)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
+[![Privacy](https://img.shields.io/badge/Privacy-No_Tracking-green.svg)](#)
 
 MatchOps-Local is built for coaches who need privacy, offline reliability, and soccer-specific workflows without subscriptions or external servers.
 
 - 🔒 All data stays on-device (IndexedDB-first)
+- 🛡️ No tracking or analytics — your data is yours alone
 - ⚡ Sub-second performance with local caching
 - 📴 Full offline + PWA install
 - ⚽ Purpose-built for match prep, live tracking, and post-game analysis
@@ -65,7 +67,6 @@ npm run start
 
 Copy `.env.example` to `.env.local`:
 - `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_*`: optional, for error reporting.
-- `NEXT_PUBLIC_ANALYTICS_ENABLED`: toggle analytics (off by default).
 - `ANALYZE=true`: enable bundle analyzer during builds.
 - `NEXT_PUBLIC_DEBUG` / `NEXT_PUBLIC_DEBUG_ALL`: optional debug flags for local dev.
 

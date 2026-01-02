@@ -116,6 +116,12 @@ export default function HomePage() {
                   {router.locale === 'fi' ? 'Toimii ilman nettiä' : 'Works offline'}
                 </span>
               </div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
+                <FaShieldAlt className="text-primary text-sm flex-shrink-0" />
+                <span className="text-slate-300 text-sm md:text-base">
+                  {router.locale === 'fi' ? 'Ei seurantaa tai analytiikkaa' : 'No tracking or analytics'}
+                </span>
+              </div>
             </div>
 
             {/* Hero Screenshots: mobile carousel + desktop grid */}
