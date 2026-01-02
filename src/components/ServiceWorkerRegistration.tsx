@@ -49,6 +49,22 @@ export default function ServiceWorkerRegistration() {
     const swUrl = '/sw.js';
     let updateInterval: NodeJS.Timeout | null = null;
 
+    // Helper to check for updates (only when online)
+    const checkForUpdates = (registration: ServiceWorkerRegistration, reason: string) => {
+      if (!navigator.onLine) {
+        logger.debug(`[PWA] Skipping update check (${reason}) - offline`);
+        return;
+      }
+
+      logger.log(`[PWA] Update check started (${reason})`);
+      registration.update().then(() => {
+        logger.log('[PWA] Update check completed successfully');
+      }).catch(error => {
+        // Use warn instead of error - offline/network failures are expected in offline-first app
+        logger.warn('[PWA] Update check failed (expected when offline):', error);
+      });
+    };
+
     navigator.serviceWorker.register(swUrl, { updateViaCache: 'none' }).then(registration => {
       logger.log('[PWA] Service Worker registered: ', registration);
       logger.log('[PWA] Registration state - active:', registration.active?.state, 'waiting:', registration.waiting?.state, 'installing:', registration.installing?.state);
@@ -80,24 +96,36 @@ export default function ServiceWorkerRegistration() {
         }
       };
 
-      // Check for updates every 60 seconds (helpful for development and quick deployments)
-      updateInterval = setInterval(() => {
-        logger.log('[PWA] Periodic update check started (every 60s)');
-        registration.update().then(() => {
-          logger.log('[PWA] Update check completed successfully');
-          logger.log('[PWA] Post-check state - active:', registration.active?.state, 'waiting:', registration.waiting?.state, 'installing:', registration.installing?.state);
-        }).catch(error => {
-          logger.error('[PWA] Update check failed:', error);
-        });
-      }, 60000); // 60 seconds
+      // Polling interval: frequent in dev for quick iteration, hourly in prod to save battery
+      const isDev = process.env.NODE_ENV === 'development';
+      const pollingInterval = isDev ? 60_000 : 60 * 60_000; // 1 min dev, 1 hour prod
 
-      // Also do an immediate check on mount
-      logger.log('[PWA] Running immediate update check on mount');
-      registration.update().then(() => {
-        logger.log('[PWA] Initial update check completed');
-      }).catch(error => {
-        logger.error('[PWA] Initial update check failed:', error);
-      });
+      updateInterval = setInterval(() => {
+        checkForUpdates(registration, isDev ? 'periodic-dev' : 'periodic-hourly');
+      }, pollingInterval);
+
+      // Check when tab becomes visible (user returns to app)
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          checkForUpdates(registration, 'visibility-change');
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // Check when coming back online
+      const handleOnline = () => {
+        checkForUpdates(registration, 'online-event');
+      };
+      window.addEventListener('online', handleOnline);
+
+      // Store cleanup functions
+      (registration as ServiceWorkerRegistration & { _cleanup?: () => void })._cleanup = () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('online', handleOnline);
+      };
+
+      // Immediate check on mount
+      checkForUpdates(registration, 'initial');
     }).catch(error => {
       logger.error('[PWA] Service Worker registration failed: ', error);
     });
@@ -110,11 +138,18 @@ export default function ServiceWorkerRegistration() {
       window.location.reload();
     });
 
-    // Cleanup interval on unmount
+    // Cleanup on unmount
     return () => {
       if (updateInterval) {
         clearInterval(updateInterval);
       }
+      // Clean up event listeners
+      navigator.serviceWorker.getRegistration().then(registration => {
+        if (registration) {
+          const cleanup = (registration as ServiceWorkerRegistration & { _cleanup?: () => void })._cleanup;
+          if (cleanup) cleanup();
+        }
+      });
     };
   }, []);
 

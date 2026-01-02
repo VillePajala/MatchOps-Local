@@ -5,6 +5,7 @@ import ServiceWorkerRegistration from '../ServiceWorkerRegistration';
 jest.mock('@/utils/logger', () => ({
   log: jest.fn(),
   error: jest.fn(),
+  warn: jest.fn(),
   debug: jest.fn(),
 }));
 
@@ -44,16 +45,30 @@ describe('ServiceWorkerRegistration', () => {
       onupdatefound: null,
     };
 
+    // Mock navigator.onLine as true (online)
+    Object.defineProperty(global.navigator, 'onLine', {
+      value: true,
+      writable: true,
+      configurable: true,
+    });
+
     // Mock navigator.serviceWorker
     Object.defineProperty(global.navigator, 'serviceWorker', {
       value: {
         register: jest.fn().mockResolvedValue(mockRegistration),
+        getRegistration: jest.fn().mockResolvedValue(mockRegistration),
         controller: mockServiceWorker,
         addEventListener: jest.fn(),
       },
       writable: true,
       configurable: true,
     });
+
+    // Mock document event listeners for visibility change
+    jest.spyOn(document, 'addEventListener').mockImplementation(() => {});
+    jest.spyOn(document, 'removeEventListener').mockImplementation(() => {});
+    jest.spyOn(window, 'addEventListener').mockImplementation(() => {});
+    jest.spyOn(window, 'removeEventListener').mockImplementation(() => {});
 
     // Mock fetch for changelog.json - matches actual format with language-specific notes
     global.fetch = jest.fn().mockResolvedValue({
@@ -82,7 +97,8 @@ describe('ServiceWorkerRegistration', () => {
     });
   });
 
-  it('should check for updates every 60 seconds', async () => {
+  it('should check for updates on interval (hourly in prod/test, 60s in dev)', async () => {
+    // In test environment (NODE_ENV !== 'development'), interval is 1 hour
     render(<ServiceWorkerRegistration />);
 
     await waitFor(() => {
@@ -94,22 +110,13 @@ describe('ServiceWorkerRegistration', () => {
       expect(mockRegistration.update).toHaveBeenCalledTimes(1);
     });
 
-    // Fast-forward 60 seconds - should call update from interval
+    // Fast-forward 1 hour - should call update from interval (prod/test mode)
     act(() => {
-      jest.advanceTimersByTime(60000);
+      jest.advanceTimersByTime(60 * 60 * 1000); // 1 hour
     });
 
     await waitFor(() => {
       expect(mockRegistration.update).toHaveBeenCalledTimes(2);
-    });
-
-    // Fast-forward another 60 seconds - should call update again
-    act(() => {
-      jest.advanceTimersByTime(60000);
-    });
-
-    await waitFor(() => {
-      expect(mockRegistration.update).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -187,7 +194,7 @@ describe('ServiceWorkerRegistration', () => {
     expect(mockUpdateBannerProps.notes).toBeUndefined();
   });
 
-  it('should cleanup interval on unmount', async () => {
+  it('should cleanup interval and event listeners on unmount', async () => {
     const { unmount } = render(<ServiceWorkerRegistration />);
 
     await waitFor(() => {
@@ -199,9 +206,13 @@ describe('ServiceWorkerRegistration', () => {
       expect(mockRegistration.update).toHaveBeenCalledTimes(1);
     });
 
-    // Verify update is called after 60 seconds from interval
+    // Verify event listeners were added
+    expect(document.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    expect(window.addEventListener).toHaveBeenCalledWith('online', expect.any(Function));
+
+    // Verify update is called after 1 hour from interval (prod/test mode)
     act(() => {
-      jest.advanceTimersByTime(60000);
+      jest.advanceTimersByTime(60 * 60 * 1000); // 1 hour
     });
 
     await waitFor(() => {
@@ -213,7 +224,7 @@ describe('ServiceWorkerRegistration', () => {
 
     // Advance time - update should NOT be called again
     act(() => {
-      jest.advanceTimersByTime(60000);
+      jest.advanceTimersByTime(60 * 60 * 1000); // 1 hour
     });
 
     // Still should be 2 (not 3) because interval was cleared
