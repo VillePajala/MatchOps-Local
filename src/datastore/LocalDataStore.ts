@@ -486,6 +486,7 @@ export class LocalDataStore implements DataStore {
         ...player,
         id: generateId('player'),
         name: trimmedName,
+        nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
         receivedFairPlayCard: player.receivedFairPlayCard ?? false,
       };
@@ -524,6 +525,11 @@ export class LocalDataStore implements DataStore {
 
       if (updatedPlayer.name) {
         updatedPlayer.name = updatedPlayer.name.trim();
+      }
+      // Normalize nickname: trim whitespace, convert empty to undefined
+      if (updatedPlayer.nickname !== undefined) {
+        const trimmed = updatedPlayer.nickname.trim();
+        updatedPlayer.nickname = trimmed || undefined;
       }
 
       roster[playerIndex] = updatedPlayer;

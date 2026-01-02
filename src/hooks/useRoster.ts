@@ -42,7 +42,17 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
           players.map((p) => (p.id === temp.id ? saved : p)),
         );
         setRosterError(null);
-        // Invalidate React Query cache so TeamRosterModal gets fresh data
+        // Immediately update React Query cache with saved data to prevent stale reads
+        queryClient.setQueryData(queryKeys.masterRoster, (prev: Player[] | undefined) => {
+          if (!prev) return [saved];
+          // Replace temp player or add new one
+          const hasTemp = prev.some((p) => p.id === temp.id);
+          if (hasTemp) {
+            return prev.map((p) => (p.id === temp.id ? saved : p));
+          }
+          return [...prev, saved];
+        });
+        // Also invalidate to ensure background sync
         await queryClient.invalidateQueries({ queryKey: queryKeys.masterRoster });
       } else {
         setAvailablePlayers(prev);
@@ -73,7 +83,12 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
           ps.map((p) => (p.id === updated.id ? updated : p)),
         );
         setRosterError(null);
-        // Invalidate React Query cache so TeamRosterModal gets fresh data
+        // Immediately update React Query cache with saved data to prevent stale reads
+        queryClient.setQueryData(queryKeys.masterRoster, (prev: Player[] | undefined) => {
+          if (!prev) return prev;
+          return prev.map((p) => (p.id === updated.id ? updated : p));
+        });
+        // Also invalidate to ensure background sync
         await queryClient.invalidateQueries({ queryKey: queryKeys.masterRoster });
       } else {
         setAvailablePlayers(prev);
