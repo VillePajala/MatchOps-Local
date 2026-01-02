@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import React, { useRef } from 'react';
-import { useFocusTrap } from '../useFocusTrap';
+import { useFocusTrap, focusTrapManager } from '../useFocusTrap';
 
 // Test component that uses the hook
 function TestModal({ isOpen, testId = 'modal' }: { isOpen: boolean; testId?: string }) {
@@ -50,15 +50,11 @@ function TestModalWithDisabled({ isOpen }: { isOpen: boolean }) {
   );
 }
 
-// Helper to reset the module's internal state between tests
-// The inertRefCount is a module-level variable that persists between tests
-beforeEach(() => {
-  // Reset by ensuring no modals are "open" from previous tests
-  jest.resetModules();
-});
-
 describe('useFocusTrap', () => {
   beforeEach(() => {
+    // Reset the focus trap manager state between tests
+    focusTrapManager.reset();
+
     // Create a mock app root for inert testing
     const appRoot = document.createElement('div');
     appRoot.id = '__next';
@@ -67,9 +63,9 @@ describe('useFocusTrap', () => {
 
   afterEach(() => {
     // Clean up
+    focusTrapManager.reset();
     const appRoot = document.getElementById('__next');
     if (appRoot) {
-      appRoot.removeAttribute('inert');
       document.body.removeChild(appRoot);
     }
   });

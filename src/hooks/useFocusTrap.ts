@@ -2,9 +2,57 @@
 
 import { useEffect, RefObject } from 'react';
 
-// Reference counter for nested modals
-// When count > 0, app root should be inert
-let inertRefCount = 0;
+/**
+ * Manages inert state for focus trapping across multiple modals.
+ * Uses reference counting to handle nested modals correctly.
+ *
+ * Singleton pattern with reset capability for testing.
+ */
+class FocusTrapManager {
+  private refCount = 0;
+  private appRoot: HTMLElement | null = null;
+
+  getAppRoot(): HTMLElement | null {
+    // Cache the app root lookup
+    if (!this.appRoot) {
+      this.appRoot = document.getElementById('__next') ||
+        document.querySelector('body > div:first-child') as HTMLElement | null;
+    }
+    return this.appRoot;
+  }
+
+  increment(): void {
+    this.refCount++;
+    const appRoot = this.getAppRoot();
+    if (this.refCount === 1 && appRoot) {
+      appRoot.setAttribute('inert', '');
+    }
+  }
+
+  decrement(): void {
+    this.refCount = Math.max(0, this.refCount - 1);
+    const appRoot = this.getAppRoot();
+    if (this.refCount === 0 && appRoot) {
+      appRoot.removeAttribute('inert');
+    }
+  }
+
+  /** Reset state - exposed for testing only */
+  reset(): void {
+    this.refCount = 0;
+    const appRoot = this.getAppRoot();
+    if (appRoot) {
+      appRoot.removeAttribute('inert');
+    }
+    this.appRoot = null;
+  }
+
+  getRefCount(): number {
+    return this.refCount;
+  }
+}
+
+export const focusTrapManager = new FocusTrapManager();
 
 /**
  * Focus trap hook for modal dialogs
@@ -33,11 +81,11 @@ export function useFocusTrap(
     const getFocusableElements = (): HTMLElement[] => {
       const selector = [
         'button:not([disabled])',
-        '[href]',
-        'input:not([disabled])',
+        '[href]:not([disabled])',
+        'input:not([disabled]):not([type="hidden"])',
         'select:not([disabled])',
         'textarea:not([disabled])',
-        '[tabindex]:not([tabindex="-1"])',
+        '[tabindex]:not([tabindex="-1"]):not([disabled])',
       ].join(', ');
 
       return Array.from(modal.querySelectorAll<HTMLElement>(selector));
@@ -71,15 +119,13 @@ export function useFocusTrap(
       }
     };
 
-    // Apply inert to main app content (sibling of modal portal)
-    // The modal is portaled to document.body, so we mark other body children as inert
-    // Use reference counting to handle nested modals correctly
-    const appRoot = document.getElementById('__next') || document.querySelector('body > div:first-child');
-    if (appRoot && appRoot !== modal && !modal.contains(appRoot)) {
-      inertRefCount++;
-      if (inertRefCount === 1) {
-        appRoot.setAttribute('inert', '');
-      }
+    // Apply inert to main app content using the manager
+    // This handles reference counting for nested modals
+    const appRoot = focusTrapManager.getAppRoot();
+    const shouldManageInert = appRoot && appRoot !== modal && !modal.contains(appRoot);
+
+    if (shouldManageInert) {
+      focusTrapManager.increment();
     }
 
     document.addEventListener('keydown', handleKeyDown);
@@ -87,12 +133,8 @@ export function useFocusTrap(
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
 
-      // Only remove inert when all modals have closed
-      if (appRoot) {
-        inertRefCount = Math.max(0, inertRefCount - 1);
-        if (inertRefCount === 0) {
-          appRoot.removeAttribute('inert');
-        }
+      if (shouldManageInert) {
+        focusTrapManager.decrement();
       }
     };
   }, [ref, isOpen]);
