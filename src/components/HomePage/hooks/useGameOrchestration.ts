@@ -175,6 +175,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     t,
   });
 
+  // Extract stable setters for use in effects
+  // React useState setters are guaranteed stable (same identity across renders)
+  // This avoids depending on the whole fieldCoordination object (which is recreated each render)
+  const setPlayersOnField = fieldCoordination.setPlayersOnField;
+  const setOpponents = fieldCoordination.setOpponents;
+  const setDrawings = fieldCoordination.setDrawings;
+  const setTacticalDiscs = fieldCoordination.setTacticalDiscs;
+  const setTacticalDrawings = fieldCoordination.setTacticalDrawings;
+  const setTacticalBallPosition = fieldCoordination.setTacticalBallPosition;
+  const setFormationSnapPoints = fieldCoordination.setFormationSnapPoints;
+  const updateGoalieStatusByPosition = fieldCoordination.updateGoalieStatusByPosition;
+
   // --- History Orchestration (Undo/Redo) ---
   /**
    * Orchestrate undo across both field and session state
@@ -222,6 +234,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const gameIdRef = useRef(currentGameId);
   // Track which game has been successfully loaded to prevent reload on auto-save
   const loadedGameIdRef = useRef<string | null>(null);
+  // Track which initialAction has been processed to prevent re-processing
+  const processedInitialActionRef = useRef<string | null>(null);
 
   useEffect(() => { gameIdRef.current = currentGameId; }, [currentGameId]);
 
@@ -248,13 +262,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // query cache invalidations. Previous attempt to use useMemo + queryClient.setQueryData
   // caused game data to reset to defaults when navigating between games.
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
-
-  // Memoize current game to avoid callback recreation when other games change.
-  // This optimizes handleToggleGoalieForModal which previously depended on savedGames.
-  const currentGameForSave = useMemo(
-    () => (currentGameId ? savedGames[currentGameId] : null),
-    [currentGameId, savedGames]
-  );
 
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
@@ -448,51 +455,55 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   useEffect(() => {
     if (!initialAction) return;
-    
-    // Only process the initial action once
-    const processAction = () => {
-      switch (initialAction) {
-        case 'newGame':
-          // Check if roster is empty before opening new game modal
-          if (availablePlayers.length === 0) {
-            setShowNoPlayersConfirm(true);
-          } else {
-            setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);
-            openNewGameViaReducer();
-          }
-          break;
-        case 'loadGame':
-          reducerDrivenModals.loadGame.open();
-          break;
-        case 'season':
-          openSeasonTournamentViaReducer();
-          break;
-        case 'stats':
-          setIsGameStatsModalOpen(true);
-          break;
-        case 'roster':
-          openRosterViaReducer();
-          break;
-        case 'teams':
-          setIsTeamManagerOpen(true);
-          break;
-        case 'settings':
-          setIsSettingsModalOpen(true);
-          break;
-        case 'explore':
-          // Explore mode - just let user access the temporary workspace
-          // The first-game overlay will appear automatically for DEFAULT_GAME_ID
-          // No modal needs to be opened, user can explore the interface freely
-          break;
-        default:
-          break;
-      }
-    };
-    
-    processAction();
-    // Only run once when initialAction changes, not when availablePlayers or t changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialAction]);
+
+    // Skip if we've already processed this exact action
+    if (processedInitialActionRef.current === initialAction) return;
+    processedInitialActionRef.current = initialAction;
+
+    // Process the initial action
+    switch (initialAction) {
+      case 'newGame':
+        // Check if roster is empty before opening new game modal
+        if (availablePlayers.length === 0) {
+          setShowNoPlayersConfirm(true);
+        } else {
+          setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);
+          openNewGameViaReducer();
+        }
+        break;
+      case 'loadGame':
+        openLoadGameViaReducer();
+        break;
+      case 'season':
+        openSeasonTournamentViaReducer();
+        break;
+      case 'stats':
+        setIsGameStatsModalOpen(true);
+        break;
+      case 'roster':
+        openRosterViaReducer();
+        break;
+      case 'teams':
+        setIsTeamManagerOpen(true);
+        break;
+      case 'settings':
+        setIsSettingsModalOpen(true);
+        break;
+      case 'explore':
+        // Explore mode - just let user access the temporary workspace
+        // The first-game overlay will appear automatically for DEFAULT_GAME_ID
+        // No modal needs to be opened, user can explore the interface freely
+        break;
+      default:
+        break;
+    }
+  // All callbacks are stable (useCallback with proper deps).
+  // Modal setters from useModalOrchestration (setIsGameStatsModalOpen, setIsTeamManagerOpen,
+  // setIsSettingsModalOpen) are called AFTER this effect but React setters are stable.
+  // The processedInitialActionRef prevents re-processing on dependency changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAction, availablePlayers.length, gameSessionState.selectedPlayerIds,
+      openLoadGameViaReducer, openNewGameViaReducer, openSeasonTournamentViaReducer, openRosterViaReducer]);
   
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
   const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
@@ -697,7 +708,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Also removes players that were deleted from the roster
   useEffect(() => {
     if (availablePlayers && availablePlayers.length > 0) {
-      fieldCoordination.setPlayersOnField(prevPlayersOnField => {
+      setPlayersOnField(prevPlayersOnField => {
         // Build a lookup map for O(1) access
         const rosterLookup = new Map(availablePlayers.map(p => [p.id, p]));
 
@@ -736,10 +747,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         return nextPlayersOnField;
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availablePlayers, saveStateToHistory]); // setPlayersOnField is from useGameState, should be stable if not changing the hook itself
-  // Note: We don't want setPlayersOnField in deps if it causes loops.
-  // saveStateToHistory is also a dependency as it's used inside.
+  // setPlayersOnField is stable (React useState setter extracted from fieldCoordination)
+  // saveStateToHistory is stable (ref pattern from useGameSessionCoordination)
+  }, [availablePlayers, setPlayersOnField, saveStateToHistory]);
   
   useEffect(() => {
     const loadInitialAppData = async () => {
@@ -909,7 +919,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, []);
 
   // Helper function to load game state from game data
-  const loadGameStateFromData = async (gameData: AppState | null, isInitialDefaultLoad = false) => {
+  // Wrapped in useCallback for proper dependency tracking in the game loading effect
+  const loadGameStateFromData = useCallback(async (gameData: AppState | null, isInitialDefaultLoad = false) => {
     logger.log('[LOAD GAME STATE] Called with gameData:', gameData, 'isInitialDefaultLoad:', isInitialDefaultLoad);
 
     // Check for orphaned game (has teamId but team doesn't exist)
@@ -979,15 +990,16 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // For fields not yet in gameSessionState but are in GameData, update their local states if needed.
     // This part will shrink as more state moves to the reducer.
     // Apply goalie status based on position to ensure consistency after load
+    // Note: Using extracted stable setters for proper dependency tracking
     const loadedPlayers = gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []);
-    const playersWithGoalieStatus = fieldCoordination.updateGoalieStatusByPosition(loadedPlayers);
-    fieldCoordination.setPlayersOnField(playersWithGoalieStatus);
-    fieldCoordination.setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
-    fieldCoordination.setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
-    fieldCoordination.setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
-    fieldCoordination.setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
-    fieldCoordination.setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
-    fieldCoordination.setFormationSnapPoints(gameData?.formationSnapPoints || []);
+    const playersWithGoalieStatus = updateGoalieStatusByPosition(loadedPlayers);
+    setPlayersOnField(playersWithGoalieStatus);
+    setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
+    setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
+    setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
+    setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
+    setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
+    setFormationSnapPoints(gameData?.formationSnapPoints || []);
     setIsPlayed(gameData?.isPlayed === false ? false : true);
 
     // Load per-game availablePlayers (with per-game goalie status)
@@ -1041,7 +1053,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     };
     resetHistory(newHistoryState);
     logger.log('[LOAD GAME STATE] Finished dispatching. Reducer will update gameSessionState.');
-  };
+  }, [
+    // Stable setters (React guarantees stability)
+    setOrphanedGameInfo, dispatchGameSession, setIsPlayed, setAvailablePlayers, resetHistory,
+    // Extracted stable setters from fieldCoordination
+    setPlayersOnField, setOpponents, setDrawings, setTacticalDiscs,
+    setTacticalDrawings, setTacticalBallPosition, setFormationSnapPoints, updateGoalieStatusByPosition,
+    // Stable data from hooks (initialGameSessionData from useGameSessionCoordination)
+    initialGameSessionData,
+    // Data dependencies (used as fallbacks - changes trigger callback recreation)
+    // Note: initialState is a function parameter (outer scope), not a dep
+    availablePlayers, gameDataManagement.masterRoster,
+  ]);
 
   // --- Effect to load game state when currentGameId changes or savedGames updates ---
   useEffect(() => {
@@ -1076,9 +1099,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     };
 
     loadGame();
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentGameId, initialLoadComplete, savedGames]); // savedGames needed for when data becomes available after game switch
+  // loadGameStateFromData is now properly memoized with useCallback.
+  // The loadedGameIdRef guard prevents duplicate loads for the same game.
+  }, [currentGameId, initialLoadComplete, savedGames, loadGameStateFromData]);
 
   // Effect to prompt for setup if default game ID is loaded
   useEffect(() => {
@@ -1430,10 +1453,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
       // Save the updated state - fetch FRESH state from storage to avoid stale data
       //
-      // WHY FRESH FETCH: currentGameForSave is memoized from React state and could be
-      // stale if the game was modified elsewhere (e.g., another save operation completed,
-      // or React Query invalidation hasn't updated savedGames state yet). Fetching fresh
-      // ensures we don't overwrite fields like assessments, isPlayed, etc.
+      // WHY FRESH FETCH: React state could be stale if the game was modified elsewhere
+      // (e.g., another save operation completed, or React Query invalidation hasn't propagated).
+      // Fetching fresh ensures we don't overwrite fields like assessments, isPlayed, etc.
       //
       // WHITELIST APPROACH: Explicitly list fields from each source to prevent stale data.
       // 1. freshGameState - fresh from storage (preserves assessments, isPlayed, etc.)
@@ -1503,10 +1525,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     } catch (error) {
       logger.error(`[Page.tsx] Exception during per-game goalie toggle of ${playerId}:`, error);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- currentGameForSave is used: condition check + spread
   }, [
     // Data dependencies (values that change the function's behavior)
-    availablePlayers, currentGameId, currentGameForSave, gameSessionState, t,
+    availablePlayers, currentGameId, gameSessionState, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
     setAvailablePlayers, setRosterError, queryClient,
     // fieldCoordination provides playersOnField and setPlayersOnField
