@@ -282,7 +282,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   const mobileOverlay = isOpen && isMobile && typeof document !== 'undefined' ? createPortal(
     <div
       ref={dropdownRef}
-      className="fixed inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 flex flex-col bg-slate-800 overflow-hidden"
+      className="fixed inset-x-0 top-0 bottom-14 [@media(hover:none)and(pointer:coarse)]:bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 flex flex-col bg-slate-800 overflow-hidden"
       role="menu"
       aria-orientation="vertical"
     >
