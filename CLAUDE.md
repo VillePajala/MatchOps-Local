@@ -203,6 +203,26 @@ See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
 - `src/datastore/factory.ts` - Singleton factory for DataStore/AuthService
 - `src/auth/LocalAuthService.ts` - No-op auth service for local mode
 
+## Technical Debt: Refactor When Touching
+
+**When modifying these files, proactively suggest incremental refactoring opportunities.**
+
+### `src/components/HomePage/hooks/useGameOrchestration.ts` (Issue #266)
+- **Problem:** 2,160 lines, 15 eslint-disable directives (4 are `react-hooks/exhaustive-deps`)
+- **Risk:** Stale closures, split state ownership, hard to test
+- **When touching this file:**
+  1. Look for opportunities to extract focused hooks (like already done: useFieldCoordination, useTimerManagement, etc.)
+  2. If adding new state, consider if it belongs in a new extracted hook instead
+  3. If fixing a bug related to an eslint-disable, fix the root cause rather than adding another disable
+  4. Each PR should ideally remove one eslint-disable, not add any
+- **Extraction candidates:** Initial action processing (~line 480), game loading logic (~line 1050), player-to-field sync (~line 730)
+
+### General Rule
+When AI adds an `eslint-disable` comment, it should:
+1. First try to fix the underlying issue
+2. If disable is truly necessary, add a detailed comment explaining why
+3. Flag it to the user as tech debt to address later
+
 ## Testing Rules and Principles
 
 ### Test-First Verification for Deletion/Refactoring Tasks
