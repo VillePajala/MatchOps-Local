@@ -21,7 +21,7 @@ import {
 } from '@/utils/appSettings';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
-import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment } from "@/types";
+import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
 import { setPlayerFairPlayCardStatus } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRoster } from '@/hooks/useRoster';
@@ -585,39 +585,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Mutations for seasons and tournaments are now managed by useGameDataManagement hook
 
-  type UpdateGameDetailsMetaBase = {
-  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
-  targetId?: string;
-  expectedState?: {
-    seasonId?: string;
-    tournamentId?: string;
-    gameLocation?: string;
-    ageGroup?: string;
-    tournamentLevel?: string;
-    selectedPlayerIds?: string[];
-    gamePersonnel?: string[];
-    gameTime?: string;
-    teamName?: string;
-    opponentName?: string;
-    demandFactor?: number;
-    numberOfPeriods?: number;
-    periodDurationMinutes?: number;
-    homeOrAway?: 'home' | 'away';
-  };
-  expectedIsPlayed?: boolean;
-};
-
-type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
-
-  type UpdateGameDetailsVariables = {
-    gameId: string;
-    updates: Partial<AppState>;
-    meta?: UpdateGameDetailsMeta;
-  };
-
   const lastAppliedMutationSequenceRef = useRef(0);
 
-  const updateGameDetailsMutation = useMutation<AppState | null, Error, UpdateGameDetailsVariables>({
+  const updateGameDetailsMutation = useMutation<AppState | null, Error, UpdateGameDetailsMutationVariables>({
     mutationFn: ({ gameId, updates }) => utilUpdateGameDetails(gameId, updates),
     onSuccess: (data, variables) => {
       const { meta } = variables;
