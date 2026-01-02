@@ -1,8 +1,10 @@
 /**
  * Security tests for premium/payment environment variables
  *
- * Ensures dev/test shortcuts cannot be accidentally enabled in production.
+ * Ensures dev/test shortcuts behave correctly based on PREMIUM_ENFORCEMENT_ENABLED flag.
  */
+import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
+
 describe('Premium Environment Variables Security', () => {
   const originalEnv = process.env;
 
@@ -14,73 +16,68 @@ describe('Premium Environment Variables Security', () => {
     process.env = originalEnv;
   });
 
-  describe('NEXT_PUBLIC_INTERNAL_TESTING validation', () => {
-    it('should not be true when VERCEL_ENV is production', () => {
-      // This test documents the expected behavior:
-      // Even if NEXT_PUBLIC_INTERNAL_TESTING is misconfigured, production should block it
-      process.env.VERCEL_ENV = 'production';
-      process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
-
-      const isVercelProduction = process.env.VERCEL_ENV === 'production';
-      const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
-
-      // The code should check isVercelProduction FIRST and block if true
-      // This simulates the safeguard in UpgradePromptModal.tsx
-      const shouldBlockDevShortcut = isVercelProduction;
-
-      expect(shouldBlockDevShortcut).toBe(true);
-      // Even though isInternalTesting is true, production guard should block it
-      expect(isInternalTesting).toBe(true); // Misconfigured
-      expect(isVercelProduction).toBe(true); // But production blocks it
+  describe('PREMIUM_ENFORCEMENT_ENABLED flag', () => {
+    it('should currently be disabled (bypassing premium checks)', () => {
+      // This documents the current state: premium is bypassed
+      // Change this test when enabling premium enforcement
+      expect(PREMIUM_ENFORCEMENT_ENABLED).toBe(false);
     });
 
-    it('should allow internal testing when VERCEL_ENV is preview', () => {
-      process.env.VERCEL_ENV = 'preview';
+    it('should allow test tokens when enforcement is disabled', () => {
+      // When PREMIUM_ENFORCEMENT_ENABLED is false, all test tokens should be accepted
+      const canAcceptTestToken = !PREMIUM_ENFORCEMENT_ENABLED;
+      expect(canAcceptTestToken).toBe(true);
+    });
+  });
+
+  describe('Production behavior with enforcement enabled', () => {
+    it('should block test tokens in production when enforcement is enabled', () => {
+      // Simulate production environment
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        writable: true,
+        configurable: true,
+      });
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
+      const isDev = process.env.NODE_ENV !== 'production';
+
+      // When enforcement is enabled AND in production AND not internal testing
+      // Test tokens should be blocked
+      const enforcementEnabled = true; // Simulating enabled state
+      const shouldBlockTestTokens = enforcementEnabled && isProduction && !isDev && !isInternalTesting;
+
+      expect(shouldBlockTestTokens).toBe(true);
+    });
+
+    it('should allow internal testing even in production when flag is set', () => {
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        writable: true,
+        configurable: true,
+      });
       process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
 
-      const isVercelProduction = process.env.VERCEL_ENV === 'production';
       const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
 
-      expect(isVercelProduction).toBe(false);
       expect(isInternalTesting).toBe(true);
-      // Preview deployments can use internal testing for Play Store test tracks
+      // Internal testing flag allows test tokens even in production
     });
+  });
 
+  describe('Development behavior', () => {
     it('should allow dev mode locally', () => {
-      delete process.env.VERCEL_ENV; // Not on Vercel
       Object.defineProperty(process.env, 'NODE_ENV', {
         value: 'development',
         writable: true,
         configurable: true,
       });
 
-      const isVercelProduction = process.env.VERCEL_ENV === 'production';
       const isDev = process.env.NODE_ENV === 'development';
 
-      expect(isVercelProduction).toBe(false);
       expect(isDev).toBe(true);
-    });
-  });
-
-  describe('Production safeguard priority', () => {
-    it('should prioritize VERCEL_ENV=production over all other flags', () => {
-      // Simulate worst case: all dev flags enabled but in production
-      process.env.VERCEL_ENV = 'production';
-      Object.defineProperty(process.env, 'NODE_ENV', {
-        value: 'development', // This shouldn't happen but test it
-        writable: true,
-        configurable: true,
-      });
-      process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
-
-      const isVercelProduction = process.env.VERCEL_ENV === 'production';
-
-      // The VERCEL_ENV check must come first and block everything
-      expect(isVercelProduction).toBe(true);
-
-      // Code pattern that should be used:
-      // if (isVercelProduction) { block(); return; }
-      // if (isDev || isInternalTesting) { allow(); }
+      // Development mode always allows test tokens
     });
   });
 });

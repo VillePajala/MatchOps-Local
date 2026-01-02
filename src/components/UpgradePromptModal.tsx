@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
+import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import ModalPortal from './ModalPortal';
@@ -72,12 +73,14 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const resourceName = resource ? t(resourceKey, resource) : '';
 
   // Check if purchase is available
-  // In Vercel production without Play Billing, we show an inline message instead of the button
+  // When PREMIUM_ENFORCEMENT_ENABLED is false, everyone can "purchase" (bypass)
+  // When true, we'll require Play Billing in production
   const isDev = process.env.NODE_ENV === 'development';
   const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
-  const isVercelProduction = process.env.VERCEL_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === 'production';
   // TODO P4C: Add isPlayBillingAvailable check when Play Billing is integrated
-  const canPurchase = !isVercelProduction || isDev || isInternalTesting;
+  // For now, PREMIUM_ENFORCEMENT_ENABLED controls whether we block purchases in production
+  const canPurchase = !isProduction || !PREMIUM_ENFORCEMENT_ENABLED || isDev || isInternalTesting;
 
   // For development/internal testing - will be replaced by Play Billing in P4C
   const handleUpgradeClick = async () => {

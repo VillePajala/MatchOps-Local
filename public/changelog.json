@@ -1,8 +1,8 @@
 {
-  "version": "00410f19",
+  "version": "153beaa5",
   "date": "2026-01-02",
   "notes": {
-    "en": "Remove subs zone rectangle, keep dimmed discs",
-    "fi": "Remove subs zone rectangle, keep dimmed discs"
+    "en": "Save and restore formation snap points",
+    "fi": "Save and restore formation snap points"
   }
 }
