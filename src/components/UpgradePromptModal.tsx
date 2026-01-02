@@ -8,6 +8,7 @@ import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
 import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 
@@ -38,8 +39,12 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const { t } = useTranslation();
   const { grantPremiumAccess } = usePremium();
   const { showToast } = useToast();
+  const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
+  // Focus trap: keeps Tab cycling within modal
+  useFocusTrap(modalRef, isOpen);
 
   // Focus management and keyboard handler
   useEffect(() => {
@@ -104,6 +109,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   return (
     <ModalPortal>
       <div
+        ref={modalRef}
         className="fixed inset-0 bg-black/60 flex items-center justify-center z-[80] font-display"
         role="dialog"
         aria-modal="true"

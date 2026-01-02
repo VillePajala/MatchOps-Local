@@ -1,15 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { 
-  HiOutlineCheckCircle, 
-  HiOutlineXCircle, 
+import {
+  HiOutlineCheckCircle,
+  HiOutlineXCircle,
   HiOutlineExclamationTriangle,
   HiOutlineInformationCircle,
   HiOutlineXMark
 } from 'react-icons/hi2';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface ImportResult {
   successful: number;
@@ -32,6 +33,10 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
   isImporting = false,
 }) => {
   const { t } = useTranslation();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap: keeps Tab cycling within modal
+  useFocusTrap(modalRef, isOpen);
 
   if (!isOpen) return null;
 
@@ -82,7 +87,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" onClick={handleBackdropClick}>
+    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" onClick={handleBackdropClick}>
       <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto text-slate-100" role="dialog" aria-modal="true">
         <div className="flex items-center justify-between p-6 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
           <div className="flex items-center space-x-3">
