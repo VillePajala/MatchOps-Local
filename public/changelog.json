@@ -1,8 +1,8 @@
 {
-  "version": "a8382d38",
+  "version": "a0667142",
   "date": "2026-01-02",
   "notes": {
-    "en": "Add safe-area cover element to prevent overlay leak in PWA",
-    "fi": "Add safe-area cover element to prevent overlay leak in PWA"
+    "en": "Render safe-area cover via portal for correct stacking context",
+    "fi": "Render safe-area cover via portal for correct stacking context"
   }
 }
