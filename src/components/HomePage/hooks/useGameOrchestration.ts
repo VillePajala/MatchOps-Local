@@ -498,9 +498,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         break;
     }
   // All callbacks are stable (useCallback with proper deps).
-  // Modal setters from useModalOrchestration (setIsGameStatsModalOpen, setIsTeamManagerOpen,
-  // setIsSettingsModalOpen) are called AFTER this effect but React setters are stable.
-  // The processedInitialActionRef prevents re-processing on dependency changes.
+  // Intentionally omitting modal setters (setIsGameStatsModalOpen, setIsTeamManagerOpen,
+  // setIsSettingsModalOpen) from deps - they're stable React setters but are not available
+  // at effect registration time due to hook call order (useModalOrchestration called after
+  // useGameOrchestration). Adding them would require restructuring the hook initialization.
+  // The processedInitialActionRef guard prevents stale closure issues.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAction, availablePlayers.length, gameSessionState.selectedPlayerIds,
       openLoadGameViaReducer, openNewGameViaReducer, openSeasonTournamentViaReducer, openRosterViaReducer]);

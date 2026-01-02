@@ -254,24 +254,44 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             const installingWorker = registration.installing;
 
             await new Promise<void>((resolve) => {
+              let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+              const cleanup = () => {
+                installingWorker.removeEventListener('statechange', onStateChange);
+                if (timeoutId) {
+                  clearTimeout(timeoutId);
+                  timeoutId = null;
+                }
+              };
+
               const onStateChange = () => {
                 logger.log('[PWA] Installing worker state changed:', installingWorker.state);
                 // Wait until it's either installed (becomes waiting) or fails (redundant/activated)
                 if (installingWorker.state === 'installed' ||
                     installingWorker.state === 'redundant' ||
                     installingWorker.state === 'activated') {
-                  installingWorker.removeEventListener('statechange', onStateChange);
+                  cleanup();
                   resolve();
                 }
               };
+
               installingWorker.addEventListener('statechange', onStateChange);
 
               // Also resolve if already in a terminal state
               if (installingWorker.state === 'installed' ||
                   installingWorker.state === 'redundant' ||
                   installingWorker.state === 'activated') {
+                cleanup();
                 resolve();
+                return;
               }
+
+              // Safety timeout: if worker hangs, resolve after 30s to prevent leaked listener
+              timeoutId = setTimeout(() => {
+                logger.warn('[PWA] Installing worker timeout - resolving anyway');
+                cleanup();
+                resolve();
+              }, 30000);
             });
           }
 

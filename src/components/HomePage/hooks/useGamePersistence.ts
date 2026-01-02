@@ -413,7 +413,9 @@ export function useGamePersistence({
    *
    * This is BY DESIGN for these reasons:
    * 1. Scratch sessions are ephemeral - for quick demos, testing, or exploration
-   * 2. Users can save anytime via Ctrl+S or the Save button (creates a real game ID)
+   * 2. Users can save anytime via Ctrl+S or the Save button:
+   *    → This creates a real game ID, removing DEFAULT_GAME_ID
+   *    → Subsequent changes are then auto-saved with the new ID
    * 3. Avoids cluttering the saved games list with auto-created entries
    * 4. Matches user mental model: "I haven't saved yet, so it's not persisted"
    *
