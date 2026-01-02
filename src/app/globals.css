@@ -14,7 +14,8 @@
 }
 
 html, body {
-  height: 100dvh; /* Use dynamic viewport height for better mobile support */
+  height: 100%;
+  min-height: 100dvh; /* Prefer dynamic viewport height, but don't allow tiny gaps in some standalone/PWA browsers */
   padding: 0;
   margin: 0;
   overflow: hidden;
