@@ -3,6 +3,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export interface ConfirmationModalProps {
   isOpen: boolean;
@@ -46,8 +47,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   variant = 'primary',
 }) => {
   const { t } = useTranslation();
+  const modalRef = useRef<HTMLDivElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
+  // Focus trap: keeps Tab cycling within modal
+  useFocusTrap(modalRef, isOpen);
 
   // Focus management and keyboard handler
   useEffect(() => {
@@ -86,6 +91,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   return (
     <div
+      ref={modalRef}
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] font-display"
       role="dialog"
       aria-modal="true"

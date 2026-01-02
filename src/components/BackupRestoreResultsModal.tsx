@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import {
@@ -8,6 +8,7 @@ import {
   HiOutlineExclamationTriangle,
   HiOutlineXMark
 } from 'react-icons/hi2';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export interface BackupRestoreResult {
   success: boolean;
@@ -42,6 +43,10 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
   result,
 }) => {
   const { t } = useTranslation();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap: keeps Tab cycling within modal
+  useFocusTrap(modalRef, isOpen);
 
   if (!isOpen || !result) return null;
 
@@ -54,7 +59,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
   const { statistics, warnings } = result;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-stretch justify-center z-[60] font-display p-4" onClick={handleBackdropClick}>
+    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-stretch justify-center z-[60] font-display p-4" onClick={handleBackdropClick}>
       <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full flex flex-col text-slate-100" role="dialog" aria-modal="true">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm flex-shrink-0">
