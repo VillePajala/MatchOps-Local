@@ -1,8 +1,8 @@
 {
-  "version": "988fbe21",
+  "version": "16b02d0b",
   "date": "2026-01-02",
   "notes": {
-    "en": "Replace broken VERCEL_ENV with feature flag (#258)",
-    "fi": "Replace broken VERCEL_ENV with feature flag (#258)"
+    "en": "Optimize service worker update polling (#259)",
+    "fi": "Optimize service worker update polling (#259)"
   }
 }
