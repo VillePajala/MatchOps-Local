@@ -15,7 +15,7 @@
 
 html, body {
   height: 100vh; /* Fallback */
-  height: 100dvh; /* Dynamic viewport height - fills entire screen including safe areas */
+  height: 100svh; /* Safe viewport height (prevents bottom UI from covering content in standalone/PWA) */
   padding: 0;
   margin: 0;
   overflow: hidden;
