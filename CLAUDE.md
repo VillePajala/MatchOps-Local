@@ -288,17 +288,19 @@ await act(async () => {
 await waitFor(() => expect(result).toBe(true));
 ```
 
-**3. Issue-Masking Mechanisms (FORBIDDEN)**
+**3. Issue-Masking Mechanisms**
 ```typescript
-// ❌ FORBIDDEN in jest.config.js
-detectLeaks: false        // Masks memory leaks
-forceExit: true           // Masks resource leaks
---bail                    // Hides multiple failures
+// ❌ FORBIDDEN - These hide real issues
+forceExit: true           // Masks resource leaks - never use
 
-// ✅ REQUIRED - Expose and fix real issues
-detectLeaks: true
-detectOpenHandles: true
-forceExit: false
+// ✅ CURRENT CONFIGURATION (with rationale)
+detectOpenHandles: true   // Always enabled - catches resource leaks
+detectLeaks: false        // Disabled: high false-positive rate (31/80 suites flagged)
+                          // Real memory issues caught by detectOpenHandles + manual testing
+forceExit: false          // Never force exit - fix issues properly
+
+// ℹ️ CI uses --bail=1 for faster feedback on failures
+// This is acceptable tradeoff: fail fast, re-run to see all failures if needed
 ```
 
 **4. Console Noise Tolerance (FORBIDDEN)**
@@ -306,14 +308,15 @@ Tests automatically fail on unexpected console warnings/errors. See `src/setupTe
 
 ### Required Testing Infrastructure
 
-**jest.config.js:**
+**jest.config.js (actual configuration):**
 ```javascript
 {
-  detectOpenHandles: true,  // ✅ REQUIRED
-  detectLeaks: true,        // ✅ REQUIRED
-  forceExit: false,         // ✅ REQUIRED
-  testTimeout: 30000,       // ✅ REQUIRED
+  detectOpenHandles: true,  // ✅ Catches resources preventing Node exit
+  detectLeaks: false,       // Disabled due to false positives (see rationale above)
+  forceExit: false,         // ✅ Never force exit
+  testTimeout: 30000,       // 30 second default timeout
   maxWorkers: process.env.CI ? 2 : '50%',
+  slowTestThreshold: 5,     // Warn about tests > 5s
 }
 ```
 
@@ -359,10 +362,10 @@ test('user interaction', async () => {
 
 ### Flaky Test Management
 
-**Jest Retry Configuration (jest.config.js):**
-- `maxRetries: 2` - Retry failed tests up to 2 times
-- `retryImmediately: true` - Retry immediately
+**Flaky Test Tracking:**
+- Flaky tests are tracked via `tests/utils/flaky-test-tracker.js`
 - Reports generated in `test-results/flaky-tests-report.json`
+- No automatic retries configured - fix flaky tests at the source
 
 **Common Patterns and Fixes:**
 - **Timing**: Use `waitFor()` instead of `setTimeout()`
@@ -413,9 +416,8 @@ const largeDataset = Array.from({ length: 10000 }, () => createPlayer());
 - ✅ **Pass rate**: 100% (no failing tests in main/master)
 - ✅ **Flakiness**: 0% (consistent passes)
 - ✅ **Resource leaks**: 0 (detectOpenHandles catches all)
-- ✅ **Memory leaks**: 0 (detectLeaks catches all)
 - ✅ **Console warnings**: 0 (auto-fail on unexpected output)
-- ✅ **Coverage**: 85% lines, 85% functions, 80% branches
+- ✅ **Coverage thresholds**: 60% lines, 55% functions, 45% branches (enforced in jest.config.js)
 
 ### Anti-Pattern Detection Checklist
 
@@ -423,8 +425,8 @@ const largeDataset = Array.from({ length: 10000 }, () => createPlayer());
 - [ ] No `setTimeout` or fixed delays
 - [ ] All `fireEvent`/`userEvent` wrapped in `act()` or followed by `waitFor()`
 - [ ] All async operations awaited
-- [ ] No `--forceExit`, `--bail`, `--retries` in CI
-- [ ] `detectLeaks: true` and `detectOpenHandles: true` in config
+- [ ] No `--forceExit` in CI (`--bail=1` is acceptable for fast-fail)
+- [ ] `detectOpenHandles: true` in config
 - [ ] Proper cleanup in `beforeEach`/`afterEach`
 - [ ] No suppressed console warnings
 - [ ] Tests pass locally without retries
