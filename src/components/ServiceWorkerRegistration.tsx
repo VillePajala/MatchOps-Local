@@ -131,11 +131,14 @@ export default function ServiceWorkerRegistration() {
     });
 
     // Listen for controller changes
-    let refreshing = false;
+    // SAFETY: Do NOT auto-reload on controllerchange - this can cause data loss
+    // if the user has unsaved work (especially scratch games or debounced auto-saves).
+    // Instead, we just log it. The user can reload manually or via Settings > Check for Updates.
+    // The UpdateBanner already provides a safe UX for applying updates.
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
+      logger.log('[PWA] Service worker controller changed - update will apply on next page load');
+      // Note: The previous behavior was to auto-reload here, which could lose in-progress work.
+      // Now the app continues running with the old code until user chooses to reload.
     });
 
     // Cleanup on unmount
