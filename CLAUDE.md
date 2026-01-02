@@ -223,6 +223,12 @@ When AI adds an `eslint-disable` comment, it should:
 2. If disable is truly necessary, add a detailed comment explaining why
 3. Flag it to the user as tech debt to address later
 
+### Expected AI Behavior
+When touching files listed above, proactively offer:
+> "I notice this file has X eslint-disable directives. While implementing this feature, I can also extract [specific piece] into a separate hook, which would remove Y of those disables. Want me to include that refactoring?"
+
+Make tech debt reduction a natural byproduct of feature work, not a separate project.
+
 ## Testing Rules and Principles
 
 ### Test-First Verification for Deletion/Refactoring Tasks
