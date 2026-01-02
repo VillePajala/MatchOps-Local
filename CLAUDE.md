@@ -97,6 +97,8 @@ The build process includes a custom manifest generation step that runs before Ne
 - Private/incognito mode not supported (IndexedDB disabled/restricted)
 - Automatic migration on first load after upgrade
 
+**Known Limitation - Multi-Tab Usage**: Storage locks (`src/utils/lockManager.ts`, `src/utils/storageKeyLock.ts`) are in-memory only (single tab). Multi-tab scenarios (multiple browser tabs or PWA + web version simultaneously) may experience race conditions. This is acceptable for the typical single-user, single-tab usage pattern. Future enhancement: Consider `BroadcastChannel` or `SharedWorker` for cross-tab coordination if needed.
+
 **Logging**: Centralized system in `src/utils/logger.ts` - Type-safe, environment-aware, replaces direct `console.*` usage.
 
 **Error Monitoring**: Sentry integration for production:
