@@ -1,8 +1,8 @@
 {
-  "version": "4b400e5c",
+  "version": "a8382d38",
   "date": "2026-01-02",
   "notes": {
-    "en": "Revert \"fix: PWA safe-area handling for ControlBar and overlays\"",
-    "fi": "Revert \"fix: PWA safe-area handling for ControlBar and overlays\""
+    "en": "Add safe-area cover element to prevent overlay leak in PWA",
+    "fi": "Add safe-area cover element to prevent overlay leak in PWA"
   }
 }
