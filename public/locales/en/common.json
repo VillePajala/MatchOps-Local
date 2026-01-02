@@ -1519,9 +1519,13 @@
     "december": "December"
   },
   "updateBanner": {
-    "title": "Update Ready",
+    "title": "Update Available",
     "message": "New features and improvements available.",
-    "updateButton": "Update Now",
+    "installButton": "Install Update",
+    "installingButton": "Installing...",
+    "reloadButton": "Reload Now",
+    "readyTitle": "Update Ready",
+    "readyMessage": "Reload the page to apply the update.",
     "dismissButton": "Dismiss"
   },
   "installPrompt": {

@@ -1521,7 +1521,11 @@
   "updateBanner": {
     "title": "Päivitys saatavilla",
     "message": "Uusia ominaisuuksia ja parannuksia.",
-    "updateButton": "Päivitä nyt",
+    "installButton": "Asenna päivitys",
+    "installingButton": "Asennetaan...",
+    "reloadButton": "Lataa uudelleen",
+    "readyTitle": "Päivitys valmis",
+    "readyMessage": "Lataa sivu uudelleen ottaaksesi päivityksen käyttöön.",
     "dismissButton": "Sulje"
   },
   "installPrompt": {
