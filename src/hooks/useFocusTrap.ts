@@ -1,6 +1,25 @@
 'use client';
 
-import { useEffect, RefObject } from 'react';
+import { useEffect, useRef, RefObject } from 'react';
+
+/**
+ * Selector for focusable elements within a modal.
+ *
+ * Covers standard interactive elements. Does NOT include:
+ * - <details>/<summary> (rarely used in modals)
+ * - [contenteditable] (not used in this app's modals)
+ * - <audio>/<video> with controls (not used in modals)
+ *
+ * If these are needed in the future, add them to this selector.
+ */
+const FOCUSABLE_SELECTOR = [
+  'button:not([disabled])',
+  '[href]:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"]):not([disabled])',
+].join(', ');
 
 /**
  * Manages inert state for focus trapping across multiple modals.
@@ -72,6 +91,10 @@ export function useFocusTrap(
   ref: RefObject<HTMLElement | null>,
   isOpen: boolean
 ): void {
+  // Store the listener in a ref to ensure we always remove the exact same function
+  // This prevents potential memory leaks if the effect re-runs mid-transition
+  const listenerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
+
   useEffect(() => {
     if (!isOpen || !ref.current) return;
 
@@ -79,16 +102,7 @@ export function useFocusTrap(
 
     // Find all focusable elements within the modal
     const getFocusableElements = (): HTMLElement[] => {
-      const selector = [
-        'button:not([disabled])',
-        '[href]:not([disabled])',
-        'input:not([disabled]):not([type="hidden"])',
-        'select:not([disabled])',
-        'textarea:not([disabled])',
-        '[tabindex]:not([tabindex="-1"]):not([disabled])',
-      ].join(', ');
-
-      return Array.from(modal.querySelectorAll<HTMLElement>(selector));
+      return Array.from(modal.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -119,6 +133,9 @@ export function useFocusTrap(
       }
     };
 
+    // Store reference for reliable cleanup
+    listenerRef.current = handleKeyDown;
+
     // Apply inert to main app content using the manager
     // This handles reference counting for nested modals
     const appRoot = focusTrapManager.getAppRoot();
@@ -131,7 +148,11 @@ export function useFocusTrap(
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      // Use the stored reference to ensure we remove the exact listener we added
+      if (listenerRef.current) {
+        document.removeEventListener('keydown', listenerRef.current);
+        listenerRef.current = null;
+      }
 
       if (shouldManageInert) {
         focusTrapManager.decrement();
