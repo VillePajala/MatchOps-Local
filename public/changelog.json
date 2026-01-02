@@ -1,8 +1,8 @@
 {
-  "version": "153beaa5",
+  "version": "988fbe21",
   "date": "2026-01-02",
   "notes": {
-    "en": "Save and restore formation snap points",
-    "fi": "Save and restore formation snap points"
+    "en": "Replace broken VERCEL_ENV with feature flag (#258)",
+    "fi": "Replace broken VERCEL_ENV with feature flag (#258)"
   }
 }
