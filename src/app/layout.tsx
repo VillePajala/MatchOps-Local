@@ -20,10 +20,11 @@ const rajdhani = Rajdhani({
 const branch = process.env.VERCEL_GIT_COMMIT_REF || 'development';
 const config = manifestConfig[branch] || manifestConfig.default;
 
-// Analytics configuration - extracted for clarity and build-time optimization
+// Analytics configuration - opt-in only
+// Set NEXT_PUBLIC_ANALYTICS_ENABLED=true in Vercel to enable
 const isProduction = process.env.NODE_ENV === 'production';
 const analyticsEnabled = process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true';
-const shouldLoadAnalytics = isProduction || analyticsEnabled;
+const shouldLoadAnalytics = isProduction && analyticsEnabled;
 
 export const metadata: Metadata = {
   title: config.appName,
