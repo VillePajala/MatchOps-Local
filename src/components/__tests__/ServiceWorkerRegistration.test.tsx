@@ -15,10 +15,24 @@ jest.mock('@/utils/appSettings', () => ({
 }));
 
 // Mock UpdateBanner - capture props for testing
-const mockUpdateBannerProps = { notes: undefined as string | undefined };
+const mockUpdateBannerProps = {
+  notes: undefined as string | undefined,
+  phase: 'available' as string,
+  onInstall: undefined as (() => void) | undefined,
+  onReload: undefined as (() => void) | undefined,
+};
 jest.mock('../UpdateBanner', () => {
-  return function MockUpdateBanner(props: { notes?: string }) {
+  return function MockUpdateBanner(props: {
+    phase: string;
+    onInstall: () => void;
+    onReload: () => void;
+    onDismiss?: () => void;
+    notes?: string;
+  }) {
     mockUpdateBannerProps.notes = props.notes;
+    mockUpdateBannerProps.phase = props.phase;
+    mockUpdateBannerProps.onInstall = props.onInstall;
+    mockUpdateBannerProps.onReload = props.onReload;
     return <div data-testid="update-banner">{props.notes || 'Update Available'}</div>;
   };
 });
@@ -31,6 +45,9 @@ describe('ServiceWorkerRegistration', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockUpdateBannerProps.notes = undefined;
+    mockUpdateBannerProps.phase = 'available';
+    mockUpdateBannerProps.onInstall = undefined;
+    mockUpdateBannerProps.onReload = undefined;
 
     mockServiceWorker = {
       state: 'activated',
@@ -59,6 +76,7 @@ describe('ServiceWorkerRegistration', () => {
         getRegistration: jest.fn().mockResolvedValue(mockRegistration),
         controller: mockServiceWorker,
         addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
       },
       writable: true,
       configurable: true,
