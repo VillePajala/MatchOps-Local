@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
-import { Season, Tournament, Player, Team, Personnel, GameType, Gender } from '@/types';
-import { AppState } from '@/types';
+import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
@@ -57,30 +56,8 @@ export interface GameEvent {
   entityId?: string;
 }
 
-type MutationMetaBase = {
-  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
-  targetId?: string;
-  expectedState?: {
-    seasonId?: string;
-    tournamentId?: string;
-    gameLocation?: string;
-    ageGroup?: string;
-    tournamentLevel?: string;
-    selectedPlayerIds?: string[];
-    gamePersonnel?: string[];
-    gameTime?: string;
-    gameDate?: string;
-    teamName?: string;
-    opponentName?: string;
-    demandFactor?: number;
-    numberOfPeriods?: number;
-    periodDurationMinutes?: number;
-    homeOrAway?: 'home' | 'away';
-  };
-  expectedIsPlayed?: boolean;
-};
-
-type MutationMeta = MutationMetaBase & { sequence: number };
+// Use shared types from @/types
+type MutationMetaBase = Omit<UpdateGameDetailsMutationMeta, 'sequence'>;
 
 export interface GameSettingsModalProps {
   isOpen: boolean;
@@ -170,7 +147,7 @@ export interface GameSettingsModalProps {
   // Removed: isAddingTournament - unused prop, mutations handle loading state internally
   // Add current time for fair play card
   timeElapsedInSeconds?: number;
-  updateGameDetailsMutation: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState>; meta?: MutationMeta }, unknown>;
+  updateGameDetailsMutation: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
   // Fresh data from React Query
   seasons: Season[];
   tournaments: Tournament[];

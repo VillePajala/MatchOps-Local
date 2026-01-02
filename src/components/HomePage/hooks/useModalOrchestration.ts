@@ -29,7 +29,7 @@ import type { UseFieldCoordinationReturn } from './useFieldCoordination';
 import type { UseGamePersistenceReturn } from './useGamePersistence';
 import type { UseTimerManagementReturn } from './useTimerManagement';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
-import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState } from '@/types';
+import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState, UpdateGameDetailsMutationVariables } from '@/types';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 /**
@@ -77,8 +77,7 @@ export interface ModalUIState {
   rosterError: string | null;
   isLoadingGamesList: boolean;
   loadGamesListError: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateGameDetailsMutation: UseMutationResult<AppState | null, Error, any, unknown>;
+  updateGameDetailsMutation: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
   isTeamReassignModalOpen: boolean;
   setIsTeamReassignModalOpen: (open: boolean) => void;
   setSelectedTeamForRoster: (teamId: string | null) => void;

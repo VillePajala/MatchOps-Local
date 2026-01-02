@@ -1,4 +1,4 @@
-import type { GameType, Gender } from './game';
+import type { GameType, Gender, AppState } from './game';
 
 export interface Player {
   id: string;
@@ -248,4 +248,42 @@ export interface PlayerStatAdjustment {
   note?: string; // optional note shown in UI
   createdBy?: string; // optional user identifier
   appliedAt: string; // ISO timestamp
+}
+
+/**
+ * Metadata for game details mutations.
+ * Used for deduplication and race condition handling.
+ */
+export interface UpdateGameDetailsMutationMeta {
+  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+  targetId?: string;
+  expectedState?: {
+    seasonId?: string;
+    tournamentId?: string;
+    gameLocation?: string;
+    ageGroup?: string;
+    tournamentLevel?: string;
+    selectedPlayerIds?: string[];
+    gamePersonnel?: string[];
+    gameTime?: string;
+    gameDate?: string;
+    teamName?: string;
+    opponentName?: string;
+    demandFactor?: number;
+    numberOfPeriods?: number;
+    periodDurationMinutes?: number;
+    homeOrAway?: 'home' | 'away';
+  };
+  expectedIsPlayed?: boolean;
+  sequence: number;
+}
+
+/**
+ * Variables for the updateGameDetails mutation.
+ * Used across useGameOrchestration, useModalOrchestration, ModalManager, and GameSettingsModal.
+ */
+export interface UpdateGameDetailsMutationVariables {
+  gameId: string;
+  updates: Partial<AppState>;
+  meta?: UpdateGameDetailsMutationMeta;
 }

@@ -26,6 +26,7 @@ import type {
   Personnel,
   PlayerAssessment,
   AppState,
+  UpdateGameDetailsMutationVariables,
 } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
@@ -98,8 +99,7 @@ interface ModalManagerData {
   rosterError: string | null;
   loadGameState: LoadGameState;
   seasonTournamentMutations: SeasonTournamentMutations;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, any, unknown>;
+  updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
 }
 
 interface ModalManagerHandlers {
