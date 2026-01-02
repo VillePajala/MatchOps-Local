@@ -1,8 +1,8 @@
 {
-  "version": "ab8605c3",
+  "version": "4b400e5c",
   "date": "2026-01-02",
   "notes": {
-    "en": "FormationPicker mobile positioning and misc improvements",
-    "fi": "FormationPicker mobile positioning and misc improvements"
+    "en": "Revert \"fix: PWA safe-area handling for ControlBar and overlays\"",
+    "fi": "Revert \"fix: PWA safe-area handling for ControlBar and overlays\""
   }
 }

@@ -82,6 +82,15 @@ export function GameContainer({
       <div className={barStyle}>
         <ControlBar {...controlBarProps} />
       </div>
+
+      {/* Safe area bottom cover - fills gap between main container and screen bottom in PWA standalone mode.
+          This prevents overlay content (FormationPicker, TimerOverlay) from leaking through the gap.
+          z-35 puts it above overlays (z-30) but below ControlBar (z-40). */}
+      <div
+        className="fixed bottom-0 inset-x-0 bg-gradient-to-b from-slate-800 to-slate-900 pointer-events-none"
+        style={{ height: 'env(safe-area-inset-bottom, 0px)', zIndex: 35 }}
+        aria-hidden="true"
+      />
     </main>
   );
 }
