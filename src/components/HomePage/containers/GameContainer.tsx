@@ -10,6 +10,8 @@ import { FieldContainer } from './FieldContainer';
 import type { FieldContainerProps } from './FieldContainer';
 
 const barStyle = 'flex-shrink-0 bg-slate-800 border-b border-slate-700';
+// ControlBar wrapper extends background to screen bottom via safe-area padding
+const controlBarWrapperStyle = 'flex-shrink-0 bg-gradient-to-b from-slate-800 to-slate-900 pb-[env(safe-area-inset-bottom,0px)]';
 type ControlBarProps = React.ComponentProps<typeof ControlBar>;
 
 export interface GameContainerProps {
@@ -44,7 +46,7 @@ export function GameContainer({
   const { t } = useTranslation();
 
   return (
-    <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
+    <main className="flex flex-col h-full min-h-[100dvh] bg-slate-900 text-slate-50" data-testid="home-page">
       <div className={barStyle}>
         <ErrorBoundary
           fallback={
@@ -79,7 +81,7 @@ export function GameContainer({
 
       <FieldContainer {...fieldProps} />
 
-      <div className={barStyle}>
+      <div className={controlBarWrapperStyle}>
         <ControlBar {...controlBarProps} />
       </div>
     </main>

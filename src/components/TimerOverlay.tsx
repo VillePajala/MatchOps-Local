@@ -224,7 +224,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
     : `${numberOfPeriods} x ${periodDurationMinutes} min`;
 
   return (
-    <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
+    <div className={`fixed inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
       <div className="w-full max-w-lg flex flex-col items-center mt-2 sm:mt-4 md:mt-6">
         {/* Game Score Display - MOVED TO TOP ABOVE TIMER */}
         <div className="mb-4">
