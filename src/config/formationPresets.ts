@@ -281,13 +281,14 @@ export function getPresetById(id: string): FormationPreset | undefined {
 }
 
 /**
- * Get the recommended field size based on player count
+ * Get the recommended field size based on player count.
+ * Returns the largest formation that can be filled with the available players.
  */
 export function getRecommendedFieldSize(playerCount: number): FieldSize {
-  if (playerCount <= 3) return '3v3';
-  if (playerCount <= 5) return '5v5';
-  if (playerCount <= 8) return '8v8';
-  return '11v11';
+  if (playerCount >= 11) return '11v11';
+  if (playerCount >= 8) return '8v8';
+  if (playerCount >= 5) return '5v5';
+  return '3v3';
 }
 
 /**

@@ -210,38 +210,38 @@ describe('getRecommendedFieldSize', () => {
   });
 
   describe('medium player counts (5v5)', () => {
-    it('returns 5v5 for 4 players', () => {
-      expect(getRecommendedFieldSize(4)).toBe('5v5');
+    it('returns 3v3 for 4 players (not enough for 5v5)', () => {
+      expect(getRecommendedFieldSize(4)).toBe('3v3');
     });
 
     it('returns 5v5 for 5 players', () => {
       expect(getRecommendedFieldSize(5)).toBe('5v5');
     });
+
+    it('returns 5v5 for 6 players (not enough for 8v8)', () => {
+      expect(getRecommendedFieldSize(6)).toBe('5v5');
+    });
+
+    it('returns 5v5 for 7 players (not enough for 8v8)', () => {
+      expect(getRecommendedFieldSize(7)).toBe('5v5');
+    });
   });
 
   describe('larger player counts (8v8)', () => {
-    it('returns 8v8 for 6 players', () => {
-      expect(getRecommendedFieldSize(6)).toBe('8v8');
-    });
-
-    it('returns 8v8 for 7 players', () => {
-      expect(getRecommendedFieldSize(7)).toBe('8v8');
-    });
-
     it('returns 8v8 for 8 players', () => {
       expect(getRecommendedFieldSize(8)).toBe('8v8');
+    });
+
+    it('returns 8v8 for 9 players (not enough for 11v11)', () => {
+      expect(getRecommendedFieldSize(9)).toBe('8v8');
+    });
+
+    it('returns 8v8 for 10 players (not enough for 11v11)', () => {
+      expect(getRecommendedFieldSize(10)).toBe('8v8');
     });
   });
 
   describe('full size (11v11)', () => {
-    it('returns 11v11 for 9 players', () => {
-      expect(getRecommendedFieldSize(9)).toBe('11v11');
-    });
-
-    it('returns 11v11 for 10 players', () => {
-      expect(getRecommendedFieldSize(10)).toBe('11v11');
-    });
-
     it('returns 11v11 for 11 players', () => {
       expect(getRecommendedFieldSize(11)).toBe('11v11');
     });
