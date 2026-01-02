@@ -275,12 +275,14 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   }, [onSelectFormation]);
 
   // Mobile overlay - use portal to escape ControlBar's stacking context
-  // Positioned to end exactly at ControlBar's top edge (bottom-14 = 56px = ControlBar height)
+  // Positioned to end exactly at ControlBar's top edge:
+  // - base height: 3.5rem (56px) (40px button + 8px top padding + 8px bottom padding)
+  // - plus safe-area inset for devices with a bottom inset (iOS home indicator / some PWAs)
   // z-30 keeps it BEHIND ControlBar (z-40) so ControlBar remains visible
   const mobileOverlay = isOpen && isMobile && typeof document !== 'undefined' ? createPortal(
     <div
       ref={dropdownRef}
-      className="fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col bg-slate-800 overflow-hidden"
+      className="fixed inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 flex flex-col bg-slate-800 overflow-hidden"
       role="menu"
       aria-orientation="vertical"
     >

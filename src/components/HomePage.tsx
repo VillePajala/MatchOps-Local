@@ -22,7 +22,7 @@ function HomePage(props: HomePageProps) {
 
   if (isBootstrapping) {
     return (
-      <div className="flex items-center justify-center h-[100dvh] bg-slate-900 text-white">
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-900 text-white">
         <p>{t('status.loadingGameData', 'Loading Game Data...')}</p>
       </div>
     );
@@ -60,4 +60,3 @@ function HomePage(props: HomePageProps) {
 }
 
 export default HomePage;
-

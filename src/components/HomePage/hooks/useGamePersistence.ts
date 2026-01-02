@@ -495,6 +495,11 @@ export function useGamePersistence({
 
     if (gameDataToLoad) {
       try {
+        // Pre-set gameType BEFORE loading full game state to prevent field flash
+        // (field briefly shows soccer before switching to futsal without this)
+        const gameType = gameDataToLoad.gameType ?? 'soccer';
+        dispatchGameSession({ type: 'SET_GAME_TYPE', payload: gameType });
+
         // Dispatch to reducer to load the game state
         await loadGameStateFromData(gameDataToLoad);
 
@@ -521,6 +526,7 @@ export function useGamePersistence({
   }, [
     savedGames,
     setCurrentGameId,
+    dispatchGameSession,
     loadGameStateFromData,
     handleCloseLoadGameModal,
     t,

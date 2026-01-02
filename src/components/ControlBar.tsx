@@ -316,7 +316,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   return (
     <>
       {/* Bottom Bar - Reduced padding from p-4 to p-2 */}
-      <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-xl border-t border-slate-700 backdrop-blur-md flex justify-center items-center gap-2 z-40 overflow-x-auto">
+      <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 pt-2 px-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] shadow-xl border-t border-slate-700 backdrop-blur-md flex justify-center items-center gap-2 z-40 overflow-x-auto">
         {/* Modal background effects for unified feel */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />

@@ -1,8 +1,8 @@
 {
-  "version": "32bd105f",
+  "version": "ab8605c3",
   "date": "2026-01-02",
   "notes": {
-    "en": "Align testing documentation with actual Jest config (#263)",
-    "fi": "Align testing documentation with actual Jest config (#263)"
+    "en": "FormationPicker mobile positioning and misc improvements",
+    "fi": "FormationPicker mobile positioning and misc improvements"
   }
 }
