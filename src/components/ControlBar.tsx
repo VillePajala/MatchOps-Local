@@ -25,6 +25,7 @@ import {
   HiOutlinePlusCircle,
   HiOutlineXMark,
   HiOutlineIdentification,
+  HiOutlineScale,
 } from 'react-icons/hi2';
 import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
@@ -91,6 +92,7 @@ interface ControlBarProps {
   onToggleDrawingMode: () => void;
   // Menu (existing functionality)
   onToggleTrainingResources: () => void;
+  onToggleRulesDirectory: () => void;
   onToggleGameStatsModal: () => void;
   onOpenLoadGameModal: () => void;
   onStartNewGame: () => void;
@@ -130,6 +132,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   isDrawingEnabled,
   onToggleDrawingMode,
   onToggleTrainingResources,
+  onToggleRulesDirectory,
   onToggleGameStatsModal,
   onOpenLoadGameModal,
   onStartNewGame,
@@ -577,6 +580,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             </button>
             <button onClick={wrapModal(onToggleTrainingResources)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineBookOpen className="w-5 h-5 mr-2" />{t('controlBar.training', 'Training')}
+            </button>
+            <button onClick={wrapModal(onToggleRulesDirectory)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+              <HiOutlineScale className="w-5 h-5 mr-2" />{t('controlBar.rulesDirectory', 'Rules')}
             </button>
             <button onClick={wrapModal(onOpenSettingsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineDocumentArrowDown className="w-5 h-5 mr-2" />{t('controlBar.backupRestore', 'Backup & Restore')}

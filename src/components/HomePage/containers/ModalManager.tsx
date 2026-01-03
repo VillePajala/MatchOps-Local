@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
 import TrainingResourcesModal from '@/components/TrainingResourcesModal';
+import RulesDirectoryModal from '@/components/RulesDirectoryModal';
 import InstructionsModal from '@/components/InstructionsModal';
 import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
@@ -53,6 +54,7 @@ interface SeasonTournamentMutations {
 
 interface ModalManagerState {
   isTrainingResourcesOpen: boolean;
+  isRulesDirectoryOpen: boolean;
   isInstructionsModalOpen: boolean;
   isPersonnelManagerOpen: boolean;
   isTeamManagerOpen: boolean;
@@ -104,6 +106,7 @@ interface ModalManagerData {
 
 interface ModalManagerHandlers {
   toggleTrainingResources: () => void;
+  toggleRulesDirectory: () => void;
   toggleInstructionsModal: () => void;
   closePersonnelManager: () => void;
   closeTeamManagerModal: () => void;
@@ -223,6 +226,10 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
         <TrainingResourcesModal
           isOpen={state.isTrainingResourcesOpen}
           onClose={handlers.toggleTrainingResources}
+        />
+        <RulesDirectoryModal
+          isOpen={state.isRulesDirectoryOpen}
+          onClose={handlers.toggleRulesDirectory}
         />
 
         <InstructionsModal

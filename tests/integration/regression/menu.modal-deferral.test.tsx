@@ -52,7 +52,10 @@ describe('Menu → Modal deferral guard', () => {
         onAddOpponentDisc={noop}
         onPlaceAllPlayers={noop}
         selectedPlayerCount={0}
+        isDrawingEnabled={false}
+        onToggleDrawingMode={noop}
         onToggleTrainingResources={noop}
+        onToggleRulesDirectory={noop}
         onToggleGameStatsModal={noop}
         onOpenLoadGameModal={onOpenLoadGameModal}
         onStartNewGame={noop}
@@ -66,8 +69,6 @@ describe('Menu → Modal deferral guard', () => {
         onOpenPlayerAssessmentModal={noop}
         onOpenTeamManagerModal={noop}
         onOpenPersonnelManager={noop}
-        isDrawingEnabled={false}
-        onToggleDrawingMode={noop}
       />
     );
   }
