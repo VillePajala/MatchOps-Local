@@ -720,18 +720,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
             const rosterPlayer = rosterLookup.get(fieldPlayer.id)!;
             // Sync relevant properties from rosterPlayer to fieldPlayer
             // Only update if there's a difference to avoid unnecessary re-renders / history saves
+            // Note: isGoalie is NOT synced - it's per-game field state, not roster metadata.
+            // A player's goalie status can vary per game (e.g., goalie in one game, defender in another).
+            // isGoalie is set by: formation picker, manual toggle, or player movement.
             if (fieldPlayer.name !== rosterPlayer.name ||
                 fieldPlayer.jerseyNumber !== rosterPlayer.jerseyNumber ||
-                fieldPlayer.isGoalie !== rosterPlayer.isGoalie ||
                 fieldPlayer.nickname !== rosterPlayer.nickname ||
                 fieldPlayer.notes !== rosterPlayer.notes
-                // Add any other properties that should be synced
             ) {
               return {
-                ...fieldPlayer, // Keep position (relX, relY)
+                ...fieldPlayer, // Keep position (relX, relY) and isGoalie (per-game state)
                 name: rosterPlayer.name,
                 jerseyNumber: rosterPlayer.jerseyNumber,
-                isGoalie: rosterPlayer.isGoalie,
                 nickname: rosterPlayer.nickname,
                 notes: rosterPlayer.notes,
                 // Ensure other essential Player properties are maintained if not in rosterPlayer directly
