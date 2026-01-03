@@ -1,11 +1,13 @@
 /**
  * Jest configuration for periodic memory leak audits
  *
- * Run with: npm test -- --config jest.config.leaks.js
+ * Run with: npm run test:leaks
+ * Or target specific files: npm run test:leaks -- src/components/MyComponent.test.tsx
  *
  * This config enables detectLeaks for identifying memory leaks.
- * Note: detectLeaks has a high false-positive rate, so it's not enabled
- * in the default config. Use this for periodic audits only.
+ * Note: detectLeaks has a high false-positive rate (31/80 suites flagged
+ * in initial audit), so it's not enabled in the default config.
+ * Use this for periodic audits only.
  *
  * @see https://jestjs.io/docs/cli#--detectleaks
  */
@@ -20,18 +22,9 @@ const leaksConfig = async () => {
     // Enable leak detection
     detectLeaks: true,
 
-    // Run fewer workers to reduce false positives from parallelism
-    maxWorkers: 1,
-
-    // Run tests in serial to make leak detection more reliable
+    // Run tests serially to make leak detection more reliable
+    // and reduce false positives from parallelism
     runInBand: true,
-
-    // Focus on new/critical test files for leak audits
-    // Add patterns here as you fix leaks in each module
-    testPathPatterns: [
-      // Add paths to test files you want to audit for leaks
-      // Example: 'src/components/NewComponent.test.tsx'
-    ],
   };
 };
 

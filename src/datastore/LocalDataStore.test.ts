@@ -1771,11 +1771,11 @@ describe('LocalDataStore', () => {
     });
 
     /**
-     * @integration Tests settings → season creation cache flow
+     * @integration Tests settings-to-season cache flow
      * Verifies that after updating season dates, newly created seasons
-     * use the updated dates for clubSeason calculation.
+     * use the updated dates for clubSeason calculation (no stale cache).
      */
-    describe('Settings → Season Integration', () => {
+    describe('Settings to Season Integration', () => {
       it('should use latest season dates when creating season after settings change', async () => {
         // Step 1: Initial settings with Oct-01 start, May-31 end
         // July 15 is "off-season" (between June 1 and Sep 30)
