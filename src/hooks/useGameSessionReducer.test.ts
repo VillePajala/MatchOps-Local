@@ -382,6 +382,9 @@ describe('gameSessionReducer', () => {
     });
   });
 
+  /**
+   * @critical Timer is essential for game flow
+   */
   describe('SET_TIMER_RUNNING', () => {
     it('should set timer running to true', () => {
       const state = createBaseState({ isTimerRunning: false });
@@ -405,6 +408,9 @@ describe('gameSessionReducer', () => {
   // ============================================
   // Season/Tournament Mutual Exclusivity
   // ============================================
+  /**
+   * @integration Tests mutual exclusivity between season and tournament
+   */
   describe('SET_SEASON_ID', () => {
     it('should set season and clear tournament (mutual exclusivity)', () => {
       const state = createBaseState({ tournamentId: 'tournament-1', seasonId: '' });
@@ -452,6 +458,9 @@ describe('gameSessionReducer', () => {
   // ============================================
   // ADJUST_SCORE_FOR_EVENT
   // ============================================
+  /**
+   * @critical Core scoring logic
+   */
   describe('ADJUST_SCORE_FOR_EVENT', () => {
     describe('when playing at home', () => {
       it('should increment home score for goal add', () => {
@@ -996,6 +1005,9 @@ describe('gameSessionReducer', () => {
   // ============================================
   // Game Events (ADD, UPDATE, DELETE)
   // ============================================
+  /**
+   * @critical Game events are core data (goals, cards, substitutions)
+   */
   describe('ADD_GAME_EVENT', () => {
     it('should add event to gameEvents array', () => {
       const state = createBaseState({ gameEvents: [] });
@@ -1455,6 +1467,9 @@ describe('gameSessionReducer', () => {
       expect(result.subAlertLevel).toBe('none'); // 720 < 840 (warning)
     });
 
+    /**
+     * @edge-case Period boundary handling
+     */
     it('should handle period boundary: loading game at start of second period', () => {
       // Scenario: Second period just started, timer at 15:00 (900s) for a 15-min first period
       // User hasn't confirmed subs yet in this period
@@ -1514,6 +1529,9 @@ describe('gameSessionReducer', () => {
   // ============================================
   // Default case
   // ============================================
+  /**
+   * @edge-case Unknown action types should not crash
+   */
   describe('default case', () => {
     it('should return unchanged state for unknown action type', () => {
       const state = createBaseState();

@@ -737,8 +737,10 @@ describe('PersonnelDetailsModal', () => {
       const saveButton = screen.getByRole('button', { name: /Save/i });
       await user.click(saveButton);
 
-      // Wait for error to be logged
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Wait for error to be logged using waitFor instead of setTimeout
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalled();
+      });
 
       expect(onClose).not.toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
