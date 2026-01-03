@@ -337,28 +337,12 @@ describe('<SettingsModal />', () => {
     });
 
     /**
-     * Tests that the state machine waits for installing worker to reach terminal state
+     * Tests that update check triggers registration.update()
      * @critical
      */
-    test('should wait for installing worker to reach terminal state (installed)', async () => {
-      // Setup: registration has an installing worker
-      const stateChangeCallbackRef: { current: (() => void) | null } = { current: null };
-      const installingWorker = {
-        scriptURL: '/sw.js?v=new',
-        state: 'installing',
-        addEventListener: jest.fn((event: string, callback: () => void) => {
-          if (event === 'statechange') {
-            stateChangeCallbackRef.current = callback;
-          }
-        }),
-        removeEventListener: jest.fn(),
-      };
-      mockRegistration.installing = installingWorker;
-
-      // After update(), simulate the worker becoming installed
-      mockRegistration.update.mockImplementation(async () => {
-        // Installing state continues...
-      });
+    test('should call registration.update() when checking for updates', async () => {
+      mockRegistration.waiting = null;
+      mockRegistration.installing = null;
 
       render(
         <TestWrapper>
@@ -370,50 +354,20 @@ describe('<SettingsModal />', () => {
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
 
-      // Wait for the state change listener to be added
+      // Wait for registration.update() to be called
       await waitFor(() => {
-        expect(installingWorker.addEventListener).toHaveBeenCalledWith(
-          'statechange',
-          expect.any(Function)
-        );
-      });
-
-      // Simulate the worker reaching 'installed' state
-      installingWorker.state = 'installed';
-      mockRegistration.waiting = { scriptURL: '/sw.js?v=new', postMessage: jest.fn() };
-      mockRegistration.installing = null;
-
-      // Trigger the state change callback
-      if (stateChangeCallbackRef.current) {
-        stateChangeCallbackRef.current();
-      }
-
-      // Should eventually show the update confirmation dialog
-      await waitFor(() => {
-        expect(installingWorker.removeEventListener).toHaveBeenCalledWith(
-          'statechange',
-          expect.any(Function)
-        );
+        expect(mockRegistration.update).toHaveBeenCalled();
       });
     });
 
     /**
-     * Tests that redundant (failed) worker state is handled correctly
+     * Tests that button shows loading state during update check
      * @edge-case
      */
-    test('should handle installing worker that becomes redundant', async () => {
-      const stateChangeCallbackRef: { current: (() => void) | null } = { current: null };
-      const installingWorker = {
-        scriptURL: '/sw.js?v=new',
-        state: 'installing',
-        addEventListener: jest.fn((event: string, callback: () => void) => {
-          if (event === 'statechange') {
-            stateChangeCallbackRef.current = callback;
-          }
-        }),
-        removeEventListener: jest.fn(),
-      };
-      mockRegistration.installing = installingWorker;
+    test('should disable button while checking for updates', async () => {
+      // Make update() take time to resolve
+      let resolveUpdate: () => void;
+      mockRegistration.update.mockImplementation(() => new Promise<void>(r => { resolveUpdate = r; }));
 
       render(
         <TestWrapper>
@@ -422,43 +376,34 @@ describe('<SettingsModal />', () => {
       );
 
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+
+      // Button should be enabled initially
+      expect(checkButton).not.toBeDisabled();
+
       fireEvent.click(checkButton);
 
+      // Button should be disabled while checking
       await waitFor(() => {
-        expect(installingWorker.addEventListener).toHaveBeenCalledWith(
-          'statechange',
-          expect.any(Function)
-        );
+        expect(screen.getByRole('button', { name: /Checking/i })).toBeDisabled();
       });
 
-      // Simulate the worker becoming redundant (failure case)
-      installingWorker.state = 'redundant';
-      mockRegistration.installing = null;
+      // Resolve the update promise
+      resolveUpdate!();
 
-      if (stateChangeCallbackRef.current) {
-        stateChangeCallbackRef.current();
-      }
-
-      // Should clean up the listener
+      // Button should be enabled again after check completes
       await waitFor(() => {
-        expect(installingWorker.removeEventListener).toHaveBeenCalledWith(
-          'statechange',
-          expect.any(Function)
-        );
+        expect(screen.getByRole('button', { name: /Check for Updates/i })).not.toBeDisabled();
       });
     });
 
     /**
-     * Tests that handleUpdateConfirmed shows message instead of reloading
-     * @critical - Safety fix to prevent data loss
+     * Tests that check for updates shows up-to-date toast when no update available
+     * @critical - User feedback when app is current
      */
-    test('should show message instead of reloading on update confirm', async () => {
-      // Setup: registration has a waiting worker ready to activate
-      const postMessageMock = jest.fn();
-      mockRegistration.waiting = {
-        scriptURL: '/sw.js?v=new',
-        postMessage: postMessageMock,
-      };
+    test('should show up-to-date toast when no waiting worker exists', async () => {
+      // Setup: no waiting worker (app is up to date)
+      mockRegistration.waiting = null;
+      mockRegistration.installing = null;
 
       render(
         <TestWrapper>
@@ -466,40 +411,27 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      // Click "Check for Updates" to detect the waiting worker
+      // Click "Check for Updates"
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
 
-      // Wait for the confirmation dialog to appear (use heading role for specificity)
+      // Wait for registration.update() to be called
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /Update Available/i })).toBeInTheDocument();
+        expect(mockRegistration.update).toHaveBeenCalled();
       });
 
-      // Click the "Install" button in the confirmation dialog
-      const updateButton = screen.getByRole('button', { name: /Install/i });
-      fireEvent.click(updateButton);
-
-      // Verify postMessage was called with SKIP_WAITING
+      // Should show "up to date" toast (UpdateBanner handles the update UI, not SettingsModal)
       await waitFor(() => {
-        expect(postMessageMock).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+        expect(screen.getByText(/App is up to date/i)).toBeInTheDocument();
       });
-
-      // The confirmation dialog should be closed
-      await waitFor(() => {
-        expect(screen.queryByText(/Update Available/i)).not.toBeInTheDocument();
-      });
-
-      // CRITICAL: The code path in handleUpdateConfirmed does NOT call window.location.reload
-      // This is verified by the code review - if it did call reload, the dialog would not close
-      // because the page would refresh before React state could update
     });
 
     /**
-     * Tests detection of already-waiting worker (skips installing state)
-     * @edge-case
+     * Tests that check for updates does NOT show toast when update is available
+     * @edge-case - UpdateBanner (separate component) handles update UI
      */
-    test('should detect waiting worker immediately without installing phase', async () => {
-      // Setup: registration already has a waiting worker (no installing phase)
+    test('should not show up-to-date toast when waiting worker exists', async () => {
+      // Setup: waiting worker exists (update available)
       mockRegistration.waiting = { scriptURL: '/sw.js?v=new', postMessage: jest.fn() };
       mockRegistration.installing = null;
 
@@ -512,9 +444,15 @@ describe('<SettingsModal />', () => {
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
 
-      // Should show update available since waiting worker exists (use heading role for specificity)
+      // Wait for registration.update() to be called
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /Update Available/i })).toBeInTheDocument();
+        expect(mockRegistration.update).toHaveBeenCalled();
+      });
+
+      // Should NOT show "up to date" toast when update is available
+      // Note: UpdateBanner (a separate component) handles showing the update UI
+      await waitFor(() => {
+        expect(screen.queryByText(/App is up to date/i)).not.toBeInTheDocument();
       });
     });
   });
