@@ -185,7 +185,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const setTacticalDrawings = fieldCoordination.setTacticalDrawings;
   const setTacticalBallPosition = fieldCoordination.setTacticalBallPosition;
   const setFormationSnapPoints = fieldCoordination.setFormationSnapPoints;
-  const updateGoalieStatusByPosition = fieldCoordination.updateGoalieStatusByPosition;
 
   // --- History Orchestration (Undo/Redo) ---
   /**
@@ -991,11 +990,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Update non-reducer states (these will eventually be migrated or handled differently)
     // For fields not yet in gameSessionState but are in GameData, update their local states if needed.
     // This part will shrink as more state moves to the reducer.
-    // Apply goalie status based on position to ensure consistency after load
-    // Note: Using extracted stable setters for proper dependency tracking
+    // Don't apply position-based goalie detection when loading saved games.
+    // Position-based detection is for: (1) formation picker, (2) player movement.
+    // Saved games already have correct isGoalie status stored - preserve it.
     const loadedPlayers = gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []);
-    const playersWithGoalieStatus = updateGoalieStatusByPosition(loadedPlayers);
-    setPlayersOnField(playersWithGoalieStatus);
+    setPlayersOnField(loadedPlayers);
     setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
     setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
     setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
@@ -1060,7 +1059,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setOrphanedGameInfo, dispatchGameSession, setIsPlayed, setAvailablePlayers, resetHistory,
     // Extracted stable setters from fieldCoordination
     setPlayersOnField, setOpponents, setDrawings, setTacticalDiscs,
-    setTacticalDrawings, setTacticalBallPosition, setFormationSnapPoints, updateGoalieStatusByPosition,
+    setTacticalDrawings, setTacticalBallPosition, setFormationSnapPoints,
     // Stable data from hooks (initialGameSessionData from useGameSessionCoordination)
     initialGameSessionData,
     // Data dependencies (used as fallbacks - changes trigger callback recreation)
