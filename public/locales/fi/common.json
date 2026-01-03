@@ -22,6 +22,7 @@
     "appGuide": "Käyttöohjeet",
     "settings": "Asetukset",
     "training": "Lämmittelysuunnitelma",
+    "rulesDirectory": "Säännöt",
     "logGoal": "Kirjaa maali",
     "enterFullscreen": "Siirry koko näyttöön",
     "exitFullscreen": "Poistu koko näytöstä",
@@ -516,6 +517,17 @@
       "point2": "Harjoitteen vaihe 2 variaatioineen",
       "point3": "Valmennuspisteet"
     }
+  },
+  "rulesDirectory": {
+    "title": "Säännöt",
+    "ruleBooks": "Sääntökirjat (PDF)",
+    "soccerRules": "Jalkapallosäännöt 2025",
+    "futsalRules": "Futsalsäännöt 2024-2025",
+    "youthRules": "Kaikki Pelaa (U6-U11)",
+    "allRules": "Kaikki säännöt ja määräykset",
+    "internationalSection": "Kansainväliset",
+    "fifaLaws": "FIFA Laws of the Game",
+    "footer": "Linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto."
   },
   "rosterSettingsModal": {
     "errors": {

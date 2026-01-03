@@ -49,6 +49,7 @@ function ControlBarHarness() {
         isDrawingEnabled={false}
         onToggleDrawingMode={noop}
         onToggleTrainingResources={noop}
+        onToggleRulesDirectory={noop}
         onToggleGameStatsModal={noop}
         onOpenLoadGameModal={() => setIsLoadGameModalOpen(true)}
         onStartNewGame={() => setIsNewGameSetupModalOpen(true)}

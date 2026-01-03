@@ -66,6 +66,7 @@ const createMutation = <T, V>(): UseMutationResult<T, Error, V, unknown> =>
 const createProps = (): ModalManagerProps => ({
   state: {
     isTrainingResourcesOpen: false,
+    isRulesDirectoryOpen: false,
     isInstructionsModalOpen: false,
     isPersonnelManagerOpen: false,
     isTeamManagerOpen: false,
@@ -127,6 +128,7 @@ const createProps = (): ModalManagerProps => ({
   },
   handlers: {
     toggleTrainingResources: noop,
+    toggleRulesDirectory: noop,
     toggleInstructionsModal: noop,
     closePersonnelManager: noop,
     closeTeamManagerModal: noop,

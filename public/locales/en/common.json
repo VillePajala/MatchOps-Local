@@ -22,6 +22,7 @@
     "appGuide": "App Guide",
     "settings": "Settings",
     "training": "Warmup Plan",
+    "rulesDirectory": "Rules",
     "logGoal": "Log Goal",
     "enterFullscreen": "Enter Fullscreen",
     "exitFullscreen": "Exit Fullscreen",
@@ -586,6 +587,17 @@
       "point2": "Drill Step 2 with variations",
       "point3": "Coaching Points"
     }
+  },
+  "rulesDirectory": {
+    "title": "Rules",
+    "ruleBooks": "Rule Books (PDF)",
+    "soccerRules": "Soccer Rules 2025",
+    "futsalRules": "Futsal Rules 2024-2025",
+    "youthRules": "Youth Rules (U6-U11)",
+    "allRules": "All Rules & Regulations",
+    "internationalSection": "International",
+    "fifaLaws": "FIFA Laws of the Game",
+    "footer": "Links open in browser. Rules maintained by Palloliitto."
   },
   "rosterSettingsModal": {
     "errors": {

@@ -289,6 +289,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsSeasonTournamentModalOpen,
     isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
+    isRulesDirectoryOpen,
+    setIsRulesDirectoryOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
@@ -1197,6 +1199,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsTrainingResourcesOpen(!isTrainingResourcesOpen);
   };
 
+  const handleToggleRulesDirectory = () => {
+    setIsRulesDirectoryOpen(!isRulesDirectoryOpen);
+  };
+
   const handleShowAppGuide = () => {
     saveHasSeenAppGuide(false);
     setIsSettingsModalOpen(false);
@@ -2021,6 +2027,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     isDrawingEnabled: fieldCoordination.isDrawingEnabled,
     onToggleDrawingMode: fieldCoordination.handleToggleDrawingMode,
     onToggleTrainingResources: handleToggleTrainingResources,
+    onToggleRulesDirectory: handleToggleRulesDirectory,
     onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev),
     onOpenLoadGameModal: openLoadGameViaReducer,
     onStartNewGame: handleStartNewGame,
