@@ -12,6 +12,8 @@ interface ModalContextValue {
   setIsSeasonTournamentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isTrainingResourcesOpen: boolean;
   setIsTrainingResourcesOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isRulesDirectoryOpen: boolean;
+  setIsRulesDirectoryOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isGoalLogModalOpen: boolean;
   setIsGoalLogModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isGameStatsModalOpen: boolean;
@@ -31,6 +33,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   // Layer 2 (2.1): Wire Load Game modal to reducer; keep API stable
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [isTrainingResourcesOpen, setIsTrainingResourcesOpen] = useState(false);
+  const [isRulesDirectoryOpen, setIsRulesDirectoryOpen] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
   const [isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen] = useState(false);
@@ -173,6 +176,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsSeasonTournamentModalOpen,
     isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
+    isRulesDirectoryOpen,
+    setIsRulesDirectoryOpen,
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
     isGameStatsModalOpen: modalState.gameStats,
