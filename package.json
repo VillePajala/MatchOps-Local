@@ -21,6 +21,7 @@
     "test:all": "npm run test:unit && npm run test:integration",
     "test:ci": "CI=true jest --ci --maxWorkers=1 --testTimeout=8000 --bail=1",
     "test:debug": "jest --runInBand --no-cache --maxWorkers=1 --detectOpenHandles",
+    "test:leaks": "jest --config jest.config.leaks.js --runInBand --maxWorkers=1",
     "coverage:open": "open coverage/lcov-report/index.html",
     "coverage:report": "jest --coverage --silent && npm run coverage:open",
     "type-check": "tsc --noEmit",

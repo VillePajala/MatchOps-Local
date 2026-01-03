@@ -1769,6 +1769,57 @@ describe('LocalDataStore', () => {
         expect(final.hasSeenAppGuide).toBe(true);
       });
     });
+
+    /**
+     * @integration Tests settings → season creation cache flow
+     * Verifies that after updating season dates, newly created seasons
+     * use the updated dates for clubSeason calculation.
+     */
+    describe('Settings → Season Integration', () => {
+      it('should use latest season dates when creating season after settings change', async () => {
+        // Step 1: Initial settings with Oct-01 start, May-31 end
+        // July 15 is "off-season" (between June 1 and Sep 30)
+        const initialSettings: AppSettings = {
+          ...mockSettings,
+          clubSeasonStartDate: '2000-10-01',
+          clubSeasonEndDate: '2000-05-31',
+        };
+
+        // Step 2: Updated settings with Jun-01 start, Aug-31 end (summer season)
+        // Now July 15 is "24" (within Jun-Aug same-year season)
+        const updatedSettings: AppSettings = {
+          ...initialSettings,
+          clubSeasonStartDate: '2000-06-01',
+          clubSeasonEndDate: '2000-08-31',
+        };
+
+        // Mock initial state: settings with Oct-01 start, no seasons
+        // Order: getSeasonDates reads settings FIRST, then loadSeasons reads seasons
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify(initialSettings)) // settings for getSeasonDates
+          .mockResolvedValueOnce(JSON.stringify([])); // seasons for loadSeasons
+
+        // Create season with July-15 date - should be "off-season" with Oct-May season
+        const season1 = await dataStore.createSeason('Summer Games', { startDate: '2024-07-15' });
+        expect(season1.clubSeason).toBe('off-season');
+
+        // Clear mocks and set up for updated settings
+        jest.clearAllMocks();
+
+        // Invalidate cache to simulate settings being updated
+        // In real usage, updateSettings() calls invalidateSettingsCache() automatically
+        dataStore.invalidateSettingsCache();
+
+        // Mock updated state: settings with Jun-01 start (summer season)
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify(updatedSettings)) // settings for getSeasonDates
+          .mockResolvedValueOnce(JSON.stringify([season1])); // seasons for duplicate check
+
+        // Create another season with July-15 date - should now be "2024" with Jun-Aug season
+        const season2 = await dataStore.createSeason('Another Summer Games', { startDate: '2024-07-15' });
+        expect(season2.clubSeason).toBe('2024');
+      });
+    });
   });
 
   // ============================================================
