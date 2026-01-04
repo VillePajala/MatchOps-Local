@@ -49,9 +49,8 @@ describe('RulesDirectoryModal', () => {
     // Verify title is present
     expect(screen.getByText('Säännöt')).toBeInTheDocument();
 
-    // Verify section headers are present
+    // Verify section header is present
     expect(screen.getByText('Palloliitto')).toBeInTheDocument();
-    expect(screen.getByText('Kansainväliset')).toBeInTheDocument();
 
     // Verify footer text is present
     expect(screen.getByText('Linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto.')).toBeInTheDocument();
@@ -78,12 +77,11 @@ describe('RulesDirectoryModal', () => {
   it('should render all rule links correctly', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    // Check all 5 link buttons are present
+    // Check all 4 link buttons are present
     expect(screen.getByText('Jalkapallosäännöt 2025')).toBeInTheDocument();
     expect(screen.getByText('Futsalsäännöt 2025-2026')).toBeInTheDocument();
     expect(screen.getByText('Kaikki Pelaa 2025')).toBeInTheDocument();
     expect(screen.getByText('Kaikki säännöt ja määräykset')).toBeInTheDocument();
-    expect(screen.getByText('FIFA Laws of the Game')).toBeInTheDocument();
   });
 
   /**
@@ -155,35 +153,18 @@ describe('RulesDirectoryModal', () => {
   });
 
   /**
-   * Tests that clicking FIFA Laws link opens correct URL
-   * @integration
-   */
-  it('should call window.open with correct parameters for FIFA Laws', () => {
-    render(<RulesDirectoryModal {...defaultProps} />);
-
-    const fifaLawsButton = screen.getByText('FIFA Laws of the Game').closest('button');
-    fireEvent.click(fifaLawsButton!);
-
-    expect(mockWindowOpen).toHaveBeenCalledWith(
-      'https://www.theifab.com/laws-of-the-game',
-      '_blank',
-      'noopener,noreferrer'
-    );
-  });
-
-  /**
    * Tests that all links use security attributes
    * @edge-case
    */
   it('should use noopener,noreferrer for all external links', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    // Get all link buttons (5 total)
+    // Get all link buttons (4 total)
     const allButtons = screen.getAllByRole('button');
     // Filter to get only link buttons (not the Done button)
     const linkButtons = allButtons.filter(btn => btn.textContent !== 'Done');
 
-    expect(linkButtons).toHaveLength(5);
+    expect(linkButtons).toHaveLength(4);
 
     // Click each link button and verify security params
     linkButtons.forEach(button => {
