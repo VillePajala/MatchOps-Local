@@ -349,7 +349,7 @@ _(Items that have been refactored and resolved)_
 **Resolved**: November 18, 2025
 **Solution**: Extracted into useGameOrchestration, containers, and view-models
 **Result**: HomePage reduced from 3,680 lines → 62 lines (98.3% reduction)
-**Details**: See [REFACTORING_STATUS.md](../03-active-plans/REFACTORING_STATUS.md)
+**Details**: P0 refactoring complete - see archived fix-plans in `docs/08-archived/fix-plans/`
 
 ---
 
@@ -397,5 +397,5 @@ When documenting architectural debt:
 ---
 
 **Document Owner**: Development Team
-**Last Updated**: December 11, 2025
+**Last Updated**: January 4, 2026
 **Next Review**: When modifying assessment/persistence logic or expanding stats filters
