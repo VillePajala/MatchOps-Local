@@ -7,12 +7,11 @@ This repository uses Node.js 20, Next.js 16 and React 19 with TypeScript. Follow
 - Data scale is tiny (hundreds of records). Optimize for responsiveness and reliability, not for enterprise throughput.
 - Never suggest heavy SaaS patterns (RBAC, audit logs, JWT, encryption layers). Focus on PWA resiliency, offline UX, and modal/timer correctness instead.
 
-## Critical Refactoring Status (Updated Jan 21, 2025)
-- ✅ **P0 Complete**: HomePage refactoring (3,725 → 62 lines), useGameOrchestration split into 6 hooks
-- ✅ **P1 Complete**: useAutoSave fix, handleDeleteGameEvent fix, modalManagerProps documentation
-- 🟡 **Remaining**: GameSettingsModal (1,995 lines) deferred, Layer 3 polish (error handling, performance) deferred
-- **Impact**: Critical blockers resolved, development velocity significantly improved (3-5x faster)
-- **Status**: Review `docs/REFACTORING_STATUS.md` and `docs/CRITICAL_FIXES_TRACKER.md` for complete details
+## Project Status (January 2026)
+- ✅ **All refactoring complete**: HomePage (62 lines), 6 extracted hooks, 2,616 tests passing
+- ✅ **Codebase healthy**: Next.js 16.0.10 + React 19.2, 0 security vulnerabilities
+- ✅ **Major features**: Personnel, Game Type, Gender, Tournament Series all shipped
+- **Next**: Play Store release (see `docs/03-active-plans/UNIFIED-ROADMAP.md`)
 
 ## Allowed Scope
 - ✅ **Full speed ahead**: Major features, new game modes, complex functionality all unblocked
@@ -47,12 +46,12 @@ This repository uses Node.js 20, Next.js 16 and React 19 with TypeScript. Follow
 
 ## Code Style
 - Place React components inside `src/` and co-locate tests using the `.test.tsx` or `.test.ts` suffix.
-- Follow the UI conventions in `.docs/STYLE_GUIDE.md`.
+- Follow the UI conventions in `docs/05-development/style-guide.md`.
 - Use two space indentation and semicolons like the existing code.
 
 ## Git Rules
 - Do **not** run `git add`, `git commit`, or `git push` unless the user explicitly requests it. Prepare the work, share the diff, and wait for their instruction.
-- Branches are usually short-lived `micro/...` steps tied to Layer 2 refactors. Keep diffs scoped to a single step and mention the layer/step number in commit messages and PR descriptions.
+- Keep diffs scoped and mention context in commit messages and PR descriptions.
 - Never assume you can merge/push; always wait for explicit approval. Work locally, run the full CI commands, then report status with paths + line references.
 
 ## Pull Requests
@@ -60,4 +59,3 @@ This repository uses Node.js 20, Next.js 16 and React 19 with TypeScript. Follow
 - Include references to relevant documentation or code lines when explaining changes.
 
 For more context on project architecture and commands see `CLAUDE.md` and `README.md`.
-Consult `MANUAL_TESTING.md` for a checklist of key workflows to verify after updates.
