@@ -162,7 +162,7 @@ Our theme combines deep, professional slate backgrounds with subtle gradients an
 All user-facing text must be internationalized using the `react-i18next` library.
 - **Implementation:** Use the `t()` function for all static strings (labels, titles, buttons, placeholders, etc.).
 - **Keys:** Follow a namespaced key structure (e.g., `modalName.component.keyName`) for clarity.
-- **Reference:** For a detailed example and best practices, refer to the `@translation-bugfix.md` document. 
+- **Reference:** Use existing components and translation files as examples. 
 
 ## 12. Implementation Progress
 

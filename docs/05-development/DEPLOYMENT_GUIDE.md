@@ -287,6 +287,36 @@ async headers() {
 
 ---
 
+## MDX Configuration (site/)
+
+The marketing site uses MDX to render markdown documentation as pages.
+
+**Key packages:**
+```bash
+npm install @next/mdx remark-gfm rehype-slug rehype-autolink-headings
+```
+
+**next.config.mjs setup:**
+```js
+import createMDX from '@next/mdx';
+
+const withMDX = createMDX({
+  extension: /\.mdx?$/,
+  options: {
+    remarkPlugins: [require('remark-gfm')],
+    rehypePlugins: [require('rehype-slug'), require('rehype-autolink-headings')],
+  },
+});
+
+const nextConfig = {
+  pageExtensions: ['ts', 'tsx', 'md', 'mdx'],
+};
+
+export default withMDX(nextConfig);
+```
+
+---
+
 ## Support
 
 - **Vercel Docs**: https://vercel.com/docs
