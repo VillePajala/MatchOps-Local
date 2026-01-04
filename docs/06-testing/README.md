@@ -8,6 +8,7 @@ This directory contains testing strategies, guides, and test utilities for Match
 - **[e2e-guide.md](./e2e-guide.md)** - End-to-end testing guide with Playwright
 - **[manual-testing.md](./manual-testing.md)** - Manual testing procedures and checklists
 - **[maintenance.md](./maintenance.md)** - Test maintenance and quality guidelines
+- **[performance-baseline.md](./performance-baseline.md)** - Performance testing baselines and metrics
 
 ## Test Utilities
 
