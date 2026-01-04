@@ -50,8 +50,7 @@ describe('RulesDirectoryModal', () => {
     expect(screen.getByText('Säännöt')).toBeInTheDocument();
 
     // Verify section headers are present
-    expect(screen.getByText('Sääntökirjat (PDF)')).toBeInTheDocument();
-    expect(screen.getByText('Palloliitto.fi')).toBeInTheDocument();
+    expect(screen.getByText('Palloliitto')).toBeInTheDocument();
     expect(screen.getByText('Kansainväliset')).toBeInTheDocument();
 
     // Verify footer text is present
@@ -81,8 +80,8 @@ describe('RulesDirectoryModal', () => {
 
     // Check all 5 link buttons are present
     expect(screen.getByText('Jalkapallosäännöt 2025')).toBeInTheDocument();
-    expect(screen.getByText('Futsalsäännöt 2024-2025')).toBeInTheDocument();
-    expect(screen.getByText('Kaikki Pelaa (U6-U11)')).toBeInTheDocument();
+    expect(screen.getByText('Futsalsäännöt 2025-2026')).toBeInTheDocument();
+    expect(screen.getByText('Kaikki Pelaa 2025')).toBeInTheDocument();
     expect(screen.getByText('Kaikki säännöt ja määräykset')).toBeInTheDocument();
     expect(screen.getByText('FIFA Laws of the Game')).toBeInTheDocument();
   });
@@ -111,11 +110,11 @@ describe('RulesDirectoryModal', () => {
   it('should call window.open with correct parameters for Futsal Rules', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    const futsalRulesButton = screen.getByText('Futsalsäännöt 2024-2025').closest('button');
+    const futsalRulesButton = screen.getByText('Futsalsäännöt 2025-2026').closest('button');
     fireEvent.click(futsalRulesButton!);
 
     expect(mockWindowOpen).toHaveBeenCalledWith(
-      'https://www-assets.palloliitto.fi/62562/1731591861-futsalsaannot-2024-2025-pdf.pdf',
+      'https://www-assets.palloliitto.fi/62562/1760095939-futsalsaannot-2025-2026.pdf',
       '_blank',
       'noopener,noreferrer'
     );
@@ -128,11 +127,11 @@ describe('RulesDirectoryModal', () => {
   it('should call window.open with correct parameters for Youth Rules', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    const youthRulesButton = screen.getByText('Kaikki Pelaa (U6-U11)').closest('button');
+    const youthRulesButton = screen.getByText('Kaikki Pelaa 2025').closest('button');
     fireEvent.click(youthRulesButton!);
 
     expect(mockWindowOpen).toHaveBeenCalledWith(
-      'https://www-assets.palloliitto.fi/62562/1712318638-kaikki-pelaa-saantojen-tiivistelma-2024-jalkapallo.pdf',
+      'https://www-assets.palloliitto.fi/62562/1737814984-1710753804-kaikki-pelaa-ohjelma-2025.pdf',
       '_blank',
       'noopener,noreferrer'
     );
