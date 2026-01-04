@@ -8,13 +8,17 @@ This directory contains guides and resources for developers working on MatchOps-
 - **[style-guide.md](./style-guide.md)** - Code style and conventions
 - **[agents.md](./agents.md)** - AI agent usage guidelines
 
-## Active Work
+## Architecture
 
-- **[todo.md](./todo.md)** - Current development tasks and priorities
+- **[HOMEPAGE_ARCHITECTURE.md](./HOMEPAGE_ARCHITECTURE.md)** - HomePage refactoring (complete)
+- **[ARCHITECTURAL_DEBT.md](./ARCHITECTURAL_DEBT.md)** - Technical debt tracker
+- **[architecture-decisions/](./architecture-decisions/)** - ADR records
 
-## Reference
+## Deployment & Build
 
-- **[production-roadmap.md](./production-roadmap.md)** - Production readiness background and context (see [../03-active-plans/](../03-active-plans/) for current execution plans)
+- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Deployment instructions
+- **[twa-build-guide.md](./twa-build-guide.md)** - TWA (Trusted Web Activity) build guide
+- **[hosting-marketing-and-docs-site.md](./hosting-marketing-and-docs-site.md)** - Hosting setup
 
 ## Quick Start
 
@@ -22,4 +26,4 @@ This directory contains guides and resources for developers working on MatchOps-
 
 **Want to understand code standards?** Read [style-guide.md](./style-guide.md)
 
-**Current tasks?** Check [todo.md](./todo.md)
+**Current tasks?** See [UNIFIED-ROADMAP.md](../03-active-plans/UNIFIED-ROADMAP.md)
