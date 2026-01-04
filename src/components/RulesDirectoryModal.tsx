@@ -90,7 +90,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
-            <div className="bg-slate-900/70 p-4 sm:p-6 rounded-lg border border-slate-700 shadow-inner max-w-lg mx-auto space-y-6">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 space-y-6">
 
               {/* Rule Books Section */}
               <Section icon={HiOutlineDocumentText} title={t('rulesDirectory.ruleBooks', 'Sääntökirjat (PDF)')}>
