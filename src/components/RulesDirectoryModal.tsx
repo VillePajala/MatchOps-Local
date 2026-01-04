@@ -11,7 +11,7 @@ interface RulesDirectoryModalProps {
 }
 
 /**
- * Official rule document links from Palloliitto and IFAB.
+ * Official rule document links from Palloliitto.
  *
  * MAINTENANCE NOTE: PDF URLs contain year-specific identifiers and change annually
  * when new rule editions are published (typically each January/February for the new season).
@@ -27,7 +27,6 @@ const RULE_LINKS = {
   futsalRules: 'https://www-assets.palloliitto.fi/62562/1760095939-futsalsaannot-2025-2026.pdf',
   youthRules: 'https://www-assets.palloliitto.fi/62562/1737814984-1710753804-kaikki-pelaa-ohjelma-2025.pdf',
   palloliitoAll: 'https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet',
-  fifaLaws: 'https://www.theifab.com/laws-of-the-game',
 };
 
 const openLink = (url: string) => {
@@ -105,14 +104,6 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                 <LinkButton
                   url={RULE_LINKS.palloliitoAll}
                   label={t('rulesDirectory.allRules', 'Kaikki säännöt ja määräykset')}
-                />
-              </Section>
-
-              {/* International Section */}
-              <Section title={t('rulesDirectory.internationalSection', 'Kansainväliset')}>
-                <LinkButton
-                  url={RULE_LINKS.fifaLaws}
-                  label={t('rulesDirectory.fifaLaws', 'FIFA Laws of the Game')}
                 />
               </Section>
 

@@ -1,7 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
-import { HiOutlineCamera } from 'react-icons/hi2';
+import { HiOutlineCamera, HiOutlineBookOpen } from 'react-icons/hi2';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
@@ -132,6 +132,7 @@ export interface FieldContainerProps {
   onGuideStepChange?: (step: number) => void;
   onGuideClose: () => void;
   onOpenTeamReassignModal?: () => void;
+  onOpenRulesModal?: () => void;
   onTeamNameChange: (name: string) => void;
   onOpponentNameChange: (name: string) => void;
   interactions: FieldInteractions;
@@ -158,6 +159,7 @@ export function FieldContainer({
   onGuideStepChange,
   onGuideClose,
   onOpenTeamReassignModal,
+  onOpenRulesModal,
   onTeamNameChange,
   onOpponentNameChange,
   interactions,
@@ -311,22 +313,38 @@ export function FieldContainer({
         />
       </ErrorBoundary>
 
-      {/* Export button - visible when there's content to export */}
-      {currentGameId !== DEFAULT_GAME_ID && isExportSupported() && (
-        <button
-          onClick={handleExportField}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleExportField();
-            }
-          }}
-          className="absolute top-4 right-4 z-20 p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-          title={t('export.buttonTitle', 'Export field as image')}
-          aria-label={t('export.buttonTitle', 'Export field as image')}
-        >
-          <HiOutlineCamera className="w-5 h-5" />
-        </button>
+      {/* Field action buttons - visible when there's a real game */}
+      {currentGameId !== DEFAULT_GAME_ID && (
+        <div className="absolute top-4 right-4 z-20 flex gap-2">
+          {/* Rules button */}
+          {onOpenRulesModal && (
+            <button
+              onClick={onOpenRulesModal}
+              className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+              title={t('rulesDirectory.buttonTitle', 'View rules')}
+              aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
+            >
+              <HiOutlineBookOpen className="w-5 h-5" />
+            </button>
+          )}
+          {/* Export button */}
+          {isExportSupported() && (
+            <button
+              onClick={handleExportField}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleExportField();
+                }
+              }}
+              className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+              title={t('export.buttonTitle', 'Export field as image')}
+              aria-label={t('export.buttonTitle', 'Export field as image')}
+            >
+              <HiOutlineCamera className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       )}
 
       {/* First game setup guidance */}
