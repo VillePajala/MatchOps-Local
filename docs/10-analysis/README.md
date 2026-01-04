@@ -4,7 +4,9 @@ This directory contains technical analysis documents and research.
 
 ## Documents
 
-- **[localstorage-usage.md](./localstorage-usage.md)** - localStorage usage analysis and patterns
+*No active analysis documents at this time.*
+
+Historical analysis documents (localStorage usage, bundle analysis) have been moved to `docs/08-archived/` as they are no longer actively maintained.
 
 ## Purpose
 
@@ -13,7 +15,3 @@ Analysis documents provide:
 - **Usage patterns** - How features are implemented
 - **Performance analysis** - Bottleneck identification
 - **Decision support** - Data for technical choices
-
-## Note
-
-This directory will grow as we add more technical analysis documents for various aspects of the system.
