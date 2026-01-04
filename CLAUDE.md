@@ -203,31 +203,37 @@ See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
 - `src/datastore/factory.ts` - Singleton factory for DataStore/AuthService
 - `src/auth/LocalAuthService.ts` - No-op auth service for local mode
 
-## Technical Debt: Refactor When Touching
+## Opportunistic Refactoring Policy
 
-**When modifying these files, proactively suggest incremental refactoring opportunities.**
+**Large files are acceptable when they represent complex features.** Don't refactor for line count alone.
 
-### `src/components/HomePage/hooks/useGameOrchestration.ts` (Issue #266)
-- **Problem:** 2,160 lines, 15 eslint-disable directives (4 are `react-hooks/exhaustive-deps`)
-- **Risk:** Stale closures, split state ownership, hard to test
-- **When touching this file:**
-  1. Look for opportunities to extract focused hooks (like already done: useFieldCoordination, useTimerManagement, etc.)
-  2. If adding new state, consider if it belongs in a new extracted hook instead
-  3. If fixing a bug related to an eslint-disable, fix the root cause rather than adding another disable
-  4. Each PR should ideally remove one eslint-disable, not add any
-- **Extraction candidates:** Initial action processing (~line 480), game loading logic (~line 1050), player-to-field sync (~line 730)
+### When to Extract Components
 
-### General Rule
-When AI adds an `eslint-disable` comment, it should:
+Extract when you're **already touching the file** for a feature:
+- Adding a new tab to GameSettingsModal → extract existing tabs first
+- Adding new entity to LocalDataStore → consider splitting by entity
+- Adding new interaction mode to SoccerField → consider splitting rendering/events
+
+### When NOT to Refactor
+
+- Don't refactor in isolation (no standalone "cleanup" PRs)
+- Don't "fix" eslint-disables that have explanatory comments
+- Don't split working code that has no bugs
+
+### Files with Justified eslint-disables (DO NOT "FIX")
+
+| File | Disables | Reason |
+|------|----------|--------|
+| `useGameOrchestration.ts` | 12 | Hook call order + state/setter split pattern (5 hooks already extracted) |
+| `GameSettingsModal.tsx` | 2 | Ref-guarded effects preventing infinite loops |
+
+These patterns are intentional and documented. "Fixing" them would introduce bugs.
+
+### When Adding New eslint-disables
+
 1. First try to fix the underlying issue
-2. If disable is truly necessary, add a detailed comment explaining why
-3. Flag it to the user as tech debt to address later
-
-### Expected AI Behavior
-When touching files listed above, proactively offer:
-> "I notice this file has X eslint-disable directives. While implementing this feature, I can also extract [specific piece] into a separate hook, which would remove Y of those disables. Want me to include that refactoring?"
-
-Make tech debt reduction a natural byproduct of feature work, not a separate project.
+2. If disable is truly necessary, add a detailed comment explaining WHY
+3. Follow patterns already established in the codebase
 
 ## Testing Rules and Principles
 
