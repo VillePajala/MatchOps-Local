@@ -1,5 +1,7 @@
 # Competitive Analysis: MatchOps-Local in the Soccer Coaching Software Landscape
 
+**Last Updated**: January 4, 2026
+
 **How MatchOps-Local compares to existing solutions and when to choose each approach**
 
 ## Market Overview
