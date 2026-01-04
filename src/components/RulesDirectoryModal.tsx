@@ -3,7 +3,7 @@
 import React from 'react';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineDocumentText, HiOutlineGlobeAlt, HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
+import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 
 interface RulesDirectoryModalProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ const openLink = (url: string) => {
 const LinkButton = ({ url, label }: { url: string; label: string }) => (
   <button
     onClick={() => openLink(url)}
-    className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-700/50 hover:bg-slate-600/70 border border-slate-600/50 rounded-lg text-left transition-colors group"
+    className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-lg text-left transition-all group"
   >
     <span className="text-slate-200 text-sm font-medium">{label}</span>
     <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-400 group-hover:text-slate-200 flex-shrink-0" />
@@ -47,20 +47,15 @@ const LinkButton = ({ url, label }: { url: string; label: string }) => (
 
 // Section component
 const Section = ({
-  icon: Icon,
   title,
   children
 }: {
-  icon: React.ComponentType<{ className?: string }>;
   title: string;
   children: React.ReactNode;
 }) => (
   <div className="space-y-3">
-    <div className="flex items-center gap-2">
-      <Icon className="w-5 h-5 text-yellow-400" />
-      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">{title}</h3>
-    </div>
-    <div className="space-y-2 pl-7">
+    <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
+    <div className="space-y-2">
       {children}
     </div>
   </div>
@@ -93,7 +88,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 space-y-6">
 
               {/* Rule Books Section */}
-              <Section icon={HiOutlineDocumentText} title={t('rulesDirectory.ruleBooks', 'Sääntökirjat (PDF)')}>
+              <Section title={t('rulesDirectory.ruleBooks', 'Sääntökirjat (PDF)')}>
                 <LinkButton
                   url={RULE_LINKS.soccerRules}
                   label={t('rulesDirectory.soccerRules', 'Jalkapallosäännöt 2025')}
@@ -109,7 +104,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
               </Section>
 
               {/* Palloliitto Section */}
-              <Section icon={HiOutlineGlobeAlt} title="Palloliitto.fi">
+              <Section title="Palloliitto.fi">
                 <LinkButton
                   url={RULE_LINKS.palloliitoAll}
                   label={t('rulesDirectory.allRules', 'Kaikki säännöt ja määräykset')}
@@ -117,7 +112,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
               </Section>
 
               {/* International Section */}
-              <Section icon={HiOutlineGlobeAlt} title={t('rulesDirectory.internationalSection', 'Kansainväliset')}>
+              <Section title={t('rulesDirectory.internationalSection', 'Kansainväliset')}>
                 <LinkButton
                   url={RULE_LINKS.fifaLaws}
                   label={t('rulesDirectory.fifaLaws', 'FIFA Laws of the Game')}
