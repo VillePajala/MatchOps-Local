@@ -64,6 +64,7 @@ This directory contains completed work, superseded plans, and historical documen
 #### Outdated Development Plans
 - **contrast-improvement-plan.md** - UI contrast improvements (never implemented, no branch exists)
 - **production-roadmap.md** - Production readiness checklist (all items complete: Sentry, 0 vulnerabilities)
+- **todo.md** - Project TODO list (superseded by UNIFIED-ROADMAP.md backlog section)
 
 #### Historical Analysis
 - **localstorage-usage.md** - localStorage audit (IndexedDB migration complete)
