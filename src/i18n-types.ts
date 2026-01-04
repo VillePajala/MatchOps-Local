@@ -1195,7 +1195,6 @@ export type TranslationKey =
   | 'rulesDirectory.footer'
   | 'rulesDirectory.futsalRules'
   | 'rulesDirectory.internationalSection'
-  | 'rulesDirectory.ruleBooks'
   | 'rulesDirectory.soccerRules'
   | 'rulesDirectory.title'
   | 'rulesDirectory.youthRules'
