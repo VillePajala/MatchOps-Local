@@ -61,6 +61,10 @@ This directory contains completed work, superseded plans, and historical documen
   - TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md - Elite/Kilpa/Haaste + 34 leagues ✅
   - FIX-BLANK-SCREEN-ON-RESUME.md - useAppResume hook implemented ✅
 
+#### Outdated Development Plans
+- **contrast-improvement-plan.md** - UI contrast improvements (never implemented, no branch exists)
+- **production-roadmap.md** - Production readiness checklist (all items complete: Sentry, 0 vulnerabilities)
+
 #### Historical Analysis
 - **localstorage-usage.md** - localStorage audit (IndexedDB migration complete)
 - **DEVELOPMENT-EFFORT-ANALYSIS.md** - Early planning estimates
