@@ -43,7 +43,40 @@ This directory contains completed work, superseded plans, and historical documen
 - **security-advisories.md** - Security advisory history
 - **test-fixes.md** - Test fix history
 
-### 📅 Recently Archived (October 2025)
+### 📅 Recently Archived (January 2026)
+
+#### Completed Refactoring & Technical Debt (P0/P1/P2 Complete)
+- **[fix-plans/](./fix-plans/)** - All P0/P1/P2 refactoring plans (COMPLETED Dec 2025)
+  - P0-HomePage-Refactoring-Plan.md - HomePage reduced 3,725 → 62 lines ✅
+  - P1-GameSettingsModal-Refactoring-Plan.md - Deferred (low priority)
+  - P2-Error-Handling-Improvements.md, P2-Modal-State-Management-Fix.md, P2-Performance-Optimization-Plan.md
+- **CRITICAL_FIXES_REQUIRED.md** - Technical debt analysis (all fixes complete)
+- **CRITICAL_FIXES_TRACKER.md** - Progress tracker (100% complete)
+- **PROJECT_STATUS_SUMMARY.md** - Status summary (superseded by UNIFIED-ROADMAP.md)
+- **TECH_DEBT_REDUCTION_PLAN.md** - 5-phase plan (NOT ADOPTED - incremental approach used)
+- **QUICK_FIX_REFERENCE.md** - Quick fix patterns for completed work
+
+#### Completed Active Plans
+- **[active-plans-completed/](./active-plans-completed/)** - Features shipped Dec 2025
+  - TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md - Elite/Kilpa/Haaste + 34 leagues ✅
+  - FIX-BLANK-SCREEN-ON-RESUME.md - useAppResume hook implemented ✅
+
+#### Historical Analysis
+- **localstorage-usage.md** - localStorage audit (IndexedDB migration complete)
+- **DEVELOPMENT-EFFORT-ANALYSIS.md** - Early planning estimates
+- **DOCUMENTATION_UPDATES_2025-11-07.md** - Nov 2025 doc sync changelog
+
+#### Code Reviews (2025)
+- **[reviews/](./reviews/)** - Historical code reviews moved here
+  - code-review-2025-10-16.md, code-review-2025-10-30-*.md
+  - app-quality-assessment-2025-11-07.md
+  - comprehensive-documentation-review-2025-11-07.md
+  - personnel-feature-*.md (feature complete)
+  - pr-56-*.md (PR merged)
+
+---
+
+### 📅 Previously Archived (October 2025)
 
 #### Bug Fixes & Investigations
 - **BUG_FIX_SUMMARY.md** - LoadGameModal score update bug fix (commit 6ed75d6)
@@ -76,5 +109,5 @@ This directory contains completed work, superseded plans, and historical documen
 ## Current Active Plans
 
 For current execution plans and status, see:
-- **[../03-active-plans/master-execution-guide.md](../03-active-plans/master-execution-guide.md)** ⭐ START HERE
-- **[../03-active-plans/project-status.md](../03-active-plans/project-status.md)** - Current status
+- **[../03-active-plans/UNIFIED-ROADMAP.md](../03-active-plans/UNIFIED-ROADMAP.md)** ⭐ Single source of truth
+- **[../03-active-plans/master-execution-guide.md](../03-active-plans/master-execution-guide.md)** - Play Store release plan
