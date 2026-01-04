@@ -8,7 +8,7 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 ## ✅ Project Status: Production Ready
 
-**Last Updated**: December 16, 2025
+**Last Updated**: January 4, 2026
 
 | Category | Status |
 |----------|--------|
@@ -64,7 +64,7 @@ All P0/P1/P2 refactoring work is **complete**. The codebase is healthy and ready
    - Software requirements, UI design documents
 
 10. **[10-analysis/](./10-analysis/)** - Technical Analysis
-    - localStorage analysis and other technical research
+    - Technical research and analysis documents (historical analyses moved to archive)
 
 11. **[assets/](./assets/)** - Documentation Assets
     - Screenshots and images
@@ -153,7 +153,7 @@ In youth sports, where we handle sensitive information about minors, the local-f
 ### **Want to Provide Feedback?**
 1. Review [05-development/contributing.md](./05-development/contributing.md) - IP transfer terms for contributions
 2. Follow [05-development/style-guide.md](./05-development/style-guide.md) - Code standards
-3. Review [03-active-plans/project-status.md](./03-active-plans/project-status.md) - Current status
+3. Review [03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md) - Current status
 
 ### **Want Technical Details?**
 1. Review [02-technical/architecture.md](./02-technical/architecture.md) - System design
@@ -161,8 +161,8 @@ In youth sports, where we handle sensitive information about minors, the local-f
 3. Explore [04-features/](./04-features/) - Feature specifications
 
 ### **Planning Work?**
-1. Check [03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md) ⭐ - Execution plan
-2. Review [03-active-plans/roadmap.md](./03-active-plans/roadmap.md) - Future direction
+1. Check [03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md) ⭐ - Single source of truth
+2. Review [03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md) - Play Store release plan
 3. See [05-development/todo.md](./05-development/todo.md) - Current tasks
 
 ## 🔄 Documentation Maintenance
