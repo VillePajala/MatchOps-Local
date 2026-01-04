@@ -24,8 +24,8 @@ interface RulesDirectoryModalProps {
  */
 const RULE_LINKS = {
   soccerRules: 'https://www-assets.palloliitto.fi/62562/1739435685-jalkapallosaannot-2025.pdf',
-  futsalRules: 'https://www-assets.palloliitto.fi/62562/1731591861-futsalsaannot-2024-2025-pdf.pdf',
-  youthRules: 'https://www-assets.palloliitto.fi/62562/1712318638-kaikki-pelaa-saantojen-tiivistelma-2024-jalkapallo.pdf',
+  futsalRules: 'https://www-assets.palloliitto.fi/62562/1760095939-futsalsaannot-2025-2026.pdf',
+  youthRules: 'https://www-assets.palloliitto.fi/62562/1737814984-1710753804-kaikki-pelaa-ohjelma-2025.pdf',
   palloliitoAll: 'https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet',
   fifaLaws: 'https://www.theifab.com/laws-of-the-game',
 };
@@ -87,24 +87,20 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
           <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 space-y-6">
 
-              {/* Rule Books Section */}
-              <Section title={t('rulesDirectory.ruleBooks', 'Sääntökirjat (PDF)')}>
+              {/* Palloliitto Section */}
+              <Section title="Palloliitto">
                 <LinkButton
                   url={RULE_LINKS.soccerRules}
                   label={t('rulesDirectory.soccerRules', 'Jalkapallosäännöt 2025')}
                 />
                 <LinkButton
                   url={RULE_LINKS.futsalRules}
-                  label={t('rulesDirectory.futsalRules', 'Futsalsäännöt 2024-2025')}
+                  label={t('rulesDirectory.futsalRules', 'Futsalsäännöt 2025-2026')}
                 />
                 <LinkButton
                   url={RULE_LINKS.youthRules}
-                  label={t('rulesDirectory.youthRules', 'Kaikki Pelaa (U6-U11)')}
+                  label={t('rulesDirectory.youthRules', 'Kaikki Pelaa 2025')}
                 />
-              </Section>
-
-              {/* Palloliitto Section */}
-              <Section title="Palloliitto.fi">
                 <LinkButton
                   url={RULE_LINKS.palloliitoAll}
                   label={t('rulesDirectory.allRules', 'Kaikki säännöt ja määräykset')}
