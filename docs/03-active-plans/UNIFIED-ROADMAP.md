@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: December 19, 2025
+**Last Updated**: January 4, 2026
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
 
@@ -455,6 +455,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 | Season League area/age filtering | 1 week | See Priority 5 above |
 | **Game Autosave** | Low-Medium | Auto-save game on: switch games, goals, period ends. Prevents timer/score loss when switching between games without manual Quick Save. |
 | **External Game Cards styling** | Low | PlayerStatsView external game cards need further polish to fully match saved games cards style |
+| Core Accessibility | Medium | Color contrast, touch targets, keyboard nav, screen reader support |
 
 ### ⚽ Future Features
 | Item | Effort | Doc |
@@ -463,6 +464,11 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 | Tactics Field Variations (half/quarter field) | Medium | `docs/04-features/tactics-field-variations.md` |
 | Futsal Field Visualization | Medium | Different court, 5 players default |
 | Configurable Formations | Low | TODO in useFieldCoordination.ts |
+| Tactics Board Animation | High | Recording mode, playback controls, animation save/load |
+| Enhanced Drawing Tools | Medium | Ball marker, arrows/shapes, multiple colors |
+| Formation Management | Medium | Quick-access templates, formation save/load |
+| Visual Analytics | Medium | Bar charts, event timeline, goal log filtering |
+| Additional Languages | Medium | Beyond EN/FI (contribution guide needed) |
 
 ### 🔧 Quick Fixes (Post-Backend Abstraction)
 | Item | Effort | Notes |
@@ -483,6 +489,8 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 | Service Worker integration tests | GitHub issue #115 |
 | jest-axe type definitions | Cleaner accessibility test code |
 | Cross-platform bundle analysis | Currently Linux-specific |
+| Integration tests | Full game creation workflow, save/load, player management, statistics |
+| TimerOverlay accuracy test | Component test for timer display accuracy |
 
 ### 🐛 Known Code TODOs
 | Location | Description |
@@ -516,6 +524,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2026-01-04 | 📋 **Consolidated todo.md** - Merged unique backlog items (tactics animation, drawing tools, formation management, visual analytics, accessibility, additional languages, integration tests) into BACKLOG section. Archived todo.md |
 | 2025-12-19 | ✅ **Backend Abstraction Phase 1-3 COMPLETE** - All 8 PRs merged to feature/backend-abstraction. PR #137 created to merge to master. Includes DataStore interface, LocalDataStore (2,700+ tests), LocalAuthService, factory pattern |
 | 2025-12-18 | ✅ **Backend Abstraction Phase 1 COMPLETE** - PRs #1-3 merged (timerStateManager, appSettings extension). Starting Phase 2 (DataStore interface) |
 | 2025-12-17 | 📋 **Roadmap cleanup** - Corrected P4B status (already merged to master, not on separate branch) |
