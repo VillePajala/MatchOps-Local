@@ -10,7 +10,18 @@ interface RulesDirectoryModalProps {
   onClose: () => void;
 }
 
-// Rule links configuration
+/**
+ * Official rule document links from Palloliitto and IFAB.
+ *
+ * MAINTENANCE NOTE: PDF URLs contain year-specific identifiers and change annually
+ * when new rule editions are published (typically each January/February for the new season).
+ * Update these links when Palloliitto releases new rule documents.
+ *
+ * To verify links: Visit https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet
+ * and update the PDF URLs from the "Lajisäännöt" section.
+ *
+ * @see https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet - Main rules page (stable URL)
+ */
 const RULE_LINKS = {
   soccerRules: 'https://www-assets.palloliitto.fi/62562/1739435685-jalkapallosaannot-2025.pdf',
   futsalRules: 'https://www-assets.palloliitto.fi/62562/1731591861-futsalsaannot-2024-2025-pdf.pdf',
