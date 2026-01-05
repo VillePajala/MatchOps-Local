@@ -8,7 +8,7 @@ This repository uses Node.js 20, Next.js 16 and React 19 with TypeScript. Follow
 - Never suggest heavy SaaS patterns (RBAC, audit logs, JWT, encryption layers). Focus on PWA resiliency, offline UX, and modal/timer correctness instead.
 
 ## Project Status (January 2026)
-- ✅ **All refactoring complete**: HomePage (62 lines), 6 extracted hooks, 2,616 tests passing
+- ✅ **All refactoring complete**: HomePage (62 lines), 9 extracted hooks, 3,203 tests passing
 - ✅ **Codebase healthy**: Next.js 16.0.10 + React 19.2, 0 security vulnerabilities
 - ✅ **Major features**: Personnel, Game Type, Gender, Tournament Series all shipped
 - **Next**: Play Store release (see `docs/03-active-plans/UNIFIED-ROADMAP.md`)

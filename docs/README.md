@@ -8,22 +8,31 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 ## ✅ Project Status: Production Ready
 
-**Last Updated**: January 4, 2026
+**Last Updated**: January 5, 2026
 
 | Category | Status |
 |----------|--------|
-| Codebase Health | ✅ Excellent (2,616 tests, 62-line HomePage, 6 extracted hooks) |
+| Codebase Health | ✅ Excellent (3,203 tests, 62-line HomePage, 9 extracted hooks) |
 | Security | ✅ 0 vulnerabilities |
-| Framework | ✅ **Next.js 16.0.7 + React 19.2** |
+| Framework | ✅ **Next.js 16.0.10 + React 19.2** |
 | Performance | ✅ React.memo optimization complete |
 
 All P0/P1/P2 refactoring work is **complete**. The codebase is healthy and ready for feature development.
 
 ---
 
+## 📱 User Documentation
+
+**New to MatchOps? Start here:**
+
+- **[QUICK_START.md](./QUICK_START.md)** - Get running in 5 minutes
+- **[USER_MANUAL.md](./USER_MANUAL.md)** - Complete user guide with all features
+
+---
+
 ## 🚀 Quick Navigation
 
-### ⭐ **Start Here**
+### ⭐ **Start Here** (For Developers)
 - **[03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md)** - 📊 **Single source of truth** for all project work
 - **[03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md)** - Play Store release plan
 - **[01-project/overview.md](./01-project/overview.md)** - What MatchOps-Local is and why it exists
@@ -116,7 +125,7 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 ## 🏗️ Technical Excellence
 
 ### **Modern Technology Stack**
-- **Next.js 16.0.7** with App Router for cutting-edge performance
+- **Next.js 16.0.10** with App Router for cutting-edge performance
 - **React 19.2** with TypeScript for reliability and maintainability
 - **React Query** + **Storage Abstraction** for local-first data management
   - ✅ Current backend: IndexedDB with automatic localStorage migration (production-ready)
