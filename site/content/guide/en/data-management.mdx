@@ -1,0 +1,185 @@
+---
+title: Data Management
+description: Backup, export, restore, and manage your MatchOps data
+lastUpdated: "2025-01-05"
+---
+
+Your data in MatchOps Local is stored locally on your device. This guide covers how to protect and manage your valuable match data.
+
+## How Data is Stored
+
+### Local Storage
+
+MatchOps Local uses IndexedDB, a browser database that:
+
+- Stores data directly on your device
+- Works offline
+- Persists across sessions
+- Has no cloud backup by default
+
+<Callout type="warning">
+Your data exists only on your device. If you uninstall the app, clear browser data, or lose your device, the data is gone unless you've backed it up.
+</Callout>
+
+### What's Stored
+
+Your local database contains:
+
+- Player roster and assessments
+- All games and events
+- Seasons and tournaments
+- Teams and personnel
+- User preferences and settings
+
+## Backup
+
+### Creating a Backup
+
+<Steps>
+<Step title="Go to Settings">
+Open the app settings menu.
+</Step>
+
+<Step title="Find Data Management">
+Navigate to the data/backup section.
+</Step>
+
+<Step title="Select Export All">
+Choose to export all your data.
+</Step>
+
+<Step title="Save the File">
+Save the backup file to a secure location.
+</Step>
+</Steps>
+
+### Backup File Format
+
+Backups are saved as JSON files containing:
+
+- All roster data
+- Complete game history
+- Season/tournament information
+- App settings
+
+### Backup Best Practices
+
+1. **Regular backups** - Weekly or after important games
+2. **Multiple locations** - Save to cloud storage (Google Drive, iCloud, Dropbox)
+3. **Before updates** - Backup before app or device updates
+4. **Before device changes** - Essential when switching devices
+
+## Restore
+
+### Restoring from Backup
+
+<Steps>
+<Step title="Access Data Settings">
+Go to Settings > Data Management.
+</Step>
+
+<Step title="Select Import">
+Choose the import/restore option.
+</Step>
+
+<Step title="Select Backup File">
+Navigate to your saved backup file.
+</Step>
+
+<Step title="Confirm">
+Review and confirm the restore operation.
+</Step>
+</Steps>
+
+<Callout type="warning">
+Restoring from backup will replace your current data. Make sure to backup current data first if needed.
+</Callout>
+
+### Transfer to New Device
+
+To move data to a new device:
+
+1. Create a full backup on old device
+2. Transfer backup file to new device (email, cloud, etc.)
+3. Install MatchOps Local on new device
+4. Restore from backup
+
+## Export Options
+
+### Excel Export
+
+Export data to Excel for:
+
+- Detailed analysis
+- Sharing with others
+- External reporting
+- Creating custom reports
+
+### What Can Be Exported
+
+- **Single Game** - One game's complete data
+- **Season Data** - All games in a season
+- **Full Database** - Everything in JSON format
+- **Player Stats** - Cumulative statistics
+
+## Data Privacy
+
+### Your Data Stays Local
+
+MatchOps Local is designed for privacy:
+
+- No account required
+- No cloud sync
+- No tracking or analytics
+- Data never leaves your device automatically
+
+### Sharing Data
+
+When you export, you control who receives it. Consider:
+
+- Only share what's necessary
+- Use secure transfer methods
+- Delete exports after sharing
+
+## Storage Management
+
+### Checking Storage
+
+View your storage usage:
+
+- Total data size
+- Number of games stored
+- Player roster size
+
+### Clearing Data
+
+If you need to clear data:
+
+- **Clear old seasons** - Remove completed, archived seasons
+- **Delete old games** - Remove individual games
+- **Full reset** - Clear all data (use with caution)
+
+<Callout type="tip">
+Archive rather than delete when possible. Storage space is rarely a limiting factor.
+</Callout>
+
+## Troubleshooting Data Issues
+
+### Data Not Saving
+
+If data isn't persisting:
+
+1. Check that you're not in private/incognito mode
+2. Ensure browser allows storage
+3. Try restarting the app
+4. Check available device storage
+
+### Corrupted Data
+
+If data appears corrupted:
+
+1. Try refreshing the app
+2. Restore from a recent backup
+3. Export working data before any fixes
+
+See [Troubleshooting](/guide/troubleshooting) for more help.

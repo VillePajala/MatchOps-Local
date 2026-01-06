@@ -1,0 +1,182 @@
+---
+title: Vianetsintä
+description: Yleiset ongelmat ja ratkaisut MatchOps Localille
+lastUpdated: "2025-01-05"
+---
+
+Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOps Localin kanssa.
+
+## Asennusongelmat
+
+### PWA:ta ei voi asentaa
+
+**Ongelma**: "Lisää aloitusnäytölle" tai asennusvaihtoehto ei näy.
+
+**Ratkaisut**:
+- Käytä tuettua selainta (Chrome, Safari, Edge)
+- Avaa sovellus suoraan (ei toisen sovelluksen linkin kautta)
+- Tarkista, että HTTPS on käytössä
+- Yksityis-/incognito-tila ei tue PWA-asennusta
+
+<Callout type="info">
+PWA-asennus vaatii HTTPS:n ja tiettyjä selainominaisuuksia. Joillakin iOS-selaimilla on rajoituksia.
+</Callout>
+
+### Sovellus ei lataudu
+
+**Ongelma**: Sovellus näyttää tyhjän ruudun tai latauspyörän.
+
+**Ratkaisut**:
+1. Tyhjennä selaimen välimuisti ja lataa uudelleen
+2. Tarkista nettiyhteys (ensimmäisellä latauksella)
+3. Kokeile toista selainta
+4. Poista selainlaajennukset väliaikaisesti käytöstä
+
+## Data-ongelmat
+
+### Data ei tallennu
+
+**Ongelma**: Muutokset eivät säily istuntojen välillä.
+
+**Ratkaisut**:
+- Varmista, ettet ole yksityis-/incognito-tilassa
+- Tarkista selaimen tallennusoikeudet
+- Varmista, että tallennustilaa on riittävästi
+- Kokeile manuaalista tallennusta ennen sulkemista
+
+### Kadonnut data
+
+**Ongelma**: Aiemmat pelit tai pelaajat ovat kadonneet.
+
+**Syyt**:
+- Selaimen tiedot tyhjennettiin
+- Incognito-tila käytössä
+- Eri selain/laite kuin aiemmin
+- Sovelluksen poisto
+
+**Palautus**:
+- Palauta varmuuskopiosta jos saatavilla
+- Tarkista, oletko oikeassa selaimessa/laitteessa
+- Ota yhteyttä tukeen jos datan pitäisi olla olemassa
+
+### Tuonti/vienti ei toimi
+
+**Ongelma**: Varmuuskopiota ei voi tuoda tai dataa viedä.
+
+**Ratkaisut**:
+- Tarkista tiedostomuoto (JSON varmuuskopioille, xlsx Excelille)
+- Varmista, ettei tiedosto ole vioittunut
+- Kokeile pienempää dataosaa
+- Käytä toista selainta
+
+## Suorituskykyongelmat
+
+### Sovellus toimii hitaasti
+
+**Ongelma**: Sovellus on hidas tai ei vastaa.
+
+**Ratkaisut**:
+1. Sulje muut selaimen välilehdet
+2. Käynnistä sovellus uudelleen
+3. Tyhjennä selaimen välimuisti
+4. Vähennä tallennettua dataa (arkistoi vanhat kaudet)
+
+### Ajastin ei ole tarkka
+
+**Ongelma**: Peliajastin tuntuu väärältä.
+
+**Syyt**:
+- Laite oli lepotilassa
+- Välilehti oli taustalla
+- Selain hidasti välilehteä
+
+**Ratkaisut**:
+- Pidä sovellus etualalla pelien aikana
+- Ota wake lock -ominaisuus käyttöön
+- Älä vaihda sovelluksia aktiivisen ajanottajan aikana
+
+## Näyttöongelmat
+
+### Näytön suuntaongelmat
+
+**Ongelma**: Asettelu näyttää väärältä pysty-/vaakasuunnassa.
+
+**Ratkaisut**:
+- Lukitse laitteen suunta mieltymyksesi mukaan
+- Käytä sovellusta suositellussa suunnassa (vaaka tabletilla, pysty puhelimella)
+- Päivitä sivu kääntämisen jälkeen
+
+### Elementit puuttuvat tai leikkautuvat
+
+**Ongelma**: Kaikkia käyttöliittymäelementtejä ei näe.
+
+**Ratkaisut**:
+- Tarkista selaimen zoomaustaso (tulisi olla 100%)
+- Kokeile kokonäyttötilaa
+- Päivitä selaimesi
+- Tarkista laitteen näyttökoon yhteensopivuus
+
+## Yhteysongelmia
+
+### Offline-tila ei toimi
+
+**Ongelma**: Sovellus ei toimi ilman nettiä.
+
+**Ratkaisut**:
+- Varmista, että olet ladannut sovelluksen kerran kokonaan nettiyhteydellä
+- Service worker tarvitsee välimuistiin resurssit ensin
+- Tarkista, tukeeko selain service workereita
+- Kokeile PWA:n uudelleenasennusta
+
+<Callout type="tip">
+Ensimmäisen latauksen jälkeen sovelluksen pitäisi toimia offline. Testaa laittamalla lentokonetila päälle ja avaamalla uudelleen.
+</Callout>
+
+## Laitekohtaiset ongelmat
+
+### iOS Safari -ongelmat
+
+Yleisiä ongelmia:
+- Tallennustilan rajoitukset PWA-tilassa
+- Wake lock ei välttämättä toimi
+- Jotkut eleet ristiriidassa Safarin kanssa
+
+**Ratkaisut**:
+- Lisää aloitusnäytölle parempaan kokemukseen
+- Pidä sovellus aktiivisena pelien aikana
+- Käytä Chromea iOS:ssä vaihtoehtona
+
+### Android Chrome
+
+Yleisiä ongelmia:
+- Taustarajoitukset voivat pysäyttää ajastimen
+- Tallennusoikeusikkunat
+
+**Ratkaisut**:
+- Myönnä tallennusoikeudet pyydettäessä
+- Pidä sovellus etualalla pelien aikana
+- Tarkista Androidin virransäästöasetukset
+
+## Lisäavun saaminen
+
+### Ennen tukeen yhteydenottoa
+
+Kerää nämä tiedot:
+1. Laite ja käyttöjärjestelmä
+2. Selain ja versio
+3. Vaiheet ongelman toistamiseksi
+4. Mahdolliset virheilmoitukset
+5. Kuvakaappaus jos mahdollista
+
+### Nollausvaihtoehdot
+
+Jos ongelmat jatkuvat:
+
+1. **Pehmeä nollaus**: Tyhjennä sovelluksen välimuisti, lataa uudelleen
+2. **Datan vienti**: Tallenna datasi ensin
+3. **Puhdas uudelleenasennus**: Poista ja asenna PWA uudelleen
+4. **Täysi nollaus**: Tyhjennä kaikki data (viimeinen keino)
+
+<Callout type="warning">
+Varmuuskopioi aina datasi ennen mitään nollaustoimenpiteitä.
+</Callout>

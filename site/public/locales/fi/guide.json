@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "title": "Käyttöopas",
+    "backToHome": "Takaisin etusivulle",
+    "openMenu": "Avaa opasvalikko",
+    "closeMenu": "Sulje opasvalikko"
+  },
+  "search": {
+    "placeholder": "Hae oppaasta...",
+    "noResults": "Ei tuloksia haulle \"{{query}}\"",
+    "clear": "Tyhjennä haku",
+    "resultsCount": "{{count}} tulos",
+    "resultsCount_plural": "{{count}} tulosta"
+  },
+  "navigation": {
+    "previous": "Edellinen",
+    "next": "Seuraava",
+    "tableOfContents": "Tällä sivulla"
+  },
+  "breadcrumbs": {
+    "home": "Etusivu",
+    "guide": "Käyttöopas"
+  },
+  "landing": {
+    "title": "Käyttöopas",
+    "subtitle": "Kaikki mitä tarvitset MatchOps Localin käyttöön",
+    "quickStart": "Uusi MatchOpsissa?",
+    "startButton": "Aloita Aloitus-oppaasta"
+  },
+  "lastUpdated": "Päivitetty: {{date}}",
+  "readingTime": "{{minutes}} min lukuaika",
+  "sections": {
+    "getting-started": {
+      "title": "Aloitus",
+      "description": "Asenna sovellus ja luo ensimmäinen joukkueesi"
+    },
+    "game-day-workflow": {
+      "title": "Pelipäivän työnkulku",
+      "description": "Vaiheittainen ohje pelipäivälle"
+    },
+    "roster-management": {
+      "title": "Kokoonpanon hallinta",
+      "description": "Lisää, muokkaa ja järjestele pelaajia"
+    },
+    "teams-organization": {
+      "title": "Joukkueet ja organisointi",
+      "description": "Hallitse useita joukkueita ja kausia"
+    },
+    "during-the-game": {
+      "title": "Pelin aikana",
+      "description": "Reaaliaikainen seuranta ja tapahtumien kirjaus"
+    },
+    "tactics-board": {
+      "title": "Taktinen piirtotaulu",
+      "description": "Piirrä muodostelmia ja pelikuvioita"
+    },
+    "after-the-game": {
+      "title": "Pelin jälkeen",
+      "description": "Tarkastele tilastoja ja pelaajien suorituksia"
+    },
+    "data-management": {
+      "title": "Datan hallinta",
+      "description": "Varmuuskopiointi, vienti ja palautus"
+    },
+    "troubleshooting": {
+      "title": "Vianetsintä",
+      "description": "Yleiset ongelmat ja ratkaisut"
+    },
+    "tips-best-practices": {
+      "title": "Vinkit ja parhaat käytännöt",
+      "description": "Hyödynnä MatchOps parhaiten"
+    }
+  },
+  "callout": {
+    "tip": "Vinkki",
+    "warning": "Varoitus",
+    "info": "Tiedoksi",
+    "note": "Huomio"
+  }
+}

@@ -1,0 +1,185 @@
+---
+title: Datan hallinta
+description: Varmuuskopioi, vie, palauta ja hallitse MatchOps-dataasi
+lastUpdated: "2025-01-05"
+---
+
+Datasi MatchOps Localissa tallennetaan paikallisesti laitteellesi. Tämä opas kattaa miten suojaat ja hallitset arvokasta otteludataasi.
+
+## Miten data tallennetaan
+
+### Paikallinen tallennus
+
+MatchOps Local käyttää IndexedDB-tietokantaa, joka:
+
+- Tallentaa datan suoraan laitteellesi
+- Toimii offline-tilassa
+- Säilyy istuntojen välillä
+- Ei oletuksena varmuuskopioi pilveen
+
+<Callout type="warning">
+Datasi on vain laitteellasi. Jos poistat sovelluksen, tyhjennät selaimen tiedot tai kadotat laitteesi, data häviää ellei sitä ole varmuuskopioitu.
+</Callout>
+
+### Mitä tallennetaan
+
+Paikallinen tietokantasi sisältää:
+
+- Pelaajalistasi ja arvioinnit
+- Kaikki pelit ja tapahtumat
+- Kaudet ja turnaukset
+- Joukkueet ja henkilöstö
+- Käyttäjäasetukset ja -mieltymykset
+
+## Varmuuskopiointi
+
+### Varmuuskopion luominen
+
+<Steps>
+<Step title="Mene Asetuksiin">
+Avaa sovelluksen asetusvalikko.
+</Step>
+
+<Step title="Etsi Datan hallinta">
+Siirry data/varmuuskopiointi-osioon.
+</Step>
+
+<Step title="Valitse Vie kaikki">
+Valitse kaiken datan vienti.
+</Step>
+
+<Step title="Tallenna tiedosto">
+Tallenna varmuuskopiotiedosto turvalliseen paikkaan.
+</Step>
+</Steps>
+
+### Varmuuskopiotiedoston muoto
+
+Varmuuskopiot tallennetaan JSON-tiedostoina sisältäen:
+
+- Kaiken listatiedon
+- Täydellisen pelihistorian
+- Kausi/turnaus-tiedot
+- Sovelluksen asetukset
+
+### Varmuuskopioinnin parhaat käytännöt
+
+1. **Säännölliset varmuuskopiot** - Viikoittain tai tärkeiden pelien jälkeen
+2. **Useita sijainteja** - Tallenna pilvitallennukseen (Google Drive, iCloud, Dropbox)
+3. **Ennen päivityksiä** - Varmuuskopioi ennen sovellus- tai laitepäivityksiä
+4. **Ennen laitemuutoksia** - Välttämätöntä laitetta vaihdettaessa
+
+## Palautus
+
+### Palautus varmuuskopiosta
+
+<Steps>
+<Step title="Avaa Data-asetukset">
+Mene Asetukset > Datan hallinta.
+</Step>
+
+<Step title="Valitse Tuo">
+Valitse tuonti/palautus-vaihtoehto.
+</Step>
+
+<Step title="Valitse varmuuskopiotiedosto">
+Siirry tallennettuun varmuuskopiotiedostoon.
+</Step>
+
+<Step title="Vahvista">
+Tarkista ja vahvista palautustoiminto.
+</Step>
+</Steps>
+
+<Callout type="warning">
+Palautus varmuuskopiosta korvaa nykyisen datasi. Varmuuskopioi nykyinen data ensin tarvittaessa.
+</Callout>
+
+### Siirto uuteen laitteeseen
+
+Datan siirtämiseksi uuteen laitteeseen:
+
+1. Luo täydellinen varmuuskopio vanhalla laitteella
+2. Siirrä varmuuskopiotiedosto uuteen laitteeseen (sähköposti, pilvi jne.)
+3. Asenna MatchOps Local uuteen laitteeseen
+4. Palauta varmuuskopiosta
+
+## Vientivaihtoehdot
+
+### Excel-vienti
+
+Vie dataa Exceliin:
+
+- Yksityiskohtaiseen analyysiin
+- Jakamiseen muille
+- Ulkoiseen raportointiin
+- Mukautettujen raporttien luomiseen
+
+### Mitä voidaan viedä
+
+- **Yksittäinen peli** - Yhden pelin täydellinen data
+- **Kauden data** - Kaikki kauden pelit
+- **Täysi tietokanta** - Kaikki JSON-muodossa
+- **Pelaajakohtaiset tilastot** - Kumulatiiviset tilastot
+
+## Tietosuoja
+
+### Datasi pysyy paikallisena
+
+MatchOps Local on suunniteltu yksityisyyttä varten:
+
+- Tiliä ei tarvita
+- Ei pilvisynkronointia
+- Ei seurantaa tai analytiikkaa
+- Data ei poistu laitteeltasi automaattisesti
+
+### Datan jakaminen
+
+Kun viet, sinä päätät kuka vastaanottaa. Huomioi:
+
+- Jaa vain tarpeellinen
+- Käytä turvallisia siirtotapoja
+- Poista viedyt tiedostot jakamisen jälkeen
+
+## Tallennustilan hallinta
+
+### Tallennustilan tarkistus
+
+Katso tallennustilan käyttösi:
+
+- Datan kokonaiskoko
+- Tallennettujen pelien määrä
+- Pelaajalistasi koko
+
+### Datan tyhjentäminen
+
+Jos sinun täytyy tyhjentää dataa:
+
+- **Tyhjennä vanhat kaudet** - Poista päättyneet, arkistoidut kaudet
+- **Poista vanhoja pelejä** - Poista yksittäisiä pelejä
+- **Täysi nollaus** - Tyhjennä kaikki data (käytä varoen)
+
+<Callout type="tip">
+Arkistoi poistamisen sijaan aina kun mahdollista. Tallennustila on harvoin rajoittava tekijä.
+</Callout>
+
+## Data-ongelmien vianetsintä
+
+### Data ei tallennu
+
+Jos data ei säily:
+
+1. Tarkista, ettet ole yksityis-/incognito-tilassa
+2. Varmista, että selain sallii tallennuksen
+3. Kokeile sovelluksen uudelleenkäynnistystä
+4. Tarkista laitteen vapaa tallennustila
+
+### Vioittunut data
+
+Jos data näyttää vioittuneelta:
+
+1. Kokeile sovelluksen päivitystä
+2. Palauta viimeisimmästä varmuuskopiosta
+3. Vie toimiva data ennen korjauksia
+
+Katso [Vianetsintä](/guide/troubleshooting) lisäapua varten.

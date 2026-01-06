@@ -1,7 +1,8 @@
 {
   "nav": {
     "technical": "Tekniset tiedot",
-    "gallery": "Galleria"
+    "gallery": "Galleria",
+    "guide": "Opas"
   },
   "features": {
     "gameDay": {
