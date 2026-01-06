@@ -1,0 +1,182 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for MatchOps Local
+lastUpdated: "2025-01-05"
+---
+
+This guide helps you resolve common issues with MatchOps Local.
+
+## Installation Issues
+
+### Can't Install the PWA
+
+**Problem**: The "Add to Home Screen" or install option doesn't appear.
+
+**Solutions**:
+- Use a supported browser (Chrome, Safari, Edge)
+- Visit the app directly (not through a link in another app)
+- Check that HTTPS is being used
+- Private/incognito mode doesn't support PWA installation
+
+<Callout type="info">
+PWA installation requires HTTPS and certain browser features. Some browsers on iOS have limitations.
+</Callout>
+
+### App Won't Load
+
+**Problem**: The app shows a blank screen or loading spinner.
+
+**Solutions**:
+1. Clear browser cache and reload
+2. Check your internet connection (for first load)
+3. Try a different browser
+4. Disable browser extensions temporarily
+
+## Data Issues
+
+### Data Not Saving
+
+**Problem**: Changes aren't persisting between sessions.
+
+**Solutions**:
+- Ensure you're not in private/incognito mode
+- Check browser storage permissions
+- Verify you have available storage space
+- Try manually saving before closing
+
+### Lost Data
+
+**Problem**: Previous games or players have disappeared.
+
+**Causes**:
+- Browser data was cleared
+- Using incognito mode
+- Different browser/device than before
+- App uninstall
+
+**Recovery**:
+- Restore from backup if available
+- Check if you're in the correct browser/device
+- Contact support if data should exist
+
+### Import/Export Not Working
+
+**Problem**: Can't import backup or export data.
+
+**Solutions**:
+- Check file format (JSON for backups, xlsx for Excel)
+- Ensure file isn't corrupted
+- Try a smaller data subset
+- Use a different browser
+
+## Performance Issues
+
+### App Running Slowly
+
+**Problem**: The app is sluggish or unresponsive.
+
+**Solutions**:
+1. Close other browser tabs
+2. Restart the app
+3. Clear browser cache
+4. Reduce stored data (archive old seasons)
+
+### Timer Not Accurate
+
+**Problem**: The game timer seems off.
+
+**Causes**:
+- Device was sleeping
+- Tab was in background
+- Browser throttled the tab
+
+**Solutions**:
+- Keep the app in the foreground during games
+- Enable wake lock feature
+- Don't switch apps during active timing
+
+## Display Issues
+
+### Screen Orientation Problems
+
+**Problem**: Layout looks wrong in portrait/landscape.
+
+**Solutions**:
+- Lock device orientation to your preference
+- Use the app in recommended orientation (landscape for tablet, portrait for phone)
+- Refresh the page after rotation
+
+### Elements Missing or Cut Off
+
+**Problem**: Can't see all the interface elements.
+
+**Solutions**:
+- Check browser zoom level (should be 100%)
+- Try fullscreen mode
+- Update your browser
+- Check device screen size compatibility
+
+## Connectivity Issues
+
+### Offline Mode Not Working
+
+**Problem**: App doesn't work without internet.
+
+**Solutions**:
+- Ensure you've loaded the app fully once with internet
+- The service worker needs to cache resources first
+- Check browser supports service workers
+- Try reinstalling the PWA
+
+<Callout type="tip">
+After first load, the app should work offline. Test by enabling airplane mode and reopening.
+</Callout>
+
+## Device-Specific Issues
+
+### iOS Safari Problems
+
+Common issues:
+- Storage limitations in PWA mode
+- Wake lock may not work
+- Some gestures conflict with Safari
+
+**Solutions**:
+- Add to home screen for better experience
+- Keep the app active during games
+- Use Chrome on iOS as alternative
+
+### Android Chrome
+
+Common issues:
+- Background restrictions may pause timer
+- Storage permission dialogs
+
+**Solutions**:
+- Grant storage permissions when prompted
+- Keep app in foreground during games
+- Check Android battery optimization settings
+
+## Getting More Help
+
+### Before Contacting Support
+
+Gather this information:
+1. Device and operating system
+2. Browser and version
+3. Steps to reproduce the issue
+4. Any error messages
+5. Screenshot if possible
+
+### Reset Options
+
+If issues persist:
+
+1. **Soft reset**: Clear app cache, reload
+2. **Data export**: Save your data first
+3. **Clean reinstall**: Remove and reinstall PWA
+4. **Full reset**: Clear all data (last resort)
+
+<Callout type="warning">
+Always backup your data before attempting any reset procedures.
+</Callout>

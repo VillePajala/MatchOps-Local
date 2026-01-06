@@ -1,7 +1,8 @@
 {
   "nav": {
     "technical": "Technical",
-    "gallery": "Gallery"
+    "gallery": "Gallery",
+    "guide": "Guide"
   },
   "features": {
     "gameDay": {

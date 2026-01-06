@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "title": "User Guide",
+    "backToHome": "Back to Home",
+    "openMenu": "Open guide menu",
+    "closeMenu": "Close guide menu"
+  },
+  "search": {
+    "placeholder": "Search guide...",
+    "noResults": "No results for \"{{query}}\"",
+    "clear": "Clear search",
+    "resultsCount": "{{count}} result",
+    "resultsCount_plural": "{{count}} results"
+  },
+  "navigation": {
+    "previous": "Previous",
+    "next": "Next",
+    "tableOfContents": "On this page"
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "guide": "User Guide"
+  },
+  "landing": {
+    "title": "User Guide",
+    "subtitle": "Everything you need to know about using MatchOps Local",
+    "quickStart": "New to MatchOps?",
+    "startButton": "Start with Getting Started"
+  },
+  "lastUpdated": "Last updated: {{date}}",
+  "readingTime": "{{minutes}} min read",
+  "sections": {
+    "getting-started": {
+      "title": "Getting Started",
+      "description": "Install the app and create your first team"
+    },
+    "game-day-workflow": {
+      "title": "Game Day Workflow",
+      "description": "Step-by-step guide for match day"
+    },
+    "roster-management": {
+      "title": "Roster Management",
+      "description": "Add, edit, and organize players"
+    },
+    "teams-organization": {
+      "title": "Teams & Organization",
+      "description": "Manage multiple teams and seasons"
+    },
+    "during-the-game": {
+      "title": "During the Game",
+      "description": "Real-time tracking and event logging"
+    },
+    "tactics-board": {
+      "title": "Tactics Board",
+      "description": "Draw formations and plays"
+    },
+    "after-the-game": {
+      "title": "After the Game",
+      "description": "Review stats and player performance"
+    },
+    "data-management": {
+      "title": "Data Management",
+      "description": "Backup, export, and restore data"
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting",
+      "description": "Common issues and solutions"
+    },
+    "tips-best-practices": {
+      "title": "Tips & Best Practices",
+      "description": "Get the most out of MatchOps"
+    }
+  },
+  "callout": {
+    "tip": "Tip",
+    "warning": "Warning",
+    "info": "Info",
+    "note": "Note"
+  }
+}
