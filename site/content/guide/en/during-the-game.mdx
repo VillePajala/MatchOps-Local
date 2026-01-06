@@ -13,7 +13,7 @@ When a game is active, you'll see:
 - **Field View** - Your lineup positioned on the pitch
 - **Timer** - Current game time and period
 - **Score** - Live score display
-- **Player Bar** - Bench players ready for substitution
+- **Player Bar** - Players at the top, ready for selection
 
 ## Recording Events
 
@@ -23,7 +23,7 @@ When a goal is scored:
 
 <Steps>
 <Step title="Open Goal Log">
-Click the **Goal** button in the control bar to open the Goal Log modal.
+Click the **Log Goal** button in the control bar to open the Goal Log modal.
 </Step>
 
 <Step title="Select Scoring Team">
@@ -42,13 +42,15 @@ Click **Save** - the score updates and the event is logged.
 </Step>
 </Steps>
 
+You can also **edit or delete** recorded goals later through the Goal Log modal or Game Settings.
+
 ### Substitutions
 
-Make substitutions by dragging:
+Bench players are shown aligned at the side of the field. To make a substitution:
 
-1. Drag a bench player from the Player Bar onto the field
-2. Drop them on the position where you want them
-3. The previous player moves to the bench automatically
+1. Tap a bench player at the side to select them
+2. Tap on the field position where you want them
+3. The previous player moves to the sideline automatically
 4. Time played is tracked for both players
 
 <Callout type="info">
@@ -78,7 +80,24 @@ You can add notes to capture important moments during the game using the notes f
 
 - **Play/Pause** - Toggle the timer using the play button (▶/⏸)
 - **Period End** - Click to end the current period and advance to the next
-- The timer shows elapsed time for the current period
+- **Large Timer** - Tap the timer to expand to full-screen view for better visibility
+- **Quick Goals** - Use the goal buttons in the timer overlay for fast scoring
+
+### Substitution Interval Tracker
+
+The timer includes a smart substitution reminder system:
+
+1. **Set Interval** - Configure how often you want to rotate players (e.g., every 5 minutes)
+2. **Visual Alerts** - The display changes color as substitution time approaches:
+   - Normal (white) - Plenty of time
+   - Warning (orange) - Substitution time approaching
+   - Due (red) - Time to make substitutions
+3. **Confirm Button** - Click "Confirm Substitution Made" when you complete a rotation
+4. **Reset** - The timer resets and begins tracking the next interval
+
+<Callout type="tip">
+The substitution tracker helps ensure fair playing time for all players, especially in youth leagues.
+</Callout>
 
 ### Period Transitions
 
@@ -102,20 +121,40 @@ For stoppage time at the end of a period:
 
 ### Formation Changes
 
-During the game, you can:
+During the game, you can rearrange players on the field:
 
-1. Drag players to new positions on the field
-2. Rearrange your formation as needed
-3. Changes happen instantly on screen
+**Option 1: Drag**
+- Drag a player disc to a new position on the field
+
+**Option 2: Tap to swap**
+- Tap a player to select them, then tap another player disc to swap positions
+
+Changes happen instantly and you can use **Undo/Redo** buttons to reverse them.
+
+### Field Tools Panel
+
+Access additional tools from the control bar:
+
+- **Place All Players** - Auto-position players using formation presets (8v8, 9v9, 10v10, 11v11)
+- **Add Opponent** - Place opponent player markers on the field
+- **Clear Drawings** - Remove all drawings from the field
+- **Reset Field** - Return all players to bench
+- **Quick Save** - Save current game state
 
 ### Tactical Board
 
-For more detailed tactical adjustments, use the **Tactical Board**:
+For more detailed tactical adjustments, use the **Tactics Mode**:
 
-1. Click the **Tactical Board** button
+1. Click the **Tactics Mode** button
 2. Draw plays, formations, or instructions
-3. Show players during halftime discussions
-4. See [Tactics Board](/guide/tactics-board) for detailed instructions
+3. Place tactical discs (home/opponent/goalie)
+4. Position the ball on the field
+5. Show players during halftime discussions
+6. See [Tactics Board](/guide/tactics-board) for detailed instructions
+
+<Callout type="info">
+The Tactical Board has its own separate Undo/Redo history, so you can experiment without affecting your main field setup.
+</Callout>
 
 ## Tips for Live Tracking
 

@@ -13,7 +13,7 @@ Kun peli on käynnissä, näet:
 - **Kenttänäkymä** - Kokoonpanosi aseteltuna kentälle
 - **Ajastin** - Nykyinen peliaika ja jakso
 - **Tulos** - Live-tulosnäyttö
-- **Pelaajapalkki** - Vaihtopelaajat valmiina
+- **Vaihtopelaajat** - Kentän sivussa valmiina
 
 ## Tapahtumien kirjaaminen
 
@@ -23,7 +23,7 @@ Kun maali syntyy:
 
 <Steps>
 <Step title="Avaa maalin kirjaus">
-Klikkaa **Maali**-painiketta ohjauspalkissa avataksesi maalin kirjausikkunan.
+Klikkaa **Kirjaa maali** -painiketta ohjauspalkissa avataksesi maalin kirjausikkunan.
 </Step>
 
 <Step title="Valitse maalintekijäjoukkue">
@@ -42,13 +42,15 @@ Klikkaa **Tallenna** - tulos päivittyy ja tapahtuma kirjataan.
 </Step>
 </Steps>
 
+Voit myös **muokata tai poistaa** kirjattuja maaleja myöhemmin maalin kirjausikkunasta tai peliasetuksista.
+
 ### Vaihdot
 
-Tee vaihtoja raahaamalla:
+Vaihtopelaajat näkyvät kentän sivussa. Vaihdon tekeminen:
 
-1. Raahaa vaihtopelaaja pelaajapalkista kentälle
-2. Pudota hänet haluamallesi paikalle
-3. Edellinen pelaaja siirtyy automaattisesti vaihtopenkille
+1. Napauta vaihtopelaajaa kentän sivussa valitaksesi
+2. Napauta kentällä paikkaa, johon haluat sijoittaa pelaajan
+3. Edellinen pelaaja siirtyy automaattisesti sivuun
 4. Peliaikaa seurataan molemmille
 
 <Callout type="info">
@@ -59,7 +61,7 @@ Vaihtoaika kirjataan automaattisesti pelikellon mukaan.
 
 Reilun pelin kortin myöntäminen:
 
-1. Klikkaa **Reilun pelin** -painiketta ohjauspalkissa
+1. Klikkaa **Fair Play** -painiketta ohjauspalkissa
 2. Valitse palkittava pelaaja
 3. Lisää huomio positiivisesta käytöksestä halutessasi
 4. Vahvista
@@ -78,7 +80,24 @@ Voit lisätä muistiinpanoja tärkeiden hetkien tallentamiseksi pelin aikana mui
 
 - **Toista/Tauko** - Vaihda ajastinta toistopainikkeella (▶/⏸)
 - **Jakson loppu** - Klikkaa päättääksesi nykyisen jakson ja siirtyäksesi seuraavaan
-- Ajastin näyttää kuluvan jakson ajan
+- **Suuri ajastin** - Napauta ajastinta laajentaaksesi koko näytön näkymään
+- **Pikamaalit** - Käytä ajastinnäkymän maalipainikkeita nopeaan kirjaamiseen
+
+### Vaihtovälimuistuttaja
+
+Ajastin sisältää älykkään vaihtomuistutusjärjestelmän:
+
+1. **Aseta väli** - Määritä kuinka usein haluat kierrättää pelaajia (esim. 5 minuutin välein)
+2. **Visuaaliset hälytykset** - Näyttö vaihtaa väriä vaihtoajan lähestyessä:
+   - Normaali (valkoinen) - Aikaa on hyvin
+   - Varoitus (oranssi) - Vaihtoaika lähestyy
+   - Aika (punainen) - Aika tehdä vaihdot
+3. **Vahvistuspainike** - Klikkaa "Vahvista vaihto tehty" kun kierrätys on valmis
+4. **Nollaus** - Ajastin nollautuu ja aloittaa seuraavan välin seurannan
+
+<Callout type="tip">
+Vaihtoseuranta auttaa varmistamaan tasapuolisen peliajan kaikille pelaajille, erityisesti juniorisarjoissa.
+</Callout>
 
 ### Jaksojen väliset siirtymät
 
@@ -102,20 +121,40 @@ Lisäajan käsittely jakson lopussa:
 
 ### Muodostelmamuutokset
 
-Pelin aikana voit:
+Pelin aikana voit järjestellä pelaajia kentällä:
 
-1. Vetää pelaajia uusiin paikkoihin kentällä
-2. Järjestää muodostelmasi uudelleen tarpeen mukaan
-3. Muutokset näkyvät heti ruudulla
+**Vaihtoehto 1: Raahaa**
+- Raahaa pelaajan kiekkoa uuteen paikkaan kentällä
+
+**Vaihtoehto 2: Napauta vaihtaaksesi**
+- Napauta pelaajaa valitaksesi, sitten napauta toista pelaajan kiekkoa vaihtaaksesi paikkoja
+
+Muutokset näkyvät heti ja voit käyttää **Kumoa/Tee uudelleen** -painikkeita peruuttaaksesi ne.
+
+### Kenttätyökalupaneeli
+
+Ohjauspalkista pääset lisätyökaluihin:
+
+- **Aseta kaikki pelaajat** - Automaattinen sijoittelu muodostelmapohjilla (8v8, 9v9, 10v10, 11v11)
+- **Lisää vastustaja** - Aseta vastustajapelaajamerkkejä kentälle
+- **Tyhjennä piirrokset** - Poista kaikki piirrokset kentältä
+- **Nollaa kenttä** - Palauta kaikki pelaajat vaihtopenkille
+- **Pikatallennus** - Tallenna nykyinen pelitilanne
 
 ### Taktinen piirtotaulu
 
-Yksityiskohtaisempiin taktisiin muutoksiin käytä **Taktista piirtotaulua**:
+Yksityiskohtaisempiin taktisiin muutoksiin käytä **Taktiikkatilaa**:
 
-1. Klikkaa **Taktinen piirtotaulu** -painiketta
+1. Klikkaa **Taktiikkatila**-painiketta
 2. Piirrä pelikuvioita, muodostelmia tai ohjeita
-3. Näytä pelaajille puoliaikakeskusteluissa
-4. Katso [Taktinen piirtotaulu](/guide/tactics-board) tarkempiin ohjeisiin
+3. Aseta taktisia kiekkoja (koti/vastustaja/maalivahti)
+4. Sijoita pallo kentälle
+5. Näytä pelaajille puoliaikakeskusteluissa
+6. Katso [Taktinen piirtotaulu](/guide/tactics-board) tarkempiin ohjeisiin
+
+<Callout type="info">
+Taktisella piirtotaululla on oma erillinen Kumoa/Tee uudelleen -historia, joten voit kokeilla vaikuttamatta pääkenttänäkymään.
+</Callout>
 
 ## Vinkkejä live-seurantaan
 
