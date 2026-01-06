@@ -12,7 +12,7 @@ MatchOps Local auttaa sinua järjestämään valmennustoimintasi useiden joukkue
 
 Joukkueet MatchOps Localissa edustavat valmennettavia ryhmääsi. Luo joukkue jokaiselle valmentamallesi ryhmälle:
 
-1. Klikkaa **Peliasetukset** ohjauspalkissa
+1. Klikkaa **Otteluasetukset** ohjauspalkissa
 2. Siirry **Joukkueet**-osioon
 3. Klikkaa **Lisää joukkue** luodaksesi uuden
 4. Syötä joukkueen nimi
@@ -31,11 +31,39 @@ Kun luot pelin, valitse oikea joukkue pitääksesi datasi järjestyksessä.
 
 ## Henkilöstöhallinta
 
-Seuraa valmennushenkilöstöäsi ja joukkueen toimihenkilöitä:
+Seuraa valmennushenkilöstöäsi ja joukkueen toimihenkilöitä yksityiskohtaisilla profiileilla.
 
-1. Avaa **Henkilöstö** peliasetuksista
-2. Lisää valmentajia, apuvalmentajia ja joukkueenjohtajia
-3. Henkilöstö näkyy peliraporteissa ja vientitiedostoissa
+### Henkilöstön lisääminen
+
+1. Avaa **Taustahenkilöt** peliasetuksista
+2. Klikkaa **Lisää henkilö**
+3. Täytä tiedot
+
+### Henkilöstöroolit
+
+Valitse 8 roolityypistä:
+
+- **Päävalmentaja** - Ensisijainen valmentaja
+- **Apuvalmentaja** - Tukeva valmentaja
+- **Maalivahtivalmentaja** - Erikoistunut MV-valmennus
+- **Fysiikkavalmentaja** - Fyysinen harjoittelu
+- **Fysioterapeutti** - Lääkinnällinen/vammatuki
+- **Joukkueenjohtaja** - Hallinnolliset tehtävät
+- **Tukihenkilöstö** - Yleinen avustaminen
+- **Muu** - Mukautetut roolit
+
+### Henkilöstötiedot
+
+Jokaiselle henkilölle voit kirjata:
+
+- **Nimi** - Koko nimi
+- **Yhteystiedot** - Puhelinnumero ja sähköposti
+- **Sertifikaatit** - Pätevyydet (esim. "UEFA A -lisenssi", "Ensiapu")
+- **Muistiinpanot** - Lisätiedot
+
+<Callout type="info">
+Peleihin liitetty henkilöstö näkyy peliraporteissa ja Excel-vienneissä.
+</Callout>
 
 ## Kaudet
 
@@ -66,6 +94,32 @@ Aseta mahdolliset lisäasetukset kuten peliformaatin oletukset.
 </Step>
 </Steps>
 
+### Kauden tiedot
+
+Kautta luodessa tai muokatessa:
+
+- **Nimi** - Kuvaava nimi (esim. "Kevätliiga 2025")
+- **Sijainti** - Missä pelit tyypillisesti pelataan
+- **Ikäluokka** - P7-P21 tai T7-T21
+- **Pelityyppi** - Jalkapallo tai futsal
+- **Sukupuoli** - Pojat tai tytöt
+- **Jaksoasetukset** - Jaksojen määrä (1 tai 2) ja kesto
+- **Alkamis-/päättymispäivät** - Kauden ajanjakso
+- **Sarja** - Suomen juniorisarjat (SM-sarja, Harrastesarja jne.) tai mukautettu
+- **Värimerkki** - Visuaalinen tunniste
+- **Muistiinpanot** - Lisätiedot
+
+### Seuran kausilabel
+
+Sovellus laskee automaattisesti seuran kauden (esim. "24/25") suomalaisen jalkapallokalenterin mukaan (lokakuu-toukokuu). Tämä auttaa järjestämään dataa pelivuoden mukaan.
+
+### Joukkuesijoitukset
+
+Seuraa loppusijoituksia sijoitusmerkeillä:
+- 🥇 Ensimmäinen sija
+- 🥈 Toinen sija
+- 🥉 Kolmas sija
+
 ### Pelien liittäminen kauteen
 
 Kun luot uuden pelin, voit liittää sen aktiiviseen kauteen. Tämä:
@@ -80,17 +134,45 @@ Kun luot uuden pelin, voit liittää sen aktiiviseen kauteen. Tämä:
 
 Cupeille, festivaaleille tai yksittäisille kilpailuille:
 
-1. Avaa **Peliasetukset**
-2. Siirry **Turnaukset**-osioon
+1. Avaa **Otteluasetukset**
+2. Siirry **Kilpailut**-osioon
 3. Klikkaa **Lisää turnaus**
 4. Syötä turnauksen nimi ja päivämäärät
 
+### Turnauksen tiedot
+
+Kuten kaudet, mutta lisävaihtoehdoilla:
+
+- **Nimi** - Turnauksen nimi
+- **Sijainti** - Tapahtumapaikka
+- **Päivämäärät** - Alkamis- ja päättymispäivät
+- **Ikäluokka, pelityyppi, sukupuoli** - Samat kuin kausissa
+- **Jaksoasetukset** - Oletuspeliformaatti
+- **Turnauksen pelaaja** - Palkinnon tunnustus 🏆
+- **Joukkuesijoitukset** - Loppusijoitukset (🥇🥈🥉)
+
+### Turnaussarjat
+
+Suurissa turnauksissa on usein useita kilpailutasoja. MatchOps Local tukee **Turnaussarjoja**:
+
+- **Elite** - Ylin kilpailutaso
+- **Kilpa** - Kilpailutaso
+- **Haaste** - Haastavataso
+- **Harraste** - Harrastetaso
+
+Jokaisella sarjalla voi olla omat pelinsä ja sijoituksensa saman turnauksen sisällä.
+
+<Callout type="tip">
+Käytä turnaussarjoja kun joukkueesi pelaa monitasoisessa cupissa, jossa eri joukkueet kilpailevat eri tasoilla.
+</Callout>
+
 ### Turnauspelit
 
-Kun luot pelin, voit liittää sen turnaukseen kauden sijaan. Turnauspelit:
+Kun luot pelin, voit liittää sen turnaukseen (ja valinnaisesti tiettyyn sarjaan). Turnauspelit:
 
 - Ryhmitellään erikseen kausipeleistä
 - Niillä on oma tilastoseuranta
+- Voidaan liittää tiettyyn sarjatasoon
 - Sopivia kertaluontoisille tapahtumille kuten cupeille tai turnauksille
 
 ## Organisointivinkit

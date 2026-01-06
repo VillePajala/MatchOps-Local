@@ -86,6 +86,21 @@ Choose the import/restore option.
 Navigate to your saved backup file.
 </Step>
 
+<Step title="Review Import Summary">
+The app shows what will be imported:
+- Number of players
+- Number of games
+- Number of seasons/tournaments
+- Personnel count
+</Step>
+
+<Step title="Player Mapping">
+If importing players that match existing ones, choose to:
+- Merge with existing player
+- Create as new player
+- Skip this player
+</Step>
+
 <Step title="Confirm">
 Review and confirm the restore operation.
 </Step>
@@ -94,6 +109,14 @@ Review and confirm the restore operation.
 <Callout type="warning">
 Restoring from backup will replace your current data. Make sure to backup current data first if needed.
 </Callout>
+
+### Import Options
+
+When importing data:
+
+- **Merge** - Combine with existing data (smart player matching)
+- **Replace** - Overwrite all existing data
+- **Cancel** - Abort without changes
 
 ### Transfer to New Device
 
@@ -145,11 +168,22 @@ When you export, you control who receives it. Consider:
 
 ### Checking Storage
 
-View your storage usage:
+View your storage usage in Settings:
 
 - Total data size
 - Number of games stored
 - Player roster size
+- IndexedDB quota usage
+
+### App Settings
+
+The Settings modal also provides:
+
+- **Default Team Name** - Pre-fill your team name for new games
+- **Club Season Configuration** - Customize season calendar (default: October-May)
+- **Language** - Switch between English and Finnish
+- **Theme** - Light/dark mode preference
+- **Notification Settings** - Substitution reminder preferences
 
 ### Clearing Data
 
