@@ -24,7 +24,7 @@ export const manifestConfig = {
     appName: "MatchOps Local (Preview)",
     shortName: "MatchOps Preview",
     iconPath: "/icons/icon-512x512.png",
-    themeColor: "#ca8a04", // A yellow/amber for previews
+    themeColor: "#1e293b", // Same as production for consistent appearance (preview indicator shown in Settings)
     displayMode: "standalone", // Match installed PWA manifest for update detection
   },
 };

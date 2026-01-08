@@ -8,21 +8,21 @@ import type { GetStaticProps } from 'next';
 
 const screenshots = [
   // Shorter aspect ratio (~1.5)
-  { src: '/screenshots/the first screenshot.png', alt: '1. Hero screenshot' },
-  { src: '/screenshots/Screenshot 2025-08-01 213624.png', alt: '2. Screenshot' },
-  { src: '/screenshots/StatsModalappInHandAtSoccerField.png', alt: '3. Stats view' },
-  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: '4. Generated image' },
-  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 06_56_55 PM.png', alt: '5. Generated image' },
+  { src: '/screenshots/archive/the first screenshot.png', alt: '1. Hero screenshot' },
+  { src: '/screenshots/archive/Screenshot 2025-08-01 213624.png', alt: '2. Screenshot' },
+  { src: '/screenshots/archive/StatsModalappInHandAtSoccerField.png', alt: '3. Stats view' },
+  { src: '/screenshots/archive/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: '4. Generated image' },
+  { src: '/screenshots/archive/ChatGPT Image Oct 27, 2025, 06_56_55 PM.png', alt: '5. Generated image' },
   // Medium aspect ratio (~2.0-2.2)
-  { src: '/screenshots/Screenshot 2025-12-01 230546.png', alt: '6. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-12-01 142839.png', alt: '7. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-10-27 190449.png', alt: '8. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-12-03 114244.png', alt: '9. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-12-01 231924.png', alt: '10. Screenshot' },
+  { src: '/screenshots/archive/Screenshot 2025-12-01 230546.png', alt: '6. Screenshot' },
+  { src: '/screenshots/archive/Screenshot 2025-12-01 142839.png', alt: '7. Screenshot' },
+  { src: '/screenshots/archive/Screenshot 2025-10-27 190449.png', alt: '8. Screenshot' },
+  { src: '/screenshots/archive/Screenshot 2025-12-03 114244.png', alt: '9. Screenshot' },
+  { src: '/screenshots/archive/Screenshot 2025-12-01 231924.png', alt: '10. Screenshot' },
   // Taller aspect ratio (~2.2+)
-  { src: '/screenshots/Gemini_Generated_Image_yygjmoyygjmoyygj.png', alt: '11. Generated image' },
-  { src: '/screenshots/Gemini_Generated_Image_sguqf5sguqf5sguq.png', alt: '12. Generated image' },
-  { src: '/screenshots/Gemini_Generated_Image_5zqp3v5zqp3v5zqp.png', alt: '13. Generated image' },
+  { src: '/screenshots/archive/Gemini_Generated_Image_yygjmoyygjmoyygj.png', alt: '11. Generated image' },
+  { src: '/screenshots/archive/Gemini_Generated_Image_sguqf5sguqf5sguq.png', alt: '12. Generated image' },
+  { src: '/screenshots/archive/Gemini_Generated_Image_5zqp3v5zqp3v5zqp.png', alt: '13. Generated image' },
 ];
 
 export default function GalleryPage() {

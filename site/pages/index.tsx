@@ -136,7 +136,7 @@ export default function HomePage() {
               >
                 <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
                   <Image
-                    src="/screenshots/the first screenshot.png"
+                    src="/screenshots/archive/the first screenshot.png"
                     alt="App view screenshot"
                     width={1024}
                     height={1536}
@@ -147,7 +147,7 @@ export default function HomePage() {
                 </div>
                 <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
                   <Image
-                    src="/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png"
+                    src="/screenshots/archive/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png"
                     alt="Detail view screenshot"
                     width={1024}
                     height={1536}
@@ -157,7 +157,7 @@ export default function HomePage() {
                 </div>
                 <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
                   <Image
-                    src="/screenshots/StatsModalappInHandAtSoccerField.png"
+                    src="/screenshots/archive/StatsModalappInHandAtSoccerField.png"
                     alt="MatchOps Local in use at the field"
                     width={1024}
                     height={1536}
@@ -187,61 +187,27 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Workflow stepper navigation */}
-              <div className="mt-6 flex items-center justify-center">
-                <div className="flex items-center gap-0">
-                  {[
-                    { label: t('screenshots.labels.plan'), icon: FaClipboardList },
-                    { label: t('screenshots.labels.track'), icon: FaPlay },
-                    { label: t('screenshots.labels.review'), icon: FaChartBar },
-                  ].map((item, i, arr) => (
-                    <div key={item.label} className="flex items-center">
-                      <button
-                        type="button"
-                        aria-label={t('screenshots.aria.goTo', { label: item.label })}
-                        className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-lg transition-all ${
-                          activeSlide === i
-                            ? 'bg-primary/20 scale-105'
-                            : 'hover:bg-slate-800/60'
-                        }`}
-                        onClick={() => goTo(i)}
-                      >
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                            activeSlide === i
-                              ? 'bg-primary text-slate-900 shadow-lg shadow-primary/30'
-                              : 'bg-slate-700 text-slate-300'
-                          }`}
-                        >
-                          <item.icon className="text-lg" />
-                        </div>
-                        <span
-                          className={`text-xs font-medium transition-colors ${
-                            activeSlide === i ? 'text-primary' : 'text-slate-400'
-                          }`}
-                        >
-                          {item.label}
-                        </span>
-                      </button>
-                      {/* Connector line between steps */}
-                      {i < arr.length - 1 && (
-                        <div
-                          className={`w-6 h-0.5 -mx-1 transition-colors ${
-                            activeSlide > i ? 'bg-primary' : 'bg-slate-700'
-                          }`}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="text-center mt-6">
-                <Link
-                  href="/gallery"
-                  className="inline-block px-6 py-3 bg-primary hover:bg-primary/90 text-slate-900 font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
-                >
-                  {t('screenshots.viewMore')} →
-                </Link>
+              {/* Pill navigation */}
+              <div className="mt-6 flex items-center justify-center gap-2">
+                {[
+                  t('screenshots.labels.plan'),
+                  t('screenshots.labels.track'),
+                  t('screenshots.labels.review'),
+                ].map((label, i) => (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-label={t('screenshots.aria.goTo', { label })}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      activeSlide === i
+                        ? 'bg-primary text-slate-900'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                    onClick={() => goTo(i)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -251,11 +217,11 @@ export default function HomePage() {
                 <button
                   type="button"
                   className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
-                  onClick={() => setLightbox({ src: '/screenshots/the first screenshot.png', alt: 'App view screenshot' })}
+                  onClick={() => setLightbox({ src: '/screenshots/archive/the first screenshot.png', alt: 'App view screenshot' })}
                   aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.plan') })}
                 >
                   <Image
-                    src="/screenshots/the first screenshot.png"
+                    src="/screenshots/archive/the first screenshot.png"
                     alt="App view screenshot"
                     width={1024}
                     height={1536}
@@ -276,11 +242,11 @@ export default function HomePage() {
                 <button
                   type="button"
                   className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
-                  onClick={() => setLightbox({ src: '/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: 'Detail view screenshot' })}
+                  onClick={() => setLightbox({ src: '/screenshots/archive/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: 'Detail view screenshot' })}
                   aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.track') })}
                 >
                   <Image
-                    src="/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png"
+                    src="/screenshots/archive/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png"
                     alt="Detail view screenshot"
                     width={1024}
                     height={1536}
@@ -300,11 +266,11 @@ export default function HomePage() {
                 <button
                   type="button"
                   className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
-                  onClick={() => setLightbox({ src: '/screenshots/StatsModalappInHandAtSoccerField.png', alt: 'MatchOps Local in use at the field' })}
+                  onClick={() => setLightbox({ src: '/screenshots/archive/StatsModalappInHandAtSoccerField.png', alt: 'MatchOps Local in use at the field' })}
                   aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.review') })}
                 >
                   <Image
-                    src="/screenshots/StatsModalappInHandAtSoccerField.png"
+                    src="/screenshots/archive/StatsModalappInHandAtSoccerField.png"
                     alt="MatchOps Local in use at the field"
                     width={1024}
                     height={1536}
@@ -320,16 +286,6 @@ export default function HomePage() {
                   <span className="text-sm text-slate-300 font-medium">{t('screenshots.captions.review')}</span>
                 </div>
               </div>
-            </div>
-
-            {/* View more button */}
-            <div className="hidden md:block text-center mt-8">
-              <Link
-                href="/gallery"
-                className="inline-block px-8 py-3 bg-primary hover:bg-primary/90 text-slate-900 font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
-              >
-                {t('screenshots.viewMore')} →
-              </Link>
             </div>
 
             {/* Desktop Lightbox Modal */}
