@@ -86,7 +86,7 @@ export default function GuideLayout({
             />
 
             {/* Main content */}
-            <main className="flex-1 min-w-0 py-8 lg:py-12 lg:pl-8">
+            <main className="flex-1 min-w-0 px-4 py-8 lg:px-0 lg:py-12 lg:pl-8">
               <article className="max-w-3xl">
                 {/* Breadcrumbs (desktop only) */}
                 <div className="hidden lg:block">

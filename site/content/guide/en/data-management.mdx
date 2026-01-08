@@ -8,17 +8,16 @@ Your data in MatchOps Local is stored locally on your device. This guide covers 
 
 ## How Data is Stored
 
-### Local Storage
+### Device Storage
 
-MatchOps Local uses IndexedDB, a browser database that:
+MatchOps Local stores data on your device's storage (disk). This means:
 
-- Stores data directly on your device
-- Works offline
-- Persists across sessions
-- Has no cloud backup by default
+- Data persists even when you close the app or restart your device
+- Works completely offline
+- No cloud backup by default
 
 <Callout type="warning">
-Your data exists only on your device. If you uninstall the app, clear browser data, or lose your device, the data is gone unless you've backed it up.
+Your data exists only on your device's storage. If you uninstall the app, clear app data in Android settings, or lose your device, the data is gone unless you've backed it up.
 </Callout>
 
 ### What's Stored
@@ -195,10 +194,10 @@ Archive rather than delete when possible. Storage space is rarely a limiting fac
 
 If data isn't persisting:
 
-1. Check that you're not in private/incognito mode
-2. Ensure browser allows storage
+1. Check that the app has storage permissions
+2. Verify available device storage
 3. Try restarting the app
-4. Check available device storage
+4. Clear app cache and try again
 
 ### Corrupted Data
 

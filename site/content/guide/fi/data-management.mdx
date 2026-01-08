@@ -8,17 +8,16 @@ Datasi MatchOps Localissa tallennetaan paikallisesti laitteellesi. Tämä opas k
 
 ## Miten data tallennetaan
 
-### Paikallinen tallennus
+### Laitetallennus
 
-MatchOps Local käyttää IndexedDB-tietokantaa, joka:
+MatchOps Local tallentaa datan laitteesi tallennustilaan (levylle). Tämä tarkoittaa:
 
-- Tallentaa datan suoraan laitteellesi
-- Toimii offline-tilassa
-- Säilyy istuntojen välillä
+- Data säilyy vaikka suljet sovelluksen tai käynnistät laitteen uudelleen
+- Toimii täysin offline-tilassa
 - Ei oletuksena varmuuskopioi pilveen
 
 <Callout type="warning">
-Datasi on vain laitteellasi. Jos poistat sovelluksen, tyhjennät selaimen tiedot tai kadotat laitteesi, data häviää ellei sitä ole varmuuskopioitu.
+Datasi on vain laitteesi tallennustilassa. Jos poistat sovelluksen, tyhjennät sovelluksen tiedot Androidin asetuksista tai kadotat laitteesi, data häviää ellei sitä ole varmuuskopioitu.
 </Callout>
 
 ### Mitä tallennetaan
@@ -195,10 +194,10 @@ Arkistoi poistamisen sijaan aina kun mahdollista. Tallennustila on harvoin rajoi
 
 Jos data ei säily:
 
-1. Tarkista, ettet ole yksityis-/incognito-tilassa
-2. Varmista, että selain sallii tallennuksen
+1. Tarkista, että sovelluksella on tallennusoikeudet
+2. Tarkista laitteen vapaa tallennustila
 3. Kokeile sovelluksen uudelleenkäynnistystä
-4. Tarkista laitteen vapaa tallennustila
+4. Tyhjennä sovelluksen välimuisti ja kokeile uudelleen
 
 ### Vioittunut data
 
