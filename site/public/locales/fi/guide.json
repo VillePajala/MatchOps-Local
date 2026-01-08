@@ -5,6 +5,12 @@
     "openMenu": "Avaa opasvalikko",
     "closeMenu": "Sulje opasvalikko"
   },
+  "groups": {
+    "getting-started": "Aloitus",
+    "setup": "Datan valmistelu",
+    "game-day": "Pelipäivä",
+    "review": "Katsaus ja data"
+  },
   "search": {
     "placeholder": "Hae oppaasta...",
     "noResults": "Ei tuloksia haulle \"{{query}}\"",
@@ -24,6 +30,10 @@
   "landing": {
     "title": "Käyttöopas",
     "subtitle": "Kaikki mitä tarvitset MatchOps Localin käyttöön",
+    "structureIntro": "Valitse aloituspisteesi",
+    "structureExplanation": "Pikaopas saa sinut alkuun heti. Suositeltu työnkulku opastaa datan valmisteluun kaikkien hyötyjen saamiseksi. Viiteoppaat kattavat yksittäiset ominaisuudet.",
+    "mainPaths": "Aloita tästä",
+    "referenceGuides": "Viiteoppaat",
     "quickStart": "Uusi MatchOpsissa?",
     "startButton": "Aloita Aloitus-oppaasta"
   },
@@ -31,8 +41,12 @@
   "readingTime": "{{minutes}} min lukuaika",
   "sections": {
     "getting-started": {
-      "title": "Aloitus",
-      "description": "Asenna sovellus ja luo ensimmäinen joukkueesi"
+      "title": "Pikaopas",
+      "description": "Asenna sovellus ja kokeile heti"
+    },
+    "full-setup-path": {
+      "title": "Suositeltu työnkulku",
+      "description": "Täydellinen työnkulku MatchOpsin kaikkien ominaisuuksien hyödyntämiseksi"
     },
     "game-day-workflow": {
       "title": "Pelipäivän työnkulku",

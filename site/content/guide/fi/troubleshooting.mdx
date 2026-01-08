@@ -1,36 +1,10 @@
 ---
 title: Vianetsintä
 description: Yleiset ongelmat ja ratkaisut MatchOps Localille
-lastUpdated: "2025-01-05"
+lastUpdated: "2025-01-08"
 ---
 
 Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOps Localin kanssa.
-
-## Asennusongelmat
-
-### PWA:ta ei voi asentaa
-
-**Ongelma**: "Lisää aloitusnäytölle" tai asennusvaihtoehto ei näy.
-
-**Ratkaisut**:
-- Käytä tuettua selainta (Chrome, Safari, Edge)
-- Avaa sovellus suoraan (ei toisen sovelluksen linkin kautta)
-- Tarkista, että HTTPS on käytössä
-- Yksityis-/incognito-tila ei tue PWA-asennusta
-
-<Callout type="info">
-PWA-asennus vaatii HTTPS:n ja tiettyjä selainominaisuuksia. Joillakin iOS-selaimilla on rajoituksia.
-</Callout>
-
-### Sovellus ei lataudu
-
-**Ongelma**: Sovellus näyttää tyhjän ruudun tai latauspyörän.
-
-**Ratkaisut**:
-1. Tyhjennä selaimen välimuisti ja lataa uudelleen
-2. Tarkista nettiyhteys (ensimmäisellä latauksella)
-3. Kokeile toista selainta
-4. Poista selainlaajennukset väliaikaisesti käytöstä
 
 ## Data-ongelmat
 
@@ -39,24 +13,22 @@ PWA-asennus vaatii HTTPS:n ja tiettyjä selainominaisuuksia. Joillakin iOS-selai
 **Ongelma**: Muutokset eivät säily istuntojen välillä.
 
 **Ratkaisut**:
-- Varmista, ettet ole yksityis-/incognito-tilassa
-- Tarkista selaimen tallennusoikeudet
-- Varmista, että tallennustilaa on riittävästi
-- Kokeile manuaalista tallennusta ennen sulkemista
+- Tarkista, että sovelluksella on tallennusoikeudet Androidin asetuksissa
+- Varmista, että laitteessa on riittävästi tallennustilaa
+- Kokeile manuaalista tallennusta ennen sovelluksen sulkemista
 
 ### Kadonnut data
 
 **Ongelma**: Aiemmat pelit tai pelaajat ovat kadonneet.
 
 **Syyt**:
-- Selaimen tiedot tyhjennettiin
-- Incognito-tila käytössä
-- Eri selain/laite kuin aiemmin
-- Sovelluksen poisto
+- Sovelluksen tiedot tyhjennettiin Androidin asetuksista
+- Sovellus poistettiin ja asennettiin uudelleen
+- Käytät eri laitetta kuin aiemmin
 
 **Palautus**:
 - Palauta varmuuskopiosta jos saatavilla
-- Tarkista, oletko oikeassa selaimessa/laitteessa
+- Tarkista, oletko oikealla laitteella
 - Ota yhteyttä tukeen jos datan pitäisi olla olemassa
 
 ### Tuonti/vienti ei toimi
@@ -67,7 +39,7 @@ PWA-asennus vaatii HTTPS:n ja tiettyjä selainominaisuuksia. Joillakin iOS-selai
 - Tarkista tiedostomuoto (JSON varmuuskopioille, xlsx Excelille)
 - Varmista, ettei tiedosto ole vioittunut
 - Kokeile pienempää dataosaa
-- Käytä toista selainta
+- Tarkista, että sovelluksella on tiedostojen käyttöoikeudet
 
 ## Suorituskykyongelmat
 
@@ -76,9 +48,9 @@ PWA-asennus vaatii HTTPS:n ja tiettyjä selainominaisuuksia. Joillakin iOS-selai
 **Ongelma**: Sovellus on hidas tai ei vastaa.
 
 **Ratkaisut**:
-1. Sulje muut selaimen välilehdet
+1. Sulje muut taustalla olevat sovellukset
 2. Käynnistä sovellus uudelleen
-3. Tyhjennä selaimen välimuisti
+3. Tyhjennä sovelluksen välimuisti Androidin asetuksista
 4. Vähennä tallennettua dataa (arkistoi vanhat kaudet)
 
 ### Ajastin ei ole tarkka
@@ -87,13 +59,14 @@ PWA-asennus vaatii HTTPS:n ja tiettyjä selainominaisuuksia. Joillakin iOS-selai
 
 **Syyt**:
 - Laite oli lepotilassa
-- Välilehti oli taustalla
-- Selain hidasti välilehteä
+- Sovellus oli taustalla
+- Virransäästötila hidasti sovellusta
 
 **Ratkaisut**:
 - Pidä sovellus etualalla pelien aikana
-- Ota wake lock -ominaisuus käyttöön
+- Ota wake lock -ominaisuus käyttöön sovelluksen asetuksista
 - Älä vaihda sovelluksia aktiivisen ajanottajan aikana
+- Poista akun optimointi käytöstä MatchOps Localille
 
 ## Näyttöongelmat
 
@@ -104,16 +77,15 @@ PWA-asennus vaatii HTTPS:n ja tiettyjä selainominaisuuksia. Joillakin iOS-selai
 **Ratkaisut**:
 - Lukitse laitteen suunta mieltymyksesi mukaan
 - Käytä sovellusta suositellussa suunnassa (vaaka tabletilla, pysty puhelimella)
-- Päivitä sivu kääntämisen jälkeen
+- Käynnistä sovellus uudelleen kääntämisen jälkeen jos näyttö on virheellinen
 
 ### Elementit puuttuvat tai leikkautuvat
 
 **Ongelma**: Kaikkia käyttöliittymäelementtejä ei näe.
 
 **Ratkaisut**:
-- Tarkista selaimen zoomaustaso (tulisi olla 100%)
+- Tarkista laitteen näyttöasetukset (fonttikoko, näytön skaalaus)
 - Kokeile kokonäyttötilaa
-- Päivitä selaimesi
 - Tarkista laitteen näyttökoon yhteensopivuus
 
 ## Yhteysongelmia
@@ -123,47 +95,44 @@ PWA-asennus vaatii HTTPS:n ja tiettyjä selainominaisuuksia. Joillakin iOS-selai
 **Ongelma**: Sovellus ei toimi ilman nettiä.
 
 **Ratkaisut**:
-- Varmista, että olet ladannut sovelluksen kerran kokonaan nettiyhteydellä
-- Service worker tarvitsee välimuistiin resurssit ensin
-- Tarkista, tukeeko selain service workereita
-- Kokeile PWA:n uudelleenasennusta
+- Varmista, että olet avannut sovelluksen kerran nettiyhteydellä
+- Sovelluksen täytyy ladata resurssit ensimmäisellä käynnistyksellä
+- Kokeile sovelluksen uudelleenasennusta
 
 <Callout type="tip">
-Ensimmäisen latauksen jälkeen sovelluksen pitäisi toimia offline. Testaa laittamalla lentokonetila päälle ja avaamalla uudelleen.
+Ensimmäisen käynnistyksen jälkeen sovelluksen pitäisi toimia offline. Testaa laittamalla lentokonetila päälle ja avaamalla uudelleen.
 </Callout>
 
-## Laitekohtaiset ongelmat
+## Android-kohtaiset ongelmat
 
-### iOS Safari -ongelmat
-
-Yleisiä ongelmia:
-- Tallennustilan rajoitukset PWA-tilassa
-- Wake lock ei välttämättä toimi
-- Jotkut eleet ristiriidassa Safarin kanssa
-
-**Ratkaisut**:
-- Lisää aloitusnäytölle parempaan kokemukseen
-- Pidä sovellus aktiivisena pelien aikana
-- Käytä Chromea iOS:ssä vaihtoehtona
-
-### Android Chrome
+### Taustarajoitukset
 
 Yleisiä ongelmia:
-- Taustarajoitukset voivat pysäyttää ajastimen
-- Tallennusoikeusikkunat
+- Ajastin pysähtyy kun sovellus on taustalla
+- Ilmoitukset eivät näy
 
 **Ratkaisut**:
-- Myönnä tallennusoikeudet pyydettäessä
+- Poista akun optimointi käytöstä MatchOps Localille
+- Myönnä kaikki pyydetyt oikeudet
 - Pidä sovellus etualalla pelien aikana
-- Tarkista Androidin virransäästöasetukset
+- Tarkista Androidin mukautuvan akun asetukset
+
+### Tallennusoikeusongelmat
+
+**Ongelma**: Sovellus pyytää tallennusoikeutta toistuvasti tai ei voi tallentaa tiedostoja.
+
+**Ratkaisut**:
+- Myönnä tallennusoikeudet: Asetukset > Sovellukset > MatchOps Local
+- Android 13+: Myönnä "Kuvat ja videot" tai "Tiedostot" -oikeus tarpeen mukaan
+- Käynnistä sovellus uudelleen oikeuksien myöntämisen jälkeen
 
 ## Lisäavun saaminen
 
 ### Ennen tukeen yhteydenottoa
 
 Kerää nämä tiedot:
-1. Laite ja käyttöjärjestelmä
-2. Selain ja versio
+1. Laitteen malli ja Android-versio
+2. Sovelluksen versio (löytyy Asetuksista)
 3. Vaiheet ongelman toistamiseksi
 4. Mahdolliset virheilmoitukset
 5. Kuvakaappaus jos mahdollista
@@ -172,10 +141,10 @@ Kerää nämä tiedot:
 
 Jos ongelmat jatkuvat:
 
-1. **Pehmeä nollaus**: Tyhjennä sovelluksen välimuisti, lataa uudelleen
-2. **Datan vienti**: Tallenna datasi ensin
-3. **Puhdas uudelleenasennus**: Poista ja asenna PWA uudelleen
-4. **Täysi nollaus**: Tyhjennä kaikki data (viimeinen keino)
+1. **Pehmeä nollaus**: Tyhjennä sovelluksen välimuisti Androidin asetuksista, avaa uudelleen
+2. **Datan vienti**: Tallenna datasi ensin varmuuskopiolla
+3. **Puhdas uudelleenasennus**: Poista ja asenna uudelleen Play Kaupasta
+4. **Täysi nollaus**: Tyhjennä kaikki sovelluksen tiedot (viimeinen keino)
 
 <Callout type="warning">
 Varmuuskopioi aina datasi ennen mitään nollaustoimenpiteitä.

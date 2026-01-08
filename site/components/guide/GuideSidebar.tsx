@@ -2,7 +2,12 @@ import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { FaTimes, FaHome } from 'react-icons/fa';
-import { guideSections, type GuideSection } from '@/lib/guide/guideConfig';
+import {
+  getGroupedSections,
+  guideGroups,
+  type GuideSection,
+  type GuideGroup,
+} from '@/lib/guide/guideConfig';
 import GuideSearch from './GuideSearch';
 import type { SearchIndexData } from '@/lib/guide/searchIndex';
 
@@ -25,6 +30,12 @@ export default function GuideSidebar({
   const getTitle = (section: GuideSection) => {
     return locale === 'fi' ? section.titleFi : section.title;
   };
+
+  const getGroupTitle = (group: GuideGroup) => {
+    return t(`groups.${group}`);
+  };
+
+  const groupedSections = getGroupedSections();
 
   return (
     <>
@@ -85,38 +96,47 @@ export default function GuideSidebar({
             </div>
           )}
 
-          {/* Section links */}
-          <ul className="space-y-1">
-            {guideSections.map((section) => {
-              const isActive = currentSlug === section.slug;
-              const Icon = section.icon;
+          {/* Section links grouped */}
+          <div className="space-y-6">
+            {groupedSections.map(({ group, sections }) => (
+              <div key={group}>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">
+                  {getGroupTitle(group)}
+                </h3>
+                <ul className="space-y-1">
+                  {sections.map((section) => {
+                    const isActive = currentSlug === section.slug;
+                    const Icon = section.icon;
 
-              return (
-                <li key={section.slug}>
-                  <Link
-                    href={`/guide/${section.slug}`}
-                    onClick={onClose}
-                    className={`
-                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all
-                      ${
-                        isActive
-                          ? 'bg-primary/10 text-primary border-l-2 border-primary'
-                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                      }
-                    `}
-                    aria-current={isActive ? 'page' : undefined}
-                  >
-                    <Icon
-                      className={`w-4 h-4 flex-shrink-0 ${
-                        isActive ? 'text-primary' : 'text-slate-500'
-                      }`}
-                    />
-                    <span className="truncate">{getTitle(section)}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                    return (
+                      <li key={section.slug}>
+                        <Link
+                          href={`/guide/${section.slug}`}
+                          onClick={onClose}
+                          className={`
+                            flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all
+                            ${
+                              isActive
+                                ? 'bg-primary/10 text-primary border-l-2 border-primary'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                            }
+                          `}
+                          aria-current={isActive ? 'page' : undefined}
+                        >
+                          <Icon
+                            className={`w-4 h-4 flex-shrink-0 ${
+                              isActive ? 'text-primary' : 'text-slate-500'
+                            }`}
+                          />
+                          <span className="truncate">{getTitle(section)}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </nav>
       </aside>
     </>

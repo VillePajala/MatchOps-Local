@@ -1,36 +1,10 @@
 ---
 title: Troubleshooting
 description: Common issues and solutions for MatchOps Local
-lastUpdated: "2025-01-05"
+lastUpdated: "2025-01-08"
 ---
 
 This guide helps you resolve common issues with MatchOps Local.
-
-## Installation Issues
-
-### Can't Install the PWA
-
-**Problem**: The "Add to Home Screen" or install option doesn't appear.
-
-**Solutions**:
-- Use a supported browser (Chrome, Safari, Edge)
-- Visit the app directly (not through a link in another app)
-- Check that HTTPS is being used
-- Private/incognito mode doesn't support PWA installation
-
-<Callout type="info">
-PWA installation requires HTTPS and certain browser features. Some browsers on iOS have limitations.
-</Callout>
-
-### App Won't Load
-
-**Problem**: The app shows a blank screen or loading spinner.
-
-**Solutions**:
-1. Clear browser cache and reload
-2. Check your internet connection (for first load)
-3. Try a different browser
-4. Disable browser extensions temporarily
 
 ## Data Issues
 
@@ -39,24 +13,22 @@ PWA installation requires HTTPS and certain browser features. Some browsers on i
 **Problem**: Changes aren't persisting between sessions.
 
 **Solutions**:
-- Ensure you're not in private/incognito mode
-- Check browser storage permissions
-- Verify you have available storage space
-- Try manually saving before closing
+- Check that the app has storage permissions in Android settings
+- Verify you have available storage space on your device
+- Try manually saving before closing the app
 
 ### Lost Data
 
 **Problem**: Previous games or players have disappeared.
 
 **Causes**:
-- Browser data was cleared
-- Using incognito mode
-- Different browser/device than before
-- App uninstall
+- App data was cleared in Android settings
+- App was uninstalled and reinstalled
+- Using a different device than before
 
 **Recovery**:
 - Restore from backup if available
-- Check if you're in the correct browser/device
+- Check if you're on the correct device
 - Contact support if data should exist
 
 ### Import/Export Not Working
@@ -67,7 +39,7 @@ PWA installation requires HTTPS and certain browser features. Some browsers on i
 - Check file format (JSON for backups, xlsx for Excel)
 - Ensure file isn't corrupted
 - Try a smaller data subset
-- Use a different browser
+- Check that the app has file access permissions
 
 ## Performance Issues
 
@@ -76,9 +48,9 @@ PWA installation requires HTTPS and certain browser features. Some browsers on i
 **Problem**: The app is sluggish or unresponsive.
 
 **Solutions**:
-1. Close other browser tabs
+1. Close other apps running in the background
 2. Restart the app
-3. Clear browser cache
+3. Clear app cache in Android settings
 4. Reduce stored data (archive old seasons)
 
 ### Timer Not Accurate
@@ -87,13 +59,14 @@ PWA installation requires HTTPS and certain browser features. Some browsers on i
 
 **Causes**:
 - Device was sleeping
-- Tab was in background
-- Browser throttled the tab
+- App was in background
+- Battery saver mode throttled the app
 
 **Solutions**:
 - Keep the app in the foreground during games
-- Enable wake lock feature
+- Enable wake lock feature in app settings
 - Don't switch apps during active timing
+- Disable battery optimization for MatchOps Local
 
 ## Display Issues
 
@@ -104,16 +77,15 @@ PWA installation requires HTTPS and certain browser features. Some browsers on i
 **Solutions**:
 - Lock device orientation to your preference
 - Use the app in recommended orientation (landscape for tablet, portrait for phone)
-- Refresh the page after rotation
+- Restart the app after rotation if display is incorrect
 
 ### Elements Missing or Cut Off
 
 **Problem**: Can't see all the interface elements.
 
 **Solutions**:
-- Check browser zoom level (should be 100%)
+- Check device display settings (font size, display scaling)
 - Try fullscreen mode
-- Update your browser
 - Check device screen size compatibility
 
 ## Connectivity Issues
@@ -123,47 +95,44 @@ PWA installation requires HTTPS and certain browser features. Some browsers on i
 **Problem**: App doesn't work without internet.
 
 **Solutions**:
-- Ensure you've loaded the app fully once with internet
-- The service worker needs to cache resources first
-- Check browser supports service workers
-- Try reinstalling the PWA
+- Ensure you've opened the app at least once with internet connection
+- The app needs to download resources on first launch
+- Try reinstalling the app
 
 <Callout type="tip">
-After first load, the app should work offline. Test by enabling airplane mode and reopening.
+After first launch, the app should work offline. Test by enabling airplane mode and reopening.
 </Callout>
 
-## Device-Specific Issues
+## Android-Specific Issues
 
-### iOS Safari Problems
-
-Common issues:
-- Storage limitations in PWA mode
-- Wake lock may not work
-- Some gestures conflict with Safari
-
-**Solutions**:
-- Add to home screen for better experience
-- Keep the app active during games
-- Use Chrome on iOS as alternative
-
-### Android Chrome
+### Background Restrictions
 
 Common issues:
-- Background restrictions may pause timer
-- Storage permission dialogs
+- Timer pauses when app is in background
+- Notifications not appearing
 
 **Solutions**:
-- Grant storage permissions when prompted
+- Disable battery optimization for MatchOps Local
+- Grant all requested permissions
 - Keep app in foreground during games
-- Check Android battery optimization settings
+- Check Android's adaptive battery settings
+
+### Storage Permission Issues
+
+**Problem**: App asks for storage permission repeatedly or can't save files.
+
+**Solutions**:
+- Grant storage permissions in Android Settings > Apps > MatchOps Local
+- On Android 13+, grant "Photos and videos" or "Files" permission as needed
+- Restart the app after granting permissions
 
 ## Getting More Help
 
 ### Before Contacting Support
 
 Gather this information:
-1. Device and operating system
-2. Browser and version
+1. Device model and Android version
+2. App version (found in Settings)
 3. Steps to reproduce the issue
 4. Any error messages
 5. Screenshot if possible
@@ -172,10 +141,10 @@ Gather this information:
 
 If issues persist:
 
-1. **Soft reset**: Clear app cache, reload
-2. **Data export**: Save your data first
-3. **Clean reinstall**: Remove and reinstall PWA
-4. **Full reset**: Clear all data (last resort)
+1. **Soft reset**: Clear app cache in Android settings, reopen
+2. **Data export**: Save your data first via backup
+3. **Clean reinstall**: Uninstall and reinstall from Play Store
+4. **Full reset**: Clear all app data (last resort)
 
 <Callout type="warning">
 Always backup your data before attempting any reset procedures.

@@ -1,0 +1,363 @@
+---
+title: Statistics
+description: Comprehensive guide to the Statistics Modal - tabs, filters, player analytics
+lastUpdated: "2025-01-08"
+---
+
+The Statistics Modal is your central hub for viewing and analyzing performance data across games, seasons, tournaments, and individual players.
+
+## Opening Statistics
+
+Access statistics by clicking the **Stats** button in the control bar or menu.
+
+## Tabs Overview
+
+The modal has five tabs, each showing data at a different aggregation level:
+
+- **Current Game** - Stats for the active game only
+- **Season** - Aggregated stats across season games
+- **Tournament** - Aggregated stats across tournament games
+- **Overall** - Combined stats across ALL games
+- **Player** - Detailed individual player statistics and career data
+
+<Callout type="info">
+Filters reset when you switch between tabs. Each tab starts with clean filter state.
+</Callout>
+
+---
+
+## Current Game Tab
+
+Shows statistics for the game you're currently viewing.
+
+### What You See
+
+- **Game info** - Teams, score, location, time, periods
+- **Player stats table** - Goals and assists for players selected in this game only
+- **Goal events** - Editable list of goals with time, scorer, and assister
+- **Personnel summary** - Coaches and staff assigned to the game
+- **Game notes** - Your recorded observations (editable)
+
+### Editing Goals
+
+Click any goal event to edit it:
+- Change the scorer or assister
+- Adjust the time
+- Delete the goal entirely
+
+Changes update the score automatically.
+
+### Filters
+
+No filters on this tab - it shows only the current game's data.
+
+---
+
+## Season Tab
+
+Shows aggregated statistics across all games in a season (excluding tournament games).
+
+### What You See
+
+**When a specific season is selected:**
+- Team Performance Card showing that season's record
+- Player stats table with season totals
+
+**When "All Seasons" is selected:**
+- Aggregate stats card showing totals across all seasons
+- Combined player stats
+
+### Filters
+
+**Always visible:**
+- **Season selector** - Choose a specific season or "All Seasons"
+
+**In collapsible panel (tap "Filters"):**
+- **Team** - Filter by specific team, "All Teams", or "Legacy Games" (pre-team games)
+- **Game Type** - Soccer, Futsal, or All
+- **Gender** - Boys, Girls, or All
+- **Club Season** - Filter by period (e.g., "24/25")
+
+---
+
+## Tournament Tab
+
+Shows aggregated statistics across tournament games (excluding season games).
+
+### What You See
+
+Same as Season tab but for tournament context:
+- Team Performance Card for selected tournament
+- Player stats aggregated across tournament games
+
+### Filters
+
+**Always visible:**
+- **Tournament selector** - Choose a specific tournament or "All Tournaments"
+
+**In collapsible panel:**
+- **Series** - Only appears if the selected tournament has series/groups defined. Filter to a specific series within the tournament.
+- **Team** - Filter by team
+- **Game Type** - Soccer, Futsal, or All
+- **Gender** - Boys, Girls, or All
+- **Club Season** - Filter by period
+
+<Callout type="tip">
+The Series filter only appears when you select a specific tournament that has series configured. It won't show for "All Tournaments" or tournaments without series.
+</Callout>
+
+---
+
+## Overall Tab
+
+Shows combined statistics across ALL games - both seasons and tournaments.
+
+### What You See
+
+- Team Performance Card with all-time stats
+- Optional team assessment averages (if you've rated games)
+- Player stats table for all players across all games
+
+### Filters
+
+**Always visible:**
+- **Team selector** - Always shown on this tab with three options:
+  - **All Teams** - Stats across all your teams combined
+  - **Legacy Games** - Games created before team system (no team assigned)
+  - **Specific team** - Stats for one team only
+
+**In collapsible panel:**
+- **Game Type** - Soccer, Futsal, or All
+- **Gender** - Boys, Girls, or All
+- **Club Season** - Filter by period
+
+---
+
+## Player Tab
+
+The most feature-rich tab - shows comprehensive individual player statistics and career data.
+
+### Player Selection
+
+Use the searchable dropdown to select a player. You can search by name or nickname. The list includes all players from your roster.
+
+### Summary Stats
+
+Shows four key metrics in a card:
+- **Games Played** - Total games
+- **Goals** - Total goals + per-game average
+- **Assists** - Total assists + per-game average
+- **Points** - Goals + Assists combined + per-game average
+
+### Filter Status Indicator
+
+When Club Season filter is active, a blue banner shows: "Viewing stats for selected club season only (X of Y games)" - helping you understand you're seeing filtered data.
+
+### Filters
+
+**In collapsible panel:**
+- **Game Type** - Soccer, Futsal, or All
+- **Gender** - Boys, Girls, or All
+- **Club Season** - Filter by period
+
+<Callout type="info">
+Team filter is not shown on Player tab - player stats are inherently player-specific across all their teams.
+</Callout>
+
+### External Games Section
+
+Record games the player played for other teams or in other leagues:
+
+**Add external game with:**
+- Season or Tournament (optional - for organizing)
+- Home/Away/Neutral indicator
+- External team name and opponent
+- Score
+- Game date
+- Stats: Games, Goals, Assists
+- Fair Play Card checkbox
+- "Include in Season/Tournament stats" toggle
+- Optional note
+
+**Include in Season/Tournament toggle:**
+- When ON: External game stats count toward season/tournament aggregates
+- When OFF: Only counts toward player's overall career stats
+
+Existing adjustments show in a list with edit/delete options.
+
+### Game Log & Trends
+
+**Metric selector** - Choose what to visualize:
+- Goals & Assists (dual-line sparkline chart)
+- Goals only (area chart)
+- Assists only (area chart)
+- Points (area chart)
+- Assessment metrics (area charts)
+
+Charts show the player's performance trends over time.
+
+### Performance Ratings Section
+
+If you've recorded player assessments:
+
+- **Individual metric ratings** - Physical, technical, tactical, mental, etc.
+- **Overall rating** - Combined rating
+- **Average rating** - Weighted average across metrics
+- **Rated games count** - How many games have assessments
+
+**Demand Correction toggle:**
+- When enabled, ratings from harder opponents count more
+- Weights the averages by game difficulty
+
+**Assessment trends** - Mini charts showing how each metric changed over time
+
+**Assessment notes** - List of notes you've added during games
+
+### Season/Tournament Performance
+
+Breakdown tables showing:
+- Per-season stats (GP, goals, assists, points, fair play cards)
+- Per-tournament stats (same metrics + tournament winner indicator)
+
+### Game-by-Game Breakdown
+
+Individual game rows showing:
+- **Result strip** - Color-coded: green (win), red (loss), gray (draw)
+- **Teams and opponent**
+- **Date**
+- **Goals and assists** - Color-coded numbers
+- **Badges:**
+  - EXT (purple) - External game
+  - FP (green) - Fair Play Card received
+  - Futsal (orange) - Futsal game
+
+Click any game row to navigate to that game's full statistics (except external games).
+
+---
+
+## Team Performance Card
+
+Appears on Season, Tournament, and Overall tabs.
+
+### Metrics Shown
+
+- **Games Played** - Total count
+- **Record** - Win-Loss-Tie format (e.g., "12-3-2")
+- **Win %** - Percentage of games won
+- **Goal Difference** - Goals for minus goals against (green if positive, red if negative)
+- **Goals For** - Total scored
+- **Goals Against** - Total conceded
+- **Avg GF** - Average goals scored per game
+- **Avg GA** - Average goals conceded per game
+- **Last Game Date** - When shown
+
+### Specific vs All
+
+**When viewing a specific season/tournament:**
+- Shows one Team Performance Card for that context only
+
+**When viewing "All Seasons" or "All Tournaments":**
+- Shows aggregate stats card with combined totals across all contexts
+
+---
+
+## Player Stats Table
+
+Appears on Current Game, Season, Tournament, and Overall tabs.
+
+### Columns
+
+- **Player** - Name (clickable to view details)
+- **GP** - Games Played
+- **Goals** - Total goals scored
+- **Assists** - Total assists
+- **Pts** - Points (Goals + Assists)
+- **Avg** - Average points per game
+
+### Sorting
+
+Click any column header to sort. Click again to reverse. Sorting indicator arrows show current sort state.
+
+### Row Click
+
+Click any player row to:
+1. Switch to Player tab
+2. Select that player
+3. View their detailed career stats
+
+### Totals Row
+
+Bottom row shows aggregate totals across all displayed players.
+
+---
+
+## Club Season Filter
+
+Filters games by club/academic season period (e.g., October to May).
+
+### Setup Required
+
+Club Season filter requires configuration in Settings:
+- Set season start date (month-day)
+- Set season end date (month-day)
+
+If not configured, the filter shows as disabled with a settings button to configure it.
+
+### Options
+
+- **All Periods** - Shows all games regardless of season
+- **Specific periods** - e.g., "23/24", "24/25"
+- **Off-season** - Games outside the configured season period
+
+---
+
+## Exporting Statistics
+
+Export buttons appear in the modal footer. Available exports depend on the active tab:
+
+- **Current Game** - Single game data (events, player stats, notes)
+- **Season** - Season aggregate stats
+- **Tournament** - Tournament aggregate stats
+- **Overall** - Full aggregate stats across all games
+- **Player** - Individual player career data
+
+Exports are saved as Excel (.xlsx) files.
+
+---
+
+## Common Use Cases
+
+### Post-Game Review
+
+1. Stats opens to Current Game tab automatically
+2. Verify goal events are correct
+3. Check player contributions
+4. Add game notes if needed
+
+### Season Progress Check
+
+1. Switch to Season tab
+2. Select your season from dropdown
+3. Review team record and win percentage
+4. Check top scorers in player table
+5. Click player rows for individual details
+
+### Player Development Tracking
+
+1. Switch to Player tab
+2. Select player from dropdown
+3. Review career stats and trends
+4. Check assessment ratings over time
+5. Use Club Season filter to compare periods
+6. Add external games if they played elsewhere
+
+### Tournament Analysis
+
+1. Switch to Tournament tab
+2. Select tournament
+3. Use Series filter to compare group performance
+4. Review team stats and player contributions
+
+<Callout type="tip">
+Click any player row in the stats table to quickly jump to their detailed Player tab view with full career data.
+</Callout>

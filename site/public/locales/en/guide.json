@@ -5,6 +5,12 @@
     "openMenu": "Open guide menu",
     "closeMenu": "Close guide menu"
   },
+  "groups": {
+    "getting-started": "Getting Started",
+    "setup": "Setup Your Data",
+    "game-day": "Game Day",
+    "review": "Review & Data"
+  },
   "search": {
     "placeholder": "Search guide...",
     "noResults": "No results for \"{{query}}\"",
@@ -24,6 +30,10 @@
   "landing": {
     "title": "User Guide",
     "subtitle": "Everything you need to know about using MatchOps Local",
+    "structureIntro": "Choose your starting point",
+    "structureExplanation": "Quick Start gets you going immediately. Recommended Workflow shows the complete setup to get the full benefits. Reference guides cover specific features in detail.",
+    "mainPaths": "Start Here",
+    "referenceGuides": "Reference Guides",
     "quickStart": "New to MatchOps?",
     "startButton": "Start with Getting Started"
   },
@@ -31,8 +41,12 @@
   "readingTime": "{{minutes}} min read",
   "sections": {
     "getting-started": {
-      "title": "Getting Started",
-      "description": "Install the app and create your first team"
+      "title": "Quick Start",
+      "description": "Install the app and try it immediately"
+    },
+    "full-setup-path": {
+      "title": "Recommended Workflow",
+      "description": "The complete workflow to get the full benefits of MatchOps"
     },
     "game-day-workflow": {
       "title": "Game Day Workflow",

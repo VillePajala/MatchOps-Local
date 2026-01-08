@@ -44,18 +44,9 @@ Klikkaa **Kirjaa maali** - tulos päivittyy ja tapahtuma kirjataan.
 
 Voit myös **muokata tai poistaa** kirjattuja maaleja myöhemmin maalin kirjausikkunasta tai peliasetuksista.
 
-### Vaihdot
+### Kenttänäkymä ja muodostelma
 
-Vaihtopelaajat näkyvät kentän sivussa. Vaihdon tekeminen:
-
-1. Napauta vaihtopelaajaa kentän sivussa valitaksesi
-2. Napauta kentällä paikkaa, johon haluat sijoittaa pelaajan
-3. Edellinen pelaaja siirtyy automaattisesti sivuun
-4. Peliaikaa seurataan molemmille
-
-<Callout type="info">
-Vaihtoaika kirjataan automaattisesti pelikellon mukaan.
-</Callout>
+Kenttänäkymä on ensisijaisesti muodostelmien suunnitteluun ennen peliä ja puoliajalla - ei reaaliaikaiseen seurantaan pelin aikana. Voit siirtää pelaajien kiekkoja paikkojen välillä, mutta tämä on vain visuaalista suunnittelua eikä kirjaa vaihtoja tai seuraa yksittäisten pelaajien peliaikoja.
 
 ### Reilun pelin kortit
 
@@ -67,7 +58,7 @@ Reilun pelin kortin myöntäminen:
 4. Kortti tallentuu automaattisesti
 
 <Callout type="tip">
-Reilun pelin kortit ovat **positiivisia** palkintoja hyvästä urheiluhengestä - eivät rangaistuskortteja. Vain yksi pelaaja per peli voi saada reilun pelin kortin.
+Reilun pelin kortti tunnustaa erinomaisen urheiluhengen, sinnikkyyden ja positiivisen asenteen. Yksi pelaaja per peli voi saada sen.
 </Callout>
 
 ### Pelimuistiinpanot
@@ -76,46 +67,39 @@ Voit lisätä muistiinpanoja tärkeiden hetkien tallentamiseksi pelin aikana mui
 
 ## Ajastimen hallinta
 
-### Perustoiminnot
+### Ajastinnäkymä
+
+Ajastinnäkymä on päänäkymäsi pelin aikana. Avaa se napauttamalla ajastinnäyttöä ohjauspalkissa.
+
+Kaikki pelitoiminnot ovat ajastinnäkymässä:
 
 - **Toista/Tauko** - Vaihda ajastinta toistopainikkeella (▶/⏸)
-- **Jakson loppu** - Klikkaa päättääksesi nykyisen jakson ja siirtyäksesi seuraavaan
-- **Suuri ajastin** - Napauta ajastinta laajentaaksesi koko näytön näkymään
-- **Pikamaalit** - Käytä ajastinnäkymän maalipainikkeita nopeaan kirjaamiseen
+- **Maalin kirjaus** - Käytä **Kirjaa maali** tai **Vastustaja +1** -painikkeita maalien kirjaamiseen
+- **Jaksosiirtymät** - Jakson päättyessä ajastin pysähtyy automaattisesti. Paina toista aloittaaksesi seuraavan jakson.
 
 ### Vaihtovälimuistuttaja
 
-Ajastin sisältää älykkään vaihtomuistutusjärjestelmän:
+Ajastinnäkymä sisältää vaihtovälimuistuttajan, joka auttaa kierrättämään pelaajia säännöllisin väliajoin:
 
 1. **Aseta väli** - Määritä kuinka usein haluat kierrättää pelaajia (esim. 5 minuutin välein)
 2. **Visuaaliset hälytykset** - Näyttö vaihtaa väriä vaihtoajan lähestyessä:
    - Normaali (valkoinen) - Aikaa on hyvin
    - Varoitus (oranssi) - Vaihtoaika lähestyy
    - Aika (punainen) - Aika tehdä vaihdot
-3. **Vahvistuspainike** - Klikkaa "Vahvista vaihto tehty" kun kierrätys on valmis
+3. **Vahvistuspainike** - Klikkaa "Vaihto tehty" kun kierrätys on valmis
 4. **Nollaus** - Ajastin nollautuu ja aloittaa seuraavan välin seurannan
 
-<Callout type="tip">
-Vaihtoseuranta auttaa varmistamaan tasapuolisen peliajan kaikille pelaajille, erityisesti juniorisarjoissa.
+<Callout type="info">
+Välimuistuttaja on vain visuaalinen muistutus - se ei seuraa keitä pelaajia vaihdetaan eikä laske yksittäisten pelaajien peliaikoja. Hallitset varsinaiset vaihdot kentällä itse.
 </Callout>
 
 ### Jaksojen väliset siirtymät
 
-Puoliajalla tai jakson lopussa:
+Kun jakso päättyy (ajastin pysähtyy automaattisesti):
 
-1. Pysäytä ajastin
-2. Tarkastele jakson tilastoja
-3. Tee kokoonpanomuutokset
-4. Klikkaa siirtyäksesi seuraavaan jaksoon
-5. Paina toista aloittaaksesi uuden jakson
-
-### Lisäaika
-
-Lisäajan käsittely jakson lopussa:
-
-1. Pidä ajastin käynnissä jakson pituuden yli
-2. Lopeta jakso manuaalisesti kun lisäaika on ohi
-3. Todellinen pelattu aika kirjataan
+1. Tarkastele jakson tilastoja
+2. Muokkaa muodostelmaa kenttänäkymässä
+3. Paina toista aloittaaksesi seuraavan jakson
 
 ## Muutosten tekeminen
 
@@ -129,19 +113,25 @@ Pelin aikana voit järjestellä pelaajia kentällä:
 **Vaihtoehto 2: Napauta vaihtaaksesi**
 - Napauta pelaajaa valitaksesi, sitten napauta toista pelaajan kiekkoa vaihtaaksesi paikkoja
 
-Muutokset näkyvät heti ja voit käyttää **Kumoa/Tee uudelleen** -painikkeita peruuttaaksesi ne.
+Muutokset näkyvät heti.
 
 ### Kenttätyökalupaneeli
 
-Ohjauspalkista pääset lisätyökaluihin:
+Ohjauspalkista pääset lisätyökaluihin. Käytettävissä olevat työkalut riippuvat nykyisestä tilasta:
 
-- **Aseta kaikki pelaajat** (⊞) - Automaattinen sijoittelu muodostelmapohjilla (3v3 - 11v11)
-- **Lisää vastustaja** - Aseta vastustajapelaajamerkkejä kentälle
-- **Tyhjennä piirrokset** - Poista kaikki piirrokset kentältä
-- **Nollaa kenttä** - Palauta kaikki pelaajat vaihtopenkille
+**Normaali kenttänäkymä:**
+- **Taktiikka** - Vaihda taktiikkatila päälle/pois
+- **Aseta kaikki** (⊞) - Automaattinen sijoittelu muodostelmapohjilla (3v3 - 11v11)
+- **Tyhjennä** - Poista kaikki piirrokset kentältä
+- **Nollaa** - Palauta kaikki pelaajat vaihtopenkille
+
+**Taktiikkatila lisää:**
+- **Kumoa/Tee uudelleen** - Peru tai toista taktiset muutokset
+- **Lisää koti** - Sijoita kotijoukkueen taktisia kiekkoja
+- **Lisää vastustaja** - Sijoita vastustajan taktisia kiekkoja
 
 <Callout type="info">
-**Pikatallennus** löytyy valikosta (☰) Pelin hallinta -osiosta.
+Kaikki data sovelluksessa tallentuu automaattisesti jokaisen toiminnon jälkeen, joten manuaalista tallennusta ei yleensä tarvita. **Pikatallennus** on kuitenkin saatavilla valikosta (☰) Pelin hallinta -osiosta, jos haluat varmistaa kaikkien muutosten tallentumisen.
 </Callout>
 
 ### Taktiikkatila
@@ -162,15 +152,14 @@ Taktisella piirtotaululla on oma erillinen Kumoa/Tee uudelleen -historia, joten 
 ## Vinkkejä live-seurantaan
 
 <Callout type="tip">
-**Pidä yksinkertaisena pelin aikana** - Keskity maaleihin ja vaihtoihin. Lisää yksityiskohdat pelin jälkeen.
+**Pidä yksinkertaisena pelin aikana** - Keskity maaleihin. Lisää yksityiskohdat pelin jälkeen.
 </Callout>
 
 ### Tärkeysjärjestys
 
 1. **Maalit** - Kirjaa aina heti
-2. **Vaihdot** - Seuraa tapahtumia
-3. **Reilun pelin kortit** - Myönnä kun huomaat hyvää käytöstä
-4. **Muistiinpanot** - Lisää pelitauoilla
+2. **Reilun pelin kortit** - Myönnä kun huomaat hyvää käytöstä
+3. **Muistiinpanot** - Lisää pelitauoilla
 
 ### Näytön lukituksen esto
 
@@ -180,9 +169,3 @@ MatchOps Local pitää näyttösi aktiivisena pelien aikana. Wake lock -ominaisu
 - Säästää akkua tauolla
 - Toimii useimmilla laitteilla
 
-### Nopea pääsy
-
-Sijoita laitteesi niin, että voit:
-- Nähdä ajastimen katsomatta alas
-- Tavoittaa sen nopeisiin päivityksiin
-- Pitää sen suojassa säältä
