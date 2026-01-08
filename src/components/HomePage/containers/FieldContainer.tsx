@@ -313,39 +313,37 @@ export function FieldContainer({
         />
       </ErrorBoundary>
 
-      {/* Field action buttons - visible when there's a real game */}
-      {currentGameId !== DEFAULT_GAME_ID && (
-        <div className="absolute top-4 right-4 z-20 flex gap-2">
-          {/* Rules button */}
-          {onOpenRulesModal && (
-            <button
-              onClick={onOpenRulesModal}
-              className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-              title={t('rulesDirectory.buttonTitle', 'View rules')}
-              aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
-            >
-              <HiOutlineBookOpen className="w-5 h-5" />
-            </button>
-          )}
-          {/* Export button */}
-          {isExportSupported() && (
-            <button
-              onClick={handleExportField}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleExportField();
-                }
-              }}
-              className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-              title={t('export.buttonTitle', 'Export field as image')}
-              aria-label={t('export.buttonTitle', 'Export field as image')}
-            >
-              <HiOutlineCamera className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      )}
+      {/* Field action buttons - always visible */}
+      <div className="absolute top-4 right-4 z-20 flex gap-2">
+        {/* Rules button */}
+        {onOpenRulesModal && (
+          <button
+            onClick={onOpenRulesModal}
+            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            title={t('rulesDirectory.buttonTitle', 'View rules')}
+            aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
+          >
+            <HiOutlineBookOpen className="w-5 h-5" />
+          </button>
+        )}
+        {/* Export button */}
+        {isExportSupported() && (
+          <button
+            onClick={handleExportField}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleExportField();
+              }
+            }}
+            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            title={t('export.buttonTitle', 'Export field as image')}
+            aria-label={t('export.buttonTitle', 'Export field as image')}
+          >
+            <HiOutlineCamera className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
       {/* First game setup guidance */}
       {tmInitialLoad &&

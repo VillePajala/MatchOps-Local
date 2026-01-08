@@ -699,9 +699,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.aboutTitle', 'About')}
               </h3>
-              <p className="text-sm text-slate-300">
-                {t('settingsModal.appVersion', 'App Version')}: {packageJson.version}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-slate-300">
+                  {t('settingsModal.appVersion', 'App Version')}: {packageJson.version}
+                </p>
+                {process.env.NEXT_PUBLIC_GIT_BRANCH && process.env.NEXT_PUBLIC_GIT_BRANCH !== 'master' && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    {t('settingsModal.previewBadge', 'Preview')}
+                  </span>
+                )}
+              </div>
               <div className="flex gap-4 text-sm">
                 <a
                   href="/privacy-policy"

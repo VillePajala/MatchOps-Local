@@ -211,10 +211,11 @@ describe('FieldContainer', () => {
       expect(screen.getByRole('button', { name: /export field as image/i })).toBeInTheDocument();
     });
 
-    it('hides export button on default game ID', () => {
+    it('shows export button even on default game ID (always visible)', () => {
       render(<FieldContainer {...baseProps()} />);
 
-      expect(screen.queryByRole('button', { name: /export field as image/i })).not.toBeInTheDocument();
+      // Buttons are now always visible regardless of game state
+      expect(screen.getByRole('button', { name: /export field as image/i })).toBeInTheDocument();
     });
 
     it('hides export button when export is not supported', () => {
@@ -264,6 +265,44 @@ describe('FieldContainer', () => {
       await screen.findByRole('button', { name: /export field as image/i });
 
       expect(mockShowToast).toHaveBeenCalledWith('Failed to export field', 'error');
+    });
+  });
+
+  describe('Rules Button', () => {
+    it('shows rules button when onOpenRulesModal is provided', () => {
+      const onOpenRulesModal = jest.fn();
+      render(
+        <FieldContainer
+          {...baseProps()}
+          onOpenRulesModal={onOpenRulesModal}
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: /view rules/i })).toBeInTheDocument();
+    });
+
+    it('hides rules button when onOpenRulesModal is not provided', () => {
+      render(
+        <FieldContainer
+          {...baseProps()}
+          onOpenRulesModal={undefined}
+        />,
+      );
+
+      expect(screen.queryByRole('button', { name: /view rules/i })).not.toBeInTheDocument();
+    });
+
+    it('calls onOpenRulesModal when rules button is clicked', () => {
+      const onOpenRulesModal = jest.fn();
+      render(
+        <FieldContainer
+          {...baseProps()}
+          onOpenRulesModal={onOpenRulesModal}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /view rules/i }));
+      expect(onOpenRulesModal).toHaveBeenCalledTimes(1);
     });
   });
 });

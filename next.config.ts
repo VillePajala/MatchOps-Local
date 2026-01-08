@@ -148,6 +148,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Expose Git branch to client for preview/production indicators
+  env: {
+    NEXT_PUBLIC_GIT_BRANCH: process.env.VERCEL_GIT_COMMIT_REF || 'development',
+  },
   // No special experimental config needed - instrumentation.ts is auto-detected
   async headers() {
     return [

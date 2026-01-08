@@ -79,17 +79,6 @@ export default function Layout({ children }: LayoutProps) {
               >
                 {t('nav.guide')}
               </Link>
-              <Link
-                href="/gallery"
-                aria-current={router.pathname === '/gallery' ? 'page' : undefined}
-                className={`nav-link transition-colors ${
-                  router.pathname === '/gallery'
-                    ? 'text-primary font-semibold nav-link--active'
-                    : 'text-slate-300 hover:text-primary'
-                }`}
-              >
-                {t('nav.gallery')}
-              </Link>
 
               {/* Language Toggle */}
               <div className="flex items-center space-x-2 text-slate-300" role="group" aria-label="Language selector">
@@ -122,7 +111,7 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </div>
 
-            {/* Mobile: Guide + Gallery link + language toggle */}
+            {/* Mobile: Guide link + language toggle */}
             <div className="md:hidden flex items-center gap-3">
               <Link
                 href="/guide"
@@ -134,17 +123,6 @@ export default function Layout({ children }: LayoutProps) {
                 }`}
               >
                 {t('nav.guide')}
-              </Link>
-              <Link
-                href="/gallery"
-                aria-current={router.pathname === '/gallery' ? 'page' : undefined}
-                className={`text-sm nav-link transition-colors ${
-                  router.pathname === '/gallery'
-                    ? 'text-primary font-semibold nav-link--active'
-                    : 'text-slate-300 hover:text-primary'
-                }`}
-              >
-                {t('nav.gallery')}
               </Link>
               <button
                 onClick={() => changeLanguage(router.locale === 'fi' ? 'en' : 'fi')}
