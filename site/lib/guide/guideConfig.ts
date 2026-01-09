@@ -12,6 +12,7 @@ import {
   FaExclamationTriangle,
   FaLightbulb,
   FaRoute,
+  FaQuestionCircle,
 } from 'react-icons/fa';
 
 export type GuideGroup = 'getting-started' | 'setup' | 'game-day' | 'review';
@@ -160,6 +161,16 @@ export const guideSections: GuideSection[] = [
     descriptionFi: 'Hyödynnä MatchOps parhaiten',
     icon: FaLightbulb,
     order: 12,
+    group: 'review',
+  },
+  {
+    slug: 'faq',
+    title: 'FAQ',
+    titleFi: 'Usein kysytyt kysymykset',
+    description: 'Frequently asked questions',
+    descriptionFi: 'Vastauksia yleisimpiin kysymyksiin',
+    icon: FaQuestionCircle,
+    order: 13,
     group: 'review',
   },
 ];

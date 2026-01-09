@@ -435,29 +435,15 @@ h1, h2, h3, h4, h5, h6 {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Ambient glow effect */
-.phone-frame::after {
-  content: '';
-  position: absolute;
-  inset: -20px;
-  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
-  z-index: -1;
-  opacity: 0.5;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.phone-frame:hover::after {
-  opacity: 1;
-}
-
+/* Hover lift effect */
 .phone-frame:hover {
+  transform: translateY(-8px);
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.15),
-    0 30px 60px -15px rgba(0,0,0,0.8),
-    0 0 100px -20px rgba(245, 158, 11, 0.5),
-    inset 0 1px 1px rgba(255,255,255,0.15),
-    inset 0 -1px 1px rgba(0,0,0,0.3);
+    0 0 0 1px rgba(255,255,255,0.12),
+    0 35px 70px -15px rgba(0,0,0,0.6),
+    0 0 60px -10px rgba(255, 255, 255, 0.15),
+    inset 0 1px 1px rgba(255,255,255,0.1),
+    inset 0 -1px 1px rgba(0,0,0,0.2);
 }
 
 .phone-frame::before {
@@ -475,29 +461,15 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: inset 0 1px 2px rgba(255,255,255,0.15);
 }
 
+
 .phone-frame-screen {
   border-radius: 2rem;
   overflow: hidden;
   background: #000;
   box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  position: relative;
 }
 
-/* Screen reflection/shine effect */
-.phone-frame-screen::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 40%;
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.03) 0%,
-    transparent 100%
-  );
-  pointer-events: none;
-  border-radius: 2rem 2rem 0 0;
-}
 
 /* Variant for screenshots that already include phone UI (status bar, etc.) */
 .phone-frame-full::before {
@@ -520,19 +492,9 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
 }
 
-/* Left phone - tilted right */
-.phone-showcase .phone-wrapper:first-child .phone-frame {
-  transform: perspective(1000px) rotateY(8deg);
-}
-
 /* Middle phone - centered, raised */
 .phone-showcase .phone-wrapper:nth-child(2) {
-  margin-top: -2rem;
-}
-
-/* Right phone - tilted left */
-.phone-showcase .phone-wrapper:last-child .phone-frame {
-  transform: perspective(1000px) rotateY(-8deg);
+  margin-top: -3rem;
 }
 
 /* Reflection effect */
