@@ -173,7 +173,7 @@ function AssetContainer({
       </div>
       <div
         id={id}
-        className={`relative font-sans ${className}`}
+        className={`relative font-rajdhani ${className}`}
         style={{
           width: displayWidth,
           height: displayHeight,
