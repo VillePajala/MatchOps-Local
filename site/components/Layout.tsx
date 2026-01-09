@@ -151,6 +151,12 @@ export default function Layout({ children }: LayoutProps) {
           <p className="text-xs text-slate-400 mt-2">
             {t('footer.dataStays')}
           </p>
+          <Link
+            href="/marketing-assets"
+            className="text-xs text-slate-500 hover:text-primary mt-4 inline-block transition-colors"
+          >
+            {t('footer.marketingAssets')}
+          </Link>
         </div>
       </footer>
     </div>

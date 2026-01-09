@@ -11,6 +11,7 @@ const config: Config = {
       fontFamily: {
         sans: ['Rajdhani', 'Inter', 'sans-serif'],
         display: ['Rajdhani', 'sans-serif'],
+        rajdhani: ['var(--font-rajdhani)', 'Rajdhani', 'sans-serif'],
       },
       backgroundImage: {
         'noise-texture': "url('/noise.svg')",
