@@ -1,5 +1,23 @@
 import Head from 'next/head';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
+import type { GetStaticProps } from 'next';
+
+// Language-aware screenshot paths
+const getScreenshots = (locale: string | undefined) => {
+  const isEnglish = locale === 'en';
+  return {
+    soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg', // Language agnostic
+    timer: isEnglish
+      ? '/screenshots/MatchOps_main_timer_en.jpg'
+      : '/screenshots/MatchOps_Main_timer_full.jpg',
+    playerstats: isEnglish
+      ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
+      : '/screenshots/MatchOps_Main_playerstats_full.jpg',
+  };
+};
 
 // Asset dimensions for different platforms
 const FORMATS = {
@@ -92,6 +110,7 @@ function ThreePhones({
   overlap = 20,
   stagger = 30,
   className = '',
+  screenshots,
 }: {
   leftSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   middleSize?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -99,22 +118,23 @@ function ThreePhones({
   overlap?: number;
   stagger?: number;
   className?: string;
+  screenshots: { soccerfield: string; timer: string; playerstats: string };
 }) {
   return (
     <div className={`flex items-end ${className}`}>
       <PhoneMockup
-        screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg"
+        screenshot={screenshots.playerstats}
         size={leftSize}
         style={{ marginRight: -overlap, transform: `translateY(${stagger}px)` }}
         zIndex={1}
       />
       <PhoneMockup
-        screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg"
+        screenshot={screenshots.soccerfield}
         size={middleSize}
         zIndex={10}
       />
       <PhoneMockup
-        screenshot="/screenshots/MatchOps_Main_timer_full.jpg"
+        screenshot={screenshots.timer}
         size={rightSize}
         style={{ marginLeft: -overlap, transform: `translateY(${stagger}px)` }}
         zIndex={1}
@@ -129,27 +149,29 @@ function ThreePhonesBalanced({
   middleSize = 'lg',
   overlap = 25,
   className = '',
+  screenshots,
 }: {
   sideSize?: 'sm' | 'md' | 'lg' | 'xl';
   middleSize?: 'md' | 'lg' | 'xl' | '2xl';
   overlap?: number;
   className?: string;
+  screenshots: { soccerfield: string; timer: string; playerstats: string };
 }) {
   return (
     <div className={`flex items-center ${className}`}>
       <PhoneMockup
-        screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg"
+        screenshot={screenshots.playerstats}
         size={sideSize}
         style={{ marginRight: -overlap }}
         zIndex={1}
       />
       <PhoneMockup
-        screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg"
+        screenshot={screenshots.soccerfield}
         size={middleSize}
         zIndex={10}
       />
       <PhoneMockup
-        screenshot="/screenshots/MatchOps_Main_timer_full.jpg"
+        screenshot={screenshots.timer}
         size={sideSize}
         style={{ marginLeft: -overlap }}
         zIndex={1}
@@ -328,10 +350,14 @@ function GlowBg({
 }
 
 export default function MarketingAssets() {
+  const router = useRouter();
+  const { t } = useTranslation('common');
+  const screenshots = getScreenshots(router.locale);
+
   return (
     <>
       <Head>
-        <title>Marketing Assets - MatchOps Local</title>
+        <title>{t('marketing.page.title')} - MatchOps Local</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
@@ -339,15 +365,40 @@ export default function MarketingAssets() {
         <div className="max-w-[2800px] mx-auto">
           {/* Header */}
           <div className="mb-12 border-b border-gray-800 pb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Marketing Assets</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">{t('marketing.page.title')}</h1>
             <p className="text-gray-400 mb-4">
-              Screenshot these at native resolution. Each shows dimensions for reference.
+              {t('marketing.page.subtitle')}
             </p>
             <div className="flex gap-4 text-sm text-gray-500">
               <span>LinkedIn: 1584×396</span>
               <span>Twitter: 1500×500</span>
               <span>Instagram: 1080×1080</span>
               <span>OG: 1200×630</span>
+            </div>
+
+            {/* Language Switcher */}
+            <div className="mt-4 flex items-center gap-3">
+              <span className="text-gray-500 text-sm">{t('marketing.page.screenshotsLanguage')}</span>
+              <button
+                onClick={() => router.push(router.pathname, router.asPath, { locale: 'en' })}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  router.locale === 'en'
+                    ? 'bg-primary text-black font-semibold'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => router.push(router.pathname, router.asPath, { locale: 'fi' })}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  router.locale === 'fi'
+                    ? 'bg-primary text-black font-semibold'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                FI
+              </button>
             </div>
           </div>
 
@@ -367,44 +418,44 @@ export default function MarketingAssets() {
                     <Logo size={90} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">Your game day toolkit</p>
+                      <p className="text-gray-300 text-xl mt-1">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={24} stagger={20} />
+                  <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={24} stagger={20} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
               {/* V1-B: Bigger side phones, aligned, MEDIUM contrast */}
               <AssetContainer id="li-1b" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center gap-16 relative">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center gap-20 relative">
                   <div className="flex flex-col" style={{ marginLeft: 330 }}>
-                    <div className="flex items-center gap-5 mb-3">
-                      <Logo size={100} />
+                    <div className="flex items-center gap-4 mb-4">
+                      <Logo size={80} />
                       <TitleText size="2xl" />
                     </div>
-                    <p className="text-white text-2xl font-medium leading-tight max-w-md">
-                      Your clipboard, stopwatch, notebook, and stats — in one app.
+                    <p className="text-white text-xl font-medium leading-tight max-w-sm">
+                      {t('marketing.taglines.power')}
                     </p>
-                    <p className="text-primary text-xl font-semibold mt-1">
-                      Every game remembered.
+                    <p className="text-primary text-lg font-semibold mt-2">
+                      {t('marketing.taglines.memorable')}
                     </p>
                     <SiteUrl className="mt-3" size="sm" />
                   </div>
                   <div className="flex items-center" style={{ marginRight: -10 }}>
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                      screenshot={screenshots.playerstats}
                       size="md"
                       style={{ marginRight: -20 }}
                       zIndex={1}
                                           />
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                      screenshot={screenshots.soccerfield}
                       size="lg"
                       zIndex={10}
                                           />
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_Main_timer_full.jpg"
+                      screenshot={screenshots.timer}
                       size="md"
                       style={{ marginLeft: -20 }}
                       zIndex={1}
@@ -420,24 +471,24 @@ export default function MarketingAssets() {
                     <Logo size={90} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">Your game day toolkit</p>
+                      <p className="text-gray-300 text-xl mt-1">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
                   <div className="flex items-center">
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                      screenshot={screenshots.playerstats}
                       size="md"
                       style={{ marginRight: -20 }}
                       zIndex={1}
                                           />
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                      screenshot={screenshots.soccerfield}
                       size="lg"
                       zIndex={10}
                                           />
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_Main_timer_full.jpg"
+                      screenshot={screenshots.timer}
                       size="md"
                       style={{ marginLeft: -20 }}
                       zIndex={1}
@@ -453,11 +504,11 @@ export default function MarketingAssets() {
                     <Logo size={90} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">Your game day toolkit</p>
+                      <p className="text-gray-300 text-xl mt-1">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhonesBalanced sideSize="md" middleSize="md" overlap={20} />
+                  <ThreePhonesBalanced sideSize="md" middleSize="md" overlap={20} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -468,11 +519,11 @@ export default function MarketingAssets() {
                     <Logo size={90} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">Your game day toolkit</p>
+                      <p className="text-gray-300 text-xl mt-1">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={18} />
+                  <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={18} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -490,7 +541,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -502,7 +553,7 @@ export default function MarketingAssets() {
                   <div className="h-20 w-px bg-primary/30" />
                   <div>
                     <TitleText size="2xl" />
-                    <p className="text-gray-400 text-lg mt-1">Local-first soccer coaching app</p>
+                    <p className="text-gray-400 text-lg mt-1">{t('marketing.descriptions.localFirst')}</p>
                     <SiteUrl className="mt-2" size="sm" />
                   </div>
                 </div>
@@ -557,14 +608,14 @@ export default function MarketingAssets() {
                       <Logo size={70} />
                       <TitleText size="xl" />
                     </div>
-                    <p className="text-gray-300 text-lg mb-4">Soccer coaching made simple</p>
-                    <FeatureBullets features={['Works Offline', 'Privacy-First', 'No Signup']} size="sm" />
+                    <p className="text-gray-300 text-lg mb-4">{t('marketing.descriptions.madeSimple')}</p>
+                    <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignup')]} size="sm" />
                     <SiteUrl className="mt-3" size="sm" />
                   </div>
                   <div className="flex items-end gap-2">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_Main_timer_full.jpg"
+                      screenshot={screenshots.timer}
                       size="md"
                       style={{ transform: 'translateY(20px)', marginLeft: -30 }}
                       zIndex={1}
@@ -586,12 +637,12 @@ export default function MarketingAssets() {
                   </div>
                   <div className="flex items-end gap-2">
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                      screenshot={screenshots.soccerfield}
                       size="md"
                       style={{ transform: 'translateY(15px)', marginRight: -20 }}
                       zIndex={1}
                     />
-                    <PhoneMockup screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.playerstats} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -609,7 +660,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <ThreePhones leftSize="sm" middleSize="md" rightSize="sm" overlap={16} stagger={15} />
+                    <ThreePhones leftSize="sm" middleSize="md" rightSize="sm" overlap={16} stagger={15} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -626,7 +677,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <p className="text-gray-300 text-xl">Your game day toolkit</p>
+                    <p className="text-gray-300 text-xl">{t('marketing.taglines.toolkit')}</p>
                   </div>
                 </div>
               </AssetContainer>
@@ -646,11 +697,11 @@ export default function MarketingAssets() {
                       <Logo size={80} />
                       <div>
                         <TitleText size="xl" />
-                        <p className="text-gray-400 mt-1">Local-first soccer coaching</p>
+                        <p className="text-gray-400 mt-1">{t('marketing.descriptions.localFirstShort')}</p>
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={20} stagger={25} />
+                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={20} stagger={25} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -675,7 +726,7 @@ export default function MarketingAssets() {
                       <SiteUrl size="sm" />
                     </div>
                   </div>
-                  <p className="text-gray-400">For soccer coaches who value privacy</p>
+                  <p className="text-gray-400">{t('marketing.descriptions.forPrivacyCoaches')}</p>
                 </div>
               </AssetContainer>
 
@@ -702,7 +753,7 @@ export default function MarketingAssets() {
                         <SiteUrl size="sm" />
                       </div>
                     </div>
-                    <FeatureBullets features={['Offline', 'Private', 'No Signup']} size="sm" />
+                    <FeatureBullets features={[t('marketing.bullets.offline'), t('marketing.bullets.private'), t('marketing.bullets.noSignup')]} size="sm" />
                   </div>
                 </div>
               </AssetContainer>
@@ -725,11 +776,11 @@ export default function MarketingAssets() {
                     <Logo size={100} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-2">Your game day toolkit</p>
+                      <p className="text-gray-300 text-xl mt-2">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={20} stagger={25} />
+                  <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={20} stagger={25} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -740,11 +791,11 @@ export default function MarketingAssets() {
                     <Logo size={100} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-2">Your game day toolkit</p>
+                      <p className="text-gray-300 text-xl mt-2">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhonesBalanced sideSize="lg" middleSize="lg" overlap={25} />
+                  <ThreePhonesBalanced sideSize="lg" middleSize="lg" overlap={25} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -755,11 +806,11 @@ export default function MarketingAssets() {
                     <Logo size={100} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-2">Your game day toolkit</p>
+                      <p className="text-gray-300 text-xl mt-2">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={22} />
+                  <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={22} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -799,10 +850,10 @@ export default function MarketingAssets() {
                         <Logo size={90} />
                         <TitleText size="2xl" />
                       </div>
-                      <p className="text-gray-300 text-xl">Local-first soccer coaching app</p>
+                      <p className="text-gray-300 text-xl">{t('marketing.descriptions.localFirst')}</p>
                       <SiteUrl className="mt-3" size="sm" />
                     </div>
-                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} />
+                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -816,14 +867,14 @@ export default function MarketingAssets() {
                       <TitleText size="xl" />
                     </div>
                     <p className="text-gray-300 text-lg mb-6">
-                      Plan lineups, track games live, build statistics.
+                      {t('marketing.descriptions.planTrackBuild')}
                       <br />
-                      Works offline. Your data stays private.
+                      {t('marketing.benefits.offlinePrivate')}
                     </p>
-                    <FeatureBullets features={['No Signup', 'Works Offline', 'Data Stays Local']} />
+                    <FeatureBullets features={[t('marketing.bullets.noSignup'), t('marketing.bullets.worksOffline'), t('marketing.bullets.dataStaysLocal')]} />
                     <SiteUrl className="mt-4" size="sm" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="xl" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={10} />
                 </div>
               </AssetContainer>
 
@@ -847,12 +898,12 @@ export default function MarketingAssets() {
                     <div className="text-center">
                       <Logo size={100} className="mx-auto mb-4" />
                       <TitleText size="xl" />
-                      <p className="text-gray-400 mt-2">Your game day toolkit</p>
+                      <p className="text-gray-400 mt-2">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-3" size="sm" />
                     </div>
                   </div>
                   <div className="w-1/2 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={16} stagger={20} />
+                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={16} stagger={20} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -867,19 +918,19 @@ export default function MarketingAssets() {
                   </div>
                   <div className="absolute bottom-0 right-16 flex items-end">
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                      screenshot={screenshots.playerstats}
                       size="md"
                       style={{ marginRight: -20, transform: 'translateY(40px)' }}
                       zIndex={1}
                     />
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                      screenshot={screenshots.soccerfield}
                       size="lg"
                       style={{ transform: 'translateY(20px)' }}
                       zIndex={10}
                     />
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_Main_timer_full.jpg"
+                      screenshot={screenshots.timer}
                       size="md"
                       style={{ marginLeft: -20, transform: 'translateY(40px)' }}
                       zIndex={1}
@@ -892,7 +943,7 @@ export default function MarketingAssets() {
               <AssetContainer id="tw-8" {...FORMATS.twitter}>
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 flex items-center px-16 relative">
                   <SiteUrl className="absolute bottom-4 right-6" size="sm" />
-                  <PhoneMockup screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg" size="xl" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={10} />
                   <div className="ml-16">
                     <div className="flex items-center gap-4 mb-4">
                       <Logo size={70} />
@@ -923,11 +974,11 @@ export default function MarketingAssets() {
                     <Logo size={60} />
                     <div>
                       <TitleText size="lg" />
-                      <p className="text-gray-400 text-sm mt-1">Your game day toolkit</p>
+                      <p className="text-gray-400 text-sm mt-1">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-1" size="sm" />
                     </div>
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="md" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
                 </div>
               </AssetContainer>
 
@@ -955,12 +1006,12 @@ export default function MarketingAssets() {
                     </div>
                     <div className="flex items-end">
                       <PhoneMockup
-                        screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                        screenshot={screenshots.soccerfield}
                         size="md"
                         zIndex={10}
                       />
                       <PhoneMockup
-                        screenshot="/screenshots/MatchOps_Main_timer_full.jpg"
+                        screenshot={screenshots.timer}
                         size="sm"
                         style={{ marginLeft: -15, transform: 'translateY(10px)' }}
                         zIndex={1}
@@ -977,10 +1028,10 @@ export default function MarketingAssets() {
                       <Logo size={50} />
                       <TitleText size="md" />
                     </div>
-                    <FeatureBullets features={['Offline', 'Private', 'No Signup']} size="sm" />
+                    <FeatureBullets features={[t('marketing.bullets.offline'), t('marketing.bullets.private'), t('marketing.bullets.noSignup')]} size="sm" />
                     <SiteUrl className="mt-2" size="sm" />
                   </div>
-                  <ThreePhones leftSize="xs" middleSize="sm" rightSize="xs" overlap={10} stagger={10} />
+                  <ThreePhones leftSize="xs" middleSize="sm" rightSize="xs" overlap={10} stagger={10} screenshots={screenshots} />
                 </div>
               </AssetContainer>
             </div>
@@ -1005,11 +1056,11 @@ export default function MarketingAssets() {
                         <Logo size={80} />
                         <TitleText size="2xl" />
                       </div>
-                      <p className="text-gray-300 text-2xl mb-6">Local-first soccer coaching app</p>
-                      <FeatureBullets features={['Works Offline', 'Privacy-First', 'No Account Needed']} size="lg" />
+                      <p className="text-gray-300 text-2xl mb-6">{t('marketing.descriptions.localFirst')}</p>
+                      <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noAccountNeeded')]} size="lg" />
                       <SiteUrl className="mt-4" size="sm" />
                     </div>
-                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={25} stagger={30} />
+                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={25} stagger={30} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1024,11 +1075,11 @@ export default function MarketingAssets() {
                         <Logo size={80} />
                         <TitleText size="2xl" />
                       </div>
-                      <p className="text-gray-300 text-2xl mb-6">Local-first soccer coaching app</p>
-                      <FeatureBullets features={['Works Offline', 'Privacy-First', 'No Account Needed']} size="lg" />
+                      <p className="text-gray-300 text-2xl mb-6">{t('marketing.descriptions.localFirst')}</p>
+                      <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noAccountNeeded')]} size="lg" />
                       <SiteUrl className="mt-4" size="sm" />
                     </div>
-                    <ThreePhonesBalanced sideSize="lg" middleSize="lg" overlap={25} />
+                    <ThreePhonesBalanced sideSize="lg" middleSize="lg" overlap={25} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1043,11 +1094,11 @@ export default function MarketingAssets() {
                         <Logo size={80} />
                         <TitleText size="2xl" />
                       </div>
-                      <p className="text-gray-300 text-2xl mb-6">Local-first soccer coaching app</p>
-                      <FeatureBullets features={['Works Offline', 'Privacy-First', 'No Account Needed']} size="lg" />
+                      <p className="text-gray-300 text-2xl mb-6">{t('marketing.descriptions.localFirst')}</p>
+                      <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noAccountNeeded')]} size="lg" />
                       <SiteUrl className="mt-4" size="sm" />
                     </div>
-                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={22} />
+                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={22} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1056,7 +1107,7 @@ export default function MarketingAssets() {
               <AssetContainer id="og-2" {...FORMATS.openGraph}>
                 <div className="w-full h-full flex relative">
                   <div className="w-2/5 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-8">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="xl" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={10} />
                   </div>
                   <div className="w-3/5 bg-slate-900 flex flex-col justify-center px-12">
                     <div className="flex items-center gap-4 mb-6">
@@ -1094,7 +1145,7 @@ export default function MarketingAssets() {
                     <div className="text-center">
                       <Logo size={100} className="mx-auto mb-6" />
                       <TitleText size="3xl" className="block mb-4" />
-                      <p className="text-gray-300 text-2xl mb-8">Your game day toolkit</p>
+                      <p className="text-gray-300 text-2xl mb-8">{t('marketing.taglines.toolkit')}</p>
                       <p className="text-gray-500 text-lg">Plan • Track • Assess</p>
                       <SiteUrl className="mt-4" size="sm" />
                     </div>
@@ -1113,12 +1164,12 @@ export default function MarketingAssets() {
                     <p className="text-gray-300 text-xl mb-6">
                       Replace clipboard, stopwatch, and notebook with one app.
                     </p>
-                    <FeatureBullets features={['No Signup', 'Works Offline', 'Data Stays Private']} />
+                    <FeatureBullets features={[t('marketing.bullets.noSignup'), t('marketing.bullets.worksOffline'), t('marketing.bullets.dataStaysPrivate')]} />
                     <SiteUrl className="mt-4" size="sm" />
                   </div>
                   <div className="flex gap-4">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="lg" zIndex={10} />
-                    <PhoneMockup screenshot="/screenshots/MatchOps_Main_timer_full.jpg" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1130,7 +1181,7 @@ export default function MarketingAssets() {
                     <Logo size={120} />
                     <div>
                       <TitleText size="2xl" className="block" />
-                      <p className="text-gray-400 text-xl mt-2">Local-first soccer coaching app</p>
+                      <p className="text-gray-400 text-xl mt-2">{t('marketing.descriptions.localFirst')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
@@ -1148,7 +1199,7 @@ export default function MarketingAssets() {
                       <TitleText size="xl" />
                       <SiteUrl className="ml-4" size="sm" />
                     </div>
-                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} />
+                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1169,7 +1220,7 @@ export default function MarketingAssets() {
                     </div>
                     <SiteUrl className="mt-4" size="sm" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="xl" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={10} />
                 </div>
               </AssetContainer>
 
@@ -1177,7 +1228,7 @@ export default function MarketingAssets() {
               <AssetContainer id="og-8" {...FORMATS.openGraph}>
                 <div className="w-full h-full bg-slate-900 flex relative">
                   <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg" size="xl" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={10} />
                   </div>
                   <div className="w-1/2 flex flex-col justify-center pr-16">
                     <div className="flex items-center gap-3 mb-4">
@@ -1189,7 +1240,7 @@ export default function MarketingAssets() {
                       Every goal, assist, and game event builds your season statistics. Track player development over
                       time.
                     </p>
-                    <FeatureBullets features={['Player Stats', 'Team Stats', 'Season Trends']} size="sm" />
+                    <FeatureBullets features={[t('marketing.bullets.playerStats'), t('marketing.bullets.teamStats'), t('marketing.bullets.seasonTrends')]} size="sm" />
                     <SiteUrl className="mt-4" size="sm" />
                   </div>
                 </div>
@@ -1213,7 +1264,7 @@ export default function MarketingAssets() {
                     <Logo size={50} />
                     <TitleText size="md" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="md" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
                   <p className="text-gray-400 text-lg mt-4">Plan • Track • Assess</p>
                   <SiteUrl className="mt-4" size="lg" variant="primary" />
                 </div>
@@ -1224,7 +1275,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
                   <p className="text-primary text-xl font-bold mb-1">PLAN</p>
                   <h3 className="text-white text-2xl font-bold mb-4 text-center">Interactive Lineup</h3>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="md" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
                   <div className="mt-4 flex items-center gap-2">
                     <Logo size={30} />
                     <TitleText size="xs" />
@@ -1238,7 +1289,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
                   <p className="text-primary text-xl font-bold mb-1">TRACK</p>
                   <h3 className="text-white text-2xl font-bold mb-4 text-center">Live Game Events</h3>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_Main_timer_full.jpg" size="md" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.timer} size="md" zIndex={10} />
                   <div className="mt-4 flex items-center gap-2">
                     <Logo size={30} />
                     <TitleText size="xs" />
@@ -1252,7 +1303,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
                   <p className="text-primary text-xl font-bold mb-1">ASSESS</p>
                   <h3 className="text-white text-2xl font-bold mb-4 text-center">Player Statistics</h3>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg" size="md" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={10} />
                   <div className="mt-4 flex items-center gap-2">
                     <Logo size={30} />
                     <TitleText size="xs" />
@@ -1281,15 +1332,15 @@ export default function MarketingAssets() {
                   <div className="space-y-3 text-lg">
                     <div className="flex items-center gap-3 text-white">
                       <span className="w-3 h-3 bg-primary rounded-full flex-shrink-0" />
-                      Works offline
+                      {t('marketing.bullets.worksOffline')}
                     </div>
                     <div className="flex items-center gap-3 text-white">
                       <span className="w-3 h-3 bg-primary rounded-full flex-shrink-0" />
-                      Data stays on device
+                      {t('marketing.benefits.dataOnDevice')}
                     </div>
                     <div className="flex items-center gap-3 text-white">
                       <span className="w-3 h-3 bg-primary rounded-full flex-shrink-0" />
-                      No signup required
+                      {t('marketing.bullets.noSignupRequired')}
                     </div>
                   </div>
                   <SiteUrl className="mt-8" size="lg" variant="primary" />
@@ -1301,7 +1352,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center px-16">
                   <p className="text-4xl text-primary mb-3">&ldquo;</p>
                   <p className="text-white text-xl text-center leading-relaxed mb-4">
-                    Your clipboard, stopwatch, and notebook in one app.
+                    {t('marketing.taglines.power')}
                   </p>
                   <div className="flex items-center gap-2 mb-4">
                     <Logo size={30} />
@@ -1316,7 +1367,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
                   <Logo size={70} className="mb-4" />
                   <TitleText size="md" className="mb-3" />
-                  <p className="text-gray-300 text-lg text-center mb-1">Your game day toolkit</p>
+                  <p className="text-gray-300 text-lg text-center mb-1">{t('marketing.taglines.toolkit')}</p>
                   <p className="text-gray-500 text-base">for soccer coaches</p>
                   <SiteUrl className="mt-6" size="lg" variant="primary" />
                 </div>
@@ -1349,7 +1400,7 @@ export default function MarketingAssets() {
                     <Logo size={40} />
                     <TitleText size="sm" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_Main_timer_full.jpg" size="md" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.timer} size="md" zIndex={10} />
                   <p className="text-gray-400 text-base mt-4">Track games in real-time</p>
                   <SiteUrl className="mt-2" size="sm" />
                 </div>
@@ -1362,7 +1413,7 @@ export default function MarketingAssets() {
                     <Logo size={40} />
                     <TitleText size="sm" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg" size="md" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={10} />
                   <p className="text-gray-400 text-base mt-4">Build statistics automatically</p>
                   <SiteUrl className="mt-2" size="sm" />
                 </div>
@@ -1373,10 +1424,176 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center">
                   <Logo size={60} className="mb-4" />
                   <TitleText size="md" className="mb-4" />
-                  <p className="text-white text-xl text-center mb-1">Your data stays</p>
-                  <p className="text-primary text-2xl font-bold text-center">on your device</p>
-                  <p className="text-gray-500 text-base mt-3">Privacy by design</p>
+                  <p className="text-white text-xl text-center mb-1">{t('marketing.benefits.dataStays')}</p>
+                  <p className="text-primary text-2xl font-bold text-center">{t('marketing.benefits.onYourDevice')}</p>
+                  <p className="text-gray-500 text-base mt-3">{t('marketing.benefits.privacyByDesign')}</p>
                   <SiteUrl className="mt-6" size="lg" variant="primary" />
+                </div>
+              </AssetContainer>
+
+              {/* ============================================ */}
+              {/* NEW SHOWCASE SET - Tagline Focus */}
+              {/* ============================================ */}
+
+              {/* IG-SET-1: Main intro with new tagline */}
+              <AssetContainer id="ig-set-1" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                  <GlowBg color="primary" position="top-right" size="lg" blur={100} />
+                  <Logo size={80} className="mb-4 relative z-10" />
+                  <TitleText size="lg" className="mb-6 relative z-10" />
+                  <p className="text-white text-xl text-center leading-relaxed relative z-10 max-w-sm">
+                    {t('marketing.taglines.power')}
+                  </p>
+                  <SiteUrl className="mt-6 relative z-10" size="lg" variant="primary" />
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-2: Every game remembered */}
+              <AssetContainer id="ig-set-2" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center p-8">
+                  <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={10} />
+                  <p className="text-primary text-3xl font-bold text-center mt-6">
+                    {t('marketing.taglines.memorable')}
+                  </p>
+                  <p className="text-gray-400 text-base mt-3 text-center">
+                    {t('marketing.benefits.statsAutomatic')}
+                  </p>
+                  <div className="mt-4 flex items-center gap-2">
+                    <Logo size={30} />
+                    <TitleText size="xs" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-3: Pain point - multiple tools */}
+              <AssetContainer id="ig-set-3" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-8">
+                  <p className="text-gray-400 text-lg mb-6">{t('marketing.painPoints.soundFamiliar')}</p>
+                  <div className="space-y-4 text-center">
+                    <p className="text-white text-xl">📋 {t('marketing.painPoints.clipboard')}</p>
+                    <p className="text-white text-xl">⏱️ {t('marketing.painPoints.stopwatch')}</p>
+                    <p className="text-white text-xl">📓 {t('marketing.painPoints.notebook')}</p>
+                    <p className="text-white text-xl">📊 {t('marketing.painPoints.spreadsheet')}</p>
+                  </div>
+                  <p className="text-primary text-2xl font-bold mt-8">{t('marketing.painPoints.tooManyTools')}</p>
+                  <div className="mt-6 flex items-center gap-2">
+                    <Logo size={30} />
+                    <TitleText size="xs" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-4: Solution - one app */}
+              <AssetContainer id="ig-set-4" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                  <GlowBg color="primary" position="center" size="lg" blur={120} />
+                  <p className="text-gray-400 text-lg mb-4 relative z-10">{t('marketing.solution.title')}</p>
+                  <Logo size={100} className="mb-4 relative z-10" />
+                  <TitleText size="lg" className="mb-4 relative z-10" />
+                  <p className="text-primary text-2xl font-bold text-center relative z-10">{t('marketing.solution.oneApp')}</p>
+                  <p className="text-gray-300 text-base mt-2 text-center relative z-10">{t('marketing.solution.planTrackAssess')}</p>
+                  <SiteUrl className="mt-6 relative z-10" size="lg" variant="primary" />
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-5: Feature 1 - Plan (carousel style) */}
+              <AssetContainer id="ig-set-5" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center p-6">
+                  <p className="text-gray-500 text-sm mb-2">1/3</p>
+                  <p className="text-primary text-2xl font-bold mb-6">{t('marketing.features.plan.label')}</p>
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
+                  <h3 className="text-white text-xl font-semibold mt-6 text-center">{t('marketing.features.plan.title')}</h3>
+                  <p className="text-gray-400 text-sm mt-2 text-center max-w-xs">
+                    {t('marketing.features.plan.desc')}
+                  </p>
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-6: Feature 2 - Track (carousel style) */}
+              <AssetContainer id="ig-set-6" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center p-6">
+                  <p className="text-gray-500 text-sm mb-2">2/3</p>
+                  <p className="text-primary text-2xl font-bold mb-6">{t('marketing.features.track.label')}</p>
+                  <PhoneMockup screenshot={screenshots.timer} size="md" zIndex={10} />
+                  <h3 className="text-white text-xl font-semibold mt-6 text-center">{t('marketing.features.track.title')}</h3>
+                  <p className="text-gray-400 text-sm mt-2 text-center max-w-xs">
+                    {t('marketing.features.track.desc')}
+                  </p>
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-7: Feature 3 - Assess (carousel style) */}
+              <AssetContainer id="ig-set-7" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center p-6">
+                  <p className="text-gray-500 text-sm mb-2">3/3</p>
+                  <p className="text-primary text-2xl font-bold mb-6">{t('marketing.features.assess.label')}</p>
+                  <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={10} />
+                  <h3 className="text-white text-xl font-semibold mt-6 text-center">{t('marketing.features.assess.title')}</h3>
+                  <p className="text-gray-400 text-sm mt-2 text-center max-w-xs">
+                    {t('marketing.features.assess.desc')}
+                  </p>
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-8: Three phones showcase */}
+              <AssetContainer id="ig-set-8" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+                  <GlowBg color="primary" position="bottom-center" size="md" blur={100} />
+                  <div className="flex items-center gap-2 mb-6 relative z-10">
+                    <Logo size={40} />
+                    <TitleText size="sm" />
+                  </div>
+                  <div className="relative z-10 scale-90">
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={15} screenshots={screenshots} />
+                  </div>
+                  <p className="text-white text-lg font-medium mt-6 text-center relative z-10">
+                    {t('marketing.taglines.toolkit')}
+                  </p>
+                  <SiteUrl className="mt-3 relative z-10" size="sm" />
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-9: Benefits summary */}
+              <AssetContainer id="ig-set-9" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center p-8">
+                  <div className="flex items-center gap-3 mb-8">
+                    <Logo size={50} />
+                    <TitleText size="md" />
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl">✓</span>
+                      <span className="text-white text-lg">{t('marketing.benefits.offline')}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl">✓</span>
+                      <span className="text-white text-lg">{t('marketing.benefits.noSignup')}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl">✓</span>
+                      <span className="text-white text-lg">{t('marketing.benefits.dataOnDevice')}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl">✓</span>
+                      <span className="text-white text-lg">{t('marketing.benefits.bilingual')}</span>
+                    </div>
+                  </div>
+                  <SiteUrl className="mt-8" size="lg" variant="primary" />
+                </div>
+              </AssetContainer>
+
+              {/* IG-SET-10: CTA - closing */}
+              <AssetContainer id="ig-set-10" {...FORMATS.instagramPost} scale={0.5}>
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                  <GlowBg color="amber" position="top-left" size="md" blur={80} />
+                  <GlowBg color="primary" position="bottom-right" size="md" blur={80} />
+                  <Logo size={90} className="mb-4 relative z-10" />
+                  <TitleText size="xl" className="mb-6 relative z-10" />
+                  <p className="text-white text-xl text-center leading-relaxed relative z-10 max-w-sm">
+                    {t('marketing.taglines.power')}
+                  </p>
+                  <p className="text-primary text-lg font-semibold mt-4 relative z-10">{t('marketing.taglines.memorable')}</p>
+                  <SiteUrl className="mt-6 relative z-10" size="lg" variant="primary" />
                 </div>
               </AssetContainer>
             </div>
@@ -1398,8 +1615,8 @@ export default function MarketingAssets() {
                     <Logo size={60} />
                     <TitleText size="lg" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="lg" zIndex={10} />
-                  <p className="text-gray-300 text-xl mt-6">Your game day toolkit</p>
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
+                  <p className="text-gray-300 text-xl mt-6">{t('marketing.taglines.toolkit')}</p>
                   <p className="text-gray-500 text-lg mt-2">Plan • Track • Assess</p>
                   <div className="mt-8 bg-primary/20 px-6 py-2 rounded-full">
                     <SiteUrl size="lg" variant="primary" />
@@ -1420,7 +1637,7 @@ export default function MarketingAssets() {
                     <br />
                     Soccer Field
                   </h3>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="lg" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                   <p className="text-gray-400 text-lg mt-6">Build your lineup visually</p>
                   <SiteUrl className="mt-4" size="md" />
                 </div>
@@ -1439,7 +1656,7 @@ export default function MarketingAssets() {
                     <br />
                     Timer & Events
                   </h3>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_Main_timer_full.jpg" size="lg" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={10} />
                   <p className="text-gray-400 text-lg mt-6">Log goals with a tap</p>
                   <SiteUrl className="mt-4" size="md" />
                 </div>
@@ -1458,7 +1675,7 @@ export default function MarketingAssets() {
                     <br />
                     Team Statistics
                   </h3>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg" size="lg" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.playerstats} size="lg" zIndex={10} />
                   <p className="text-gray-400 text-lg mt-6">Track development over time</p>
                   <SiteUrl className="mt-4" size="md" />
                 </div>
@@ -1468,14 +1685,8 @@ export default function MarketingAssets() {
               <AssetContainer id="story-5" {...FORMATS.instagramStory} scale={0.35}>
                 <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center">
                   <Logo size={80} className="mb-8" />
-                  <h2 className="text-white text-4xl font-bold mb-6 leading-tight text-center">
-                    Your clipboard,
-                    <br />
-                    stopwatch &
-                    <br />
-                    notebook
-                    <br />
-                    <span className="text-primary">in one app</span>
+                  <h2 className="text-white text-3xl font-bold mb-6 leading-tight text-center px-8">
+                    {t('marketing.taglines.power')}
                   </h2>
                   <TitleText size="lg" className="mt-6" />
                   <div className="mt-8 bg-primary/20 px-6 py-2 rounded-full">
@@ -1494,15 +1705,15 @@ export default function MarketingAssets() {
                   <div className="space-y-6 text-xl">
                     <div className="flex items-center gap-4">
                       <span className="w-4 h-4 bg-primary rounded-full flex-shrink-0" />
-                      <span className="text-white">Works offline</span>
+                      <span className="text-white">{t('marketing.bullets.worksOffline')}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="w-4 h-4 bg-primary rounded-full flex-shrink-0" />
-                      <span className="text-white">Data stays on device</span>
+                      <span className="text-white">{t('marketing.benefits.dataOnDevice')}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="w-4 h-4 bg-primary rounded-full flex-shrink-0" />
-                      <span className="text-white">No signup required</span>
+                      <span className="text-white">{t('marketing.bullets.noSignupRequired')}</span>
                     </div>
                   </div>
                   <div className="mt-12 bg-primary/20 px-6 py-2 rounded-full">
@@ -1535,9 +1746,9 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center">
                   <Logo size={70} className="mb-8" />
                   <TitleText size="lg" className="mb-8" />
-                  <p className="text-white text-3xl text-center mb-2">Your data stays</p>
-                  <p className="text-primary text-4xl font-bold text-center">on your device</p>
-                  <p className="text-gray-500 text-lg mt-6">Privacy by design</p>
+                  <p className="text-white text-3xl text-center mb-2">{t('marketing.benefits.dataStays')}</p>
+                  <p className="text-primary text-4xl font-bold text-center">{t('marketing.benefits.onYourDevice')}</p>
+                  <p className="text-gray-500 text-lg mt-6">{t('marketing.benefits.privacyByDesign')}</p>
                   <div className="mt-10 bg-primary/20 px-6 py-2 rounded-full">
                     <SiteUrl size="lg" variant="primary" />
                   </div>
@@ -1569,12 +1780,12 @@ export default function MarketingAssets() {
                       <Logo size={70} />
                       <TitleText size="xl" />
                     </div>
-                    <p className="text-gray-300 text-xl mb-4">Your game day toolkit</p>
+                    <p className="text-gray-300 text-xl mb-4">{t('marketing.taglines.toolkit')}</p>
                     <p className="text-gray-500 mb-3">Plan Lineups • Track Games • Build Statistics</p>
                     <SiteUrl size="sm" />
                   </div>
                   <div className="relative z-10">
-                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={16} stagger={20} />
+                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={16} stagger={20} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1584,11 +1795,11 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-950 flex items-center justify-center relative overflow-hidden">
                   <GlowBg color="primary" position="center" size="lg" blur={120} />
                   <div className="relative z-10 flex items-center gap-16">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="xl" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={10} />
                     <div>
                       <Logo size={80} className="mb-4" />
                       <TitleText size="2xl" className="block mb-2" />
-                      <p className="text-gray-400 text-lg mb-3">Local-first soccer coaching app</p>
+                      <p className="text-gray-400 text-lg mb-3">{t('marketing.descriptions.localFirst')}</p>
                       <SiteUrl size="sm" />
                     </div>
                   </div>
@@ -1607,16 +1818,16 @@ export default function MarketingAssets() {
                   </div>
                   <div className="flex-1 flex justify-around">
                     <div className="text-center">
-                      <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="md" zIndex={10} />
+                      <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
                       <p className="text-primary mt-3 font-semibold">Plan</p>
                     </div>
                     <div className="text-center">
-                      <PhoneMockup screenshot="/screenshots/MatchOps_Main_timer_full.jpg" size="md" zIndex={10} />
+                      <PhoneMockup screenshot={screenshots.timer} size="md" zIndex={10} />
                       <p className="text-primary mt-3 font-semibold">Track</p>
                     </div>
                     <div className="text-center">
                       <PhoneMockup
-                        screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                        screenshot={screenshots.playerstats}
                         size="md"
                         zIndex={10}
                       />
@@ -1643,7 +1854,7 @@ export default function MarketingAssets() {
               <AssetContainer id="as-5" {...FORMATS.appStoreFeature}>
                 <div className="w-full h-full bg-slate-900 flex relative">
                   <div className="w-2/5 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="xl" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={10} />
                   </div>
                   <div className="w-3/5 flex flex-col justify-center px-12">
                     <div className="flex items-center gap-4 mb-4">
@@ -1653,7 +1864,7 @@ export default function MarketingAssets() {
                     <p className="text-gray-300 text-lg mb-4">
                       Replace clipboard, stopwatch, and notebook with one app.
                     </p>
-                    <FeatureBullets features={['Works Offline', 'Privacy-First', 'No Signup']} size="sm" />
+                    <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignup')]} size="sm" />
                     <SiteUrl size="sm" className="mt-3" />
                   </div>
                 </div>
@@ -1682,7 +1893,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1698,7 +1909,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_Main_timer_full.jpg" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1715,7 +1926,7 @@ export default function MarketingAssets() {
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
                     <PhoneMockup
-                      screenshot="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                      screenshot={screenshots.playerstats}
                       size="lg"
                       zIndex={10}
                     />
@@ -1748,7 +1959,7 @@ export default function MarketingAssets() {
                     <Logo size={40} />
                     <TitleText size="sm" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="lg" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                   <SiteUrl className="relative z-20 mt-3" size="sm" />
                 </div>
               </AssetContainer>
@@ -1760,13 +1971,13 @@ export default function MarketingAssets() {
                     <Logo size={60} />
                     <div>
                       <TitleText size="lg" />
-                      <p className="text-gray-400">Your game day toolkit</p>
+                      <p className="text-gray-400">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl size="sm" className="mt-1" />
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="sm" zIndex={10} />
-                    <PhoneMockup screenshot="/screenshots/MatchOps_Main_timer_full.jpg" size="sm" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="sm" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.timer} size="sm" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1778,7 +1989,7 @@ export default function MarketingAssets() {
                     <Logo size={40} />
                     <TitleText size="sm" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="lg" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                   <div className="text-center">
                     <p className="text-gray-400 text-sm mb-2">Plan • Track • Assess</p>
                     <SiteUrl size="md" variant="primary" />
@@ -1842,7 +2053,7 @@ export default function MarketingAssets() {
                   <Logo size={70} />
                   <div>
                     <TitleText size="xl" />
-                    <p className="text-gray-400 mt-1">Local-first soccer coaching app</p>
+                    <p className="text-gray-400 mt-1">{t('marketing.descriptions.localFirst')}</p>
                     <SiteUrl size="sm" className="mt-1" />
                   </div>
                 </div>
@@ -1869,9 +2080,9 @@ export default function MarketingAssets() {
                         <Logo size={80} />
                         <TitleText size="2xl" />
                       </div>
-                      <h1 className="text-5xl font-bold text-white mb-4">Your Game Day Toolkit</h1>
+                      <h1 className="text-5xl font-bold text-white mb-4">{t('marketing.taglines.toolkit')}</h1>
                       <p className="text-xl text-gray-400 mb-8">
-                        Plan lineups, track games live, build statistics. Works offline. Your data stays private.
+                        {t('marketing.descriptions.planTrackBuild')} {t('marketing.benefits.offlinePrivate')}
                       </p>
                       <div className="flex gap-4 items-center">
                         <div className="bg-primary text-slate-900 px-6 py-3 rounded-lg font-semibold">
@@ -1881,7 +2092,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="ml-4" size="md" />
                       </div>
                     </div>
-                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} />
+                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1896,10 +2107,10 @@ export default function MarketingAssets() {
                     <p className="text-gray-300 text-2xl mb-4">
                       Replace clipboard, stopwatch, and notebook with one app.
                     </p>
-                    <FeatureBullets features={['Works Offline', 'Privacy-First', 'No Signup Required']} size="lg" />
+                    <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignupRequired')]} size="lg" />
                     <SiteUrl className="mt-4" size="md" />
                   </div>
-                  <ThreePhones leftSize="lg" middleSize="xl" rightSize="lg" overlap={35} stagger={40} />
+                  <ThreePhones leftSize="lg" middleSize="xl" rightSize="lg" overlap={35} stagger={40} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -1913,9 +2124,9 @@ export default function MarketingAssets() {
                         <Logo size={80} />
                         <TitleText size="2xl" />
                       </div>
-                      <h1 className="text-5xl font-bold text-white mb-4">Your Game Day Toolkit</h1>
+                      <h1 className="text-5xl font-bold text-white mb-4">{t('marketing.taglines.toolkit')}</h1>
                       <p className="text-xl text-gray-400 mb-8">
-                        Plan lineups, track games live, build statistics. Works offline. Your data stays private.
+                        {t('marketing.descriptions.planTrackBuild')} {t('marketing.benefits.offlinePrivate')}
                       </p>
                       <div className="flex gap-4 items-center">
                         <div className="bg-primary text-slate-900 px-6 py-3 rounded-lg font-semibold">
@@ -1925,7 +2136,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="ml-4" size="md" />
                       </div>
                     </div>
-                    <ThreePhonesBalanced sideSize="lg" middleSize="lg" overlap={30} />
+                    <ThreePhonesBalanced sideSize="lg" middleSize="lg" overlap={30} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1940,9 +2151,9 @@ export default function MarketingAssets() {
                         <Logo size={80} />
                         <TitleText size="2xl" />
                       </div>
-                      <h1 className="text-5xl font-bold text-white mb-4">Your Game Day Toolkit</h1>
+                      <h1 className="text-5xl font-bold text-white mb-4">{t('marketing.taglines.toolkit')}</h1>
                       <p className="text-xl text-gray-400 mb-8">
-                        Plan lineups, track games live, build statistics. Works offline. Your data stays private.
+                        {t('marketing.descriptions.planTrackBuild')} {t('marketing.benefits.offlinePrivate')}
                       </p>
                       <div className="flex gap-4 items-center">
                         <div className="bg-primary text-slate-900 px-6 py-3 rounded-lg font-semibold">
@@ -1952,7 +2163,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="ml-4" size="md" />
                       </div>
                     </div>
-                    <ThreePhonesBalanced sideSize="lg" middleSize="xl" overlap={30} />
+                    <ThreePhonesBalanced sideSize="lg" middleSize="xl" overlap={30} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1967,10 +2178,10 @@ export default function MarketingAssets() {
                     <p className="text-gray-300 text-2xl mb-4">
                       Replace clipboard, stopwatch, and notebook with one app.
                     </p>
-                    <FeatureBullets features={['Works Offline', 'Privacy-First', 'No Signup Required']} size="lg" />
+                    <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignupRequired')]} size="lg" />
                     <SiteUrl className="mt-4" size="md" />
                   </div>
-                  <ThreePhonesBalanced sideSize="xl" middleSize="xl" overlap={35} />
+                  <ThreePhonesBalanced sideSize="xl" middleSize="xl" overlap={35} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -1984,10 +2195,10 @@ export default function MarketingAssets() {
                     <p className="text-gray-300 text-2xl mb-4">
                       Replace clipboard, stopwatch, and notebook with one app.
                     </p>
-                    <FeatureBullets features={['Works Offline', 'Privacy-First', 'No Signup Required']} size="lg" />
+                    <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignupRequired')]} size="lg" />
                     <SiteUrl className="mt-4" size="md" />
                   </div>
-                  <ThreePhonesBalanced sideSize="lg" middleSize="xl" overlap={32} />
+                  <ThreePhonesBalanced sideSize="lg" middleSize="xl" overlap={32} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -1999,7 +2210,7 @@ export default function MarketingAssets() {
                     <p className="text-gray-400 text-2xl">Plan • Track • Assess</p>
                     <SiteUrl className="mt-4" size="md" />
                   </div>
-                  <PhoneMockup screenshot="/screenshots/MatchOps_main_soccerfield_full.jpg" size="2xl" zIndex={10} />
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="2xl" zIndex={10} />
                 </div>
               </AssetContainer>
             </div>
@@ -2009,3 +2220,9 @@ export default function MarketingAssets() {
     </>
   );
 }
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale ?? 'fi', ['common'])),
+  },
+});
