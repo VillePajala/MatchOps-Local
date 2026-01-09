@@ -321,5 +321,84 @@
       "title": "Screenshot Gallery",
       "subtitle": "Explore the app views"
     }
+  },
+  "marketing": {
+    "page": {
+      "title": "Marketing Assets",
+      "subtitle": "Screenshot these at native resolution. Each shows dimensions for reference.",
+      "screenshotsLanguage": "Screenshots language:"
+    },
+    "taglines": {
+      "power": "Your clipboard, stopwatch, notebook, and stats — in one app.",
+      "memorable": "Every game remembered.",
+      "toolkit": "Your game day toolkit"
+    },
+    "painPoints": {
+      "soundFamiliar": "Sound familiar?",
+      "tooManyTools": "Too many tools.",
+      "clipboard": "Clipboard for lineup",
+      "stopwatch": "Stopwatch for time",
+      "notebook": "Notebook for events",
+      "spreadsheet": "Spreadsheet for stats"
+    },
+    "solution": {
+      "title": "The solution:",
+      "oneApp": "One app.",
+      "planTrackAssess": "Plan. Track. Assess."
+    },
+    "features": {
+      "plan": {
+        "label": "PLAN",
+        "title": "Interactive lineup builder",
+        "desc": "Place players on the field. Visualize your formation."
+      },
+      "track": {
+        "label": "TRACK",
+        "title": "Live game tracking",
+        "desc": "Timer, substitutions, goals, and assists — all in real-time."
+      },
+      "assess": {
+        "label": "ASSESS",
+        "title": "Automatic statistics",
+        "desc": "Player stats, team stats, season trends — built automatically."
+      }
+    },
+    "benefits": {
+      "offline": "Works offline",
+      "noSignup": "No signup required",
+      "dataOnDevice": "Data stays on your device",
+      "dataStays": "Your data stays",
+      "onYourDevice": "on your device",
+      "bilingual": "English & Finnish",
+      "privacyByDesign": "Privacy by design",
+      "statsAutomatic": "Statistics build automatically",
+      "offlinePrivate": "Works offline. Your data stays private."
+    },
+    "cta": {
+      "inTesting": "Currently in Limited Testing",
+      "contact": "Contact: hello@match-ops.com"
+    },
+    "descriptions": {
+      "heroSubtitle": "Plan lineups, track games live, build statistics. Works offline. Your data stays private.",
+      "planTrackBuild": "Plan lineups, track games live, build statistics.",
+      "localFirst": "Local-first soccer coaching app",
+      "localFirstShort": "Local-first soccer coaching",
+      "madeSimple": "Soccer coaching made simple",
+      "forPrivacyCoaches": "For soccer coaches who value privacy"
+    },
+    "bullets": {
+      "worksOffline": "Works Offline",
+      "privacyFirst": "Privacy-First",
+      "noSignup": "No Signup",
+      "noSignupRequired": "No Signup Required",
+      "noAccountNeeded": "No Account Needed",
+      "offline": "Offline",
+      "private": "Private",
+      "dataStaysLocal": "Data Stays Local",
+      "dataStaysPrivate": "Data Stays Private",
+      "playerStats": "Player Stats",
+      "teamStats": "Team Stats",
+      "seasonTrends": "Season Trends"
+    }
   }
 }

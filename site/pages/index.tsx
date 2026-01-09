@@ -11,9 +11,24 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 import { FaFutbol, FaClock, FaPencilAlt, FaChartLine, FaTrophy, FaUsers, FaBolt, FaShieldAlt, FaDatabase, FaGlobe, FaClipboardList, FaPlay, FaChartBar } from 'react-icons/fa';
 
+// Language-aware screenshot paths
+const getScreenshots = (locale: string | undefined) => {
+  const isEnglish = locale === 'en';
+  return {
+    soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg', // Language agnostic
+    timer: isEnglish
+      ? '/screenshots/MatchOps_main_timer_en.jpg'
+      : '/screenshots/MatchOps_Main_timer_full.jpg',
+    playerstats: isEnglish
+      ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
+      : '/screenshots/MatchOps_Main_playerstats_full.jpg',
+  };
+};
+
 export default function HomePage() {
   const { t } = useTranslation('common');
   const router = useRouter();
+  const screenshots = getScreenshots(router.locale);
   const mobileCarouselRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [lightbox, setLightbox] = useState<null | { src: string; alt: string }>(null);
@@ -138,7 +153,7 @@ export default function HomePage() {
                   <div className="phone-frame phone-frame-full">
                     <div className="phone-frame-screen">
                       <Image
-                        src="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                        src={screenshots.soccerfield}
                         alt="App view screenshot"
                         width={1080}
                         height={2340}
@@ -153,7 +168,7 @@ export default function HomePage() {
                   <div className="phone-frame phone-frame-full">
                     <div className="phone-frame-screen">
                       <Image
-                        src="/screenshots/MatchOps_Main_timer_full.jpg"
+                        src={screenshots.timer}
                         alt="Timer view screenshot"
                         width={1080}
                         height={2340}
@@ -167,7 +182,7 @@ export default function HomePage() {
                   <div className="phone-frame phone-frame-full">
                     <div className="phone-frame-screen">
                       <Image
-                        src="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                        src={screenshots.playerstats}
                         alt="Player stats screenshot"
                         width={1080}
                         height={2340}
@@ -230,12 +245,12 @@ export default function HomePage() {
                   <button
                     type="button"
                     className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: '/screenshots/MatchOps_main_soccerfield_full.jpg', alt: 'App view screenshot' })}
+                    onClick={() => setLightbox({ src: screenshots.soccerfield, alt: 'App view screenshot' })}
                     aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.plan') })}
                   >
                     <div className="phone-frame-screen">
                       <Image
-                        src="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                        src={screenshots.soccerfield}
                         alt="App view screenshot"
                         width={1080}
                         height={2340}
@@ -253,12 +268,12 @@ export default function HomePage() {
                   <button
                     type="button"
                     className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: '/screenshots/MatchOps_Main_timer_full.jpg', alt: 'Timer view screenshot' })}
+                    onClick={() => setLightbox({ src: screenshots.timer, alt: 'Timer view screenshot' })}
                     aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.track') })}
                   >
                     <div className="phone-frame-screen">
                       <Image
-                        src="/screenshots/MatchOps_Main_timer_full.jpg"
+                        src={screenshots.timer}
                         alt="Timer view screenshot"
                         width={1080}
                         height={2340}
@@ -275,12 +290,12 @@ export default function HomePage() {
                   <button
                     type="button"
                     className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: '/screenshots/MatchOps_Main_playerstats_full.jpg', alt: 'Player stats screenshot' })}
+                    onClick={() => setLightbox({ src: screenshots.playerstats, alt: 'Player stats screenshot' })}
                     aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.review') })}
                   >
                     <div className="phone-frame-screen">
                       <Image
-                        src="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                        src={screenshots.playerstats}
                         alt="Player stats screenshot"
                         width={1080}
                         height={2340}

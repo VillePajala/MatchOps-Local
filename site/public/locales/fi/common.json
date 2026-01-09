@@ -321,5 +321,84 @@
       "title": "Kuvagalleria",
       "subtitle": "Tutustu sovelluksen näkymiin"
     }
+  },
+  "marketing": {
+    "page": {
+      "title": "Markkinointimateriaalit",
+      "subtitle": "Ota kuvakaappaukset alkuperäisessä resoluutiossa. Jokaisessa näkyy mitat viitteeksi.",
+      "screenshotsLanguage": "Kuvakaappausten kieli:"
+    },
+    "taglines": {
+      "power": "Piirtolevy, sekuntikello, muistivihko ja tilastot — yhdessä sovelluksessa.",
+      "memorable": "Jokainen peli muistetaan.",
+      "toolkit": "Pelipäivän työkalut"
+    },
+    "painPoints": {
+      "soundFamiliar": "Kuulostaako tutulta?",
+      "tooManyTools": "Liian monta työkalua.",
+      "clipboard": "Piirtolevy kokoonpanolle",
+      "stopwatch": "Sekuntikello ajalle",
+      "notebook": "Muistivihko tapahtumille",
+      "spreadsheet": "Taulukko tilastoille"
+    },
+    "solution": {
+      "title": "Ratkaisu:",
+      "oneApp": "Yksi sovellus.",
+      "planTrackAssess": "Suunnittele. Kirjaa. Tarkastele."
+    },
+    "features": {
+      "plan": {
+        "label": "SUUNNITTELE",
+        "title": "Interaktiivinen kokoonpanotyökalu",
+        "desc": "Aseta pelaajat kentälle. Visualisoi muodostelmasi."
+      },
+      "track": {
+        "label": "KIRJAA",
+        "title": "Reaaliaikainen peliseuranta",
+        "desc": "Kello, vaihdot, maalit ja syötöt — kaikki reaaliajassa."
+      },
+      "assess": {
+        "label": "TARKASTELE",
+        "title": "Automaattiset tilastot",
+        "desc": "Pelaajatilastot, joukkuetilastot, kauden trendit — kertyy automaattisesti."
+      }
+    },
+    "benefits": {
+      "offline": "Toimii offline",
+      "noSignup": "Ei rekisteröitymistä",
+      "dataOnDevice": "Data pysyy laitteellasi",
+      "dataStays": "Datasi pysyy",
+      "onYourDevice": "laitteellasi",
+      "bilingual": "Englanti ja suomi",
+      "privacyByDesign": "Yksityisyys sisäänrakennettuna",
+      "statsAutomatic": "Tilastot kertyvät automaattisesti",
+      "offlinePrivate": "Toimii offline. Datasi pysyy yksityisenä."
+    },
+    "cta": {
+      "inTesting": "Rajoitettu testaus käynnissä",
+      "contact": "Yhteydenotot: hello@match-ops.com"
+    },
+    "descriptions": {
+      "heroSubtitle": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja. Toimii offline. Datasi pysyy yksityisenä.",
+      "planTrackBuild": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja.",
+      "localFirst": "Paikallinen jalkapallovalmentajan sovellus",
+      "localFirstShort": "Paikallinen valmentajan sovellus",
+      "madeSimple": "Jalkapallovalmennus yksinkertaisesti",
+      "forPrivacyCoaches": "Valmentajille, jotka arvostavat yksityisyyttä"
+    },
+    "bullets": {
+      "worksOffline": "Toimii offline",
+      "privacyFirst": "Yksityisyys ensin",
+      "noSignup": "Ei rekisteröitymistä",
+      "noSignupRequired": "Ei rekisteröitymistä",
+      "noAccountNeeded": "Ei tiliä tarvita",
+      "offline": "Offline",
+      "private": "Yksityinen",
+      "dataStaysLocal": "Data pysyy paikallisena",
+      "dataStaysPrivate": "Data pysyy yksityisenä",
+      "playerStats": "Pelaajatilastot",
+      "teamStats": "Joukkuetilastot",
+      "seasonTrends": "Kauden trendit"
+    }
   }
 }
