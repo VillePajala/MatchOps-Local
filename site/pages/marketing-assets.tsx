@@ -377,14 +377,19 @@ export default function MarketingAssets() {
 
               {/* V1-B: Bigger side phones, aligned, MEDIUM contrast */}
               <AssetContainer id="li-1b" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center gap-24 relative">
-                  <div className="flex items-center gap-6" style={{ marginLeft: 330 }}>
-                    <Logo size={130} />
-                    <div>
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center gap-16 relative">
+                  <div className="flex flex-col" style={{ marginLeft: 330 }}>
+                    <div className="flex items-center gap-5 mb-3">
+                      <Logo size={100} />
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">Your game day toolkit</p>
-                      <SiteUrl className="mt-2" size="sm" />
                     </div>
+                    <p className="text-white text-2xl font-medium leading-tight max-w-md">
+                      Your clipboard, stopwatch, notebook, and stats — in one app.
+                    </p>
+                    <p className="text-primary text-xl font-semibold mt-1">
+                      Every game remembered.
+                    </p>
+                    <SiteUrl className="mt-3" size="sm" />
                   </div>
                   <div className="flex items-center" style={{ marginRight: -10 }}>
                     <PhoneMockup
