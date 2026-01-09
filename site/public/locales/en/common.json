@@ -331,7 +331,8 @@
     "taglines": {
       "power": "Your clipboard, stopwatch, notebook, and stats — in one app.",
       "memorable": "Every game remembered.",
-      "toolkit": "Your game day toolkit"
+      "toolkit": "Your game day toolkit",
+      "threePillars": "Plan Lineups • Track Games • Build Statistics"
     },
     "painPoints": {
       "soundFamiliar": "Sound familiar?",
@@ -384,7 +385,21 @@
       "localFirst": "Local-first soccer coaching app",
       "localFirstShort": "Local-first soccer coaching",
       "madeSimple": "Soccer coaching made simple",
-      "forPrivacyCoaches": "For soccer coaches who value privacy"
+      "forPrivacyCoaches": "For soccer coaches who value privacy",
+      "trackDevelopment": "Track player development with data",
+      "comprehensiveStats": "Comprehensive statistics across games, seasons, and tournaments.",
+      "planLineupsVisually": "Plan lineups visually",
+      "focusOnCoaching": "Focus on coaching,",
+      "notPaperwork": "not paperwork.",
+      "buildLineupVisually": "Build your lineup visually",
+      "logGoalsTap": "Log goals with a tap",
+      "trackDevelopmentTime": "Track development over time",
+      "trackGamesRealtime": "Track games in real-time",
+      "buildStatsAuto": "Build statistics automatically",
+      "fieldDesc": "Select and place players on an interactive soccer field. Visualize formations before the game.",
+      "timerDesc": "Game timer with substitution intervals. Log goals, assists, and events with a tap.",
+      "statsDesc": "Comprehensive player, team and competition statistics. Track performance across seasons.",
+      "statsLongDesc": "Every goal, assist, and game event builds your season statistics. Track player development over time with comprehensive analytics."
     },
     "bullets": {
       "worksOffline": "Works Offline",
@@ -399,6 +414,50 @@
       "playerStats": "Player Stats",
       "teamStats": "Team Stats",
       "seasonTrends": "Season Trends"
+    },
+    "ui": {
+      "plan": "Plan",
+      "track": "Track",
+      "assess": "Assess",
+      "lineups": "Lineups",
+      "liveGames": "Live Games",
+      "statistics": "Statistics",
+      "liveGameEvents": "Live Game Events",
+      "interactiveField": "Interactive Field",
+      "gameTimer": "Game Timer",
+      "trackSubstitutions": "Track substitutions",
+      "liveEvents": "Live Events",
+      "seasonAnalytics": "Season analytics",
+      "forSoccerCoaches": "For Soccer Coaches",
+      "interactiveLineup": "Interactive Lineup",
+      "playerStatistics": "Player Statistics",
+      "planYourLineup": "Plan Your Lineup",
+      "trackLiveGames": "Track Live Games",
+      "reviewStatistics": "Review Statistics",
+      "learnMore": "Learn More",
+      "feature": "FEATURE",
+      "lineupsAndTactics": "Lineups & Tactics",
+      "statsAndAnalytics": "Stats & Analytics",
+      "logGoalsAssists": "Log goals & assists",
+      "interactiveSoccerField": "Interactive Soccer Field",
+      "liveGameTimerEvents": "Live Game Timer & Events",
+      "playerTeamStatistics": "Player & Team Statistics",
+      "planTrackAssessDots": "Plan • Track • Assess",
+      "getStarted": "Get Started",
+      "replaceClipboard": "Replace clipboard, stopwatch, and notebook with one app."
+    },
+    "cards": {
+      "introducing": "Introducing",
+      "forCoaches": "For soccer & futsal coaches",
+      "oneAppAllTools": "One app. All your game day tools.",
+      "availableNow": "Available Now",
+      "freeToTry": "Free to try",
+      "getTheApp": "Get the App",
+      "series1of5": "1/5",
+      "series2of5": "2/5",
+      "series3of5": "3/5",
+      "series4of5": "4/5",
+      "series5of5": "5/5"
     }
   }
 }

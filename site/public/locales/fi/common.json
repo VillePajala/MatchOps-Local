@@ -231,7 +231,7 @@
     },
     "challenges": {
       "title": "Yleisiä haasteita valmentajille",
-      "challenge1": "Useiden työkalujen kanssa säätäminen pelipäivänä: piirtolevy, sekuntikello, muistivihko, kokoonpanolista",
+      "challenge1": "Useiden työkalujen kanssa säätäminen pelipäivänä: taktiikkataulu, sekuntikello, muistivihko, kokoonpanolista",
       "challenge2": "Vaihtovälien seuraaminen on hankalaa—et voi vaihtaa ennen kuin peli sen sallii, välit venyvät, ja päässälaskeminen on turhaa työtä pois tärkeämmästä",
       "challenge3": "Valmentajan täytyy keskittyä peliin, joten useimmat tapahtumat jäävät kirjaamatta ja unohtuvat pian",
       "challenge4": "Ei helppoa tapaa seurata trendejä, pelaajien kehitystä tai kerätä tilastoja kauden aikana",
@@ -331,7 +331,8 @@
     "taglines": {
       "power": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot — yhdessä sovelluksessa.",
       "memorable": "Jokainen peli jää muistiin.",
-      "toolkit": "Pelipäivän työkalut"
+      "toolkit": "Pelipäivän työkalut",
+      "threePillars": "Suunnittele · Kirjaa · Arvioi"
     },
     "painPoints": {
       "soundFamiliar": "Kuulostaako tutulta?",
@@ -344,7 +345,7 @@
     "solution": {
       "title": "Ratkaisu:",
       "oneApp": "Yksi sovellus.",
-      "planTrackAssess": "Suunnittele. Kirjaa. Tarkastele."
+      "planTrackAssess": "Suunnittele. Kirjaa. Arvioi."
     },
     "features": {
       "plan": {
@@ -358,7 +359,7 @@
         "desc": "Kello, vaihdot, maalit ja syötöt — kaikki reaaliajassa."
       },
       "assess": {
-        "label": "TARKASTELE",
+        "label": "ARVIOI",
         "title": "Automaattiset tilastot",
         "desc": "Pelaajatilastot, joukkuetilastot, kauden trendit — kertyy automaattisesti."
       }
@@ -384,7 +385,21 @@
       "localFirst": "Jalkapallovalmentajan sovellus — tietosi laitteellasi",
       "localFirstShort": "Ottelutyökalu valmentajalle",
       "madeSimple": "Valmennus ilman säätöä",
-      "forPrivacyCoaches": "Valmentajille, jotka arvostavat yksityisyyttä"
+      "forPrivacyCoaches": "Valmentajille, jotka arvostavat yksityisyyttä",
+      "trackDevelopment": "Seuraa pelaajien kehitystä datalla",
+      "comprehensiveStats": "Kattavat tilastot otteluista, kausista ja turnauksista.",
+      "planLineupsVisually": "Suunnittele kokoonpanot visuaalisesti",
+      "focusOnCoaching": "Keskity valmentamiseen,",
+      "notPaperwork": "älä paperitöihin.",
+      "buildLineupVisually": "Rakenna kokoonpano visuaalisesti",
+      "logGoalsTap": "Kirjaa maalit napautuksella",
+      "trackDevelopmentTime": "Seuraa kehitystä ajan myötä",
+      "trackGamesRealtime": "Seuraa pelejä reaaliajassa",
+      "buildStatsAuto": "Tilastot kertyvät automaattisesti",
+      "fieldDesc": "Valitse ja aseta pelaajat interaktiiviselle kentälle. Visualisoi muodostelma ennen peliä.",
+      "timerDesc": "Pelikello vaihtoväleillä. Kirjaa maalit, syötöt ja tapahtumat napautuksella.",
+      "statsDesc": "Kattavat pelaaja-, joukkue- ja kilpailutilastot. Seuraa suorituskykyä kausien yli.",
+      "statsLongDesc": "Jokainen maali, syöttö ja pelitapahtuma kerryttää kauden tilastoja. Seuraa pelaajien kehitystä kattavalla analytiikalla."
     },
     "bullets": {
       "worksOffline": "Toimii offline",
@@ -399,6 +414,50 @@
       "playerStats": "Pelaajatilastot",
       "teamStats": "Joukkuetilastot",
       "seasonTrends": "Kauden trendit"
+    },
+    "ui": {
+      "plan": "Suunnittele",
+      "track": "Kirjaa",
+      "assess": "Arvioi",
+      "lineups": "Kokoonpanot",
+      "liveGames": "Peliseuranta",
+      "statistics": "Tilastot",
+      "liveGameEvents": "Pelitapahtumat",
+      "interactiveField": "Interaktiivinen kenttä",
+      "gameTimer": "Pelikello",
+      "trackSubstitutions": "Seuraa vaihtoja",
+      "liveEvents": "Tapahtumat",
+      "seasonAnalytics": "Kauden analytiikka",
+      "forSoccerCoaches": "Jalkapallovalmentajille",
+      "interactiveLineup": "Interaktiivinen kokoonpano",
+      "playerStatistics": "Pelaajatilastot",
+      "planYourLineup": "Suunnittele kokoonpano",
+      "trackLiveGames": "Kirjaa pelit",
+      "reviewStatistics": "Arvioi tilastoja",
+      "learnMore": "Lue lisää",
+      "feature": "OMINAISUUS",
+      "lineupsAndTactics": "Kokoonpanot ja taktiikka",
+      "statsAndAnalytics": "Tilastot ja analytiikka",
+      "logGoalsAssists": "Kirjaa maalit ja syötöt",
+      "interactiveSoccerField": "Interaktiivinen jalkapallokenttä",
+      "liveGameTimerEvents": "Pelikello ja tapahtumien kirjaus",
+      "playerTeamStatistics": "Pelaaja- ja joukkuetilastot",
+      "planTrackAssessDots": "Suunnittele · Kirjaa · Arvioi",
+      "getStarted": "Aloita",
+      "replaceClipboard": "Korvaa taktiikkataulu, sekuntikello ja muistivihko yhdellä sovelluksella."
+    },
+    "cards": {
+      "introducing": "Esittelyssä",
+      "forCoaches": "Jalkapallo- ja futsalvalmentajille",
+      "oneAppAllTools": "Yksi sovellus. Kaikki pelipäivän työkalut.",
+      "availableNow": "Saatavilla nyt",
+      "freeToTry": "Kokeile ilmaiseksi",
+      "getTheApp": "Lataa sovellus",
+      "series1of5": "1/5",
+      "series2of5": "2/5",
+      "series3of5": "3/5",
+      "series4of5": "4/5",
+      "series5of5": "5/5"
     }
   }
 }

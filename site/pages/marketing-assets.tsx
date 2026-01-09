@@ -102,47 +102,6 @@ function PhoneMockup({
   );
 }
 
-// Three phones arrangement - middle always in front
-function ThreePhones({
-  leftSize = 'md',
-  middleSize = 'lg',
-  rightSize = 'md',
-  overlap = 20,
-  stagger = 30,
-  className = '',
-  screenshots,
-}: {
-  leftSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-  middleSize?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-  rightSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-  overlap?: number;
-  stagger?: number;
-  className?: string;
-  screenshots: { soccerfield: string; timer: string; playerstats: string };
-}) {
-  return (
-    <div className={`flex items-end ${className}`}>
-      <PhoneMockup
-        screenshot={screenshots.playerstats}
-        size={leftSize}
-        style={{ marginRight: -overlap, transform: `translateY(${stagger}px)` }}
-        zIndex={1}
-      />
-      <PhoneMockup
-        screenshot={screenshots.soccerfield}
-        size={middleSize}
-        zIndex={10}
-      />
-      <PhoneMockup
-        screenshot={screenshots.timer}
-        size={rightSize}
-        style={{ marginLeft: -overlap, transform: `translateY(${stagger}px)` }}
-        zIndex={1}
-      />
-    </div>
-  );
-}
-
 // Three phones arrangement - balanced sizes, aligned (no stagger)
 function ThreePhonesBalanced({
   sideSize = 'md',
@@ -302,13 +261,14 @@ function SiteUrl({
 }: {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
-  variant?: 'light' | 'dark' | 'primary';
+  variant?: 'light' | 'dark' | 'primary' | 'yellow';
 }) {
   const sizes = { sm: 'text-sm', md: 'text-base', lg: 'text-lg' };
   const colors = {
     light: 'text-gray-400',
     dark: 'text-gray-600',
     primary: 'text-primary/70',
+    yellow: 'text-amber-400',
   };
 
   return <span className={`${sizes[size]} ${colors[variant]} ${className}`}>match-ops.com</span>;
@@ -537,7 +497,7 @@ export default function MarketingAssets() {
                       <Logo size={80} />
                       <div>
                         <TitleText size="2xl" />
-                        <p className="text-gray-400 text-xl mt-2">Plan • Track • Assess</p>
+                        <p className="text-gray-400 text-xl mt-2">{t('marketing.ui.planTrackAssessDots')}</p>
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
@@ -571,16 +531,16 @@ export default function MarketingAssets() {
                   </div>
                   <div className="flex items-center gap-16">
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-primary">Plan</div>
-                      <div className="text-gray-400">Lineups</div>
+                      <div className="text-4xl font-bold text-primary">{t('marketing.ui.plan')}</div>
+                      <div className="text-gray-400">{t('marketing.ui.lineups')}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-primary">Track</div>
-                      <div className="text-gray-400">Live Games</div>
+                      <div className="text-4xl font-bold text-primary">{t('marketing.ui.track')}</div>
+                      <div className="text-gray-400">{t('marketing.ui.liveGames')}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-primary">Assess</div>
-                      <div className="text-gray-400">Statistics</div>
+                      <div className="text-4xl font-bold text-primary">{t('marketing.ui.assess')}</div>
+                      <div className="text-gray-400">{t('marketing.ui.statistics')}</div>
                     </div>
                   </div>
                 </div>
@@ -632,7 +592,7 @@ export default function MarketingAssets() {
                       <Logo size={70} />
                       <TitleText size="xl" />
                     </div>
-                    <p className="text-gray-400 text-lg">Track player development with data</p>
+                    <p className="text-gray-400 text-lg">{t('marketing.descriptions.trackDevelopment')}</p>
                     <SiteUrl className="mt-3" size="sm" />
                   </div>
                   <div className="flex items-end gap-2">
@@ -656,7 +616,7 @@ export default function MarketingAssets() {
                       <Logo size={80} />
                       <div>
                         <TitleText size="xl" />
-                        <p className="text-gray-400 mt-1">Plan • Track • Assess</p>
+                        <p className="text-gray-400 mt-1">{t('marketing.ui.planTrackAssessDots')}</p>
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
@@ -738,7 +698,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" />
                   </div>
                   <div className="h-8 w-px bg-gray-700" />
-                  <p className="text-gray-400">Plan • Track • Assess</p>
+                  <p className="text-gray-400">{t('marketing.ui.planTrackAssessDots')}</p>
                 </div>
               </AssetContainer>
 
@@ -824,16 +784,16 @@ export default function MarketingAssets() {
                   </div>
                   <div className="flex items-center gap-16 text-gray-300">
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-primary">Plan</div>
-                      <div className="text-sm">Lineups & Tactics</div>
+                      <div className="text-4xl font-bold text-primary">{t('marketing.ui.plan')}</div>
+                      <div className="text-sm">{t('marketing.ui.lineupsAndTactics')}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-primary">Track</div>
-                      <div className="text-sm">Live Game Events</div>
+                      <div className="text-4xl font-bold text-primary">{t('marketing.ui.track')}</div>
+                      <div className="text-sm">{t('marketing.ui.liveGameEvents')}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-primary">Assess</div>
-                      <div className="text-sm">Stats & Analytics</div>
+                      <div className="text-4xl font-bold text-primary">{t('marketing.ui.assess')}</div>
+                      <div className="text-sm">{t('marketing.ui.statsAndAnalytics')}</div>
                     </div>
                   </div>
                 </div>
@@ -886,7 +846,7 @@ export default function MarketingAssets() {
                   <div className="h-24 w-px bg-primary/30" />
                   <div>
                     <TitleText size="2xl" />
-                    <p className="text-gray-400 text-xl mt-2">Plan • Track • Assess</p>
+                    <p className="text-gray-400 text-xl mt-2">{t('marketing.ui.planTrackAssessDots')}</p>
                   </div>
                 </div>
               </AssetContainer>
@@ -948,9 +908,9 @@ export default function MarketingAssets() {
                       <Logo size={70} />
                       <TitleText size="xl" />
                     </div>
-                    <h3 className="text-white text-2xl font-semibold mb-2">Track Player Development</h3>
+                    <h3 className="text-white text-2xl font-semibold mb-2">{t('marketing.descriptions.trackDevelopment')}</h3>
                     <p className="text-gray-400">
-                      Comprehensive statistics across games, seasons, and tournaments.
+                      {t('marketing.descriptions.comprehensiveStats')}
                     </p>
                   </div>
                 </div>
@@ -986,7 +946,7 @@ export default function MarketingAssets() {
                   <Logo size={70} />
                   <div>
                     <TitleText size="xl" />
-                    <p className="text-gray-400 mt-1">Plan • Track • Assess</p>
+                    <p className="text-gray-400 mt-1">{t('marketing.ui.planTrackAssessDots')}</p>
                     <SiteUrl className="mt-2" size="sm" />
                   </div>
                 </div>
@@ -1115,20 +1075,20 @@ export default function MarketingAssets() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-slate-800/50 rounded-lg p-4">
-                        <div className="text-primary font-semibold text-lg mb-1">Interactive Field</div>
-                        <div className="text-gray-400">Plan lineups visually</div>
+                        <div className="text-primary font-semibold text-lg mb-1">{t('marketing.ui.interactiveField')}</div>
+                        <div className="text-gray-400">{t('marketing.descriptions.planLineupsVisually')}</div>
                       </div>
                       <div className="bg-slate-800/50 rounded-lg p-4">
-                        <div className="text-primary font-semibold text-lg mb-1">Game Timer</div>
-                        <div className="text-gray-400">Track substitutions</div>
+                        <div className="text-primary font-semibold text-lg mb-1">{t('marketing.ui.gameTimer')}</div>
+                        <div className="text-gray-400">{t('marketing.ui.trackSubstitutions')}</div>
                       </div>
                       <div className="bg-slate-800/50 rounded-lg p-4">
-                        <div className="text-primary font-semibold text-lg mb-1">Live Events</div>
-                        <div className="text-gray-400">Log goals & assists</div>
+                        <div className="text-primary font-semibold text-lg mb-1">{t('marketing.ui.liveEvents')}</div>
+                        <div className="text-gray-400">{t('marketing.ui.logGoalsAssists')}</div>
                       </div>
                       <div className="bg-slate-800/50 rounded-lg p-4">
-                        <div className="text-primary font-semibold text-lg mb-1">Statistics</div>
-                        <div className="text-gray-400">Season analytics</div>
+                        <div className="text-primary font-semibold text-lg mb-1">{t('marketing.ui.statistics')}</div>
+                        <div className="text-gray-400">{t('marketing.ui.seasonAnalytics')}</div>
                       </div>
                     </div>
                     <SiteUrl className="mt-4" size="sm" />
@@ -1145,7 +1105,7 @@ export default function MarketingAssets() {
                       <Logo size={100} className="mx-auto mb-6" />
                       <TitleText size="3xl" className="block mb-4" />
                       <p className="text-gray-300 text-2xl mb-8">{t('marketing.taglines.toolkit')}</p>
-                      <p className="text-gray-500 text-lg">Plan • Track • Assess</p>
+                      <p className="text-gray-500 text-lg">{t('marketing.ui.planTrackAssessDots')}</p>
                       <SiteUrl className="mt-4" size="sm" />
                     </div>
                   </div>
@@ -1161,7 +1121,7 @@ export default function MarketingAssets() {
                       <TitleText size="xl" />
                     </div>
                     <p className="text-gray-300 text-xl mb-6">
-                      Replace clipboard, stopwatch, and notebook with one app.
+                      {t('marketing.ui.replaceClipboard')}
                     </p>
                     <FeatureBullets features={[t('marketing.bullets.noSignup'), t('marketing.bullets.worksOffline'), t('marketing.bullets.dataStaysPrivate')]} />
                     <SiteUrl className="mt-4" size="sm" />
@@ -1207,11 +1167,11 @@ export default function MarketingAssets() {
               <AssetContainer id="og-7" {...FORMATS.openGraph}>
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center px-16 relative">
                   <div className="flex-1">
-                    <p className="text-primary text-lg mb-2">For Soccer Coaches</p>
+                    <p className="text-primary text-lg mb-2">{t('marketing.ui.forSoccerCoaches')}</p>
                     <h2 className="text-white text-4xl font-bold mb-4">
-                      Focus on coaching,
+                      {t('marketing.descriptions.focusOnCoaching')}
                       <br />
-                      not paperwork
+                      {t('marketing.descriptions.notPaperwork')}
                     </h2>
                     <div className="flex items-center gap-4 mt-6">
                       <Logo size={50} />
@@ -1234,10 +1194,9 @@ export default function MarketingAssets() {
                       <Logo size={50} />
                       <TitleText size="lg" />
                     </div>
-                    <h3 className="text-white text-3xl font-bold mb-3">Build Statistics Automatically</h3>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.descriptions.buildStatsAuto')}</h3>
                     <p className="text-gray-400 text-lg mb-4">
-                      Every goal, assist, and game event builds your season statistics. Track player development over
-                      time.
+                      {t('marketing.descriptions.statsLongDesc')}
                     </p>
                     <FeatureBullets features={[t('marketing.bullets.playerStats'), t('marketing.bullets.teamStats'), t('marketing.bullets.seasonTrends')]} size="sm" />
                     <SiteUrl className="mt-4" size="sm" />
@@ -1264,7 +1223,7 @@ export default function MarketingAssets() {
                     <TitleText size="md" />
                   </div>
                   <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
-                  <p className="text-gray-400 text-lg mt-4">Plan • Track • Assess</p>
+                  <p className="text-gray-400 text-lg mt-4">{t('marketing.ui.planTrackAssessDots')}</p>
                   <SiteUrl className="mt-4" size="lg" variant="primary" />
                 </div>
               </AssetContainer>
@@ -1272,8 +1231,8 @@ export default function MarketingAssets() {
               {/* IG2: Feature - Plan */}
               <AssetContainer id="ig-2" {...FORMATS.instagramPost} scale={0.5}>
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
-                  <p className="text-primary text-xl font-bold mb-1">PLAN</p>
-                  <h3 className="text-white text-2xl font-bold mb-4 text-center">Interactive Lineup</h3>
+                  <p className="text-primary text-xl font-bold mb-1">{t('marketing.features.plan.label')}</p>
+                  <h3 className="text-white text-2xl font-bold mb-4 text-center">{t('marketing.ui.interactiveLineup')}</h3>
                   <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
                   <div className="mt-4 flex items-center gap-2">
                     <Logo size={30} />
@@ -1286,8 +1245,8 @@ export default function MarketingAssets() {
               {/* IG3: Feature - Track */}
               <AssetContainer id="ig-3" {...FORMATS.instagramPost} scale={0.5}>
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
-                  <p className="text-primary text-xl font-bold mb-1">TRACK</p>
-                  <h3 className="text-white text-2xl font-bold mb-4 text-center">Live Game Events</h3>
+                  <p className="text-primary text-xl font-bold mb-1">{t('marketing.features.track.label')}</p>
+                  <h3 className="text-white text-2xl font-bold mb-4 text-center">{t('marketing.ui.liveGameEvents')}</h3>
                   <PhoneMockup screenshot={screenshots.timer} size="md" zIndex={10} />
                   <div className="mt-4 flex items-center gap-2">
                     <Logo size={30} />
@@ -1300,8 +1259,8 @@ export default function MarketingAssets() {
               {/* IG4: Feature - Assess */}
               <AssetContainer id="ig-4" {...FORMATS.instagramPost} scale={0.5}>
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
-                  <p className="text-primary text-xl font-bold mb-1">ASSESS</p>
-                  <h3 className="text-white text-2xl font-bold mb-4 text-center">Player Statistics</h3>
+                  <p className="text-primary text-xl font-bold mb-1">{t('marketing.features.assess.label')}</p>
+                  <h3 className="text-white text-2xl font-bold mb-4 text-center">{t('marketing.ui.playerStatistics')}</h3>
                   <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={10} />
                   <div className="mt-4 flex items-center gap-2">
                     <Logo size={30} />
@@ -1316,7 +1275,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center">
                   <Logo size={120} className="mb-4" />
                   <TitleText size="lg" className="mb-3" />
-                  <p className="text-gray-400 text-lg">Plan • Track • Assess</p>
+                  <p className="text-gray-400 text-lg">{t('marketing.ui.planTrackAssessDots')}</p>
                   <SiteUrl className="mt-6" size="lg" variant="primary" />
                 </div>
               </AssetContainer>
@@ -1400,7 +1359,7 @@ export default function MarketingAssets() {
                     <TitleText size="sm" />
                   </div>
                   <PhoneMockup screenshot={screenshots.timer} size="md" zIndex={10} />
-                  <p className="text-gray-400 text-base mt-4">Track games in real-time</p>
+                  <p className="text-gray-400 text-base mt-4">{t('marketing.descriptions.trackGamesRealtime')}</p>
                   <SiteUrl className="mt-2" size="sm" />
                 </div>
               </AssetContainer>
@@ -1413,7 +1372,7 @@ export default function MarketingAssets() {
                     <TitleText size="sm" />
                   </div>
                   <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={10} />
-                  <p className="text-gray-400 text-base mt-4">Build statistics automatically</p>
+                  <p className="text-gray-400 text-base mt-4">{t('marketing.descriptions.buildStatsAuto')}</p>
                   <SiteUrl className="mt-2" size="sm" />
                 </div>
               </AssetContainer>
@@ -1616,7 +1575,7 @@ export default function MarketingAssets() {
                   </div>
                   <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                   <p className="text-gray-300 text-xl mt-6">{t('marketing.taglines.toolkit')}</p>
-                  <p className="text-gray-500 text-lg mt-2">Plan • Track • Assess</p>
+                  <p className="text-gray-500 text-lg mt-2">{t('marketing.ui.planTrackAssessDots')}</p>
                   <div className="mt-8 bg-primary/20 px-6 py-2 rounded-full">
                     <SiteUrl size="lg" variant="primary" />
                   </div>
@@ -1630,14 +1589,12 @@ export default function MarketingAssets() {
                     <Logo size={40} />
                     <TitleText size="md" />
                   </div>
-                  <p className="text-primary text-2xl font-bold mb-2">PLAN</p>
+                  <p className="text-primary text-2xl font-bold mb-2">{t('marketing.features.plan.label')}</p>
                   <h3 className="text-white text-3xl font-bold mb-6 text-center">
-                    Interactive
-                    <br />
-                    Soccer Field
+                    {t('marketing.ui.interactiveSoccerField')}
                   </h3>
                   <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
-                  <p className="text-gray-400 text-lg mt-6">Build your lineup visually</p>
+                  <p className="text-gray-400 text-lg mt-6">{t('marketing.descriptions.buildLineupVisually')}</p>
                   <SiteUrl className="mt-4" size="md" />
                 </div>
               </AssetContainer>
@@ -1649,14 +1606,12 @@ export default function MarketingAssets() {
                     <Logo size={40} />
                     <TitleText size="md" />
                   </div>
-                  <p className="text-primary text-2xl font-bold mb-2">TRACK</p>
+                  <p className="text-primary text-2xl font-bold mb-2">{t('marketing.features.track.label')}</p>
                   <h3 className="text-white text-3xl font-bold mb-6 text-center">
-                    Live Game
-                    <br />
-                    Timer & Events
+                    {t('marketing.ui.liveGameTimerEvents')}
                   </h3>
                   <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={10} />
-                  <p className="text-gray-400 text-lg mt-6">Log goals with a tap</p>
+                  <p className="text-gray-400 text-lg mt-6">{t('marketing.descriptions.logGoalsTap')}</p>
                   <SiteUrl className="mt-4" size="md" />
                 </div>
               </AssetContainer>
@@ -1668,14 +1623,12 @@ export default function MarketingAssets() {
                     <Logo size={40} />
                     <TitleText size="md" />
                   </div>
-                  <p className="text-primary text-2xl font-bold mb-2">ASSESS</p>
+                  <p className="text-primary text-2xl font-bold mb-2">{t('marketing.features.assess.label')}</p>
                   <h3 className="text-white text-3xl font-bold mb-6 text-center">
-                    Player &
-                    <br />
-                    Team Statistics
+                    {t('marketing.ui.playerTeamStatistics')}
                   </h3>
                   <PhoneMockup screenshot={screenshots.playerstats} size="lg" zIndex={10} />
-                  <p className="text-gray-400 text-lg mt-6">Track development over time</p>
+                  <p className="text-gray-400 text-lg mt-6">{t('marketing.descriptions.trackDevelopmentTime')}</p>
                   <SiteUrl className="mt-4" size="md" />
                 </div>
               </AssetContainer>
@@ -1726,7 +1679,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
                   <p className="text-6xl text-primary mb-4">&ldquo;</p>
                   <p className="text-white text-2xl text-center leading-relaxed mb-8">
-                    Focus on coaching,
+                    {t('marketing.descriptions.focusOnCoaching')}
                     <br />
                     not paperwork
                   </p>
@@ -1780,7 +1733,7 @@ export default function MarketingAssets() {
                       <TitleText size="xl" />
                     </div>
                     <p className="text-gray-300 text-xl mb-4">{t('marketing.taglines.toolkit')}</p>
-                    <p className="text-gray-500 mb-3">Plan Lineups • Track Games • Build Statistics</p>
+                    <p className="text-gray-500 mb-3">{t('marketing.taglines.threePillars')}</p>
                     <SiteUrl size="sm" />
                   </div>
                   <div className="relative z-10">
@@ -1818,11 +1771,11 @@ export default function MarketingAssets() {
                   <div className="flex-1 flex justify-around">
                     <div className="text-center">
                       <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
-                      <p className="text-primary mt-3 font-semibold">Plan</p>
+                      <p className="text-primary mt-3 font-semibold">{t('marketing.ui.plan')}</p>
                     </div>
                     <div className="text-center">
                       <PhoneMockup screenshot={screenshots.timer} size="md" zIndex={10} />
-                      <p className="text-primary mt-3 font-semibold">Track</p>
+                      <p className="text-primary mt-3 font-semibold">{t('marketing.ui.track')}</p>
                     </div>
                     <div className="text-center">
                       <PhoneMockup
@@ -1830,7 +1783,7 @@ export default function MarketingAssets() {
                         size="md"
                         zIndex={10}
                       />
-                      <p className="text-primary mt-3 font-semibold">Assess</p>
+                      <p className="text-primary mt-3 font-semibold">{t('marketing.ui.assess')}</p>
                     </div>
                   </div>
                 </div>
@@ -1843,7 +1796,7 @@ export default function MarketingAssets() {
                   <div className="h-20 w-px bg-primary/30" />
                   <div>
                     <TitleText size="2xl" />
-                    <p className="text-gray-400 text-lg mt-2 mb-2">Plan • Track • Assess</p>
+                    <p className="text-gray-400 text-lg mt-2 mb-2">{t('marketing.ui.planTrackAssessDots')}</p>
                     <SiteUrl size="sm" />
                   </div>
                 </div>
@@ -1861,7 +1814,7 @@ export default function MarketingAssets() {
                       <TitleText size="xl" />
                     </div>
                     <p className="text-gray-300 text-lg mb-4">
-                      Replace clipboard, stopwatch, and notebook with one app.
+                      {t('marketing.ui.replaceClipboard')}
                     </p>
                     <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignup')]} size="sm" />
                     <SiteUrl size="sm" className="mt-3" />
@@ -1879,17 +1832,121 @@ export default function MarketingAssets() {
               Promotional Cards (Various Sizes)
             </h2>
 
+            {/* ===== FEATURE CARD SERIES (5 cards) ===== */}
+            <h3 className="w-full text-xl font-semibold text-gray-300 mt-4 mb-2">Feature Card Series (5 cards, 600×400)</h3>
+            <div className="flex flex-wrap gap-8">
+              {/* Card 1: Introduction */}
+              <AssetContainer id="card-series-1" width={600} height={400} name="Card Series 1/5 - Intro">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="absolute top-4 right-4 text-gray-500 text-sm font-medium">{t('marketing.cards.series1of5')}</div>
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-amber-400 text-sm font-semibold mb-2 uppercase tracking-wider">{t('marketing.cards.introducing')}</div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Logo size={50} />
+                      <TitleText size="lg" />
+                    </div>
+                    <p className="text-gray-300 text-lg mb-2">{t('marketing.cards.forCoaches')}</p>
+                    <p className="text-gray-500 mb-4">{t('marketing.cards.oneAppAllTools')}</p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={15} screenshots={screenshots} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Card 2: Plan */}
+              <AssetContainer id="card-series-2" width={600} height={400} name="Card Series 2/5 - Plan">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="absolute top-4 right-4 text-gray-500 text-sm font-medium">{t('marketing.cards.series2of5')}</div>
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.planYourLineup')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.descriptions.fieldDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Card 3: Track */}
+              <AssetContainer id="card-series-3" width={600} height={400} name="Card Series 3/5 - Track">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="absolute top-4 right-4 text-gray-500 text-sm font-medium">{t('marketing.cards.series3of5')}</div>
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.trackLiveGames')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.descriptions.timerDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Card 4: Statistics */}
+              <AssetContainer id="card-series-4" width={600} height={400} name="Card Series 4/5 - Statistics">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="absolute top-4 right-4 text-gray-500 text-sm font-medium">{t('marketing.cards.series4of5')}</div>
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.reviewStatistics')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.descriptions.statsDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PhoneMockup
+                      screenshot={screenshots.playerstats}
+                      size="lg"
+                      zIndex={10}
+                    />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Card 5: CTA */}
+              <AssetContainer id="card-series-5" width={600} height={400} name="Card Series 5/5 - CTA">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="absolute top-4 right-4 text-gray-500 text-sm font-medium">{t('marketing.cards.series5of5')}</div>
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-amber-400 text-sm font-semibold mb-2 uppercase tracking-wider">{t('marketing.cards.availableNow')}</div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Logo size={50} />
+                      <TitleText size="lg" />
+                    </div>
+                    <p className="text-gray-300 text-lg mb-2">{t('marketing.cards.freeToTry')}</p>
+                    <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.noSignup'), t('marketing.bullets.private')]} size="sm" />
+                    <SiteUrl size="md" variant="yellow" className="mt-4" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={15} screenshots={screenshots} />
+                  </div>
+                </div>
+              </AssetContainer>
+            </div>
+
+            {/* ===== STANDALONE FEATURE CARDS ===== */}
+            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Standalone Feature Cards</h3>
             <div className="flex flex-wrap gap-8">
               {/* Feature cards */}
               <AssetContainer id="card-plan" width={600} height={400} name="Feature Card - Plan">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
                   <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">FEATURE</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">Plan Your Lineup</h3>
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.planYourLineup')}</h3>
                     <p className="text-gray-400 mb-3">
-                      Select and place players on an interactive soccer field. Visualize formations before the game.
+                      {t('marketing.descriptions.fieldDesc')}
                     </p>
-                    <SiteUrl size="sm" />
+                    <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
                     <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
@@ -1900,12 +1957,12 @@ export default function MarketingAssets() {
               <AssetContainer id="card-track" width={600} height={400} name="Feature Card - Track">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
                   <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">FEATURE</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">Track Live Games</h3>
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.trackLiveGames')}</h3>
                     <p className="text-gray-400 mb-3">
-                      Game timer with substitution intervals. Log goals, assists, and events with a tap.
+                      {t('marketing.descriptions.timerDesc')}
                     </p>
-                    <SiteUrl size="sm" />
+                    <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
                     <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={10} />
@@ -1916,12 +1973,12 @@ export default function MarketingAssets() {
               <AssetContainer id="card-stats" width={600} height={400} name="Feature Card - Statistics">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
                   <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">FEATURE</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">Review Statistics</h3>
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.reviewStatistics')}</h3>
                     <p className="text-gray-400 mb-3">
-                      Comprehensive player, team and competition statistics. Track performance across seasons.
+                      {t('marketing.descriptions.statsDesc')}
                     </p>
-                    <SiteUrl size="sm" />
+                    <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
                     <PhoneMockup
@@ -1946,7 +2003,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col items-center justify-center p-8 relative">
                   <Logo size={80} className="mb-4" />
                   <TitleText size="lg" className="mb-4" />
-                  <p className="text-gray-400 text-center">Plan • Track • Assess</p>
+                  <p className="text-gray-400 text-center">{t('marketing.ui.planTrackAssessDots')}</p>
                   <SiteUrl className="mt-6" size="lg" variant="primary" />
                 </div>
               </AssetContainer>
@@ -1990,7 +2047,7 @@ export default function MarketingAssets() {
                   </div>
                   <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                   <div className="text-center">
-                    <p className="text-gray-400 text-sm mb-2">Plan • Track • Assess</p>
+                    <p className="text-gray-400 text-sm mb-2">{t('marketing.ui.planTrackAssessDots')}</p>
                     <SiteUrl size="md" variant="primary" />
                   </div>
                 </div>
@@ -2085,9 +2142,9 @@ export default function MarketingAssets() {
                       </p>
                       <div className="flex gap-4 items-center">
                         <div className="bg-primary text-slate-900 px-6 py-3 rounded-lg font-semibold">
-                          Get Started
+                          {t('marketing.ui.getStarted')}
                         </div>
-                        <div className="bg-slate-800 text-white px-6 py-3 rounded-lg">Learn More</div>
+                        <div className="bg-slate-800 text-white px-6 py-3 rounded-lg">{t('marketing.ui.learnMore')}</div>
                         <SiteUrl className="ml-4" size="md" />
                       </div>
                     </div>
@@ -2104,7 +2161,7 @@ export default function MarketingAssets() {
                       <TitleText size="2xl" />
                     </div>
                     <p className="text-gray-300 text-2xl mb-4">
-                      Replace clipboard, stopwatch, and notebook with one app.
+                      {t('marketing.ui.replaceClipboard')}
                     </p>
                     <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignupRequired')]} size="lg" />
                     <SiteUrl className="mt-4" size="md" />
@@ -2129,9 +2186,9 @@ export default function MarketingAssets() {
                       </p>
                       <div className="flex gap-4 items-center">
                         <div className="bg-primary text-slate-900 px-6 py-3 rounded-lg font-semibold">
-                          Get Started
+                          {t('marketing.ui.getStarted')}
                         </div>
-                        <div className="bg-slate-800 text-white px-6 py-3 rounded-lg">Learn More</div>
+                        <div className="bg-slate-800 text-white px-6 py-3 rounded-lg">{t('marketing.ui.learnMore')}</div>
                         <SiteUrl className="ml-4" size="md" />
                       </div>
                     </div>
@@ -2156,9 +2213,9 @@ export default function MarketingAssets() {
                       </p>
                       <div className="flex gap-4 items-center">
                         <div className="bg-primary text-slate-900 px-6 py-3 rounded-lg font-semibold">
-                          Get Started
+                          {t('marketing.ui.getStarted')}
                         </div>
-                        <div className="bg-slate-800 text-white px-6 py-3 rounded-lg">Learn More</div>
+                        <div className="bg-slate-800 text-white px-6 py-3 rounded-lg">{t('marketing.ui.learnMore')}</div>
                         <SiteUrl className="ml-4" size="md" />
                       </div>
                     </div>
@@ -2175,7 +2232,7 @@ export default function MarketingAssets() {
                       <TitleText size="2xl" />
                     </div>
                     <p className="text-gray-300 text-2xl mb-4">
-                      Replace clipboard, stopwatch, and notebook with one app.
+                      {t('marketing.ui.replaceClipboard')}
                     </p>
                     <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignupRequired')]} size="lg" />
                     <SiteUrl className="mt-4" size="md" />
@@ -2192,7 +2249,7 @@ export default function MarketingAssets() {
                       <TitleText size="2xl" />
                     </div>
                     <p className="text-gray-300 text-2xl mb-4">
-                      Replace clipboard, stopwatch, and notebook with one app.
+                      {t('marketing.ui.replaceClipboard')}
                     </p>
                     <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignupRequired')]} size="lg" />
                     <SiteUrl className="mt-4" size="md" />
@@ -2206,7 +2263,7 @@ export default function MarketingAssets() {
                   <div className="text-center">
                     <Logo size={120} className="mx-auto mb-6" />
                     <TitleText size="3xl" className="block mb-4" />
-                    <p className="text-gray-400 text-2xl">Plan • Track • Assess</p>
+                    <p className="text-gray-400 text-2xl">{t('marketing.ui.planTrackAssessDots')}</p>
                     <SiteUrl className="mt-4" size="md" />
                   </div>
                   <PhoneMockup screenshot={screenshots.soccerfield} size="2xl" zIndex={10} />
