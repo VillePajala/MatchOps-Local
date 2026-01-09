@@ -82,7 +82,8 @@
     "legal": "Legal",
     "license": "License",
     "copyright": "© {{year}} Velomo AI. All rights reserved.",
-    "dataStays": "Your data stays on your device. Always."
+    "dataStays": "Your data stays on your device. Always.",
+    "marketingAssets": "Marketing Assets"
   },
   "technical": {
     "hero": {
@@ -292,7 +293,7 @@
       "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
     },
     "cta": {
-      "title": "Currently in Limited Testing. Contact: valoraami@gmail.com"
+      "title": "Currently in Limited Testing. Contact: hello@match‑ops.com"
     }
   },
   "screenshots": {
