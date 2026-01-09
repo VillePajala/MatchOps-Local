@@ -420,6 +420,154 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 15px -3px rgb(0 0 0 / 0.3);
 }
 
+/* Phone frame effect */
+.phone-frame {
+  background: linear-gradient(145deg, #3a3a3a, #1a1a1a);
+  border-radius: 2.5rem;
+  padding: 0.5rem;
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.1),
+    0 25px 50px -12px rgba(0,0,0,0.7),
+    0 0 80px -20px rgba(245, 158, 11, 0.3),
+    inset 0 1px 1px rgba(255,255,255,0.1),
+    inset 0 -1px 1px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Ambient glow effect */
+.phone-frame::after {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+  z-index: -1;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.phone-frame:hover::after {
+  opacity: 1;
+}
+
+.phone-frame:hover {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.15),
+    0 30px 60px -15px rgba(0,0,0,0.8),
+    0 0 100px -20px rgba(245, 158, 11, 0.5),
+    inset 0 1px 1px rgba(255,255,255,0.15),
+    inset 0 -1px 1px rgba(0,0,0,0.3);
+}
+
+.phone-frame::before {
+  /* Camera hole */
+  content: '';
+  position: absolute;
+  top: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0.5rem;
+  height: 0.5rem;
+  background: #000;
+  border-radius: 50%;
+  z-index: 10;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.15);
+}
+
+.phone-frame-screen {
+  border-radius: 2rem;
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* Screen reflection/shine effect */
+.phone-frame-screen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.03) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  border-radius: 2rem 2rem 0 0;
+}
+
+/* Variant for screenshots that already include phone UI (status bar, etc.) */
+.phone-frame-full::before {
+  display: none;
+}
+
+/* Desktop phone showcase layout */
+.phone-showcase {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  align-items: end;
+  justify-items: center;
+  perspective: 1500px;
+}
+
+.phone-showcase .phone-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Left phone - tilted right */
+.phone-showcase .phone-wrapper:first-child .phone-frame {
+  transform: perspective(1000px) rotateY(8deg);
+}
+
+/* Middle phone - centered, raised */
+.phone-showcase .phone-wrapper:nth-child(2) {
+  margin-top: -2rem;
+}
+
+/* Right phone - tilted left */
+.phone-showcase .phone-wrapper:last-child .phone-frame {
+  transform: perspective(1000px) rotateY(-8deg);
+}
+
+/* Reflection effect */
+.phone-reflection {
+  width: 100%;
+  height: 60px;
+  margin-top: 1rem;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.08), transparent);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.3), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.3), transparent);
+  transform: scaleY(-1) perspective(500px) rotateX(30deg);
+  opacity: 0.4;
+  pointer-events: none;
+  border-radius: 2rem;
+  overflow: hidden;
+}
+
+/* Spotlight background for showcase */
+.phone-showcase-container {
+  position: relative;
+}
+
+.phone-showcase-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+}
+
 /* Utility: hide scrollbar for overflow containers (mobile carousels) */
 .no-scrollbar {
   -ms-overflow-style: none; /* IE and Edge */
