@@ -916,23 +916,22 @@ export default function MarketingAssets() {
                     <Logo size={70} />
                     <TitleText size="xl" />
                   </div>
-                  <div className="absolute bottom-0 right-16 flex items-end">
+                  <div className="absolute bottom-0 right-16 flex items-center" style={{ transform: 'translateY(30px)' }}>
                     <PhoneMockup
                       screenshot={screenshots.playerstats}
                       size="md"
-                      style={{ marginRight: -20, transform: 'translateY(40px)' }}
+                      style={{ marginRight: -20 }}
                       zIndex={1}
                     />
                     <PhoneMockup
                       screenshot={screenshots.soccerfield}
                       size="lg"
-                      style={{ transform: 'translateY(20px)' }}
                       zIndex={10}
                     />
                     <PhoneMockup
                       screenshot={screenshots.timer}
                       size="md"
-                      style={{ marginLeft: -20, transform: 'translateY(40px)' }}
+                      style={{ marginLeft: -20 }}
                       zIndex={1}
                     />
                   </div>
