@@ -329,14 +329,14 @@
       "screenshotsLanguage": "Kuvakaappausten kieli:"
     },
     "taglines": {
-      "power": "Piirtolevy, sekuntikello, muistivihko ja tilastot — yhdessä sovelluksessa.",
-      "memorable": "Jokainen peli muistetaan.",
+      "power": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot — yhdessä sovelluksessa.",
+      "memorable": "Jokainen peli tallentuu.",
       "toolkit": "Pelipäivän työkalut"
     },
     "painPoints": {
       "soundFamiliar": "Kuulostaako tutulta?",
       "tooManyTools": "Liian monta työkalua.",
-      "clipboard": "Piirtolevy kokoonpanolle",
+      "clipboard": "Taktiikkataulu",
       "stopwatch": "Sekuntikello ajalle",
       "notebook": "Muistivihko tapahtumille",
       "spreadsheet": "Taulukko tilastoille"
@@ -350,7 +350,7 @@
       "plan": {
         "label": "SUUNNITTELE",
         "title": "Interaktiivinen kokoonpanotyökalu",
-        "desc": "Aseta pelaajat kentälle. Visualisoi muodostelmasi."
+        "desc": "Aseta pelaajat kentälle. Näe muodostelmasi."
       },
       "track": {
         "label": "KIRJAA",
@@ -366,23 +366,23 @@
     "benefits": {
       "offline": "Toimii offline",
       "noSignup": "Ei rekisteröitymistä",
-      "dataOnDevice": "Data pysyy laitteellasi",
-      "dataStays": "Datasi pysyy",
+      "dataOnDevice": "Tietosi pysyvät laitteellasi",
+      "dataStays": "Tietosi pysyvät",
       "onYourDevice": "laitteellasi",
       "bilingual": "Englanti ja suomi",
-      "privacyByDesign": "Yksityisyys sisäänrakennettuna",
+      "privacyByDesign": "Yksityisyys lähtökohtana",
       "statsAutomatic": "Tilastot kertyvät automaattisesti",
-      "offlinePrivate": "Toimii offline. Datasi pysyy yksityisenä."
+      "offlinePrivate": "Toimii ilman nettiä. Tietosi pysyvät yksityisinä."
     },
     "cta": {
       "inTesting": "Rajoitettu testaus käynnissä",
       "contact": "Yhteydenotot: hello@match-ops.com"
     },
     "descriptions": {
-      "heroSubtitle": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja. Toimii offline. Datasi pysyy yksityisenä.",
+      "heroSubtitle": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja. Toimii ilman nettiä. Tietosi pysyvät yksityisinä.",
       "planTrackBuild": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja.",
-      "localFirst": "Paikallinen jalkapallovalmentajan sovellus",
-      "localFirstShort": "Paikallinen valmentajan sovellus",
+      "localFirst": "Jalkapallovalmentajan sovellus — tietosi laitteellasi",
+      "localFirstShort": "Valmentajan työkalu",
       "madeSimple": "Jalkapallovalmennus yksinkertaisesti",
       "forPrivacyCoaches": "Valmentajille, jotka arvostavat yksityisyyttä"
     },
@@ -394,8 +394,8 @@
       "noAccountNeeded": "Ei tiliä tarvita",
       "offline": "Offline",
       "private": "Yksityinen",
-      "dataStaysLocal": "Data pysyy paikallisena",
-      "dataStaysPrivate": "Data pysyy yksityisenä",
+      "dataStaysLocal": "Tiedot pysyvät laitteella",
+      "dataStaysPrivate": "Tiedot pysyvät yksityisinä",
       "playerStats": "Pelaajatilastot",
       "teamStats": "Joukkuetilastot",
       "seasonTrends": "Kauden trendit"
