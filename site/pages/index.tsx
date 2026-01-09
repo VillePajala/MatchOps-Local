@@ -134,36 +134,48 @@ export default function HomePage() {
                 aria-label={t('screenshots.aria.carousel')}
                 aria-roledescription="carousel"
               >
-                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
-                  <Image
-                    src="/screenshots/archive/the first screenshot.png"
-                    alt="App view screenshot"
-                    width={1024}
-                    height={1536}
-                    sizes="(max-width: 768px) 100vw, 288px"
-                    className="w-auto h-auto max-h-[70vh] object-contain"
-                    priority
-                  />
+                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
+                  <div className="phone-frame phone-frame-full">
+                    <div className="phone-frame-screen">
+                      <Image
+                        src="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                        alt="App view screenshot"
+                        width={1080}
+                        height={2340}
+                        sizes="(max-width: 768px) 50vw, 288px"
+                        className="w-auto h-auto max-h-[65vh] object-contain"
+                        priority
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
-                  <Image
-                    src="/screenshots/archive/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png"
-                    alt="Detail view screenshot"
-                    width={1024}
-                    height={1536}
-                    sizes="(max-width: 768px) 100vw, 288px"
-                    className="w-auto h-auto max-h-[70vh] object-contain"
-                  />
+                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
+                  <div className="phone-frame phone-frame-full">
+                    <div className="phone-frame-screen">
+                      <Image
+                        src="/screenshots/MatchOps_Main_timer_full.jpg"
+                        alt="Timer view screenshot"
+                        width={1080}
+                        height={2340}
+                        sizes="(max-width: 768px) 50vw, 288px"
+                        className="w-auto h-auto max-h-[65vh] object-contain"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
-                  <Image
-                    src="/screenshots/archive/StatsModalappInHandAtSoccerField.png"
-                    alt="MatchOps Local in use at the field"
-                    width={1024}
-                    height={1536}
-                    sizes="(max-width: 768px) 100vw, 288px"
-                    className="w-auto h-auto max-h-[70vh] object-contain"
-                  />
+                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
+                  <div className="phone-frame phone-frame-full">
+                    <div className="phone-frame-screen">
+                      <Image
+                        src="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                        alt="Player stats screenshot"
+                        width={1080}
+                        height={2340}
+                        sizes="(max-width: 768px) 50vw, 288px"
+                        className="w-auto h-auto max-h-[65vh] object-contain"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -211,79 +223,75 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Desktop/Tablet: compact 3-up grid */}
-            <div className="hidden md:grid grid-cols-3 gap-6 mt-8 mx-auto max-w-4xl lg:max-w-5xl items-end">
-              <div>
-                <button
-                  type="button"
-                  className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
-                  onClick={() => setLightbox({ src: '/screenshots/archive/the first screenshot.png', alt: 'App view screenshot' })}
-                  aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.plan') })}
-                >
-                  <Image
-                    src="/screenshots/archive/the first screenshot.png"
-                    alt="App view screenshot"
-                    width={1024}
-                    height={1536}
-                    sizes="(min-width: 1024px) 320px, 30vw"
-                    className="h-full w-full object-contain"
-                    priority
-                  />
-                  <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
-                </button>
-                <div className="flex items-center justify-center gap-2 mt-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <FaClipboardList className="text-primary text-sm" />
+            {/* Desktop/Tablet: 3D phone showcase */}
+            <div className="hidden md:block phone-showcase-container mt-8 mx-auto max-w-4xl lg:max-w-5xl">
+              <div className="phone-showcase">
+                <div className="phone-wrapper">
+                  <button
+                    type="button"
+                    className="phone-frame phone-frame-full cursor-zoom-in"
+                    onClick={() => setLightbox({ src: '/screenshots/MatchOps_main_soccerfield_full.jpg', alt: 'App view screenshot' })}
+                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.plan') })}
+                  >
+                    <div className="phone-frame-screen">
+                      <Image
+                        src="/screenshots/MatchOps_main_soccerfield_full.jpg"
+                        alt="App view screenshot"
+                        width={1080}
+                        height={2340}
+                        sizes="(min-width: 1024px) 280px, 25vw"
+                        className="w-full h-auto"
+                        priority
+                      />
+                    </div>
+                  </button>
+                  <div className="mt-4 flex justify-center">
+                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.plan')}</span>
                   </div>
-                  <span className="text-sm text-slate-300 font-medium">{t('screenshots.captions.plan')}</span>
                 </div>
-              </div>
-              <div>
-                <button
-                  type="button"
-                  className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
-                  onClick={() => setLightbox({ src: '/screenshots/archive/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: 'Detail view screenshot' })}
-                  aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.track') })}
-                >
-                  <Image
-                    src="/screenshots/archive/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png"
-                    alt="Detail view screenshot"
-                    width={1024}
-                    height={1536}
-                    sizes="(min-width: 1024px) 320px, 30vw"
-                    className="h-full w-full object-contain"
-                  />
-                  <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
-                </button>
-                <div className="flex items-center justify-center gap-2 mt-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <FaPlay className="text-primary text-sm" />
+                <div className="phone-wrapper">
+                  <button
+                    type="button"
+                    className="phone-frame phone-frame-full cursor-zoom-in"
+                    onClick={() => setLightbox({ src: '/screenshots/MatchOps_Main_timer_full.jpg', alt: 'Timer view screenshot' })}
+                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.track') })}
+                  >
+                    <div className="phone-frame-screen">
+                      <Image
+                        src="/screenshots/MatchOps_Main_timer_full.jpg"
+                        alt="Timer view screenshot"
+                        width={1080}
+                        height={2340}
+                        sizes="(min-width: 1024px) 280px, 25vw"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </button>
+                  <div className="mt-4 flex justify-center">
+                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.track')}</span>
                   </div>
-                  <span className="text-sm text-slate-300 font-medium">{t('screenshots.captions.track')}</span>
                 </div>
-              </div>
-              <div>
-                <button
-                  type="button"
-                  className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
-                  onClick={() => setLightbox({ src: '/screenshots/archive/StatsModalappInHandAtSoccerField.png', alt: 'MatchOps Local in use at the field' })}
-                  aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.review') })}
-                >
-                  <Image
-                    src="/screenshots/archive/StatsModalappInHandAtSoccerField.png"
-                    alt="MatchOps Local in use at the field"
-                    width={1024}
-                    height={1536}
-                    sizes="(min-width: 1024px) 320px, 30vw"
-                    className="h-full w-full object-contain"
-                  />
-                  <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
-                </button>
-                <div className="flex items-center justify-center gap-2 mt-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <FaChartBar className="text-primary text-sm" />
+                <div className="phone-wrapper">
+                  <button
+                    type="button"
+                    className="phone-frame phone-frame-full cursor-zoom-in"
+                    onClick={() => setLightbox({ src: '/screenshots/MatchOps_Main_playerstats_full.jpg', alt: 'Player stats screenshot' })}
+                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.review') })}
+                  >
+                    <div className="phone-frame-screen">
+                      <Image
+                        src="/screenshots/MatchOps_Main_playerstats_full.jpg"
+                        alt="Player stats screenshot"
+                        width={1080}
+                        height={2340}
+                        sizes="(min-width: 1024px) 280px, 25vw"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </button>
+                  <div className="mt-4 flex justify-center">
+                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.review')}</span>
                   </div>
-                  <span className="text-sm text-slate-300 font-medium">{t('screenshots.captions.review')}</span>
                 </div>
               </div>
             </div>
