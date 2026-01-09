@@ -330,7 +330,7 @@
     },
     "taglines": {
       "power": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot — yhdessä sovelluksessa.",
-      "memorable": "Jokainen peli tallentuu.",
+      "memorable": "Jokainen peli jää muistiin.",
       "toolkit": "Pelipäivän työkalut"
     },
     "painPoints": {
@@ -382,8 +382,8 @@
       "heroSubtitle": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja. Toimii ilman nettiä. Tietosi pysyvät yksityisinä.",
       "planTrackBuild": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja.",
       "localFirst": "Jalkapallovalmentajan sovellus — tietosi laitteellasi",
-      "localFirstShort": "Valmentajan työkalu",
-      "madeSimple": "Jalkapallovalmennus yksinkertaisesti",
+      "localFirstShort": "Ottelutyökalu valmentajalle",
+      "madeSimple": "Valmennus ilman säätöä",
       "forPrivacyCoaches": "Valmentajille, jotka arvostavat yksityisyyttä"
     },
     "bullets": {
