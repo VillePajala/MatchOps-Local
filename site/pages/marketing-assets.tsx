@@ -422,7 +422,7 @@ export default function MarketingAssets() {
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={24} stagger={20} screenshots={screenshots} />
+                  <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={20} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -660,7 +660,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <ThreePhones leftSize="sm" middleSize="md" rightSize="sm" overlap={16} stagger={15} screenshots={screenshots} />
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={16} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -701,7 +701,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={20} stagger={25} screenshots={screenshots} />
+                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={20} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -780,7 +780,7 @@ export default function MarketingAssets() {
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={20} stagger={25} screenshots={screenshots} />
+                  <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={20} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
@@ -853,7 +853,7 @@ export default function MarketingAssets() {
                       <p className="text-gray-300 text-xl">{t('marketing.descriptions.localFirst')}</p>
                       <SiteUrl className="mt-3" size="sm" />
                     </div>
-                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} screenshots={screenshots} />
+                    <ThreePhonesBalanced sideSize="md" middleSize="xl" overlap={25} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -903,7 +903,7 @@ export default function MarketingAssets() {
                     </div>
                   </div>
                   <div className="w-1/2 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={16} stagger={20} screenshots={screenshots} />
+                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={16} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1031,7 +1031,7 @@ export default function MarketingAssets() {
                     <FeatureBullets features={[t('marketing.bullets.offline'), t('marketing.bullets.private'), t('marketing.bullets.noSignup')]} size="sm" />
                     <SiteUrl className="mt-2" size="sm" />
                   </div>
-                  <ThreePhones leftSize="xs" middleSize="sm" rightSize="xs" overlap={10} stagger={10} screenshots={screenshots} />
+                  <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={10} screenshots={screenshots} />
                 </div>
               </AssetContainer>
             </div>
@@ -1060,7 +1060,7 @@ export default function MarketingAssets() {
                       <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noAccountNeeded')]} size="lg" />
                       <SiteUrl className="mt-4" size="sm" />
                     </div>
-                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={25} stagger={30} screenshots={screenshots} />
+                    <ThreePhonesBalanced sideSize="md" middleSize="xl" overlap={22} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1199,7 +1199,7 @@ export default function MarketingAssets() {
                       <TitleText size="xl" />
                       <SiteUrl className="ml-4" size="sm" />
                     </div>
-                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} screenshots={screenshots} />
+                    <ThreePhonesBalanced sideSize="md" middleSize="xl" overlap={25} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -1785,7 +1785,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" />
                   </div>
                   <div className="relative z-10">
-                    <ThreePhones leftSize="sm" middleSize="lg" rightSize="sm" overlap={16} stagger={20} screenshots={screenshots} />
+                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={16} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2092,7 +2092,7 @@ export default function MarketingAssets() {
                         <SiteUrl className="ml-4" size="md" />
                       </div>
                     </div>
-                    <ThreePhones leftSize="md" middleSize="xl" rightSize="md" overlap={30} stagger={35} screenshots={screenshots} />
+                    <ThreePhonesBalanced sideSize="md" middleSize="xl" overlap={25} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2110,7 +2110,7 @@ export default function MarketingAssets() {
                     <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignupRequired')]} size="lg" />
                     <SiteUrl className="mt-4" size="md" />
                   </div>
-                  <ThreePhones leftSize="lg" middleSize="xl" rightSize="lg" overlap={35} stagger={40} screenshots={screenshots} />
+                  <ThreePhonesBalanced sideSize="lg" middleSize="xl" overlap={30} screenshots={screenshots} />
                 </div>
               </AssetContainer>
 
