@@ -495,7 +495,7 @@ export default function HomePage() {
               {t('info.faq.title')}
             </h2>
             <div className="space-y-4 prose prose-invert max-w-none">
-              {(['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'] as const).map((key) => (
+              {(['q1', 'q2', 'q3', 'q4'] as const).map((key) => (
                 <details key={key} className="group rounded-lg border border-slate-700 bg-slate-800/40 p-4">
                   <summary className="cursor-pointer list-none text-white font-semibold">
                     {t(`info.faq.${key}`)}

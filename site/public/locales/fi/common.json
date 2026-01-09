@@ -82,7 +82,8 @@
     "legal": "Juridiikka",
     "license": "Lisenssi",
     "copyright": "© {{year}} Velomo AI. Kaikki oikeudet pidätetään.",
-    "dataStays": "Tietosi pysyvät laitteellasi. Aina."
+    "dataStays": "Tietosi pysyvät laitteellasi. Aina.",
+    "marketingAssets": "Markkinointimateriaalit"
   },
   "technical": {
     "hero": {
@@ -292,7 +293,7 @@
       "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa."
     },
     "cta": {
-      "title": "Rajoitettu testaus käynnissä. Yhteydenotot: valoraami@gmail.com"
+      "title": "Rajoitettu testaus käynnissä. Yhteydenotot: hello@match‑ops.com"
     }
   },
   "screenshots": {
