@@ -8,7 +8,7 @@ const rajdhani = Rajdhani({ subsets: ['latin'], weight: ['300', '400', '500', '6
 
 function App({ Component, pageProps }: AppProps) {
   return (
-    <div className={`${inter.className} ${rajdhani.variable}`}>
+    <div className={`${inter.variable} ${rajdhani.variable}`}>
       <Component {...pageProps} />
     </div>
   );

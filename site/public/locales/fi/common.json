@@ -458,6 +458,32 @@
       "series3of5": "3/5",
       "series4of5": "4/5",
       "series5of5": "5/5"
+    },
+    "featureCards": {
+      "tacticalBoard": "Taktiikkataulu",
+      "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Lisää vastustajan kiekot taktiseen suunnitteluun. Kommunikoi pelisuunnitelma visuaalisesti.",
+      "formations": "Pikamuodostelmat",
+      "formationsDesc": "Aseta joukkue sekunneissa valmiilla muodostelmapohjilla. Napsauta pelaajat paikoilleen yhdellä kosketuksella.",
+      "roster": "Pelaajarekisteri",
+      "rosterDesc": "Hallitse pelaajatietoja: pelinumerot, omat värit ja muistiinpanot. Merkitse maalivahdit ja seuraa saatavuutta.",
+      "assessment": "Pelaajaarviointi",
+      "assessmentDesc": "Arvioi pelaajia 10 mittarilla: intensiteetti, tekniikka, päätöksenteko, joukkuepeli ja muut. Rakenna kattava pelaajaprofiili.",
+      "trends": "Kehityskäyrät",
+      "trendsDesc": "Seuraa pelaajien kehitystä visuaalisilla kaavioilla. Näe maalien, syöttöjen ja arvioiden kehitys kauden aikana.",
+      "seasons": "Kausihallinta",
+      "seasonsDesc": "Organisoi koko kausi. Seuraa sijoituksia ja palkintoja. Suomen sarjat valmiina.",
+      "tournaments": "Turnauskeskus",
+      "tournamentsDesc": "Hallitse monitasoisia turnauksia. Seuraa joukkueiden sijoituksia ja palkitse turnauksen paras pelaaja.",
+      "teams": "Joukkueet",
+      "teamsDesc": "Luo ja hallitse useita joukkueita. Sido joukkueet kausiin ja turnauksiin järjestelmällistä seurantaa varten.",
+      "archive": "Pelihistoria",
+      "archiveDesc": "Selaa kaikkia tallennettuja pelejä. Hae vastustajan nimellä, suodata kauden tai turnauksen mukaan. Täydellinen pelihistoriasi.",
+      "goalTimeline": "Maalitapahtumat",
+      "goalTimelineDesc": "Kirjaa jokainen maali aikaleimalla. Merkitse maalintekijä ja syöttäjä. Rakenna täydelliset ottelutiedot.",
+      "excelExport": "Excel-raportit",
+      "excelExportDesc": "Vie tilastot Exceliin. Yksittäisen pelin raportit tai koko kauden yhteenvedot. Tietosi, sinun tavallasi.",
+      "personnel": "Valmennustiimi",
+      "personnelDesc": "Hallitse valmennustiimiäsi. Seuraa rooleja, yhteystietoja ja pätevyyksiä kaikille tiimin jäsenille."
     }
   }
 }
