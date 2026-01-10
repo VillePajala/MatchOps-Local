@@ -458,6 +458,32 @@
       "series3of5": "3/5",
       "series4of5": "4/5",
       "series5of5": "5/5"
+    },
+    "featureCards": {
+      "tacticalBoard": "Tactical Board",
+      "tacticalBoardDesc": "Draw plays and formations. Add opponent discs for tactical planning. Communicate your game plan visually.",
+      "formations": "Quick Formations",
+      "formationsDesc": "Set up your team in seconds with formation templates. Snap players to position with one tap.",
+      "roster": "Player Roster",
+      "rosterDesc": "Manage player profiles with jersey numbers, custom colors, and notes. Mark goalies and track availability.",
+      "assessment": "Player Assessment",
+      "assessmentDesc": "Rate players on 10 metrics: intensity, technique, decisions, teamwork, and more. Build a complete player profile.",
+      "trends": "Performance Trends",
+      "trendsDesc": "Track player progress with visual charts. See goals, assists, and ratings evolve over the season.",
+      "seasons": "Season Management",
+      "seasonsDesc": "Organize your full season. Track standings, placements, and awards. Finnish league integration included.",
+      "tournaments": "Tournament Hub",
+      "tournamentsDesc": "Manage multi-series tournaments. Track team placements and award tournament MVP.",
+      "teams": "Team Builder",
+      "teamsDesc": "Create and manage multiple teams. Bind teams to seasons and tournaments for organized tracking.",
+      "archive": "Game Archive",
+      "archiveDesc": "Browse all your saved games. Search by opponent, filter by season or tournament. Your complete game history.",
+      "goalTimeline": "Goal Timeline",
+      "goalTimelineDesc": "Log every goal with timestamp. Assign scorer and assister. Build complete match records.",
+      "excelExport": "Excel Reports",
+      "excelExportDesc": "Export statistics to Excel. Single game reports or full season aggregates. Your data, your way.",
+      "personnel": "Coaching Staff",
+      "personnelDesc": "Manage your coaching team. Track roles, contact info, and certifications for all staff members."
     }
   }
 }

@@ -139,6 +139,56 @@ function ThreePhonesBalanced({
   );
 }
 
+// Placeholder phone for screenshots not yet taken
+function PlaceholderPhone({
+  text,
+  size = 'lg',
+  className = '',
+  style,
+  zIndex = 0,
+}: {
+  text: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  className?: string;
+  style?: React.CSSProperties;
+  zIndex?: number;
+}) {
+  const sizes = {
+    xs: { width: 60, height: 120 },
+    sm: { width: 80, height: 160 },
+    md: { width: 100, height: 200 },
+    lg: { width: 130, height: 260 },
+    xl: { width: 160, height: 320 },
+    '2xl': { width: 200, height: 400 },
+  };
+
+  const { width, height } = sizes[size];
+  const borderRadius = size === 'xs' ? '1rem' : size === 'sm' ? '1.25rem' : '1.5rem';
+  const innerRadius = size === 'xs' ? '0.75rem' : size === 'sm' ? '1rem' : '1.25rem';
+  const fontSize = size === 'xs' || size === 'sm' ? '0.5rem' : size === 'md' ? '0.6rem' : '0.7rem';
+
+  return (
+    <div
+      className={`relative ${className}`}
+      style={{ width, height, zIndex, ...style }}
+    >
+      <div
+        className="absolute inset-0 bg-slate-800 shadow-2xl"
+        style={{ borderRadius, padding: '4px' }}
+      >
+        <div
+          className="w-full h-full bg-slate-700 flex items-center justify-center p-2"
+          style={{ borderRadius: innerRadius }}
+        >
+          <p className="text-gray-400 text-center leading-tight" style={{ fontSize }}>
+            {text}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Reusable asset container with exact dimensions
 function AssetContainer({
   id,
@@ -1989,7 +2039,219 @@ export default function MarketingAssets() {
                   </div>
                 </div>
               </AssetContainer>
+            </div>
 
+            {/* ===== EXTENDED FEATURE CARDS (12 new features) ===== */}
+            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Extended Feature Cards (12 features)</h3>
+            <div className="flex flex-wrap gap-8">
+              {/* 1. Tactical Board */}
+              <AssetContainer id="card-tactical" width={600} height={400} name="Feature Card - Tactical Board">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.tacticalBoard')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.tacticalBoardDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Field with tactical drawings and opponent discs" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 2. Formations */}
+              <AssetContainer id="card-formations" width={600} height={400} name="Feature Card - Formations">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.formations')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.formationsDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Formation picker panel open" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 3. Player Roster */}
+              <AssetContainer id="card-roster" width={600} height={400} name="Feature Card - Roster">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.roster')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.rosterDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Roster modal with player list and colors" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 4. Player Assessment */}
+              <AssetContainer id="card-assessment" width={600} height={400} name="Feature Card - Assessment">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.assessment')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.assessmentDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Assessment modal with 10 metric sliders" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 5. Performance Trends */}
+              <AssetContainer id="card-trends" width={600} height={400} name="Feature Card - Trends">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.trends')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.trendsDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Player stats with sparkline/trend charts" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 6. Season Management */}
+              <AssetContainer id="card-seasons" width={600} height={400} name="Feature Card - Seasons">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.seasons')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.seasonsDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Season details modal" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 7. Tournament Hub */}
+              <AssetContainer id="card-tournaments" width={600} height={400} name="Feature Card - Tournaments">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.tournaments')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.tournamentsDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Tournament modal with series" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 8. Team Builder */}
+              <AssetContainer id="card-teams" width={600} height={400} name="Feature Card - Teams">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.teams')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.teamsDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Team manager with team list" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 9. Game Archive */}
+              <AssetContainer id="card-archive" width={600} height={400} name="Feature Card - Archive">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.archive')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.archiveDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Load game modal with filters" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 10. Goal Timeline */}
+              <AssetContainer id="card-goals" width={600} height={400} name="Feature Card - Goals">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.goalTimeline')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.goalTimelineDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Goal log modal with events" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 11. Excel Reports */}
+              <AssetContainer id="card-excel" width={600} height={400} name="Feature Card - Excel">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.excelExport')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.excelExportDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Stats view with export dropdown" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 12. Coaching Staff */}
+              <AssetContainer id="card-personnel" width={600} height={400} name="Feature Card - Personnel">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.personnel')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.personnelDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PlaceholderPhone text="Screenshot: Personnel manager with staff list" size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+            </div>
+
+            {/* ===== SQUARE PROMO CARDS ===== */}
+            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Square Promo Cards</h3>
+            <div className="flex flex-wrap gap-8">
               {/* Square promo cards */}
               <AssetContainer id="card-sq-1" width={400} height={400} name="Square Card - Logo">
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center relative">
