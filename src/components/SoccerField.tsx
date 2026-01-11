@@ -41,10 +41,12 @@ interface SoccerFieldProps {
   isTacticsBoardView: boolean;
   tacticalDiscs: TacticalDisc[];
   onTacticalDiscMove: (discId: string, relX: number, relY: number) => void;
+  onTacticalDiscMoveEnd: () => void;
   onTacticalDiscRemove: (discId: string) => void;
   onToggleTacticalDiscType: (discId: string) => void;
   tacticalBallPosition: Point | null;
   onTacticalBallMove: (position: Point) => void;
+  onTacticalBallMoveEnd: () => void;
   isDrawingEnabled: boolean;
   formationSnapPoints?: Point[];
 }
@@ -175,10 +177,12 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   isTacticsBoardView,
   tacticalDiscs,
   onTacticalDiscMove,
+  onTacticalDiscMoveEnd,
   onTacticalDiscRemove,
   onToggleTacticalDiscType,
   tacticalBallPosition,
   onTacticalBallMove,
+  onTacticalBallMoveEnd,
   isDrawingEnabled,
   formationSnapPoints,
 }, ref) => {
@@ -1249,8 +1253,10 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     const handleMouseUp = () => {
       if (isDraggingBall) {
+        onTacticalBallMoveEnd();
         setIsDraggingBall(false);
       } else if (isDraggingTacticalDisc) {
+        onTacticalDiscMoveEnd();
         setIsDraggingTacticalDisc(false);
         setDraggingTacticalDiscId(null);
       } else if (isDraggingPlayer) {
@@ -1499,8 +1505,10 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         !isDrawing;
 
       if (isDraggingBall) {
+        onTacticalBallMoveEnd();
         setIsDraggingBall(false);
       } else if (isDraggingTacticalDisc) {
+        onTacticalDiscMoveEnd();
         setIsDraggingTacticalDisc(false);
         setDraggingTacticalDiscId(null);
     } else if (isDraggingPlayer || touchDraggingPlayerIdRef.current) {
@@ -1522,6 +1530,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       onDrawingEnd();
       setIsDrawing(false);
     } else if (isDraggingTacticalDisc) {
+      onTacticalDiscMoveEnd();
       setIsDraggingTacticalDisc(false);
       setDraggingTacticalDiscId(null);
     }
@@ -1568,6 +1577,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     selectedPlayerForSwapId,
     draggingPlayerId,
     maybeSnapPlayerToFormation,
+    onTacticalDiscMoveEnd,
+    onTacticalBallMoveEnd,
   ]);
 
   // Keep a stable ref for active touch ID to avoid re-registering native listeners

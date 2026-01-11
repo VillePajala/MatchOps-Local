@@ -88,7 +88,10 @@ export function useTacticalHistory(initial: TacticalState) {
     historyStackRef.current = base;
     indexRef.current = base.length - 1;
     updateState();
-    queueMicrotask(() => { isApplyingRef.current = false; });
+    // Use setTimeout(0) instead of queueMicrotask to ensure guard clears AFTER
+    // React's render cycle completes. Microtasks can fire before React finishes,
+    // causing user actions to be silently blocked (deadlock).
+    setTimeout(() => { isApplyingRef.current = false; }, 0);
   }, [updateState]);
 
   const save = useCallback((partial: Partial<TacticalState>) => {
@@ -125,8 +128,10 @@ export function useTacticalHistory(initial: TacticalState) {
       try { logger.log('[TacticalHistory] undo -> state', { drawingsLen: prev?.tacticalDrawings?.length || 0 }); } catch {}
     }
     updateState();
-    // Clear guard flag after microtasks complete (after React processes state updates)
-    queueMicrotask(() => { isApplyingRef.current = false; });
+    // Use setTimeout(0) instead of queueMicrotask to ensure guard clears AFTER
+    // React's render cycle completes. Microtasks can fire before React finishes,
+    // causing user actions to be silently blocked (deadlock).
+    setTimeout(() => { isApplyingRef.current = false; }, 0);
     return prev;
   }, [updateState]);
 
@@ -141,8 +146,10 @@ export function useTacticalHistory(initial: TacticalState) {
       try { logger.log('[TacticalHistory] redo -> state', { drawingsLen: next?.tacticalDrawings?.length || 0 }); } catch {}
     }
     updateState();
-    // Clear guard flag after microtasks complete (after React processes state updates)
-    queueMicrotask(() => { isApplyingRef.current = false; });
+    // Use setTimeout(0) instead of queueMicrotask to ensure guard clears AFTER
+    // React's render cycle completes. Microtasks can fire before React finishes,
+    // causing user actions to be silently blocked (deadlock).
+    setTimeout(() => { isApplyingRef.current = false; }, 0);
     return next;
   }, [updateState]);
 

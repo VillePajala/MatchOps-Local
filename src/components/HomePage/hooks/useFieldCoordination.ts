@@ -133,9 +133,11 @@ export interface UseFieldCoordinationReturn {
   handleToggleTacticsBoard: () => void;
   handleAddTacticalDisc: (type: 'home' | 'opponent') => void;
   handleTacticalDiscMove: (discId: string, relX: number, relY: number) => void;
+  handleTacticalDiscMoveEnd: () => void;
   handleTacticalDiscRemove: (discId: string) => void;
   handleToggleTacticalDiscType: (discId: string) => void;
   handleTacticalBallMove: (point: { relX: number; relY: number }) => void;
+  handleTacticalBallMoveEnd: () => void;
   handleTacticalDrawingStart: (point: { relX: number; relY: number }) => void;
   handleTacticalDrawingAddPoint: (point: { relX: number; relY: number }) => void;
   handleTacticalDrawingEnd: () => void;
@@ -290,9 +292,11 @@ export function useFieldCoordination({
     handleToggleTacticsBoard,
     handleAddTacticalDisc,
     handleTacticalDiscMove,
+    handleTacticalDiscMoveEnd,
     handleTacticalDiscRemove,
     handleToggleTacticalDiscType,
     handleTacticalBallMove,
+    handleTacticalBallMoveEnd,
     handleTacticalDrawingStart,
     handleTacticalDrawingAddPoint,
     handleTacticalDrawingEnd,
@@ -691,9 +695,11 @@ export function useFieldCoordination({
     handleToggleTacticsBoard,
     handleAddTacticalDisc,
     handleTacticalDiscMove,
+    handleTacticalDiscMoveEnd,
     handleTacticalDiscRemove,
     handleToggleTacticalDiscType,
     handleTacticalBallMove,
+    handleTacticalBallMoveEnd,
     handleTacticalDrawingStart,
     handleTacticalDrawingAddPoint,
     handleTacticalDrawingEnd,
