@@ -80,12 +80,18 @@ export const useTacticalBoard = ({
 
   const handleTacticalDiscMove = useCallback(
     (discId: string, relX: number, relY: number) => {
+      // Only update position during drag - save happens on drag end to avoid
+      // flooding history with per-pixel saves (which can trigger timing bugs)
       const newDiscs = tacticalDiscsRef.current.map((d) => (d.id === discId ? { ...d, relX, relY } : d));
       setTacticalDiscs(newDiscs);
-      saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [saveStateToHistory]
+    []
   );
+
+  const handleTacticalDiscMoveEnd = useCallback(() => {
+    // Save final position when drag ends
+    saveStateToHistory({ tacticalDiscs: tacticalDiscsRef.current });
+  }, [saveStateToHistory]);
 
   const handleTacticalDiscRemove = useCallback(
     (discId: string) => {
@@ -114,11 +120,17 @@ export const useTacticalBoard = ({
 
   const handleTacticalBallMove = useCallback(
     (position: Point) => {
+      // Only update position during drag - save happens on drag end to avoid
+      // flooding history with per-pixel saves (which can trigger timing bugs)
       setTacticalBallPosition(position);
-      saveStateToHistory({ tacticalBallPosition: position });
     },
-    [saveStateToHistory]
+    []
   );
+
+  const handleTacticalBallMoveEnd = useCallback(() => {
+    // Save final position when drag ends
+    saveStateToHistory({ tacticalBallPosition: tacticalBallPositionRef.current });
+  }, [saveStateToHistory]);
 
   const handleTacticalDrawingStart = useCallback((point: Point) => {
     // If a previous stroke didn't finalize for any reason, finalize it now without saving
@@ -183,9 +195,11 @@ export const useTacticalBoard = ({
     handleToggleTacticsBoard,
     handleAddTacticalDisc,
     handleTacticalDiscMove,
+    handleTacticalDiscMoveEnd,
     handleTacticalDiscRemove,
     handleToggleTacticalDiscType,
     handleTacticalBallMove,
+    handleTacticalBallMoveEnd,
     handleTacticalDrawingStart,
     handleTacticalDrawingAddPoint,
     handleTacticalDrawingEnd,
