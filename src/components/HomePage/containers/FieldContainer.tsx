@@ -58,9 +58,11 @@ export interface TacticalInteractions {
   drawingAddPoint: (point: Point) => void;
   drawingEnd: () => void;
   discMove: (discId: string, relX: number, relY: number) => void;
+  discMoveEnd: () => void;
   discRemove: (discId: string) => void;
   discToggleType: (discId: string) => void;
   ballMove: (point: Point) => void;
+  ballMoveEnd: () => void;
 }
 
 /**
@@ -304,10 +306,12 @@ export function FieldContainer({
           isTacticsBoardView={fcIsTactics}
           tacticalDiscs={fcTacticalDiscs || []}
           onTacticalDiscMove={tactical.discMove}
+          onTacticalDiscMoveEnd={tactical.discMoveEnd}
           onTacticalDiscRemove={tactical.discRemove}
           onToggleTacticalDiscType={tactical.discToggleType}
           tacticalBallPosition={fcTacticalBall || { relX: 0.5, relY: 0.5 }}
           onTacticalBallMove={tactical.ballMove}
+          onTacticalBallMoveEnd={tactical.ballMoveEnd}
           isDrawingEnabled={fcIsDrawingEnabled}
           formationSnapPoints={fieldVM.formationSnapPoints}
         />
