@@ -1408,7 +1408,7 @@
     "resetToFreeSuccess": "Reset to free version"
   },
   "playerAssessmentModal": {
-    "title": "Assess Game Performance",
+    "title": "Assess Performance",
     "saveButton": "Save",
     "noPlayers": "No players selected",
     "notesPlaceholder": "Add notes...",
