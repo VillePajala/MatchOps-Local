@@ -85,9 +85,9 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'game-day-workflow',
     title: 'Game Day Workflow',
-    titleFi: 'Pelipäivän työnkulku',
+    titleFi: 'Ottelupäivän työnkulku',
     description: 'Step-by-step guide for match day',
-    descriptionFi: 'Vaiheittainen ohje pelipäivälle',
+    descriptionFi: 'Vaiheittainen ohje ottelupäivälle',
     icon: FaPlay,
     order: 5,
     group: 'game-day',
