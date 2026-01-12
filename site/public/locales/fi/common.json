@@ -6,7 +6,7 @@
   },
   "features": {
     "gameDay": {
-      "title": "Pelipäivän työkalut",
+      "title": "Ottelupäivän työkalut",
       "field": {
         "title": "Interaktiivinen kenttänäkymä",
         "desc": "Suunnittele ottelun kokoonpano visuaalisesti ja havainnollista pelipaikat joukkueellesi."
@@ -231,7 +231,7 @@
     },
     "challenges": {
       "title": "Yleisiä haasteita valmentajille",
-      "challenge1": "Useiden työkalujen kanssa säätäminen pelipäivänä: taktiikkataulu, sekuntikello, muistivihko, kokoonpanolista",
+      "challenge1": "Useiden työkalujen kanssa säätäminen ottelupäivänä: taktiikkataulu, sekuntikello, muistivihko, kokoonpanolista",
       "challenge2": "Vaihtovälien seuraaminen on hankalaa—et voi vaihtaa ennen kuin peli sen sallii, välit venyvät, ja päässälaskeminen on turhaa työtä pois tärkeämmästä",
       "challenge3": "Valmentajan täytyy keskittyä peliin, joten useimmat tapahtumat jäävät kirjaamatta ja unohtuvat pian",
       "challenge4": "Ei helppoa tapaa seurata trendejä, pelaajien kehitystä tai kerätä tilastoja kauden aikana",
@@ -331,7 +331,7 @@
     "taglines": {
       "power": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot — yhdessä sovelluksessa.",
       "memorable": "Jokainen peli jää muistiin.",
-      "toolkit": "Pelipäivän työkalut",
+      "toolkit": "Ottelupäivän työkalut",
       "threePillars": "Suunnittele · Kirjaa · Arvioi"
     },
     "painPoints": {
@@ -449,7 +449,7 @@
     "cards": {
       "introducing": "Esittelyssä",
       "forCoaches": "Jalkapallo- ja futsalvalmentajille",
-      "oneAppAllTools": "Yksi sovellus. Kaikki pelipäivän työkalut.",
+      "oneAppAllTools": "Yksi sovellus. Kaikki ottelupäivän työkalut.",
       "availableNow": "Saatavilla nyt",
       "freeToTry": "Kokeile ilmaiseksi",
       "getTheApp": "Lataa sovellus",

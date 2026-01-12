@@ -9,6 +9,7 @@ import type { GetStaticProps } from 'next';
 const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
+    // Main hero screenshots
     soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg', // Language agnostic
     timer: isEnglish
       ? '/screenshots/MatchOps_main_timer_en.jpg'
@@ -16,6 +17,41 @@ const getScreenshots = (locale: string | undefined) => {
     playerstats: isEnglish
       ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
       : '/screenshots/MatchOps_Main_playerstats_full.jpg',
+    // Feature card screenshots
+    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi&en.jpg', // Both languages
+    formations: isEnglish
+      ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
+      : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
+    roster: isEnglish
+      ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
+      : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
+    assessment: isEnglish
+      ? '/screenshots/MatcOps_main_playerassesments_en.jpg'
+      : '/screenshots/MatchOps_main_playerassesments_fi.jpg',
+    trends: isEnglish
+      ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
+      : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',
+    seasons: isEnglish
+      ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
+      : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
+    tournaments: isEnglish
+      ? '/screenshots/MatcOps_main_tournamentcreationmodal_en.jpg'
+      : '/screenshots/MatchOps_main_tournamentcreationmodel_fi.jpg',
+    teams: isEnglish
+      ? '/screenshots/MatcOps_main_teamcreatiommodal_en.jpg'
+      : '/screenshots/MatchOps_main_teamcreatingmodal_fi.jpg',
+    archive: isEnglish
+      ? '/screenshots/MatcOps_main_savedgames_en.jpg'
+      : '/screenshots/MatchOps_main_savedgames_fi.jpg',
+    goalTimeline: isEnglish
+      ? '/screenshots/MatchOps_main_goallogs_en.jpg'
+      : '/screenshots/MatchOps_main_goallogs_fi.jpg',
+    excelExport: isEnglish
+      ? '/screenshots/MatcOps_main_excelexport_en.jpg'
+      : '/screenshots/MatchOps_main_excelexport_fi.jpg',
+    personnel: isEnglish
+      ? '/screenshots/MatcOps_main_personnel_en.jpg'
+      : '/screenshots/MatchOps_main_personnel_fi.jpg',
   };
 };
 
@@ -423,16 +459,18 @@ export default function MarketingAssets() {
             <div className="space-y-8">
               {/* V1: Three phones showcase */}
               <AssetContainer id="li-1" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-between px-20 relative">
-                  <div className="flex items-center gap-6">
-                    <Logo size={90} />
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex justify-between px-20 relative">
+                  <div className="flex items-center gap-6 self-start pt-8">
+                    <Logo size={80} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">{t('marketing.taglines.toolkit')}</p>
+                      <p className="text-gray-300 text-lg mt-1">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={20} screenshots={screenshots} />
+                  <div className="self-center">
+                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={20} screenshots={screenshots} />
+                  </div>
                 </div>
               </AssetContainer>
 
@@ -474,66 +512,39 @@ export default function MarketingAssets() {
                 </div>
               </AssetContainer>
 
-              {/* V1-B-CONTRAST: Bigger side phones, aligned, WITH contrast */}
-              <AssetContainer id="li-1b-contrast" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-between px-20 relative">
-                  <div className="flex items-center gap-6">
-                    <Logo size={90} />
-                    <div>
-                      <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">{t('marketing.taglines.toolkit')}</p>
-                      <SiteUrl className="mt-2" size="sm" />
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <PhoneMockup
-                      screenshot={screenshots.playerstats}
-                      size="md"
-                      style={{ marginRight: -20 }}
-                      zIndex={1}
-                                          />
-                    <PhoneMockup
-                      screenshot={screenshots.soccerfield}
-                      size="lg"
-                      zIndex={10}
-                                          />
-                    <PhoneMockup
-                      screenshot={screenshots.timer}
-                      size="md"
-                      style={{ marginLeft: -20 }}
-                      zIndex={1}
-                                          />
-                  </div>
-                </div>
-              </AssetContainer>
-
-              {/* V1-ALT: Three phones - same size, aligned */}
+              {/* V1-ALT: Three phones - same size, separated */}
               <AssetContainer id="li-1-alt" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-between px-20 relative">
-                  <div className="flex items-center gap-6">
-                    <Logo size={90} />
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex justify-between px-20 relative">
+                  <div className="flex items-center gap-6 self-start pt-8">
+                    <Logo size={80} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">{t('marketing.taglines.toolkit')}</p>
+                      <p className="text-gray-300 text-lg mt-1">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhonesBalanced sideSize="md" middleSize="md" overlap={20} screenshots={screenshots} />
+                  <div className="flex items-center gap-4 self-center">
+                    <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={1} />
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="md" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.timer} size="md" zIndex={1} />
+                  </div>
                 </div>
               </AssetContainer>
 
               {/* V1-ALT2: Three phones - center slightly bigger, aligned */}
               <AssetContainer id="li-1-alt2" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-between px-20 relative">
-                  <div className="flex items-center gap-6">
-                    <Logo size={90} />
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex justify-between px-20 relative">
+                  <div className="flex items-center gap-6 self-start pt-8">
+                    <Logo size={80} />
                     <div>
                       <TitleText size="2xl" />
-                      <p className="text-gray-300 text-xl mt-1">{t('marketing.taglines.toolkit')}</p>
+                      <p className="text-gray-300 text-lg mt-1">{t('marketing.taglines.toolkit')}</p>
                       <SiteUrl className="mt-2" size="sm" />
                     </div>
                   </div>
-                  <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={18} screenshots={screenshots} />
+                  <div className="self-center">
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={18} screenshots={screenshots} />
+                  </div>
                 </div>
               </AssetContainer>
 
@@ -542,16 +553,18 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-950 relative overflow-hidden">
                   <GlowBg color="primary" position="top-right" size="xl" blur={120} />
                   <GlowBg color="amber" position="bottom-right" size="md" blur={80} />
-                  <div className="relative z-10 w-full h-full flex items-center justify-between px-20">
-                    <div className="flex items-center gap-6">
-                      <Logo size={80} />
+                  <div className="relative z-10 w-full h-full flex justify-between px-20">
+                    <div className="flex items-center gap-6 self-start pt-8">
+                      <Logo size={70} />
                       <div>
                         <TitleText size="2xl" />
-                        <p className="text-gray-400 text-xl mt-2">{t('marketing.ui.planTrackAssessDots')}</p>
+                        <p className="text-gray-400 text-lg mt-1">{t('marketing.ui.planTrackAssessDots')}</p>
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
+                    <div className="self-center">
+                      <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
+                    </div>
                   </div>
                 </div>
               </AssetContainer>
@@ -571,15 +584,15 @@ export default function MarketingAssets() {
 
               {/* V4: Feature words */}
               <AssetContainer id="li-4" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-slate-900 flex items-center justify-between px-16">
-                  <div className="flex flex-col">
+                <div className="w-full h-full bg-slate-900 flex justify-between px-16">
+                  <div className="flex flex-col self-start pt-8">
                     <div className="flex items-center gap-5">
-                      <Logo size={80} />
+                      <Logo size={70} />
                       <TitleText size="xl" />
                     </div>
                     <SiteUrl className="mt-2" size="sm" />
                   </div>
-                  <div className="flex items-center gap-16">
+                  <div className="flex items-center self-center gap-16">
                     <div className="text-center">
                       <div className="text-4xl font-bold text-primary">{t('marketing.ui.plan')}</div>
                       <div className="text-gray-400">{t('marketing.ui.lineups')}</div>
@@ -612,17 +625,17 @@ export default function MarketingAssets() {
 
               {/* V6: Two phones + text */}
               <AssetContainer id="li-6" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 flex items-center px-16 relative">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-3">
-                      <Logo size={70} />
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 flex justify-between px-16 relative">
+                  <div className="self-start pt-6">
+                    <div className="flex items-center gap-4 mb-2">
+                      <Logo size={60} />
                       <TitleText size="xl" />
                     </div>
-                    <p className="text-gray-300 text-lg mb-4">{t('marketing.descriptions.madeSimple')}</p>
+                    <p className="text-gray-300 text-base mb-3">{t('marketing.descriptions.madeSimple')}</p>
                     <FeatureBullets features={[t('marketing.bullets.worksOffline'), t('marketing.bullets.privacyFirst'), t('marketing.bullets.noSignup')]} size="sm" />
-                    <SiteUrl className="mt-3" size="sm" />
+                    <SiteUrl className="mt-2" size="sm" />
                   </div>
-                  <div className="flex items-end gap-2">
+                  <div className="flex items-end self-center gap-2">
                     <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
                     <PhoneMockup
                       screenshot={screenshots.timer}
@@ -636,8 +649,8 @@ export default function MarketingAssets() {
 
               {/* V7: Stats highlight */}
               <AssetContainer id="li-7" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-slate-900 flex items-center justify-between px-20 relative">
-                  <div>
+                <div className="w-full h-full bg-slate-900 flex justify-between px-20 relative">
+                  <div className="self-start pt-8">
                     <div className="flex items-center gap-4 mb-4">
                       <Logo size={70} />
                       <TitleText size="xl" />
@@ -645,7 +658,7 @@ export default function MarketingAssets() {
                     <p className="text-gray-400 text-lg">{t('marketing.descriptions.trackDevelopment')}</p>
                     <SiteUrl className="mt-3" size="sm" />
                   </div>
-                  <div className="flex items-end gap-2">
+                  <div className="flex items-end self-center gap-2">
                     <PhoneMockup
                       screenshot={screenshots.soccerfield}
                       size="md"
@@ -660,9 +673,9 @@ export default function MarketingAssets() {
               {/* V8: Horizontal stripe */}
               <AssetContainer id="li-8" {...FORMATS.linkedinPersonal}>
                 <div className="w-full h-full bg-slate-950 relative">
-                  <div className="absolute inset-x-0 top-1/2 h-24 -translate-y-1/2 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
-                  <div className="relative z-10 w-full h-full flex items-center justify-between px-20">
-                    <div className="flex items-center gap-6">
+                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
+                  <div className="relative z-10 w-full h-full flex justify-between px-20">
+                    <div className="flex items-center gap-6 self-start pt-8">
                       <Logo size={80} />
                       <div>
                         <TitleText size="xl" />
@@ -670,7 +683,9 @@ export default function MarketingAssets() {
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={16} screenshots={screenshots} />
+                    <div className="self-center">
+                      <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={16} screenshots={screenshots} />
+                    </div>
                   </div>
                 </div>
               </AssetContainer>
@@ -679,15 +694,18 @@ export default function MarketingAssets() {
               <AssetContainer id="li-9" {...FORMATS.linkedinPersonal}>
                 <div className="w-full h-full bg-slate-900 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-bl-full" />
-                  <div className="relative z-10 w-full h-full flex items-center justify-between px-20">
-                    <div className="flex items-center gap-6">
+                  <div className="relative z-10 w-full h-full flex justify-between px-20">
+                    <div className="flex items-center gap-6 self-start pt-8">
                       <Logo size={80} />
                       <div>
                         <TitleText size="2xl" />
+                        <p className="text-gray-400 mt-1">{t('marketing.taglines.toolkit')}</p>
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <p className="text-gray-300 text-xl">{t('marketing.taglines.toolkit')}</p>
+                    <div className="self-center">
+                      <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={16} screenshots={screenshots} />
+                    </div>
                   </div>
                 </div>
               </AssetContainer>
@@ -702,8 +720,8 @@ export default function MarketingAssets() {
                       backgroundSize: '40px 40px',
                     }}
                   />
-                  <div className="relative z-10 w-full h-full flex items-center justify-between px-20">
-                    <div className="flex items-center gap-5">
+                  <div className="relative z-10 w-full h-full flex justify-between px-20">
+                    <div className="flex items-center gap-5 self-start pt-8">
                       <Logo size={80} />
                       <div>
                         <TitleText size="xl" />
@@ -711,7 +729,9 @@ export default function MarketingAssets() {
                         <SiteUrl className="mt-2" size="sm" />
                       </div>
                     </div>
-                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={20} screenshots={screenshots} />
+                    <div className="self-center">
+                      <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={20} screenshots={screenshots} />
+                    </div>
                   </div>
                 </div>
               </AssetContainer>
@@ -2056,7 +2076,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Field with tactical drawings and opponent discs" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.tacticalBoard} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2073,7 +2093,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Formation picker panel open" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.formations} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2090,7 +2110,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Roster modal with player list and colors" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.roster} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2107,7 +2127,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Assessment modal with 10 metric sliders" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.assessment} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2124,7 +2144,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Player stats with sparkline/trend charts" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.trends} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2141,7 +2161,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Season details modal" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.seasons} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2158,7 +2178,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Tournament modal with series" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.tournaments} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2175,7 +2195,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Team manager with team list" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.teams} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2192,7 +2212,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Load game modal with filters" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.archive} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2209,7 +2229,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Goal log modal with events" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.goalTimeline} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2226,7 +2246,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Stats view with export dropdown" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.excelExport} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -2243,7 +2263,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PlaceholderPhone text="Screenshot: Personnel manager with staff list" size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={screenshots.personnel} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>

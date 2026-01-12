@@ -8,7 +8,7 @@
   "groups": {
     "getting-started": "Aloitus",
     "setup": "Datan valmistelu",
-    "game-day": "Pelipäivä",
+    "game-day": "Ottelupäivä",
     "review": "Katsaus ja data"
   },
   "search": {
@@ -49,8 +49,8 @@
       "description": "Täydellinen työnkulku MatchOpsin kaikkien ominaisuuksien hyödyntämiseksi"
     },
     "game-day-workflow": {
-      "title": "Pelipäivän työnkulku",
-      "description": "Vaiheittainen ohje pelipäivälle"
+      "title": "Ottelupäivän työnkulku",
+      "description": "Vaiheittainen ohje ottelupäivälle"
     },
     "roster-management": {
       "title": "Kokoonpanon hallinta",
