@@ -191,7 +191,26 @@ Before creating the final PR `feature/supabase-cloud-backend` → `master`:
    # Squash or merge commit as preferred
    ```
 
-### 2.3 PR Breakdown
+### 2.3 Review Process (MANDATORY)
+
+**⚠️ USER MUST REVIEW AND APPROVE EVERY PR - NO EXCEPTIONS**
+
+For **each** of the 8 PRs, the process is:
+
+1. **Implementation complete** → Claude reports "Ready for review"
+2. **User says "review changes"** → Claude performs senior engineer code review
+3. **Claude presents review** → User reviews and requests changes if needed
+4. **User approves review** → Claude creates PR on GitHub
+5. **User reviews PR on GitHub** → May request additional changes
+6. **User approves/merges PR** → Only then proceed to next PR
+
+**NEVER:**
+- Auto-create PRs without explicit user approval
+- Auto-merge PRs without explicit user approval
+- Skip review steps to "save time"
+- Proceed to next PR before current one is merged
+
+### 2.4 PR Breakdown
 
 ---
 
@@ -512,7 +531,7 @@ tests/integration/cloud-flow.test.ts # End-to-end integration tests
 
 ---
 
-### 2.4 PR Summary Table
+### 2.5 PR Summary Table
 
 | PR | Branch | Est. Hours | Tests | Dependencies | Key Deliverables |
 |----|--------|------------|-------|--------------|------------------|
@@ -529,7 +548,7 @@ tests/integration/cloud-flow.test.ts # End-to-end integration tests
 
 > **Note**: Hours include TDD test-writing time. See Section 9 for detailed testing strategy.
 
-### 2.5 Parallel Work Opportunities
+### 2.6 Parallel Work Opportunities
 
 ```
 PR #1 ─────────┐
@@ -544,7 +563,7 @@ PR #1 ─────────┐
 - **PR #7** can start after PR #4, parallel with PR #6
 - **PR #8** requires all others complete
 
-### 2.6 Definition of Done (Per PR)
+### 2.7 Definition of Done (Per PR)
 
 Before merging any PR to `feature/supabase-cloud-backend`:
 
@@ -557,7 +576,7 @@ Before merging any PR to `feature/supabase-cloud-backend`:
 - [ ] No `console.log` statements (use logger)
 - [ ] TypeScript strict mode passes
 
-### 2.7 Final Merge to Master
+### 2.8 Final Merge to Master
 
 Before creating PR from `feature/supabase-cloud-backend` → `master`:
 

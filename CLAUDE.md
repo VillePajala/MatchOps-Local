@@ -382,18 +382,25 @@ Before creating the final PR from `feature/supabase-cloud-backend` → `master`:
 
 ### Review Process (IMPORTANT)
 
-**Before creating any PR**, the user will say "review changes". This means:
+**⚠️ USER REVIEWS AND APPROVES EVERY PR - TWICE:**
 
-> **Perform a senior software engineer code review** of all changes that would go into the PR:
-> - Check code quality, patterns, and consistency
-> - Verify all acceptance criteria from the plan are met
-> - Ensure tests are adequate
-> - Look for security issues, edge cases, and potential bugs
-> - Confirm no regressions to local mode
-> - **Verify transforms match the 19 rules above**
-> - Provide a detailed review summary with any concerns
+1. **Before CREATING the PR**: User says "review changes"
+   - Perform a senior software engineer code review of all changes
+   - Check code quality, patterns, and consistency
+   - Verify all acceptance criteria from the plan are met
+   - Ensure tests are adequate
+   - Look for security issues, edge cases, and potential bugs
+   - Confirm no regressions to local mode
+   - **Verify transforms match the 19 rules above**
+   - Provide detailed review summary with any concerns
+   - **DO NOT create the PR until user explicitly approves**
 
-**DO NOT create the PR until the review is complete and approved by the user.**
+2. **Before MERGING the PR**: User reviews on GitHub and approves
+   - User will review the PR on GitHub
+   - User may request additional changes
+   - **DO NOT merge until user explicitly says to merge**
+
+**NEVER auto-create or auto-merge PRs. Always wait for explicit user approval at each step.**
 
 ### PR Summary
 
