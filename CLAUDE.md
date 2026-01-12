@@ -24,13 +24,389 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Test coverage improvement (+694 tests)
 - **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory (PR #137 ready to merge)
 
-### What's Next (Optional)
-- **Backend Abstraction**: Merge PR #137 to master, then optionally add Supabase (Phase 4)
+### What's Next
+- **Supabase Cloud Backend (Phase 4)** - IN PROGRESS
 - **Play Store Release**: See master-execution-guide.md
 
 ### Essential Reading
-- **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** ⭐ **Single source of truth**
+- **[supabase-implementation-guide.md](./docs/03-active-plans/supabase-implementation-guide.md)** ⭐ **Active implementation plan**
+- **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** — Single source of truth
 - **[master-execution-guide.md](./docs/03-active-plans/master-execution-guide.md)** — Play Store release plan
+
+---
+
+## 🚧 Active Work: Supabase Cloud Backend
+
+### ⚠️ MANDATORY: Read Before ANY Supabase Work
+
+**If you are working on Supabase implementation, you MUST follow the documented plan exactly.**
+
+#### Required Reading (in order)
+1. **[supabase-implementation-guide.md](./docs/03-active-plans/supabase-implementation-guide.md)** — Master plan with code examples
+2. **[supabase-preflight-checklist.md](./docs/03-active-plans/supabase-preflight-checklist.md)** — PR-by-PR checklists
+3. **[supabase-verification-matrix.md](./docs/03-active-plans/supabase-verification-matrix.md)** — Field-by-field type mappings
+4. **[supabase-schema.md](./docs/02-technical/database/supabase-schema.md)** — PostgreSQL schema
+
+#### Before Starting ANY PR
+```bash
+# 1. Run automated verification (catches plan/code drift)
+npx ts-node scripts/verify-supabase-plan.ts
+
+# 2. Ensure tests pass
+npm test
+
+# 3. Read the preflight checklist for your specific PR
+```
+
+---
+
+### Critical Implementation Rules (MEMORIZE THESE)
+
+#### Rule 1: Game Transform — Empty String ↔ NULL (10 Fields)
+
+**Forward (App → DB)**: Empty string becomes NULL
+```typescript
+season_id: game.seasonId === '' ? null : game.seasonId,
+tournament_id: game.tournamentId === '' ? null : game.tournamentId,
+tournament_series_id: game.tournamentSeriesId === '' ? null : game.tournamentSeriesId,
+tournament_level: game.tournamentLevel === '' ? null : game.tournamentLevel,
+team_id: game.teamId === '' ? null : game.teamId,
+game_time: game.gameTime === '' ? null : game.gameTime,
+game_location: game.gameLocation === '' ? null : game.gameLocation,
+age_group: game.ageGroup === '' ? null : game.ageGroup,
+league_id: game.leagueId === '' ? null : game.leagueId,
+custom_league_name: game.customLeagueName === '' ? null : game.customLeagueName,
+```
+
+**Reverse (DB → App)**: NULL becomes empty string
+```typescript
+seasonId: game.season_id ?? '',
+tournamentId: game.tournament_id ?? '',
+// ... same pattern for all 10 fields
+```
+
+#### Rule 2: Legacy Defaults (CRITICAL for test data compatibility)
+
+```typescript
+// These defaults MUST match LocalDataStore.ts lines 1337 and 1342
+home_or_away: game.homeOrAway ?? 'home',  // NOT || 'home'
+is_played: game.isPlayed ?? true,          // undefined → true (legacy games)
+```
+
+#### Rule 3: Player Array Normalization
+
+**The three arrays have this relationship**: `playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers`
+
+```typescript
+// Forward transform: Normalize is_selected when on_field
+is_selected: isSelected || isOnField,  // If on field, MUST be selected
+
+// Reverse transform: Reconstruct from game_players table
+availablePlayers = ALL game_players (no relX/relY)
+playersOnField = game_players WHERE on_field = true (WITH relX/relY)
+selectedPlayerIds = game_players WHERE is_selected = true
+```
+
+#### Rule 4: Event Ordering via order_index
+
+```typescript
+// Forward: Array index becomes order_index
+events: game.gameEvents.map((e, index) => ({
+  ...e,
+  order_index: index,  // CRITICAL: preserves insertion order
+})),
+
+// Reverse: Sort by order_index, then map back to array
+const gameEvents = events
+  .sort((a, b) => a.order_index - b.order_index)
+  .map(e => ({ id: e.id, type: e.event_type, time: e.time_seconds, ... }));
+```
+
+#### Rule 5: Assessment Slider Flattening
+
+```typescript
+// Forward: Flatten nested sliders object
+intensity: a.sliders.intensity,
+courage: a.sliders.courage,
+duels: a.sliders.duels,
+technique: a.sliders.technique,
+creativity: a.sliders.creativity,
+decisions: a.sliders.decisions,
+awareness: a.sliders.awareness,
+teamwork: a.sliders.teamwork,
+fair_play: a.sliders.fair_play,
+impact: a.sliders.impact,
+
+// Reverse: Reconstruct nested object
+sliders: {
+  intensity: a.intensity,
+  courage: a.courage,
+  // ... all 10 fields
+},
+```
+
+#### Rule 6: Composite Uniqueness (App-Level Validation)
+
+Schema uses simple `UNIQUE(user_id, name)`. **SupabaseDataStore MUST implement these composite checks to match LocalDataStore**:
+
+- **Teams**: name + boundSeasonId + boundTournamentId + boundTournamentSeriesId + gameType
+- **Seasons**: name + clubSeason + gameType + gender + ageGroup + leagueId
+- **Tournaments**: name + clubSeason + gameType + gender + ageGroup
+
+#### Rule 7: Cascade Delete for Personnel
+
+When `removePersonnelMember(id)` is called, MUST also remove that ID from all games' `gamePersonnel` arrays. See LocalDataStore.ts lines 1223-1291.
+
+#### Rule 8: Tactical JSONB Defaults
+
+```typescript
+// Forward: Use ?? to preserve null but default undefined
+tactical_discs: game.tacticalDiscs ?? [],
+tactical_drawings: game.tacticalDrawings ?? [],
+tactical_ball_position: game.tacticalBallPosition ?? null,  // null is valid!
+completed_interval_durations: game.completedIntervalDurations ?? [],
+
+// Reverse: Same pattern
+tacticalDiscs: tacticalData.tactical_discs ?? [],
+tacticalBallPosition: tacticalData.tactical_ball_position ?? null,
+```
+
+#### Rule 9: Personnel certifications Field
+
+```typescript
+// MUST include in all Personnel transforms - don't drop this field!
+certifications: personnel.certifications ?? [],  // text[] array
+```
+
+#### Rule 10: createGame() Defaults
+
+**SupabaseDataStore.createGame() MUST provide these defaults** (especially `periodDurationMinutes` which has NO schema default):
+
+```typescript
+periodDurationMinutes: 10,       // ⚠️ NOT NULL, NO DB DEFAULT - will fail without this!
+subIntervalMinutes: 5,
+showPlayerNames: true,
+tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+lastSubConfirmationTimeSeconds: 0,
+// See implementation guide Section 5.0.1 for full list
+```
+
+#### Rule 11: Event CRUD Uses Full-Save
+
+**addGameEvent/updateGameEvent/removeGameEvent all save the ENTIRE game** (not incremental updates):
+
+```typescript
+// This ensures order_index stays contiguous [0, 1, 2, ...]
+async removeGameEvent(gameId, eventIndex) {
+  const game = await this.getGameById(gameId);
+  game.gameEvents.splice(eventIndex, 1);  // Reindex in memory
+  return this.saveGame(gameId, game);      // Full save
+}
+```
+
+#### Rule 12: Cloud Mode is Online-Only
+
+**No offline queue** - operations fail with clear error if offline:
+
+```typescript
+if (!navigator.onLine) {
+  throw new NetworkError('Cannot save while offline. Please check your connection.');
+}
+```
+
+Users should switch to local mode for offline work.
+
+#### Rule 13: Tournament Level Migration (getTournaments)
+
+**Apply same runtime migration as LocalDataStore** when loading tournaments:
+
+```typescript
+// Converts legacy 'level' to 'series[]'
+const migrateTournamentLevel = (tournament: Tournament): Tournament => {
+  if (tournament.series?.length > 0) return tournament;  // Skip if has series
+  if (tournament.level) {
+    return {
+      ...tournament,
+      series: [{
+        id: `series_${tournament.id}_${tournament.level.toLowerCase().replace(/\s+/g, '-')}`,
+        level: tournament.level,
+      }]
+    };
+  }
+  return tournament;
+};
+
+// Apply on read
+return tournaments.map(migrateTournamentLevel);
+```
+
+#### Rule 14: Game Validation Parity (saveGame)
+
+**Reuse LocalDataStore's validateGame** - extract to shared module:
+
+```typescript
+// src/datastore/validation.ts (extract from LocalDataStore)
+import { validateGame } from './validation';
+
+// In SupabaseDataStore.saveGame()
+async saveGame(id: string, game: AppState): Promise<AppState> {
+  validateGame(game);  // Same validation as LocalDataStore
+  // ... rest of save logic
+}
+```
+
+#### Rule 15: RPC game_id Injection
+
+**RPC must override game_id in child rows** (not just user_id):
+
+```sql
+-- In save_game_with_relations, for each child table:
+jsonb_set(
+  jsonb_set(elem, '{user_id}', to_jsonb(v_user_id::text)),
+  '{game_id}', to_jsonb(v_game_id)  -- Force correct game_id
+)
+```
+
+Prevents client from injecting wrong game_id in child rows.
+
+#### Rule 16: clubSeason Computation on Read
+
+**Compute clubSeason if missing** (matches LocalDataStore):
+
+```typescript
+// In getSeasons() and getTournaments()
+clubSeason: entity.clubSeason ?? calculateClubSeason(entity.startDate, start, end)
+```
+
+#### Rule 17: Supabase Concurrency (No Locks Needed)
+
+**PostgreSQL handles concurrency** - no app-level locks:
+- Single operations: PostgreSQL row-level locks
+- Multi-table operations: RPC with transactions
+- Conflict resolution: Last-write-wins
+
+#### Rule 18: Migration Uses DataStore Getters
+
+**Use DataStore getters** (not raw storage keys) to apply legacy migrations:
+
+```typescript
+const tournaments = await localDataStore.getTournaments(true);  // Applies migrateTournamentLevel
+const seasons = await localDataStore.getSeasons(true);          // Computes clubSeason
+```
+
+#### Rule 19: Data Scale Strategy
+
+**For 500+ games**, use paging:
+- Prefetch recent 100 games on initialize
+- Load older games on demand
+- UI virtualization for large lists
+
+---
+
+### 🚫 BRANCHING STRATEGY — READ CAREFULLY
+
+#### ⛔ NEVER MERGE TO MASTER UNTIL ALL 8 PRs ARE COMPLETE
+
+```
+master (production) ← PROTECTED: NO SUPABASE CODE UNTIL 100% COMPLETE
+│
+│   ⛔ DO NOT CREATE PRs TO MASTER FOR SUPABASE WORK
+│   ⛔ DO NOT MERGE ANY SUPABASE BRANCH TO MASTER
+│   ⛔ DO NOT PUSH SUPABASE CODE DIRECTLY TO MASTER
+│
+└── feature/supabase-cloud-backend (MASTER FEATURE BRANCH)
+    │
+    │   ✅ ALL Supabase PRs target THIS branch
+    │   ✅ This branch accumulates all 8 PRs
+    │   ✅ Only merged to master when EVERYTHING works
+    │
+    ├── supabase/pr1-foundation        → PR to feature/supabase-cloud-backend
+    ├── supabase/pr2-supabase-client   → PR to feature/supabase-cloud-backend
+    ├── supabase/pr3-datastore-core    → PR to feature/supabase-cloud-backend
+    ├── supabase/pr4-datastore-games   → PR to feature/supabase-cloud-backend
+    ├── supabase/pr5-auth-service      → PR to feature/supabase-cloud-backend
+    ├── supabase/pr6-migration         → PR to feature/supabase-cloud-backend
+    ├── supabase/pr7-performance       → PR to feature/supabase-cloud-backend
+    └── supabase/pr8-integration       → PR to feature/supabase-cloud-backend
+                                       │
+                                       └── FINAL: PR to master (ONLY when ALL 8 complete + tested)
+```
+
+#### Why This Matters
+
+- **master is production** — users are running this code
+- **Partial Supabase = broken app** — cloud mode won't work until all pieces exist
+- **Local mode must stay perfect** — any regression breaks existing users
+- **Feature branch isolates risk** — we can test everything together before release
+
+#### Branch Commands
+
+```bash
+# Starting work on a new PR (e.g., PR #3)
+git checkout feature/supabase-cloud-backend
+git pull origin feature/supabase-cloud-backend
+git checkout -b supabase/pr3-datastore-core
+
+# When PR is ready (after review)
+# Create PR: supabase/pr3-datastore-core → feature/supabase-cloud-backend
+# ⛔ NOT: supabase/pr3-datastore-core → master
+
+# After PR is merged, start next PR
+git checkout feature/supabase-cloud-backend
+git pull origin feature/supabase-cloud-backend
+git checkout -b supabase/pr4-datastore-games
+```
+
+#### Final Merge Criteria (ALL must be true)
+
+Before creating the final PR from `feature/supabase-cloud-backend` → `master`:
+
+- [ ] All 8 sub-PRs merged to feature branch
+- [ ] `npm test` passes (3,200+ tests)
+- [ ] `npm run build` passes
+- [ ] `npm run lint` passes
+- [ ] Manual test: Local mode full workflow works
+- [ ] Manual test: Cloud mode full workflow works
+- [ ] Manual test: Migration from local → cloud works
+- [ ] Manual test: Mode switching works
+- [ ] Code review completed by user
+
+### PR Workflow Rules
+
+1. **All sub-PRs target `feature/supabase-cloud-backend`** (NEVER master)
+2. **Each PR from its own branch**: `supabase/pr1-foundation`, `supabase/pr2-supabase-client`, etc.
+3. **Final merge to master only when all 8 PRs are complete and tested**
+4. **Before each PR**: Run `npx ts-node scripts/verify-supabase-plan.ts`
+5. **During each PR**: Follow the checklist in `supabase-preflight-checklist.md`
+6. **If asked to merge to master**: REFUSE and explain the branching strategy
+
+### Review Process (IMPORTANT)
+
+**Before creating any PR**, the user will say "review changes". This means:
+
+> **Perform a senior software engineer code review** of all changes that would go into the PR:
+> - Check code quality, patterns, and consistency
+> - Verify all acceptance criteria from the plan are met
+> - Ensure tests are adequate
+> - Look for security issues, edge cases, and potential bugs
+> - Confirm no regressions to local mode
+> - **Verify transforms match the 19 rules above**
+> - Provide a detailed review summary with any concerns
+
+**DO NOT create the PR until the review is complete and approved by the user.**
+
+### PR Summary
+
+| PR | Branch | Description | Critical Rules |
+|----|--------|-------------|----------------|
+| 1 | `supabase/pr1-foundation` | backendConfig.ts, mode detection | — |
+| 2 | `supabase/pr2-supabase-client` | Supabase client singleton, lazy loading | — |
+| 3 | `supabase/pr3-datastore-core` | Core CRUD (players, teams, seasons, etc.) | Rules 6, 7, 9, **13, 16, 17** |
+| 4 | `supabase/pr4-datastore-games` | Game transforms, all DataStore methods | **Rules 1-5, 8, 10, 11, 14, 15** |
+| 5 | `supabase/pr5-auth-service` | SupabaseAuthService implementation | Rule 12 |
+| 6 | `supabase/pr6-migration` | Local → Cloud migration service | Rules 1-9, 13, **18** |
+| 7 | `supabase/pr7-performance` | QueryProvider optimization | Rule **19** |
+| 8 | `supabase/pr8-integration` | UI, integration tests, polish | Verify all **19 rules** |
 
 ---
 
