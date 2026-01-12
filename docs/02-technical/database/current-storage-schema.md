@@ -82,9 +82,9 @@ interface Player {
 
 ### 2. Team (`TEAMS_INDEX_KEY`)
 
-**Storage**: Single array of all teams
-**Format**: `Team[]` as JSON string
-**Usage**: Multi-team support
+**Storage**: Record mapping team ID to team object
+**Format**: `Record<string, Team>` as JSON string (NOT an array)
+**Usage**: Multi-team support with O(1) lookup by ID
 
 ```typescript
 interface Team {
@@ -343,7 +343,7 @@ interface AppState {
   gameNotes: string;               // Coach notes
 
   // Advanced
-  demandFactor?: number;           // 0.7-1.3 (opponent difficulty)
+  demandFactor?: number;           // 0.5-1.5 (UI slider), validation allows 0.1-10
 }
 ```
 
@@ -372,8 +372,8 @@ interface AppSettings {
   isDrawingModeEnabled?: boolean;  // Drawing tool state
 
   // Club season dates (ISO format YYYY-MM-DD)
-  clubSeasonStartDate?: string;    // Default: "2000-10-01" (October 1st)
-  clubSeasonEndDate?: string;      // Default: "2000-05-01" (May 1st)
+  clubSeasonStartDate?: string;    // Default: "2000-11-15" (November 15th)
+  clubSeasonEndDate?: string;      // Default: "2000-10-20" (October 20th next year)
   hasConfiguredSeasonDates?: boolean; // Enables season filtering UI
 }
 ```
@@ -382,9 +382,9 @@ interface AppSettings {
 
 ### 9. Player Adjustments (`PLAYER_ADJUSTMENTS_KEY`)
 
-**Storage**: Array of manual stat adjustments
-**Format**: `PlayerStatAdjustment[]` as JSON string
-**Usage**: External games not tracked in app
+**Storage**: Record mapping player ID to array of adjustments
+**Format**: `Record<string, PlayerStatAdjustment[]>` as JSON string (NOT a flat array)
+**Usage**: External games not tracked in app, grouped by player for efficient lookup
 
 ```typescript
 interface PlayerStatAdjustment {
