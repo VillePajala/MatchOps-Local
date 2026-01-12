@@ -492,7 +492,11 @@ export const exportAggregateExcel = (
   XLSX.utils.book_append_sheet(workbook, gamesSheet, translate('export.sheetGameDetails', 'Game Details'));
 
   // Sheet 4: Season Breakdown (if we have multiple seasons in dataset)
-  const seasonMap = new Map<string, { games: number; goals: number; assists: number; points: number }>();
+  // Include both player stats (goals/assists) and team stats (wins/losses/ties, goals for/against)
+  const seasonMap = new Map<string, {
+    games: number; goals: number; assists: number; points: number;
+    wins: number; losses: number; ties: number; goalsFor: number; goalsAgainst: number;
+  }>();
 
   gameArray.forEach((game) => {
     if (!game.seasonId) return;
@@ -501,12 +505,23 @@ export const exportAggregateExcel = (
 
     const key = season.name;
     if (!seasonMap.has(key)) {
-      seasonMap.set(key, { games: 0, goals: 0, assists: 0, points: 0 });
+      seasonMap.set(key, { games: 0, goals: 0, assists: 0, points: 0, wins: 0, losses: 0, ties: 0, goalsFor: 0, goalsAgainst: 0 });
     }
 
     const stats = seasonMap.get(key)!;
     stats.games++;
 
+    // Calculate team stats (wins/losses/ties, goals for/against)
+    const isHome = game.homeOrAway === 'home';
+    const ourScore = isHome ? game.homeScore : game.awayScore;
+    const theirScore = isHome ? game.awayScore : game.homeScore;
+    stats.goalsFor += ourScore;
+    stats.goalsAgainst += theirScore;
+    if (ourScore > theirScore) stats.wins++;
+    else if (ourScore < theirScore) stats.losses++;
+    else stats.ties++;
+
+    // Calculate player stats (goals/assists from events)
     game.gameEvents
       .filter((e) => e.type === 'goal')
       .forEach((e) => {
@@ -517,20 +532,33 @@ export const exportAggregateExcel = (
   });
 
   if (seasonMap.size > 0) {
-    const seasonBreakdown = Array.from(seasonMap.entries()).map(([name, stats]) => ({
-      [translate('export.season', 'Season')]: name,
-      [translate('export.gamesPlayed', 'Games Played')]: stats.games,
-      [translate('export.goals', 'Goals')]: stats.goals,
-      [translate('export.assists', 'Assists')]: stats.assists,
-      [translate('export.points', 'Points')]: stats.points,
-    }));
+    const seasonBreakdown = Array.from(seasonMap.entries()).map(([name, stats]) => {
+      const winPct = stats.games > 0 ? ((stats.wins / stats.games) * 100).toFixed(1) : '0.0';
+      const goalDiff = stats.goalsFor - stats.goalsAgainst;
+      return {
+        [translate('export.season', 'Season')]: name,
+        [translate('export.gamesPlayed', 'Games Played')]: stats.games,
+        [translate('export.record', 'Record')]: `${stats.wins}-${stats.losses}-${stats.ties}`,
+        [translate('export.winPercentage', 'Win %')]: `${winPct}%`,
+        [translate('export.goalsFor', 'Goals For')]: stats.goalsFor,
+        [translate('export.goalsAgainst', 'Goals Against')]: stats.goalsAgainst,
+        [translate('export.goalDifference', 'Goal Diff')]: goalDiff > 0 ? `+${goalDiff}` : goalDiff,
+        [translate('export.goals', 'Scored Goals')]: stats.goals,
+        [translate('export.assists', 'Assists')]: stats.assists,
+        [translate('export.points', 'Points')]: stats.points,
+      };
+    });
 
     const seasonSheet = XLSX.utils.json_to_sheet(seasonBreakdown);
     XLSX.utils.book_append_sheet(workbook, seasonSheet, translate('export.sheetSeasonBreakdown', 'Season Breakdown'));
   }
 
   // Sheet 5: Tournament Breakdown (if we have multiple tournaments in dataset)
-  const tournamentMap = new Map<string, { games: number; goals: number; assists: number; points: number }>();
+  // Include both player stats (goals/assists) and team stats (wins/losses/ties, goals for/against)
+  const tournamentMap = new Map<string, {
+    games: number; goals: number; assists: number; points: number;
+    wins: number; losses: number; ties: number; goalsFor: number; goalsAgainst: number;
+  }>();
 
   gameArray.forEach((game) => {
     if (!game.tournamentId) return;
@@ -539,12 +567,23 @@ export const exportAggregateExcel = (
 
     const key = tournament.name;
     if (!tournamentMap.has(key)) {
-      tournamentMap.set(key, { games: 0, goals: 0, assists: 0, points: 0 });
+      tournamentMap.set(key, { games: 0, goals: 0, assists: 0, points: 0, wins: 0, losses: 0, ties: 0, goalsFor: 0, goalsAgainst: 0 });
     }
 
     const stats = tournamentMap.get(key)!;
     stats.games++;
 
+    // Calculate team stats (wins/losses/ties, goals for/against)
+    const isHome = game.homeOrAway === 'home';
+    const ourScore = isHome ? game.homeScore : game.awayScore;
+    const theirScore = isHome ? game.awayScore : game.homeScore;
+    stats.goalsFor += ourScore;
+    stats.goalsAgainst += theirScore;
+    if (ourScore > theirScore) stats.wins++;
+    else if (ourScore < theirScore) stats.losses++;
+    else stats.ties++;
+
+    // Calculate player stats (goals/assists from events)
     game.gameEvents
       .filter((e) => e.type === 'goal')
       .forEach((e) => {
@@ -555,13 +594,22 @@ export const exportAggregateExcel = (
   });
 
   if (tournamentMap.size > 0) {
-    const tournamentBreakdown = Array.from(tournamentMap.entries()).map(([name, stats]) => ({
-      [translate('export.tournament', 'Tournament')]: name,
-      [translate('export.gamesPlayed', 'Games Played')]: stats.games,
-      [translate('export.goals', 'Goals')]: stats.goals,
-      [translate('export.assists', 'Assists')]: stats.assists,
-      [translate('export.points', 'Points')]: stats.points,
-    }));
+    const tournamentBreakdown = Array.from(tournamentMap.entries()).map(([name, stats]) => {
+      const winPct = stats.games > 0 ? ((stats.wins / stats.games) * 100).toFixed(1) : '0.0';
+      const goalDiff = stats.goalsFor - stats.goalsAgainst;
+      return {
+        [translate('export.tournament', 'Tournament')]: name,
+        [translate('export.gamesPlayed', 'Games Played')]: stats.games,
+        [translate('export.record', 'Record')]: `${stats.wins}-${stats.losses}-${stats.ties}`,
+        [translate('export.winPercentage', 'Win %')]: `${winPct}%`,
+        [translate('export.goalsFor', 'Goals For')]: stats.goalsFor,
+        [translate('export.goalsAgainst', 'Goals Against')]: stats.goalsAgainst,
+        [translate('export.goalDifference', 'Goal Diff')]: goalDiff > 0 ? `+${goalDiff}` : goalDiff,
+        [translate('export.goals', 'Scored Goals')]: stats.goals,
+        [translate('export.assists', 'Assists')]: stats.assists,
+        [translate('export.points', 'Points')]: stats.points,
+      };
+    });
 
     const tournamentSheet = XLSX.utils.json_to_sheet(tournamentBreakdown);
     XLSX.utils.book_append_sheet(workbook, tournamentSheet, translate('export.sheetTournamentBreakdown', 'Tournament Breakdown'));
