@@ -494,7 +494,7 @@
       "linesOfCode": "210 000+ riviä",
       "linesOfCodeDesc": "60K lähdekoodia, 66K testejä, 75K dokumentaatiota. Tuotantovalmis koodipohja.",
       "testCoverage": "3 200+ testiä",
-      "testCoverageDesc": "182 testisarjaa 99,9% läpäisyasteella. Laatu varmistetaan jokaisella commitilla.",
+      "testCoverageDesc": "182 testisarjaa 100% läpäisyasteella. Laatu varmistetaan jokaisella commitilla.",
       "techStack": "Uusin teknologia",
       "techStackDesc": "Next.js 16, React 19, TypeScript 5, Tailwind CSS 4. Aina uusimmalla versiolla.",
       "documentation": "75 000+ riviä dokumentaatiota",
