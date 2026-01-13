@@ -132,9 +132,11 @@ const baseProps = () => ({
       drawingAddPoint: jest.fn(),
       drawingEnd: jest.fn(),
       discMove: jest.fn(),
+      discMoveEnd: jest.fn(),
       discRemove: jest.fn(),
       discToggleType: jest.fn(),
       ballMove: jest.fn(),
+      ballMoveEnd: jest.fn(),
     },
     touch: {
       playerDrop: jest.fn(),

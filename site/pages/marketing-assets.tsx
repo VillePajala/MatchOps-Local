@@ -368,7 +368,7 @@ function GlowBg({
   blur = 100,
 }: {
   color?: 'primary' | 'amber' | 'blue' | 'green';
-  position?: 'center' | 'top-right' | 'bottom-left' | 'top-left' | 'bottom-right';
+  position?: 'center' | 'top-right' | 'bottom-left' | 'top-left' | 'bottom-right' | 'bottom-center';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   blur?: number;
 }) {
@@ -385,6 +385,7 @@ function GlowBg({
     'bottom-left': 'bottom-0 left-0 -translate-x-1/4 translate-y-1/4',
     'top-left': 'top-0 left-0 -translate-x-1/4 -translate-y-1/4',
     'bottom-right': 'bottom-0 right-0 translate-x-1/4 translate-y-1/4',
+    'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/4',
   };
 
   return (
