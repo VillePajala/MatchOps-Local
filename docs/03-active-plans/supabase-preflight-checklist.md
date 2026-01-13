@@ -45,36 +45,36 @@ git checkout -b supabase/prX-name
 
 ---
 
-## PR #1: Foundation & Configuration
+## PR #1: Foundation & Configuration ✅ MERGED
 
 ### Pre-Implementation Checklist
-- [ ] Read `docs/03-active-plans/supabase-implementation-guide.md` Section 4 (Configuration)
-- [ ] Understand `getBackendMode()` priority: localStorage → env var → default
+- [x] Read `docs/03-active-plans/supabase-implementation-guide.md` Section 4 (Configuration)
+- [x] Understand `getBackendMode()` priority: localStorage → env var → default
 
 ### Implementation Checklist
-- [ ] Create `src/config/backendConfig.ts` with:
-  - [ ] `getBackendMode()` function
-  - [ ] `isCloudAvailable()` function
-  - [ ] `enableCloudMode()` / `disableCloudMode()` functions
-- [ ] Update `src/datastore/factory.ts`:
-  - [ ] Import `getBackendMode`, `isCloudAvailable`
-  - [ ] Add mode detection (still returns LocalDataStore for now)
-- [ ] Update `.env.local.example` with Supabase variables
-- [ ] Add `@supabase/supabase-js` to package.json (but don't import yet)
+- [x] Create `src/config/backendConfig.ts` with:
+  - [x] `getBackendMode()` function
+  - [x] `isCloudAvailable()` function
+  - [x] `enableCloudMode()` / `disableCloudMode()` functions
+- [x] Update `src/datastore/factory.ts`:
+  - [x] Import `getBackendMode`, `isCloudAvailable`
+  - [x] Add mode detection (still returns LocalDataStore for now)
+- [x] Update `.env.local.example` with Supabase variables
+- [x] Add `@supabase/supabase-js` to package.json (but don't import yet)
 
 ### Test Checklist
-- [ ] Unit tests for `backendConfig.ts`:
-  - [ ] `getBackendMode()` returns 'local' by default
-  - [ ] `getBackendMode()` returns 'cloud' when env var set
-  - [ ] `isCloudAvailable()` returns false without env vars
-  - [ ] `enableCloudMode()` / `disableCloudMode()` work correctly
-- [ ] Factory still returns LocalDataStore in cloud mode (logs warning)
-- [ ] All existing tests pass (no regressions)
+- [x] Unit tests for `backendConfig.ts`:
+  - [x] `getBackendMode()` returns 'local' by default
+  - [x] `getBackendMode()` returns 'cloud' when env var set
+  - [x] `isCloudAvailable()` returns false without env vars
+  - [x] `enableCloudMode()` / `disableCloudMode()` work correctly
+- [x] Factory still returns LocalDataStore in cloud mode (logs warning)
+- [x] All existing tests pass (no regressions)
 
 ### Acceptance Criteria
-- [ ] `npm run build` passes
-- [ ] `npm test` passes
-- [ ] Running with `NEXT_PUBLIC_BACKEND_MODE=cloud` logs warning message
+- [x] `npm run build` passes
+- [x] `npm test` passes
+- [x] Running with `NEXT_PUBLIC_BACKEND_MODE=cloud` logs warning message
 
 ---
 
