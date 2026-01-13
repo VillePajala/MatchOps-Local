@@ -2059,6 +2059,44 @@ export default function MarketingAssets() {
                   </div>
                 </div>
               </AssetContainer>
+
+              <AssetContainer id="card-intro" width={600} height={400} name="Feature Card - Intro">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-[55%] flex flex-col justify-center pr-6">
+                    <div className="text-primary text-sm font-semibold mb-2 uppercase">{t('marketing.cards.introducing')}</div>
+                    <h3 className="text-3xl font-bold mb-3">
+                      <span className="font-rajdhani text-primary">MatchOps Local</span><br />
+                      <span className="text-white">{t('marketing.cards.forCoaches')}</span>
+                    </h3>
+                    <p className="text-gray-400 mb-3">
+                      Your clipboard, stopwatch, notebook, and stats<br />— in one app.
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-[45%] flex items-center justify-center">
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={40} screenshots={screenshots} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              <AssetContainer id="card-intro-compact" width={600} height={400} name="Feature Card - Intro (Compact)">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-[55%] flex flex-col justify-center pr-6">
+                    <div className="text-primary text-sm font-semibold mb-2 uppercase">{t('marketing.cards.introducing')}</div>
+                    <h3 className="font-bold mb-3">
+                      <span className="font-rajdhani text-primary text-3xl">MatchOps Local</span><br />
+                      <span className="text-white text-2xl">{t('marketing.cards.forCoaches')}</span>
+                    </h3>
+                    <p className="text-gray-400 mb-3">
+                      Your clipboard, stopwatch, notebook, and stats<br />— in one app.
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-[45%] flex items-center justify-center">
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={40} screenshots={screenshots} />
+                  </div>
+                </div>
+              </AssetContainer>
             </div>
 
             {/* ===== EXTENDED FEATURE CARDS (12 new features) ===== */}
