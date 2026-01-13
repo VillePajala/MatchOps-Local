@@ -18,6 +18,7 @@ const SECTIONS = [
   { id: 'instagram-stories', label: 'Instagram Stories' },
   { id: 'appstore', label: 'App Store' },
   { id: 'cards', label: 'Cards' },
+  { id: 'tech-stats', label: 'Tech Stats' },
   { id: 'logos', label: 'Logos' },
   { id: 'heroes', label: 'Heroes' },
 ];
@@ -2203,6 +2204,132 @@ export default function MarketingAssets() {
                       size="lg"
                       zIndex={10}
                     />
+                  </div>
+                </div>
+              </AssetContainer>
+            </div>
+
+            {/* ===== TECHNICAL STATS CARDS ===== */}
+            <h3 id="tech-stats" className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2 scroll-mt-8">Technical Stats Cards (7 cards)</h3>
+            <div className="flex flex-wrap gap-8">
+              {/* 1. AI-Powered Development */}
+              <AssetContainer id="card-ai-powered" width={600} height={400} name="Technical Card - AI Powered">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.development')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.aiPowered')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.aiPoweredDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">100%</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 2. Lines of Code */}
+              <AssetContainer id="card-lines-of-code" width={600} height={400} name="Technical Card - Lines of Code">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.linesOfCode')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.linesOfCodeDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">210K</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 3. Test Coverage */}
+              <AssetContainer id="card-test-coverage" width={600} height={400} name="Technical Card - Test Coverage">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.quality')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.testCoverage')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.testCoverageDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <span className="text-7xl font-bold text-primary font-rajdhani">3,200+</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 4. Modern Tech Stack */}
+              <AssetContainer id="card-tech-stack" width={600} height={400} name="Technical Card - Tech Stack">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.techStack')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.techStackDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center flex-col">
+                    <span className="text-6xl font-bold text-primary font-rajdhani">v19</span>
+                    <span className="text-gray-500 text-sm mt-1">React</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 5. Documentation */}
+              <AssetContainer id="card-documentation" width={600} height={400} name="Technical Card - Documentation">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.documentation')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.documentationDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">75K</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 6. Architecture */}
+              <AssetContainer id="card-architecture" width={600} height={400} name="Technical Card - Architecture">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.architecture')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.architectureDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center flex-col">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">71</span>
+                    <span className="text-gray-500 text-sm mt-1">components</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 7. Code Quality */}
+              <AssetContainer id="card-code-quality" width={600} height={400} name="Technical Card - Code Quality">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.quality')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.codeQuality')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.codeQualityDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center flex-col">
+                    <span className="text-7xl font-bold text-primary font-rajdhani">99.9%</span>
+                    <span className="text-gray-500 text-sm mt-1">pass rate</span>
                   </div>
                 </div>
               </AssetContainer>
