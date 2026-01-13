@@ -246,8 +246,24 @@ function AssetContainer({
   scale?: number;
 }) {
   const [isDownloading, setIsDownloading] = React.useState(false);
-  const displayWidth = width * scale;
-  const displayHeight = height * scale;
+  const [windowWidth, setWindowWidth] = React.useState<number | null>(null);
+
+  // Check window width on mount and resize
+  React.useEffect(() => {
+    const updateWidth = () => setWindowWidth(window.innerWidth);
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  // Calculate responsive scale - on mobile, fit within screen width
+  const isMobile = windowWidth !== null && windowWidth < 768;
+  const mobileScale = windowWidth !== null
+    ? Math.min(0.25, (windowWidth - 32) / width) // 32px for padding
+    : scale;
+  const effectiveScale = isMobile ? mobileScale : scale;
+  const displayWidth = width * effectiveScale;
+  const displayHeight = height * effectiveScale;
 
   const handleDownload = async () => {
     const element = document.getElementById(id);
@@ -261,7 +277,7 @@ function AssetContainer({
       const dataUrl = await toPng(element, {
         width: width,
         height: height,
-        pixelRatio: window.devicePixelRatio || 1,
+        pixelRatio: 2, // High quality export
         cacheBust: true,
       });
 
@@ -277,34 +293,52 @@ function AssetContainer({
   };
 
   return (
-    <div className="mb-12">
-      <div className="mb-3 flex items-center gap-4">
-        <span className="text-sm font-mono bg-slate-700 text-primary px-2 py-1 rounded">{id}</span>
-        <div>
-          <h3 className="text-lg font-semibold text-white">{name}</h3>
+    <div className="mb-6 md:mb-12">
+      {/* Asset info header - responsive */}
+      <div className="mb-2 md:mb-3 flex flex-wrap items-center gap-2 md:gap-4">
+        <span className="text-xs md:text-sm font-mono bg-slate-700 text-primary px-2 py-1 rounded">{id}</span>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base md:text-lg font-semibold text-white truncate">{name}</h3>
           <p className="text-gray-500 text-xs">
-            {width} × {height}px {scale !== 1 && `(${Math.round(scale * 100)}% scale)`}
+            {width} × {height}px
           </p>
         </div>
         <button
           onClick={handleDownload}
           disabled={isDownloading}
-          className="ml-auto px-3 py-1.5 bg-primary text-slate-900 text-sm font-semibold rounded hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-3 py-2 md:py-1.5 bg-primary text-slate-900 text-sm font-semibold rounded hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
         >
-          {isDownloading ? 'Downloading...' : 'Download PNG'}
+          {isDownloading ? '...' : 'Download'}
         </button>
       </div>
+
+      {/* Preview container - uses transform for proper scaling */}
       <div
-        id={id}
-        className={`relative font-rajdhani ${className}`}
+        className="overflow-hidden rounded border border-gray-800"
         style={{
           width: displayWidth,
           height: displayHeight,
-          overflow: 'hidden',
         }}
       >
-        {children}
+        <div
+          id={id}
+          className={`relative font-rajdhani origin-top-left ${className}`}
+          style={{
+            width: width,
+            height: height,
+            transform: `scale(${effectiveScale})`,
+          }}
+        >
+          {children}
+        </div>
       </div>
+
+      {/* Mobile indicator */}
+      {isMobile && (
+        <p className="text-gray-600 text-xs mt-1">
+          Preview scaled • Full size: {width}×{height}px
+        </p>
+      )}
     </div>
   );
 }
