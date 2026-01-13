@@ -312,25 +312,17 @@ function AssetContainer({
         </button>
       </div>
 
-      {/* Preview container - uses transform for proper scaling */}
+      {/* Preview container - uses zoom for proper layout scaling */}
       <div
-        className="overflow-hidden rounded border border-gray-800"
+        id={id}
+        className={`relative font-rajdhani rounded border border-gray-800 ${className}`}
         style={{
-          width: displayWidth,
-          height: displayHeight,
+          width: width,
+          height: height,
+          zoom: effectiveScale,
         }}
       >
-        <div
-          id={id}
-          className={`relative font-rajdhani origin-top-left ${className}`}
-          style={{
-            width: width,
-            height: height,
-            transform: `scale(${effectiveScale})`,
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
 
       {/* Mobile indicator */}
