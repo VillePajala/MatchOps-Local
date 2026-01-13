@@ -2134,6 +2134,26 @@ export default function MarketingAssets() {
             {/* ===== STANDALONE FEATURE CARDS ===== */}
             <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Standalone Feature Cards</h3>
             <div className="flex flex-wrap gap-8">
+              {/* Intro card */}
+              <AssetContainer id="card-intro" width={600} height={400} name="Feature Card - Intro">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-[55%] flex flex-col justify-center pr-6">
+                    <div className="text-primary text-sm font-semibold mb-2 uppercase">{t('marketing.cards.introducing')}</div>
+                    <h3 className="text-3xl font-bold mb-3">
+                      <span className="font-rajdhani text-primary">MatchOps Local</span><br />
+                      <span className="text-white">{t('marketing.cards.forCoaches')}</span>
+                    </h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.taglines.power')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-[45%] flex items-center justify-center">
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={40} screenshots={screenshots} />
+                  </div>
+                </div>
+              </AssetContainer>
+
               {/* Feature cards */}
               <AssetContainer id="card-plan" width={600} height={400} name="Feature Card - Plan">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
@@ -2183,25 +2203,6 @@ export default function MarketingAssets() {
                       size="lg"
                       zIndex={10}
                     />
-                  </div>
-                </div>
-              </AssetContainer>
-
-              <AssetContainer id="card-intro" width={600} height={400} name="Feature Card - Intro">
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-[55%] flex flex-col justify-center pr-6">
-                    <div className="text-primary text-sm font-semibold mb-2 uppercase">{t('marketing.cards.introducing')}</div>
-                    <h3 className="text-3xl font-bold mb-3">
-                      <span className="font-rajdhani text-primary">MatchOps Local</span><br />
-                      <span className="text-white">{t('marketing.cards.forCoaches')}</span>
-                    </h3>
-                    <p className="text-gray-400 mb-3">
-                      {t('marketing.taglines.power')}
-                    </p>
-                    <SiteUrl size="sm" variant="yellow" />
-                  </div>
-                  <div className="w-[45%] flex items-center justify-center">
-                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={40} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
