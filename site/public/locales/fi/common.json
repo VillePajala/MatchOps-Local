@@ -492,7 +492,7 @@
       "aiPowered": "100% tekoälyn tekemä",
       "aiPoweredDesc": "Ei käsin kirjoitettua koodia tai dokumentaatiota. Rakennettu kokonaan Claude Codella ja tekoälyavustajilla. Jopa nämä markkinointimateriaalit.",
       "linesOfCode": "210 000+ riviä",
-      "linesOfCodeDesc": "66K lähdekoodia, 66K testejä, 75K dokumentaatiota. Tuotantovalmis koodipohja.",
+      "linesOfCodeDesc": "60K lähdekoodia, 66K testejä, 75K dokumentaatiota. Tuotantovalmis koodipohja.",
       "testCoverage": "3 200+ testiä",
       "testCoverageDesc": "182 testisarjaa 100% läpäisyasteella. Laatu varmistetaan jokaisella commitilla.",
       "techStack": "Uusin teknologia",

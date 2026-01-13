@@ -492,7 +492,7 @@
       "aiPowered": "100% AI-Crafted",
       "aiPoweredDesc": "Zero handwritten code or documentation. Built entirely with Claude Code and AI coding assistants. Even these marketing materials.",
       "linesOfCode": "210,000+ Lines",
-      "linesOfCodeDesc": "66K source code, 66K tests, 75K documentation. A production-grade codebase.",
+      "linesOfCodeDesc": "60K source code, 66K tests, 75K documentation. A production-grade codebase.",
       "testCoverage": "3,200+ Tests",
       "testCoverageDesc": "182 test suites with 100% pass rate. Quality enforced at every commit.",
       "techStack": "Cutting-Edge Stack",
