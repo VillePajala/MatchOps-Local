@@ -2132,8 +2132,8 @@ export default function MarketingAssets() {
               </AssetContainer>
             </div>
 
-            {/* ===== STANDALONE FEATURE CARDS ===== */}
-            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Standalone Feature Cards</h3>
+            {/* ===== STANDALONE INTRO CARD ===== */}
+            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Standalone Intro Card</h3>
             <div className="flex flex-wrap gap-8">
               {/* Intro card */}
               <AssetContainer id="card-intro" width={600} height={400} name="Feature Card - Intro">
@@ -2145,7 +2145,8 @@ export default function MarketingAssets() {
                       <span className="text-white">{t('marketing.cards.forCoaches')}</span>
                     </h3>
                     <p className="text-gray-400 mb-3">
-                      {t('marketing.taglines.power')}
+                      {t('marketing.taglines.powerLine1')}<br />
+                      {t('marketing.taglines.powerLine2')}
                     </p>
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
@@ -2155,67 +2156,15 @@ export default function MarketingAssets() {
                 </div>
               </AssetContainer>
 
-              {/* Feature cards */}
-              <AssetContainer id="card-plan" width={600} height={400} name="Feature Card - Plan">
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.planYourLineup')}</h3>
-                    <p className="text-gray-400 mb-3">
-                      {t('marketing.descriptions.fieldDesc')}
-                    </p>
-                    <SiteUrl size="sm" variant="yellow" />
-                  </div>
-                  <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
-                  </div>
-                </div>
-              </AssetContainer>
-
-              <AssetContainer id="card-track" width={600} height={400} name="Feature Card - Track">
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.trackLiveGames')}</h3>
-                    <p className="text-gray-400 mb-3">
-                      {t('marketing.descriptions.timerDesc')}
-                    </p>
-                    <SiteUrl size="sm" variant="yellow" />
-                  </div>
-                  <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={10} />
-                  </div>
-                </div>
-              </AssetContainer>
-
-              <AssetContainer id="card-stats" width={600} height={400} name="Feature Card - Statistics">
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.reviewStatistics')}</h3>
-                    <p className="text-gray-400 mb-3">
-                      {t('marketing.descriptions.statsDesc')}
-                    </p>
-                    <SiteUrl size="sm" variant="yellow" />
-                  </div>
-                  <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup
-                      screenshot={screenshots.playerstats}
-                      size="lg"
-                      zIndex={10}
-                    />
-                  </div>
-                </div>
-              </AssetContainer>
             </div>
 
-            {/* ===== TECHNICAL STATS CARDS ===== */}
-            <h3 id="tech-stats" className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2 scroll-mt-8">Technical Stats Cards (7 cards)</h3>
+            {/* ===== TECH SHOWCASE CARDS (Developer Audience) ===== */}
+            <h3 id="tech-stats" className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2 scroll-mt-8">Tech Showcase Cards (8 cards)</h3>
             <div className="flex flex-wrap gap-8">
               {/* 1. AI-Powered Development */}
               <AssetContainer id="card-ai-powered" width={600} height={400} name="Technical Card - AI Powered">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
                     <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.development')}</div>
                     <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.aiPowered')}</h3>
                     <p className="text-gray-400 mb-3">
@@ -2232,7 +2181,7 @@ export default function MarketingAssets() {
               {/* 2. Lines of Code */}
               <AssetContainer id="card-lines-of-code" width={600} height={400} name="Technical Card - Lines of Code">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
                     <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
                     <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.linesOfCode')}</h3>
                     <p className="text-gray-400 mb-3">
@@ -2249,7 +2198,7 @@ export default function MarketingAssets() {
               {/* 3. Test Coverage */}
               <AssetContainer id="card-test-coverage" width={600} height={400} name="Technical Card - Test Coverage">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
                     <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.quality')}</div>
                     <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.testCoverage')}</h3>
                     <p className="text-gray-400 mb-3">
@@ -2266,7 +2215,7 @@ export default function MarketingAssets() {
               {/* 4. Modern Tech Stack */}
               <AssetContainer id="card-tech-stack" width={600} height={400} name="Technical Card - Tech Stack">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
+                  <div className="w-[60%] flex flex-col justify-center pl-6 pr-8">
                     <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
                     <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.techStack')}</h3>
                     <p className="text-gray-400 mb-3">
@@ -2274,8 +2223,8 @@ export default function MarketingAssets() {
                     </p>
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
-                  <div className="w-1/2 flex items-center justify-center flex-col">
-                    <span className="text-6xl font-bold text-primary font-rajdhani">v19</span>
+                  <div className="w-[40%] flex items-center justify-center flex-col">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">v19</span>
                     <span className="text-gray-500 text-sm mt-1">React</span>
                   </div>
                 </div>
@@ -2284,7 +2233,7 @@ export default function MarketingAssets() {
               {/* 5. Documentation */}
               <AssetContainer id="card-documentation" width={600} height={400} name="Technical Card - Documentation">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
                     <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
                     <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.documentation')}</h3>
                     <p className="text-gray-400 mb-3">
@@ -2301,7 +2250,7 @@ export default function MarketingAssets() {
               {/* 6. Architecture */}
               <AssetContainer id="card-architecture" width={600} height={400} name="Technical Card - Architecture">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
+                  <div className="w-[60%] flex flex-col justify-center pl-6 pr-8">
                     <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
                     <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.architecture')}</h3>
                     <p className="text-gray-400 mb-3">
@@ -2309,7 +2258,7 @@ export default function MarketingAssets() {
                     </p>
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
-                  <div className="w-1/2 flex items-center justify-center flex-col">
+                  <div className="w-[40%] flex items-center justify-center flex-col">
                     <span className="text-8xl font-bold text-primary font-rajdhani">71</span>
                     <span className="text-gray-500 text-sm mt-1">components</span>
                   </div>
@@ -2319,7 +2268,7 @@ export default function MarketingAssets() {
               {/* 7. Code Quality */}
               <AssetContainer id="card-code-quality" width={600} height={400} name="Technical Card - Code Quality">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
                     <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.quality')}</div>
                     <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.codeQuality')}</h3>
                     <p className="text-gray-400 mb-3">
@@ -2330,6 +2279,24 @@ export default function MarketingAssets() {
                   <div className="w-1/2 flex items-center justify-center flex-col">
                     <span className="text-8xl font-bold text-primary font-rajdhani">100%</span>
                     <span className="text-gray-500 text-sm mt-1">pass rate</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 8. CI/CD */}
+              <AssetContainer id="card-cicd" width={600} height={400} name="Technical Card - CI/CD">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-[60%] flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.quality')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.cicd')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.cicdDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-[40%] flex items-center justify-center flex-col">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">10</span>
+                    <span className="text-gray-500 text-sm mt-1">checks</span>
                   </div>
                 </div>
               </AssetContainer>
