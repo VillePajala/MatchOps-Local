@@ -4,6 +4,10 @@
  * Provides a single Supabase client instance for cloud mode operations.
  * Uses lazy initialization to avoid bundling Supabase code in local mode.
  *
+ * IMPORTANT: This module must only be imported dynamically in cloud mode.
+ * Import like: const { getSupabaseClient } = await import('@/datastore/supabase');
+ * This ensures Supabase is not bundled in local mode builds via tree-shaking.
+ *
  * @module datastore/supabase/client
  */
 
@@ -51,7 +55,7 @@ export function getSupabaseClient(): SupabaseClient<Database> {
         'x-client-info': 'matchops-web',
       },
     },
-    // Realtime disabled by default (can enable for live sync later)
+    // Realtime configured but not used (rate-limited to 2 events/sec if enabled later)
     realtime: {
       params: {
         eventsPerSecond: 2,
