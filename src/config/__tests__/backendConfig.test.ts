@@ -122,6 +122,11 @@ describe('backendConfig', () => {
       expect(getBackendMode()).toBe('local');
     });
 
+    it('falls back to local when env is invalid value', () => {
+      process.env.NEXT_PUBLIC_BACKEND_MODE = 'invalid';
+      expect(getBackendMode()).toBe('local');
+    });
+
     it('returns cloud when env is cloud and Supabase is configured', () => {
       process.env.NEXT_PUBLIC_BACKEND_MODE = 'cloud';
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
