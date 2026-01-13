@@ -226,6 +226,54 @@ describe('backendConfig', () => {
     });
   });
 
+  describe('Storage Access Error Handling', () => {
+    it('getBackendMode falls back to env/default when localStorage throws SecurityError', () => {
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new DOMException('Storage access denied', 'SecurityError');
+      });
+      process.env.NEXT_PUBLIC_BACKEND_MODE = 'local';
+
+      // Should not throw, should fall back to env/default
+      expect(getBackendMode()).toBe('local');
+    });
+
+    it('enableCloudMode returns false when localStorage throws', () => {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new DOMException('Storage access denied', 'SecurityError');
+      });
+
+      expect(enableCloudMode()).toBe(false);
+    });
+
+    it('disableCloudMode does not throw when localStorage throws', () => {
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new DOMException('Storage access denied', 'SecurityError');
+      });
+
+      // Should not throw
+      expect(() => disableCloudMode()).not.toThrow();
+    });
+
+    it('clearModeOverride does not throw when localStorage throws', () => {
+      localStorageMock.removeItem.mockImplementation(() => {
+        throw new DOMException('Storage access denied', 'SecurityError');
+      });
+
+      // Should not throw
+      expect(() => clearModeOverride()).not.toThrow();
+    });
+
+    it('hasModeOverride returns false when localStorage throws', () => {
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new DOMException('Storage access denied', 'SecurityError');
+      });
+
+      expect(hasModeOverride()).toBe(false);
+    });
+  });
+
   describe('getBackendConfig', () => {
     it('returns complete config object', () => {
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
