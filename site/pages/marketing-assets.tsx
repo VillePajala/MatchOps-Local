@@ -433,10 +433,122 @@ function GlowBg({
   );
 }
 
+// Section definitions for navigation
+const SECTIONS = [
+  { id: 'linkedin-personal', label: 'LinkedIn Personal', size: '1584×396' },
+  { id: 'linkedin-company', label: 'LinkedIn Company', size: '1128×191' },
+  { id: 'twitter', label: 'Twitter/X', size: '1500×500' },
+  { id: 'facebook', label: 'Facebook', size: '820×312' },
+  { id: 'og', label: 'Open Graph', size: '1200×630' },
+  { id: 'instagram-posts', label: 'Instagram Posts', size: '1080×1080' },
+  { id: 'instagram-stories', label: 'Instagram Stories', size: '1080×1920' },
+  { id: 'app-store', label: 'App Store', size: '1024×500' },
+  { id: 'promo-cards', label: 'Promo Cards', size: 'Various' },
+  { id: 'logo-lockups', label: 'Logo Lockups', size: '' },
+  { id: 'hero-banners', label: 'Hero Banners', size: '1920×600' },
+];
+
+// Floating navigation component
+function FloatingNav({ locale, onLocaleChange }: { locale: string | undefined; onLocaleChange: (locale: string) => void }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [activeSection, setActiveSection] = React.useState('');
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const sections = SECTIONS.map(s => document.getElementById(s.id));
+      const scrollPos = window.scrollY + 150;
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = sections[i];
+        if (section && section.offsetTop <= scrollPos) {
+          setActiveSection(SECTIONS[i].id);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+      {/* Expandable section nav */}
+      {isOpen && (
+        <div className="bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-lg p-2 mb-2 max-h-[60vh] overflow-y-auto shadow-xl">
+          <div className="text-xs text-gray-500 px-2 py-1 mb-1">Jump to section</div>
+          {SECTIONS.map((section) => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              onClick={() => setIsOpen(false)}
+              className={`block px-3 py-1.5 text-sm rounded transition-colors ${
+                activeSection === section.id
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-gray-300 hover:bg-gray-800'
+              }`}
+            >
+              {section.label}
+              {section.size && <span className="text-gray-500 text-xs ml-2">{section.size}</span>}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Control buttons */}
+      <div className="flex items-center gap-2">
+        {/* Language switcher */}
+        <div className="bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-lg p-1 flex gap-1 shadow-xl">
+          <button
+            onClick={() => onLocaleChange('en')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+              locale === 'en'
+                ? 'bg-primary text-black'
+                : 'text-gray-300 hover:bg-gray-800'
+            }`}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => onLocaleChange('fi')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+              locale === 'fi'
+                ? 'bg-primary text-black'
+                : 'text-gray-300 hover:bg-gray-800'
+            }`}
+          >
+            FI
+          </button>
+        </div>
+
+        {/* Menu toggle */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-lg p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition-colors shadow-xl"
+          aria-label="Toggle navigation"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {isOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MarketingAssets() {
   const router = useRouter();
   const { t } = useTranslation('common');
   const screenshots = getScreenshots(router.locale);
+
+  const handleLocaleChange = (locale: string) => {
+    router.push(router.pathname, router.asPath, { locale });
+  };
 
   return (
     <>
@@ -445,26 +557,46 @@ export default function MarketingAssets() {
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
-      <div className="min-h-screen bg-gray-950 py-12 px-8">
+      {/* Floating navigation */}
+      <FloatingNav locale={router.locale} onLocaleChange={handleLocaleChange} />
+
+      <div className="min-h-screen bg-gray-950 py-6 px-4 md:py-12 md:px-8">
         <div className="max-w-[2800px] mx-auto">
           {/* Header */}
-          <div className="mb-12 border-b border-gray-800 pb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">{t('marketing.page.title')}</h1>
-            <p className="text-gray-400 mb-4">
+          <div className="mb-8 md:mb-12 border-b border-gray-800 pb-6 md:pb-8">
+            <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">{t('marketing.page.title')}</h1>
+            <p className="text-gray-400 mb-4 text-sm md:text-base">
               {t('marketing.page.subtitle')}
             </p>
-            <div className="flex gap-4 text-sm text-gray-500">
+
+            {/* Quick Nav - Table of Contents */}
+            <div className="mb-6">
+              <div className="text-sm text-gray-500 mb-2">Quick navigation:</div>
+              <div className="flex flex-wrap gap-2">
+                {SECTIONS.map((section) => (
+                  <a
+                    key={section.id}
+                    href={`#${section.id}`}
+                    className="px-2 py-1 text-xs md:text-sm bg-gray-800/50 hover:bg-gray-700 text-gray-300 rounded transition-colors"
+                  >
+                    {section.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-500">
               <span>LinkedIn: 1584×396</span>
               <span>Twitter: 1500×500</span>
               <span>Instagram: 1080×1080</span>
               <span>OG: 1200×630</span>
             </div>
 
-            {/* Language Switcher */}
-            <div className="mt-4 flex items-center gap-3">
+            {/* Language Switcher (desktop) */}
+            <div className="mt-4 hidden md:flex items-center gap-3">
               <span className="text-gray-500 text-sm">{t('marketing.page.screenshotsLanguage')}</span>
               <button
-                onClick={() => router.push(router.pathname, router.asPath, { locale: 'en' })}
+                onClick={() => handleLocaleChange('en')}
                 className={`px-3 py-1 rounded text-sm transition-colors ${
                   router.locale === 'en'
                     ? 'bg-primary text-black font-semibold'
@@ -474,7 +606,7 @@ export default function MarketingAssets() {
                 EN
               </button>
               <button
-                onClick={() => router.push(router.pathname, router.asPath, { locale: 'fi' })}
+                onClick={() => handleLocaleChange('fi')}
                 className={`px-3 py-1 rounded text-sm transition-colors ${
                   router.locale === 'fi'
                     ? 'bg-primary text-black font-semibold'
@@ -489,8 +621,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* LINKEDIN PERSONAL BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="linkedin-personal" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               LinkedIn Personal Banners (1584×396)
             </h2>
 
@@ -779,8 +911,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* LINKEDIN COMPANY BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="linkedin-company" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               LinkedIn Company Banners (1128×191)
             </h2>
 
@@ -831,8 +963,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* TWITTER/X HEADERS */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="twitter" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               Twitter/X Headers (1500×500)
             </h2>
 
@@ -1029,8 +1161,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* FACEBOOK COVERS */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="facebook" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               Facebook Covers (820×312)
             </h2>
 
@@ -1107,8 +1239,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* OPEN GRAPH / SOCIAL SHARE */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="og" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               Open Graph / Social Share (1200×630)
             </h2>
 
@@ -1317,8 +1449,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* INSTAGRAM POSTS (SQUARE) */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="instagram-posts" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               Instagram Posts (1080×1080)
             </h2>
 
@@ -1668,8 +1800,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* INSTAGRAM STORIES */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="instagram-stories" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               Instagram Stories (1080×1920)
             </h2>
 
@@ -1820,8 +1952,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* APP STORE FEATURE GRAPHICS */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="app-store" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               App Store Feature Graphics (1024×500)
             </h2>
 
@@ -1935,8 +2067,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* PROMOTIONAL CARDS */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="promo-cards" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               Promotional Cards (Various Sizes)
             </h2>
 
@@ -2416,8 +2548,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* LOGO LOCKUPS */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="logo-lockups" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               Logo Lockups
             </h2>
 
@@ -2478,8 +2610,8 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* HERO BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
-            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+          <section id="hero-banners" className="mb-24 scroll-mt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 md:mb-8 border-b border-gray-800 pb-4">
               Hero Banners (1920×600)
             </h2>
 
