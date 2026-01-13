@@ -1,9 +1,11 @@
+import React from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import type { GetStaticProps } from 'next';
+import html2canvas from 'html2canvas';
 
 // Language-aware screenshot paths
 const getScreenshots = (locale: string | undefined) => {
@@ -243,8 +245,38 @@ function AssetContainer({
   className?: string;
   scale?: number;
 }) {
+  const [isDownloading, setIsDownloading] = React.useState(false);
   const displayWidth = width * scale;
   const displayHeight = height * scale;
+
+  const handleDownload = async () => {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    setIsDownloading(true);
+    try {
+      // Wait for fonts to load
+      await document.fonts.ready;
+
+      const canvas = await html2canvas(element, {
+        width: displayWidth,
+        height: displayHeight,
+        scale: (1 / scale) * (window.devicePixelRatio || 1), // Compensate for display scale to get original dimensions
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+      });
+
+      const link = document.createElement('a');
+      link.download = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Failed to download asset:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="mb-12">
@@ -256,6 +288,13 @@ function AssetContainer({
             {width} × {height}px {scale !== 1 && `(${Math.round(scale * 100)}% scale)`}
           </p>
         </div>
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="ml-auto px-3 py-1.5 bg-primary text-slate-900 text-sm font-semibold rounded hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isDownloading ? 'Downloading...' : 'Download PNG'}
+        </button>
       </div>
       <div
         id={id}
@@ -368,7 +407,7 @@ function GlowBg({
   blur = 100,
 }: {
   color?: 'primary' | 'amber' | 'blue' | 'green';
-  position?: 'center' | 'top-right' | 'bottom-left' | 'top-left' | 'bottom-right';
+  position?: 'center' | 'top-right' | 'bottom-left' | 'top-left' | 'bottom-right' | 'bottom-center';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   blur?: number;
 }) {
@@ -385,6 +424,7 @@ function GlowBg({
     'bottom-left': 'bottom-0 left-0 -translate-x-1/4 translate-y-1/4',
     'top-left': 'top-0 left-0 -translate-x-1/4 -translate-y-1/4',
     'bottom-right': 'bottom-0 right-0 translate-x-1/4 translate-y-1/4',
+    'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/4',
   };
 
   return (
