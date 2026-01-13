@@ -229,6 +229,9 @@ const allowedConsolePatterns = [
   'Wake Lock request failed',
   // Club season validation warnings (expected in validation tests)
   '[getClubSeasonForDate] Invalid date format',
+  // Backend config warnings (expected in backendConfig tests)
+  '[backendConfig]',
+  '[factory]',
 ];
 
 const shouldFailOnConsoleMessage = (message) => {
