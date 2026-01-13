@@ -330,6 +330,8 @@
     },
     "taglines": {
       "power": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot — yhdessä sovelluksessa.",
+      "powerLine1": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot",
+      "powerLine2": "— yhdessä sovelluksessa.",
       "memorable": "Jokainen peli jää muistiin.",
       "toolkit": "Ottelupäivän työkalut",
       "threePillars": "Suunnittele · Kirjaa · Arvioi"
@@ -489,20 +491,22 @@
       "development": "KEHITYS",
       "techStats": "TEKNISTÄ",
       "quality": "LAATU",
-      "aiPowered": "100% tekoälyn tekemä",
-      "aiPoweredDesc": "Ei käsin kirjoitettua koodia tai dokumentaatiota. Rakennettu kokonaan Claude Codella ja tekoälyavustajilla. Jopa nämä markkinointimateriaalit.",
-      "linesOfCode": "210 000+ riviä",
-      "linesOfCodeDesc": "60K lähdekoodia, 66K testejä, 75K dokumentaatiota. Tuotantovalmis koodipohja.",
+      "aiPowered": "100% tekoälyrakennettu",
+      "aiPoweredDesc": "Ei käsin kirjoitettua koodia. Rakennettu Claude Codella, Cursorilla ja Codexilla. Jopa nämä markkinointimateriaalit.",
+      "linesOfCode": "200 000+ riviä",
+      "linesOfCodeDesc": "66K testejä, 60K lähdekoodia, 75K dokumentaatiota. Testit edellä -kehitystä mittakaavassa.",
       "testCoverage": "3 200+ testiä",
       "testCoverageDesc": "182 testisarjaa 100% läpäisyasteella. Laatu varmistetaan jokaisella commitilla.",
       "techStack": "Uusin teknologia",
-      "techStackDesc": "Next.js 16, React 19, TypeScript 5, Tailwind CSS 4. Aina uusimmalla versiolla.",
-      "documentation": "75 000+ riviä dokumentaatiota",
-      "documentationDesc": "186 dokumentaatiotiedostoa kahdella kielellä. Kattavat oppaat ja API-dokumentaatio.",
+      "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, asennettava, automaattipäivitykset.",
+      "documentation": "75K riviä kontekstia",
+      "documentationDesc": "Tekoälyavustajat tarvitsevat kontekstia pysyäkseen johdonmukaisina. Dokumentaatio toimii projektin pysyvänä muistina istuntojen välillä.",
       "architecture": "Selkeä arkkitehtuuri",
-      "architectureDesc": "71 React-komponenttia, 26+ omaa hookkia, DataStore-abstraktio. PWA-valmis.",
+      "architectureDesc": "71 komponenttia, 26 hookkia. Selkeä erottelu: käyttöliittymä, logiikka ja data.",
       "codeQuality": "Yritystason laatu",
-      "codeQualityDesc": "ESLint käytössä, TypeScript tiukka tila, Sentry-seuranta, saavutettavuustestattu."
+      "codeQualityDesc": "ESLint käytössä, TypeScript tiukka tila, Sentry-seuranta, saavutettavuustestattu.",
+      "cicd": "Automatisoitu CI/CD",
+      "cicdDesc": "Lint, tyypit, 3200+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Autom. julkaisu."
     }
   }
 }

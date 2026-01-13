@@ -330,6 +330,8 @@
     },
     "taglines": {
       "power": "Your clipboard, stopwatch, notebook, and stats — in one app.",
+      "powerLine1": "Your clipboard, stopwatch, notebook, and stats",
+      "powerLine2": "— in one app.",
       "memorable": "Every game remembered.",
       "toolkit": "Your game day toolkit",
       "threePillars": "Plan Lineups • Track Games • Build Statistics"
@@ -489,20 +491,22 @@
       "development": "DEVELOPMENT",
       "techStats": "TECH STATS",
       "quality": "QUALITY",
-      "aiPowered": "100% AI-Crafted",
-      "aiPoweredDesc": "Zero handwritten code or documentation. Built entirely with Claude Code and AI coding assistants. Even these marketing materials.",
-      "linesOfCode": "210,000+ Lines",
-      "linesOfCodeDesc": "60K source code, 66K tests, 75K documentation. A production-grade codebase.",
+      "aiPowered": "100% AI-Built",
+      "aiPoweredDesc": "Zero handwritten code. Built with Claude Code, Cursor, and Codex. Even these marketing materials.",
+      "linesOfCode": "200,000+ Lines",
+      "linesOfCodeDesc": "66K tests, 60K source, 75K docs. Test-first development at scale.",
       "testCoverage": "3,200+ Tests",
       "testCoverageDesc": "182 test suites with 100% pass rate. Quality enforced at every commit.",
       "techStack": "Cutting-Edge Stack",
-      "techStackDesc": "Next.js 16, React 19, TypeScript 5, Tailwind CSS 4. Always on the latest.",
-      "documentation": "75,000+ Lines of Docs",
-      "documentationDesc": "186 documentation files across 2 languages. Comprehensive guides and API docs.",
+      "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, installable, auto-updating.",
+      "documentation": "75K Lines of Context",
+      "documentationDesc": "AI assistants need context to stay consistent. Documentation serves as the project's persistent memory across sessions.",
       "architecture": "Clean Architecture",
-      "architectureDesc": "71 React components, 26+ custom hooks, DataStore abstraction. PWA-ready.",
+      "architectureDesc": "71 components, 26 hooks. Clean separation of UI, logic, and data layers.",
       "codeQuality": "Enterprise Quality",
-      "codeQualityDesc": "ESLint enforced, TypeScript strict mode, Sentry monitoring, accessibility tested."
+      "codeQualityDesc": "ESLint enforced, TypeScript strict mode, Sentry monitoring, accessibility tested.",
+      "cicd": "Automated CI/CD",
+      "cicdDesc": "Lint, types, 3200+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge."
     }
   }
 }
