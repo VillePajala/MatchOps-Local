@@ -2,17 +2,26 @@
  * DataStore & AuthService Factory
  *
  * Provides singleton instances of DataStore and AuthService.
- * Currently only supports local mode; cloud mode will be added in Phase 4.
+ * Supports both local (IndexedDB) and cloud (Supabase) modes.
  *
- * Part of Phase 3 backend abstraction (PR #137).
+ * Phase 3: Backend abstraction (PR #137) - LocalDataStore
+ * Phase 4: Supabase cloud backend - SupabaseDataStore (in progress)
  *
- * @see docs/03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md
+ * @see docs/03-active-plans/supabase-implementation-guide.md
  */
 
 import type { DataStore } from '@/interfaces/DataStore';
 import type { AuthService } from '@/interfaces/AuthService';
 import { LocalDataStore } from './LocalDataStore';
 import { LocalAuthService } from '@/auth/LocalAuthService';
+import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
+import logger from '@/utils/logger';
+
+// Safe logger wrapper for test environments
+const log = {
+  info: (msg: string) => logger?.info?.(msg),
+  warn: (msg: string) => logger?.warn?.(msg),
+};
 
 // Singleton instances
 let dataStoreInstance: DataStore | null = null;
@@ -53,7 +62,28 @@ export async function getDataStore(): Promise<DataStore> {
 
   // Start initialization and store the promise
   dataStoreInitPromise = (async () => {
-    const instance = new LocalDataStore();
+    const mode = getBackendMode();
+    log.info(`[factory] Initializing DataStore in ${mode} mode`);
+
+    let instance: DataStore;
+
+    if (mode === 'cloud') {
+      // TODO: PR #3 will implement SupabaseDataStore
+      // For now, log and fall back to local
+      if (isCloudAvailable()) {
+        log.warn(
+          '[factory] Cloud mode requested but SupabaseDataStore not yet implemented - using LocalDataStore'
+        );
+      } else {
+        log.warn(
+          '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'
+        );
+      }
+      instance = new LocalDataStore();
+    } else {
+      instance = new LocalDataStore();
+    }
+
     await instance.initialize();
     dataStoreInstance = instance;
     return instance;
