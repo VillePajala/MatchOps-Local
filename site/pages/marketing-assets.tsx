@@ -134,7 +134,7 @@ function PhoneMockup({
         className="relative w-full h-full overflow-hidden bg-black"
         style={{ borderRadius: innerRadius, filter: imageFilter || undefined }}
       >
-        <Image src={screenshot} alt="App screenshot" fill className="object-cover" />
+        <Image src={screenshot} alt="App screenshot" fill sizes="(max-width: 768px) 100vw, 300px" className="object-cover" />
       </div>
     </div>
   );
