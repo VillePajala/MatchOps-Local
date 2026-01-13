@@ -2328,7 +2328,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center flex-col">
-                    <span className="text-7xl font-bold text-primary font-rajdhani">99.9%</span>
+                    <span className="text-8xl font-bold text-primary font-rajdhani">100%</span>
                     <span className="text-gray-500 text-sm mt-1">pass rate</span>
                   </div>
                 </div>

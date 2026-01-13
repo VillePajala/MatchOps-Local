@@ -494,7 +494,7 @@
       "linesOfCode": "210,000+ Lines",
       "linesOfCodeDesc": "60K source code, 66K tests, 75K documentation. A production-grade codebase.",
       "testCoverage": "3,200+ Tests",
-      "testCoverageDesc": "182 test suites with 99.9% pass rate. Quality enforced at every commit.",
+      "testCoverageDesc": "182 test suites with 100% pass rate. Quality enforced at every commit.",
       "techStack": "Cutting-Edge Stack",
       "techStackDesc": "Next.js 16, React 19, TypeScript 5, Tailwind CSS 4. Always on the latest.",
       "documentation": "75,000+ Lines of Docs",
