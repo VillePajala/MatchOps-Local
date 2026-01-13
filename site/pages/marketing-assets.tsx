@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import type { GetStaticProps } from 'next';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 
 // Language-aware screenshot paths
 const getScreenshots = (locale: string | undefined) => {
@@ -258,18 +258,16 @@ function AssetContainer({
       // Wait for fonts to load
       await document.fonts.ready;
 
-      const canvas = await html2canvas(element, {
-        width: displayWidth,
-        height: displayHeight,
-        scale: (1 / scale) * (window.devicePixelRatio || 1), // Compensate for display scale to get original dimensions
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
+      const dataUrl = await toPng(element, {
+        width: width,
+        height: height,
+        pixelRatio: window.devicePixelRatio || 1,
+        cacheBust: true,
       });
 
       const link = document.createElement('a');
       link.download = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error('Failed to download asset:', error);
