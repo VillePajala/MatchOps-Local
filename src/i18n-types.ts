@@ -1088,6 +1088,7 @@ export type TranslationKey =
   | 'premium.freeVersionLimitReached'
   | 'premium.fullVersionIncludes'
   | 'premium.grantError'
+  | 'premium.grantSuccess'
   | 'premium.limitExplanation'
   | 'premium.maybeLater'
   | 'premium.oneTimePayment'

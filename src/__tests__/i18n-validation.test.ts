@@ -257,12 +257,12 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      expect(enKeys.length).toBe(1651);
+      expect(enKeys.length).toBe(1652);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      expect(fiKeys.length).toBe(1651);
+      expect(fiKeys.length).toBe(1652);
     });
   });
 });
