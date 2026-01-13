@@ -370,6 +370,7 @@ function AssetContainer({
           width: displayWidth,
           height: displayHeight,
           overflow: 'hidden',
+          borderRadius: 0,
         }}
       >
         {children}
