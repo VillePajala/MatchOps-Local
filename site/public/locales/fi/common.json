@@ -484,6 +484,25 @@
       "excelExportDesc": "Vie tilastot Exceliin. Yksittäisen pelin raportit tai koko kauden yhteenvedot. Tietosi, sinun tavallasi.",
       "personnel": "Valmennustiimi",
       "personnelDesc": "Hallitse valmennustiimiäsi. Seuraa rooleja, yhteystietoja ja pätevyyksiä kaikille tiimin jäsenille."
+    },
+    "techCards": {
+      "development": "KEHITYS",
+      "techStats": "TEKNISTÄ",
+      "quality": "LAATU",
+      "aiPowered": "100% tekoälyn tekemä",
+      "aiPoweredDesc": "Ei käsin kirjoitettua koodia tai dokumentaatiota. Rakennettu kokonaan Claude Codella ja tekoälyavustajilla. Jopa nämä markkinointimateriaalit.",
+      "linesOfCode": "210 000+ riviä",
+      "linesOfCodeDesc": "60K lähdekoodia, 66K testejä, 75K dokumentaatiota. Tuotantovalmis koodipohja.",
+      "testCoverage": "3 200+ testiä",
+      "testCoverageDesc": "182 testisarjaa 99,9% läpäisyasteella. Laatu varmistetaan jokaisella commitilla.",
+      "techStack": "Uusin teknologia",
+      "techStackDesc": "Next.js 16, React 19, TypeScript 5, Tailwind CSS 4. Aina uusimmalla versiolla.",
+      "documentation": "75 000+ riviä dokumentaatiota",
+      "documentationDesc": "186 dokumentaatiotiedostoa kahdella kielellä. Kattavat oppaat ja API-dokumentaatio.",
+      "architecture": "Selkeä arkkitehtuuri",
+      "architectureDesc": "71 React-komponenttia, 26+ omaa hookkia, DataStore-abstraktio. PWA-valmis.",
+      "codeQuality": "Yritystason laatu",
+      "codeQualityDesc": "ESLint käytössä, TypeScript tiukka tila, Sentry-seuranta, saavutettavuustestattu."
     }
   }
 }

@@ -484,6 +484,25 @@
       "excelExportDesc": "Export statistics to Excel. Single game reports or full season aggregates. Your data, your way.",
       "personnel": "Coaching Staff",
       "personnelDesc": "Manage your coaching team. Track roles, contact info, and certifications for all staff members."
+    },
+    "techCards": {
+      "development": "DEVELOPMENT",
+      "techStats": "TECH STATS",
+      "quality": "QUALITY",
+      "aiPowered": "100% AI-Crafted",
+      "aiPoweredDesc": "Zero handwritten code or documentation. Built entirely with Claude Code and AI coding assistants. Even these marketing materials.",
+      "linesOfCode": "210,000+ Lines",
+      "linesOfCodeDesc": "60K source code, 66K tests, 75K documentation. A production-grade codebase.",
+      "testCoverage": "3,200+ Tests",
+      "testCoverageDesc": "182 test suites with 99.9% pass rate. Quality enforced at every commit.",
+      "techStack": "Cutting-Edge Stack",
+      "techStackDesc": "Next.js 16, React 19, TypeScript 5, Tailwind CSS 4. Always on the latest.",
+      "documentation": "75,000+ Lines of Docs",
+      "documentationDesc": "186 documentation files across 2 languages. Comprehensive guides and API docs.",
+      "architecture": "Clean Architecture",
+      "architectureDesc": "71 React components, 26+ custom hooks, DataStore abstraction. PWA-ready.",
+      "codeQuality": "Enterprise Quality",
+      "codeQualityDesc": "ESLint enforced, TypeScript strict mode, Sentry monitoring, accessibility tested."
     }
   }
 }
