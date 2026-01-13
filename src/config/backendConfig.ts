@@ -78,6 +78,38 @@ export function getSupabaseAnonKey(): string | null {
 const MODE_STORAGE_KEY = 'matchops_backend_mode';
 
 /**
+ * Safe localStorage access helpers.
+ * Returns null/void on any error (SecurityError when storage blocked by policy, etc.)
+ * This ensures the app falls back gracefully to local mode instead of crashing.
+ */
+function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    log.warn('[backendConfig] localStorage access denied - treating as no override');
+    return null;
+  }
+}
+
+function safeSetItem(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    log.warn('[backendConfig] localStorage write denied');
+    return false;
+  }
+}
+
+function safeRemoveItem(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    log.warn('[backendConfig] localStorage remove denied');
+  }
+}
+
+/**
  * Get the configured backend mode.
  *
  * Priority (highest to lowest):
@@ -93,7 +125,7 @@ const MODE_STORAGE_KEY = 'matchops_backend_mode';
 export function getBackendMode(): BackendMode {
   // Check runtime override first (client-side only)
   if (typeof window !== 'undefined') {
-    const runtimeMode = localStorage.getItem(MODE_STORAGE_KEY);
+    const runtimeMode = safeGetItem(MODE_STORAGE_KEY);
     if (runtimeMode === 'local' || runtimeMode === 'cloud') {
       // Validate cloud mode is actually available
       if (runtimeMode === 'cloud' && !isCloudAvailable()) {
@@ -137,7 +169,9 @@ export function enableCloudMode(): boolean {
   }
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(MODE_STORAGE_KEY, 'cloud');
+    if (!safeSetItem(MODE_STORAGE_KEY, 'cloud')) {
+      return false;
+    }
     log.info('[backendConfig] Cloud mode enabled - will take effect on next initialization');
   }
   return true;
@@ -150,8 +184,9 @@ export function enableCloudMode(): boolean {
  */
 export function disableCloudMode(): void {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(MODE_STORAGE_KEY, 'local');
-    log.info('[backendConfig] Local mode enabled - will take effect on next initialization');
+    if (safeSetItem(MODE_STORAGE_KEY, 'local')) {
+      log.info('[backendConfig] Local mode enabled - will take effect on next initialization');
+    }
   }
 }
 
@@ -162,7 +197,7 @@ export function disableCloudMode(): void {
  */
 export function clearModeOverride(): void {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(MODE_STORAGE_KEY);
+    safeRemoveItem(MODE_STORAGE_KEY);
     log.info('[backendConfig] Mode override cleared - using environment/default');
   }
 }
@@ -176,7 +211,7 @@ export function hasModeOverride(): boolean {
   if (typeof window === 'undefined') {
     return false;
   }
-  const mode = localStorage.getItem(MODE_STORAGE_KEY);
+  const mode = safeGetItem(MODE_STORAGE_KEY);
   return mode === 'local' || mode === 'cloud';
 }
 /* eslint-enable no-restricted-globals */
