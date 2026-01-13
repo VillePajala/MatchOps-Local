@@ -7,6 +7,75 @@ import { useTranslation } from 'next-i18next';
 import type { GetStaticProps } from 'next';
 import { toPng } from 'html-to-image';
 
+// Section navigation data
+const SECTIONS = [
+  { id: 'linkedin-personal', label: 'LinkedIn Personal' },
+  { id: 'linkedin-company', label: 'LinkedIn Company' },
+  { id: 'twitter', label: 'Twitter/X' },
+  { id: 'facebook', label: 'Facebook' },
+  { id: 'opengraph', label: 'Open Graph' },
+  { id: 'instagram-posts', label: 'Instagram Posts' },
+  { id: 'instagram-stories', label: 'Instagram Stories' },
+  { id: 'appstore', label: 'App Store' },
+  { id: 'cards', label: 'Cards' },
+  { id: 'logos', label: 'Logos' },
+  { id: 'heroes', label: 'Heroes' },
+];
+
+// Floating navigation for mobile
+function FloatingNav({ locale, onLocaleChange }: { locale: string; onLocaleChange: (locale: string) => void }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 md:hidden">
+      {/* Expanded menu */}
+      {isOpen && (
+        <div className="absolute bottom-14 right-0 bg-slate-800 rounded-lg shadow-xl border border-slate-700 p-3 min-w-[200px]">
+          {/* Language switcher */}
+          <div className="flex gap-2 mb-3 pb-3 border-b border-slate-700">
+            <button
+              onClick={() => onLocaleChange('en')}
+              className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                locale === 'en' ? 'bg-primary text-black' : 'bg-slate-700 text-gray-300'
+              }`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => onLocaleChange('fi')}
+              className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                locale === 'fi' ? 'bg-primary text-black' : 'bg-slate-700 text-gray-300'
+              }`}
+            >
+              FI
+            </button>
+          </div>
+          {/* Section links */}
+          <div className="space-y-1 max-h-[50vh] overflow-y-auto">
+            {SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                onClick={() => setIsOpen(false)}
+                className="block px-3 py-2 text-sm text-gray-300 hover:bg-slate-700 rounded transition-colors"
+              >
+                {section.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Toggle button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-12 h-12 bg-primary text-slate-900 rounded-full shadow-lg flex items-center justify-center text-xl font-bold"
+      >
+        {isOpen ? '×' : '☰'}
+      </button>
+    </div>
+  );
+}
+
 // Language-aware screenshot paths
 const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
@@ -445,6 +514,12 @@ export default function MarketingAssets() {
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
+      {/* Floating navigation for mobile */}
+      <FloatingNav
+        locale={router.locale || 'en'}
+        onLocaleChange={(locale) => router.push(router.pathname, router.asPath, { locale })}
+      />
+
       <div className="min-h-screen bg-gray-950 py-12 px-8">
         <div className="max-w-[2800px] mx-auto">
           {/* Header */}
@@ -484,12 +559,25 @@ export default function MarketingAssets() {
                 FI
               </button>
             </div>
+
+            {/* Section navigation */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              {SECTIONS.map((section) => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  className="px-3 py-1.5 bg-slate-800 text-gray-300 text-sm rounded hover:bg-slate-700 transition-colors"
+                >
+                  {section.label}
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* ============================================ */}
           {/* LINKEDIN PERSONAL BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="linkedin-personal" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               LinkedIn Personal Banners (1584×396)
             </h2>
@@ -779,7 +867,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* LINKEDIN COMPANY BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="linkedin-company" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               LinkedIn Company Banners (1128×191)
             </h2>
@@ -831,7 +919,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* TWITTER/X HEADERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="twitter" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Twitter/X Headers (1500×500)
             </h2>
@@ -1029,7 +1117,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* FACEBOOK COVERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="facebook" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Facebook Covers (820×312)
             </h2>
@@ -1107,7 +1195,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* OPEN GRAPH / SOCIAL SHARE */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="opengraph" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Open Graph / Social Share (1200×630)
             </h2>
@@ -1317,7 +1405,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* INSTAGRAM POSTS (SQUARE) */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="instagram-posts" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Instagram Posts (1080×1080)
             </h2>
@@ -1668,7 +1756,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* INSTAGRAM STORIES */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="instagram-stories" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Instagram Stories (1080×1920)
             </h2>
@@ -1820,7 +1908,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* APP STORE FEATURE GRAPHICS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="appstore" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               App Store Feature Graphics (1024×500)
             </h2>
@@ -1935,7 +2023,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* PROMOTIONAL CARDS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="cards" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Promotional Cards (Various Sizes)
             </h2>
@@ -2107,7 +2195,7 @@ export default function MarketingAssets() {
                       <span className="text-white">{t('marketing.cards.forCoaches')}</span>
                     </h3>
                     <p className="text-gray-400 mb-3">
-                      Your clipboard, stopwatch, notebook, and stats<br />— in one app.
+                      {t('marketing.taglines.power')}
                     </p>
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
@@ -2126,7 +2214,7 @@ export default function MarketingAssets() {
                       <span className="text-white text-2xl">{t('marketing.cards.forCoaches')}</span>
                     </h3>
                     <p className="text-gray-400 mb-3">
-                      Your clipboard, stopwatch, notebook, and stats<br />— in one app.
+                      {t('marketing.taglines.power')}
                     </p>
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
@@ -2416,7 +2504,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* LOGO LOCKUPS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="logos" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Logo Lockups
             </h2>
@@ -2478,7 +2566,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* HERO BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="heroes" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Hero Banners (1920×600)
             </h2>
