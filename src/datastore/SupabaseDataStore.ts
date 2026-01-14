@@ -427,7 +427,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error, count } = await this.getClient()
       .from('players')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id);
 
     if (error) {
@@ -716,7 +716,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error, count } = await this.getClient()
       .from('teams')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id);
 
     if (error) {
@@ -1041,6 +1041,7 @@ export class SupabaseDataStore implements DataStore {
     }
 
     const updatedSeason: Season = {
+      ...this.transformSeasonFromDb(existing),
       ...season,
       name: trimmedName,
       clubSeason: newClubSeason,
@@ -1078,7 +1079,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error, count } = await this.getClient()
       .from('seasons')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id);
 
     if (error) {
@@ -1333,7 +1334,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error, count } = await this.getClient()
       .from('tournaments')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id);
 
     if (error) {
@@ -1356,7 +1357,7 @@ export class SupabaseDataStore implements DataStore {
       gender: row.gender as 'boys' | 'girls' | undefined,
       ageGroup: row.age_group ?? undefined,
       level: row.level ?? undefined,
-      series: (row.series as TournamentSeries[] | null) ?? undefined,
+      series: Array.isArray(row.series) ? (row.series as TournamentSeries[]) : undefined,
       archived: row.archived ?? false,
     };
   }
@@ -1548,7 +1549,7 @@ export class SupabaseDataStore implements DataStore {
     // For now, just delete the personnel record.
     const { error, count } = await this.getClient()
       .from('personnel')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id);
 
     if (error) {
@@ -1650,6 +1651,7 @@ export class SupabaseDataStore implements DataStore {
       hasConfiguredSeasonDates: row.has_configured_season_dates ?? false,
       clubSeasonStartDate: row.club_season_start_date ?? DEFAULT_APP_SETTINGS.clubSeasonStartDate,
       clubSeasonEndDate: row.club_season_end_date ?? DEFAULT_APP_SETTINGS.clubSeasonEndDate,
+      isDrawingModeEnabled: row.is_drawing_mode_enabled ?? false,
     };
   }
 
@@ -1664,6 +1666,7 @@ export class SupabaseDataStore implements DataStore {
       has_configured_season_dates: settings.hasConfiguredSeasonDates ?? false,
       club_season_start_date: settings.clubSeasonStartDate ?? null,
       club_season_end_date: settings.clubSeasonEndDate ?? null,
+      is_drawing_mode_enabled: settings.isDrawingModeEnabled ?? false,
       updated_at: new Date().toISOString(),
     };
   }

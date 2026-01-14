@@ -363,6 +363,9 @@ src/datastore/SupabaseDataStore.ts   # Add game methods
 - [ ] `getWarmupPlan()`, `saveWarmupPlan()`, `deleteWarmupPlan()`
 - [ ] `getTimerState()`, `saveTimerState()`, `clearTimerState()` (local-only, no-op for cloud)
 
+**Deferred from PR #3** (games now exist):
+- [ ] `removePersonnelMember()` cascade delete - must remove personnel ID from all games' `gamePersonnel` arrays when personnel is deleted (see `LocalDataStore.ts:1223-1291` for reference implementation)
+
 **Critical Transformations**:
 - [ ] `seasonId: ''` → `season_id: NULL`
 - [ ] `gameEvents[]` array index → `order_index` column

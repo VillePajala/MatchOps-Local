@@ -1096,6 +1096,96 @@ describe('SupabaseDataStore', () => {
         expect(tournaments).toHaveLength(1);
         expect(tournaments[0].name).toBe('Test Tournament');
       });
+
+      it('should migrate legacy tournament level to series', async () => {
+        // Tournament with legacy 'level' field but no 'series'
+        const mockRow = {
+          id: 'tournament_legacy',
+          name: 'Legacy Tournament',
+          start_date: null,
+          end_date: null,
+          location: 'Helsinki',
+          club_season: null,
+          game_type: 'soccer',
+          gender: 'boys',
+          age_group: 'U12',
+          level: 'Gold Cup', // Legacy level field
+          series: null,      // No series yet
+          archived: false,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [mockRow],
+          error: null,
+        });
+
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        const tournaments = await dataStore.getTournaments();
+
+        expect(tournaments).toHaveLength(1);
+        // Verify migration: level was converted to series
+        expect(tournaments[0].series).toBeDefined();
+        expect(tournaments[0].series).toHaveLength(1);
+        expect(tournaments[0].series![0].level).toBe('Gold Cup');
+        expect(tournaments[0].series![0].id).toContain('series_tournament_legacy_gold-cup');
+      });
+
+      it('should not migrate if series already exists', async () => {
+        // Tournament with existing series
+        const existingSeries = [{ id: 'series_1', level: 'Premier' }];
+        const mockRow = {
+          id: 'tournament_modern',
+          name: 'Modern Tournament',
+          start_date: null,
+          end_date: null,
+          location: 'Helsinki',
+          club_season: null,
+          game_type: 'soccer',
+          gender: 'boys',
+          age_group: 'U12',
+          level: 'Gold Cup', // Legacy level (should be ignored)
+          series: existingSeries, // Already has series
+          archived: false,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [mockRow],
+          error: null,
+        });
+
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        const tournaments = await dataStore.getTournaments();
+
+        expect(tournaments).toHaveLength(1);
+        // Should keep existing series, not migrate
+        expect(tournaments[0].series).toEqual(existingSeries);
+      });
     });
 
     describe('createTournament', () => {
@@ -1397,6 +1487,7 @@ describe('SupabaseDataStore', () => {
           has_configured_season_dates: true,
           club_season_start_date: '2024-08-01',
           club_season_end_date: '2025-07-31',
+          is_drawing_mode_enabled: true,
           updated_at: '2024-01-01T00:00:00.000Z',
         };
 
@@ -1410,6 +1501,61 @@ describe('SupabaseDataStore', () => {
         expect(settings.language).toBe('en');
         expect(settings.hasSeenAppGuide).toBe(true);
         expect(settings.currentGameId).toBe('game_123');
+        expect(settings.isDrawingModeEnabled).toBe(true);
+      });
+
+      it('should preserve isDrawingModeEnabled setting', async () => {
+        const mockRow = {
+          id: 'settings_123',
+          user_id: 'user_123',
+          current_game_id: null,
+          last_home_team_name: '',
+          language: 'fi',
+          has_seen_app_guide: false,
+          use_demand_correction: false,
+          has_configured_season_dates: false,
+          club_season_start_date: null,
+          club_season_end_date: null,
+          is_drawing_mode_enabled: true, // Drawing mode enabled
+          updated_at: '2024-01-01T00:00:00.000Z',
+        };
+
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: mockRow,
+          error: null,
+        });
+
+        const settings = await dataStore.getSettings();
+
+        // Verify drawing mode is properly read from database
+        expect(settings.isDrawingModeEnabled).toBe(true);
+      });
+
+      it('should default isDrawingModeEnabled to false when not set', async () => {
+        const mockRow = {
+          id: 'settings_123',
+          user_id: 'user_123',
+          current_game_id: null,
+          last_home_team_name: '',
+          language: 'fi',
+          has_seen_app_guide: false,
+          use_demand_correction: false,
+          has_configured_season_dates: false,
+          club_season_start_date: null,
+          club_season_end_date: null,
+          // is_drawing_mode_enabled NOT set (undefined/null)
+          updated_at: '2024-01-01T00:00:00.000Z',
+        };
+
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: mockRow,
+          error: null,
+        });
+
+        const settings = await dataStore.getSettings();
+
+        // Should default to false
+        expect(settings.isDrawingModeEnabled).toBe(false);
       });
     });
 
@@ -1453,6 +1599,32 @@ describe('SupabaseDataStore', () => {
 
         expect(invalidateSpy).toHaveBeenCalled();
         invalidateSpy.mockRestore();
+      });
+
+      it('should save isDrawingModeEnabled setting', async () => {
+        let savedData: Record<string, unknown> | null = null;
+        mockQueryBuilder.upsert = jest.fn().mockImplementation((data) => {
+          savedData = data;
+          return Promise.resolve({ error: null });
+        });
+
+        const settings: AppSettings = {
+          currentGameId: null,
+          lastHomeTeamName: 'Test Team',
+          language: 'en',
+          hasSeenAppGuide: true,
+          useDemandCorrection: false,
+          hasConfiguredSeasonDates: false,
+          clubSeasonStartDate: '2024-08-01',
+          clubSeasonEndDate: '2025-07-31',
+          isDrawingModeEnabled: true, // Drawing mode enabled
+        };
+
+        await dataStore.saveSettings(settings);
+
+        // Verify isDrawingModeEnabled is included in saved data
+        expect(savedData).not.toBeNull();
+        expect(savedData!.is_drawing_mode_enabled).toBe(true);
       });
     });
 
