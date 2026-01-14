@@ -1,5 +1,4 @@
 import Layout from '@/components/Layout';
-import FeatureCard from '@/components/FeatureCard';
 import { PhoneMockup, GlowBg } from '@/components/marketing';
 import Head from 'next/head';
 import Image from 'next/image';
@@ -8,7 +7,7 @@ import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
-import { FaFutbol, FaClock, FaPencilAlt, FaChartLine, FaTrophy, FaUsers, FaBolt, FaShieldAlt, FaDatabase, FaGlobe } from 'react-icons/fa';
+import { FaArrowUp } from 'react-icons/fa';
 
 // Language-aware screenshot paths (matches marketing-assets.tsx)
 const getScreenshots = (locale: string | undefined) => {
@@ -67,6 +66,7 @@ export default function HomePage() {
   const mobileCarouselRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [lightbox, setLightbox] = useState<null | { src: string; alt: string }>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const isEnglish = router.locale === 'en';
 
   // Mobile carousel labels (5 items now)
@@ -123,6 +123,15 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [lightbox]);
 
+  // Back to top button visibility
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 500);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
   return (
     <Layout>
       <Head>
@@ -155,12 +164,17 @@ export default function HomePage() {
               {t('marketing.taglines.power')}
             </p>
 
+            {/* Punchline - mobile only (above phones) */}
+            <p className="md:hidden text-2xl text-primary font-bold font-rajdhani mb-6">
+              {t('marketing.taglines.memorable')}
+            </p>
+
             {/* ===== 5-PHONE SHOWCASE ===== */}
             {/* Mobile: swipeable carousel */}
-            <div className="md:hidden mt-8 -mx-4 relative">
+            <div className="md:hidden -mx-4 relative">
               <div
                 ref={mobileCarouselRef}
-                className="flex overflow-x-auto snap-x snap-mandatory snap-always px-0 no-scrollbar"
+                className="flex overflow-x-auto snap-x snap-mandatory snap-always px-0 py-8 no-scrollbar"
                 role="region"
                 aria-label={t('screenshots.aria.carousel')}
               >
@@ -294,8 +308,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Punchline below phones */}
-            <p className="text-2xl md:text-3xl lg:text-4xl text-primary font-bold mt-8 md:mt-6 font-rajdhani">
+            {/* Punchline - desktop only (below phones) */}
+            <p className="hidden md:block text-3xl lg:text-4xl text-primary font-bold mt-6 font-rajdhani">
               {t('marketing.taglines.memorable')}
             </p>
           </div>
@@ -354,7 +368,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FEATURE CARDS (12 features - matches marketing-assets.tsx styling) ===== */}
+      {/* ===== FEATURE CARDS (12 features) ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
@@ -363,207 +377,37 @@ export default function HomePage() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* 1. Tactical Board */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.tacticalBoard')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.tacticalBoardDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.tacticalBoard} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 2. Formations */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.formations')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.formationsDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.formations} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 3. Player Roster */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.roster')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.rosterDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.roster} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 4. Player Assessment */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.assessment')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.assessmentDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.assessment} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 5. Performance Trends */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.trends')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.trendsDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.trends} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 6. Season Management */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.seasons')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.seasonsDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.seasons} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 7. Tournament Hub */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.tournaments')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.tournamentsDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.tournaments} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 8. Team Builder */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.teams')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.teamsDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.teams} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 9. Game Archive */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.archive')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.archiveDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.archive} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 10. Goal Timeline */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.goalTimeline')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.goalTimelineDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.goalTimeline} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 11. Excel Reports */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.excelExport')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.excelExportDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.excelExport} size="lg" zIndex={10} />
-                </div>
-              </div>
-
-              {/* 12. Coaching Staff */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
-                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
-                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.personnel')}</h3>
-                  <p className="text-gray-400">{t('marketing.featureCards.personnelDesc')}</p>
-                </div>
-                <div className="md:w-1/2 flex items-center justify-center">
-                  <PhoneMockup screenshot={screenshots.personnel} size="lg" zIndex={10} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== BUILT DIFFERENT ===== */}
-      <section className="section section-divider bg-slate-800/50 relative overflow-hidden">
-        <div className="hidden md:block">
-          <GlowBg color="primary" position="center" size="lg" blur={150} />
-        </div>
-        <div className="container-custom relative z-10">
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
-              {t('features.foundation.title')}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              <FeatureCard
-                icon={<FaBolt />}
-                title={t('features.foundation.offline.title')}
-                description={t('features.foundation.offline.desc')}
-              />
-              <FeatureCard
-                icon={<FaShieldAlt />}
-                title={t('features.foundation.private.title')}
-                description={t('features.foundation.private.desc')}
-              />
-              <FeatureCard
-                icon={<FaDatabase />}
-                title={t('features.foundation.backup.title')}
-                description={t('features.foundation.backup.desc')}
-              />
-              <FeatureCard
-                icon={<FaGlobe />}
-                title={t('features.foundation.i18n.title')}
-                description={t('features.foundation.i18n.desc')}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== FAQ ===== */}
-      <section className="section section-divider bg-slate-900">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
-              {t('info.faq.title')}
-            </h2>
-            <div className="space-y-4 prose prose-invert max-w-none">
-              {(['q1', 'q2', 'q3', 'q4'] as const).map((key) => (
-                <details key={key} className="group rounded-lg border border-slate-700 bg-slate-800/40 p-4">
-                  <summary className="cursor-pointer list-none text-white font-semibold">
-                    {t(`info.faq.${key}`)}
-                  </summary>
-                  <div className="mt-2 text-slate-300">
-                    {t(`info.faq.a${key.slice(1)}`)}
+              {[
+                { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
+                { key: 'formations', screenshot: screenshots.formations },
+                { key: 'roster', screenshot: screenshots.roster },
+                { key: 'assessment', screenshot: screenshots.assessment },
+                { key: 'trends', screenshot: screenshots.trends },
+                { key: 'seasons', screenshot: screenshots.seasons },
+                { key: 'tournaments', screenshot: screenshots.tournaments },
+                { key: 'teams', screenshot: screenshots.teams },
+                { key: 'archive', screenshot: screenshots.archive },
+                { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
+                { key: 'excelExport', screenshot: screenshots.excelExport },
+                { key: 'personnel', screenshot: screenshots.personnel },
+              ].map((card, i) => (
+                <div
+                  key={card.key}
+                  className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex ${
+                    i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
+                  }`}
+                >
+                  <div className="w-1/2 flex flex-col justify-center items-start">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-xl md:text-3xl font-bold mb-3">
+                      {t(`marketing.featureCards.${card.key}`)}
+                    </h3>
+                    <p className="text-gray-400">{t(`marketing.featureCards.${card.key}Desc`)}</p>
                   </div>
-                </details>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PhoneMockup screenshot={card.screenshot} size="lg" zIndex={10} />
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -578,7 +422,7 @@ export default function HomePage() {
         <div className="container-custom relative z-10">
           <div className="max-w-2xl mx-auto text-center">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              {isEnglish ? 'Ready to simplify game day?' : 'Valmis yksinkertaistamaan pelipäivää?'}
+              {isEnglish ? 'Ready to simplify game day?' : 'Haluatko päästä kokeilemaan?'}
             </h3>
             <p className="text-slate-300 mb-6">
               {t('info.cta.title')}
@@ -626,6 +470,18 @@ export default function HomePage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Back to top button */}
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-primary text-slate-900 shadow-lg hover:bg-amber-400 transition-all"
+          aria-label="Back to top"
+        >
+          <FaArrowUp />
+        </button>
       )}
     </Layout>
   );

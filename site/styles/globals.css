@@ -86,6 +86,7 @@ h1, h2, h3, h4, h5, h6 {
 .prose h1 {
   font-size: 2.25rem;
   font-weight: 700;
+  color: white;
   margin-bottom: 1rem;
   margin-top: 2rem;
 }
@@ -93,6 +94,9 @@ h1, h2, h3, h4, h5, h6 {
 .prose h2 {
   font-size: 1.875rem;
   font-weight: 700;
+  color: white;
+  border-bottom: 1px solid rgb(51 65 85 / 0.5);
+  padding-bottom: 0.5rem;
   margin-bottom: 0.75rem;
   margin-top: 1.5rem;
 }
@@ -100,6 +104,7 @@ h1, h2, h3, h4, h5, h6 {
 .prose h3 {
   font-size: 1.5rem;
   font-weight: 700;
+  color: white;
   margin-bottom: 0.5rem;
   margin-top: 1rem;
 }
@@ -136,8 +141,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dark .prose code {
-  background-color: #374151;
-  color: #e5e7eb;
+  background-color: rgb(30 41 59);
+  color: var(--primary);
+  border: 1px solid rgb(51 65 85 / 0.5);
 }
 
 .prose pre {
@@ -149,15 +155,30 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dark .prose pre {
-  background-color: #1f2937;
+  background: linear-gradient(to br, rgb(15 23 42), rgb(30 41 59));
+  border: 1px solid rgb(51 65 85 / 0.5);
+  border-radius: 0.5rem;
 }
 
 .prose blockquote {
   border-left-width: 4px;
   border-color: var(--primary);
-  padding-left: 1rem;
-  font-style: italic;
-  margin: 1rem 0;
+  padding: 1rem 1.5rem;
+  font-style: normal;
+  margin: 1.5rem 0;
+  background: linear-gradient(to right, rgb(245 158 11 / 0.1), transparent);
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.prose blockquote p {
+  margin: 0;
+  color: rgb(203 213 225);
+}
+
+/* Strong/bold text */
+.prose strong {
+  color: white;
+  font-weight: 600;
 }
 
 /* Button styles */
@@ -442,22 +463,36 @@ h1, h2, h3, h4, h5, h6 {
   position: relative;
   box-shadow:
     0 0 0 1px rgba(255,255,255,0.1),
-    0 25px 50px -12px rgba(0,0,0,0.7),
-    0 0 80px -20px rgba(245, 158, 11, 0.3),
+    0 15px 30px -8px rgba(0,0,0,0.5),
+    0 0 30px -10px rgba(245, 158, 11, 0.2),
     inset 0 1px 1px rgba(255,255,255,0.1),
     inset 0 -1px 1px rgba(0,0,0,0.3);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Hover lift effect */
-.phone-frame:hover {
-  transform: translateY(-8px);
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.12),
-    0 35px 70px -15px rgba(0,0,0,0.6),
-    0 0 60px -10px rgba(255, 255, 255, 0.15),
-    inset 0 1px 1px rgba(255,255,255,0.1),
-    inset 0 -1px 1px rgba(0,0,0,0.2);
+/* Enhanced glow on desktop */
+@media (min-width: 768px) {
+  .phone-frame {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.1),
+      0 25px 50px -12px rgba(0,0,0,0.7),
+      0 0 80px -20px rgba(245, 158, 11, 0.3),
+      inset 0 1px 1px rgba(255,255,255,0.1),
+      inset 0 -1px 1px rgba(0,0,0,0.3);
+  }
+}
+
+/* Hover lift effect - desktop only */
+@media (min-width: 768px) {
+  .phone-frame:hover {
+    transform: translateY(-8px);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.12),
+      0 35px 70px -15px rgba(0,0,0,0.6),
+      0 0 60px -10px rgba(255, 255, 255, 0.15),
+      inset 0 1px 1px rgba(255,255,255,0.1),
+      inset 0 -1px 1px rgba(0,0,0,0.2);
+  }
 }
 
 .phone-frame::before {
