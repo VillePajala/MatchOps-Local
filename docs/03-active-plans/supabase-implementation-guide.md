@@ -4282,6 +4282,18 @@ If issues occur:
 
 ---
 
+## Future Enhancements (Post-MVP)
+
+The following items are deferred and can be implemented if/when needed:
+
+- [ ] **DB-level composite unique constraints**: Add PostgreSQL unique indexes for teams/seasons/tournaments to prevent race conditions during concurrent writes (see Section 5.0.7). Currently mitigated by app-level validation which covers 99% of cases; if race condition creates duplicate, user can delete one manually.
+
+- [ ] **Offline queue for cloud mode**: Currently cloud mode requires online connectivity. Could add offline queue with sync-on-reconnect if user demand exists.
+
+- [ ] **Real-time subscriptions**: Supabase supports real-time via websockets. Could enable for multi-device sync if user has multiple devices.
+
+---
+
 ## Summary
 
 This implementation guide ensures:
