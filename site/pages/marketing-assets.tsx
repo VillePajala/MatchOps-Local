@@ -11,6 +11,7 @@ import { toPng } from 'html-to-image';
 const SECTIONS = [
   { id: 'linkedin-personal', label: 'LinkedIn Personal' },
   { id: 'linkedin-company', label: 'LinkedIn Company' },
+  { id: 'linkedin-posts', label: 'LinkedIn Posts' },
   { id: 'twitter', label: 'Twitter/X' },
   { id: 'facebook', label: 'Facebook' },
   { id: 'opengraph', label: 'Open Graph' },
@@ -912,6 +913,336 @@ export default function MarketingAssets() {
                       </div>
                     </div>
                     <FeatureBullets features={[t('marketing.bullets.offline'), t('marketing.bullets.private'), t('marketing.bullets.noSignup')]} size="sm" />
+                  </div>
+                </div>
+              </AssetContainer>
+            </div>
+          </section>
+
+          {/* ============================================ */}
+          {/* LINKEDIN POSTS - 5 Phone Showcase */}
+          {/* ============================================ */}
+          <section id="linkedin-posts" className="mb-24 scroll-mt-8">
+            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+              LinkedIn Posts - 5 Phone Showcase (1200×628)
+            </h2>
+            <p className="text-gray-400 mb-8">
+              Five key screens: Soccer Field, Timer, Player Stats, Tactical Board, Goal Timeline
+            </p>
+
+            <div className="space-y-8">
+              {/* Layout 1: Arc/Fan - center phone largest, others smaller radiating out */}
+              <AssetContainer id="li-post-arc" width={1200} height={628} name="LinkedIn Post - Arc Layout">
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Ambient glow */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+
+                  {/* 5 phones in arc arrangement - shifted up */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    {/* Phone 1: Tactical Board - far left, tilted */}
+                    <PhoneMockup
+                      screenshot={screenshots.tacticalBoard}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        left: '8%',
+                        top: '48%',
+                        transform: 'translateY(-50%) rotate(-8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                    {/* Phone 2: Player Stats - left of center */}
+                    <PhoneMockup
+                      screenshot={screenshots.playerstats}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        left: '22%',
+                        top: '48%',
+                        transform: 'translateY(-45%) rotate(-4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    {/* Phone 3: Soccer Field - CENTER (hero) */}
+                    <PhoneMockup
+                      screenshot={screenshots.soccerfield}
+                      size="xl"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '48%',
+                        transform: 'translate(-50%, -45%)',
+                      }}
+                      zIndex={10}
+                    />
+                    {/* Phone 4: Timer - right of center */}
+                    <PhoneMockup
+                      screenshot={screenshots.timer}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        right: '22%',
+                        top: '48%',
+                        transform: 'translateY(-45%) rotate(4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    {/* Phone 5: Goal Timeline - far right, tilted */}
+                    <PhoneMockup
+                      screenshot={screenshots.goalTimeline}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        right: '8%',
+                        top: '48%',
+                        transform: 'translateY(-50%) rotate(8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-8 left-0 right-0 flex justify-center z-20">
+                    <TitleText size="2xl" />
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                  </div>
+                  <div className="absolute bottom-6 right-8 z-20">
+                    <SiteUrl size="md" variant="yellow" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Layout 1b: Arc Tight - phones closer together */}
+              <AssetContainer id="li-post-arc-tight" width={1200} height={628} name="LinkedIn Post - Arc Tight">
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Ambient glow */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+
+                  {/* 5 phones in arc arrangement - tighter spacing */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    {/* Phone 1: Tactical Board - far left, tilted */}
+                    <PhoneMockup
+                      screenshot={screenshots.tacticalBoard}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        left: '14%',
+                        top: '48%',
+                        transform: 'translateY(-50%) rotate(-8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                    {/* Phone 2: Player Stats - left of center */}
+                    <PhoneMockup
+                      screenshot={screenshots.playerstats}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        left: '26%',
+                        top: '48%',
+                        transform: 'translateY(-45%) rotate(-4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    {/* Phone 3: Soccer Field - CENTER (hero) */}
+                    <PhoneMockup
+                      screenshot={screenshots.soccerfield}
+                      size="xl"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '48%',
+                        transform: 'translate(-50%, -45%)',
+                      }}
+                      zIndex={10}
+                    />
+                    {/* Phone 4: Timer - right of center */}
+                    <PhoneMockup
+                      screenshot={screenshots.timer}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        right: '26%',
+                        top: '48%',
+                        transform: 'translateY(-45%) rotate(4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    {/* Phone 5: Goal Timeline - far right, tilted */}
+                    <PhoneMockup
+                      screenshot={screenshots.goalTimeline}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        right: '14%',
+                        top: '48%',
+                        transform: 'translateY(-50%) rotate(8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-8 left-0 right-0 flex justify-center z-20">
+                    <TitleText size="2xl" />
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                  </div>
+                  <div className="absolute bottom-6 right-8 z-20">
+                    <SiteUrl size="md" variant="yellow" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Layout 1c: Uniform Row - all phones same size, straight line */}
+              <AssetContainer id="li-post-uniform" width={1200} height={628} name="LinkedIn Post - Uniform Row">
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Ambient glow */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+
+                  {/* 5 phones in uniform row with labels */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center gap-4 pt-12" style={{ transform: 'scale(0.92)' }}>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.tacticalBoard} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Tactics</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Stats</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Lineup</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.timer} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Timer</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.goalTimeline} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Events</span>
+                    </div>
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-8 left-0 right-0 flex justify-center z-20">
+                    <TitleText size="2xl" />
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                  </div>
+                  <div className="absolute bottom-6 right-8 z-20">
+                    <SiteUrl size="md" variant="yellow" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Layout 2: Staggered Row - hero center-raised, others at baseline */}
+              <AssetContainer id="li-post-staggered" width={1200} height={628} name="LinkedIn Post - Staggered Row">
+                <div className="w-full h-full bg-gradient-to-b from-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Spotlight glow under phones */}
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[900px] h-[300px] bg-primary/8 rounded-full blur-[80px]" />
+
+                  {/* 5 phones in staggered row */}
+                  <div className="relative z-10 w-full h-full flex items-end justify-center pb-8 gap-[-20px]">
+                    {/* Phone 1: Tactical Board */}
+                    <PhoneMockup
+                      screenshot={screenshots.tacticalBoard}
+                      size="lg"
+                      style={{ marginRight: -15, marginBottom: 20 }}
+                      zIndex={1}
+                    />
+                    {/* Phone 2: Player Stats */}
+                    <PhoneMockup
+                      screenshot={screenshots.playerstats}
+                      size="lg"
+                      style={{ marginRight: -20, marginBottom: 40 }}
+                      zIndex={2}
+                    />
+                    {/* Phone 3: Soccer Field - CENTER (hero, raised) */}
+                    <PhoneMockup
+                      screenshot={screenshots.soccerfield}
+                      size="xl"
+                      style={{ marginBottom: 60 }}
+                      zIndex={10}
+                    />
+                    {/* Phone 4: Timer */}
+                    <PhoneMockup
+                      screenshot={screenshots.timer}
+                      size="lg"
+                      style={{ marginLeft: -20, marginBottom: 40 }}
+                      zIndex={2}
+                    />
+                    {/* Phone 5: Goal Timeline */}
+                    <PhoneMockup
+                      screenshot={screenshots.goalTimeline}
+                      size="lg"
+                      style={{ marginLeft: -15, marginBottom: 20 }}
+                      zIndex={1}
+                    />
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-6 left-8 flex items-center gap-3 z-20">
+                    <Logo size={40} />
+                    <div>
+                      <TitleText size="md" />
+                      <p className="text-gray-400 text-sm">Local-first soccer coaching</p>
+                    </div>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Layout 3: Two Rows - 3 top, 2 bottom */}
+              <AssetContainer id="li-post-grid" width={1200} height={628} name="LinkedIn Post - Two Rows">
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 to-slate-900 relative overflow-hidden">
+                  {/* Diagonal accent */}
+                  <div className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[60px]" />
+                  <div className="absolute -bottom-20 -left-20 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[60px]" />
+
+                  {/* Left side: branding */}
+                  <div className="absolute left-10 top-1/2 -translate-y-1/2 z-20 max-w-[280px]">
+                    <Logo size={50} className="mb-4" />
+                    <TitleText size="lg" className="block mb-2" />
+                    <p className="text-gray-300 text-lg mb-4">Every game remembered.</p>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-gray-400 text-sm flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                        Works Offline
+                      </span>
+                      <span className="text-gray-400 text-sm flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                        No Signup Required
+                      </span>
+                      <span className="text-gray-400 text-sm flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                        Data Stays Private
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right side: phones in 2 rows */}
+                  <div className="absolute right-8 top-1/2 -translate-y-1/2 z-10">
+                    {/* Top row: 3 phones */}
+                    <div className="flex items-end gap-2 mb-2">
+                      <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={3} />
+                      <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={2} />
+                      <PhoneMockup screenshot={screenshots.tacticalBoard} size="lg" zIndex={1} />
+                    </div>
+                    {/* Bottom row: 2 phones, centered */}
+                    <div className="flex items-start gap-2 justify-center">
+                      <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={2} />
+                      <PhoneMockup screenshot={screenshots.goalTimeline} size="md" zIndex={1} />
+                    </div>
                   </div>
                 </div>
               </AssetContainer>
