@@ -78,30 +78,30 @@ git checkout -b supabase/prX-name
 
 ---
 
-## PR #2: Supabase Client & Types
+## PR #2: Supabase Client & Types ✅ MERGED
 
 ### Pre-Implementation Checklist
-- [ ] Read implementation guide Section 5.2 (Supabase Client Singleton)
-- [ ] Understand lazy loading pattern to avoid bundling Supabase in local mode
+- [x] Read implementation guide Section 5.2 (Supabase Client Singleton)
+- [x] Understand lazy loading pattern to avoid bundling Supabase in local mode
 
 ### Implementation Checklist
-- [ ] Create `src/datastore/supabase/client.ts`:
-  - [ ] `getSupabaseClient()` singleton function
-  - [ ] Error handling for missing env vars
-  - [ ] Logging on client creation
-- [ ] Create `src/types/supabase.ts` (placeholder for generated types)
-- [ ] Create `src/datastore/supabase/index.ts` (barrel export)
+- [x] Create `src/datastore/supabase/client.ts`:
+  - [x] `getSupabaseClient()` singleton function
+  - [x] Error handling for missing env vars
+  - [x] Logging on client creation
+- [x] Create `src/types/supabase.ts` (placeholder for generated types)
+- [x] Create `src/datastore/supabase/index.ts` (barrel export)
 
 ### Test Checklist
-- [ ] Client initializes correctly with valid env vars
-- [ ] Client throws clear error with missing env vars
-- [ ] Client is singleton (same instance returned)
-- [ ] Bundle size unchanged when `BACKEND_MODE=local` (verify with `npm run build`)
+- [x] Client initializes correctly with valid env vars
+- [x] Client throws clear error with missing env vars
+- [x] Client is singleton (same instance returned)
+- [x] Bundle size unchanged when `BACKEND_MODE=local` (verify with `npm run build`)
 
 ### Acceptance Criteria
-- [ ] Client connects to Supabase when configured
-- [ ] Proper error messages for missing configuration
-- [ ] No Supabase code in local mode bundle
+- [x] Client connects to Supabase when configured
+- [x] Proper error messages for missing configuration
+- [x] No Supabase code in local mode bundle
 
 ---
 
