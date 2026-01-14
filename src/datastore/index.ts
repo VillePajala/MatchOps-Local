@@ -1,4 +1,5 @@
 export { LocalDataStore } from './LocalDataStore';
+export { SupabaseDataStore } from './SupabaseDataStore';
 export {
   getDataStore,
   getAuthService,
