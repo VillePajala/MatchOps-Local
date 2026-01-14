@@ -64,6 +64,7 @@ const mockUser = {
 // Mock Supabase client
 const mockSupabaseClient = {
   from: jest.fn(() => mockQueryBuilder),
+  rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
   auth: {
     getUser: jest.fn().mockResolvedValue({
       data: { user: mockUser },
@@ -772,9 +773,9 @@ describe('SupabaseDataStore', () => {
     });
 
     describe('setTeamRoster', () => {
-      it('should set team roster', async () => {
-        mockQueryBuilder.eq = jest.fn().mockResolvedValue({ error: null });
-        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+      it('should set team roster via RPC', async () => {
+        // Mock RPC success
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
 
         const roster: TeamPlayer[] = [
           {
@@ -786,13 +787,33 @@ describe('SupabaseDataStore', () => {
         ];
 
         await expect(dataStore.setTeamRoster('team_123', roster)).resolves.not.toThrow();
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('set_team_roster', expect.objectContaining({
+          p_team_id: 'team_123',
+          p_roster: expect.any(Array),
+        }));
       });
 
-      it('should handle empty roster', async () => {
-        mockQueryBuilder.eq = jest.fn().mockResolvedValue({ error: null });
+      it('should handle empty roster via RPC', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
 
         await expect(dataStore.setTeamRoster('team_123', [])).resolves.not.toThrow();
-        expect(mockQueryBuilder.insert).not.toHaveBeenCalled();
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('set_team_roster', expect.objectContaining({
+          p_team_id: 'team_123',
+          p_roster: [],
+        }));
+      });
+
+      it('should throw NetworkError on RPC failure', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
+        });
+
+        const roster: TeamPlayer[] = [
+          { id: 'player_1', name: 'Player 1', isGoalie: false, receivedFairPlayCard: false },
+        ];
+
+        await expect(dataStore.setTeamRoster('team_123', roster)).rejects.toThrow(NetworkError);
       });
     });
 
@@ -1455,14 +1476,38 @@ describe('SupabaseDataStore', () => {
     });
 
     describe('removePersonnelMember', () => {
-      it('should remove personnel member successfully', async () => {
-        mockQueryBuilder.eq = jest.fn().mockResolvedValue({
+      it('should remove personnel member successfully via RPC', async () => {
+        // Mock RPC success - returns true when deleted
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: true,
           error: null,
-          count: 1,
         });
 
         const result = await dataStore.removePersonnelMember('personnel_123');
         expect(result).toBe(true);
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('delete_personnel_cascade', {
+          p_personnel_id: 'personnel_123',
+        });
+      });
+
+      it('should return false when personnel not found', async () => {
+        // Mock RPC returns false for not found
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: false,
+          error: null,
+        });
+
+        const result = await dataStore.removePersonnelMember('nonexistent_123');
+        expect(result).toBe(false);
+      });
+
+      it('should throw NetworkError on RPC failure', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
+        });
+
+        await expect(dataStore.removePersonnelMember('personnel_123')).rejects.toThrow(NetworkError);
       });
     });
   });
@@ -1711,19 +1756,20 @@ describe('SupabaseDataStore', () => {
 
     describe('createGame', () => {
       it('should create game with defaults', async () => {
-        // User is already mocked via mockSupabaseClient.auth.getUser
-        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({ error: null });
-        mockQueryBuilder.delete = jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ error: null }),
-        });
-        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        // Mock RPC success (createGame calls saveGame which uses RPC)
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
 
+        // Provide required fields (validation now enforced)
         const { gameId, gameData } = await dataStore.createGame({
           teamName: 'My Team',
+          opponentName: 'Opponent Team',
+          gameDate: '2024-01-15',
         });
 
         expect(gameId).toMatch(/^game_/);
         expect(gameData.teamName).toBe('My Team');
+        expect(gameData.opponentName).toBe('Opponent Team');
+        expect(gameData.gameDate).toBe('2024-01-15');
         // Check defaults (Rule #10)
         expect(gameData.periodDurationMinutes).toBe(10);
         expect(gameData.subIntervalMinutes).toBe(5);
@@ -1732,17 +1778,19 @@ describe('SupabaseDataStore', () => {
         expect(gameData.lastSubConfirmationTimeSeconds).toBe(0);
         expect(gameData.homeOrAway).toBe('home');
         expect(gameData.isPlayed).toBe(true);
+        // Verify RPC was called
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
       });
 
       it('should override defaults with provided values', async () => {
-        // User is already mocked via mockSupabaseClient.auth.getUser
-        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({ error: null });
-        mockQueryBuilder.delete = jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ error: null }),
-        });
-        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        // Mock RPC success
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
 
+        // Provide required fields plus overrides
         const { gameData } = await dataStore.createGame({
+          teamName: 'My Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
           periodDurationMinutes: 15,
           homeOrAway: 'away',
         });
@@ -1753,9 +1801,10 @@ describe('SupabaseDataStore', () => {
     });
 
     describe('saveGame', () => {
-      it('should throw NetworkError on save failure', async () => {
-        // User is already mocked via mockSupabaseClient.auth.getUser
-        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({
+      it('should throw NetworkError on RPC save failure', async () => {
+        // Mock RPC to return error
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
           error: { message: 'Database error' },
         });
 
@@ -1767,7 +1816,7 @@ describe('SupabaseDataStore', () => {
           numberOfPeriods: 2 as const,
           periodDurationMinutes: 10,
           currentPeriod: 1,
-          gameStatus: 'pre-match' as const,
+          gameStatus: 'notStarted' as const,
           homeScore: 0,
           awayScore: 0,
           gameNotes: '',
@@ -1780,6 +1829,70 @@ describe('SupabaseDataStore', () => {
         };
 
         await expect(dataStore.saveGame('game_123', game as AppState)).rejects.toThrow(NetworkError);
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
+      });
+
+      it('should save game successfully via RPC', async () => {
+        // Mock RPC success
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: null,
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        const result = await dataStore.saveGame('game_123', game as AppState);
+        expect(result).toEqual(game);
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.objectContaining({
+          p_game: expect.any(Object),
+          p_players: expect.any(Array),
+          p_events: expect.any(Array),
+          p_assessments: expect.any(Array),
+          p_tactical_data: expect.any(Object),
+        }));
+      });
+
+      it('should throw ValidationError for invalid game data', async () => {
+        const invalidGame = {
+          teamName: '',  // Required field missing
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+        };
+
+        await expect(dataStore.saveGame('game_123', invalidGame as AppState)).rejects.toThrow(ValidationError);
+        // RPC should NOT be called if validation fails
+        expect(mockSupabaseClient.rpc).not.toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
       });
     });
 
@@ -2796,71 +2909,78 @@ describe('SupabaseDataStore', () => {
     });
 
     describe('deleteWarmupPlan', () => {
-      it('should delete plan successfully', async () => {
-        mockQueryBuilder.delete = jest.fn().mockResolvedValue({
-          error: null,
-          count: 1,
+      it('should delete plan successfully with user_id filter', async () => {
+        // Mock delete chain: .delete({ count: 'exact' }).eq('user_id', userId)
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: null, count: 1 }),
         });
 
         const result = await dataStore.deleteWarmupPlan();
         expect(result).toBe(true);
+        // Verify user_id filter is applied
+        expect(mockQueryBuilder.delete).toHaveBeenCalledWith({ count: 'exact' });
       });
 
       it('should return false when no plan to delete', async () => {
-        mockQueryBuilder.delete = jest.fn().mockResolvedValue({
-          error: null,
-          count: 0,
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: null, count: 0 }),
         });
 
         const result = await dataStore.deleteWarmupPlan();
         expect(result).toBe(false);
       });
+
+      it('should throw NetworkError on delete failure', async () => {
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: { message: 'Database error' }, count: null }),
+        });
+
+        await expect(dataStore.deleteWarmupPlan()).rejects.toThrow(NetworkError);
+      });
     });
   });
 
   // ==========================================================================
-  // GAME EVENTS (via saveGame full-save pattern)
+  // GAME EVENTS (via saveGame full-save pattern with RPC)
   // ==========================================================================
 
   describe('Game Events', () => {
     // Game events use the full-save pattern - add/update/remove all
-    // call saveGame under the hood. These tests verify the pattern works.
+    // call saveGame under the hood, which uses RPC for atomic writes.
 
-    it('should add event by appending to array and saving', async () => {
-      // Mock getGameById return
+    const mockGameRow = {
+      id: 'game_123',
+      user_id: 'user_123',
+      team_name: 'Test Team',
+      opponent_name: 'Opponent',
+      game_date: '2024-01-15',
+      home_or_away: 'home',
+      number_of_periods: 2,
+      period_duration_minutes: 10,
+      current_period: 1,
+      game_status: 'inProgress',
+      is_played: true,
+      home_score: 0,
+      away_score: 0,
+      game_notes: '',
+      show_player_names: true,
+      game_personnel: [],
+    };
+
+    beforeEach(() => {
+      // Reset RPC mock for each test
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
+    });
+
+    it('should add event by appending to array and saving via RPC', async () => {
+      // Mock getGameById return (fetchGameTables)
       mockQueryBuilder.single = jest.fn()
-        .mockResolvedValueOnce({
-          data: {
-            id: 'game_123',
-            user_id: 'user_123',
-            team_name: 'Test Team',
-            opponent_name: 'Opponent',
-            game_date: '2024-01-15',
-            home_or_away: 'home',
-            number_of_periods: 2,
-            period_duration_minutes: 10,
-            current_period: 1,
-            game_status: 'inProgress',
-            is_played: true,
-            home_score: 0,
-            away_score: 0,
-            game_notes: '',
-            show_player_names: true,
-            game_personnel: [],
-          },
-          error: null,
-        })
+        .mockResolvedValueOnce({ data: mockGameRow, error: null })
         .mockResolvedValue({ data: null, error: { code: 'PGRST116' } }); // tactical data not found
 
-      // Mock child table queries
-      mockQueryBuilder.contains = jest.fn().mockResolvedValue({ data: [], error: null });
-
-      // Mock saveGame operations
-      mockQueryBuilder.upsert = jest.fn().mockResolvedValue({ error: null });
-      mockQueryBuilder.delete = jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      });
-      mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+      // Mock child table queries (for fetchGameTables)
+      mockQueryBuilder.eq = jest.fn().mockReturnThis();
+      mockQueryBuilder.select = jest.fn().mockReturnThis();
 
       const newEvent = { id: 'event_new', type: 'goal' as const, time: 300, scorerId: 'p1' };
       const result = await dataStore.addGameEvent('game_123', newEvent);
@@ -2868,6 +2988,8 @@ describe('SupabaseDataStore', () => {
       // Event should be added
       expect(result).not.toBeNull();
       expect(result?.gameEvents).toContainEqual(newEvent);
+      // RPC should be called for save
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
     });
 
     it('should return null when game not found for addGameEvent', async () => {
@@ -2881,6 +3003,137 @@ describe('SupabaseDataStore', () => {
         type: 'goal',
         time: 100,
       });
+
+      expect(result).toBeNull();
+    });
+
+    it('should update event at specific index and save via RPC', async () => {
+      // Mock existing game with events
+      const gameWithEvents = {
+        ...mockGameRow,
+      };
+      mockQueryBuilder.single = jest.fn()
+        .mockResolvedValueOnce({ data: gameWithEvents, error: null })
+        .mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+
+      // Mock events table query
+      mockQueryBuilder.eq = jest.fn().mockReturnThis();
+      mockQueryBuilder.select = jest.fn().mockReturnThis();
+
+      // Need to mock the events separately since fetchGameTables queries them
+      const originalFrom = mockSupabaseClient.from as jest.Mock;
+      originalFrom.mockImplementation((table: string) => {
+        if (table === 'game_events') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({
+              data: [
+                { id: 'e1', game_id: 'game_123', event_type: 'goal', time_seconds: 100, order_index: 0 },
+                { id: 'e2', game_id: 'game_123', event_type: 'opponentGoal', time_seconds: 200, order_index: 1 },
+              ],
+              error: null,
+            }),
+          };
+        }
+        return mockQueryBuilder;
+      });
+
+      const updatedEvent = { id: 'e1', type: 'goal' as const, time: 150, scorerId: 'p2' };
+      const result = await dataStore.updateGameEvent('game_123', 0, updatedEvent);
+
+      expect(result).not.toBeNull();
+      expect(result?.gameEvents[0]).toEqual(updatedEvent);
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
+
+      // Restore original mock
+      originalFrom.mockImplementation(() => mockQueryBuilder);
+    });
+
+    it('should return null when updating event at invalid index', async () => {
+      mockQueryBuilder.single = jest.fn()
+        .mockResolvedValueOnce({ data: mockGameRow, error: null })
+        .mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+      mockQueryBuilder.eq = jest.fn().mockReturnThis();
+      mockQueryBuilder.select = jest.fn().mockReturnThis();
+
+      // Game has no events, so any index is invalid
+      const result = await dataStore.updateGameEvent('game_123', 5, {
+        id: 'e1',
+        type: 'goal',
+        time: 100,
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should remove event at specific index and save via RPC', async () => {
+      mockQueryBuilder.single = jest.fn()
+        .mockResolvedValueOnce({ data: mockGameRow, error: null })
+        .mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+
+      // Mock events
+      const originalFrom = mockSupabaseClient.from as jest.Mock;
+      originalFrom.mockImplementation((table: string) => {
+        if (table === 'game_events') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({
+              data: [
+                { id: 'e1', game_id: 'game_123', event_type: 'goal', time_seconds: 100, order_index: 0 },
+                { id: 'e2', game_id: 'game_123', event_type: 'opponentGoal', time_seconds: 200, order_index: 1 },
+              ],
+              error: null,
+            }),
+          };
+        }
+        return mockQueryBuilder;
+      });
+
+      const result = await dataStore.removeGameEvent('game_123', 0);
+
+      expect(result).not.toBeNull();
+      expect(result?.gameEvents).toHaveLength(1);
+      expect(result?.gameEvents[0].id).toBe('e2');
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
+
+      // Restore
+      originalFrom.mockImplementation(() => mockQueryBuilder);
+    });
+
+    it('should return null when removing event at invalid index', async () => {
+      mockQueryBuilder.single = jest.fn()
+        .mockResolvedValueOnce({ data: mockGameRow, error: null })
+        .mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+      mockQueryBuilder.eq = jest.fn().mockReturnThis();
+      mockQueryBuilder.select = jest.fn().mockReturnThis();
+
+      const result = await dataStore.removeGameEvent('game_123', 10);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when game not found for updateGameEvent', async () => {
+      mockQueryBuilder.single = jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: 'PGRST116', message: 'Not found' },
+      });
+
+      const result = await dataStore.updateGameEvent('nonexistent', 0, {
+        id: 'e1',
+        type: 'goal',
+        time: 100,
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when game not found for removeGameEvent', async () => {
+      mockQueryBuilder.single = jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: 'PGRST116', message: 'Not found' },
+      });
+
+      const result = await dataStore.removeGameEvent('nonexistent', 0);
 
       expect(result).toBeNull();
     });

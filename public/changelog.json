@@ -1,8 +1,8 @@
 {
-  "version": "b9c42742",
-  "date": "2026-01-13",
+  "version": "c25bb244",
+  "date": "2026-01-14",
   "notes": {
-    "en": "Strengthen PR review process requirements",
-    "fi": "Strengthen PR review process requirements"
+    "en": "PR #4 - Add TODO comment for Rule #14 validateGame parity",
+    "fi": "PR #4 - Add TODO comment for Rule #14 validateGame parity"
   }
 }
