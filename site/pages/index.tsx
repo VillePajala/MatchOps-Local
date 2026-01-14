@@ -105,6 +105,7 @@ export default function HomePage() {
   }, []);
 
   const goTo = (index: number) => {
+    setActiveSlide(index); // Update immediately on click
     const container = mobileCarouselRef.current;
     if (!container) return;
     const items = Array.from(container.children) as HTMLElement[];
