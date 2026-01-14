@@ -1,8 +1,8 @@
 {
-  "version": "c25bb244",
+  "version": "8b3aacc4",
   "date": "2026-01-14",
   "notes": {
-    "en": "PR #4 - Add TODO comment for Rule #14 validateGame parity",
-    "fi": "PR #4 - Add TODO comment for Rule #14 validateGame parity"
+    "en": "PR #4 - Implement RPC calls and shared validation",
+    "fi": "PR #4 - Implement RPC calls and shared validation"
   }
 }

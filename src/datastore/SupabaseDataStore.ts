@@ -133,6 +133,12 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
 };
 
 /**
+ * Default field position for players (center of field).
+ * Used when player position data is missing or undefined.
+ */
+const DEFAULT_FIELD_POSITION = { relX: 0.5, relY: 0.5 } as const;
+
+/**
  * Normalize optional string: trim whitespace, convert empty to undefined.
  */
 const normalizeOptionalString = (value?: string): string | undefined => {
@@ -405,7 +411,7 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('players')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+       
       .insert(this.transformPlayerToDb(newPlayer, now, userId) as unknown as never);
 
     if (error) {
@@ -644,7 +650,7 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('teams')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+       
       .insert(this.transformTeamToDb(newTeam, userId) as unknown as never);
 
     if (error) {
@@ -1019,7 +1025,7 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('seasons')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+       
       .insert(this.transformSeasonToDb(newSeason, now, userId) as unknown as never);
 
     if (error) {
@@ -1275,7 +1281,7 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('tournaments')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+       
       .insert(this.transformTournamentToDb(newTournament, now, userId) as unknown as never);
 
     if (error) {
@@ -1515,7 +1521,7 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('personnel')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+       
       .insert(this.transformPersonnelToDb(newPersonnel, userId) as unknown as never);
 
     if (error) {
@@ -1681,7 +1687,7 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('user_settings')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+       
       .upsert(this.transformSettingsToDb(settings, userId) as unknown as never);
 
     if (error) {
@@ -1926,8 +1932,8 @@ export class SupabaseDataStore implements DataStore {
         color: p.color ?? undefined,
         notes: p.notes ?? '',
         receivedFairPlayCard: p.received_fair_play_card ?? false,
-        relX: p.rel_x ?? 0.5,
-        relY: p.rel_y ?? 0.5,
+        relX: p.rel_x ?? DEFAULT_FIELD_POSITION.relX,
+        relY: p.rel_y ?? DEFAULT_FIELD_POSITION.relY,
       }));
 
     // Reconstruct selectedPlayerIds (on-field players first for UI ordering)
@@ -2146,7 +2152,7 @@ export class SupabaseDataStore implements DataStore {
       periodDurationMinutes: 10,
       subIntervalMinutes: 5,
       showPlayerNames: true,
-      tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+      tacticalBallPosition: DEFAULT_FIELD_POSITION,
       lastSubConfirmationTimeSeconds: 0,
       // === Other sensible defaults ===
       teamName: '',
@@ -2402,7 +2408,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('player_adjustments')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+       
       .insert(dbAdjustment as unknown as never);
 
     if (error) {
@@ -2438,7 +2444,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error: updateError } = await this.getClient()
       .from('player_adjustments')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+       
       .update(this.transformAdjustmentToDb(updated, userId) as unknown as never)
       .eq('id', adjustmentId)
       .eq('player_id', playerId);
@@ -2556,7 +2562,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('warmup_plans')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+       
       .upsert(dbPlan as unknown as never);
 
     if (error) {

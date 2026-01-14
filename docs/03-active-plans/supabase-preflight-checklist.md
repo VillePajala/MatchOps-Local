@@ -379,6 +379,11 @@ Run these against test data:
 - [ ] Update documentation
 - [ ] Final cleanup and code review
 
+### Deferred from PR #4
+- [ ] Generate proper Supabase types: `npx supabase gen types typescript --project-id <id> > src/types/supabase.ts`
+- [ ] Verify JSONB columns have proper types (not `unknown`): tactical_discs, tactical_ball_position, tactical_drawings, etc.
+- [ ] Remove `as unknown` type assertions in SupabaseDataStore.ts where proper types now exist
+
 ### Integration Test Scenarios
 - [ ] Fresh install → local mode works
 - [ ] Enable cloud → sign up → migrate → data syncs

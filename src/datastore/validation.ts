@@ -48,4 +48,19 @@ export const validateGame = (game: AppState, context?: string): void => {
   if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
     throw new ValidationError(`${prefix}Invalid age group`, 'ageGroup', game.ageGroup);
   }
+
+  // Validate periodDurationMinutes (required for Supabase - no schema default)
+  // Belt-and-suspenders: createGame provides default of 10, but validate anyway
+  if (
+    game.periodDurationMinutes === undefined ||
+    game.periodDurationMinutes === null ||
+    game.periodDurationMinutes <= 0 ||
+    !Number.isFinite(game.periodDurationMinutes)
+  ) {
+    throw new ValidationError(
+      `${prefix}periodDurationMinutes must be a positive number`,
+      'periodDurationMinutes',
+      game.periodDurationMinutes
+    );
+  }
 };
