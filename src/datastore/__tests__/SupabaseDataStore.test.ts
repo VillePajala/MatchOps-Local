@@ -66,6 +66,10 @@ const mockSupabaseClient = {
       data: { user: mockUser },
       error: null,
     }),
+    getSession: jest.fn().mockResolvedValue({
+      data: { session: { user: mockUser } },
+      error: null,
+    }),
   },
 } as unknown as SupabaseClient<Database>;
 
@@ -142,17 +146,20 @@ describe('SupabaseDataStore', () => {
     });
 
     it('should check availability correctly', async () => {
-      // Mock successful health check
-      mockQueryBuilder.limit = jest.fn().mockResolvedValue({ data: [], error: null });
+      // Mock successful health check (uses auth.getSession)
+      (mockSupabaseClient.auth.getSession as jest.Mock).mockResolvedValueOnce({
+        data: { session: { user: mockUser } },
+        error: null,
+      });
 
       const isAvailable = await dataStore.isAvailable();
       expect(isAvailable).toBe(true);
     });
 
     it('should return false for availability when health check fails', async () => {
-      mockQueryBuilder.limit = jest.fn().mockResolvedValue({
+      (mockSupabaseClient.auth.getSession as jest.Mock).mockResolvedValueOnce({
         data: null,
-        error: { message: 'Connection failed' },
+        error: { message: 'Session expired' },
       });
 
       const isAvailable = await dataStore.isAvailable();

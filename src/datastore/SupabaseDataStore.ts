@@ -240,9 +240,9 @@ export class SupabaseDataStore implements DataStore {
       return false;
     }
 
-    // Quick health check
+    // Quick health check using auth session (faster than table query, doesn't depend on RLS)
     try {
-      const { error } = await this.supabase.from('players').select('id').limit(1);
+      const { error } = await this.supabase.auth.getSession();
       return !error;
     } catch {
       return false;
