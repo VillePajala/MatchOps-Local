@@ -342,6 +342,12 @@ src/datastore/index.ts               # Export SupabaseDataStore
 >
 > **Reference**: Use [supabase-verification-matrix.md](./supabase-verification-matrix.md) for field-by-field mappings.
 
+**Pre-requisite: Generate Supabase Types**
+```bash
+npx supabase gen types typescript --project-id <project-id> > src/types/supabase.ts
+```
+This replaces the placeholder `any` types in SupabaseDataStore.ts (`DbInsertData`, `DbRow`, etc.) with proper generated types for compile-time type safety.
+
 **Files to Create**:
 ```
 src/datastore/supabase/queries/games.ts            # Game CRUD (complex)
