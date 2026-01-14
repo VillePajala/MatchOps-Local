@@ -26,7 +26,7 @@ import type {
 import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog } from '@/types/game';
 import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
-import type { WarmupPlan } from '@/types/warmupPlan';
+import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore } from '@/interfaces/DataStore';
@@ -2420,45 +2420,242 @@ export class SupabaseDataStore implements DataStore {
   }
 
   // ==========================================================================
-  // PLAYER ADJUSTMENTS (PR #4 - Stub implementations)
+  // PLAYER ADJUSTMENTS
   // ==========================================================================
 
-  async getPlayerAdjustments(_playerId: string): Promise<PlayerStatAdjustment[]> {
-    throw new Error('Player adjustments not implemented - PR #4');
+  async getPlayerAdjustments(playerId: string): Promise<PlayerStatAdjustment[]> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const { data, error } = await this.getClient()
+      .from('player_adjustments')
+      .select('*')
+      .eq('player_id', playerId)
+      .order('applied_at', { ascending: false });
+
+    if (error) {
+      throw new NetworkError(`Failed to fetch player adjustments: ${error.message}`);
+    }
+
+    return (data || []).map((row: PlayerAdjustmentRow) => this.transformAdjustmentFromDb(row));
   }
 
   async addPlayerAdjustment(
-    _adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment> {
-    throw new Error('Player adjustments not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const id = adjustment.id || generateId('adjustment');
+    const appliedAt = adjustment.appliedAt || new Date().toISOString();
+
+    const dbAdjustment = this.transformAdjustmentToDb(
+      { ...adjustment, id, appliedAt } as PlayerStatAdjustment,
+      userId
+    );
+
+    const { error } = await this.getClient()
+      .from('player_adjustments')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+      .insert(dbAdjustment as unknown as never);
+
+    if (error) {
+      throw new NetworkError(`Failed to add player adjustment: ${error.message}`);
+    }
+
+    return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
   }
 
   async updatePlayerAdjustment(
-    _playerId: string,
-    _adjustmentId: string,
-    _patch: Partial<PlayerStatAdjustment>
+    playerId: string,
+    adjustmentId: string,
+    patch: Partial<PlayerStatAdjustment>
   ): Promise<PlayerStatAdjustment | null> {
-    throw new Error('Player adjustments not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    // Fetch existing adjustment
+    const { data: existing, error: fetchError } = await this.getClient()
+      .from('player_adjustments')
+      .select('*')
+      .eq('id', adjustmentId)
+      .eq('player_id', playerId)
+      .single();
+
+    if (fetchError || !existing) {
+      return null;
+    }
+
+    const existingAdjustment = this.transformAdjustmentFromDb(existing as PlayerAdjustmentRow);
+    const updated = { ...existingAdjustment, ...patch };
+    const userId = await this.getUserId();
+
+    const { error: updateError } = await this.getClient()
+      .from('player_adjustments')
+      .update(this.transformAdjustmentToDb(updated, userId))
+      .eq('id', adjustmentId)
+      .eq('player_id', playerId);
+
+    if (updateError) {
+      throw new NetworkError(`Failed to update player adjustment: ${updateError.message}`);
+    }
+
+    return updated;
   }
 
-  async deletePlayerAdjustment(_playerId: string, _adjustmentId: string): Promise<boolean> {
-    throw new Error('Player adjustments not implemented - PR #4');
+  async deletePlayerAdjustment(playerId: string, adjustmentId: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const { error, count } = await this.getClient()
+      .from('player_adjustments')
+      .delete({ count: 'exact' })
+      .eq('id', adjustmentId)
+      .eq('player_id', playerId);
+
+    if (error) {
+      throw new NetworkError(`Failed to delete player adjustment: ${error.message}`);
+    }
+
+    return (count ?? 0) > 0;
+  }
+
+  // Player adjustment transforms
+  private transformAdjustmentFromDb(row: PlayerAdjustmentRow): PlayerStatAdjustment {
+    return {
+      id: row.id,
+      playerId: row.player_id,
+      seasonId: row.season_id ?? undefined,
+      teamId: row.team_id ?? undefined,
+      tournamentId: row.tournament_id ?? undefined,
+      externalTeamName: row.external_team_name ?? undefined,
+      opponentName: row.opponent_name ?? undefined,
+      scoreFor: row.score_for ?? undefined,
+      scoreAgainst: row.score_against ?? undefined,
+      gameDate: row.game_date ?? undefined,
+      homeOrAway: (row.home_or_away as 'home' | 'away' | 'neutral') ?? undefined,
+      includeInSeasonTournament: row.include_in_season_tournament ?? true,
+      gamesPlayedDelta: row.games_played_delta ?? 0,
+      goalsDelta: row.goals_delta ?? 0,
+      assistsDelta: row.assists_delta ?? 0,
+      fairPlayCardsDelta: row.fair_play_cards_delta ?? undefined,
+      note: row.note ?? undefined,
+      createdBy: row.created_by ?? undefined,
+      appliedAt: row.applied_at ?? new Date().toISOString(),
+    };
+  }
+
+  private transformAdjustmentToDb(
+    adjustment: PlayerStatAdjustment,
+    userId: string
+  ): PlayerAdjustmentInsert {
+    return {
+      id: adjustment.id,
+      user_id: userId,
+      player_id: adjustment.playerId,
+      season_id: adjustment.seasonId ?? null,
+      team_id: adjustment.teamId ?? null,
+      tournament_id: adjustment.tournamentId ?? null,
+      external_team_name: adjustment.externalTeamName ?? null,
+      opponent_name: adjustment.opponentName ?? null,
+      score_for: adjustment.scoreFor ?? null,
+      score_against: adjustment.scoreAgainst ?? null,
+      game_date: adjustment.gameDate ?? null,
+      home_or_away: adjustment.homeOrAway ?? null,
+      include_in_season_tournament: adjustment.includeInSeasonTournament ?? true,
+      games_played_delta: adjustment.gamesPlayedDelta,
+      goals_delta: adjustment.goalsDelta,
+      assists_delta: adjustment.assistsDelta,
+      fair_play_cards_delta: adjustment.fairPlayCardsDelta ?? null,
+      note: adjustment.note ?? null,
+      created_by: adjustment.createdBy ?? null,
+      applied_at: adjustment.appliedAt,
+    };
   }
 
   // ==========================================================================
-  // WARMUP PLAN (PR #4 - Stub implementations)
+  // WARMUP PLAN
   // ==========================================================================
 
   async getWarmupPlan(): Promise<WarmupPlan | null> {
-    throw new Error('Warmup plan not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    // Each user has at most one warmup plan
+    const { data, error } = await this.getClient()
+      .from('warmup_plans')
+      .select('*')
+      .limit(1)
+      .single();
+
+    // PGRST116 = row not found - this is expected if no plan exists
+    if (error && error.code !== 'PGRST116') {
+      throw new NetworkError(`Failed to fetch warmup plan: ${error.message}`);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return this.transformWarmupPlanFromDb(data as WarmupPlanRow);
   }
 
-  async saveWarmupPlan(_plan: WarmupPlan): Promise<boolean> {
-    throw new Error('Warmup plan not implemented - PR #4');
+  async saveWarmupPlan(plan: WarmupPlan): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const dbPlan = this.transformWarmupPlanToDb(plan, userId);
+
+    const { error } = await this.getClient()
+      .from('warmup_plans')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+      .upsert(dbPlan as unknown as never);
+
+    if (error) {
+      throw new NetworkError(`Failed to save warmup plan: ${error.message}`);
+    }
+
+    return true;
   }
 
   async deleteWarmupPlan(): Promise<boolean> {
-    throw new Error('Warmup plan not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    // Delete all warmup plans for current user (should be only one)
+    const { error, count } = await this.getClient()
+      .from('warmup_plans')
+      .delete({ count: 'exact' });
+
+    if (error) {
+      throw new NetworkError(`Failed to delete warmup plan: ${error.message}`);
+    }
+
+    return (count ?? 0) > 0;
+  }
+
+  // Warmup plan transforms
+  private transformWarmupPlanFromDb(row: WarmupPlanRow): WarmupPlan {
+    return {
+      id: row.id,
+      version: row.version,
+      lastModified: row.last_modified,
+      isDefault: row.is_default,
+      sections: (row.sections as WarmupPlanSection[]) ?? [],
+    };
+  }
+
+  private transformWarmupPlanToDb(plan: WarmupPlan, userId: string): WarmupPlanInsert {
+    return {
+      id: plan.id,
+      user_id: userId,
+      version: plan.version,
+      last_modified: plan.lastModified,
+      is_default: plan.isDefault,
+      sections: plan.sections as unknown as Database['public']['Tables']['warmup_plans']['Insert']['sections'],
+    };
   }
 
   // ==========================================================================
