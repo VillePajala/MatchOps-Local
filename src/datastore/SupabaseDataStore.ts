@@ -23,7 +23,8 @@ import type {
   TournamentSeries,
   PlayerStatAdjustment,
 } from '@/types';
-import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
+import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog } from '@/types/game';
+import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
@@ -45,26 +46,78 @@ import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 import logger from '@/utils/logger';
 
-// Type-safe helper for database operations with placeholder types
-// Using explicit any for database operations until proper types are generated from Supabase
+// Type-safe database types using the Database schema from supabase.ts
+// These types provide full type safety for all database operations.
 //
-// TODO(PR #4/#5): Generate proper Supabase types to replace these placeholders
-// Run: npx supabase gen types typescript --project-id <project-id> > src/types/supabase.ts
-// Then update Database type in src/types/supabase.ts and remove these any-based types
-//
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type DbInsertData = Record<string, any>;
-type DbRow = Record<string, any>;
+// Note: If Supabase project schema changes, regenerate types with:
+// npx supabase gen types typescript --project-id <project-id> > src/types/supabase.ts
 
-// Row type aliases for readability - these will resolve to proper types after regeneration
-type PlayerRow = DbRow;
-type TeamRow = DbRow;
-type TeamPlayerRow = DbRow;
-type SeasonRow = DbRow;
-type TournamentRow = DbRow;
-type PersonnelRow = DbRow;
-type UserSettingsRow = DbRow;
-/* eslint-enable @typescript-eslint/no-explicit-any */
+// Row types (data returned from SELECT queries)
+type PlayerRow = Database['public']['Tables']['players']['Row'];
+type TeamRow = Database['public']['Tables']['teams']['Row'];
+type TeamPlayerRow = Database['public']['Tables']['team_players']['Row'];
+type SeasonRow = Database['public']['Tables']['seasons']['Row'];
+type TournamentRow = Database['public']['Tables']['tournaments']['Row'];
+type PersonnelRow = Database['public']['Tables']['personnel']['Row'];
+type UserSettingsRow = Database['public']['Tables']['user_settings']['Row'];
+
+// Game-related row types (for PR #4 game transforms)
+type GameRow = Database['public']['Tables']['games']['Row'];
+type GamePlayerRow = Database['public']['Tables']['game_players']['Row'];
+type GameEventRow = Database['public']['Tables']['game_events']['Row'];
+type GameTacticalDataRow = Database['public']['Tables']['game_tactical_data']['Row'];
+type PlayerAssessmentRow = Database['public']['Tables']['player_assessments']['Row'];
+type PlayerAdjustmentRow = Database['public']['Tables']['player_adjustments']['Row'];
+type WarmupPlanRow = Database['public']['Tables']['warmup_plans']['Row'];
+
+// Insert types (data for INSERT operations)
+type PlayerInsert = Database['public']['Tables']['players']['Insert'];
+type TeamInsert = Database['public']['Tables']['teams']['Insert'];
+type TeamPlayerInsert = Database['public']['Tables']['team_players']['Insert'];
+type SeasonInsert = Database['public']['Tables']['seasons']['Insert'];
+type TournamentInsert = Database['public']['Tables']['tournaments']['Insert'];
+type PersonnelInsert = Database['public']['Tables']['personnel']['Insert'];
+type UserSettingsInsert = Database['public']['Tables']['user_settings']['Insert'];
+type GameInsert = Database['public']['Tables']['games']['Insert'];
+type GamePlayerInsert = Database['public']['Tables']['game_players']['Insert'];
+type GameEventInsert = Database['public']['Tables']['game_events']['Insert'];
+type GameTacticalDataInsert = Database['public']['Tables']['game_tactical_data']['Insert'];
+type PlayerAssessmentInsert = Database['public']['Tables']['player_assessments']['Insert'];
+type PlayerAdjustmentInsert = Database['public']['Tables']['player_adjustments']['Insert'];
+type WarmupPlanInsert = Database['public']['Tables']['warmup_plans']['Insert'];
+
+/**
+ * GameTableSet - Container for all 5 tables of game data.
+ *
+ * Used by game transforms to hold the decomposed game data before/after
+ * database operations. The relationship is:
+ * - 1 game row
+ * - N game_players rows (availablePlayers with on_field/is_selected flags)
+ * - M game_events rows (ordered by order_index)
+ * - K player_assessments rows (one per assessed player)
+ * - 1 game_tactical_data row (JSONB fields for tactical data)
+ */
+interface GameTableSet {
+  game: GameInsert;
+  players: GamePlayerInsert[];
+  events: GameEventInsert[];
+  assessments: PlayerAssessmentInsert[];
+  tacticalData: GameTacticalDataInsert;
+}
+
+/**
+ * GameTableSetRow - Container for loaded game data from database.
+ *
+ * Similar to GameTableSet but uses Row types (data from SELECT queries)
+ * instead of Insert types (data for INSERT operations).
+ */
+interface GameTableSetRow {
+  game: GameRow;
+  players: GamePlayerRow[];
+  events: GameEventRow[];
+  assessments: PlayerAssessmentRow[];
+  tacticalData: GameTacticalDataRow | null;
+}
 
 // Default settings matching LocalDataStore
 const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -351,8 +404,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('players')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformPlayerToDb(newPlayer, now, userId) as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+      .insert(this.transformPlayerToDb(newPlayer, now, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create player: ${error.message}`);
@@ -451,7 +504,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformPlayerToDb(player: Player, now: string, userId: string): DbInsertData {
+  private transformPlayerToDb(player: Player, now: string, userId: string): PlayerInsert {
     return {
       id: player.id,
       user_id: userId,
@@ -590,8 +643,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('teams')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformTeamToDb(newTeam, userId) as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+      .insert(this.transformTeamToDb(newTeam, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create team: ${error.message}`);
@@ -744,7 +797,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformTeamToDb(team: Team, userId: string): DbInsertData {
+  private transformTeamToDb(team: Team, userId: string): TeamInsert {
     return {
       id: team.id,
       user_id: userId,
@@ -808,8 +861,8 @@ export class SupabaseDataStore implements DataStore {
 
     const { error: insertError } = await this.getClient()
       .from('team_players')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(rows as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+      .insert(rows as unknown as never);
 
     if (insertError) {
       throw new NetworkError(`Failed to set team roster: ${insertError.message}`);
@@ -857,7 +910,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformTeamPlayerToDb(teamId: string, player: TeamPlayer, now: string, userId: string): DbInsertData {
+  private transformTeamPlayerToDb(teamId: string, player: TeamPlayer, now: string, userId: string): TeamPlayerInsert {
     return {
       id: `${teamId}_${player.id}`, // Composite key
       team_id: teamId,
@@ -966,8 +1019,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('seasons')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformSeasonToDb(newSeason, now, userId) as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+      .insert(this.transformSeasonToDb(newSeason, now, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create season: ${error.message}`);
@@ -1106,7 +1159,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformSeasonToDb(season: Season, now: string, userId: string): DbInsertData {
+  private transformSeasonToDb(season: Season, now: string, userId: string): SeasonInsert {
     return {
       id: season.id,
       user_id: userId,
@@ -1222,8 +1275,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('tournaments')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformTournamentToDb(newTournament, now, userId) as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+      .insert(this.transformTournamentToDb(newTournament, now, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create tournament: ${error.message}`);
@@ -1362,7 +1415,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformTournamentToDb(tournament: Tournament, now: string, userId: string): DbInsertData {
+  private transformTournamentToDb(tournament: Tournament, now: string, userId: string): TournamentInsert {
     return {
       id: tournament.id,
       user_id: userId,
@@ -1462,8 +1515,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('personnel')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformPersonnelToDb(newPersonnel, userId) as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+      .insert(this.transformPersonnelToDb(newPersonnel, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create personnel: ${error.message}`);
@@ -1574,7 +1627,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformPersonnelToDb(personnel: Personnel, userId: string): DbInsertData {
+  private transformPersonnelToDb(personnel: Personnel, userId: string): PersonnelInsert {
     return {
       id: personnel.id,
       user_id: userId,
@@ -1617,8 +1670,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('user_settings')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .upsert(this.transformSettingsToDb(settings, userId) as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
+      .upsert(this.transformSettingsToDb(settings, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to save settings: ${error.message}`);
@@ -1655,7 +1708,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformSettingsToDb(settings: AppSettings, userId: string): DbInsertData {
+  private transformSettingsToDb(settings: AppSettings, userId: string): UserSettingsInsert {
     return {
       user_id: userId,
       current_game_id: settings.currentGameId ?? null,
@@ -1664,10 +1717,304 @@ export class SupabaseDataStore implements DataStore {
       has_seen_app_guide: settings.hasSeenAppGuide ?? false,
       use_demand_correction: settings.useDemandCorrection ?? false,
       has_configured_season_dates: settings.hasConfiguredSeasonDates ?? false,
-      club_season_start_date: settings.clubSeasonStartDate ?? null,
-      club_season_end_date: settings.clubSeasonEndDate ?? null,
+      club_season_start_date: settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE,
+      club_season_end_date: settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE,
       is_drawing_mode_enabled: settings.isDrawingModeEnabled ?? false,
       updated_at: new Date().toISOString(),
+    };
+  }
+
+  // ==========================================================================
+  // GAME TRANSFORMS
+  // ==========================================================================
+
+  /**
+   * Transform AppState game to database tables.
+   *
+   * Converts a single AppState game object into 5 separate database table rows:
+   * - game: main game metadata
+   * - players: availablePlayers merged with on_field/is_selected flags
+   * - events: gameEvents with order_index for ordering
+   * - assessments: player assessments with flattened sliders
+   * - tacticalData: JSONB fields for tactical data
+   *
+   * @see docs/03-active-plans/supabase-implementation-guide.md Section 5.6
+   */
+  private transformGameToTables(gameId: string, game: AppState, userId: string): GameTableSet {
+    // Build player rows by merging availablePlayers with playersOnField state
+    // Relationship: playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers (nested subsets)
+    const selectedIds = new Set(game.selectedPlayerIds ?? []);
+    const onFieldMap = new Map((game.playersOnField ?? []).map((p) => [p.id, p]));
+
+    const playerRows: GamePlayerInsert[] = (game.availablePlayers ?? []).map((player) => {
+      const onFieldPlayer = onFieldMap.get(player.id);
+      const isOnField = !!onFieldPlayer;
+      const isSelected = selectedIds.has(player.id);
+
+      return {
+        id: `${gameId}_${player.id}`,
+        game_id: gameId,
+        player_id: player.id,
+        user_id: userId,
+        // Snapshot fields - use onField version if available (more current state)
+        player_name: onFieldPlayer?.name ?? player.name,
+        nickname: onFieldPlayer?.nickname ?? player.nickname ?? '',
+        jersey_number: onFieldPlayer?.jerseyNumber ?? player.jerseyNumber ?? '',
+        is_goalie: onFieldPlayer?.isGoalie ?? player.isGoalie ?? false,
+        color: onFieldPlayer?.color ?? player.color,
+        notes: onFieldPlayer?.notes ?? player.notes ?? '',
+        received_fair_play_card: onFieldPlayer?.receivedFairPlayCard ?? player.receivedFairPlayCard ?? false,
+        // Status flags
+        // CRITICAL: Normalize is_selected - if on field, must be selected
+        is_selected: isSelected || isOnField,
+        on_field: isOnField,
+        // Field position (only for on-field players)
+        rel_x: isOnField ? onFieldPlayer!.relX : null,
+        rel_y: isOnField ? onFieldPlayer!.relY : null,
+      };
+    });
+
+    // Build event rows with order_index for ordering
+    const eventRows: GameEventInsert[] = (game.gameEvents ?? []).map((e, index) => ({
+      id: e.id,
+      game_id: gameId,
+      user_id: userId,
+      event_type: e.type,
+      time_seconds: e.time,
+      // CRITICAL: Array index becomes order_index for ordering
+      order_index: index,
+      scorer_id: e.scorerId ?? null,
+      assister_id: e.assisterId ?? null,
+      entity_id: e.entityId ?? null,
+    }));
+
+    // Build assessment rows with flattened sliders
+    const assessmentRows: PlayerAssessmentInsert[] = Object.entries(game.assessments ?? {}).map(
+      ([playerId, a]) => ({
+        id: `assessment_${gameId}_${playerId}`,
+        game_id: gameId,
+        player_id: playerId,
+        user_id: userId,
+        overall_rating: a.overall ?? null,
+        // CRITICAL: Flatten nested sliders object to individual columns
+        intensity: a.sliders?.intensity ?? null,
+        courage: a.sliders?.courage ?? null,
+        duels: a.sliders?.duels ?? null,
+        technique: a.sliders?.technique ?? null,
+        creativity: a.sliders?.creativity ?? null,
+        decisions: a.sliders?.decisions ?? null,
+        awareness: a.sliders?.awareness ?? null,
+        teamwork: a.sliders?.teamwork ?? null,
+        fair_play: a.sliders?.fair_play ?? null,
+        impact: a.sliders?.impact ?? null,
+        notes: a.notes ?? null,
+        minutes_played: a.minutesPlayed ?? null,
+        created_by: a.createdBy ?? 'coach',
+        created_at: a.createdAt ?? Date.now(),
+      })
+    );
+
+    // Build tactical data row
+    const tacticalDataRow: GameTacticalDataInsert = {
+      id: gameId,
+      game_id: gameId,
+      user_id: userId,
+      // CRITICAL: Default undefined tactical fields for legacy games
+      opponents: (game.opponents ?? []) as unknown,
+      drawings: (game.drawings ?? []) as unknown,
+      tactical_discs: (game.tacticalDiscs ?? []) as unknown,
+      tactical_drawings: (game.tacticalDrawings ?? []) as unknown,
+      tactical_ball_position: (game.tacticalBallPosition ?? null) as unknown,
+      completed_interval_durations: (game.completedIntervalDurations ?? []) as unknown,
+      last_sub_confirmation_time_seconds: game.lastSubConfirmationTimeSeconds ?? null,
+    };
+
+    return {
+      game: {
+        id: gameId,
+        user_id: userId,
+        // === CRITICAL: Empty string → NULL for ALL nullable string fields ===
+        season_id: game.seasonId === '' ? null : game.seasonId,
+        tournament_id: game.tournamentId === '' ? null : game.tournamentId,
+        tournament_series_id: game.tournamentSeriesId === '' ? null : (game.tournamentSeriesId ?? null),
+        tournament_level: game.tournamentLevel === '' ? null : (game.tournamentLevel ?? null),
+        team_id: game.teamId === '' ? null : (game.teamId ?? null),
+        game_time: game.gameTime === '' ? null : (game.gameTime ?? null),
+        game_location: game.gameLocation === '' ? null : (game.gameLocation ?? null),
+        age_group: game.ageGroup === '' ? null : (game.ageGroup ?? null),
+        league_id: game.leagueId === '' ? null : (game.leagueId ?? null),
+        custom_league_name: game.customLeagueName === '' ? null : (game.customLeagueName ?? null),
+        // === Required fields (direct mapping) ===
+        team_name: game.teamName,
+        opponent_name: game.opponentName,
+        game_date: game.gameDate,
+        // DEFENSIVE: Use || to catch both undefined AND empty string
+        home_or_away: game.homeOrAway || 'home',
+        number_of_periods: game.numberOfPeriods,
+        period_duration_minutes: game.periodDurationMinutes,
+        current_period: game.currentPeriod,
+        game_status: game.gameStatus,
+        // CRITICAL: Local semantics treat undefined as true (legacy migration)
+        is_played: game.isPlayed ?? true,
+        home_score: game.homeScore,
+        away_score: game.awayScore,
+        game_notes: game.gameNotes,
+        show_player_names: game.showPlayerNames,
+        // === Optional fields ===
+        sub_interval_minutes: game.subIntervalMinutes ?? null,
+        // DEFENSIVE: Guard against NaN/Infinity which PostgreSQL rejects
+        demand_factor: (game.demandFactor != null && isFinite(game.demandFactor)) ? game.demandFactor : null,
+        game_type: game.gameType ?? null,
+        gender: game.gender ?? null,
+        // === Array/object fields ===
+        game_personnel: game.gamePersonnel ?? [],
+        formation_snap_points: (game.formationSnapPoints ?? null) as unknown,
+        // === Timer restoration ===
+        time_elapsed_in_seconds: (game.timeElapsedInSeconds != null && isFinite(game.timeElapsedInSeconds))
+          ? game.timeElapsedInSeconds : null,
+      },
+      players: playerRows,
+      events: eventRows,
+      assessments: assessmentRows,
+      tacticalData: tacticalDataRow,
+    };
+  }
+
+  /**
+   * Transform database tables to AppState game.
+   *
+   * Reverses the transformation to reconstruct an AppState game from the 5 tables.
+   *
+   * @see docs/03-active-plans/supabase-implementation-guide.md Section 5.6
+   */
+  private transformTablesToGame(tables: GameTableSetRow): AppState {
+    const { game, players, events, assessments, tacticalData } = tables;
+
+    // Reconstruct availablePlayers (ALL game_players, NO relX/relY)
+    const availablePlayers: Player[] = players.map((p) => ({
+      id: p.player_id,
+      name: p.player_name,
+      nickname: p.nickname ?? '',
+      jerseyNumber: p.jersey_number ?? '',
+      isGoalie: p.is_goalie ?? false,
+      color: p.color ?? undefined,
+      notes: p.notes ?? '',
+      receivedFairPlayCard: p.received_fair_play_card ?? false,
+    }));
+
+    // Reconstruct playersOnField (game_players WHERE on_field = true, WITH relX/relY)
+    const playersOnField: Player[] = players
+      .filter((p) => p.on_field)
+      .map((p) => ({
+        id: p.player_id,
+        name: p.player_name,
+        nickname: p.nickname ?? '',
+        jerseyNumber: p.jersey_number ?? '',
+        isGoalie: p.is_goalie ?? false,
+        color: p.color ?? undefined,
+        notes: p.notes ?? '',
+        receivedFairPlayCard: p.received_fair_play_card ?? false,
+        relX: p.rel_x!,
+        relY: p.rel_y!,
+      }));
+
+    // Reconstruct selectedPlayerIds (on-field players first for UI ordering)
+    const selectedPlayerIds = players
+      .filter((p) => p.is_selected)
+      .sort((a, b) => {
+        if (a.on_field && !b.on_field) return -1;
+        if (!a.on_field && b.on_field) return 1;
+        return 0;
+      })
+      .map((p) => p.player_id);
+
+    // Reconstruct gameEvents (sorted by order_index)
+    const gameEvents: GameEvent[] = events
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((e) => ({
+        id: e.id,
+        type: e.event_type as GameEvent['type'],
+        time: e.time_seconds,
+        scorerId: e.scorer_id ?? undefined,
+        assisterId: e.assister_id ?? undefined,
+        entityId: e.entity_id ?? undefined,
+      }));
+
+    // Reconstruct assessments as Record<playerId, Assessment>
+    const assessmentsRecord: { [playerId: string]: PlayerAssessment } = {};
+    for (const a of assessments) {
+      assessmentsRecord[a.player_id] = {
+        overall: a.overall_rating ?? 0,
+        sliders: {
+          intensity: a.intensity ?? 0,
+          courage: a.courage ?? 0,
+          duels: a.duels ?? 0,
+          technique: a.technique ?? 0,
+          creativity: a.creativity ?? 0,
+          decisions: a.decisions ?? 0,
+          awareness: a.awareness ?? 0,
+          teamwork: a.teamwork ?? 0,
+          fair_play: a.fair_play ?? 0,
+          impact: a.impact ?? 0,
+        },
+        notes: a.notes ?? '',
+        minutesPlayed: a.minutes_played ?? 0,
+        createdBy: a.created_by ?? 'coach',
+        createdAt: typeof a.created_at === 'number' ? a.created_at : Date.now(),
+      };
+    }
+
+    return {
+      // === NULL → empty string for ALL nullable string fields ===
+      seasonId: game.season_id ?? '',
+      tournamentId: game.tournament_id ?? '',
+      tournamentSeriesId: game.tournament_series_id ?? '',
+      tournamentLevel: game.tournament_level ?? '',
+      teamId: game.team_id ?? '',
+      gameTime: game.game_time ?? '',
+      gameLocation: game.game_location ?? '',
+      ageGroup: game.age_group ?? '',
+      leagueId: game.league_id ?? '',
+      customLeagueName: game.custom_league_name ?? '',
+      // === Required fields (direct mapping) ===
+      teamName: game.team_name,
+      opponentName: game.opponent_name,
+      gameDate: game.game_date,
+      homeOrAway: game.home_or_away as 'home' | 'away',
+      numberOfPeriods: game.number_of_periods as 1 | 2,
+      periodDurationMinutes: game.period_duration_minutes,
+      currentPeriod: game.current_period,
+      gameStatus: game.game_status as AppState['gameStatus'],
+      isPlayed: game.is_played,
+      homeScore: game.home_score,
+      awayScore: game.away_score,
+      gameNotes: game.game_notes,
+      showPlayerNames: game.show_player_names,
+      // === Optional fields (null → undefined for TypeScript semantics) ===
+      subIntervalMinutes: game.sub_interval_minutes ?? undefined,
+      demandFactor: game.demand_factor ?? undefined,
+      gameType: game.game_type as AppState['gameType'] ?? undefined,
+      gender: game.gender as AppState['gender'] ?? undefined,
+      // === Array/object fields ===
+      gamePersonnel: game.game_personnel ?? [],
+      formationSnapPoints: (game.formation_snap_points as Point[] | null) ?? undefined,
+      // === Timer restoration ===
+      timeElapsedInSeconds: game.time_elapsed_in_seconds ?? undefined,
+      // === Player arrays ===
+      playersOnField,
+      availablePlayers,
+      selectedPlayerIds,
+      // === Events and assessments ===
+      gameEvents,
+      assessments: assessmentsRecord,
+      // === Tactical data from JSONB columns ===
+      opponents: (tacticalData?.opponents as Opponent[] | null) ?? [],
+      drawings: (tacticalData?.drawings as Point[][] | null) ?? [],
+      tacticalDiscs: (tacticalData?.tactical_discs as TacticalDisc[] | null) ?? [],
+      tacticalDrawings: (tacticalData?.tactical_drawings as Point[][] | null) ?? [],
+      tacticalBallPosition: (tacticalData?.tactical_ball_position as Point | null) ?? null,
+      completedIntervalDurations: (tacticalData?.completed_interval_durations as IntervalLog[] | null) ?? [],
+      lastSubConfirmationTimeSeconds: tacticalData?.last_sub_confirmation_time_seconds ?? undefined,
     };
   }
 
