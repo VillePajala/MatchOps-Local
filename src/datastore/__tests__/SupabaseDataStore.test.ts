@@ -1705,4 +1705,817 @@ describe('SupabaseDataStore', () => {
       await expect(dataStore.clearTimerState()).resolves.not.toThrow();
     });
   });
+
+  // ==========================================================================
+  // GAME TRANSFORMS (PR #4)
+  // ==========================================================================
+
+  describe('Game Transforms', () => {
+    // Helper to access private methods for testing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const getPrivateMethod = (methodName: string) => (dataStore as any)[methodName].bind(dataStore);
+
+    describe('transformGameToTables', () => {
+      it('should convert empty string fields to NULL', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          seasonId: '',
+          tournamentId: '',
+          tournamentSeriesId: '',
+          tournamentLevel: '',
+          teamId: '',
+          gameTime: '',
+          gameLocation: '',
+          ageGroup: '',
+          leagueId: '',
+          customLeagueName: '',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        // All 10 empty string fields should be NULL
+        expect(result.game.season_id).toBeNull();
+        expect(result.game.tournament_id).toBeNull();
+        expect(result.game.tournament_series_id).toBeNull();
+        expect(result.game.tournament_level).toBeNull();
+        expect(result.game.team_id).toBeNull();
+        expect(result.game.game_time).toBeNull();
+        expect(result.game.game_location).toBeNull();
+        expect(result.game.age_group).toBeNull();
+        expect(result.game.league_id).toBeNull();
+        expect(result.game.custom_league_name).toBeNull();
+      });
+
+      it('should preserve non-empty string fields', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          seasonId: 'season_123',
+          tournamentId: 'tournament_456',
+          teamId: 'team_789',
+          gameTime: '14:00',
+          gameLocation: 'Stadium A',
+          ageGroup: 'U12',
+          leagueId: 'sm-sarja',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        expect(result.game.season_id).toBe('season_123');
+        expect(result.game.tournament_id).toBe('tournament_456');
+        expect(result.game.team_id).toBe('team_789');
+        expect(result.game.game_time).toBe('14:00');
+        expect(result.game.game_location).toBe('Stadium A');
+        expect(result.game.age_group).toBe('U12');
+        expect(result.game.league_id).toBe('sm-sarja');
+      });
+
+      it('should default homeOrAway to "home" when undefined', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          seasonId: '',
+          tournamentId: '',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          // homeOrAway intentionally omitted
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        expect(result.game.home_or_away).toBe('home');
+      });
+
+      it('should default isPlayed to true when undefined (legacy games)', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          seasonId: '',
+          tournamentId: '',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'gameEnd' as const,
+          // isPlayed intentionally omitted (legacy game)
+          homeScore: 2,
+          awayScore: 1,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        expect(result.game.is_played).toBe(true);
+      });
+
+      it('should normalize players: on_field implies is_selected', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const player1 = { id: 'p1', name: 'Player 1', isGoalie: false };
+        const player2 = { id: 'p2', name: 'Player 2', isGoalie: false, relX: 0.5, relY: 0.5 };
+
+        const game = {
+          seasonId: '',
+          tournamentId: '',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          availablePlayers: [player1, player2],
+          playersOnField: [player2], // Player 2 is on field
+          selectedPlayerIds: [], // But NOT in selectedPlayerIds (edge case)
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        // Player 2 should have is_selected=true because they're on field
+        const player2Row = result.players.find((p: { player_id: string }) => p.player_id === 'p2');
+        expect(player2Row?.is_selected).toBe(true);
+        expect(player2Row?.on_field).toBe(true);
+        expect(player2Row?.rel_x).toBe(0.5);
+        expect(player2Row?.rel_y).toBe(0.5);
+
+        // Player 1 should have is_selected=false (not on field, not selected)
+        const player1Row = result.players.find((p: { player_id: string }) => p.player_id === 'p1');
+        expect(player1Row?.is_selected).toBe(false);
+        expect(player1Row?.on_field).toBe(false);
+        expect(player1Row?.rel_x).toBeNull();
+        expect(player1Row?.rel_y).toBeNull();
+      });
+
+      it('should assign order_index to events based on array position', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          seasonId: '',
+          tournamentId: '',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'inProgress' as const,
+          homeScore: 2,
+          awayScore: 1,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [
+            { id: 'e1', type: 'goal' as const, time: 120, scorerId: 'p1' },
+            { id: 'e2', type: 'opponentGoal' as const, time: 180 },
+            { id: 'e3', type: 'goal' as const, time: 300, scorerId: 'p2', assisterId: 'p1' },
+          ],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        expect(result.events).toHaveLength(3);
+        expect(result.events[0].order_index).toBe(0);
+        expect(result.events[1].order_index).toBe(1);
+        expect(result.events[2].order_index).toBe(2);
+      });
+
+      it('should flatten assessment sliders to individual columns', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          seasonId: '',
+          tournamentId: '',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'gameEnd' as const,
+          homeScore: 2,
+          awayScore: 1,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {
+            'player_1': {
+              overall: 8,
+              sliders: {
+                intensity: 7,
+                courage: 8,
+                duels: 6,
+                technique: 9,
+                creativity: 7,
+                decisions: 8,
+                awareness: 7,
+                teamwork: 9,
+                fair_play: 10,
+                impact: 8,
+              },
+              notes: 'Great game!',
+              minutesPlayed: 60,
+              createdAt: 1705330800000,
+              createdBy: 'coach',
+            },
+          },
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        expect(result.assessments).toHaveLength(1);
+        const assessment = result.assessments[0];
+        expect(assessment.player_id).toBe('player_1');
+        expect(assessment.overall_rating).toBe(8);
+        expect(assessment.intensity).toBe(7);
+        expect(assessment.courage).toBe(8);
+        expect(assessment.duels).toBe(6);
+        expect(assessment.technique).toBe(9);
+        expect(assessment.creativity).toBe(7);
+        expect(assessment.decisions).toBe(8);
+        expect(assessment.awareness).toBe(7);
+        expect(assessment.teamwork).toBe(9);
+        expect(assessment.fair_play).toBe(10);
+        expect(assessment.impact).toBe(8);
+        expect(assessment.notes).toBe('Great game!');
+        expect(assessment.minutes_played).toBe(60);
+      });
+
+      it('should handle tactical data with defaults for undefined fields', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          seasonId: '',
+          tournamentId: '',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          // Tactical fields intentionally omitted (legacy game)
+          opponents: [],
+          drawings: [],
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        expect(result.tacticalData.tactical_discs).toEqual([]);
+        expect(result.tacticalData.tactical_drawings).toEqual([]);
+        expect(result.tacticalData.tactical_ball_position).toBeNull();
+        expect(result.tacticalData.completed_interval_durations).toEqual([]);
+      });
+
+      it('should guard against NaN/Infinity in numeric fields', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          seasonId: '',
+          tournamentId: '',
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          demandFactor: NaN,
+          timeElapsedInSeconds: Infinity,
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        expect(result.game.demand_factor).toBeNull();
+        expect(result.game.time_elapsed_in_seconds).toBeNull();
+      });
+    });
+
+    describe('transformTablesToGame', () => {
+      it('should convert NULL fields to empty strings', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            tournament_series_id: null,
+            tournament_level: null,
+            team_id: null,
+            game_time: null,
+            game_location: null,
+            age_group: null,
+            league_id: null,
+            custom_league_name: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'notStarted',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            sub_interval_minutes: null,
+            demand_factor: null,
+            game_type: null,
+            gender: null,
+            game_personnel: [],
+            formation_snap_points: null,
+            time_elapsed_in_seconds: null,
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        // All 10 NULL fields should be empty strings
+        expect(result.seasonId).toBe('');
+        expect(result.tournamentId).toBe('');
+        expect(result.tournamentSeriesId).toBe('');
+        expect(result.tournamentLevel).toBe('');
+        expect(result.teamId).toBe('');
+        expect(result.gameTime).toBe('');
+        expect(result.gameLocation).toBe('');
+        expect(result.ageGroup).toBe('');
+        expect(result.leagueId).toBe('');
+        expect(result.customLeagueName).toBe('');
+      });
+
+      it('should reconstruct player arrays correctly', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'inProgress',
+            is_played: true,
+            home_score: 1,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [
+            {
+              id: 'game_123_p1',
+              game_id: 'game_123',
+              player_id: 'p1',
+              user_id: 'user_123',
+              player_name: 'Player 1',
+              is_goalie: false,
+              is_selected: true,
+              on_field: true,
+              rel_x: 0.3,
+              rel_y: 0.5,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+            {
+              id: 'game_123_p2',
+              game_id: 'game_123',
+              player_id: 'p2',
+              user_id: 'user_123',
+              player_name: 'Player 2',
+              is_goalie: true,
+              is_selected: true,
+              on_field: false,
+              rel_x: null,
+              rel_y: null,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+            {
+              id: 'game_123_p3',
+              game_id: 'game_123',
+              player_id: 'p3',
+              user_id: 'user_123',
+              player_name: 'Player 3',
+              is_goalie: false,
+              is_selected: false,
+              on_field: false,
+              rel_x: null,
+              rel_y: null,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+          ],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        // availablePlayers should have all 3
+        expect(result.availablePlayers).toHaveLength(3);
+        // playersOnField should have only p1
+        expect(result.playersOnField).toHaveLength(1);
+        expect(result.playersOnField[0].id).toBe('p1');
+        expect(result.playersOnField[0].relX).toBe(0.3);
+        expect(result.playersOnField[0].relY).toBe(0.5);
+        // selectedPlayerIds should have p1 and p2, with on-field first
+        expect(result.selectedPlayerIds).toHaveLength(2);
+        expect(result.selectedPlayerIds[0]).toBe('p1'); // on-field first
+        expect(result.selectedPlayerIds[1]).toBe('p2');
+      });
+
+      it('should sort events by order_index', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'inProgress',
+            is_played: true,
+            home_score: 2,
+            away_score: 1,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          // Events intentionally out of order to test sorting
+          events: [
+            { id: 'e3', game_id: 'game_123', user_id: 'user_123', event_type: 'goal', time_seconds: 300, order_index: 2, created_at: '2024-01-15T10:05:00Z' },
+            { id: 'e1', game_id: 'game_123', user_id: 'user_123', event_type: 'goal', time_seconds: 120, order_index: 0, created_at: '2024-01-15T10:02:00Z' },
+            { id: 'e2', game_id: 'game_123', user_id: 'user_123', event_type: 'opponentGoal', time_seconds: 180, order_index: 1, created_at: '2024-01-15T10:03:00Z' },
+          ],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        expect(result.gameEvents).toHaveLength(3);
+        expect(result.gameEvents[0].id).toBe('e1');
+        expect(result.gameEvents[1].id).toBe('e2');
+        expect(result.gameEvents[2].id).toBe('e3');
+      });
+
+      it('should reconstruct assessment sliders from flat columns', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'gameEnd',
+            is_played: true,
+            home_score: 2,
+            away_score: 1,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [
+            {
+              id: 'assessment_game_123_p1',
+              game_id: 'game_123',
+              player_id: 'p1',
+              user_id: 'user_123',
+              overall_rating: 8,
+              intensity: 7,
+              courage: 8,
+              duels: 6,
+              technique: 9,
+              creativity: 7,
+              decisions: 8,
+              awareness: 7,
+              teamwork: 9,
+              fair_play: 10,
+              impact: 8,
+              notes: 'Great game!',
+              minutes_played: 60,
+              created_by: 'coach',
+              created_at: 1705330800000,
+            },
+          ],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        expect(result.assessments).toBeDefined();
+        expect(result.assessments!['p1']).toBeDefined();
+        const assessment = result.assessments!['p1'];
+        expect(assessment.overall).toBe(8);
+        expect(assessment.sliders.intensity).toBe(7);
+        expect(assessment.sliders.courage).toBe(8);
+        expect(assessment.sliders.duels).toBe(6);
+        expect(assessment.sliders.technique).toBe(9);
+        expect(assessment.sliders.creativity).toBe(7);
+        expect(assessment.sliders.decisions).toBe(8);
+        expect(assessment.sliders.awareness).toBe(7);
+        expect(assessment.sliders.teamwork).toBe(9);
+        expect(assessment.sliders.fair_play).toBe(10);
+        expect(assessment.sliders.impact).toBe(8);
+      });
+
+      it('should handle null tactical data with defaults', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'notStarted',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        expect(result.opponents).toEqual([]);
+        expect(result.drawings).toEqual([]);
+        expect(result.tacticalDiscs).toEqual([]);
+        expect(result.tacticalDrawings).toEqual([]);
+        expect(result.tacticalBallPosition).toBeNull();
+        expect(result.completedIntervalDurations).toEqual([]);
+      });
+    });
+
+    describe('Round-trip Transform', () => {
+      it('should preserve game data through forward and reverse transform', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+
+        const originalGame = {
+          seasonId: 'season_123',
+          tournamentId: 'tournament_456',
+          tournamentSeriesId: 'series_789',
+          tournamentLevel: '',
+          teamId: 'team_abc',
+          gameTime: '14:00',
+          gameLocation: 'Stadium A',
+          ageGroup: 'U12',
+          leagueId: 'sm-sarja',
+          customLeagueName: '',
+          teamName: 'FC Test',
+          opponentName: 'FC Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'away' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 15,
+          currentPeriod: 2,
+          gameStatus: 'gameEnd' as const,
+          isPlayed: true,
+          homeScore: 2,
+          awayScore: 3,
+          gameNotes: 'Great match!',
+          showPlayerNames: false,
+          subIntervalMinutes: 5,
+          demandFactor: 1.2,
+          gameType: 'soccer' as const,
+          gender: 'boys' as const,
+          gamePersonnel: ['coach_1', 'trainer_2'],
+          timeElapsedInSeconds: 1800,
+          availablePlayers: [
+            { id: 'p1', name: 'Player One', isGoalie: false, jerseyNumber: '10' },
+            { id: 'p2', name: 'Player Two', isGoalie: true, jerseyNumber: '1' },
+          ],
+          playersOnField: [
+            { id: 'p1', name: 'Player One', isGoalie: false, jerseyNumber: '10', relX: 0.5, relY: 0.5 },
+          ],
+          selectedPlayerIds: ['p1', 'p2'],
+          gameEvents: [
+            { id: 'e1', type: 'goal' as const, time: 120, scorerId: 'p1' },
+            { id: 'e2', type: 'opponentGoal' as const, time: 180 },
+          ],
+          assessments: {
+            'p1': {
+              overall: 8,
+              sliders: {
+                intensity: 7, courage: 8, duels: 6, technique: 9,
+                creativity: 7, decisions: 8, awareness: 7, teamwork: 9,
+                fair_play: 10, impact: 8,
+              },
+              notes: 'Good',
+              minutesPlayed: 60,
+              createdAt: 1705330800000,
+              createdBy: 'coach',
+            },
+          },
+          opponents: [{ id: 'o1', relX: 0.7, relY: 0.3 }],
+          drawings: [[{ relX: 0.1, relY: 0.1 }, { relX: 0.2, relY: 0.2 }]],
+          tacticalDiscs: [{ id: 'd1', relX: 0.4, relY: 0.4, type: 'home' as const }],
+          tacticalDrawings: [],
+          tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+          completedIntervalDurations: [{ period: 1, duration: 900, timestamp: 1705330000000 }],
+          lastSubConfirmationTimeSeconds: 600,
+        };
+
+        // Forward transform
+        const tables = transformGameToTables('game_123', originalGame, 'user_123');
+
+        // Convert to Row types (simulate DB read)
+        const tableRows = {
+          game: { ...tables.game, created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T10:00:00Z' },
+          players: tables.players.map(p => ({ ...p, created_at: '2024-01-15T10:00:00Z' })),
+          events: tables.events.map(e => ({ ...e, created_at: '2024-01-15T10:00:00Z' })),
+          assessments: tables.assessments,
+          tacticalData: { ...tables.tacticalData, created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T10:00:00Z' },
+        };
+
+        // Reverse transform
+        const roundTrippedGame = transformTablesToGame(tableRows);
+
+        // Verify key fields preserved
+        expect(roundTrippedGame.seasonId).toBe(originalGame.seasonId);
+        expect(roundTrippedGame.tournamentId).toBe(originalGame.tournamentId);
+        expect(roundTrippedGame.teamName).toBe(originalGame.teamName);
+        expect(roundTrippedGame.opponentName).toBe(originalGame.opponentName);
+        expect(roundTrippedGame.gameDate).toBe(originalGame.gameDate);
+        expect(roundTrippedGame.homeOrAway).toBe(originalGame.homeOrAway);
+        expect(roundTrippedGame.homeScore).toBe(originalGame.homeScore);
+        expect(roundTrippedGame.awayScore).toBe(originalGame.awayScore);
+        expect(roundTrippedGame.isPlayed).toBe(originalGame.isPlayed);
+        expect(roundTrippedGame.gameType).toBe(originalGame.gameType);
+        expect(roundTrippedGame.gender).toBe(originalGame.gender);
+
+        // Verify player arrays
+        expect(roundTrippedGame.availablePlayers).toHaveLength(2);
+        expect(roundTrippedGame.playersOnField).toHaveLength(1);
+        expect(roundTrippedGame.selectedPlayerIds).toContain('p1');
+        expect(roundTrippedGame.selectedPlayerIds).toContain('p2');
+
+        // Verify events preserved in order
+        expect(roundTrippedGame.gameEvents).toHaveLength(2);
+        expect(roundTrippedGame.gameEvents[0].id).toBe('e1');
+        expect(roundTrippedGame.gameEvents[1].id).toBe('e2');
+
+        // Verify tactical data
+        expect(roundTrippedGame.tacticalBallPosition).toEqual({ relX: 0.5, relY: 0.5 });
+      });
+    });
+  });
 });
