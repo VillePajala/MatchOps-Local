@@ -1,27 +1,62 @@
 import Layout from '@/components/Layout';
 import FeatureCard from '@/components/FeatureCard';
+import { PhoneMockup, GlowBg } from '@/components/marketing';
 import Head from 'next/head';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-// Polished lists now use CSS-based checkmarks via .list-checked
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
-import { FaFutbol, FaClock, FaPencilAlt, FaChartLine, FaTrophy, FaUsers, FaBolt, FaShieldAlt, FaDatabase, FaGlobe, FaClipboardList, FaPlay, FaChartBar } from 'react-icons/fa';
+import { FaFutbol, FaClock, FaPencilAlt, FaChartLine, FaTrophy, FaUsers, FaBolt, FaShieldAlt, FaDatabase, FaGlobe } from 'react-icons/fa';
 
-// Language-aware screenshot paths
+// Language-aware screenshot paths (matches marketing-assets.tsx)
 const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg', // Language agnostic
+    // Main hero screenshots
+    soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg',
     timer: isEnglish
       ? '/screenshots/MatchOps_main_timer_en.jpg'
       : '/screenshots/MatchOps_Main_timer_full.jpg',
     playerstats: isEnglish
       ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
       : '/screenshots/MatchOps_Main_playerstats_full.jpg',
+    // Feature card screenshots
+    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi&en.jpg',
+    formations: isEnglish
+      ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
+      : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
+    roster: isEnglish
+      ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
+      : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
+    assessment: isEnglish
+      ? '/screenshots/MatcOps_main_playerassesments_en.jpg'
+      : '/screenshots/MatchOps_main_playerassesments_fi.jpg',
+    trends: isEnglish
+      ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
+      : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',
+    seasons: isEnglish
+      ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
+      : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
+    tournaments: isEnglish
+      ? '/screenshots/MatcOps_main_tournamentcreationmodal_en.jpg'
+      : '/screenshots/MatchOps_main_tournamentcreationmodel_fi.jpg',
+    teams: isEnglish
+      ? '/screenshots/MatcOps_main_teamcreatiommodal_en.jpg'
+      : '/screenshots/MatchOps_main_teamcreatingmodal_fi.jpg',
+    archive: isEnglish
+      ? '/screenshots/MatcOps_main_savedgames_en.jpg'
+      : '/screenshots/MatchOps_main_savedgames_fi.jpg',
+    goalTimeline: isEnglish
+      ? '/screenshots/MatchOps_main_goallogs_en.jpg'
+      : '/screenshots/MatchOps_main_goallogs_fi.jpg',
+    excelExport: isEnglish
+      ? '/screenshots/MatcOps_main_excelexport_en.jpg'
+      : '/screenshots/MatchOps_main_excelexport_fi.jpg',
+    personnel: isEnglish
+      ? '/screenshots/MatcOps_main_personnel_en.jpg'
+      : '/screenshots/MatchOps_main_personnel_fi.jpg',
   };
 };
 
@@ -32,6 +67,12 @@ export default function HomePage() {
   const mobileCarouselRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [lightbox, setLightbox] = useState<null | { src: string; alt: string }>(null);
+  const isEnglish = router.locale === 'en';
+
+  // Mobile carousel labels (5 items now)
+  const carouselLabels = isEnglish
+    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Events']
+    : ['Kokoonpano', 'Ajastin', 'Tilastot', 'Taktiikka', 'Tapahtumat'];
 
   useEffect(() => {
     const container = mobileCarouselRef.current;
@@ -43,14 +84,12 @@ export default function HomePage() {
     let raf: number | null = null;
     const observer = new IntersectionObserver(
       (entries) => {
-        // Pick the most visible item
         const mostVisible = entries
           .slice()
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         if (!mostVisible) return;
         const index = items.indexOf(mostVisible.target as HTMLElement);
         if (index >= 0) {
-          // Throttle state updates with rAF to avoid jank on scroll
           if (raf) cancelAnimationFrame(raf);
           raf = requestAnimationFrame(() => setActiveSlide(index));
         }
@@ -93,112 +132,67 @@ export default function HomePage() {
         <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}`} />
         <meta property="og:image" content="https://www.match-ops.com/screenshots/OG.png" />
       </Head>
-      {/* What Is This? */}
-      <section className="section bg-slate-900">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            {/* Title with highlight */}
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-6">
-              {router.locale === 'fi' ? (
-                <>Mikä on <span className="text-primary">MatchOps Local</span>?</>
-              ) : (
-                <>What is <span className="text-primary">MatchOps Local</span>?</>
-              )}
-            </h1>
 
-            {/* Main description */}
-            <p className="text-slate-200 text-lg md:text-xl leading-relaxed mb-6">
-              {t('info.whatIsThis.description')}
+      {/* ===== HERO SECTION ===== */}
+      <section className="section bg-slate-900 relative overflow-hidden">
+        {/* Ambient glow effects - subtle */}
+        <div className="hidden md:block">
+          <GlowBg color="primary" position="top-right" size="md" blur={150} />
+          <GlowBg color="amber" position="bottom-left" size="sm" blur={130} />
+        </div>
+
+        <div className="container-custom relative z-10">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Bold tagline */}
+            <p className="text-sm md:text-base text-slate-400 uppercase tracking-wider mb-3">
+              {t('marketing.cards.forCoaches')}
+            </p>
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
+              <span className="text-primary">MatchOps Local</span>
+            </h1>
+            <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
+              {t('marketing.taglines.power')}
             </p>
 
-            {/* Badge-style highlights */}
-            <div className="flex flex-wrap justify-center gap-3 mt-8 mb-10">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
-                <FaShieldAlt className="text-primary text-sm flex-shrink-0" />
-                <span className="text-slate-300 text-sm md:text-base">
-                  {router.locale === 'fi' ? 'Ei rekisteröitymistä' : 'No signup required'}
-                </span>
-              </div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
-                <FaDatabase className="text-primary text-sm flex-shrink-0" />
-                <span className="text-slate-300 text-sm md:text-base">
-                  {router.locale === 'fi' ? 'Tietosi pysyvät laitteellasi' : 'Your data stays on your device'}
-                </span>
-              </div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
-                <FaBolt className="text-primary text-sm flex-shrink-0" />
-                <span className="text-slate-300 text-sm md:text-base">
-                  {router.locale === 'fi' ? 'Toimii ilman nettiä' : 'Works offline'}
-                </span>
-              </div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
-                <FaShieldAlt className="text-primary text-sm flex-shrink-0" />
-                <span className="text-slate-300 text-sm md:text-base">
-                  {router.locale === 'fi' ? 'Ei seurantaa tai analytiikkaa' : 'No tracking or analytics'}
-                </span>
-              </div>
-            </div>
-
-            {/* Hero Screenshots: mobile carousel + desktop grid */}
-            {/* Mobile: swipeable scroll-snap carousel */}
+            {/* ===== 5-PHONE SHOWCASE ===== */}
+            {/* Mobile: swipeable carousel */}
             <div className="md:hidden mt-8 -mx-4 relative">
               <div
                 ref={mobileCarouselRef}
                 className="flex overflow-x-auto snap-x snap-mandatory snap-always px-0 no-scrollbar"
                 role="region"
                 aria-label={t('screenshots.aria.carousel')}
-                aria-roledescription="carousel"
               >
-                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
-                  <div className="phone-frame phone-frame-full">
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.soccerfield}
-                        alt="App view screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(max-width: 768px) 50vw, 288px"
-                        className="w-auto h-auto max-h-[65vh] object-contain"
-                        priority
-                      />
+                {[
+                  { src: screenshots.soccerfield, alt: 'Lineup view' },
+                  { src: screenshots.timer, alt: 'Timer view' },
+                  { src: screenshots.playerstats, alt: 'Stats view' },
+                  { src: screenshots.tacticalBoard, alt: 'Tactics view' },
+                  { src: screenshots.goalTimeline, alt: 'Events view' },
+                ].map((screen, i) => (
+                  <div key={i} className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
+                    <div className="phone-frame phone-frame-full">
+                      <div className="phone-frame-screen">
+                        <Image
+                          src={screen.src}
+                          alt={screen.alt}
+                          width={1080}
+                          height={2340}
+                          sizes="(max-width: 768px) 50vw, 288px"
+                          className="w-auto h-auto max-h-[65vh] object-contain"
+                          priority={i < 2}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
-                  <div className="phone-frame phone-frame-full">
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.timer}
-                        alt="Timer view screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(max-width: 768px) 50vw, 288px"
-                        className="w-auto h-auto max-h-[65vh] object-contain"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
-                  <div className="phone-frame phone-frame-full">
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.playerstats}
-                        alt="Player stats screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(max-width: 768px) 50vw, 288px"
-                        className="w-auto h-auto max-h-[65vh] object-contain"
-                      />
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Carousel controls */}
               <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1 pointer-events-none">
                 <button
                   type="button"
-                  aria-label={t('screenshots.aria.prev')}
+                  aria-label="Previous"
                   className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/60 border border-slate-700 text-white grid place-items-center shadow hover:bg-slate-800/70"
                   onClick={() => goTo(Math.max(0, activeSlide - 1))}
                 >
@@ -206,26 +200,21 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  aria-label={t('screenshots.aria.next')}
+                  aria-label="Next"
                   className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/60 border border-slate-700 text-white grid place-items-center shadow hover:bg-slate-800/70"
-                  onClick={() => goTo(Math.min(2, activeSlide + 1))}
+                  onClick={() => goTo(Math.min(4, activeSlide + 1))}
                 >
                   <span aria-hidden>›</span>
                 </button>
               </div>
 
               {/* Pill navigation */}
-              <div className="mt-6 flex items-center justify-center gap-2">
-                {[
-                  t('screenshots.labels.plan'),
-                  t('screenshots.labels.track'),
-                  t('screenshots.labels.review'),
-                ].map((label, i) => (
+              <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
+                {carouselLabels.map((label, i) => (
                   <button
                     key={label}
                     type="button"
-                    aria-label={t('screenshots.aria.goTo', { label })}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                       activeSlide === i
                         ? 'bg-primary text-slate-900'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -238,240 +227,295 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Desktop/Tablet: 3D phone showcase */}
-            <div className="hidden md:block phone-showcase-container mt-8 mx-auto max-w-4xl lg:max-w-5xl">
-              <div className="phone-showcase">
-                <div className="phone-wrapper">
-                  <button
-                    type="button"
-                    className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: screenshots.soccerfield, alt: 'App view screenshot' })}
-                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.plan') })}
-                  >
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.soccerfield}
-                        alt="App view screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(min-width: 1024px) 280px, 25vw"
-                        className="w-full h-auto"
-                        priority
-                      />
-                    </div>
-                  </button>
-                  <div className="mt-4 flex justify-center">
-                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.plan')}</span>
-                  </div>
-                </div>
-                <div className="phone-wrapper">
-                  <button
-                    type="button"
-                    className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: screenshots.timer, alt: 'Timer view screenshot' })}
-                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.track') })}
-                  >
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.timer}
-                        alt="Timer view screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(min-width: 1024px) 280px, 25vw"
-                        className="w-full h-auto"
-                      />
-                    </div>
-                  </button>
-                  <div className="mt-4 flex justify-center">
-                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.track')}</span>
-                  </div>
-                </div>
-                <div className="phone-wrapper">
-                  <button
-                    type="button"
-                    className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: screenshots.playerstats, alt: 'Player stats screenshot' })}
-                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.review') })}
-                  >
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.playerstats}
-                        alt="Player stats screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(min-width: 1024px) 280px, 25vw"
-                        className="w-full h-auto"
-                      />
-                    </div>
-                  </button>
-                  <div className="mt-4 flex justify-center">
-                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.review')}</span>
-                  </div>
-                </div>
+            {/* Desktop: 5-phone Arc layout */}
+            <div className="hidden md:block mt-12 relative">
+              <div className="relative flex items-center justify-center h-[500px]">
+                {/* Phone 1: Tactical Board - far left */}
+                <PhoneMockup
+                  screenshot={screenshots.tacticalBoard}
+                  size="md"
+                  style={{
+                    position: 'absolute',
+                    left: '8%',
+                    top: '48%',
+                    transform: 'translateY(-50%) rotate(-8deg)',
+                  }}
+                  zIndex={1}
+                />
+                {/* Phone 2: Player Stats - left of center */}
+                <PhoneMockup
+                  screenshot={screenshots.playerstats}
+                  size="lg"
+                  style={{
+                    position: 'absolute',
+                    left: '22%',
+                    top: '48%',
+                    transform: 'translateY(-45%) rotate(-4deg)',
+                  }}
+                  zIndex={2}
+                />
+                {/* Phone 3: Soccer Field - CENTER (hero) */}
+                <PhoneMockup
+                  screenshot={screenshots.soccerfield}
+                  size="xl"
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '48%',
+                    transform: 'translate(-50%, -45%)',
+                  }}
+                  zIndex={10}
+                />
+                {/* Phone 4: Timer - right of center */}
+                <PhoneMockup
+                  screenshot={screenshots.timer}
+                  size="lg"
+                  style={{
+                    position: 'absolute',
+                    right: '22%',
+                    top: '48%',
+                    transform: 'translateY(-45%) rotate(4deg)',
+                  }}
+                  zIndex={2}
+                />
+                {/* Phone 5: Goal Timeline - far right */}
+                <PhoneMockup
+                  screenshot={screenshots.goalTimeline}
+                  size="md"
+                  style={{
+                    position: 'absolute',
+                    right: '8%',
+                    top: '48%',
+                    transform: 'translateY(-50%) rotate(8deg)',
+                  }}
+                  zIndex={1}
+                />
               </div>
             </div>
 
-            {/* Desktop Lightbox Modal */}
-            {lightbox && (
-              <div
-                className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-                role="dialog"
-                aria-modal="true"
-                aria-label={t('screenshots.aria.preview')}
-                onClick={() => setLightbox(null)}
-              >
-                <div className="relative max-w-screen-lg w-full" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-slate-900 border border-slate-700 text-white shadow hover:bg-slate-800"
-                    aria-label={t('screenshots.aria.close')}
-                    onClick={() => setLightbox(null)}
-                  >
-                    ×
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Close preview"
-                    onClick={() => setLightbox(null)}
-                    className="max-h-[85vh] w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-900/40 cursor-zoom-out"
-                  >
-                    <Image
-                      src={lightbox.src}
-                      alt={lightbox.alt}
-                      width={1024}
-                      height={1536}
-                      sizes="(min-width: 1024px) 70vw, 90vw"
-                      className="block mx-auto h-auto w-auto max-w-full max-h-[85vh]"
-                    />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Removed Plan → Track → Review card band per request */}
+            {/* Punchline below phones */}
+            <p className="text-2xl md:text-3xl lg:text-4xl text-primary font-bold mt-8 md:mt-6 font-rajdhani">
+              {t('marketing.taglines.memorable')}
+            </p>
           </div>
         </div>
       </section>
 
-      {/* The Coach's Challenge - HIDDEN */}
-      {/* eslint-disable-next-line no-constant-binary-expression */}
-      {false && (
-      <section className="section section-divider bg-slate-800/50">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
-              {t('info.challenges.title')}
-            </h2>
-            <div className="space-y-4">
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge1')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge2')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge3')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge4')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge5')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge6')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge7')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      )}
-
-      {/* Section 1: Your Game Day Toolkit */}
-      <section className="section section-divider bg-slate-900">
-        <div className="container-custom">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
-              {t('features.gameDay.title')}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FeatureCard
-                icon={<FaFutbol />}
-                title={t('features.gameDay.field.title')}
-                description={t('features.gameDay.field.desc')}
-              />
-              <FeatureCard
-                icon={<FaClock />}
-                title={t('features.gameDay.timer.title')}
-                description={t('features.gameDay.timer.desc')}
-              />
-              <FeatureCard
-                icon={<FaPencilAlt />}
-                title={t('features.gameDay.tactics.title')}
-                description={t('features.gameDay.tactics.desc')}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 2: Beyond the Match */}
+      {/* ===== PLAN • TRACK • ASSESS ===== */}
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
-              {t('features.management.title')}
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
+              {isEnglish ? 'Plan • Track • Assess' : 'Suunnittele • Seuraa • Arvioi'}
             </h2>
-            <div className="mb-6">
-              <FeatureCard
-                icon={<FaChartLine />}
-                title={t('features.management.analytics.title')}
-                description={t('features.management.analytics.desc')}
-                variant="wide"
-                highlights={[
-                  t('features.management.analytics.h1'),
-                  t('features.management.analytics.h2'),
-                  t('features.management.analytics.h3'),
-                  t('features.management.analytics.h4'),
-                  t('features.management.analytics.h5'),
-                  t('features.management.analytics.h6'),
-                ]}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FeatureCard
-                icon={<FaTrophy />}
-                title={t('features.management.seasons.title')}
-                description={t('features.management.seasons.desc')}
-              />
-              <FeatureCard
-                icon={<FaUsers />}
-                title={t('features.management.team.title')}
-                description={t('features.management.team.desc')}
-              />
-              <FeatureCard
-                icon={<FaDatabase />}
-                title={t('features.management.data.title')}
-                description={t('features.management.data.desc')}
-              />
+            <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
+              {t('info.whatIsThis.description')}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* PLAN */}
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="lg" />
+                </div>
+                <h3 className="text-xl font-bold text-primary mb-2">
+                  {isEnglish ? 'Plan' : 'Suunnittele'}
+                </h3>
+                <p className="text-slate-300">
+                  {t('marketing.features.plan.desc')}
+                </p>
+              </div>
+              {/* TRACK */}
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <PhoneMockup screenshot={screenshots.timer} size="lg" />
+                </div>
+                <h3 className="text-xl font-bold text-primary mb-2">
+                  {isEnglish ? 'Track' : 'Seuraa'}
+                </h3>
+                <p className="text-slate-300">
+                  {t('marketing.features.track.desc')}
+                </p>
+              </div>
+              {/* ASSESS */}
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <PhoneMockup screenshot={screenshots.playerstats} size="lg" />
+                </div>
+                <h3 className="text-xl font-bold text-primary mb-2">
+                  {isEnglish ? 'Assess' : 'Arvioi'}
+                </h3>
+                <p className="text-slate-300">
+                  {t('marketing.features.assess.desc')}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Section 3: Built Different */}
+      {/* ===== FEATURE CARDS (12 features - matches marketing-assets.tsx styling) ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-10 text-center">
+              {isEnglish ? 'More Features' : 'Lisää ominaisuuksia'}
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 1. Tactical Board */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.tacticalBoard')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.tacticalBoardDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.tacticalBoard} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 2. Formations */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.formations')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.formationsDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.formations} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 3. Player Roster */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.roster')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.rosterDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.roster} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 4. Player Assessment */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.assessment')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.assessmentDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.assessment} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 5. Performance Trends */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.trends')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.trendsDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.trends} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 6. Season Management */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.seasons')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.seasonsDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.seasons} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 7. Tournament Hub */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.tournaments')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.tournamentsDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.tournaments} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 8. Team Builder */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.teams')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.teamsDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.teams} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 9. Game Archive */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.archive')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.archiveDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.archive} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 10. Goal Timeline */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.goalTimeline')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.goalTimelineDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.goalTimeline} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 11. Excel Reports */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.excelExport')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.excelExportDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.excelExport} size="lg" zIndex={10} />
+                </div>
+              </div>
+
+              {/* 12. Coaching Staff */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex flex-col md:flex-row">
+                <div className="md:w-1/2 flex flex-col justify-center mb-6 md:mb-0">
+                  <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{t('marketing.featureCards.personnel')}</h3>
+                  <p className="text-gray-400">{t('marketing.featureCards.personnelDesc')}</p>
+                </div>
+                <div className="md:w-1/2 flex items-center justify-center">
+                  <PhoneMockup screenshot={screenshots.personnel} size="lg" zIndex={10} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== BUILT DIFFERENT ===== */}
+      <section className="section section-divider bg-slate-800/50 relative overflow-hidden">
+        <div className="hidden md:block">
+          <GlowBg color="primary" position="center" size="lg" blur={150} />
+        </div>
+        <div className="container-custom relative z-10">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
               {t('features.foundation.title')}
@@ -502,7 +546,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Common Questions */}
+      {/* ===== FAQ ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto">
@@ -525,16 +569,63 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Limited Testing Notice */}
-      <section className="section section-divider bg-slate-800/50">
-        <div className="container-custom">
+      {/* ===== CTA ===== */}
+      <section className="section section-divider bg-slate-800/50 relative overflow-hidden">
+        <div className="hidden md:block">
+          <GlowBg color="primary" position="center" size="md" blur={120} />
+        </div>
+        <div className="container-custom relative z-10">
           <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-2xl font-bold text-white">
-              {t('info.cta.title')}
+            <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
+              {isEnglish ? 'Ready to simplify game day?' : 'Valmis yksinkertaistamaan pelipäivää?'}
             </h3>
+            <p className="text-slate-300 mb-6">
+              {t('info.cta.title')}
+            </p>
+            <a
+              href="mailto:hello@match-ops.com"
+              className="inline-block px-8 py-3 bg-primary text-slate-900 font-semibold rounded-lg hover:bg-amber-400 transition-colors"
+            >
+              {isEnglish ? 'Contact for Early Access' : 'Ota yhteyttä'}
+            </a>
+            <p className="text-slate-500 text-sm mt-4">hello@match-ops.com</p>
           </div>
         </div>
       </section>
+
+      {/* Lightbox Modal */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightbox(null)}
+        >
+          <div className="relative max-w-screen-lg w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-slate-900 border border-slate-700 text-white shadow hover:bg-slate-800"
+              onClick={() => setLightbox(null)}
+            >
+              ×
+            </button>
+            <button
+              type="button"
+              onClick={() => setLightbox(null)}
+              className="max-h-[85vh] w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-900/40 cursor-zoom-out"
+            >
+              <Image
+                src={lightbox.src}
+                alt={lightbox.alt}
+                width={1024}
+                height={1536}
+                sizes="(min-width: 1024px) 70vw, 90vw"
+                className="block mx-auto h-auto w-auto max-w-full max-h-[85vh]"
+              />
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
