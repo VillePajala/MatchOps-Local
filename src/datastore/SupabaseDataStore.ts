@@ -2235,6 +2235,10 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
+    // TODO(Rule #14): Extract validateGame() from LocalDataStore to shared module
+    // and call it here for validation parity. Currently skipping to avoid scope creep.
+    // Validation checks: required fields, gameNotes length, ageGroup validity.
+
     const userId = await this.getUserId();
     const tables = this.transformGameToTables(id, game, userId);
 
