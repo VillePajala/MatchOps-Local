@@ -191,6 +191,9 @@ Implement DataStore methods:
 - [ ] `getWarmupPlan()`, `saveWarmupPlan()`, `deleteWarmupPlan()`
 - [ ] `getTimerState()`, `saveTimerState()`, `clearTimerState()` - **local-only no-ops**
 
+**Deferred from PR #3** (now games exist):
+- [ ] `removePersonnelMember()` cascade delete - remove personnel ID from all games' `gamePersonnel` arrays (see LocalDataStore.ts:1223-1291)
+
 ### Critical Transform Checks
 Run these against test data:
 
