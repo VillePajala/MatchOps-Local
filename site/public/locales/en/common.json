@@ -272,7 +272,7 @@
     "faq": {
       "title": "Common Questions",
       "q1": "How do I install the app?",
-      "a1": "Open the app in your browser [Link coming soon]. The app will prompt you to install it - just tap 'Install'.",
+      "a1": "The app is available on Google Play. We're currently in beta testing - use the contact button below or email hello@match-ops.com to request access.",
       "q2": "Where is my data stored?",
       "a2": "All data is stored locally on your device. Nothing is sent to external servers.",
       "q3": "Can I use it on multiple devices?",
@@ -293,7 +293,7 @@
       "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
     },
     "cta": {
-      "title": "Currently in Limited Testing. Contact: hello@match‑ops.com"
+      "title": "The app is in beta testing. Get in touch to join."
     }
   },
   "screenshots": {

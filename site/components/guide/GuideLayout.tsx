@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { FaBars } from 'react-icons/fa';
 import Layout from '@/components/Layout';
+import { GlowBg } from '@/components/marketing';
 import GuideSidebar from './GuideSidebar';
 import GuideBreadcrumbs from './GuideBreadcrumbs';
 import GuideNavigation from './GuideNavigation';
@@ -94,22 +95,35 @@ export default function GuideLayout({
                 </div>
 
                 {/* Page header */}
-                <header className="mb-8">
-                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                    {pageTitle}
-                  </h1>
-                  {pageDescription && (
-                    <p className="text-lg text-slate-400">{pageDescription}</p>
-                  )}
-                  {frontmatter?.lastUpdated && (
-                    <p className="mt-2 text-sm text-slate-500">
-                      {t('lastUpdated', { date: frontmatter.lastUpdated })}
-                    </p>
-                  )}
+                <header className="mb-10 pb-8 border-b border-slate-800 relative">
+                  <div className="hidden lg:block absolute -top-8 -right-8 opacity-50">
+                    <GlowBg color="primary" position="top-right" size="sm" blur={100} />
+                  </div>
+                  <div className="relative z-10">
+                    {section && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <section.icon className="w-5 h-5 text-primary" />
+                        <span className="text-primary text-sm font-semibold uppercase tracking-wider">
+                          {t(`groups.${section.group}`)}
+                        </span>
+                      </div>
+                    )}
+                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                      {pageTitle}
+                    </h1>
+                    {pageDescription && (
+                      <p className="text-lg text-gray-400">{pageDescription}</p>
+                    )}
+                    {frontmatter?.lastUpdated && (
+                      <p className="mt-3 text-sm text-gray-500">
+                        {t('lastUpdated', { date: frontmatter.lastUpdated })}
+                      </p>
+                    )}
+                  </div>
                 </header>
 
                 {/* MDX content */}
-                <div className="prose prose-invert prose-slate max-w-none">
+                <div className="prose prose-invert prose-slate prose-primary max-w-none">
                   {children}
                 </div>
 
