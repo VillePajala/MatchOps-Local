@@ -199,6 +199,9 @@ Implement DataStore methods:
 **Deferred from PR #3** (now games exist):
 - [ ] `removePersonnelMember()` cascade delete - remove personnel ID from all games' `gamePersonnel` arrays (see LocalDataStore.ts:1223-1291)
 
+**RPC Functions** (batch with save_game_with_relations):
+- [ ] Create `set_team_roster(p_team_id, p_user_id, p_roster)` RPC for atomic delete+insert of team roster (prevents data loss if network fails between operations)
+
 ### Critical Transform Checks
 Run these against test data:
 
@@ -275,6 +278,9 @@ Run these against test data:
 - [ ] Update factory to return SupabaseAuthService in cloud mode
 - [ ] Add translation keys to `public/locales/en/common.json` and `fi/common.json`
 
+**Deferred from PR #3** (cache management):
+- [ ] Clear SupabaseDataStore caches on user change (seasonDatesCache, cachedUserId) - ensures User B doesn't see User A's cached data after logout/login
+
 ### Test Checklist
 - [ ] Sign up flow works end-to-end
 - [ ] Sign in flow works end-to-end
@@ -284,6 +290,7 @@ Run these against test data:
 - [ ] Auth state change listeners fire correctly
 - [ ] Error mapping: Supabase errors → AuthError
 - [ ] Local mode unchanged (no login screen)
+- [ ] User switch scenario: User A logout → User B login → caches cleared
 
 ### Acceptance Criteria
 - [ ] LoginScreen appears in cloud mode when not authenticated
@@ -337,6 +344,14 @@ Run these against test data:
   - [ ] `useGameDataQueries.ts`
   - [ ] `useRoster.ts` (optimistic patterns)
 
+**Optional Performance Optimizations** (if dataset size warrants):
+- [ ] Optimize composite uniqueness checks to use targeted queries instead of fetching all entities:
+  ```typescript
+  // Instead of: const existingTeams = await this.getTeams(true);
+  // Use: SELECT id FROM teams WHERE name = ? AND bound_season_id = ? ... LIMIT 1
+  ```
+  Applies to: Teams, Seasons, Tournaments, Personnel (createX/updateX methods)
+
 ### Test Checklist
 - [ ] Performance benchmarks:
   - [ ] Add player: <50ms perceived latency
@@ -370,6 +385,21 @@ Run these against test data:
 - [ ] Disable cloud → returns to local
 - [ ] Offline behavior graceful
 - [ ] RLS tests: user can only access own data
+- [ ] Concurrent access patterns (two tabs creating same entity)
+- [ ] Large dataset handling (100+ teams/seasons/tournaments)
+- [ ] Unicode and special characters in names
+- [ ] Settings invalidateSettingsCache() called correctly in all paths
+
+### Security Verification (CRITICAL)
+- [ ] **RLS policies enforce user_id at database level** - Verify all tables have policies like:
+  ```sql
+  CREATE POLICY "Users can only insert their own data"
+    ON players FOR INSERT
+    WITH CHECK (user_id = auth.uid());
+  ```
+  This prevents malicious clients from injecting different user_id values.
+- [ ] Verify RLS policies for SELECT, INSERT, UPDATE, DELETE on all tables
+- [ ] Test: Direct Supabase API call with forged user_id is rejected
 
 ### Final Checklist Before Master Merge
 - [ ] All 8 sub-PRs merged to feature branch
@@ -383,6 +413,7 @@ Run these against test data:
   - [ ] Migration works
 - [ ] Performance benchmarks met
 - [ ] Documentation complete
+- [ ] Security: RLS policies verified (see Security Verification section above)
 
 ---
 
