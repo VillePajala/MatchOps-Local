@@ -1593,14 +1593,54 @@ export class SupabaseDataStore implements DataStore {
     return updated;
   }
 
+  /**
+   * Remove a personnel member with cascade delete.
+   *
+   * Implements Rule #7: When removing personnel, must also remove their ID
+   * from all games' gamePersonnel arrays.
+   *
+   * NOTE: When RPC function delete_personnel_cascade is deployed to Supabase,
+   * this can be replaced with a single RPC call for atomicity:
+   *   await this.getClient().rpc('delete_personnel_cascade', { p_personnel_id: id });
+   */
   async removePersonnelMember(id: string): Promise<boolean> {
     this.ensureInitialized();
     checkOnline();
 
-    // NOTE: Cascade delete (removing from games) is handled by the RPC function
-    // or will be implemented in PR #4 when games are added.
-    // For now, just delete the personnel record.
-    const { error, count } = await this.getClient()
+    // Step 1: Find all games that reference this personnel
+    const client = this.getClient();
+    const { data: gamesWithPersonnel, error: fetchError } = await client
+      .from('games')
+      .select('id, game_personnel')
+      .contains('game_personnel', [id]);
+
+    if (fetchError) {
+      logger.warn(`[SupabaseDataStore] Failed to fetch games for personnel cascade: ${fetchError.message}`);
+      // Continue with delete anyway - games may not have this personnel
+    }
+
+    // Step 2: Update each game to remove this personnel ID from game_personnel array
+    if (gamesWithPersonnel && gamesWithPersonnel.length > 0) {
+      for (const game of gamesWithPersonnel) {
+        const updatedPersonnel = (game.game_personnel as string[] || []).filter(
+          (personnelId: string) => personnelId !== id
+        );
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updateClient = client as any;
+        const { error: updateError } = await updateClient
+          .from('games')
+          .update({ game_personnel: updatedPersonnel })
+          .eq('id', game.id);
+
+        if (updateError) {
+          logger.warn(`[SupabaseDataStore] Failed to update game ${game.id} during personnel cascade: ${updateError.message}`);
+        }
+      }
+    }
+
+    // Step 3: Delete the personnel record
+    const { error, count } = await client
       .from('personnel')
       .delete({ count: 'exact' })
       .eq('id', id);
