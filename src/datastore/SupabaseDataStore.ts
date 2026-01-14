@@ -38,6 +38,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
+import { validateGame } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -836,36 +837,35 @@ export class SupabaseDataStore implements DataStore {
     return (data || []).map(this.transformTeamPlayerFromDb);
   }
 
+  /**
+   * Set team roster atomically using RPC function.
+   *
+   * Uses the RPC function `set_team_roster` for atomic delete + insert.
+   * This prevents data loss if network fails mid-operation.
+   *
+   * @see supabase/migrations/001_rpc_functions.sql
+   */
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
     checkOnline();
 
-    // Delete existing roster
-    const { error: deleteError } = await this.getClient()
-      .from('team_players')
-      .delete()
-      .eq('team_id', teamId);
-
-    if (deleteError) {
-      throw new NetworkError(`Failed to clear team roster: ${deleteError.message}`);
-    }
-
-    if (roster.length === 0) {
-      return;
-    }
-
-    // Insert new roster
+    // Transform roster to database format
     const now = new Date().toISOString();
     const userId = await this.getUserId();
     const rows = roster.map((player) => this.transformTeamPlayerToDb(teamId, player, now, userId));
 
-    const { error: insertError } = await this.getClient()
-      .from('team_players')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference doesn't match our schema types
-      .insert(rows as unknown as never);
+    // Use RPC for atomic delete + insert within a single PostgreSQL transaction
+    // Type assertion needed: RPC functions are not in generated Supabase types until deployed
+    const { error } = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string } | null }>)(
+      'set_team_roster',
+      {
+        p_team_id: teamId,
+        p_roster: rows,
+      }
+    );
 
-    if (insertError) {
-      throw new NetworkError(`Failed to set team roster: ${insertError.message}`);
+    if (error) {
+      throw new NetworkError(`Failed to set team roster: ${error.message}`);
     }
   }
 
@@ -1596,63 +1596,31 @@ export class SupabaseDataStore implements DataStore {
   /**
    * Remove a personnel member with cascade delete.
    *
-   * Implements Rule #7: When removing personnel, must also remove their ID
-   * from all games' gamePersonnel arrays.
+   * Uses the RPC function `delete_personnel_cascade` for atomic cascade delete.
+   * This removes the personnel and cleans up all game_personnel references
+   * in a single PostgreSQL transaction (Rule #7).
    *
-   * NOTE: When RPC function delete_personnel_cascade is deployed to Supabase,
-   * this can be replaced with a single RPC call for atomicity:
-   *   await this.getClient().rpc('delete_personnel_cascade', { p_personnel_id: id });
+   * @see supabase/migrations/001_rpc_functions.sql
    */
   async removePersonnelMember(id: string): Promise<boolean> {
     this.ensureInitialized();
     checkOnline();
 
-    // Step 1: Find all games that reference this personnel
-    const client = this.getClient();
-    // Type assertion needed: Supabase client doesn't properly infer contains() return type
-    const { data: gamesWithPersonnel, error: fetchError } = await client
-      .from('games')
-      .select('id, game_personnel')
-      .contains('game_personnel', [id]) as unknown as {
-        data: Array<{ id: string; game_personnel: string[] }> | null;
-        error: { message: string } | null;
-      };
-
-    if (fetchError) {
-      logger.warn(`[SupabaseDataStore] Failed to fetch games for personnel cascade: ${fetchError.message}`);
-      // Continue with delete anyway - games may not have this personnel
-    }
-
-    // Step 2: Update each game to remove this personnel ID from game_personnel array
-    if (gamesWithPersonnel && gamesWithPersonnel.length > 0) {
-      for (const game of gamesWithPersonnel) {
-        const updatedPersonnel = (game.game_personnel || []).filter(
-          (personnelId: string) => personnelId !== id
-        );
-
-        const { error: updateError } = await client
-          .from('games')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-          .update({ game_personnel: updatedPersonnel } as unknown as never)
-          .eq('id', game.id);
-
-        if (updateError) {
-          logger.warn(`[SupabaseDataStore] Failed to update game ${game.id} during personnel cascade: ${updateError.message}`);
-        }
+    // Use RPC for atomic cascade delete within a single PostgreSQL transaction
+    // Type assertion needed: RPC functions are not in generated Supabase types until deployed
+    const { data, error } = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ data: boolean | null; error: { message: string } | null }>)(
+      'delete_personnel_cascade',
+      {
+        p_personnel_id: id,
       }
-    }
-
-    // Step 3: Delete the personnel record
-    const { error, count } = await client
-      .from('personnel')
-      .delete({ count: 'exact' })
-      .eq('id', id);
+    );
 
     if (error) {
       throw new NetworkError(`Failed to delete personnel: ${error.message}`);
     }
 
-    return (count ?? 0) > 0;
+    // RPC returns boolean: true if deleted, false if not found or unauthorized
+    return data === true;
   }
 
   // Personnel transform helpers
@@ -2228,83 +2196,38 @@ export class SupabaseDataStore implements DataStore {
   /**
    * Save (create or update) a game with all related data.
    *
-   * IMPORTANT: Uses full-save strategy (delete + insert) for child tables
-   * to ensure order_index stays contiguous for events.
+   * Uses the RPC function `save_game_with_relations` for atomic 5-table writes.
+   * This ensures all game data is saved in a single PostgreSQL transaction,
+   * preventing partial writes if network fails mid-operation.
+   *
+   * @see supabase/migrations/001_rpc_functions.sql
    */
   async saveGame(id: string, game: AppState): Promise<AppState> {
     this.ensureInitialized();
     checkOnline();
 
-    // TODO(Rule #14): Extract validateGame() from LocalDataStore to shared module
-    // and call it here for validation parity. Currently skipping to avoid scope creep.
-    // Validation checks: required fields, gameNotes length, ageGroup validity.
+    // Validate using shared helper (Rule #14 - same validation as LocalDataStore)
+    validateGame(game);
 
     const userId = await this.getUserId();
     const tables = this.transformGameToTables(id, game, userId);
 
-    // Use transaction-like approach: delete all child rows, then insert
-    // This ensures order_index stays contiguous for events (Rule #11)
+    // Use RPC for atomic 5-table write within a single PostgreSQL transaction
+    // Type assertion needed: RPC functions are not in generated Supabase types until deployed
     const client = this.getClient();
-
-    // Step 1: Upsert the main game row
-    const { error: gameError } = await client
-      .from('games')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-      .upsert(tables.game as unknown as never);
-
-    if (gameError) {
-      throw new NetworkError(`Failed to save game: ${gameError.message}`);
-    }
-
-    // Step 2: Delete existing child rows
-    const deletePromises = [
-      client.from('game_players').delete().eq('game_id', id),
-      client.from('game_events').delete().eq('game_id', id),
-      client.from('player_assessments').delete().eq('game_id', id),
-      client.from('game_tactical_data').delete().eq('game_id', id),
-    ];
-    const deleteResults = await Promise.all(deletePromises);
-    for (const result of deleteResults) {
-      if (result.error) {
-        logger.warn(`[SupabaseDataStore] Delete error during save: ${result.error.message}`);
+    const { error } = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string } | null }>)(
+      'save_game_with_relations',
+      {
+        p_game: tables.game,
+        p_players: tables.players,
+        p_events: tables.events,
+        p_assessments: tables.assessments,
+        p_tactical_data: tables.tacticalData,
       }
-    }
+    );
 
-    // Step 3: Insert new child rows sequentially to avoid type issues with Promise.all
-    // (Supabase query builder returns PromiseLike but not full Promise)
-    if (tables.players.length > 0) {
-      const { error: playersError } = await client.from('game_players')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-        .insert(tables.players as unknown as never);
-      if (playersError) {
-        throw new NetworkError(`Failed to save game players: ${playersError.message}`);
-      }
-    }
-
-    if (tables.events.length > 0) {
-      const { error: eventsError } = await client.from('game_events')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-        .insert(tables.events as unknown as never);
-      if (eventsError) {
-        throw new NetworkError(`Failed to save game events: ${eventsError.message}`);
-      }
-    }
-
-    if (tables.assessments.length > 0) {
-      const { error: assessmentsError } = await client.from('player_assessments')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-        .insert(tables.assessments as unknown as never);
-      if (assessmentsError) {
-        throw new NetworkError(`Failed to save game assessments: ${assessmentsError.message}`);
-      }
-    }
-
-    // Always insert tactical data (even if empty arrays)
-    const { error: tacticalError } = await client.from('game_tactical_data')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-      .insert(tables.tacticalData as unknown as never);
-    if (tacticalError) {
-      throw new NetworkError(`Failed to save game tactical data: ${tacticalError.message}`);
+    if (error) {
+      throw new NetworkError(`Failed to save game: ${error.message}`);
     }
 
     return game;
@@ -2312,10 +2235,21 @@ export class SupabaseDataStore implements DataStore {
 
   /**
    * Save all games (bulk operation for migration).
+   *
+   * Validates ALL games before saving ANY to ensure atomic-like behavior.
+   * If any game fails validation, no games are saved.
    */
   async saveAllGames(games: SavedGamesCollection): Promise<void> {
     this.ensureInitialized();
     checkOnline();
+
+    // Validate ALL games before saving ANY (fail-fast, matches LocalDataStore)
+    for (const [gameId, game] of Object.entries(games)) {
+      if (!game || typeof game !== 'object') {
+        throw new ValidationError(`Invalid game data for ${gameId}`, 'games', game);
+      }
+      validateGame(game, gameId);
+    }
 
     // Save each game sequentially to avoid overwhelming the database
     for (const [id, game] of Object.entries(games)) {
@@ -2636,10 +2570,14 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    // Delete all warmup plans for current user (should be only one)
+    // Get user ID for explicit filter (defense in depth - don't rely solely on RLS)
+    const userId = await this.getUserId();
+
+    // Delete warmup plan for current user only (should be only one)
     const { error, count } = await this.getClient()
       .from('warmup_plans')
-      .delete({ count: 'exact' });
+      .delete({ count: 'exact' })
+      .eq('user_id', userId);
 
     if (error) {
       throw new NetworkError(`Failed to delete warmup plan: ${error.message}`);
