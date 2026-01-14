@@ -33,6 +33,7 @@ interface MockQueryBuilder {
   single: jest.Mock;
   order: jest.Mock;
   limit: jest.Mock;
+  contains: jest.Mock;
 }
 
 const createMockQueryBuilder = (): MockQueryBuilder => {
@@ -46,6 +47,7 @@ const createMockQueryBuilder = (): MockQueryBuilder => {
     single: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
+    contains: jest.fn().mockResolvedValue({ data: [], error: null }),
   };
   return builder;
 };
