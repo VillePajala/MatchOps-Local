@@ -9,6 +9,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { TeamPlayer, Season, Tournament } from '@/types';
+import type { AppState } from '@/types/game';
 import type { PersonnelRole } from '@/types/personnel';
 import type { AppSettings } from '@/types/settings';
 import type { Database } from '@/types/supabase';
@@ -1664,20 +1665,148 @@ describe('SupabaseDataStore', () => {
   });
 
   // ==========================================================================
-  // GAME STUBS (PR #4)
+  // GAME CRUD
   // ==========================================================================
 
-  describe('Game Stubs (PR #4)', () => {
-    it('should throw for getGames', async () => {
-      await expect(dataStore.getGames()).rejects.toThrow('Games not implemented - PR #4');
+  describe('Game CRUD', () => {
+    describe('getGames', () => {
+      it('should return empty collection when no games exist', async () => {
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        });
+
+        const games = await dataStore.getGames();
+        expect(games).toEqual({});
+      });
+
+      it('should throw NetworkError on fetch failure', async () => {
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Network error' },
+        });
+
+        await expect(dataStore.getGames()).rejects.toThrow(NetworkError);
+      });
     });
 
-    it('should throw for getGameById', async () => {
-      await expect(dataStore.getGameById('game_123')).rejects.toThrow('Games not implemented - PR #4');
+    describe('getGameById', () => {
+      it('should return null for non-existent game', async () => {
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'Not found' },
+        });
+
+        const game = await dataStore.getGameById('game_nonexistent');
+        expect(game).toBeNull();
+      });
+
+      // NOTE: Full integration test for getGameById with complete mocking requires
+      // complex mock setup for parallel fetches across 5 tables. The transform
+      // functions are thoroughly tested in the Game Transforms section.
+      // Integration tests will be added in PR #8 against a real Supabase instance.
     });
 
-    it('should throw for createGame', async () => {
-      await expect(dataStore.createGame({})).rejects.toThrow('Games not implemented - PR #4');
+    describe('createGame', () => {
+      it('should create game with defaults', async () => {
+        // User is already mocked via mockSupabaseClient.auth.getUser
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({ error: null });
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: null }),
+        });
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+
+        const { gameId, gameData } = await dataStore.createGame({
+          teamName: 'My Team',
+        });
+
+        expect(gameId).toMatch(/^game_/);
+        expect(gameData.teamName).toBe('My Team');
+        // Check defaults (Rule #10)
+        expect(gameData.periodDurationMinutes).toBe(10);
+        expect(gameData.subIntervalMinutes).toBe(5);
+        expect(gameData.showPlayerNames).toBe(true);
+        expect(gameData.tacticalBallPosition).toEqual({ relX: 0.5, relY: 0.5 });
+        expect(gameData.lastSubConfirmationTimeSeconds).toBe(0);
+        expect(gameData.homeOrAway).toBe('home');
+        expect(gameData.isPlayed).toBe(true);
+      });
+
+      it('should override defaults with provided values', async () => {
+        // User is already mocked via mockSupabaseClient.auth.getUser
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({ error: null });
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: null }),
+        });
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+
+        const { gameData } = await dataStore.createGame({
+          periodDurationMinutes: 15,
+          homeOrAway: 'away',
+        });
+
+        expect(gameData.periodDurationMinutes).toBe(15);
+        expect(gameData.homeOrAway).toBe('away');
+      });
+    });
+
+    describe('saveGame', () => {
+      it('should throw NetworkError on save failure', async () => {
+        // User is already mocked via mockSupabaseClient.auth.getUser
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({
+          error: { message: 'Database error' },
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'pre-match' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await expect(dataStore.saveGame('game_123', game as AppState)).rejects.toThrow(NetworkError);
+      });
+    });
+
+    describe('deleteGame', () => {
+      it('should delete game successfully', async () => {
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: null, count: 1 }),
+        });
+
+        const result = await dataStore.deleteGame('game_123');
+        expect(result).toBe(true);
+      });
+
+      it('should return false for non-existent game', async () => {
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: null, count: 0 }),
+        });
+
+        const result = await dataStore.deleteGame('game_nonexistent');
+        expect(result).toBe(false);
+      });
+
+      it('should throw NetworkError on delete failure', async () => {
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: { message: 'Delete failed' } }),
+        });
+
+        await expect(dataStore.deleteGame('game_123')).rejects.toThrow(NetworkError);
+      });
     });
   });
 

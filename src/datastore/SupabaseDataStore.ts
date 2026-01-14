@@ -2019,47 +2019,364 @@ export class SupabaseDataStore implements DataStore {
   }
 
   // ==========================================================================
-  // GAMES (PR #4 - Stub implementations)
+  // GAMES
   // ==========================================================================
+
+  /**
+   * Fetch a single game with all related data from 5 tables.
+   */
+  private async fetchGameTables(gameId: string): Promise<GameTableSetRow | null> {
+    const client = this.getClient();
+
+    // Fetch all 5 tables in parallel
+    const [gameResult, playersResult, eventsResult, assessmentsResult, tacticalResult] = await Promise.all([
+      client.from('games').select('*').eq('id', gameId).single(),
+      client.from('game_players').select('*').eq('game_id', gameId),
+      client.from('game_events').select('*').eq('game_id', gameId),
+      client.from('player_assessments').select('*').eq('game_id', gameId),
+      client.from('game_tactical_data').select('*').eq('game_id', gameId).single(),
+    ]);
+
+    // Game not found
+    if (gameResult.error || !gameResult.data) {
+      return null;
+    }
+
+    // Handle errors from child tables (non-fatal since game exists)
+    if (playersResult.error) {
+      logger.warn(`[SupabaseDataStore] Failed to fetch game_players: ${playersResult.error.message}`);
+    }
+    if (eventsResult.error) {
+      logger.warn(`[SupabaseDataStore] Failed to fetch game_events: ${eventsResult.error.message}`);
+    }
+    if (assessmentsResult.error) {
+      logger.warn(`[SupabaseDataStore] Failed to fetch player_assessments: ${assessmentsResult.error.message}`);
+    }
+    // Tactical data may legitimately not exist (PGRST116 = not found)
+    if (tacticalResult.error && tacticalResult.error.code !== 'PGRST116') {
+      logger.warn(`[SupabaseDataStore] Failed to fetch game_tactical_data: ${tacticalResult.error.message}`);
+    }
+
+    return {
+      game: gameResult.data,
+      players: (playersResult.data || []) as GamePlayerRow[],
+      events: (eventsResult.data || []) as GameEventRow[],
+      assessments: (assessmentsResult.data || []) as PlayerAssessmentRow[],
+      tacticalData: (tacticalResult.data as GameTacticalDataRow) || null,
+    };
+  }
 
   async getGames(): Promise<SavedGamesCollection> {
-    throw new Error('Games not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    // Fetch all games
+    const { data: games, error } = await this.getClient()
+      .from('games')
+      .select('id')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new NetworkError(`Failed to fetch games: ${error.message}`);
+    }
+
+    if (!games || games.length === 0) {
+      return {};
+    }
+
+    // Fetch full data for each game
+    const collection: SavedGamesCollection = {};
+    for (const { id } of games) {
+      const tables = await this.fetchGameTables(id);
+      if (tables) {
+        collection[id] = this.transformTablesToGame(tables);
+      }
+    }
+
+    return collection;
   }
 
-  async getGameById(_id: string): Promise<AppState | null> {
-    throw new Error('Games not implemented - PR #4');
+  async getGameById(id: string): Promise<AppState | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const tables = await this.fetchGameTables(id);
+    if (!tables) {
+      return null;
+    }
+
+    return this.transformTablesToGame(tables);
   }
 
-  async createGame(_game: Partial<AppState>): Promise<{ gameId: string; gameData: AppState }> {
-    throw new Error('Games not implemented - PR #4');
+  /**
+   * Create a new game with defaults.
+   *
+   * CRITICAL: Applies defaults per implementation guide Rule #10.
+   * Especially periodDurationMinutes which has NO schema default.
+   */
+  async createGame(partialGame: Partial<AppState> = {}): Promise<{ gameId: string; gameData: AppState }> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const gameId = generateId('game');
+    const now = new Date();
+
+    // Build complete game with defaults (Rule #10)
+    const gameData: AppState = {
+      // === Defaults that MUST be provided (no DB default) ===
+      periodDurationMinutes: 10,
+      subIntervalMinutes: 5,
+      showPlayerNames: true,
+      tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+      lastSubConfirmationTimeSeconds: 0,
+      // === Other sensible defaults ===
+      teamName: '',
+      opponentName: '',
+      gameDate: now.toISOString().split('T')[0],
+      homeOrAway: 'home',
+      numberOfPeriods: 2,
+      currentPeriod: 1,
+      gameStatus: 'pre-match',
+      isPlayed: true,
+      homeScore: 0,
+      awayScore: 0,
+      gameNotes: '',
+      // === Arrays default to empty ===
+      playersOnField: [],
+      availablePlayers: [],
+      selectedPlayerIds: [],
+      gameEvents: [],
+      assessments: {},
+      opponents: [],
+      drawings: [],
+      tacticalDiscs: [],
+      tacticalDrawings: [],
+      completedIntervalDurations: [],
+      gamePersonnel: [],
+      // === Nullable strings default to empty ===
+      seasonId: '',
+      tournamentId: '',
+      tournamentSeriesId: '',
+      tournamentLevel: '',
+      teamId: '',
+      gameTime: '',
+      gameLocation: '',
+      ageGroup: '',
+      leagueId: '',
+      customLeagueName: '',
+      // === Override with provided values ===
+      ...partialGame,
+    };
+
+    // Save the game
+    await this.saveGame(gameId, gameData);
+
+    return { gameId, gameData };
   }
 
-  async saveGame(_id: string, _game: AppState): Promise<AppState> {
-    throw new Error('Games not implemented - PR #4');
+  /**
+   * Save (create or update) a game with all related data.
+   *
+   * IMPORTANT: Uses full-save strategy (delete + insert) for child tables
+   * to ensure order_index stays contiguous for events.
+   */
+  async saveGame(id: string, game: AppState): Promise<AppState> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const tables = this.transformGameToTables(id, game, userId);
+
+    // Use transaction-like approach: delete all child rows, then insert
+    // This ensures order_index stays contiguous for events (Rule #11)
+    const client = this.getClient();
+
+    // Step 1: Upsert the main game row
+    const { error: gameError } = await client
+      .from('games')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+      .upsert(tables.game as unknown as never);
+
+    if (gameError) {
+      throw new NetworkError(`Failed to save game: ${gameError.message}`);
+    }
+
+    // Step 2: Delete existing child rows
+    const deletePromises = [
+      client.from('game_players').delete().eq('game_id', id),
+      client.from('game_events').delete().eq('game_id', id),
+      client.from('player_assessments').delete().eq('game_id', id),
+      client.from('game_tactical_data').delete().eq('game_id', id),
+    ];
+    const deleteResults = await Promise.all(deletePromises);
+    for (const result of deleteResults) {
+      if (result.error) {
+        logger.warn(`[SupabaseDataStore] Delete error during save: ${result.error.message}`);
+      }
+    }
+
+    // Step 3: Insert new child rows
+    const insertPromises: Promise<{ error: { message: string } | null }>[] = [];
+
+    if (tables.players.length > 0) {
+      insertPromises.push(
+        client.from('game_players')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+          .insert(tables.players as unknown as never)
+      );
+    }
+
+    if (tables.events.length > 0) {
+      insertPromises.push(
+        client.from('game_events')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+          .insert(tables.events as unknown as never)
+      );
+    }
+
+    if (tables.assessments.length > 0) {
+      insertPromises.push(
+        client.from('player_assessments')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+          .insert(tables.assessments as unknown as never)
+      );
+    }
+
+    // Always insert tactical data (even if empty arrays)
+    insertPromises.push(
+      client.from('game_tactical_data')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+        .insert(tables.tacticalData as unknown as never)
+    );
+
+    const insertResults = await Promise.all(insertPromises);
+    for (const result of insertResults) {
+      if (result.error) {
+        throw new NetworkError(`Failed to save game data: ${result.error.message}`);
+      }
+    }
+
+    return game;
   }
 
-  async saveAllGames(_games: SavedGamesCollection): Promise<void> {
-    throw new Error('Games not implemented - PR #4');
+  /**
+   * Save all games (bulk operation for migration).
+   */
+  async saveAllGames(games: SavedGamesCollection): Promise<void> {
+    this.ensureInitialized();
+    checkOnline();
+
+    // Save each game sequentially to avoid overwhelming the database
+    for (const [id, game] of Object.entries(games)) {
+      await this.saveGame(id, game);
+    }
   }
 
-  async deleteGame(_id: string): Promise<boolean> {
-    throw new Error('Games not implemented - PR #4');
+  async deleteGame(id: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    // Child tables have ON DELETE CASCADE, so just delete the game
+    const { error, count } = await this.getClient()
+      .from('games')
+      .delete({ count: 'exact' })
+      .eq('id', id);
+
+    if (error) {
+      throw new NetworkError(`Failed to delete game: ${error.message}`);
+    }
+
+    return (count ?? 0) > 0;
   }
 
   // ==========================================================================
-  // GAME EVENTS (PR #4 - Stub implementations)
+  // GAME EVENTS (Rule #11: Full-save approach for order_index integrity)
   // ==========================================================================
 
-  async addGameEvent(_gameId: string, _event: GameEvent): Promise<AppState | null> {
-    throw new Error('Game events not implemented - PR #4');
+  /**
+   * Add a game event.
+   *
+   * Uses full-save strategy to maintain contiguous order_index values.
+   */
+  async addGameEvent(gameId: string, event: GameEvent): Promise<AppState | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const game = await this.getGameById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    // Add event to the end of the array
+    const updatedGame: AppState = {
+      ...game,
+      gameEvents: [...(game.gameEvents ?? []), event],
+    };
+
+    // Full save ensures order_index is recalculated
+    await this.saveGame(gameId, updatedGame);
+    return updatedGame;
   }
 
-  async updateGameEvent(_gameId: string, _eventIndex: number, _event: GameEvent): Promise<AppState | null> {
-    throw new Error('Game events not implemented - PR #4');
+  /**
+   * Update a game event at a specific index.
+   *
+   * Uses full-save strategy to maintain order_index integrity.
+   */
+  async updateGameEvent(gameId: string, eventIndex: number, event: GameEvent): Promise<AppState | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const game = await this.getGameById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    const events = [...(game.gameEvents ?? [])];
+    if (eventIndex < 0 || eventIndex >= events.length) {
+      return null;
+    }
+
+    events[eventIndex] = event;
+
+    const updatedGame: AppState = {
+      ...game,
+      gameEvents: events,
+    };
+
+    await this.saveGame(gameId, updatedGame);
+    return updatedGame;
   }
 
-  async removeGameEvent(_gameId: string, _eventIndex: number): Promise<AppState | null> {
-    throw new Error('Game events not implemented - PR #4');
+  /**
+   * Remove a game event at a specific index.
+   *
+   * Uses full-save strategy - array splice ensures order_index stays contiguous.
+   */
+  async removeGameEvent(gameId: string, eventIndex: number): Promise<AppState | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const game = await this.getGameById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    const events = [...(game.gameEvents ?? [])];
+    if (eventIndex < 0 || eventIndex >= events.length) {
+      return null;
+    }
+
+    // Splice removes the event and reindexes remaining
+    events.splice(eventIndex, 1);
+
+    const updatedGame: AppState = {
+      ...game,
+      gameEvents: events,
+    };
+
+    await this.saveGame(gameId, updatedGame);
+    return updatedGame;
   }
 
   // ==========================================================================
