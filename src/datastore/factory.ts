@@ -67,18 +67,15 @@ export async function getDataStore(): Promise<DataStore> {
 
     let instance: DataStore;
 
-    if (mode === 'cloud') {
-      // TODO: PR #3 will implement SupabaseDataStore
-      // For now, log and fall back to local
-      if (isCloudAvailable()) {
-        log.warn(
-          '[factory] Cloud mode requested but SupabaseDataStore not yet implemented - using LocalDataStore'
-        );
-      } else {
-        log.warn(
-          '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'
-        );
-      }
+    if (mode === 'cloud' && isCloudAvailable()) {
+      // Lazy load SupabaseDataStore to avoid bundling Supabase in local mode
+      const { SupabaseDataStore } = await import('./SupabaseDataStore');
+      instance = new SupabaseDataStore();
+      log.info('[factory] Using SupabaseDataStore (cloud mode)');
+    } else if (mode === 'cloud') {
+      log.warn(
+        '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'
+      );
       instance = new LocalDataStore();
     } else {
       instance = new LocalDataStore();
