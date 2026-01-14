@@ -832,8 +832,9 @@ export default function MarketingAssets() {
               {/* Layout 1: Arc/Fan - center phone largest, others smaller radiating out */}
               <AssetContainer id="li-post-arc" width={1200} height={628} name="LinkedIn Post - Arc Layout">
                 <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
-                  {/* Ambient glow */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+                  {/* Ambient glows - like front page hero */}
+                  <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[300px] h-[300px] bg-amber-500/15 rounded-full blur-[130px]" />
 
                   {/* 5 phones in arc arrangement - shifted up */}
                   <div className="relative z-10 w-full h-full flex items-center justify-center">
@@ -917,8 +918,9 @@ export default function MarketingAssets() {
               {/* Layout 1b: Arc Tight - phones closer together */}
               <AssetContainer id="li-post-arc-tight" width={1200} height={628} name="LinkedIn Post - Arc Tight">
                 <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
-                  {/* Ambient glow */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+                  {/* Ambient glows - like front page hero */}
+                  <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[300px] h-[300px] bg-amber-500/15 rounded-full blur-[130px]" />
 
                   {/* 5 phones in arc arrangement - tighter spacing */}
                   <div className="relative z-10 w-full h-full flex items-center justify-center">
@@ -1002,8 +1004,9 @@ export default function MarketingAssets() {
               {/* Layout 1c: Uniform Row - all phones same size, straight line */}
               <AssetContainer id="li-post-uniform" width={1200} height={628} name="LinkedIn Post - Uniform Row">
                 <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
-                  {/* Ambient glow */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+                  {/* Ambient glows - like front page hero */}
+                  <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[300px] h-[300px] bg-amber-500/15 rounded-full blur-[130px]" />
 
                   {/* 5 phones in uniform row with labels */}
                   <div className="relative z-10 w-full h-full flex items-center justify-center gap-4 pt-12" style={{ transform: 'scale(0.92)' }}>
