@@ -1609,10 +1609,14 @@ export class SupabaseDataStore implements DataStore {
 
     // Step 1: Find all games that reference this personnel
     const client = this.getClient();
+    // Type assertion needed: Supabase client doesn't properly infer contains() return type
     const { data: gamesWithPersonnel, error: fetchError } = await client
       .from('games')
       .select('id, game_personnel')
-      .contains('game_personnel', [id]);
+      .contains('game_personnel', [id]) as unknown as {
+        data: Array<{ id: string; game_personnel: string[] }> | null;
+        error: { message: string } | null;
+      };
 
     if (fetchError) {
       logger.warn(`[SupabaseDataStore] Failed to fetch games for personnel cascade: ${fetchError.message}`);
@@ -1622,15 +1626,14 @@ export class SupabaseDataStore implements DataStore {
     // Step 2: Update each game to remove this personnel ID from game_personnel array
     if (gamesWithPersonnel && gamesWithPersonnel.length > 0) {
       for (const game of gamesWithPersonnel) {
-        const updatedPersonnel = (game.game_personnel as string[] || []).filter(
+        const updatedPersonnel = (game.game_personnel || []).filter(
           (personnelId: string) => personnelId !== id
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updateClient = client as any;
-        const { error: updateError } = await updateClient
+        const { error: updateError } = await client
           .from('games')
-          .update({ game_personnel: updatedPersonnel })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+          .update({ game_personnel: updatedPersonnel } as unknown as never)
           .eq('id', game.id);
 
         if (updateError) {
@@ -1943,6 +1946,7 @@ export class SupabaseDataStore implements DataStore {
     }));
 
     // Reconstruct playersOnField (game_players WHERE on_field = true, WITH relX/relY)
+    // DEFENSIVE: Use default position (center field) if rel_x/rel_y are null due to data corruption
     const playersOnField: Player[] = players
       .filter((p) => p.on_field)
       .map((p) => ({
@@ -1954,8 +1958,8 @@ export class SupabaseDataStore implements DataStore {
         color: p.color ?? undefined,
         notes: p.notes ?? '',
         receivedFairPlayCard: p.received_fair_play_card ?? false,
-        relX: p.rel_x!,
-        relY: p.rel_y!,
+        relX: p.rel_x ?? 0.5,
+        relY: p.rel_y ?? 0.5,
       }));
 
     // Reconstruct selectedPlayerIds (on-field players first for UI ordering)
@@ -2068,13 +2072,20 @@ export class SupabaseDataStore implements DataStore {
   private async fetchGameTables(gameId: string): Promise<GameTableSetRow | null> {
     const client = this.getClient();
 
+    // Type aliases for query results (Supabase client type inference doesn't work well with Promise.all)
+    type GameQueryResult = { data: GameRow | null; error: { message: string; code?: string } | null };
+    type PlayersQueryResult = { data: GamePlayerRow[] | null; error: { message: string } | null };
+    type EventsQueryResult = { data: GameEventRow[] | null; error: { message: string } | null };
+    type AssessmentsQueryResult = { data: PlayerAssessmentRow[] | null; error: { message: string } | null };
+    type TacticalQueryResult = { data: GameTacticalDataRow | null; error: { message: string; code?: string } | null };
+
     // Fetch all 5 tables in parallel
     const [gameResult, playersResult, eventsResult, assessmentsResult, tacticalResult] = await Promise.all([
-      client.from('games').select('*').eq('id', gameId).single(),
-      client.from('game_players').select('*').eq('game_id', gameId),
-      client.from('game_events').select('*').eq('game_id', gameId),
-      client.from('player_assessments').select('*').eq('game_id', gameId),
-      client.from('game_tactical_data').select('*').eq('game_id', gameId).single(),
+      client.from('games').select('*').eq('id', gameId).single() as unknown as Promise<GameQueryResult>,
+      client.from('game_players').select('*').eq('game_id', gameId) as unknown as Promise<PlayersQueryResult>,
+      client.from('game_events').select('*').eq('game_id', gameId) as unknown as Promise<EventsQueryResult>,
+      client.from('player_assessments').select('*').eq('game_id', gameId) as unknown as Promise<AssessmentsQueryResult>,
+      client.from('game_tactical_data').select('*').eq('game_id', gameId).single() as unknown as Promise<TacticalQueryResult>,
     ]);
 
     // Game not found
@@ -2099,10 +2110,10 @@ export class SupabaseDataStore implements DataStore {
 
     return {
       game: gameResult.data,
-      players: (playersResult.data || []) as GamePlayerRow[],
-      events: (eventsResult.data || []) as GameEventRow[],
-      assessments: (assessmentsResult.data || []) as PlayerAssessmentRow[],
-      tacticalData: (tacticalResult.data as GameTacticalDataRow) || null,
+      players: playersResult.data || [],
+      events: eventsResult.data || [],
+      assessments: assessmentsResult.data || [],
+      tacticalData: tacticalResult.data || null,
     };
   }
 
@@ -2176,7 +2187,7 @@ export class SupabaseDataStore implements DataStore {
       homeOrAway: 'home',
       numberOfPeriods: 2,
       currentPeriod: 1,
-      gameStatus: 'pre-match',
+      gameStatus: 'notStarted',
       isPlayed: true,
       homeScore: 0,
       awayScore: 0,
@@ -2255,45 +2266,41 @@ export class SupabaseDataStore implements DataStore {
       }
     }
 
-    // Step 3: Insert new child rows
-    const insertPromises: Promise<{ error: { message: string } | null }>[] = [];
-
+    // Step 3: Insert new child rows sequentially to avoid type issues with Promise.all
+    // (Supabase query builder returns PromiseLike but not full Promise)
     if (tables.players.length > 0) {
-      insertPromises.push(
-        client.from('game_players')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-          .insert(tables.players as unknown as never)
-      );
+      const { error: playersError } = await client.from('game_players')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+        .insert(tables.players as unknown as never);
+      if (playersError) {
+        throw new NetworkError(`Failed to save game players: ${playersError.message}`);
+      }
     }
 
     if (tables.events.length > 0) {
-      insertPromises.push(
-        client.from('game_events')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-          .insert(tables.events as unknown as never)
-      );
+      const { error: eventsError } = await client.from('game_events')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+        .insert(tables.events as unknown as never);
+      if (eventsError) {
+        throw new NetworkError(`Failed to save game events: ${eventsError.message}`);
+      }
     }
 
     if (tables.assessments.length > 0) {
-      insertPromises.push(
-        client.from('player_assessments')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-          .insert(tables.assessments as unknown as never)
-      );
+      const { error: assessmentsError } = await client.from('player_assessments')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+        .insert(tables.assessments as unknown as never);
+      if (assessmentsError) {
+        throw new NetworkError(`Failed to save game assessments: ${assessmentsError.message}`);
+      }
     }
 
     // Always insert tactical data (even if empty arrays)
-    insertPromises.push(
-      client.from('game_tactical_data')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
-        .insert(tables.tacticalData as unknown as never)
-    );
-
-    const insertResults = await Promise.all(insertPromises);
-    for (const result of insertResults) {
-      if (result.error) {
-        throw new NetworkError(`Failed to save game data: ${result.error.message}`);
-      }
+    const { error: tacticalError } = await client.from('game_tactical_data')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+      .insert(tables.tacticalData as unknown as never);
+    if (tacticalError) {
+      throw new NetworkError(`Failed to save game tactical data: ${tacticalError.message}`);
     }
 
     return game;
@@ -2493,7 +2500,8 @@ export class SupabaseDataStore implements DataStore {
 
     const { error: updateError } = await this.getClient()
       .from('player_adjustments')
-      .update(this.transformAdjustmentToDb(updated, userId))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type inference
+      .update(this.transformAdjustmentToDb(updated, userId) as unknown as never)
       .eq('id', adjustmentId)
       .eq('player_id', playerId);
 
@@ -2554,22 +2562,22 @@ export class SupabaseDataStore implements DataStore {
       id: adjustment.id,
       user_id: userId,
       player_id: adjustment.playerId,
-      season_id: adjustment.seasonId ?? null,
-      team_id: adjustment.teamId ?? null,
-      tournament_id: adjustment.tournamentId ?? null,
-      external_team_name: adjustment.externalTeamName ?? null,
-      opponent_name: adjustment.opponentName ?? null,
-      score_for: adjustment.scoreFor ?? null,
-      score_against: adjustment.scoreAgainst ?? null,
-      game_date: adjustment.gameDate ?? null,
-      home_or_away: adjustment.homeOrAway ?? null,
+      season_id: adjustment.seasonId,
+      team_id: adjustment.teamId,
+      tournament_id: adjustment.tournamentId,
+      external_team_name: adjustment.externalTeamName,
+      opponent_name: adjustment.opponentName,
+      score_for: adjustment.scoreFor,
+      score_against: adjustment.scoreAgainst,
+      game_date: adjustment.gameDate,
+      home_or_away: adjustment.homeOrAway,
       include_in_season_tournament: adjustment.includeInSeasonTournament ?? true,
       games_played_delta: adjustment.gamesPlayedDelta,
       goals_delta: adjustment.goalsDelta,
       assists_delta: adjustment.assistsDelta,
-      fair_play_cards_delta: adjustment.fairPlayCardsDelta ?? null,
-      note: adjustment.note ?? null,
-      created_by: adjustment.createdBy ?? null,
+      fair_play_cards_delta: adjustment.fairPlayCardsDelta,
+      note: adjustment.note,
+      created_by: adjustment.createdBy,
       applied_at: adjustment.appliedAt,
     };
   }
