@@ -10,6 +10,15 @@
 -- 2. auth.uid() is used for all user validation - ignores client-provided user_id
 -- 3. Execute permissions restricted to 'authenticated' role only
 --
+-- REQUIRED INDEXES FOR PERFORMANCE:
+-- These RPC functions rely on the following indexes for efficient operation:
+-- - game_players: INDEX ON (game_id, user_id)
+-- - game_events: INDEX ON (game_id, user_id) + INDEX ON (game_id, order_index)
+-- - player_assessments: INDEX ON (game_id, user_id)
+-- - game_tactical_data: PRIMARY KEY ON (game_id)
+-- - team_players: INDEX ON (team_id, user_id)
+-- Verify these exist in the schema before deploying RPC functions.
+--
 -- DEPLOYMENT:
 -- Run this SQL in Supabase Dashboard > SQL Editor, or via:
 --   supabase db push

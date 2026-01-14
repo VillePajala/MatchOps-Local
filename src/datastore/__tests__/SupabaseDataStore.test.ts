@@ -1828,7 +1828,7 @@ describe('SupabaseDataStore', () => {
           assessments: {},
         };
 
-        await expect(dataStore.saveGame('game_123', game as AppState)).rejects.toThrow(NetworkError);
+        await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(NetworkError);
         expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
       });
 
@@ -1859,7 +1859,7 @@ describe('SupabaseDataStore', () => {
           assessments: {},
         };
 
-        const result = await dataStore.saveGame('game_123', game as AppState);
+        const result = await dataStore.saveGame('game_123', game as unknown as AppState);
         expect(result).toEqual(game);
         expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.objectContaining({
           p_game: expect.any(Object),
@@ -1890,7 +1890,7 @@ describe('SupabaseDataStore', () => {
           gameEvents: [],
         };
 
-        await expect(dataStore.saveGame('game_123', invalidGame as AppState)).rejects.toThrow(ValidationError);
+        await expect(dataStore.saveGame('game_123', invalidGame as unknown as AppState)).rejects.toThrow(ValidationError);
         // RPC should NOT be called if validation fails
         expect(mockSupabaseClient.rpc).not.toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
       });
@@ -1956,7 +1956,7 @@ describe('SupabaseDataStore', () => {
 
   describe('Game Transforms', () => {
     // Helper to access private methods for testing
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const getPrivateMethod = (methodName: string) => (dataStore as any)[methodName].bind(dataStore);
 
     describe('transformGameToTables', () => {
@@ -2724,8 +2724,8 @@ describe('SupabaseDataStore', () => {
         // Convert to Row types (simulate DB read)
         const tableRows = {
           game: { ...tables.game, created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T10:00:00Z' },
-          players: tables.players.map(p => ({ ...p, created_at: '2024-01-15T10:00:00Z' })),
-          events: tables.events.map(e => ({ ...e, created_at: '2024-01-15T10:00:00Z' })),
+          players: tables.players.map((p: Record<string, unknown>) => ({ ...p, created_at: '2024-01-15T10:00:00Z' })),
+          events: tables.events.map((e: Record<string, unknown>) => ({ ...e, created_at: '2024-01-15T10:00:00Z' })),
           assessments: tables.assessments,
           tacticalData: { ...tables.tacticalData, created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T10:00:00Z' },
         };

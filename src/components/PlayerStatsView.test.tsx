@@ -220,7 +220,7 @@ describe('External game cards styling', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
     getAdjustmentsForPlayer.mockResolvedValue([mockAdjustment]);
   });
