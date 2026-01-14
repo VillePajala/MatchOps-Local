@@ -2649,4 +2649,240 @@ describe('SupabaseDataStore', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // PLAYER ADJUSTMENTS
+  // ==========================================================================
+
+  describe('Player Adjustments', () => {
+    describe('getPlayerAdjustments', () => {
+      it('should return empty array for player with no adjustments', async () => {
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        });
+
+        const adjustments = await dataStore.getPlayerAdjustments('player_123');
+        expect(adjustments).toEqual([]);
+      });
+
+      it('should throw NetworkError on fetch failure', async () => {
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
+        });
+
+        await expect(dataStore.getPlayerAdjustments('player_123')).rejects.toThrow(NetworkError);
+      });
+    });
+
+    describe('addPlayerAdjustment', () => {
+      it('should add adjustment with generated ID and timestamp', async () => {
+        // User is already mocked
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+
+        const adjustment = await dataStore.addPlayerAdjustment({
+          playerId: 'player_123',
+          gamesPlayedDelta: 1,
+          goalsDelta: 2,
+          assistsDelta: 0,
+        });
+
+        expect(adjustment.id).toMatch(/^adjustment_/);
+        expect(adjustment.playerId).toBe('player_123');
+        expect(adjustment.gamesPlayedDelta).toBe(1);
+        expect(adjustment.goalsDelta).toBe(2);
+        expect(adjustment.appliedAt).toBeDefined();
+      });
+
+      it('should throw NetworkError on add failure', async () => {
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({
+          error: { message: 'Insert failed' },
+        });
+
+        await expect(
+          dataStore.addPlayerAdjustment({
+            playerId: 'player_123',
+            gamesPlayedDelta: 1,
+            goalsDelta: 0,
+            assistsDelta: 0,
+          })
+        ).rejects.toThrow(NetworkError);
+      });
+    });
+
+    describe('deletePlayerAdjustment', () => {
+      it('should delete adjustment successfully', async () => {
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ error: null, count: 1 }),
+          }),
+        });
+
+        const result = await dataStore.deletePlayerAdjustment('player_123', 'adjustment_456');
+        expect(result).toBe(true);
+      });
+
+      it('should return false for non-existent adjustment', async () => {
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ error: null, count: 0 }),
+          }),
+        });
+
+        const result = await dataStore.deletePlayerAdjustment('player_123', 'nonexistent');
+        expect(result).toBe(false);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // WARMUP PLAN
+  // ==========================================================================
+
+  describe('Warmup Plan', () => {
+    describe('getWarmupPlan', () => {
+      it('should return null when no plan exists', async () => {
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'Not found' },
+        });
+
+        const plan = await dataStore.getWarmupPlan();
+        expect(plan).toBeNull();
+      });
+
+      it('should throw NetworkError on fetch failure (non-PGRST116)', async () => {
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'OTHER_ERROR', message: 'Database error' },
+        });
+
+        await expect(dataStore.getWarmupPlan()).rejects.toThrow(NetworkError);
+      });
+    });
+
+    describe('saveWarmupPlan', () => {
+      it('should save plan successfully', async () => {
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({ error: null });
+
+        const plan = {
+          id: 'warmup_plan_123',
+          version: 1,
+          lastModified: '2024-01-15T10:00:00Z',
+          isDefault: false,
+          sections: [{ id: 's1', title: 'Stretching', content: 'Dynamic stretches' }],
+        };
+
+        const result = await dataStore.saveWarmupPlan(plan);
+        expect(result).toBe(true);
+      });
+
+      it('should throw NetworkError on save failure', async () => {
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({
+          error: { message: 'Save failed' },
+        });
+
+        const plan = {
+          id: 'warmup_plan_123',
+          version: 1,
+          lastModified: '2024-01-15T10:00:00Z',
+          isDefault: false,
+          sections: [],
+        };
+
+        await expect(dataStore.saveWarmupPlan(plan)).rejects.toThrow(NetworkError);
+      });
+    });
+
+    describe('deleteWarmupPlan', () => {
+      it('should delete plan successfully', async () => {
+        mockQueryBuilder.delete = jest.fn().mockResolvedValue({
+          error: null,
+          count: 1,
+        });
+
+        const result = await dataStore.deleteWarmupPlan();
+        expect(result).toBe(true);
+      });
+
+      it('should return false when no plan to delete', async () => {
+        mockQueryBuilder.delete = jest.fn().mockResolvedValue({
+          error: null,
+          count: 0,
+        });
+
+        const result = await dataStore.deleteWarmupPlan();
+        expect(result).toBe(false);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // GAME EVENTS (via saveGame full-save pattern)
+  // ==========================================================================
+
+  describe('Game Events', () => {
+    // Game events use the full-save pattern - add/update/remove all
+    // call saveGame under the hood. These tests verify the pattern works.
+
+    it('should add event by appending to array and saving', async () => {
+      // Mock getGameById return
+      mockQueryBuilder.single = jest.fn()
+        .mockResolvedValueOnce({
+          data: {
+            id: 'game_123',
+            user_id: 'user_123',
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'inProgress',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+          },
+          error: null,
+        })
+        .mockResolvedValue({ data: null, error: { code: 'PGRST116' } }); // tactical data not found
+
+      // Mock child table queries
+      mockQueryBuilder.contains = jest.fn().mockResolvedValue({ data: [], error: null });
+
+      // Mock saveGame operations
+      mockQueryBuilder.upsert = jest.fn().mockResolvedValue({ error: null });
+      mockQueryBuilder.delete = jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      });
+      mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+
+      const newEvent = { id: 'event_new', type: 'goal' as const, time: 300, scorerId: 'p1' };
+      const result = await dataStore.addGameEvent('game_123', newEvent);
+
+      // Event should be added
+      expect(result).not.toBeNull();
+      expect(result?.gameEvents).toContainEqual(newEvent);
+    });
+
+    it('should return null when game not found for addGameEvent', async () => {
+      mockQueryBuilder.single = jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: 'PGRST116', message: 'Not found' },
+      });
+
+      const result = await dataStore.addGameEvent('nonexistent_game', {
+        id: 'event_1',
+        type: 'goal',
+        time: 100,
+      });
+
+      expect(result).toBeNull();
+    });
+  });
 });
