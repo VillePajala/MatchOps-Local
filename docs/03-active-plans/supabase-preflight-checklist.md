@@ -172,6 +172,11 @@ Update factory:
 ## PR #4: SupabaseDataStore Games
 
 ### Pre-Implementation Checklist
+- [ ] **Generate proper Supabase types** to replace placeholder `any` types in SupabaseDataStore.ts:
+  ```bash
+  npx supabase gen types typescript --project-id <project-id> > src/types/supabase.ts
+  ```
+  Then remove `DbInsertData`, `DbRow`, and related `any` type aliases from SupabaseDataStore.ts
 - [ ] Read implementation guide Section 5.6 (Game Transforms) carefully
 - [ ] Read verification matrix Section 1 (AppState → games)
 - [ ] Understand the 5-table game structure: games, game_players, game_events, player_assessments, game_tactical_data
