@@ -438,7 +438,7 @@ export default function HomePage() {
               {isEnglish ? 'The app is in beta testing' : 'Sovellus on betatestauksessa'}
             </h3>
             <p className="text-slate-300 mb-6">
-              {isEnglish ? 'Contact us if you are interested in joining' : 'Ota yhteyttä, mikäli olet kiinnostunut pääsemään mukaan'}
+              {isEnglish ? 'Contact us if you are interested in joining' : 'Ota yhteyttä, mikäli olet kiinnostunut osallistumaan'}
             </p>
             <a
               href="mailto:hello@match-ops.com"
