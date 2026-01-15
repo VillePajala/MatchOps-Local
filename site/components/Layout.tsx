@@ -27,7 +27,7 @@ export default function Layout({ children }: LayoutProps) {
         <title>MatchOps-Local — Local-first match management</title>
         <meta name="description" content={t('footer.tagline')} />
         <meta property="og:title" content="MatchOps Local" />
-        <meta property="og:description" content={t('footer.tagline')} />
+        <meta property="og:description" content="Soccer & futsal coaching toolkit. Tactical board, game timer, stats | Jalkapallo- ja futsalvalmentajan työkalu" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`https://www.match-ops.com${router.asPath}`} />
         <meta property="og:image" content="https://www.match-ops.com/screenshots/OG.png" />
