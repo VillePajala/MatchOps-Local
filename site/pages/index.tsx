@@ -76,7 +76,7 @@ export default function HomePage() {
   // Mobile carousel labels (5 items now)
   const carouselLabels = isEnglish
     ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Events']
-    : ['Kokoonpano', 'Ajastin', 'Tilastot', 'Taktiikka', 'Tapahtumat'];
+    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Loki'];
 
   useEffect(() => {
     const container = mobileCarouselRef.current;
@@ -178,11 +178,6 @@ export default function HomePage() {
             </h1>
             <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
               {t('marketing.taglines.power')}
-            </p>
-
-            {/* Punchline - mobile only (above phones) */}
-            <p className="md:hidden text-2xl text-primary font-bold font-rajdhani mb-6">
-              {t('marketing.taglines.memorable')}
             </p>
 
             {/* ===== 5-PHONE SHOWCASE ===== */}
@@ -325,10 +320,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Punchline - desktop only (below phones) */}
-            <p className="hidden md:block text-3xl lg:text-4xl text-primary font-bold mt-6 font-rajdhani">
-              {t('marketing.taglines.memorable')}
-            </p>
           </div>
         </div>
       </section>
