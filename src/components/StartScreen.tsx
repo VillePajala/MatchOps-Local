@@ -92,7 +92,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
         </div>
 
         {/* === HERO: App Name === */}
-        <div className="flex-1 flex flex-col justify-center">
+        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : 'justify-center'}`}>
           <div className="text-center mb-6">
             {/* App Name as Logo */}
             <div className="relative inline-block mb-3">
