@@ -396,18 +396,18 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
+                { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
                 { key: 'formations', screenshot: screenshots.formations },
-                { key: 'roster', screenshot: screenshots.roster },
                 { key: 'assessment', screenshot: screenshots.assessment },
                 { key: 'trends', screenshot: screenshots.trends },
+                { key: 'excelExport', screenshot: screenshots.excelExport },
+                { key: 'roster', screenshot: screenshots.roster },
+                { key: 'archive', screenshot: screenshots.archive },
+                { key: 'teams', screenshot: screenshots.teams },
                 { key: 'seasons', screenshot: screenshots.seasons },
                 { key: 'tournaments', screenshot: screenshots.tournaments },
-                { key: 'teams', screenshot: screenshots.teams },
-                { key: 'archive', screenshot: screenshots.archive },
-                { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
-                { key: 'excelExport', screenshot: screenshots.excelExport },
-                { key: 'personnel', screenshot: screenshots.personnel },
                 { key: 'futsal', screenshot: screenshots.futsal },
+                { key: 'personnel', screenshot: screenshots.personnel },
                 { key: 'officialRules', screenshot: screenshots.officialRules },
               ].map((card, i) => (
                 <div
