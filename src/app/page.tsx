@@ -190,6 +190,7 @@ export default function Home() {
               skipInitialSetup
               onDataImportSuccess={handleDataImportSuccess}
               isFirstTimeUser={isFirstTimeUser}
+              onGoToStartScreen={() => setScreen('start')}
             />
           </ErrorBoundary>
         )}

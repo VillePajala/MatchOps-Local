@@ -97,6 +97,7 @@ export interface UseGameOrchestrationProps {
   skipInitialSetup?: boolean;
   onDataImportSuccess?: () => void;
   isFirstTimeUser?: boolean;
+  onGoToStartScreen?: () => void;
 }
 
 export interface UseGameOrchestrationReturn {
@@ -106,7 +107,7 @@ export interface UseGameOrchestrationReturn {
   isResetting: boolean;
 }
 
-export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser = false }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
+export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser = false, onGoToStartScreen }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
@@ -2046,6 +2047,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
     onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
     onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
+    onGoToStartScreen,
   };
 
   const isLoading = gameDataManagement.isLoading;
