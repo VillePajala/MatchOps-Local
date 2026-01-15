@@ -186,13 +186,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
           </div>
         </div>
-
-        {/* === BOTTOM: Punchline === */}
-        <div className="text-center mt-8">
-          <p className="text-sm text-amber-500/70 font-medium">
-            {isEnglish ? 'Every game remembered.' : 'Yksikään peli ei unohdu.'}
-          </p>
-        </div>
       </div>
 
       {/* Instructions Modal */}

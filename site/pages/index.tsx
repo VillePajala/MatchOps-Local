@@ -81,25 +81,37 @@ export default function HomePage() {
     const items = Array.from(container.children) as HTMLElement[];
     if (items.length === 0) return;
 
-    let raf: number | null = null;
+    // Track visibility ratios for all items
+    const visibilityMap = new Map<Element, number>();
+
     const observer = new IntersectionObserver(
       (entries) => {
-        const mostVisible = entries
-          .slice()
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!mostVisible) return;
-        const index = items.indexOf(mostVisible.target as HTMLElement);
-        if (index >= 0) {
-          if (raf) cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(() => setActiveSlide(index));
+        // Update visibility map
+        entries.forEach((entry) => {
+          visibilityMap.set(entry.target, entry.intersectionRatio);
+        });
+
+        // Find the most visible item
+        let maxRatio = 0;
+        let maxIndex = -1;
+        items.forEach((item, index) => {
+          const ratio = visibilityMap.get(item) || 0;
+          if (ratio > maxRatio) {
+            maxRatio = ratio;
+            maxIndex = index;
+          }
+        });
+
+        // Only update if we have a clear winner (> 50% visible)
+        if (maxIndex >= 0 && maxRatio > 0.5) {
+          setActiveSlide(maxIndex);
         }
       },
-      { root: container, threshold: [0.3, 0.6, 0.9] }
+      { root: container, threshold: [0.5] }
     );
 
     items.forEach((el) => observer.observe(el));
     return () => {
-      if (raf) cancelAnimationFrame(raf);
       observer.disconnect();
     };
   }, []);
