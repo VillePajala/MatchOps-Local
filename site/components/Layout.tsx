@@ -26,13 +26,17 @@ export default function Layout({ children }: LayoutProps) {
       <Head>
         <title>MatchOps-Local — Local-first match management</title>
         <meta name="description" content={t('footer.tagline')} />
-        <meta property="og:title" content="MatchOps-Local" />
+        <meta property="og:title" content="MatchOps Local" />
         <meta property="og:description" content={t('footer.tagline')} />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content={`https://www.match-ops.com${router.asPath}`} />
         <meta property="og:image" content="https://www.match-ops.com/screenshots/OG.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="628" />
         <meta property="og:locale" content={router.locale === 'en' ? 'en_US' : 'fi_FI'} />
         <meta property="og:locale:alternate" content={router.locale === 'en' ? 'fi_FI' : 'en_US'} />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://www.match-ops.com/screenshots/OG.png" />
         {(() => {
           const path = router.asPath || '/';
           const basePath = path.replace(/^\/(en|fi)(?=\/|$)/, '');
