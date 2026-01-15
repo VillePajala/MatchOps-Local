@@ -485,7 +485,11 @@
       "excelExport": "Reports",
       "excelExportDesc": "Export statistics to Excel. Reports by players, competitions, single matches, or teams.",
       "personnel": "Coaching Staff",
-      "personnelDesc": "Keep record of your staff. Save roles and contact info."
+      "personnelDesc": "Keep record of your staff. Save roles and contact info.",
+      "futsal": "Futsal",
+      "futsalDesc": "Futsal court view and game labeling for accurate stats and filtering.",
+      "officialRules": "Official Rules",
+      "officialRulesDesc": "Quick access to official soccer and futsal rules from the Finnish FA."
     },
     "techCards": {
       "development": "DEVELOPMENT",

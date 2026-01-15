@@ -56,6 +56,10 @@ const getScreenshots = (locale: string | undefined) => {
     personnel: isEnglish
       ? '/screenshots/MatcOps_main_personnel_en.jpg'
       : '/screenshots/MatchOps_main_personnel_fi.jpg',
+    futsal: '/screenshots/MatchOps_main_futsal_en&fi.jpg',
+    officialRules: isEnglish
+      ? '/screenshots/MatchOps_main_rules_en.jpg'
+      : '/screenshots/MatchOps_main_rules_fi.jpg',
   };
 };
 
@@ -381,7 +385,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FEATURE CARDS (12 features) ===== */}
+      {/* ===== FEATURE CARDS (14 features) ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
@@ -403,6 +407,8 @@ export default function HomePage() {
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
                 { key: 'excelExport', screenshot: screenshots.excelExport },
                 { key: 'personnel', screenshot: screenshots.personnel },
+                { key: 'futsal', screenshot: screenshots.futsal },
+                { key: 'officialRules', screenshot: screenshots.officialRules },
               ].map((card, i) => (
                 <div
                   key={card.key}
