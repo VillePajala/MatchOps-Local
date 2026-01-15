@@ -33,12 +33,16 @@ export default function PhoneMockup({
   const borderRadius = size === 'xs' ? '1rem' : size === 'sm' ? '1.25rem' : '1.5rem';
   const innerRadius = size === 'xs' ? '0.75rem' : size === 'sm' ? '1rem' : '1.25rem';
 
+  // Calculate aspect ratio for proportional scaling
+  const aspectRatio = (width + 8) / (height + 8);
+
   return (
     <div
       className={`relative ${className}`}
       style={{
         width: width + 8,
-        height: height + 8,
+        maxWidth: '100%',
+        aspectRatio: `${aspectRatio}`,
         background: 'linear-gradient(145deg, #3a3a3a, #1a1a1a)',
         borderRadius,
         padding: '4px',
