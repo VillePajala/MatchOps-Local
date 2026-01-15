@@ -57,11 +57,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* === AMBIENT BACKGROUND GLOWS === */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Amber glow - top right */}
-        <div className="absolute -top-[20%] -right-[15%] w-[50%] h-[50%] bg-amber-500/20 rounded-full blur-[100px]" />
+        <div className="absolute -top-[15%] -right-[10%] w-[60%] h-[60%] bg-amber-500/30 rounded-full blur-3xl" />
         {/* Blue glow - bottom left */}
-        <div className="absolute -bottom-[20%] -left-[15%] w-[50%] h-[50%] bg-sky-500/15 rounded-full blur-[100px]" />
-        {/* Subtle indigo accent - center */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[40%] bg-indigo-500/5 rounded-full blur-[80px]" />
+        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/25 rounded-full blur-3xl" />
       </div>
 
       {/* === MAIN CONTENT === */}
@@ -95,16 +93,15 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name === */}
         <div className="flex-1 flex flex-col justify-center">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             {/* App Name as Logo */}
-            <div className="relative inline-block mb-4">
-              {/* Dual glow: amber + blue */}
-              <div className="absolute -inset-4 bg-amber-500/15 blur-[50px] rounded-full" />
-              <div className="absolute -inset-8 bg-sky-500/10 blur-[60px] rounded-full" />
-              <h1 className="relative text-5xl sm:text-6xl font-bold">
-                <span className="text-amber-400 drop-shadow-[0_0_25px_rgba(245,158,11,0.4)]">MatchOps</span>
+            <div className="relative inline-block mb-3">
+              {/* Glow behind text */}
+              <div className="absolute -inset-4 bg-amber-500/20 blur-2xl rounded-full" />
+              <h1 className="relative text-6xl sm:text-7xl font-bold tracking-tight">
+                <span className="text-amber-400">MatchOps</span>
                 <br />
-                <span className="text-white drop-shadow-[0_0_20px_rgba(56,189,248,0.2)]">Local</span>
+                <span className="text-white">Local</span>
               </h1>
             </div>
 
@@ -152,9 +149,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <button
                     type="button"
                     onClick={onLoadGame}
-                    className="p-4 rounded-xl bg-slate-800/80 border border-sky-500/20 hover:bg-slate-700/80 hover:border-sky-500/40 transition-all"
+                    className="p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all"
                   >
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-sm font-semibold text-white">
                       {t('startScreen.loadGame', 'Load Game')}
                     </span>
                   </button>
@@ -163,25 +160,25 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     type="button"
                     onClick={hasSavedGames ? onViewStats : undefined}
                     disabled={!hasSavedGames}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-4 rounded-xl border-2 transition-all ${
                       hasSavedGames
-                        ? 'bg-slate-800/80 border-sky-500/20 hover:bg-slate-700/80 hover:border-sky-500/40'
-                        : 'bg-slate-800/40 border-slate-700/30 opacity-50 cursor-not-allowed'
+                        ? 'bg-slate-800/90 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
                     }`}
                   >
-                    <span className={`text-sm font-medium ${hasSavedGames ? 'text-white' : 'text-slate-500'}`}>
+                    <span className={`text-sm font-semibold ${hasSavedGames ? 'text-white' : 'text-slate-500'}`}>
                       {t('startScreen.viewStats', 'Statistics')}
                     </span>
                   </button>
                 </div>
 
-                {/* Settings */}
+                {/* Settings - subtle text link style */}
                 <button
                   type="button"
                   onClick={onOpenSettings}
-                  className="w-full p-3 rounded-xl bg-slate-800/50 border border-indigo-500/20 hover:bg-slate-700/50 hover:border-indigo-500/30 transition-all"
+                  className="w-full py-3 text-slate-400 hover:text-slate-200 transition-all"
                 >
-                  <span className="text-sm font-medium text-slate-300">
+                  <span className="text-sm">
                     {t('startScreen.appSettings', 'Settings')}
                   </span>
                 </button>
