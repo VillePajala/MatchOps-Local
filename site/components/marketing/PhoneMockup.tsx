@@ -8,6 +8,7 @@ interface PhoneMockupProps {
   style?: React.CSSProperties;
   zIndex?: number;
   imageFilter?: string;
+  priority?: boolean;
 }
 
 export default function PhoneMockup({
@@ -17,6 +18,7 @@ export default function PhoneMockup({
   style = {},
   zIndex = 0,
   imageFilter = 'contrast(1.075) saturate(1.025)',
+  priority = false,
 }: PhoneMockupProps) {
   const sizes = {
     xs: { width: 60, height: 130 },
@@ -67,7 +69,7 @@ export default function PhoneMockup({
         className="relative w-full h-full overflow-hidden bg-black"
         style={{ borderRadius: innerRadius, filter: imageFilter || undefined }}
       >
-        <Image src={screenshot} alt="App screenshot" fill sizes="(max-width: 768px) 100vw, 300px" className="object-cover" />
+        <Image src={screenshot} alt="App screenshot" fill sizes="(max-width: 768px) 100vw, 300px" className="object-cover" priority={priority} />
       </div>
     </div>
   );
