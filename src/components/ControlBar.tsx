@@ -26,6 +26,7 @@ import {
   HiOutlineXMark,
   HiOutlineIdentification,
   HiOutlineScale,
+  HiOutlineHome,
 } from 'react-icons/hi2';
 import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
@@ -106,6 +107,7 @@ interface ControlBarProps {
   onOpenPlayerAssessmentModal: () => void;
   onOpenTeamManagerModal: () => void;
   onOpenPersonnelManager: () => void;
+  onGoToStartScreen?: () => void;
 }
 
 const ControlBar: React.FC<ControlBarProps> = React.memo(({
@@ -146,6 +148,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenPlayerAssessmentModal,
   onOpenTeamManagerModal,
   onOpenPersonnelManager,
+  onGoToStartScreen,
 }) => {
   const { t } = useTranslation();
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
@@ -519,6 +522,17 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
 
         {/* Navigation content */}
         <nav className="relative flex flex-col p-4 space-y-1 overflow-y-auto flex-1 z-10">
+          {/* Start Screen link */}
+          {onGoToStartScreen && (
+            <button
+              onClick={wrapImmediate(onGoToStartScreen)}
+              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors mb-4"
+            >
+              <HiOutlineHome className="w-5 h-5 mr-2" />
+              {t('controlBar.startScreen', 'Start Screen')}
+            </button>
+          )}
+
           {/* Section: Game Management */}
           <div className="mb-4">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">

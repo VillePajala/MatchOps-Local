@@ -56,10 +56,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
     <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
       {/* === AMBIENT BACKGROUND GLOWS === */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Amber glow - top right */}
-        <div className="absolute -top-[15%] -right-[10%] w-[60%] h-[60%] bg-amber-500/30 rounded-full blur-3xl" />
+        {/* Blue glow - top right */}
+        <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
         {/* Blue glow - bottom left */}
-        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/25 rounded-full blur-3xl" />
+        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
       </div>
 
       {/* === MAIN CONTENT === */}
@@ -96,8 +96,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <div className="text-center mb-6">
             {/* App Name as Logo */}
             <div className="relative inline-block mb-3">
-              {/* Glow behind text */}
-              <div className="absolute -inset-4 bg-amber-500/20 blur-2xl rounded-full" />
               <h1 className="relative text-6xl sm:text-7xl font-bold tracking-tight">
                 <span className="text-amber-400">MatchOps</span>
                 <br />
