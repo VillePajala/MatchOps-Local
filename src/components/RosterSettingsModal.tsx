@@ -221,7 +221,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
               {/* Add Player Button - Always visible */}
               <button
                 onClick={handleAddPlayer}
-                className={`${primaryButtonStyle} w-full bg-indigo-600 hover:bg-indigo-700`}
+                className={`${primaryButtonStyle} w-full`}
                 disabled={isRosterUpdating}
               >
                 {t('rosterSettingsModal.addPlayerButton', 'Add Player')}
@@ -319,7 +319,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
           {/* Footer */}
           <ModalFooter>
-            <button onClick={onClose} className={secondaryButtonStyle}>
+            <button onClick={onClose} className={primaryButtonStyle}>
               {t('common.doneButton', 'Done')}
             </button>
           </ModalFooter>

@@ -252,7 +252,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
               {/* Add Personnel Button */}
               <button
                 onClick={() => setCreatePersonnelModalOpen(true)}
-                className={`${primaryButtonStyle} w-full bg-indigo-600 hover:bg-indigo-700`}
+                className={`${primaryButtonStyle} w-full`}
                 disabled={isUpdating}
               >
                 {t('personnelManager.addPersonnel', 'Add Personnel')}
@@ -372,9 +372,9 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
           <ModalFooter>
             <button
               onClick={onClose}
-              className={secondaryButtonStyle}
+              className={primaryButtonStyle}
             >
-              {t('common.close', 'Close')}
+              {t('common.doneButton', 'Done')}
             </button>
           </ModalFooter>
         </div>

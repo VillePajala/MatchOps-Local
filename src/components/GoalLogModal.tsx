@@ -396,7 +396,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         type="button"
                         onClick={handleLogOwnGoalClick}
                         disabled={!scorerId}
-                        className="w-full px-4 py-2 rounded-md font-semibold text-white bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                        className="w-full px-4 py-2 rounded-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-400/30"
                       >
                         {t('goalLogModal.logGoalButton', 'Log Goal')}
                       </button>
@@ -493,7 +493,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                               </button>
                               <button
                                 onClick={() => handleSaveGoal(event.id)}
-                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"
+                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
                                 disabled={isProcessing}
                               >
                                 {t('common.save', 'Save')}

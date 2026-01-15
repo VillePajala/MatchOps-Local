@@ -148,13 +148,13 @@ export function GoalEventList({
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     onClick={onCancelEditGoal}
-                    className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium transition-colors border border-slate-400/30"
                   >
                     {t('common.cancel', 'Cancel')}
                   </button>
                   <button
                     onClick={onSaveEditGoal}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
                   >
                     {t('common.save', 'Save Changes')}
                   </button>
