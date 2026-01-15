@@ -280,6 +280,7 @@ export default function HomePage() {
                     transform: 'translate(-50%, -45%)',
                   }}
                   zIndex={10}
+                  priority
                 />
                 {/* Phone 4: Timer - right of center */}
                 <PhoneMockup
@@ -393,16 +394,16 @@ export default function HomePage() {
               ].map((card, i) => (
                 <div
                   key={card.key}
-                  className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 md:p-8 flex ${
+                  className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 sm:p-6 md:p-8 flex gap-6 sm:gap-4 md:gap-6 ${
                     i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
                   }`}
                 >
                   <div className="w-1/2 flex flex-col justify-center items-start">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-xl md:text-3xl font-bold mb-3">
+                    <div className="text-primary text-xs sm:text-sm font-semibold mb-1 sm:mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-lg sm:text-xl md:text-3xl font-bold mb-2 sm:mb-3">
                       {t(`marketing.featureCards.${card.key}`)}
                     </h3>
-                    <p className="text-gray-400">{t(`marketing.featureCards.${card.key}Desc`)}</p>
+                    <p className="text-gray-400 text-sm sm:text-base">{t(`marketing.featureCards.${card.key}Desc`)}</p>
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
                     <PhoneMockup screenshot={card.screenshot} size="lg" zIndex={10} />
