@@ -113,7 +113,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
               type="button"
               onClick={handleAdd}
               disabled={!selectedCert}
-              className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md text-sm"
+              className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-indigo-400/30"
               aria-label={t('common.add', 'Add')}
             >
               {t('common.add', 'Add')}
@@ -121,7 +121,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md text-sm"
+              className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium border border-slate-400/30"
             >
               {t('common.cancel', 'Cancel')}
             </button>
@@ -132,7 +132,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
           type="button"
           onClick={() => setIsAdding(true)}
           disabled={!hasAvailableCertifications}
-          className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-md text-sm"
+          className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-slate-400/30"
           aria-label={t('personnelDetailsModal.addCertification', 'Add certification')}
         >
           + {t('personnelDetailsModal.addCertification', 'Add Certification')}

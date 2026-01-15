@@ -2315,14 +2315,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={handleCancelEditGoal}
-                            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800"
+                            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 border border-slate-400/30"
                             disabled={isProcessing}
                           >
                             {t('common.cancel', 'Cancel')}
                           </button>
                           <button
                             onClick={() => handleSaveGoal(event.id)}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800"
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 border border-indigo-400/30"
                             disabled={isProcessing}
                           >
                             {t('common.save', 'Save')}
@@ -2399,14 +2399,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={handleCancelInlineEdit}
-                      className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800"
+                      className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 border border-slate-400/30"
                       disabled={isProcessing}
                     >
                       {t('common.cancel', 'Cancel')}
                     </button>
                     <button
                       onClick={handleConfirmInlineEdit}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800"
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 border border-indigo-400/30"
                       disabled={isProcessing}
                     >
                       {t('common.save', 'Save')}
