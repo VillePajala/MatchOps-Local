@@ -433,8 +433,48 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ===== TECH STATS ===== */}
+      <section className="section section-divider bg-slate-800/50">
+        <div className="container-custom">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
+              {isEnglish ? 'Built Different' : 'Rakennettu eri tavalla'}
+            </h2>
+            <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
+              {isEnglish
+                ? 'Enterprise-grade quality with 3,200+ automated tests.'
+                : 'Yritystason laatu ja yli 3 200 automaattista testiä.'}
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+              {[
+                { key: 'testCoverage', icon: '✓' },
+                { key: 'techStack', icon: '⚡' },
+                { key: 'architecture', icon: '🏗️' },
+                { key: 'codeQuality', icon: '💎' },
+                { key: 'cicd', icon: '🔄' },
+                { key: 'linesOfCode', icon: '📊' },
+              ].map((card) => (
+                <div
+                  key={card.key}
+                  className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 md:p-6 text-center border border-slate-700/50"
+                >
+                  <div className="text-2xl md:text-3xl mb-2">{card.icon}</div>
+                  <h3 className="text-white text-sm md:text-lg font-bold mb-1">
+                    {t(`marketing.techCards.${card.key}`)}
+                  </h3>
+                  <p className="text-gray-400 text-xs md:text-sm">
+                    {t(`marketing.techCards.${card.key}Desc`)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== CTA ===== */}
-      <section className="section section-divider bg-slate-800/50 relative overflow-hidden">
+      <section className="section section-divider bg-slate-900 relative overflow-hidden">
         <div className="hidden md:block">
           <GlowBg color="primary" position="center" size="md" blur={120} />
         </div>
