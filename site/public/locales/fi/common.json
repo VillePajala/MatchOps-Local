@@ -466,7 +466,11 @@
       "excelExport": "Raportit",
       "excelExportDesc": "Vie tilastot Exceliin. Raportit pelaajista, kilpailuista, yksittäisistä otteluista tai joukkueista.",
       "personnel": "Taustat",
-      "personnelDesc": "Pidä kirjaa taustahenkilöistä. Tallenna roolit ja yhteystiedot."
+      "personnelDesc": "Pidä kirjaa taustahenkilöistä. Tallenna roolit ja yhteystiedot.",
+      "futsal": "Futsal",
+      "futsalDesc": "Futsal-kenttänäkymä ja -pelimuotomerkintä tilastointia ja suodatusta varten.",
+      "officialRules": "Viralliset säännöt",
+      "officialRulesDesc": "Pikalinkit Palloliiton virallisiin jalkapallo- ja futsal-sääntöihin."
     },
     "techCards": {
       "development": "KEHITYS",
