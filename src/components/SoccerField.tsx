@@ -1328,12 +1328,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         const dy = absEventY - absPointY;
         if (dx * dx + dy * dy <= hitRadiusSq) {
           // Check if this position is unoccupied
-          const isOccupied = players.some(p =>
-            p.relX !== undefined && p.relY !== undefined &&
-            Math.abs(p.relX - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
-            Math.abs(p.relY - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
-          );
-          if (!isOccupied) {
+          if (!isPositionOccupied(players, point.relX, point.relY)) {
             return { relX: point.relX, relY: point.relY };
           }
         }
@@ -1349,12 +1344,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         const dy = absEventY - absSlotY;
         if (dx * dx + dy * dy <= hitRadiusSq) {
           // Check if this position is unoccupied
-          const isOccupied = players.some(p =>
-            p.relX !== undefined && p.relY !== undefined &&
-            Math.abs(p.relX - slot.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
-            Math.abs(p.relY - slot.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
-          );
-          if (!isOccupied) {
+          if (!isPositionOccupied(players, slot.relX, slot.relY)) {
             return { relX: slot.relX, relY: slot.relY };
           }
         }
