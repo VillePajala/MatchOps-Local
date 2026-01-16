@@ -43,6 +43,8 @@ import {
   calculateFormationPositions,
   applyFormationPreset,
   generateSidelinePositions,
+  generateSubSlots,
+  type SubSlot,
 } from '@/utils/formations';
 import { getPresetById } from '@/config/formationPresets';
 
@@ -96,6 +98,8 @@ export interface UseFieldCoordinationReturn {
   isTacticsBoardView: boolean;
   formationSnapPoints: Point[];
   setFormationSnapPoints: React.Dispatch<React.SetStateAction<Point[]>>;
+  /** Sub slots for substitution planning on sideline */
+  subSlots: SubSlot[];
   tacticalDiscs: TacticalDisc[];
   tacticalDrawings: Point[][];
   tacticalBallPosition: Point | null;
@@ -222,6 +226,7 @@ export function useFieldCoordination({
   // --- State for reset field confirmation modal ---
   const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
   const [formationSnapPoints, setFormationSnapPoints] = useState<Point[]>([]);
+  const [subSlots, setSubSlots] = useState<SubSlot[]>([]);
 
   // --- Ref to always access latest availablePlayers (fixes goalie toggle race condition) ---
   // When user toggles goalie and immediately places player, the callback closure might
@@ -597,6 +602,9 @@ export function useFieldCoordination({
       positions = calculateFormationPositions(fieldPlayers.length);
     }
 
+    // Calculate overflow for any mode (handles edge cases where positions < players)
+    overflow = Math.max(0, fieldPlayers.length - positions.length);
+
     // Place field players in formation positions
     fieldPlayers.forEach((player, index) => {
       if (index < positions.length) {
@@ -608,22 +616,41 @@ export function useFieldCoordination({
       }
     });
 
-    // Handle overflow players (place on sideline)
+    // Generate sub slots for substitution planning (right sideline, aligned with field positions)
+    // Do this BEFORE placing overflow players so we can use sub slot positions
+    const newSubSlots = generateSubSlots(positions);
+    logger.debug('[Formation] Setting sub slots:', newSubSlots);
+    setSubSlots(newSubSlots);
+
+    // Handle overflow players (place at sub slot positions)
     if (overflow > 0) {
       const overflowPlayers = fieldPlayers.slice(positions.length);
-      const sidelinePositions = generateSidelinePositions(overflow);
+      // Pre-compute fallback positions outside the loop (optimization)
+      const fallbackCount = Math.max(0, overflow - newSubSlots.length);
+      const fallbackPositions = fallbackCount > 0 ? generateSidelinePositions(fallbackCount) : [];
 
       overflowPlayers.forEach((player, index) => {
-        if (index < sidelinePositions.length) {
+        if (index < newSubSlots.length) {
+          // Place at corresponding sub slot position
           newFieldPlayers.push({
             ...player,
-            relX: sidelinePositions[index].relX,
-            relY: sidelinePositions[index].relY
+            relX: newSubSlots[index].relX,
+            relY: newSubSlots[index].relY
           });
+        } else {
+          // Fallback: if more overflow than sub slots, use generic sideline positions
+          const fallbackIndex = index - newSubSlots.length;
+          if (fallbackIndex < fallbackPositions.length) {
+            newFieldPlayers.push({
+              ...player,
+              relX: fallbackPositions[fallbackIndex].relX,
+              relY: fallbackPositions[fallbackIndex].relY
+            });
+          }
         }
       });
 
-      logger.log(`Placed ${overflow} overflow players on sideline`);
+      logger.log(`Placed ${overflow} overflow players at sub slot positions`);
     }
 
     // Apply position-based goalie status detection
@@ -631,9 +658,12 @@ export function useFieldCoordination({
 
     setPlayersOnField(playersWithGoalieStatus);
     saveStateToHistory({ playersOnField: playersWithGoalieStatus });
+
+    // Snap points include: GK position + field positions + sub slot positions
     const snapPoints = [
       { relX: 0.5, relY: 0.95 },
       ...positions.map(pos => ({ relX: pos.relX, relY: pos.relY })),
+      ...newSubSlots.map(slot => ({ relX: slot.relX, relY: slot.relY })),
     ];
     logger.debug('[Formation] Setting snap points:', snapPoints);
     setFormationSnapPoints(snapPoints);
@@ -658,6 +688,7 @@ export function useFieldCoordination({
     isTacticsBoardView,
     formationSnapPoints,
     setFormationSnapPoints,
+    subSlots,
     tacticalDiscs,
     tacticalDrawings,
     tacticalBallPosition,

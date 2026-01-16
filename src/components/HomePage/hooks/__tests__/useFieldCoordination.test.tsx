@@ -21,6 +21,7 @@ jest.mock('@/utils/logger', () => ({
 jest.mock('@/utils/formations', () => ({
   __esModule: true,
   calculateFormationPositions: jest.fn(() => []),
+  generateSubSlots: jest.fn(() => []),
 }));
 
 jest.mock('@/utils/appSettings', () => ({
@@ -157,9 +158,11 @@ const getDefaultMockTacticalBoard = () => ({
   handleToggleTacticsBoard: jest.fn(),
   handleAddTacticalDisc: jest.fn(),
   handleTacticalDiscMove: jest.fn(),
+  handleTacticalDiscMoveEnd: jest.fn(),
   handleTacticalDiscRemove: jest.fn(),
   handleToggleTacticalDiscType: jest.fn(),
   handleTacticalBallMove: jest.fn(),
+  handleTacticalBallMoveEnd: jest.fn(),
   handleTacticalDrawingStart: jest.fn(),
   handleTacticalDrawingAddPoint: jest.fn(),
   handleTacticalDrawingEnd: jest.fn(),
@@ -257,9 +260,11 @@ describe('useFieldCoordination', () => {
       handleToggleTacticsBoard: jest.fn(),
       handleAddTacticalDisc: jest.fn(),
       handleTacticalDiscMove: jest.fn(),
+      handleTacticalDiscMoveEnd: jest.fn(),
       handleTacticalDiscRemove: jest.fn(),
       handleToggleTacticalDiscType: jest.fn(),
       handleTacticalBallMove: jest.fn(),
+      handleTacticalBallMoveEnd: jest.fn(),
       handleTacticalDrawingStart: jest.fn(),
       handleTacticalDrawingAddPoint: jest.fn(),
       handleTacticalDrawingEnd: jest.fn(),

@@ -1927,5 +1927,18 @@
     "grantSuccess": "Premium aktivoitu! Voit nollata Asetuksissa.",
     "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
     "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!"
+  },
+  "positions": {
+    "GK": "MV",
+    "LB": "VP",
+    "CB": "KP",
+    "RB": "OP",
+    "LM": "VK",
+    "CM": "KK",
+    "RM": "OK",
+    "LW": "VL",
+    "ST": "HY",
+    "RW": "OL",
+    "SUB": "VAR"
   }
 }
