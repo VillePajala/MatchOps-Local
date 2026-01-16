@@ -628,3 +628,128 @@ describe('SoccerField Component - Interaction Testing', () => {
     });
   });
 });
+
+// Import helper function and constant for direct testing
+import { isPositionOccupied, SUB_SLOT_OCCUPATION_THRESHOLD } from '../SoccerField';
+
+describe('isPositionOccupied Helper Function', () => {
+  const createPlayer = (relX?: number, relY?: number): Player => ({
+    id: 'test',
+    name: 'Test Player',
+    jerseyNumber: '1',
+    relX,
+    relY,
+  });
+
+  describe('basic functionality', () => {
+    it('returns true when player is exactly at target position', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(true);
+    });
+
+    it('returns true when player is within threshold of target', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // Just inside threshold (0.04)
+      expect(isPositionOccupied(players, 0.53, 0.53)).toBe(true);
+    });
+
+    it('returns false when player is outside threshold', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // Just outside threshold (0.04)
+      expect(isPositionOccupied(players, 0.55, 0.55)).toBe(false);
+    });
+
+    it('returns false for empty players array', () => {
+      expect(isPositionOccupied([], 0.5, 0.5)).toBe(false);
+    });
+  });
+
+  describe('undefined coordinate handling', () => {
+    it('returns false when player has undefined relX', () => {
+      const players = [createPlayer(undefined, 0.5)];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(false);
+    });
+
+    it('returns false when player has undefined relY', () => {
+      const players = [createPlayer(0.5, undefined)];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(false);
+    });
+
+    it('returns false when player has both coordinates undefined', () => {
+      const players = [createPlayer(undefined, undefined)];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(false);
+    });
+
+    it('ignores players with undefined coordinates but finds valid ones', () => {
+      const players = [
+        createPlayer(undefined, 0.5),
+        createPlayer(0.5, 0.5), // This one is valid and at target
+      ];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(true);
+    });
+  });
+
+  describe('multiple players', () => {
+    it('returns true if any player is at target', () => {
+      const players = [
+        createPlayer(0.2, 0.2),
+        createPlayer(0.5, 0.5), // At target
+        createPlayer(0.8, 0.8),
+      ];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(true);
+    });
+
+    it('returns false if no player is at target', () => {
+      const players = [
+        createPlayer(0.2, 0.2),
+        createPlayer(0.3, 0.3),
+        createPlayer(0.8, 0.8),
+      ];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(false);
+    });
+  });
+
+  describe('custom threshold', () => {
+    it('uses default threshold when not specified', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // Default threshold is 0.04
+      expect(isPositionOccupied(players, 0.539, 0.539)).toBe(true); // Within 0.04
+      expect(isPositionOccupied(players, 0.541, 0.541)).toBe(false); // Outside 0.04
+    });
+
+    it('respects custom threshold parameter', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // With larger threshold
+      expect(isPositionOccupied(players, 0.59, 0.59, 0.1)).toBe(true);
+      // With smaller threshold
+      expect(isPositionOccupied(players, 0.52, 0.52, 0.01)).toBe(false);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles positions at field boundaries', () => {
+      const players = [createPlayer(0, 0)];
+      expect(isPositionOccupied(players, 0, 0)).toBe(true);
+      expect(isPositionOccupied(players, 0.03, 0.03)).toBe(true);
+    });
+
+    it('handles positions at field corners', () => {
+      const players = [createPlayer(1, 1)];
+      expect(isPositionOccupied(players, 1, 1)).toBe(true);
+    });
+
+    it('checks both X and Y independently', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // X within threshold, Y outside
+      expect(isPositionOccupied(players, 0.52, 0.6)).toBe(false);
+      // Y within threshold, X outside
+      expect(isPositionOccupied(players, 0.6, 0.52)).toBe(false);
+    });
+  });
+
+  describe('threshold constant', () => {
+    it('exports the correct threshold value', () => {
+      expect(SUB_SLOT_OCCUPATION_THRESHOLD).toBe(0.04);
+    });
+  });
+});

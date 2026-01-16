@@ -75,7 +75,7 @@ const TAP_TO_DRAG_THRESHOLD = 10; // pixels
 const TAP_TO_DRAG_THRESHOLD_SQ = TAP_TO_DRAG_THRESHOLD * TAP_TO_DRAG_THRESHOLD;
 const FORMATION_SNAP_THRESHOLD_PX = 36; // pixels
 const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP_THRESHOLD_PX;
-const SUB_SLOT_OCCUPATION_THRESHOLD = 0.04; // relative coordinate tolerance for slot occupation check
+export const SUB_SLOT_OCCUPATION_THRESHOLD = 0.04; // relative coordinate tolerance for slot occupation check
 
 // Visual styling constants for formation positions and sub slots
 const FIELD_POSITION_ALPHA_EMPTY = 0.35;
@@ -88,8 +88,9 @@ const POSITION_LABEL_FONT_SIZE = 14;
 
 /**
  * Check if a position is occupied by any player
+ * @exported for testing
  */
-function isPositionOccupied(
+export function isPositionOccupied(
   players: Player[],
   targetX: number,
   targetY: number,
