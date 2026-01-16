@@ -82,7 +82,7 @@ const FIELD_POSITION_ALPHA_EMPTY = 0.35;
 const FIELD_POSITION_ALPHA_OCCUPIED = 0.15;
 const SUB_SLOT_ALPHA_EMPTY = 0.45;
 const SUB_SLOT_ALPHA_OCCUPIED = 0.25;
-const SIDELINE_PLAYER_ALPHA = 0.55;
+// Note: Sideline players use desaturation only (no alpha) for visual distinction
 const SIDELINE_DESATURATION_PERCENT = 60;
 const POSITION_LABEL_FONT_SIZE = 14;
 
@@ -474,11 +474,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         const absX = player.relX * W;
         const absY = player.relY * H;
 
-        // Check if sideline player for transparency and desaturation
+        // Check if sideline player for desaturation (no transparency - desaturation is enough)
         const isSidelinePlayer = isSidelinePosition(player.relX);
-        if (isSidelinePlayer) {
-          ctx.globalAlpha = SIDELINE_PLAYER_ALPHA;
-        }
 
         // Polished enamel disc effect (matches on-screen display)
         let baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
@@ -555,34 +552,57 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           Math.abs(player.relY! - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
         );
 
+        // For sideline players, find matching sub slot to get their target position label
+        const matchingSubSlot = isSidelinePlayer && subSlots?.find(slot =>
+          Math.abs(player.relX! - slot.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
+          Math.abs(player.relY! - slot.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
+        );
+
         // Show position label for:
         // - On-field players at formation snap points (except goalkeepers)
-        // - Sideline players (show "SUB")
-        const shouldShowPositionLabel = isSidelinePlayer || (isAtSnapPoint && !isGoalkeeper);
+        // - Sideline players at sub slots (show the target position like "CB", "LW")
+        const shouldShowPositionLabel = matchingSubSlot || (isAtSnapPoint && !isGoalkeeper);
 
         if (shouldShowPositionLabel) {
-          const positionInfo = getPositionLabel(player.relX, player.relY);
-          const translatedLabel = t(`positions.${positionInfo.label}`);
-          const labelY = absY + playerRadius + 10 * scale;
+          // Use sub slot's positionLabel for sideline players, otherwise compute from coordinates
+          const labelKey = matchingSubSlot
+            ? matchingSubSlot.positionLabel
+            : getPositionLabel(player.relX, player.relY).label;
+          const translatedLabel = t(`positions.${labelKey}`);
 
           ctx.font = `700 ${POSITION_LABEL_FONT_SIZE * scale}px Rajdhani, sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
 
-          // Black outline for visibility
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-          ctx.lineWidth = 2.5 * scale;
-          ctx.strokeText(translatedLabel, absX, labelY);
+          // Sideline players: label to the LEFT (matches sub slot rendering)
+          // On-field players: label BELOW the disc
+          if (matchingSubSlot) {
+            const labelX = absX - playerRadius - 6 * scale;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
 
-          // White fill
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.fillText(translatedLabel, absX, labelY);
+            // Black outline for visibility
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 2 * scale;
+            ctx.strokeText(translatedLabel, labelX, absY);
+
+            // White fill
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillText(translatedLabel, labelX, absY);
+          } else {
+            const labelY = absY + playerRadius + 10 * scale;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            // Black outline for visibility
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.lineWidth = 2.5 * scale;
+            ctx.strokeText(translatedLabel, absX, labelY);
+
+            // White fill
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillText(translatedLabel, absX, labelY);
+          }
         }
 
-        // Reset alpha for next player
-        if (isSidelinePlayer) {
-          ctx.globalAlpha = 1.0;
-        }
       });
     }
 
@@ -659,7 +679,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     return exportCanvas;
-  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, gameType, formationSnapPoints, t]);
+  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, gameType, formationSnapPoints, subSlots, t]);
 
   // Expose canvas via ref for export functionality
   useImperativeHandle(ref, () => ({
@@ -990,11 +1010,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         return;
       }
 
-      // Dim substitution players (sideline area - both edges, full field height)
+      // Check if sideline player for desaturation (no transparency - desaturation is enough)
       const isSidelinePlayer = isSidelinePosition(player.relX);
-      if (isSidelinePlayer) {
-        context.globalAlpha = SIDELINE_PLAYER_ALPHA;
-      }
 
       // --- Start Refined "Polished Enamel" Disc Redesign ---
       let baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
@@ -1111,10 +1128,6 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         }
       }
 
-      // Reset alpha for next player
-      if (isSidelinePlayer) {
-        context.globalAlpha = 1.0;
-      }
     });
     }
 
