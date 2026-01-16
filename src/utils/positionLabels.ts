@@ -35,11 +35,20 @@ const RIGHT_ZONE = 0.67;
 
 /**
  * Vertical position thresholds (relY: 0 = opponent goal, 1 = own goal)
+ *
+ * Formation Y positions for reference:
+ * - Defenders: 0.75-0.80
+ * - Defensive midfielders: 0.60-0.70
+ * - Central midfielders: 0.50-0.55
+ * - Attacking midfielders: 0.35-0.45
+ * - Attackers: 0.25-0.30
  */
 const GK_ZONE = 0.90;     // Goalkeeper area
-const DEF_ZONE = 0.65;    // Defense line starts here
-const MID_ZONE = 0.40;    // Midfield zone starts here
-// Below MID_ZONE = Attack zone
+const DEF_ZONE = 0.73;    // Defense line starts here (defenders at 0.75+)
+const DEF_MID_ZONE = 0.55; // Defensive midfield (DM/CDM) zone starts here
+const MID_ZONE = 0.48;    // Central midfield zone starts here
+const ATT_MID_ZONE = 0.32; // Attacking midfield (AM/CAM) zone starts here
+// Below ATT_MID_ZONE = Attack zone (ST/LW/RW)
 
 /**
  * Check if a position is on the sideline (sub area)
@@ -61,13 +70,15 @@ function getHorizontalZone(relX: number): 'left' | 'center' | 'right' {
  * Get position label from relative coordinates
  *
  * Position mapping:
- * | relY Zone        | Left (relX < 0.33) | Center | Right (relX > 0.67) |
- * |------------------|-------------------|--------|---------------------|
- * | GK (>=0.90)      | GK                | GK     | GK                  |
- * | DEF (0.65-0.90)  | LB                | CB     | RB                  |
- * | MID (0.40-0.65)  | LM                | CM     | RM                  |
- * | ATT (<=0.40)     | LW                | ST     | RW                  |
- * | Sideline         | SUB               | SUB    | SUB                 |
+ * | relY Zone            | Left (relX < 0.33) | Center | Right (relX > 0.67) |
+ * |----------------------|-------------------|--------|---------------------|
+ * | GK (>=0.90)          | GK                | GK     | GK                  |
+ * | DEF (0.73-0.90)      | LB                | CB     | RB                  |
+ * | DEF_MID (0.55-0.73)  | LDM               | CDM    | RDM                 |
+ * | MID (0.48-0.55)      | LM                | CM     | RM                  |
+ * | ATT_MID (0.32-0.48)  | LAM               | CAM    | RAM                 |
+ * | ATT (<=0.32)         | LW                | ST     | RW                  |
+ * | Sideline             | SUB               | SUB    | SUB                 |
  */
 export function getPositionLabel(relX: number, relY: number): PositionLabelInfo {
   // Sideline players are substitutes
@@ -88,9 +99,21 @@ export function getPositionLabel(relX: number, relY: number): PositionLabelInfo 
     return { label: labels[hZone], zone: 'def' };
   }
 
-  // Midfield zone
+  // Defensive midfield zone
+  if (relY >= DEF_MID_ZONE) {
+    const labels = { left: 'LDM', center: 'CDM', right: 'RDM' };
+    return { label: labels[hZone], zone: 'mid' };
+  }
+
+  // Central midfield zone
   if (relY >= MID_ZONE) {
     const labels = { left: 'LM', center: 'CM', right: 'RM' };
+    return { label: labels[hZone], zone: 'mid' };
+  }
+
+  // Attacking midfield zone
+  if (relY >= ATT_MID_ZONE) {
+    const labels = { left: 'LAM', center: 'CAM', right: 'RAM' };
     return { label: labels[hZone], zone: 'mid' };
   }
 
@@ -125,5 +148,7 @@ export const POSITION_THRESHOLDS = {
   RIGHT_ZONE,
   GK_ZONE,
   DEF_ZONE,
+  DEF_MID_ZONE,
   MID_ZONE,
+  ATT_MID_ZONE,
 } as const;
