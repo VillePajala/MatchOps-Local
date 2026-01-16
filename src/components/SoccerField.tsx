@@ -330,7 +330,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // Avoid snapping into an occupied spot (keep it simple; tap-to-swap handles swaps explicitly).
     const occupied = players.some(p => {
       if (p.id === playerId) return false;
-      if (typeof p.relX !== 'number' || typeof p.relY !== 'number') return false;
+      // Validate coordinates exist and are finite (handles undefined, NaN, Infinity)
+      if (p.relX === undefined || p.relY === undefined || !Number.isFinite(p.relX) || !Number.isFinite(p.relY)) return false;
       const dxPx = (p.relX - snapTarget.relX) * rect.width;
       const dyPx = (p.relY - snapTarget.relY) * rect.height;
       const distSq = dxPx * dxPx + dyPx * dyPx;
@@ -1605,7 +1606,11 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           }
         }
       }
-      // Check for empty position tap (only when a player is selected for swap)
+      // Check for empty position tap (formation snap points or sub slots)
+      // UX design: Only enabled when a player is selected for swap. User flow:
+      // 1. Tap a player to select them (highlighted with selection ring)
+      // 2. Tap an empty position to move the selected player there
+      // This prevents accidental moves and makes the interaction intentional.
       if (!tappedTargetId && selectedPlayerForSwapId) {
         const emptyPos = findEmptyPositionAtPoint(touch.clientX, touch.clientY);
         if (emptyPos) {
