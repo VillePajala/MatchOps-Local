@@ -536,6 +536,33 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           ctx.fillStyle = '#F0F0F0';
           ctx.fillText(text, absX, absY);
         }
+
+        // Position label below disc (matches on-screen display)
+        const isSidelinePlayer = isSidelinePosition(player.relX);
+        const isGoalkeeper = player.relY >= 0.90;
+        const isAtSnapPoint = formationSnapPoints?.some(point =>
+          Math.abs(player.relX! - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
+          Math.abs(player.relY! - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
+        );
+
+        if (!isSidelinePlayer && isAtSnapPoint && !isGoalkeeper) {
+          const positionInfo = getPositionLabel(player.relX, player.relY);
+          const translatedLabel = t(`positions.${positionInfo.label}`);
+          const labelY = absY + playerRadius + 10 * scale;
+
+          ctx.font = `700 ${POSITION_LABEL_FONT_SIZE * scale}px Rajdhani, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+
+          // Black outline for visibility
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+          ctx.lineWidth = 2.5 * scale;
+          ctx.strokeText(translatedLabel, absX, labelY);
+
+          // White fill
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.fillText(translatedLabel, absX, labelY);
+        }
       });
     }
 
@@ -612,7 +639,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     return exportCanvas;
-  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, gameType]);
+  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, gameType, formationSnapPoints, t]);
 
   // Expose canvas via ref for export functionality
   useImperativeHandle(ref, () => ({
