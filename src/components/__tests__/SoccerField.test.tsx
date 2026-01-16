@@ -932,7 +932,15 @@ describe('Empty Position Selection', () => {
       expect(canvas).toBeInTheDocument();
     });
 
-    it('should call onPlayerMove and onPlayerMoveEnd when moving to empty position', () => {
+    /**
+     * Tests stability of tap-to-move interaction flow
+     * @integration - Tests component stability during user interaction sequence
+     *
+     * Note: Full callback verification requires E2E testing with real canvas rendering.
+     * In JSDOM, canvas hit detection doesn't function as in browsers, so we verify
+     * the component handles the interaction sequence without crashing.
+     */
+    it('should handle tap-to-move interaction flow without crashing', () => {
       // Player 1 at (0.2, 0.3), not at the formation snap point
       const players = [createMockPlayer('1', { relX: 0.2, relY: 0.3 })];
       const formationSnapPoints = [{ relX: 0.5, relY: 0.75 }];
@@ -973,9 +981,10 @@ describe('Empty Position Selection', () => {
       });
       fireEvent.touchEnd(canvas, { changedTouches: [{ clientX: 150, clientY: 225, identifier: 0, target: canvas }] });
 
-      // Note: Due to canvas hit detection complexity, we verify stability here.
-      // Full integration test of tap-to-move requires E2E testing with real canvas rendering.
+      // Verify component remained stable through interaction sequence
       expect(canvas).toBeInTheDocument();
+      // Note: onPlayerMove/onPlayerMoveEnd callback assertions require E2E testing
+      // due to JSDOM canvas hit detection limitations
     });
   });
 
