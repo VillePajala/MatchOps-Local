@@ -17,9 +17,15 @@ export interface PositionLabelInfo {
 /**
  * Sideline boundary thresholds
  * Players beyond these X values are considered on the sideline (sub area)
+ *
+ * Note: These must be tighter than formation margins.
+ * - generateDynamicFormation() can use margins as low as 0.05 for large teams
+ * - Sub slots are placed at relX = 0.96
+ * - So we use 0.04 (left) and 0.955 (right) to avoid classifying wide formation
+ *   positions as sideline subs
  */
-const SIDELINE_LEFT = 0.08;
-const SIDELINE_RIGHT = 0.92;
+const SIDELINE_LEFT = 0.04;
+const SIDELINE_RIGHT = 0.955;
 
 /**
  * Horizontal position thresholds

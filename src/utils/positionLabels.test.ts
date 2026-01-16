@@ -20,15 +20,15 @@ describe('positionLabels', () => {
       });
 
       it('returns true for position just inside left boundary', () => {
-        expect(isSidelinePosition(0.07)).toBe(true);
+        expect(isSidelinePosition(0.03)).toBe(true);
       });
 
       it('returns false for position at left boundary threshold', () => {
-        expect(isSidelinePosition(0.08)).toBe(false);
+        expect(isSidelinePosition(0.04)).toBe(false);
       });
 
       it('returns false for position just past left boundary', () => {
-        expect(isSidelinePosition(0.09)).toBe(false);
+        expect(isSidelinePosition(0.05)).toBe(false);
       });
     });
 
@@ -38,15 +38,15 @@ describe('positionLabels', () => {
       });
 
       it('returns true for position just past right boundary', () => {
-        expect(isSidelinePosition(0.93)).toBe(true);
+        expect(isSidelinePosition(0.96)).toBe(true);
       });
 
       it('returns false for position at right boundary threshold', () => {
-        expect(isSidelinePosition(0.92)).toBe(false);
+        expect(isSidelinePosition(0.955)).toBe(false);
       });
 
       it('returns false for position just before right boundary', () => {
-        expect(isSidelinePosition(0.91)).toBe(false);
+        expect(isSidelinePosition(0.95)).toBe(false);
       });
     });
 
@@ -68,12 +68,12 @@ describe('positionLabels', () => {
   describe('getPositionLabel', () => {
     describe('sideline positions (SUB)', () => {
       it('returns SUB for left sideline position', () => {
-        const result = getPositionLabel(0.05, 0.5);
+        const result = getPositionLabel(0.03, 0.5);
         expect(result).toEqual({ label: 'SUB', zone: 'sub' });
       });
 
       it('returns SUB for right sideline position', () => {
-        const result = getPositionLabel(0.95, 0.5);
+        const result = getPositionLabel(0.96, 0.5);
         expect(result).toEqual({ label: 'SUB', zone: 'sub' });
       });
 
@@ -217,8 +217,8 @@ describe('positionLabels', () => {
     });
 
     it('clamps left sideline position to field area', () => {
-      // relX = 0.05 would normally return SUB, but formation positions should never be SUB
-      const result = getPositionLabelForFormationPosition(0.05, 0.75);
+      // relX = 0.03 would normally return SUB, but formation positions should never be SUB
+      const result = getPositionLabelForFormationPosition(0.03, 0.75);
       expect(result.label).not.toBe('SUB');
       expect(result.zone).toBe('def');
     });
@@ -232,9 +232,9 @@ describe('positionLabels', () => {
 
     it('returns correct zone based on relY even when relX is clamped', () => {
       // Test that relY is still respected even when relX is clamped
-      expect(getPositionLabelForFormationPosition(0.05, 0.30).zone).toBe('att');
-      expect(getPositionLabelForFormationPosition(0.05, 0.55).zone).toBe('mid');
-      expect(getPositionLabelForFormationPosition(0.05, 0.75).zone).toBe('def');
+      expect(getPositionLabelForFormationPosition(0.03, 0.30).zone).toBe('att');
+      expect(getPositionLabelForFormationPosition(0.03, 0.55).zone).toBe('mid');
+      expect(getPositionLabelForFormationPosition(0.03, 0.75).zone).toBe('def');
     });
   });
 
@@ -250,8 +250,8 @@ describe('positionLabels', () => {
     });
 
     it('has correct sideline thresholds', () => {
-      expect(POSITION_THRESHOLDS.SIDELINE_LEFT).toBe(0.08);
-      expect(POSITION_THRESHOLDS.SIDELINE_RIGHT).toBe(0.92);
+      expect(POSITION_THRESHOLDS.SIDELINE_LEFT).toBe(0.04);
+      expect(POSITION_THRESHOLDS.SIDELINE_RIGHT).toBe(0.955);
     });
 
     it('has correct horizontal zone thresholds', () => {
