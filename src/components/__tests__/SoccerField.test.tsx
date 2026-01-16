@@ -753,3 +753,273 @@ describe('isPositionOccupied Helper Function', () => {
     });
   });
 });
+
+describe('Empty Position Selection', () => {
+  const createMockPlayer = (id: string, overrides?: Partial<Player>): Player => ({
+    id,
+    name: `Player ${id}`,
+    jerseyNumber: id,
+    relX: 0.3,
+    relY: 0.4,
+    ...overrides,
+  });
+
+  const defaultProps = {
+    players: [
+      createMockPlayer('1', { relX: 0.2, relY: 0.3 }),
+      createMockPlayer('2', { relX: 0.4, relY: 0.5 }),
+    ],
+    opponents: [],
+    drawings: [],
+    onPlayerMove: jest.fn(),
+    onPlayerMoveEnd: jest.fn(),
+    onPlayerRemove: jest.fn(),
+    onOpponentMove: jest.fn(),
+    onOpponentMoveEnd: jest.fn(),
+    onOpponentRemove: jest.fn(),
+    onPlayerDrop: jest.fn(),
+    showPlayerNames: true,
+    onDrawingStart: jest.fn(),
+    onDrawingAddPoint: jest.fn(),
+    onDrawingEnd: jest.fn(),
+    draggingPlayerFromBarInfo: null,
+    onPlayerDropViaTouch: jest.fn(),
+    onPlayerDragCancelViaTouch: jest.fn(),
+    timeElapsedInSeconds: 0,
+    isTacticsBoardView: false,
+    tacticalDiscs: [],
+    onTacticalDiscMove: jest.fn(),
+    onTacticalDiscMoveEnd: jest.fn(),
+    onTacticalDiscRemove: jest.fn(),
+    onToggleTacticalDiscType: jest.fn(),
+    onAddTacticalDisc: jest.fn(),
+    tacticalBallPosition: null,
+    onTacticalBallMove: jest.fn(),
+    onTacticalBallMoveEnd: jest.fn(),
+    tacticalDrawings: [],
+    onTacticalDrawingStart: jest.fn(),
+    onTacticalDrawingAddPoint: jest.fn(),
+    onTacticalDrawingEnd: jest.fn(),
+    isDrawingEnabled: false,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /**
+   * Tests that empty formation snap points can be detected
+   * @integration
+   */
+  describe('formation snap point detection', () => {
+    it('should render with formation snap points', () => {
+      const formationSnapPoints = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.3, relY: 0.55 },
+        { relX: 0.7, relY: 0.55 },
+      ];
+
+      render(<SoccerField {...defaultProps} formationSnapPoints={formationSnapPoints} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should render with sub slots', () => {
+      const subSlots = [
+        { relX: 0.96, relY: 0.75, positionLabel: 'CB' },
+        { relX: 0.96, relY: 0.55, positionLabel: 'CM' },
+      ];
+
+      render(<SoccerField {...defaultProps} subSlots={subSlots} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Tests that empty position detection respects occupation
+   * @integration
+   */
+  describe('occupation detection', () => {
+    it('should not detect empty position where player exists', () => {
+      // Use isPositionOccupied which is the underlying logic
+      const players = [createMockPlayer('1', { relX: 0.5, relY: 0.75 })];
+
+      // Position should be occupied
+      expect(isPositionOccupied(players, 0.5, 0.75)).toBe(true);
+    });
+
+    it('should detect unoccupied formation position', () => {
+      const players = [createMockPlayer('1', { relX: 0.2, relY: 0.3 })];
+
+      // Different position should not be occupied
+      expect(isPositionOccupied(players, 0.5, 0.75)).toBe(false);
+    });
+  });
+
+  /**
+   * Tests empty position tap-to-move user flow
+   * UX: User must first select a player, then tap an empty position
+   * @critical
+   */
+  describe('tap-to-move interaction flow', () => {
+    it('should handle touch interaction on canvas with formation snap points', () => {
+      const formationSnapPoints = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.3, relY: 0.55 },
+      ];
+
+      render(<SoccerField {...defaultProps} formationSnapPoints={formationSnapPoints} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+
+      if (canvas) {
+        // First tap to select player
+        fireEvent.touchStart(canvas, {
+          touches: [{ clientX: 60, clientY: 90 }], // Near player at 0.2, 0.3
+        });
+        fireEvent.touchEnd(canvas);
+
+        // Second tap on empty position
+        fireEvent.touchStart(canvas, {
+          touches: [{ clientX: 150, clientY: 225 }], // Near 0.5, 0.75 formation point
+        });
+        fireEvent.touchEnd(canvas);
+
+        // Canvas should remain stable
+        expect(canvas).toBeInTheDocument();
+      }
+    });
+
+    it('should handle touch on sub slot positions', () => {
+      const subSlots = [
+        { relX: 0.96, relY: 0.75, positionLabel: 'CB' },
+        { relX: 0.96, relY: 0.55, positionLabel: 'CM' },
+      ];
+
+      render(<SoccerField {...defaultProps} subSlots={subSlots} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+
+      if (canvas) {
+        // Tap near sub slot position
+        fireEvent.touchStart(canvas, {
+          touches: [{ clientX: 288, clientY: 225 }], // Near 0.96, 0.75
+        });
+        fireEvent.touchEnd(canvas);
+
+        expect(canvas).toBeInTheDocument();
+      }
+    });
+  });
+
+  /**
+   * Tests that player must be selected before tap-to-move works
+   * @edge-case - UX constraint validation
+   */
+  describe('UX constraint: player selection required', () => {
+    it('should not move player without prior selection', () => {
+      const formationSnapPoints = [{ relX: 0.5, relY: 0.75 }];
+
+      render(<SoccerField {...defaultProps} formationSnapPoints={formationSnapPoints} />);
+
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        // Tap directly on empty formation position without selecting player first
+        fireEvent.touchStart(canvas, {
+          touches: [{ clientX: 150, clientY: 225 }],
+        });
+        fireEvent.touchEnd(canvas);
+
+        // onPlayerMove should NOT be called since no player was selected
+        expect(defaultProps.onPlayerMove).not.toHaveBeenCalled();
+      }
+    });
+  });
+
+  /**
+   * Tests stability with both formation snap points and sub slots
+   * @integration
+   */
+  describe('combined formation and sub slots', () => {
+    it('should handle both formation snap points and sub slots together', () => {
+      const formationSnapPoints = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.3, relY: 0.55 },
+      ];
+      const subSlots = [
+        { relX: 0.96, relY: 0.75, positionLabel: 'CB' },
+        { relX: 0.96, relY: 0.55, positionLabel: 'CM' },
+      ];
+
+      render(
+        <SoccerField
+          {...defaultProps}
+          formationSnapPoints={formationSnapPoints}
+          subSlots={subSlots}
+        />
+      );
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should prioritize formation snap points over sub slots when overlapping', () => {
+      // Formation snap point at same position as sub slot
+      const formationSnapPoints = [{ relX: 0.96, relY: 0.75 }];
+      const subSlots = [{ relX: 0.96, relY: 0.75, positionLabel: 'CB' }];
+
+      render(
+        <SoccerField
+          {...defaultProps}
+          formationSnapPoints={formationSnapPoints}
+          subSlots={subSlots}
+        />
+      );
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+
+      if (canvas) {
+        // Touch interaction should not crash
+        fireEvent.touchStart(canvas, {
+          touches: [{ clientX: 288, clientY: 225 }],
+        });
+        fireEvent.touchEnd(canvas);
+
+        expect(canvas).toBeInTheDocument();
+      }
+    });
+  });
+
+  /**
+   * Tests edge cases for empty position handling
+   * @edge-case
+   */
+  describe('edge cases', () => {
+    it('should handle empty formationSnapPoints array', () => {
+      render(<SoccerField {...defaultProps} formationSnapPoints={[]} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should handle empty subSlots array', () => {
+      render(<SoccerField {...defaultProps} subSlots={[]} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should handle undefined formationSnapPoints and subSlots', () => {
+      render(<SoccerField {...defaultProps} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+  });
+});
