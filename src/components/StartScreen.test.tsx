@@ -59,10 +59,10 @@ describe('StartScreen', () => {
 
     expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Load Game' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'View Stats' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'App Settings' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Finnish' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Statistics' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'FI' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(handlers.onResumeGame).toHaveBeenCalled();
@@ -70,13 +70,13 @@ describe('StartScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Load Game' }));
     expect(handlers.onLoadGame).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'View Stats' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Statistics' }));
     expect(handlers.onViewStats).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'App Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(handlers.onOpenSettings).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Finnish' }));
+    fireEvent.click(screen.getByRole('button', { name: 'FI' }));
     expect(i18n.changeLanguage).toHaveBeenCalledWith('fi');
   });
 
@@ -104,14 +104,14 @@ describe('StartScreen', () => {
 
     // Should only show simplified interface
     expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Finnish' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'FI' })).toBeInTheDocument();
 
     // Should not show full interface buttons
     expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load Game' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'View Stats' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'App Settings' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Statistics' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
     expect(handlers.onGetStarted).toHaveBeenCalled();

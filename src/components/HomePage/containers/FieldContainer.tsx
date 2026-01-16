@@ -19,6 +19,7 @@ import type {
   Point,
   AppState
 } from '@/types';
+import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 
 /**
@@ -108,6 +109,7 @@ export interface FieldContainerProps {
     draggingPlayerFromBarInfo: Player | null;
     isDrawingEnabled: boolean;
     formationSnapPoints?: Point[];
+    subSlots?: SubSlot[];
   };
   timerVM: {
     timeElapsedInSeconds: number;
@@ -314,6 +316,7 @@ export function FieldContainer({
           onTacticalBallMoveEnd={tactical.ballMoveEnd}
           isDrawingEnabled={fcIsDrawingEnabled}
           formationSnapPoints={fieldVM.formationSnapPoints}
+          subSlots={fieldVM.subSlots}
         />
       </ErrorBoundary>
 

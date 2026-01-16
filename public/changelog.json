@@ -1,8 +1,8 @@
 {
-  "version": "a431f191",
+  "version": "674db4a3",
   "date": "2026-01-15",
   "notes": {
-    "en": "Redesign StartScreen with marketing visual language",
-    "fi": "Redesign StartScreen with marketing visual language"
+    "en": "Maintain phone proportions on mobile feature cards",
+    "fi": "Maintain phone proportions on mobile feature cards"
   }
 }

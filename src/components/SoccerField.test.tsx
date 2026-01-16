@@ -130,10 +130,12 @@ describe('SoccerField', () => {
     isTacticsBoardView: false,
     tacticalDiscs: [],
     onTacticalDiscMove: jest.fn(),
+    onTacticalDiscMoveEnd: jest.fn(),
     onTacticalDiscRemove: jest.fn(),
     onToggleTacticalDiscType: jest.fn(),
     tacticalBallPosition: null,
     onTacticalBallMove: jest.fn(),
+    onTacticalBallMoveEnd: jest.fn(),
     isDrawingEnabled: false,
   };
 

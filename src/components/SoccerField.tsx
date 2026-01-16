@@ -1,6 +1,7 @@
 'use client'; // Need this for client-side interactions like canvas
 
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Player } from '@/types'; // Import Player from types
 import { Point, Opponent, TacticalDisc } from '@/types'; // Import Point and Opponent from page
 import type { GameType } from '@/types/game';
@@ -11,6 +12,8 @@ import {
 } from '@/utils/fieldDrawing';
 import tinycolor from 'tinycolor2';
 import logger from '@/utils/logger';
+import { isSidelinePosition, getPositionLabel } from '@/utils/positionLabels';
+import type { SubSlot } from '@/utils/formations';
 
 // Define props for SoccerField
 interface SoccerFieldProps {
@@ -49,6 +52,8 @@ interface SoccerFieldProps {
   onTacticalBallMoveEnd: () => void;
   isDrawingEnabled: boolean;
   formationSnapPoints?: Point[];
+  /** Sub slots for substitution planning - shows labeled positions on sideline */
+  subSlots?: SubSlot[];
 }
 
 /**
@@ -70,6 +75,32 @@ const TAP_TO_DRAG_THRESHOLD = 10; // pixels
 const TAP_TO_DRAG_THRESHOLD_SQ = TAP_TO_DRAG_THRESHOLD * TAP_TO_DRAG_THRESHOLD;
 const FORMATION_SNAP_THRESHOLD_PX = 36; // pixels
 const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP_THRESHOLD_PX;
+const SUB_SLOT_OCCUPATION_THRESHOLD = 0.04; // relative coordinate tolerance for slot occupation check
+
+// Visual styling constants for formation positions and sub slots
+const FIELD_POSITION_ALPHA_EMPTY = 0.35;
+const FIELD_POSITION_ALPHA_OCCUPIED = 0.15;
+const SUB_SLOT_ALPHA_EMPTY = 0.45;
+const SUB_SLOT_ALPHA_OCCUPIED = 0.25;
+const SIDELINE_PLAYER_ALPHA = 0.55;
+const SIDELINE_DESATURATION_PERCENT = 60;
+const POSITION_LABEL_FONT_SIZE = 14;
+
+/**
+ * Check if a position is occupied by any player
+ */
+function isPositionOccupied(
+  players: Player[],
+  targetX: number,
+  targetY: number,
+  threshold: number = SUB_SLOT_OCCUPATION_THRESHOLD
+): boolean {
+  return players.some(p =>
+    p.relX !== undefined && p.relY !== undefined &&
+    Math.abs(p.relX - targetX) < threshold &&
+    Math.abs(p.relY - targetY) < threshold
+  );
+}
 
 /**
  * LRU (Least Recently Used) cache for background canvases.
@@ -185,7 +216,9 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   onTacticalBallMoveEnd,
   isDrawingEnabled,
   formationSnapPoints,
+  subSlots,
 }, ref) => {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState<boolean>(false);
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
@@ -827,6 +860,75 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       context.stroke();
     }
 
+    // --- Draw Field Formation Positions (solid circles where players snap) ---
+    if (formationSnapPoints && formationSnapPoints.length > 0 && !isTacticsBoardView) {
+      const positionRadius = PLAYER_RADIUS;
+
+      formationSnapPoints.forEach(point => {
+        // Skip GK position (at bottom) and sideline positions
+        if (point.relY > 0.9 || isSidelinePosition(point.relX)) return;
+
+        const absX = point.relX * W;
+        const absY = point.relY * H;
+
+        // Check if position is occupied by a player
+        const isOccupied = isPositionOccupied(players, point.relX, point.relY);
+
+        context.globalAlpha = isOccupied ? FIELD_POSITION_ALPHA_OCCUPIED : FIELD_POSITION_ALPHA_EMPTY;
+
+        // Solid circle outline (not dashed)
+        context.beginPath();
+        context.arc(absX, absY, positionRadius, 0, Math.PI * 2);
+        context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        context.lineWidth = 1.5;
+        context.stroke();
+
+        context.globalAlpha = 1.0;
+      });
+    }
+
+    // --- Draw Sub Slots (before players so they appear behind) ---
+    if (subSlots && subSlots.length > 0 && !isTacticsBoardView) {
+      const slotRadius = PLAYER_RADIUS;
+
+      subSlots.forEach(slot => {
+        const absX = slot.relX * W;
+        const absY = slot.relY * H;
+
+        // Check if slot is occupied by a player
+        const isOccupied = isPositionOccupied(players, slot.relX, slot.relY);
+
+        context.globalAlpha = isOccupied ? SUB_SLOT_ALPHA_OCCUPIED : SUB_SLOT_ALPHA_EMPTY;
+
+        // Dashed circle outline
+        context.beginPath();
+        context.setLineDash([4, 4]);
+        context.arc(absX, absY, slotRadius, 0, Math.PI * 2);
+        context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        context.lineWidth = 1.5;
+        context.stroke();
+        context.setLineDash([]);
+
+        // Position label to the left of slot (avoids overlap with stacked players)
+        const translatedSlotLabel = t(`positions.${slot.positionLabel}`);
+        context.font = `700 ${POSITION_LABEL_FONT_SIZE}px Rajdhani, sans-serif`;
+        context.textAlign = 'right';
+        context.textBaseline = 'middle';
+        const labelX = absX - slotRadius - 6;
+
+        // Black outline for visibility
+        context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        context.lineWidth = 2;
+        context.strokeText(translatedSlotLabel, labelX, absY);
+
+        // White fill
+        context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        context.fillText(translatedSlotLabel, labelX, absY);
+
+        context.globalAlpha = 1.0;
+      });
+    }
+
     // --- Draw Players ---
     const playerRadius = PLAYER_RADIUS;
     if (!isTacticsBoardView) {
@@ -841,14 +943,19 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         return;
       }
 
-      // Dim substitution players (only those in the subs area - edge AND lower half)
-      const isSidelinePlayer = (player.relX > 0.92 || player.relX < 0.08) && player.relY >= 0.5;
+      // Dim substitution players (sideline area - both edges, full field height)
+      const isSidelinePlayer = isSidelinePosition(player.relX);
       if (isSidelinePlayer) {
-        context.globalAlpha = 0.55;
+        context.globalAlpha = SIDELINE_PLAYER_ALPHA;
       }
 
       // --- Start Refined "Polished Enamel" Disc Redesign ---
-      const baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+      let baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+
+      // Desaturate sideline players for visual distinction
+      if (isSidelinePlayer) {
+        baseColor = baseColor.desaturate(SIDELINE_DESATURATION_PERCENT);
+      }
 
       // 1. Base Disc Color
       context.beginPath();
@@ -928,6 +1035,33 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         // 3. Main text fill
         context.fillStyle = '#F0F0F0';
         context.fillText(text, absX, absY);
+
+        // 4. Position label below disc (only for on-field players at formation snap points, skip GK)
+        // Note: player.relX/relY are verified as numbers at the start of forEach (line 936-938)
+        const isGoalkeeper = player.relY >= 0.90;
+        const isAtSnapPoint = formationSnapPoints?.some(point =>
+          Math.abs(player.relX! - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
+          Math.abs(player.relY! - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
+        );
+
+        if (!isSidelinePlayer && isAtSnapPoint && !isGoalkeeper) {
+          const positionInfo = getPositionLabel(player.relX!, player.relY!);
+          const translatedLabel = t(`positions.${positionInfo.label}`);
+          const labelY = absY + playerRadius + 10;
+
+          context.font = `700 ${POSITION_LABEL_FONT_SIZE}px Rajdhani, sans-serif`;
+          context.textAlign = 'center';
+          context.textBaseline = 'top';
+
+          // Black outline for visibility
+          context.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+          context.lineWidth = 2.5;
+          context.strokeText(translatedLabel, absX, labelY);
+
+          // White fill
+          context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          context.fillText(translatedLabel, absX, labelY);
+        }
       }
 
       // Reset alpha for next player
@@ -939,7 +1073,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Restore context ---
     context.restore();
-  }, [players, opponents, drawings, showPlayerNames, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId]);
+  }, [players, opponents, drawings, showPlayerNames, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {
