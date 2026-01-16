@@ -330,9 +330,9 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // Avoid snapping into an occupied spot (tap-to-move handles explicit moves to empty positions).
     const occupied = players.some(p => {
       if (p.id === playerId) return false;
-      // Validate coordinates are finite numbers. Note: explicit undefined checks required
-      // for TypeScript type narrowing (Number.isFinite isn't recognized as a type guard)
-      if (p.relX === undefined || p.relY === undefined || !Number.isFinite(p.relX) || !Number.isFinite(p.relY)) return false;
+      // Validate coordinates are finite numbers. typeof check provides TypeScript type narrowing
+      // and handles undefined, null, strings, and other non-numeric values
+      if (typeof p.relX !== 'number' || typeof p.relY !== 'number' || !Number.isFinite(p.relX) || !Number.isFinite(p.relY)) return false;
       const dxPx = (p.relX - snapTarget.relX) * rect.width;
       const dyPx = (p.relY - snapTarget.relY) * rect.height;
       const distSq = dxPx * dxPx + dyPx * dyPx;
@@ -1353,6 +1353,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     return null;
+  // canvasRef is intentionally omitted - refs are stable and don't trigger re-renders
   }, [formationSnapPoints, subSlots, players]);
 
   // --- Mouse/Touch Handlers (Logic largely the same, but use CSS size for abs calcs) ---
