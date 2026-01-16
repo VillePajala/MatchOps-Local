@@ -117,8 +117,8 @@ describe('positionLabels', () => {
         expect(result).toEqual({ label: 'RB', zone: 'def' });
       });
 
-      it('returns DEF zone at lower boundary (relY = 0.65)', () => {
-        const result = getPositionLabel(0.5, 0.65);
+      it('returns DEF zone at lower boundary (relY = 0.73)', () => {
+        const result = getPositionLabel(0.5, 0.73);
         expect(result.zone).toBe('def');
       });
 
@@ -128,9 +128,38 @@ describe('positionLabels', () => {
       });
     });
 
+    describe('defensive midfield zone (DEF_MID)', () => {
+      it('returns CDM for central defensive midfielder position', () => {
+        const result = getPositionLabel(0.5, 0.60);
+        expect(result).toEqual({ label: 'CDM', zone: 'mid' });
+      });
+
+      it('returns LDM for left defensive midfielder position', () => {
+        const result = getPositionLabel(0.15, 0.62);
+        expect(result).toEqual({ label: 'LDM', zone: 'mid' });
+      });
+
+      it('returns RDM for right defensive midfielder position', () => {
+        const result = getPositionLabel(0.85, 0.62);
+        expect(result).toEqual({ label: 'RDM', zone: 'mid' });
+      });
+
+      it('returns DEF_MID zone at lower boundary (relY = 0.55)', () => {
+        const result = getPositionLabel(0.5, 0.55);
+        expect(result.zone).toBe('mid');
+        expect(result.label).toBe('CDM');
+      });
+
+      it('returns DEF_MID zone just below DEF boundary (relY = 0.72)', () => {
+        const result = getPositionLabel(0.5, 0.72);
+        expect(result.zone).toBe('mid');
+        expect(result.label).toBe('CDM');
+      });
+    });
+
     describe('midfield zone (MID)', () => {
       it('returns CM for central midfielder position', () => {
-        const result = getPositionLabel(0.5, 0.55);
+        const result = getPositionLabel(0.5, 0.50);
         expect(result).toEqual({ label: 'CM', zone: 'mid' });
       });
 
@@ -144,35 +173,65 @@ describe('positionLabels', () => {
         expect(result).toEqual({ label: 'RM', zone: 'mid' });
       });
 
-      it('returns MID zone at lower boundary (relY = 0.40)', () => {
-        const result = getPositionLabel(0.5, 0.40);
+      it('returns MID zone at lower boundary (relY = 0.48)', () => {
+        const result = getPositionLabel(0.5, 0.48);
         expect(result.zone).toBe('mid');
       });
 
-      it('returns MID zone just below DEF boundary (relY = 0.64)', () => {
-        const result = getPositionLabel(0.5, 0.64);
+      it('returns MID zone just below DEF_MID boundary (relY = 0.54)', () => {
+        const result = getPositionLabel(0.5, 0.54);
         expect(result.zone).toBe('mid');
+        expect(result.label).toBe('CM');
+      });
+    });
+
+    describe('attacking midfield zone (ATT_MID)', () => {
+      it('returns CAM for central attacking midfielder position', () => {
+        const result = getPositionLabel(0.5, 0.40);
+        expect(result).toEqual({ label: 'CAM', zone: 'mid' });
+      });
+
+      it('returns LAM for left attacking midfielder position', () => {
+        const result = getPositionLabel(0.15, 0.38);
+        expect(result).toEqual({ label: 'LAM', zone: 'mid' });
+      });
+
+      it('returns RAM for right attacking midfielder position', () => {
+        const result = getPositionLabel(0.85, 0.38);
+        expect(result).toEqual({ label: 'RAM', zone: 'mid' });
+      });
+
+      it('returns ATT_MID zone at lower boundary (relY = 0.32)', () => {
+        const result = getPositionLabel(0.5, 0.32);
+        expect(result.zone).toBe('mid');
+        expect(result.label).toBe('CAM');
+      });
+
+      it('returns ATT_MID zone just below MID boundary (relY = 0.47)', () => {
+        const result = getPositionLabel(0.5, 0.47);
+        expect(result.zone).toBe('mid');
+        expect(result.label).toBe('CAM');
       });
     });
 
     describe('attack zone (ATT)', () => {
       it('returns ST for striker position', () => {
-        const result = getPositionLabel(0.5, 0.30);
+        const result = getPositionLabel(0.5, 0.25);
         expect(result).toEqual({ label: 'ST', zone: 'att' });
       });
 
       it('returns LW for left winger position', () => {
-        const result = getPositionLabel(0.15, 0.25);
+        const result = getPositionLabel(0.15, 0.20);
         expect(result).toEqual({ label: 'LW', zone: 'att' });
       });
 
       it('returns RW for right winger position', () => {
-        const result = getPositionLabel(0.85, 0.25);
+        const result = getPositionLabel(0.85, 0.20);
         expect(result).toEqual({ label: 'RW', zone: 'att' });
       });
 
-      it('returns ATT zone just below MID boundary (relY = 0.39)', () => {
-        const result = getPositionLabel(0.5, 0.39);
+      it('returns ATT zone just below ATT_MID boundary (relY = 0.31)', () => {
+        const result = getPositionLabel(0.5, 0.31);
         expect(result.zone).toBe('att');
       });
 
@@ -183,7 +242,7 @@ describe('positionLabels', () => {
     });
 
     describe('horizontal zone boundaries', () => {
-      const midY = 0.55; // Midfield for clear testing
+      const midY = 0.50; // Central midfield zone for clear testing
 
       it('returns left position for relX < 0.33', () => {
         expect(getPositionLabel(0.32, midY).label).toBe('LM');
@@ -246,7 +305,9 @@ describe('positionLabels', () => {
       expect(POSITION_THRESHOLDS).toHaveProperty('RIGHT_ZONE');
       expect(POSITION_THRESHOLDS).toHaveProperty('GK_ZONE');
       expect(POSITION_THRESHOLDS).toHaveProperty('DEF_ZONE');
+      expect(POSITION_THRESHOLDS).toHaveProperty('DEF_MID_ZONE');
       expect(POSITION_THRESHOLDS).toHaveProperty('MID_ZONE');
+      expect(POSITION_THRESHOLDS).toHaveProperty('ATT_MID_ZONE');
     });
 
     it('has correct sideline thresholds', () => {
@@ -261,8 +322,10 @@ describe('positionLabels', () => {
 
     it('has correct vertical zone thresholds', () => {
       expect(POSITION_THRESHOLDS.GK_ZONE).toBe(0.90);
-      expect(POSITION_THRESHOLDS.DEF_ZONE).toBe(0.65);
-      expect(POSITION_THRESHOLDS.MID_ZONE).toBe(0.40);
+      expect(POSITION_THRESHOLDS.DEF_ZONE).toBe(0.73);
+      expect(POSITION_THRESHOLDS.DEF_MID_ZONE).toBe(0.55);
+      expect(POSITION_THRESHOLDS.MID_ZONE).toBe(0.48);
+      expect(POSITION_THRESHOLDS.ATT_MID_ZONE).toBe(0.32);
     });
   });
 

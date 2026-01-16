@@ -498,9 +498,9 @@ describe('generateSubSlots', () => {
 
     it('assigns correct position label for midfielder positions', () => {
       const positions: FieldPosition[] = [
-        { relX: 0.15, relY: 0.55 },
-        { relX: 0.5, relY: 0.55 },
-        { relX: 0.85, relY: 0.55 },
+        { relX: 0.15, relY: 0.50 },
+        { relX: 0.5, relY: 0.50 },
+        { relX: 0.85, relY: 0.50 },
       ];
       const result = generateSubSlots(positions);
       const labels = result.map(s => s.positionLabel).sort();

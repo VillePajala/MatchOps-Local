@@ -230,7 +230,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   const [isDraggingBall, setIsDraggingBall] = useState<boolean>(false);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [activeTouchId, setActiveTouchId] = useState<number | null>(null);
-  const [lastTapInfo, setLastTapInfo] = useState<{ time: number; x: number; y: number; targetId: string | null; targetType: 'player' | 'opponent' | 'tactical' | 'ball' | null } | null>(null);
+  const [lastTapInfo, setLastTapInfo] = useState<{ time: number; x: number; y: number; targetId: string | null; targetType: 'player' | 'opponent' | 'tactical' | 'ball' | 'emptyPosition' | null } | null>(null);
   const [selectedPlayerForSwapId, setSelectedPlayerForSwapId] = useState<string | null>(null);
   const [ballImage, setBallImage] = useState<HTMLImageElement | null>(null);
 
@@ -238,7 +238,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     clientX: number;
     clientY: number;
     targetId: string | null;
-    targetType: 'player' | 'opponent' | 'tactical' | 'ball' | null;
+    targetType: 'player' | 'opponent' | 'tactical' | 'ball' | 'emptyPosition' | null;
+    emptyPositionCoords?: { relX: number; relY: number };
   } | null>(null);
   const touchExceededTapThresholdRef = useRef<boolean>(false);
   const suppressTapActionRef = useRef<boolean>(false);
@@ -1308,6 +1309,60 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     return dx * dx + dy * dy <= ballRadius * ballRadius;
   }, [tacticalBallPosition]);
 
+  // Helper to find an empty position (formation snap point or sub slot) at the given coordinates
+  const findEmptyPositionAtPoint = useCallback((eventClientX: number, eventClientY: number): { relX: number; relY: number } | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const absEventX = eventClientX - rect.left;
+    const absEventY = eventClientY - rect.top;
+    const hitRadiusSq = PLAYER_RADIUS * PLAYER_RADIUS;
+
+    // Check formation snap points first
+    if (formationSnapPoints && formationSnapPoints.length > 0) {
+      for (const point of formationSnapPoints) {
+        const absPointX = point.relX * rect.width;
+        const absPointY = point.relY * rect.height;
+        const dx = absEventX - absPointX;
+        const dy = absEventY - absPointY;
+        if (dx * dx + dy * dy <= hitRadiusSq) {
+          // Check if this position is unoccupied
+          const isOccupied = players.some(p =>
+            p.relX !== undefined && p.relY !== undefined &&
+            Math.abs(p.relX - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
+            Math.abs(p.relY - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
+          );
+          if (!isOccupied) {
+            return { relX: point.relX, relY: point.relY };
+          }
+        }
+      }
+    }
+
+    // Check sub slots
+    if (subSlots && subSlots.length > 0) {
+      for (const slot of subSlots) {
+        const absSlotX = slot.relX * rect.width;
+        const absSlotY = slot.relY * rect.height;
+        const dx = absEventX - absSlotX;
+        const dy = absEventY - absSlotY;
+        if (dx * dx + dy * dy <= hitRadiusSq) {
+          // Check if this position is unoccupied
+          const isOccupied = players.some(p =>
+            p.relX !== undefined && p.relY !== undefined &&
+            Math.abs(p.relX - slot.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
+            Math.abs(p.relY - slot.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
+          );
+          if (!isOccupied) {
+            return { relX: slot.relX, relY: slot.relY };
+          }
+        }
+      }
+    }
+
+    return null;
+  }, [formationSnapPoints, subSlots, players]);
+
   // --- Mouse/Touch Handlers (Logic largely the same, but use CSS size for abs calcs) ---
     const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (e.button !== 0) return;
@@ -1517,7 +1572,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     const now = Date.now();
     let tappedTargetId: string | null = null;
-    let tappedTargetType: 'player' | 'opponent' | 'tactical' | 'ball' | null = null;
+    let tappedTargetType: 'player' | 'opponent' | 'tactical' | 'ball' | 'emptyPosition' | null = null;
+    let emptyPositionCoords: { relX: number; relY: number } | undefined;
 
     // Check for ball first, as it might be on top of other elements
     if (isPointInBall(touch.clientX, touch.clientY)) {
@@ -1549,6 +1605,14 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           }
         }
       }
+      // Check for empty position tap (only when a player is selected for swap)
+      if (!tappedTargetId && selectedPlayerForSwapId) {
+        const emptyPos = findEmptyPositionAtPoint(touch.clientX, touch.clientY);
+        if (emptyPos) {
+          tappedTargetType = 'emptyPosition';
+          emptyPositionCoords = emptyPos;
+        }
+      }
       }
 
       touchStartTargetRef.current = {
@@ -1556,9 +1620,10 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         clientY: touch.clientY,
         targetId: tappedTargetId,
         targetType: tappedTargetType,
+        emptyPositionCoords,
       };
 
-      if (!isTacticsBoardView && tappedTargetType !== 'player') {
+      if (!isTacticsBoardView && tappedTargetType !== 'player' && tappedTargetType !== 'emptyPosition') {
         setSelectedPlayerForSwapId(null);
       }
 
@@ -1629,7 +1694,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       isPointInBall, isTacticsBoardView, tacticalDiscs, onToggleTacticalDiscType, onTacticalDiscRemove, isPointInTacticalDisc,
       players, onPlayerRemove, isPointInPlayer, opponents, onOpponentRemove, isPointInOpponent,
     draggingPlayerFromBarInfo, onPlayerDropViaTouch,
-    lastTapInfo, onDrawingStart, isDrawingEnabled, isDrawing, onDrawingEnd
+    lastTapInfo, onDrawingStart, isDrawingEnabled, isDrawing, onDrawingEnd,
+    findEmptyPositionAtPoint, selectedPlayerForSwapId
   ]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
@@ -1745,6 +1811,11 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
             onPlayersSwap?.(selectedPlayerForSwapId, tappedPlayerId);
             setSelectedPlayerForSwapId(null);
           }
+        } else if (touchStartTarget?.targetType === 'emptyPosition' && touchStartTarget.emptyPositionCoords && selectedPlayerForSwapId) {
+          // Move selected player to empty position
+          onPlayerMove(selectedPlayerForSwapId, touchStartTarget.emptyPositionCoords.relX, touchStartTarget.emptyPositionCoords.relY);
+          onPlayerMoveEnd(); // Trigger goalie detection and history save
+          setSelectedPlayerForSwapId(null);
         } else if (!touchStartTarget?.targetType) {
           setSelectedPlayerForSwapId(null);
         }
@@ -1769,6 +1840,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     onPlayerDragCancelViaTouch,
     isTacticsBoardView,
     onPlayersSwap,
+    onPlayerMove,
     selectedPlayerForSwapId,
     draggingPlayerId,
     maybeSnapPlayerToFormation,
