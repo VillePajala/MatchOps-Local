@@ -327,10 +327,11 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // Capture bestPoint for use in closure (TypeScript narrowing)
     const snapTarget = bestPoint;
 
-    // Avoid snapping into an occupied spot (keep it simple; tap-to-swap handles swaps explicitly).
+    // Avoid snapping into an occupied spot (tap-to-move handles explicit moves to empty positions).
     const occupied = players.some(p => {
       if (p.id === playerId) return false;
-      // Validate coordinates exist and are finite (handles undefined, NaN, Infinity)
+      // Validate coordinates are finite numbers. Note: explicit undefined checks required
+      // for TypeScript type narrowing (Number.isFinite isn't recognized as a type guard)
       if (p.relX === undefined || p.relY === undefined || !Number.isFinite(p.relX) || !Number.isFinite(p.relY)) return false;
       const dxPx = (p.relX - snapTarget.relX) * rect.width;
       const dyPx = (p.relY - snapTarget.relY) * rect.height;
@@ -1597,7 +1598,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         }
       }
       // Check for empty position tap (formation snap points or sub slots)
-      // UX design: Only enabled when a player is selected for swap. User flow:
+      // UX design: Only enabled when a player is selected. User flow:
       // 1. Tap a player to select them (highlighted with selection ring)
       // 2. Tap an empty position to move the selected player there
       // This prevents accidental moves and makes the interaction intentional.
