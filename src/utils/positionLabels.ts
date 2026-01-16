@@ -36,12 +36,19 @@ const RIGHT_ZONE = 0.67;
 /**
  * Vertical position thresholds (relY: 0 = opponent goal, 1 = own goal)
  *
- * Formation Y positions for reference:
+ * Typical formation Y positions for reference:
  * - Defenders: 0.75-0.80
- * - Defensive midfielders: 0.60-0.70
- * - Central midfielders: 0.50-0.55
- * - Attacking midfielders: 0.35-0.45
- * - Attackers: 0.25-0.30
+ * - Defensive midfielders: 0.55-0.70
+ * - Central midfielders: 0.48-0.55
+ * - Attacking midfielders: 0.32-0.48
+ * - Attackers: 0.20-0.32
+ *
+ * Note: Zone boundaries are set to accommodate player movement and
+ * positioning variations. A player slightly out of their "ideal" position
+ * will still get the correct label.
+ *
+ * Boundary rule: >= threshold assigns to the higher zone (closer to own goal).
+ * Example: relY = 0.55 exactly → DEF_MID zone (CDM), not MID zone (CM).
  */
 const GK_ZONE = 0.90;     // Goalkeeper area
 const DEF_ZONE = 0.73;    // Defense line starts here (defenders at 0.75+)
