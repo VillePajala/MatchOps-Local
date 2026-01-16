@@ -274,7 +274,9 @@ export function generateSubSlots(formationPositions: FieldPosition[]): SubSlot[]
 
   const SUB_SLOT_X = 0.96; // Right sideline
   const ROW_TOLERANCE = 0.08; // Positions within this relY range are considered same row
-  const SLOT_SPACING = 0.07; // Vertical spacing between stacked slots (was 0.045, increased after removing transparency)
+  // Vertical spacing between stacked slots. Increased from 0.045 after player transparency
+  // was removed - opaque players need more spacing to prevent visual overlap
+  const SLOT_SPACING = 0.07;
 
   // Add position labels to each position
   const positionsWithLabels = formationPositions.map(pos => ({
