@@ -185,23 +185,23 @@ describe('ConfirmationModal', () => {
       render(<ConfirmationModal {...defaultProps} />);
       const confirmButton = screen.getByRole('button', { name: /Confirm/i });
 
-      // primaryButtonStyle should be applied (check for gradient classes)
-      expect(confirmButton.className).toContain('bg-gradient-to-b');
+      // primaryButtonStyle should be applied (check for indigo background)
+      expect(confirmButton.className).toContain('bg-indigo-600');
     });
 
     it('applies danger button style when variant is danger', () => {
       render(<ConfirmationModal {...defaultProps} variant="danger" />);
       const confirmButton = screen.getByRole('button', { name: /Confirm/i });
 
-      // dangerButtonStyle should be applied
-      expect(confirmButton.className).toContain('bg-gradient-to-b');
+      // dangerButtonStyle should be applied (check for red background)
+      expect(confirmButton.className).toContain('bg-red-600');
     });
 
     it('applies primary button style when variant is explicitly set to primary', () => {
       render(<ConfirmationModal {...defaultProps} variant="primary" />);
       const confirmButton = screen.getByRole('button', { name: /Confirm/i });
 
-      expect(confirmButton.className).toContain('bg-gradient-to-b');
+      expect(confirmButton.className).toContain('bg-indigo-600');
     });
   });
 

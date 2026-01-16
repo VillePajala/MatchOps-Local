@@ -1952,6 +1952,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
     isDrawingEnabled: fieldCoordination.isDrawingEnabled,
     formationSnapPoints: fieldCoordination.formationSnapPoints,
+    subSlots: fieldCoordination.subSlots,
   }), [
     fieldCoordination.playersOnField,
     fieldCoordination.opponents,
@@ -1963,6 +1964,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldCoordination.draggingPlayerFromBarInfo,
     fieldCoordination.isDrawingEnabled,
     fieldCoordination.formationSnapPoints,
+    fieldCoordination.subSlots,
   ]);
 
   // Memoize timerVM to prevent unnecessary re-renders of TimerOverlay

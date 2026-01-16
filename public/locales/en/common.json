@@ -1927,5 +1927,18 @@
     "grantSuccess": "Premium activated! You can reset in Settings.",
     "grantError": "Failed to activate premium. Please try again.",
     "availableSoon": "Premium upgrade will be available soon via Google Play!"
+  },
+  "positions": {
+    "GK": "GK",
+    "LB": "LB",
+    "CB": "CB",
+    "RB": "RB",
+    "LM": "LM",
+    "CM": "CM",
+    "RM": "RM",
+    "LW": "LW",
+    "ST": "ST",
+    "RW": "RW",
+    "SUB": "SUB"
   }
 }

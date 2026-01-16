@@ -154,11 +154,13 @@ describe('Edge Cases and Error Handling Tests', () => {
         isTacticsBoardView: false,
         tacticalDiscs: [],
         onTacticalDiscMove: jest.fn(),
+        onTacticalDiscMoveEnd: jest.fn(),
         onTacticalDiscRemove: jest.fn(),
         onToggleTacticalDiscType: jest.fn(),
         onAddTacticalDisc: jest.fn(),
         tacticalBallPosition: null,
         onTacticalBallMove: jest.fn(),
+        onTacticalBallMoveEnd: jest.fn(),
         tacticalDrawings: [],
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
@@ -210,15 +212,17 @@ describe('Edge Cases and Error Handling Tests', () => {
           relY: Math.random() 
         })),
         onTacticalDiscMove: jest.fn(),
+        onTacticalDiscMoveEnd: jest.fn(),
         onTacticalDiscRemove: jest.fn(),
         onToggleTacticalDiscType: jest.fn(),
         onAddTacticalDisc: jest.fn(),
         tacticalBallPosition: { relX: 0.5, relY: 0.5 },
         onTacticalBallMove: jest.fn(),
-        tacticalDrawings: Array.from({ length: 15 }, () => 
-          Array.from({ length: 5 }, () => ({ 
-            relX: Math.random(), 
-            relY: Math.random() 
+        onTacticalBallMoveEnd: jest.fn(),
+        tacticalDrawings: Array.from({ length: 15 }, () =>
+          Array.from({ length: 5 }, () => ({
+            relX: Math.random(),
+            relY: Math.random()
           }))
         ),
         onTacticalDrawingStart: jest.fn(),
@@ -267,11 +271,13 @@ describe('Edge Cases and Error Handling Tests', () => {
         isTacticsBoardView: false,
         tacticalDiscs: [],
         onTacticalDiscMove: jest.fn(),
+        onTacticalDiscMoveEnd: jest.fn(),
         onTacticalDiscRemove: jest.fn(),
         onToggleTacticalDiscType: jest.fn(),
         onAddTacticalDisc: jest.fn(),
         tacticalBallPosition: null,
         onTacticalBallMove: jest.fn(),
+        onTacticalBallMoveEnd: jest.fn(),
         tacticalDrawings: [],
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
@@ -314,11 +320,13 @@ describe('Edge Cases and Error Handling Tests', () => {
         isTacticsBoardView: false,
         tacticalDiscs: [],
         onTacticalDiscMove: jest.fn(),
+        onTacticalDiscMoveEnd: jest.fn(),
         onTacticalDiscRemove: jest.fn(),
         onToggleTacticalDiscType: jest.fn(),
         onAddTacticalDisc: jest.fn(),
         tacticalBallPosition: null,
         onTacticalBallMove: jest.fn(),
+        onTacticalBallMoveEnd: jest.fn(),
         tacticalDrawings: [],
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
@@ -423,11 +431,13 @@ describe('Edge Cases and Error Handling Tests', () => {
         isTacticsBoardView: false,
         tacticalDiscs: [],
         onTacticalDiscMove: jest.fn(),
+        onTacticalDiscMoveEnd: jest.fn(),
         onTacticalDiscRemove: jest.fn(),
         onToggleTacticalDiscType: jest.fn(),
         onAddTacticalDisc: jest.fn(),
         tacticalBallPosition: null,
         onTacticalBallMove: jest.fn(),
+        onTacticalBallMoveEnd: jest.fn(),
         tacticalDrawings: [],
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
@@ -436,7 +446,7 @@ describe('Edge Cases and Error Handling Tests', () => {
       };
 
       render(<SoccerField {...props} />);
-      
+
       const canvas = document.querySelector('canvas');
       if (canvas) {
         // Simulate simultaneous mouse and touch events

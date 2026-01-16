@@ -9,6 +9,7 @@ import {
   calculateFormationPositions,
   applyFormationPreset,
   generateSidelinePositions,
+  generateSubSlots,
   type FieldPosition,
   type FormationResult,
 } from './formations';
@@ -435,6 +436,235 @@ describe('generateSidelinePositions', () => {
       const result2 = generateSidelinePositions(3);
       expect(result1).not.toBe(result2);
       expect(result1[0]).not.toBe(result2[0]);
+    });
+  });
+});
+
+describe('generateSubSlots', () => {
+  describe('edge cases and guards', () => {
+    it('returns empty array for empty formation positions', () => {
+      const result = generateSubSlots([]);
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array for null input', () => {
+      // TypeScript would catch this, but testing runtime guard
+      const result = generateSubSlots(null as unknown as FieldPosition[]);
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array for undefined input', () => {
+      // TypeScript would catch this, but testing runtime guard
+      const result = generateSubSlots(undefined as unknown as FieldPosition[]);
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('basic functionality', () => {
+    it('returns one sub slot for one formation position', () => {
+      const positions: FieldPosition[] = [{ relX: 0.5, relY: 0.75 }];
+      const result = generateSubSlots(positions);
+      expect(result).toHaveLength(1);
+    });
+
+    it('returns correct number of sub slots for multiple positions', () => {
+      const positions: FieldPosition[] = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.25, relY: 0.55 },
+        { relX: 0.75, relY: 0.55 },
+      ];
+      const result = generateSubSlots(positions);
+      expect(result).toHaveLength(3);
+    });
+
+    it('places all sub slots on right sideline (relX = 0.96)', () => {
+      const positions: FieldPosition[] = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.25, relY: 0.55 },
+      ];
+      const result = generateSubSlots(positions);
+      result.forEach(slot => {
+        expect(slot.relX).toBe(0.96);
+      });
+    });
+  });
+
+  describe('position labels', () => {
+    it('assigns correct position label for defender position', () => {
+      const positions: FieldPosition[] = [{ relX: 0.5, relY: 0.75 }];
+      const result = generateSubSlots(positions);
+      expect(result[0].positionLabel).toBe('CB');
+    });
+
+    it('assigns correct position label for midfielder positions', () => {
+      const positions: FieldPosition[] = [
+        { relX: 0.15, relY: 0.55 },
+        { relX: 0.5, relY: 0.55 },
+        { relX: 0.85, relY: 0.55 },
+      ];
+      const result = generateSubSlots(positions);
+      const labels = result.map(s => s.positionLabel).sort();
+      expect(labels).toContain('LM');
+      expect(labels).toContain('CM');
+      expect(labels).toContain('RM');
+    });
+
+    it('assigns correct position label for attacker positions', () => {
+      const positions: FieldPosition[] = [
+        { relX: 0.15, relY: 0.30 },
+        { relX: 0.5, relY: 0.30 },
+        { relX: 0.85, relY: 0.30 },
+      ];
+      const result = generateSubSlots(positions);
+      const labels = result.map(s => s.positionLabel).sort();
+      expect(labels).toContain('LW');
+      expect(labels).toContain('ST');
+      expect(labels).toContain('RW');
+    });
+  });
+
+  describe('row grouping and stacking', () => {
+    it('groups positions in the same row (similar relY)', () => {
+      // Two defenders at same Y level should be grouped
+      const positions: FieldPosition[] = [
+        { relX: 0.15, relY: 0.75 },
+        { relX: 0.85, relY: 0.75 },
+      ];
+      const result = generateSubSlots(positions);
+
+      // Both should have different relY due to stacking
+      expect(result[0].relY).not.toBe(result[1].relY);
+    });
+
+    it('stacks slots vertically within same row', () => {
+      const positions: FieldPosition[] = [
+        { relX: 0.15, relY: 0.75 },
+        { relX: 0.50, relY: 0.75 },
+        { relX: 0.85, relY: 0.75 },
+      ];
+      const result = generateSubSlots(positions);
+
+      // All should have same relX (sideline)
+      expect(result.every(s => s.relX === 0.96)).toBe(true);
+
+      // Should have 3 distinct relY values (stacked)
+      const uniqueYs = new Set(result.map(s => s.relY));
+      expect(uniqueYs.size).toBe(3);
+    });
+
+    it('does not group positions in different rows', () => {
+      // Defender and midfielder should NOT be grouped
+      const positions: FieldPosition[] = [
+        { relX: 0.5, relY: 0.75 }, // Defender
+        { relX: 0.5, relY: 0.50 }, // Midfielder
+      ];
+      const result = generateSubSlots(positions);
+
+      // Should have different relY values (not stacked together)
+      expect(Math.abs(result[0].relY - result[1].relY)).toBeGreaterThan(0.08);
+    });
+
+    it('uses ROW_TOLERANCE of 0.08 for grouping', () => {
+      // Positions within 0.08 relY should be grouped
+      const closePositions: FieldPosition[] = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.3, relY: 0.78 }, // Within 0.08 of 0.75
+      ];
+      const closeResult = generateSubSlots(closePositions);
+      // Grouped positions should have stacked relY (different values)
+      expect(closeResult[0].relY).not.toBe(closeResult[1].relY);
+
+      // Positions outside 0.08 relY should NOT be grouped
+      const farPositions: FieldPosition[] = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.3, relY: 0.66 }, // Just outside 0.08 of 0.75
+      ];
+      const farResult = generateSubSlots(farPositions);
+      // Separate rows maintain their original relY (approximately)
+      const diff = Math.abs(farResult[0].relY - farResult[1].relY);
+      expect(diff).toBeGreaterThan(0.05);
+    });
+  });
+
+  describe('typical formation patterns', () => {
+    it('handles 4-3-3 formation correctly', () => {
+      const positions: FieldPosition[] = [
+        // 4 defenders
+        { relX: 0.10, relY: 0.78 },
+        { relX: 0.37, relY: 0.78 },
+        { relX: 0.63, relY: 0.78 },
+        { relX: 0.90, relY: 0.78 },
+        // 3 midfielders
+        { relX: 0.15, relY: 0.55 },
+        { relX: 0.50, relY: 0.55 },
+        { relX: 0.85, relY: 0.55 },
+        // 3 forwards
+        { relX: 0.15, relY: 0.30 },
+        { relX: 0.50, relY: 0.30 },
+        { relX: 0.85, relY: 0.30 },
+      ];
+      const result = generateSubSlots(positions);
+
+      expect(result).toHaveLength(10);
+      expect(result.every(s => s.relX === 0.96)).toBe(true);
+      expect(result.every(s => typeof s.positionLabel === 'string')).toBe(true);
+      expect(result.every(s => s.positionLabel.length > 0)).toBe(true);
+    });
+  });
+
+  describe('SubSlot type validation', () => {
+    it('returns objects matching SubSlot interface', () => {
+      const positions: FieldPosition[] = [{ relX: 0.5, relY: 0.75 }];
+      const result = generateSubSlots(positions);
+
+      expect(result[0]).toHaveProperty('relX');
+      expect(result[0]).toHaveProperty('relY');
+      expect(result[0]).toHaveProperty('positionLabel');
+      expect(typeof result[0].relX).toBe('number');
+      expect(typeof result[0].relY).toBe('number');
+      expect(typeof result[0].positionLabel).toBe('string');
+    });
+
+    it('returns valid coordinate values', () => {
+      const positions = calculateFormationPositions(10);
+      const result = generateSubSlots(positions);
+
+      result.forEach(slot => {
+        expect(slot.relX).toBeGreaterThanOrEqual(0);
+        expect(slot.relX).toBeLessThanOrEqual(1);
+        expect(slot.relY).toBeGreaterThanOrEqual(0);
+        expect(slot.relY).toBeLessThanOrEqual(1);
+      });
+    });
+  });
+
+  describe('pure function properties', () => {
+    it('returns same result for same input (deterministic)', () => {
+      const positions: FieldPosition[] = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.25, relY: 0.55 },
+      ];
+      const result1 = generateSubSlots(positions);
+      const result2 = generateSubSlots(positions);
+      expect(result1).toEqual(result2);
+    });
+
+    it('returns new array each time (no shared references)', () => {
+      const positions: FieldPosition[] = [{ relX: 0.5, relY: 0.75 }];
+      const result1 = generateSubSlots(positions);
+      const result2 = generateSubSlots(positions);
+      expect(result1).not.toBe(result2);
+      expect(result1[0]).not.toBe(result2[0]);
+    });
+
+    it('does not mutate input array', () => {
+      const positions: FieldPosition[] = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.25, relY: 0.55 },
+      ];
+      const originalPositions = JSON.parse(JSON.stringify(positions));
+      generateSubSlots(positions);
+      expect(positions).toEqual(originalPositions);
     });
   });
 });
