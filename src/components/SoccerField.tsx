@@ -474,8 +474,19 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         const absX = player.relX * W;
         const absY = player.relY * H;
 
+        // Check if sideline player for transparency and desaturation
+        const isSidelinePlayer = isSidelinePosition(player.relX);
+        if (isSidelinePlayer) {
+          ctx.globalAlpha = SIDELINE_PLAYER_ALPHA;
+        }
+
         // Polished enamel disc effect (matches on-screen display)
-        const baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+        let baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+
+        // Desaturate sideline players for visual distinction
+        if (isSidelinePlayer) {
+          baseColor = baseColor.desaturate(SIDELINE_DESATURATION_PERCENT);
+        }
 
         // 1. Base Disc Color
         ctx.beginPath();
@@ -538,14 +549,18 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         }
 
         // Position label below disc (matches on-screen display)
-        const isSidelinePlayer = isSidelinePosition(player.relX);
         const isGoalkeeper = player.relY >= 0.90;
         const isAtSnapPoint = formationSnapPoints?.some(point =>
           Math.abs(player.relX! - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
           Math.abs(player.relY! - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
         );
 
-        if (!isSidelinePlayer && isAtSnapPoint && !isGoalkeeper) {
+        // Show position label for:
+        // - On-field players at formation snap points (except goalkeepers)
+        // - Sideline players (show "SUB")
+        const shouldShowPositionLabel = isSidelinePlayer || (isAtSnapPoint && !isGoalkeeper);
+
+        if (shouldShowPositionLabel) {
           const positionInfo = getPositionLabel(player.relX, player.relY);
           const translatedLabel = t(`positions.${positionInfo.label}`);
           const labelY = absY + playerRadius + 10 * scale;
@@ -562,6 +577,11 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           // White fill
           ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
           ctx.fillText(translatedLabel, absX, labelY);
+        }
+
+        // Reset alpha for next player
+        if (isSidelinePlayer) {
+          ctx.globalAlpha = 1.0;
         }
       });
     }
