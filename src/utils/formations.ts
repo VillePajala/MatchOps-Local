@@ -309,6 +309,11 @@ export function generateSubSlots(formationPositions: FieldPosition[]): SubSlot[]
   // Generate sub slots, stacking vertically within each row
   const subSlots: SubSlot[] = [];
 
+  // Midline avoidance: nudge slots away from relY = 0.5 for better visibility
+  const MIDLINE_Y = 0.5;
+  const MIDLINE_BUFFER = 0.03; // Minimum distance from midline
+  const MIDLINE_NUDGE = 0.04;  // How far to nudge away
+
   for (const row of rows) {
     // Calculate center relY for this row
     const centerY = row.reduce((sum, p) => sum + p.relY, 0) / row.length;
@@ -318,9 +323,20 @@ export function generateSubSlots(formationPositions: FieldPosition[]): SubSlot[]
     const startY = centerY - totalHeight / 2;
 
     row.forEach((pos, index) => {
+      let slotY = startY + index * SLOT_SPACING;
+
+      // Nudge away from midline if too close
+      const distanceFromMidline = Math.abs(slotY - MIDLINE_Y);
+      if (distanceFromMidline < MIDLINE_BUFFER) {
+        // Nudge up or down depending on which side of midline
+        slotY = slotY < MIDLINE_Y
+          ? MIDLINE_Y - MIDLINE_NUDGE
+          : MIDLINE_Y + MIDLINE_NUDGE;
+      }
+
       subSlots.push({
         relX: SUB_SLOT_X,
-        relY: startY + index * SLOT_SPACING,
+        relY: slotY,
         positionLabel: pos.label,
       });
     });
