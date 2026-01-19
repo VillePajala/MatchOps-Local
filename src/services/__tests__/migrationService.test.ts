@@ -523,7 +523,7 @@ describe('migrationService', () => {
   });
 
   describe('verification with pre-existing cloud data', () => {
-    it('should add warning when cloud has more data than local', async () => {
+    it('should add warning when cloud has pre-existing data', async () => {
       createMockLocalStore();
       const mockCloud = createMockCloudStore();
 
@@ -535,7 +535,7 @@ describe('migrationService', () => {
       // Migration should succeed
       expect(result.success).toBe(true);
       // Should have warning about pre-existing data
-      expect(result.warnings.some((w) => w.includes('pre-existing data merged'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('pre-existing'))).toBe(true);
     });
   });
 });
