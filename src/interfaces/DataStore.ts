@@ -65,6 +65,13 @@ export interface DataStore {
    */
   isAvailable(): Promise<boolean>;
 
+  /**
+   * Clear user-specific caches.
+   * Called when auth state changes (user sign out / sign in).
+   * Optional - only implemented by cloud backends with user caches.
+   */
+  clearUserCaches?(): void;
+
   // ==========================================================================
   // PLAYERS (Master Roster)
   // Note: No getPlayerById - filter from getPlayers() in consuming code.

@@ -33,9 +33,12 @@ import type { AppSettings } from '@/types/settings';
 /**
  * Type for partial mock overrides.
  * All methods are optional - defaults will be used for unspecified methods.
+ * Uses NonNullable to handle optional methods like clearUserCaches.
  */
 export type MockDataStoreOverrides = {
-  [K in keyof DataStore]?: jest.Mock | ((...args: Parameters<DataStore[K]>) => ReturnType<DataStore[K]>);
+  [K in keyof DataStore]?: DataStore[K] extends ((...args: infer A) => infer R)
+    ? jest.Mock | ((...args: A) => R)
+    : jest.Mock;
 };
 
 /**
@@ -61,6 +64,7 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     close: jest.fn(async () => {}),
     getBackendName: jest.fn(() => 'mock'),
     isAvailable: jest.fn(async () => true),
+    clearUserCaches: jest.fn(),
 
     // Players
     getPlayers: jest.fn(async () => []),
