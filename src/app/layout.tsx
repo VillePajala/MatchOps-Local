@@ -3,6 +3,7 @@ import { Rajdhani } from 'next/font/google';
 import "./globals.css";
 import ClientWrapper from "@/components/ClientWrapper";
 import QueryProvider from './QueryProvider';
+import { AuthProvider } from '@/contexts/AuthProvider';
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
@@ -55,7 +56,9 @@ export default function RootLayout({
           <ServiceWorkerRegistration />
           <InstallPrompt />
           <QueryProvider>
-            <ClientWrapper>{children}</ClientWrapper>
+            <AuthProvider>
+              <ClientWrapper>{children}</ClientWrapper>
+            </AuthProvider>
           </QueryProvider>
         </I18nInitializer>
       </body>

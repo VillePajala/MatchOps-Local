@@ -99,6 +99,9 @@ export async function getDataStore(): Promise<DataStore> {
  * Subsequent calls return the same instance.
  * Handles concurrent calls safely by sharing the initialization promise.
  *
+ * In cloud mode, returns SupabaseAuthService.
+ * In local mode, returns LocalAuthService (no-op authentication).
+ *
  * @returns Initialized AuthService instance
  */
 export async function getAuthService(): Promise<AuthService> {
@@ -114,7 +117,25 @@ export async function getAuthService(): Promise<AuthService> {
 
   // Start initialization and store the promise
   authServiceInitPromise = (async () => {
-    const instance = new LocalAuthService();
+    const mode = getBackendMode();
+    log.info(`[factory] Initializing AuthService in ${mode} mode`);
+
+    let instance: AuthService;
+
+    if (mode === 'cloud' && isCloudAvailable()) {
+      // Lazy load SupabaseAuthService to avoid bundling Supabase in local mode
+      const { SupabaseAuthService } = await import('@/auth/SupabaseAuthService');
+      instance = new SupabaseAuthService();
+      log.info('[factory] Using SupabaseAuthService (cloud mode)');
+    } else if (mode === 'cloud') {
+      log.warn(
+        '[factory] Cloud mode requested but Supabase not configured - using LocalAuthService'
+      );
+      instance = new LocalAuthService();
+    } else {
+      instance = new LocalAuthService();
+    }
+
     await instance.initialize();
     authServiceInstance = instance;
     return instance;

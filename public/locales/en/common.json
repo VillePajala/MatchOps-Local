@@ -1924,5 +1924,28 @@
     "grantSuccess": "Premium activated! You can reset in Settings.",
     "grantError": "Failed to activate premium. Please try again.",
     "availableSoon": "Premium upgrade will be available soon via Google Play!"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "createAccount": "Create Account",
+    "resetPassword": "Reset Password",
+    "signInSubtitle": "Sign in to sync your data across devices",
+    "signUpSubtitle": "Create an account to enable cloud sync",
+    "resetSubtitle": "Enter your email to receive reset instructions",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "passwordMismatch": "Passwords do not match",
+    "passwordRequirements": "Password must be at least 12 characters with uppercase, lowercase, numbers, and special characters.",
+    "checkEmail": "Check your email to confirm your account",
+    "resetEmailSent": "Check your email for reset instructions",
+    "sendResetEmail": "Send Reset Email",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "signUpLink": "Sign up",
+    "hasAccount": "Already have an account?",
+    "signInLink": "Sign in",
+    "backToSignIn": "Back to sign in"
   }
 }

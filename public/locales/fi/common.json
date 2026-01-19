@@ -1924,5 +1924,28 @@
     "grantSuccess": "Premium aktivoitu! Voit nollata Asetuksissa.",
     "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
     "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!"
+  },
+  "auth": {
+    "signIn": "Kirjaudu sisään",
+    "signUp": "Rekisteröidy",
+    "createAccount": "Luo tili",
+    "resetPassword": "Nollaa salasana",
+    "signInSubtitle": "Kirjaudu sisään synkronoidaksesi tietosi laitteiden välillä",
+    "signUpSubtitle": "Luo tili ottaaksesi pilvisynkronoinnin käyttöön",
+    "resetSubtitle": "Syötä sähköpostiosoitteesi saadaksesi nollausohjeet",
+    "email": "Sähköposti",
+    "password": "Salasana",
+    "confirmPassword": "Vahvista salasana",
+    "passwordMismatch": "Salasanat eivät täsmää",
+    "passwordRequirements": "Salasanan on oltava vähintään 12 merkkiä ja sisällettävä isoja kirjaimia, pieniä kirjaimia, numeroita ja erikoismerkkejä.",
+    "checkEmail": "Tarkista sähköpostisi vahvistaaksesi tilisi",
+    "resetEmailSent": "Tarkista sähköpostistasi nollausohjeet",
+    "sendResetEmail": "Lähetä nollaussähköposti",
+    "forgotPassword": "Unohditko salasanasi?",
+    "noAccount": "Eikö sinulla ole tiliä?",
+    "signUpLink": "Rekisteröidy",
+    "hasAccount": "Onko sinulla jo tili?",
+    "signInLink": "Kirjaudu sisään",
+    "backToSignIn": "Takaisin kirjautumiseen"
   }
 }
