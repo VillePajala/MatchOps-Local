@@ -1937,7 +1937,7 @@
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "passwordMismatch": "Passwords do not match",
-    "passwordRequirements": "Password must be at least 12 characters with uppercase, lowercase, numbers, and special characters.",
+    "passwordRequirements": "Password must be at least 12 characters and include 3 of: uppercase, lowercase, numbers, special characters.",
     "checkEmail": "Check your email to confirm your account",
     "resetEmailSent": "Check your email for reset instructions",
     "sendResetEmail": "Send Reset Email",

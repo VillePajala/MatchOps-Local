@@ -1937,7 +1937,7 @@
     "password": "Salasana",
     "confirmPassword": "Vahvista salasana",
     "passwordMismatch": "Salasanat eivät täsmää",
-    "passwordRequirements": "Salasanan on oltava vähintään 12 merkkiä ja sisällettävä isoja kirjaimia, pieniä kirjaimia, numeroita ja erikoismerkkejä.",
+    "passwordRequirements": "Salasanan on oltava vähintään 12 merkkiä ja sisällettävä 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit.",
     "checkEmail": "Tarkista sähköpostisi vahvistaaksesi tilisi",
     "resetEmailSent": "Tarkista sähköpostistasi nollausohjeet",
     "sendResetEmail": "Lähetä nollaussähköposti",

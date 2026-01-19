@@ -118,6 +118,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(newSession?.user ?? null);
 
           // Clear DataStore caches when user changes (prevents User B seeing User A's cached data)
+          // Note: On initial load (INITIAL_SESSION), DataStore may not be initialized yet.
+          // This is fine - fresh sessions have no stale cache. Cache clearing only matters
+          // for subsequent auth changes (sign out → sign in as different user).
           try {
             if (isDataStoreInitialized()) {
               const dataStore = await getDataStore();

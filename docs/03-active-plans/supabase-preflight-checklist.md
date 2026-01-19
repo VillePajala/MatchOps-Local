@@ -391,10 +391,9 @@ Run these against test data:
 - [ ] Remove `as unknown` type assertions in SupabaseDataStore.ts where proper types now exist
 
 ### Deferred from PR #5
-- [ ] Create `/reset-password` page for password reset flow
-  - Currently: Reset email links to `/reset-password` which returns 404
-  - User must manually navigate to `/` and sign in after resetting password
-  - Create `src/app/reset-password/page.tsx` to handle the redirect gracefully
+- [ ] (Optional) Create `/reset-password` page for custom password reset UX
+  - Currently: Uses Supabase's default flow (no custom redirect)
+  - If custom UX desired, create `src/app/reset-password/page.tsx` and add redirectTo back to SupabaseAuthService
 - [ ] Mode switching cleanup verification
   - Verify local→cloud and cloud→local mode switches properly clear caches
   - Ensure no stale data persists across mode changes
