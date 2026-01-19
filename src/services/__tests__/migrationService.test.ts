@@ -127,17 +127,14 @@ function createMockLocalStore() {
 function createMockCloudStore() {
   const mockInstance = {
     initialize: jest.fn().mockResolvedValue(undefined),
-    createPlayer: jest.fn().mockResolvedValue(mockPlayer),
-    updatePlayer: jest.fn().mockResolvedValue(mockPlayer),
-    createTeam: jest.fn().mockResolvedValue(mockTeam),
-    updateTeam: jest.fn().mockResolvedValue(mockTeam),
-    createSeason: jest.fn().mockResolvedValue(mockSeason),
-    updateSeason: jest.fn().mockResolvedValue(mockSeason),
-    createTournament: jest.fn().mockResolvedValue(mockTournament),
-    updateTournament: jest.fn().mockResolvedValue(mockTournament),
+    // Upsert methods (used by migration - preserve original IDs)
+    upsertPlayer: jest.fn().mockResolvedValue(mockPlayer),
+    upsertTeam: jest.fn().mockResolvedValue(mockTeam),
+    upsertSeason: jest.fn().mockResolvedValue(mockSeason),
+    upsertTournament: jest.fn().mockResolvedValue(mockTournament),
+    upsertPersonnel: jest.fn().mockResolvedValue(mockPersonnel),
+    // Other methods used by migration
     setTeamRoster: jest.fn().mockResolvedValue(undefined),
-    addPersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
-    updatePersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
     saveGame: jest.fn().mockResolvedValue(mockGame),
     addPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
     saveWarmupPlan: jest.fn().mockResolvedValue(true),
@@ -197,20 +194,20 @@ describe('migrationService', () => {
       expect(progressUpdates.some((p) => p.stage === 'complete')).toBe(true);
     });
 
-    it('should handle existing entities with upsert pattern', async () => {
+    it('should use upsert methods that preserve original IDs', async () => {
       createMockLocalStore();
       const mockCloud = createMockCloudStore();
-
-      // Simulate "already exists" error on first create
-      mockCloud.createPlayer.mockRejectedValueOnce(new Error('Player already exists'));
-      mockCloud.updatePlayer.mockResolvedValueOnce(mockPlayer);
 
       const result = await migrateLocalToCloud(() => {});
 
       expect(result.success).toBe(true);
       expect(result.migrated.players).toBe(1);
-      expect(mockCloud.createPlayer).toHaveBeenCalled();
-      expect(mockCloud.updatePlayer).toHaveBeenCalled();
+      // Verify upsert methods are called (these preserve original IDs)
+      expect(mockCloud.upsertPlayer).toHaveBeenCalledWith(mockPlayer);
+      expect(mockCloud.upsertTeam).toHaveBeenCalled();
+      expect(mockCloud.upsertSeason).toHaveBeenCalled();
+      expect(mockCloud.upsertTournament).toHaveBeenCalled();
+      expect(mockCloud.upsertPersonnel).toHaveBeenCalled();
     });
 
     it('should report validation warnings for orphan references', async () => {
@@ -244,7 +241,7 @@ describe('migrationService', () => {
       const mockCloud = createMockCloudStore();
 
       // Simulate network error during upload
-      mockCloud.createPlayer.mockRejectedValue(new Error('Network error'));
+      mockCloud.upsertPlayer.mockRejectedValue(new Error('Network error'));
 
       const result = await migrateLocalToCloud(() => {});
 
@@ -436,14 +433,14 @@ describe('migrationService', () => {
       createMockLocalStore();
       const mockCloud = createMockCloudStore();
 
-      // Delay the createPlayer to simulate long-running migration
-      let resolveCreatePlayer: () => void;
-      const createPlayerPromise = new Promise<typeof mockPlayer>((resolve) => {
-        resolveCreatePlayer = () => resolve(mockPlayer);
+      // Delay the upsertPlayer to simulate long-running migration
+      let resolveUpsertPlayer: () => void;
+      const upsertPlayerPromise = new Promise<typeof mockPlayer>((resolve) => {
+        resolveUpsertPlayer = () => resolve(mockPlayer);
       });
-      mockCloud.createPlayer.mockReturnValue(createPlayerPromise);
+      mockCloud.upsertPlayer.mockReturnValue(upsertPlayerPromise);
 
-      // Start first migration (it will hang on createPlayer)
+      // Start first migration (it will hang on upsertPlayer)
       const migration1Promise = migrateLocalToCloud(() => {});
 
       // Try to start second migration immediately
@@ -454,7 +451,7 @@ describe('migrationService', () => {
       expect(migration2Result.errors[0]).toContain('already in progress');
 
       // Complete first migration
-      resolveCreatePlayer!();
+      resolveUpsertPlayer!();
       const migration1Result = await migration1Promise;
 
       // First migration should succeed
@@ -469,13 +466,13 @@ describe('migrationService', () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // First migration will fail
-      mockCloud.createPlayer.mockRejectedValueOnce(new Error('Test error'));
+      mockCloud.upsertPlayer.mockRejectedValueOnce(new Error('Test error'));
 
       const result1 = await migrateLocalToCloud(() => {});
       expect(result1.success).toBe(false);
 
       // Lock should be released - second migration should be able to start
-      mockCloud.createPlayer.mockResolvedValue(mockPlayer);
+      mockCloud.upsertPlayer.mockResolvedValue(mockPlayer);
       const result2 = await migrateLocalToCloud(() => {});
 
       // Second migration should succeed (lock was released)
