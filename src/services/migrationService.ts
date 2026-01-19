@@ -216,7 +216,8 @@ export async function migrateLocalToCloud(
     try {
       onProgress(progress);
     } catch (err) {
-      logger.warn('[MigrationService] Progress callback error:', err);
+      // Use error level - callback failures indicate a bug in the caller
+      logger.error('[MigrationService] Progress callback error:', err);
     }
   };
 
@@ -226,6 +227,7 @@ export async function migrateLocalToCloud(
   try {
     // Check network connectivity before starting
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      logger.warn('[MigrationService] Migration aborted: No network connectivity');
       return {
         ...emptyResult,
         errors: [MIGRATION_MESSAGES.NETWORK_ERROR],
@@ -267,13 +269,13 @@ export async function migrateLocalToCloud(
     // Step 2: Validate data integrity
     safeProgress({ stage: 'validating', progress: PROGRESS_RANGES.VALIDATING.start, message: MIGRATION_MESSAGES.VALIDATING });
 
-    const validationErrors = validateLocalData(localData);
-    if (validationErrors.length > 0) {
-      // Validation errors are warnings, not blockers (we'll skip invalid references)
-      validationErrors.forEach((err) => {
-        warnings.push(`${err.entity}${err.id ? ` (${err.id})` : ''}: ${err.message}`);
+    const validationWarnings = validateLocalData(localData);
+    if (validationWarnings.length > 0) {
+      // Validation warnings are non-blocking - we proceed but inform the user
+      validationWarnings.forEach((warning) => {
+        warnings.push(`${warning.entity}${warning.id ? ` (${warning.id})` : ''}: ${warning.message}`);
       });
-      logger.warn('[MigrationService] Validation warnings:', validationErrors);
+      logger.warn('[MigrationService] Validation warnings:', validationWarnings);
     }
 
     // Step 3: Upload to cloud (uses upserts - safe to retry)
@@ -386,11 +388,13 @@ async function exportAllLocalData(
     teamRosters.set(teamId, allRosters[teamId]);
   }
 
-  // Seasons (with clubSeason computed)
+  // Seasons - use getSeasons(true) to apply runtime migrations:
+  // - Rule 16: Computes clubSeason if missing (based on startDate)
   exportProgress(4, 'seasons');
   const seasons = await localStore.getSeasons(true);
 
-  // Tournaments (with series migration applied)
+  // Tournaments - use getTournaments(true) to apply runtime migrations:
+  // - Rule 13: Converts legacy 'level' field to 'series[]' array
   exportProgress(5, 'tournaments');
   const tournaments = await localStore.getTournaments(true);
 
@@ -784,7 +788,11 @@ function isAlreadyExistsError(error: unknown): error is Error {
 
 /**
  * Normalize personnel data to always be an array.
- * DataStore may return array or record depending on implementation.
+ *
+ * Historical context: Early versions of LocalDataStore stored personnel as
+ * Record<string, Personnel> (keyed by ID), while the current interface returns
+ * Personnel[]. This helper ensures backwards compatibility with any legacy data
+ * that might still be in the old format during migration.
  */
 function normalizePersonnelArray(
   personnel: Personnel[] | Record<string, Personnel>
@@ -795,6 +803,9 @@ function normalizePersonnelArray(
 /**
  * Batch size for concurrent operations.
  * Balances speed with not overwhelming the API.
+ *
+ * Note: This could be made dynamic based on network conditions or API rate limits.
+ * For now, 5 is a conservative value that works well for typical migrations.
  */
 const BATCH_SIZE = 5;
 
