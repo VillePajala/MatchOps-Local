@@ -1798,6 +1798,21 @@ describe('SupabaseDataStore', () => {
         expect(gameData.periodDurationMinutes).toBe(15);
         expect(gameData.homeOrAway).toBe('away');
       });
+
+      it('should use default teamName and opponentName when not provided (LocalDataStore parity)', async () => {
+        // Mock RPC success
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
+
+        // Create game with minimal input - no teamName or opponentName
+        const { gameId, gameData } = await dataStore.createGame({});
+
+        expect(gameId).toMatch(/^game_/);
+        // Should use LocalDataStore-compatible defaults (not empty strings)
+        expect(gameData.teamName).toBe('My Team');
+        expect(gameData.opponentName).toBe('Opponent');
+        // gameDate should default to today
+        expect(gameData.gameDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      });
     });
 
     describe('saveGame', () => {
