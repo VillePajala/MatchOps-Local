@@ -1,8 +1,8 @@
 {
-  "version": "7ebf5230",
+  "version": "86715c10",
   "date": "2026-01-19",
   "notes": {
-    "en": "Add mode-specific React Query configuration",
-    "fi": "Add mode-specific React Query configuration"
+    "en": "Add Cloud Sync section for mode switching",
+    "fi": "Add Cloud Sync section for mode switching"
   }
 }

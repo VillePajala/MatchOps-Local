@@ -152,6 +152,7 @@ describe('CloudSyncSection', () => {
     it('calls disableCloudMode when button is clicked', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
+      mockDisableCloudMode.mockReturnValue(true);
 
       render(<CloudSyncSection />);
 
@@ -163,9 +164,10 @@ describe('CloudSyncSection', () => {
       });
     });
 
-    it('calls onModeChange callback when mode is disabled', async () => {
+    it('calls onModeChange callback when mode is disabled successfully', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
+      mockDisableCloudMode.mockReturnValue(true);
 
       const onModeChange = jest.fn();
       render(<CloudSyncSection onModeChange={onModeChange} />);
@@ -176,6 +178,25 @@ describe('CloudSyncSection', () => {
       await waitFor(() => {
         expect(onModeChange).toHaveBeenCalled();
       });
+    });
+
+    it('does not call onModeChange when disableCloudMode returns false', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockDisableCloudMode.mockReturnValue(false);
+
+      const onModeChange = jest.fn();
+      render(<CloudSyncSection onModeChange={onModeChange} />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(mockDisableCloudMode).toHaveBeenCalled();
+      });
+
+      // onModeChange should NOT be called when disable fails
+      expect(onModeChange).not.toHaveBeenCalled();
     });
   });
 

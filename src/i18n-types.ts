@@ -65,6 +65,7 @@ export type TranslationKey =
   | 'cloudSync.cloudMode'
   | 'cloudSync.disableButton'
   | 'cloudSync.disableError'
+  | 'cloudSync.disableFailed'
   | 'cloudSync.disabledRestartRequired'
   | 'cloudSync.disabling'
   | 'cloudSync.enableButton'
