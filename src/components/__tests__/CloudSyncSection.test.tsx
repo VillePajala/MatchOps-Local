@@ -12,7 +12,6 @@ jest.mock('@/config/backendConfig', () => ({
   isCloudAvailable: jest.fn(),
   enableCloudMode: jest.fn(),
   disableCloudMode: jest.fn(),
-  hasModeOverride: jest.fn(),
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({
@@ -39,21 +38,18 @@ import {
   isCloudAvailable,
   enableCloudMode,
   disableCloudMode,
-  hasModeOverride,
 } from '@/config/backendConfig';
 
 const mockGetBackendMode = getBackendMode as jest.MockedFunction<typeof getBackendMode>;
 const mockIsCloudAvailable = isCloudAvailable as jest.MockedFunction<typeof isCloudAvailable>;
 const mockEnableCloudMode = enableCloudMode as jest.MockedFunction<typeof enableCloudMode>;
 const mockDisableCloudMode = disableCloudMode as jest.MockedFunction<typeof disableCloudMode>;
-const mockHasModeOverride = hasModeOverride as jest.MockedFunction<typeof hasModeOverride>;
 
 describe('CloudSyncSection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetBackendMode.mockReturnValue('local');
     mockIsCloudAvailable.mockReturnValue(false);
-    mockHasModeOverride.mockReturnValue(false);
   });
 
   describe('local mode display', () => {
@@ -197,26 +193,6 @@ describe('CloudSyncSection', () => {
 
       // onModeChange should NOT be called when disable fails
       expect(onModeChange).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('restart required notice', () => {
-    it('shows restart notice when mode override exists', () => {
-      mockGetBackendMode.mockReturnValue('local');
-      mockHasModeOverride.mockReturnValue(true);
-
-      render(<CloudSyncSection />);
-
-      expect(screen.getByText(/restart the app to apply/i)).toBeInTheDocument();
-    });
-
-    it('does not show restart notice when no mode override', () => {
-      mockGetBackendMode.mockReturnValue('local');
-      mockHasModeOverride.mockReturnValue(false);
-
-      render(<CloudSyncSection />);
-
-      expect(screen.queryByText(/restart the app to apply/i)).not.toBeInTheDocument();
     });
   });
 

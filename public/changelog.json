@@ -1,8 +1,8 @@
 {
-  "version": "86715c10",
+  "version": "0f716c62",
   "date": "2026-01-19",
   "notes": {
-    "en": "Add Cloud Sync section for mode switching",
-    "fi": "Add Cloud Sync section for mode switching"
+    "en": "Handle failed localStorage writes and prevent unmount warnings",
+    "fi": "Handle failed localStorage writes and prevent unmount warnings"
   }
 }
