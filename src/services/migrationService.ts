@@ -586,81 +586,45 @@ async function uploadToCloud(
     onProgress({ stage: 'uploading', progress, currentEntity: entity });
   };
 
-  // 1. Players (createPlayer takes Omit<Player, 'id'>, updatePlayer takes (id, Partial))
+  // 1. Players - upsert preserves original IDs (critical for references)
   updateProgress('players');
   for (const player of data.players) {
-    const { id, ...playerData } = player;
-    await upsertEntityWithSeparateId(
-      id,
-      playerData,
-      (p) => cloudStore.createPlayer(p as Omit<Player, 'id'>),
-      (pid, p) => cloudStore.updatePlayer(pid, p)
-    );
+    await cloudStore.upsertPlayer(player);
     counts.players++;
   }
 
-  // 2. Seasons (createSeason takes (name, extra), updateSeason takes full Season)
+  // 2. Seasons - upsert preserves original IDs
   updateProgress('seasons');
   for (const season of data.seasons) {
-    const { name, ...extra } = season;
-    try {
-      await cloudStore.createSeason(name, extra);
-    } catch (error) {
-      if (isAlreadyExistsError(error)) {
-        await cloudStore.updateSeason(season);
-      } else {
-        throw error;
-      }
-    }
+    await cloudStore.upsertSeason(season);
     counts.seasons++;
   }
 
-  // 3. Tournaments (createTournament takes (name, extra), updateTournament takes full Tournament)
+  // 3. Tournaments - upsert preserves original IDs
   updateProgress('tournaments');
   for (const tournament of data.tournaments) {
-    const { name, ...extra } = tournament;
-    try {
-      await cloudStore.createTournament(name, extra);
-    } catch (error) {
-      if (isAlreadyExistsError(error)) {
-        await cloudStore.updateTournament(tournament);
-      } else {
-        throw error;
-      }
-    }
+    await cloudStore.upsertTournament(tournament);
     counts.tournaments++;
   }
 
-  // 4. Teams (createTeam takes Omit<Team, 'id'|'createdAt'|'updatedAt'>, updateTeam takes (id, Partial))
+  // 4. Teams - upsert preserves original IDs (must come after seasons/tournaments for FK refs)
   updateProgress('teams');
   for (const team of data.teams) {
-    const { id, createdAt: _ca, updatedAt: _ua, ...teamData } = team;
-    await upsertEntityWithSeparateId(
-      id,
-      teamData,
-      (t) => cloudStore.createTeam(t as Omit<Team, 'id' | 'createdAt' | 'updatedAt'>),
-      (tid, t) => cloudStore.updateTeam(tid, t)
-    );
+    await cloudStore.upsertTeam(team);
     counts.teams++;
   }
 
-  // 5. Team rosters
+  // 5. Team rosters (must come after players and teams)
   updateProgress('team rosters');
   for (const [teamId, roster] of data.teamRosters) {
     await cloudStore.setTeamRoster(teamId, roster);
     counts.teamRosters += roster.length;
   }
 
-  // 6. Personnel (addPersonnelMember takes Omit<Personnel, 'id'|'createdAt'|'updatedAt'>)
+  // 6. Personnel - upsert preserves original IDs
   updateProgress('personnel');
   for (const member of data.personnel) {
-    const { id, createdAt: _ca, updatedAt: _ua, ...memberData } = member;
-    await upsertEntityWithSeparateId(
-      id,
-      memberData,
-      (m) => cloudStore.addPersonnelMember(m as Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>),
-      (mid, m) => cloudStore.updatePersonnelMember(mid, m)
-    );
+    await cloudStore.upsertPersonnel(member);
     counts.personnel++;
   }
 
@@ -777,16 +741,6 @@ async function verifyMigration(
 // =============================================================================
 
 /**
- * Type guard to check if an error indicates the entity already exists.
- * Matches common database duplicate/conflict error messages.
- */
-function isAlreadyExistsError(error: unknown): error is Error {
-  if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
-  return message.includes('already exists') || message.includes('duplicate');
-}
-
-/**
  * Normalize personnel data to always be an array.
  *
  * Historical context: Early versions of LocalDataStore stored personnel as
@@ -825,33 +779,6 @@ async function processBatch<T, R>(
     results.push(...batchResults);
   }
   return results;
-}
-
-/**
- * Upsert helper for entities where ID is separate from data.
- * Handles DataStore interfaces where create takes Omit<T, 'id'> and update takes (id, Partial<T>).
- *
- * @param id - The entity ID
- * @param data - The entity data (without id)
- * @param createFn - Function to create the entity (takes data without id)
- * @param updateFn - Function to update the entity (takes id and partial data)
- * @throws If create fails with non-duplicate error
- */
-async function upsertEntityWithSeparateId<T>(
-  id: string,
-  data: T,
-  createFn: (d: T) => Promise<unknown>,
-  updateFn: (id: string, d: Partial<T>) => Promise<unknown>
-): Promise<void> {
-  try {
-    await createFn(data);
-  } catch (error) {
-    if (isAlreadyExistsError(error)) {
-      await updateFn(id, data);
-    } else {
-      throw error;
-    }
-  }
 }
 
 // =============================================================================

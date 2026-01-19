@@ -537,6 +537,53 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
+  /**
+   * Upsert a player - inserts if not exists, updates if exists.
+   * Preserves the original ID (critical for migration).
+   *
+   * @param player - Complete player object WITH id
+   * @returns The upserted player
+   */
+  async upsertPlayer(player: Player): Promise<Player> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const trimmedName = player.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Player name cannot be empty', 'name', player.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.PLAYER_NAME_MAX) {
+      throw new ValidationError(
+        `Player name cannot exceed ${VALIDATION_LIMITS.PLAYER_NAME_MAX} characters`,
+        'name',
+        player.name
+      );
+    }
+
+    const now = new Date().toISOString();
+    const userId = await this.getUserId();
+    const playerToUpsert: Player = {
+      ...player,
+      name: trimmedName,
+      nickname: player.nickname?.trim() || undefined,
+      isGoalie: player.isGoalie ?? false,
+      receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+    };
+
+    const { error } = await this.getClient()
+      .from('players')
+      .upsert(this.transformPlayerToDb(playerToUpsert, now, userId) as unknown as never, {
+        onConflict: 'id',
+      });
+
+    if (error) {
+      throw new NetworkError(`Failed to upsert player: ${error.message}`);
+    }
+
+    return playerToUpsert;
+  }
+
   // ==========================================================================
   // TEAMS
   // ==========================================================================
@@ -830,6 +877,53 @@ export class SupabaseDataStore implements DataStore {
       created_at: team.createdAt,
       updated_at: team.updatedAt,
     };
+  }
+
+  /**
+   * Upsert a team - inserts if not exists, updates if exists.
+   * Preserves the original ID (critical for migration).
+   *
+   * @param team - Complete team object WITH id
+   * @returns The upserted team
+   */
+  async upsertTeam(team: Team): Promise<Team> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const trimmedName = normalizeName(team.name);
+    if (!trimmedName) {
+      throw new ValidationError('Team name cannot be empty', 'name', team.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
+      throw new ValidationError(
+        `Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters`,
+        'name',
+        team.name
+      );
+    }
+
+    const now = new Date().toISOString();
+    const userId = await this.getUserId();
+    const teamToUpsert: Team = {
+      ...team,
+      name: trimmedName,
+      archived: team.archived ?? false,
+      createdAt: team.createdAt ?? now,
+      updatedAt: now,
+    };
+
+    const { error } = await this.getClient()
+      .from('teams')
+      .upsert(this.transformTeamToDb(teamToUpsert, userId) as unknown as never, {
+        onConflict: 'id',
+      });
+
+    if (error) {
+      throw new NetworkError(`Failed to upsert team: ${error.message}`);
+    }
+
+    return teamToUpsert;
   }
 
   // ==========================================================================
@@ -1194,6 +1288,43 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
+  /**
+   * Upsert a season - inserts if not exists, updates if exists.
+   * Preserves the original ID (critical for migration).
+   *
+   * @param season - Complete season object WITH id
+   * @returns The upserted season
+   */
+  async upsertSeason(season: Season): Promise<Season> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const trimmedName = normalizeName(season.name);
+    if (!trimmedName) {
+      throw new ValidationError('Season name cannot be empty', 'name', season.name);
+    }
+
+    const now = new Date().toISOString();
+    const userId = await this.getUserId();
+    const seasonToUpsert: Season = {
+      ...season,
+      name: trimmedName,
+      archived: season.archived ?? false,
+    };
+
+    const { error } = await this.getClient()
+      .from('seasons')
+      .upsert(this.transformSeasonToDb(seasonToUpsert, now, userId) as unknown as never, {
+        onConflict: 'id',
+      });
+
+    if (error) {
+      throw new NetworkError(`Failed to upsert season: ${error.message}`);
+    }
+
+    return seasonToUpsert;
+  }
+
   // ==========================================================================
   // TOURNAMENTS
   // ==========================================================================
@@ -1451,6 +1582,43 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
+  /**
+   * Upsert a tournament - inserts if not exists, updates if exists.
+   * Preserves the original ID (critical for migration).
+   *
+   * @param tournament - Complete tournament object WITH id
+   * @returns The upserted tournament
+   */
+  async upsertTournament(tournament: Tournament): Promise<Tournament> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const trimmedName = normalizeName(tournament.name);
+    if (!trimmedName) {
+      throw new ValidationError('Tournament name cannot be empty', 'name', tournament.name);
+    }
+
+    const now = new Date().toISOString();
+    const userId = await this.getUserId();
+    const tournamentToUpsert: Tournament = {
+      ...tournament,
+      name: trimmedName,
+      archived: tournament.archived ?? false,
+    };
+
+    const { error } = await this.getClient()
+      .from('tournaments')
+      .upsert(this.transformTournamentToDb(tournamentToUpsert, now, userId) as unknown as never, {
+        onConflict: 'id',
+      });
+
+    if (error) {
+      throw new NetworkError(`Failed to upsert tournament: ${error.message}`);
+    }
+
+    return tournamentToUpsert;
+  }
+
   // ==========================================================================
   // PERSONNEL
   // ==========================================================================
@@ -1667,6 +1835,45 @@ export class SupabaseDataStore implements DataStore {
       created_at: personnel.createdAt,
       updated_at: personnel.updatedAt,
     };
+  }
+
+  /**
+   * Upsert a personnel member - inserts if not exists, updates if exists.
+   * Preserves the original ID (critical for migration).
+   *
+   * @param personnel - Complete personnel object WITH id
+   * @returns The upserted personnel
+   */
+  async upsertPersonnel(personnel: Personnel): Promise<Personnel> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const trimmedName = personnel.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Personnel name cannot be empty', 'name', personnel.name);
+    }
+
+    const now = new Date().toISOString();
+    const userId = await this.getUserId();
+    const personnelToUpsert: Personnel = {
+      ...personnel,
+      name: trimmedName,
+      certifications: personnel.certifications ?? [],
+      createdAt: personnel.createdAt ?? now,
+      updatedAt: now,
+    };
+
+    const { error } = await this.getClient()
+      .from('personnel')
+      .upsert(this.transformPersonnelToDb(personnelToUpsert, userId) as unknown as never, {
+        onConflict: 'id',
+      });
+
+    if (error) {
+      throw new NetworkError(`Failed to upsert personnel: ${error.message}`);
+    }
+
+    return personnelToUpsert;
   }
 
   // ==========================================================================
