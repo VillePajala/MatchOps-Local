@@ -1978,5 +1978,26 @@
       "entity": "Migrating {{entity}}...",
       "complete": "{{count}} items migrated"
     }
+  },
+  "cloudSync": {
+    "title": "Cloud Sync",
+    "statusLabel": "Current Mode",
+    "cloudMode": "Cloud Sync Enabled",
+    "localMode": "Local Storage",
+    "cloudDescription": "Your data syncs to the cloud. Access from any device after signing in.",
+    "localDescription": "Your data is stored locally on this device. Works offline, but data is not synced.",
+    "notAvailable": "Cloud sync is not available. This feature requires a premium subscription and server configuration.",
+    "notConfigured": "Cloud sync is not configured. Contact support for access.",
+    "enableButton": "Enable Cloud Sync",
+    "disableButton": "Switch to Local Mode",
+    "enabling": "Enabling...",
+    "disabling": "Disabling...",
+    "enabledRestartRequired": "Cloud mode enabled. Restart the app to apply changes.",
+    "disabledRestartRequired": "Local mode enabled. Restart the app to apply changes.",
+    "enableFailed": "Failed to enable cloud mode. Please try again.",
+    "enableError": "An error occurred while enabling cloud mode.",
+    "disableError": "An error occurred while disabling cloud mode.",
+    "restartRequired": "Restart the app to apply mode changes.",
+    "migrationNote": "When you enable cloud sync, you can migrate your existing local data to the cloud."
   }
 }
