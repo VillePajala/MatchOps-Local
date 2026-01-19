@@ -1,0 +1,506 @@
+/**
+ * Migration Service Tests
+ *
+ * Tests for local → cloud data migration.
+ * Uses mocked data stores to test migration logic without network calls.
+ */
+
+import {
+  migrateLocalToCloud,
+  hasLocalDataToMigrate,
+  getLocalDataSummary,
+  isMigrationRunning,
+  MIGRATION_MESSAGES,
+  type MigrationProgress,
+} from '../migrationService';
+import { LocalDataStore } from '@/datastore/LocalDataStore';
+import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
+import type { Player, Team, TeamPlayer, Season, Tournament, Personnel } from '@/types';
+import type { AppState } from '@/types';
+
+// Mock the data stores
+jest.mock('@/datastore/LocalDataStore');
+jest.mock('@/datastore/SupabaseDataStore');
+
+const MockedLocalDataStore = LocalDataStore as jest.MockedClass<typeof LocalDataStore>;
+const MockedSupabaseDataStore = SupabaseDataStore as jest.MockedClass<typeof SupabaseDataStore>;
+
+// =============================================================================
+// TEST FIXTURES
+// =============================================================================
+
+const mockPlayer: Player = {
+  id: 'player-1',
+  name: 'Test Player',
+  jerseyNumber: '10',
+  isGoalie: false,
+};
+
+const mockTeam: Team = {
+  id: 'team-1',
+  name: 'Test Team',
+  gameType: 'soccer',
+};
+
+const mockSeason: Season = {
+  id: 'season-1',
+  name: 'Spring 2025',
+  startDate: '2025-01-01',
+  endDate: '2025-06-30',
+  gameType: 'soccer',
+};
+
+const mockTournament: Tournament = {
+  id: 'tournament-1',
+  name: 'Summer Cup',
+  startDate: '2025-07-01',
+  endDate: '2025-07-31',
+  gameType: 'soccer',
+};
+
+const mockPersonnel: Personnel = {
+  id: 'personnel-1',
+  name: 'Coach Smith',
+  role: 'head_coach',
+};
+
+// TeamPlayer is the roster entry format (different from Player)
+const mockTeamPlayer: TeamPlayer = {
+  id: 'player-1',
+  name: 'Test Player',
+  jerseyNumber: '10',
+  isGoalie: false,
+};
+
+const mockGame: AppState = {
+  id: 'game-1',
+  gameName: 'Test Game',
+  homeScore: 2,
+  awayScore: 1,
+  homeOrAway: 'home',
+  isPlayed: true,
+  availablePlayers: [mockPlayer],
+  selectedPlayerIds: ['player-1'],
+  playersOnField: [],
+  gameEvents: [],
+  opponents: [],
+  drawings: [],
+  tacticalDiscs: [],
+  tacticalDrawings: [],
+  completedIntervalDurations: [],
+  gamePersonnel: [],
+  seasonId: '',
+  tournamentId: '',
+  tournamentSeriesId: '',
+  tournamentLevel: '',
+  teamId: '',
+  gameTime: '',
+  gameLocation: '',
+  ageGroup: '',
+  leagueId: '',
+  customLeagueName: '',
+  opponentName: 'Test Opponent',
+};
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+function createMockLocalStore() {
+  const mockInstance = {
+    initialize: jest.fn().mockResolvedValue(undefined),
+    getPlayers: jest.fn().mockResolvedValue([mockPlayer]),
+    getTeams: jest.fn().mockResolvedValue([mockTeam]),
+    getAllTeamRosters: jest.fn().mockResolvedValue({ 'team-1': [mockTeamPlayer] }),
+    getSeasons: jest.fn().mockResolvedValue([mockSeason]),
+    getTournaments: jest.fn().mockResolvedValue([mockTournament]),
+    getAllPersonnel: jest.fn().mockResolvedValue([mockPersonnel]),
+    getGames: jest.fn().mockResolvedValue({ 'game-1': mockGame }),
+    getPlayerAdjustments: jest.fn().mockResolvedValue([]),
+    getWarmupPlan: jest.fn().mockResolvedValue(null),
+    getSettings: jest.fn().mockResolvedValue({ language: 'en' }),
+  };
+  MockedLocalDataStore.mockImplementation(() => mockInstance as unknown as LocalDataStore);
+  return mockInstance;
+}
+
+function createMockCloudStore() {
+  const mockInstance = {
+    initialize: jest.fn().mockResolvedValue(undefined),
+    createPlayer: jest.fn().mockResolvedValue(mockPlayer),
+    updatePlayer: jest.fn().mockResolvedValue(mockPlayer),
+    createTeam: jest.fn().mockResolvedValue(mockTeam),
+    updateTeam: jest.fn().mockResolvedValue(mockTeam),
+    createSeason: jest.fn().mockResolvedValue(mockSeason),
+    updateSeason: jest.fn().mockResolvedValue(mockSeason),
+    createTournament: jest.fn().mockResolvedValue(mockTournament),
+    updateTournament: jest.fn().mockResolvedValue(mockTournament),
+    setTeamRoster: jest.fn().mockResolvedValue(undefined),
+    addPersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
+    updatePersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
+    saveGame: jest.fn().mockResolvedValue(mockGame),
+    addPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
+    saveWarmupPlan: jest.fn().mockResolvedValue(true),
+    saveSettings: jest.fn().mockResolvedValue(undefined),
+    // Verification methods
+    getPlayers: jest.fn().mockResolvedValue([mockPlayer]),
+    getTeams: jest.fn().mockResolvedValue([mockTeam]),
+    getSeasons: jest.fn().mockResolvedValue([mockSeason]),
+    getTournaments: jest.fn().mockResolvedValue([mockTournament]),
+    getGames: jest.fn().mockResolvedValue({ 'game-1': mockGame }),
+    getAllPersonnel: jest.fn().mockResolvedValue([mockPersonnel]),
+  };
+  MockedSupabaseDataStore.mockImplementation(() => mockInstance as unknown as SupabaseDataStore);
+  return mockInstance;
+}
+
+// =============================================================================
+// TESTS
+// =============================================================================
+
+describe('migrationService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('migrateLocalToCloud', () => {
+    it('should migrate all data successfully', async () => {
+      const mockLocal = createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      const progressUpdates: MigrationProgress[] = [];
+      const onProgress = (progress: MigrationProgress) => {
+        progressUpdates.push(progress);
+      };
+
+      const result = await migrateLocalToCloud(onProgress);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.migrated.players).toBe(1);
+      expect(result.migrated.teams).toBe(1);
+      expect(result.migrated.seasons).toBe(1);
+      expect(result.migrated.tournaments).toBe(1);
+      expect(result.migrated.games).toBe(1);
+      expect(result.migrated.personnel).toBe(1);
+      expect(result.migrated.settings).toBe(true);
+
+      // Verify data stores were initialized
+      expect(mockLocal.initialize).toHaveBeenCalled();
+      expect(mockCloud.initialize).toHaveBeenCalled();
+
+      // Verify progress updates
+      expect(progressUpdates.some((p) => p.stage === 'preparing')).toBe(true);
+      expect(progressUpdates.some((p) => p.stage === 'exporting')).toBe(true);
+      expect(progressUpdates.some((p) => p.stage === 'uploading')).toBe(true);
+      expect(progressUpdates.some((p) => p.stage === 'verifying')).toBe(true);
+      expect(progressUpdates.some((p) => p.stage === 'complete')).toBe(true);
+    });
+
+    it('should handle existing entities with upsert pattern', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // Simulate "already exists" error on first create
+      mockCloud.createPlayer.mockRejectedValueOnce(new Error('Player already exists'));
+      mockCloud.updatePlayer.mockResolvedValueOnce(mockPlayer);
+
+      const result = await migrateLocalToCloud(() => {});
+
+      expect(result.success).toBe(true);
+      expect(result.migrated.players).toBe(1);
+      expect(mockCloud.createPlayer).toHaveBeenCalled();
+      expect(mockCloud.updatePlayer).toHaveBeenCalled();
+    });
+
+    it('should report validation warnings for orphan references', async () => {
+      const mockLocal = createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // Team references non-existent season
+      const teamWithOrphan = {
+        ...mockTeam,
+        boundSeasonId: 'non-existent-season',
+      };
+      mockLocal.getTeams.mockResolvedValue([teamWithOrphan]);
+
+      // Ensure verification passes by returning matching data
+      mockCloud.getTeams.mockResolvedValue([teamWithOrphan]);
+
+      // Expect the validation warning to be logged
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await migrateLocalToCloud(() => {});
+
+      expect(result.success).toBe(true); // Validation warnings don't block migration
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain('non-existent season');
+
+      warnSpy.mockRestore();
+    });
+
+    it('should handle upload errors gracefully', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // Simulate network error during upload
+      mockCloud.createPlayer.mockRejectedValue(new Error('Network error'));
+
+      const result = await migrateLocalToCloud(() => {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('Network error');
+    });
+
+    it('should fail verification when counts do not match', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // Verification returns fewer players than expected
+      mockCloud.getPlayers.mockResolvedValue([]);
+
+      const result = await migrateLocalToCloud(() => {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors.some((e) => e.includes('Players'))).toBe(true);
+    });
+
+    it('should handle empty local data', async () => {
+      const mockLocal = createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // No local data - reset all mocks to return empty
+      mockLocal.getPlayers.mockResolvedValue([]);
+      mockLocal.getTeams.mockResolvedValue([]);
+      mockLocal.getAllTeamRosters.mockResolvedValue({});
+      mockLocal.getSeasons.mockResolvedValue([]);
+      mockLocal.getTournaments.mockResolvedValue([]);
+      mockLocal.getAllPersonnel.mockResolvedValue([]);
+      mockLocal.getGames.mockResolvedValue({});
+      mockLocal.getWarmupPlan.mockResolvedValue(null);
+      mockLocal.getSettings.mockResolvedValue(null);
+
+      // Verification should also return empty data
+      mockCloud.getPlayers.mockResolvedValue([]);
+      mockCloud.getTeams.mockResolvedValue([]);
+      mockCloud.getSeasons.mockResolvedValue([]);
+      mockCloud.getTournaments.mockResolvedValue([]);
+      mockCloud.getGames.mockResolvedValue({});
+      mockCloud.getAllPersonnel.mockResolvedValue([]);
+
+      const result = await migrateLocalToCloud(() => {});
+
+      expect(result.success).toBe(true);
+      expect(result.migrated.players).toBe(0);
+      expect(result.migrated.games).toBe(0);
+    });
+
+    it('should track progress through all stages', async () => {
+      createMockLocalStore();
+      createMockCloudStore();
+
+      const stages: string[] = [];
+      const onProgress = (progress: MigrationProgress) => {
+        if (!stages.includes(progress.stage)) {
+          stages.push(progress.stage);
+        }
+      };
+
+      await migrateLocalToCloud(onProgress);
+
+      expect(stages).toContain('preparing');
+      expect(stages).toContain('exporting');
+      expect(stages).toContain('validating');
+      expect(stages).toContain('uploading');
+      expect(stages).toContain('verifying');
+      expect(stages).toContain('complete');
+    });
+  });
+
+  describe('hasLocalDataToMigrate', () => {
+    it('should return true when there are players', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.getPlayers.mockResolvedValue([mockPlayer]);
+      mockLocal.getGames.mockResolvedValue({});
+
+      const result = await hasLocalDataToMigrate();
+
+      expect(result).toBe(true);
+    });
+
+    it('should return true when there are games', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.getPlayers.mockResolvedValue([]);
+      mockLocal.getGames.mockResolvedValue({ 'game-1': mockGame });
+
+      const result = await hasLocalDataToMigrate();
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when there is no data', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.getPlayers.mockResolvedValue([]);
+      mockLocal.getGames.mockResolvedValue({});
+
+      const result = await hasLocalDataToMigrate();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false on error', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.initialize.mockRejectedValue(new Error('Init failed'));
+
+      const result = await hasLocalDataToMigrate();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getLocalDataSummary', () => {
+    it('should return correct counts', async () => {
+      createMockLocalStore();
+
+      const summary = await getLocalDataSummary();
+
+      expect(summary.players).toBe(1);
+      expect(summary.teams).toBe(1);
+      expect(summary.seasons).toBe(1);
+      expect(summary.tournaments).toBe(1);
+      expect(summary.games).toBe(1);
+      expect(summary.personnel).toBe(1);
+      expect(summary.teamRosters).toBe(1);
+      expect(summary.settings).toBe(true);
+    });
+
+    it('should count team roster entries correctly', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.getAllTeamRosters.mockResolvedValue({
+        'team-1': [
+          { id: 'player-1', name: 'P1' },
+          { id: 'player-2', name: 'P2' },
+          { id: 'player-3', name: 'P3' },
+        ] as TeamPlayer[],
+        'team-2': [
+          { id: 'player-4', name: 'P4' },
+          { id: 'player-5', name: 'P5' },
+        ] as TeamPlayer[],
+      });
+
+      const summary = await getLocalDataSummary();
+
+      expect(summary.teamRosters).toBe(5);
+    });
+
+    it('should count player adjustments across all players', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.getPlayers.mockResolvedValue([
+        { id: 'player-1', name: 'P1' },
+        { id: 'player-2', name: 'P2' },
+      ] as Player[]);
+      mockLocal.getPlayerAdjustments
+        .mockResolvedValueOnce([{ id: 'adj-1' }, { id: 'adj-2' }])
+        .mockResolvedValueOnce([{ id: 'adj-3' }]);
+
+      const summary = await getLocalDataSummary();
+
+      expect(summary.playerAdjustments).toBe(3);
+    });
+  });
+
+  describe('MIGRATION_MESSAGES', () => {
+    it('should have all required message keys', () => {
+      expect(MIGRATION_MESSAGES.PREPARING).toBeDefined();
+      expect(MIGRATION_MESSAGES.EXPORTING).toBeDefined();
+      expect(MIGRATION_MESSAGES.VALIDATING).toBeDefined();
+      expect(MIGRATION_MESSAGES.UPLOADING).toBeDefined();
+      expect(MIGRATION_MESSAGES.VERIFYING).toBeDefined();
+      expect(MIGRATION_MESSAGES.SUCCESS).toBeDefined();
+      expect(MIGRATION_MESSAGES.PARTIAL_FAILURE).toBeDefined();
+      expect(MIGRATION_MESSAGES.VERIFICATION_FAILED).toBeDefined();
+      expect(MIGRATION_MESSAGES.NETWORK_ERROR).toBeDefined();
+    });
+  });
+
+  describe('isMigrationRunning', () => {
+    it('should return false when no migration is in progress', () => {
+      // After jest.clearAllMocks() and any completed migration, should be false
+      expect(isMigrationRunning()).toBe(false);
+    });
+  });
+
+  describe('concurrent migration prevention', () => {
+    it('should prevent starting a migration while one is in progress', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // Delay the createPlayer to simulate long-running migration
+      let resolveCreatePlayer: () => void;
+      const createPlayerPromise = new Promise<typeof mockPlayer>((resolve) => {
+        resolveCreatePlayer = () => resolve(mockPlayer);
+      });
+      mockCloud.createPlayer.mockReturnValue(createPlayerPromise);
+
+      // Start first migration (it will hang on createPlayer)
+      const migration1Promise = migrateLocalToCloud(() => {});
+
+      // Try to start second migration immediately
+      const migration2Result = await migrateLocalToCloud(() => {});
+
+      // Second migration should fail with concurrent error
+      expect(migration2Result.success).toBe(false);
+      expect(migration2Result.errors[0]).toContain('already in progress');
+
+      // Complete first migration
+      resolveCreatePlayer!();
+      const migration1Result = await migration1Promise;
+
+      // First migration should succeed
+      expect(migration1Result.success).toBe(true);
+    });
+
+    it('should release lock even when migration fails', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // Suppress expected console.error for this test
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // First migration will fail
+      mockCloud.createPlayer.mockRejectedValueOnce(new Error('Test error'));
+
+      const result1 = await migrateLocalToCloud(() => {});
+      expect(result1.success).toBe(false);
+
+      // Lock should be released - second migration should be able to start
+      mockCloud.createPlayer.mockResolvedValue(mockPlayer);
+      const result2 = await migrateLocalToCloud(() => {});
+
+      // Second migration should succeed (lock was released)
+      // If lock wasn't released, we'd get "already in progress" error
+      const hasLockError = result2.errors.some((e) => e.includes('already in progress'));
+      expect(hasLockError).toBe(false);
+
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe('verification with pre-existing cloud data', () => {
+    it('should add warning when cloud has more data than local', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // Cloud has more players than local (indicates pre-existing data)
+      mockCloud.getPlayers.mockResolvedValue([mockPlayer, { ...mockPlayer, id: 'player-2' }]);
+
+      const result = await migrateLocalToCloud(() => {});
+
+      // Migration should succeed
+      expect(result.success).toBe(true);
+      // Should have warning about pre-existing data
+      expect(result.warnings.some((w) => w.includes('pre-existing data merged'))).toBe(true);
+    });
+  });
+});
