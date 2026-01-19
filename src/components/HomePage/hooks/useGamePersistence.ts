@@ -273,6 +273,17 @@ export function useGamePersistence({
    * @param suppressErrorToast - If true, suppresses error toast (for auto-save retry logic)
    */
   const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false) => {
+    // Create snapshot first (needed for both validation and save)
+    const currentSnapshot = createGameSnapshot();
+
+    // Pre-validate: skip auto-save if required fields are empty (transient editing state)
+    // This is expected during typing - user clears field before entering new value
+    // Manual saves (silent=false) should still attempt save and show validation error to user
+    if (silent && (!currentSnapshot.teamName || !currentSnapshot.opponentName || !currentSnapshot.gameDate)) {
+      logger.log('[handleQuickSaveGame] Skipping auto-save: required fields empty (user editing)');
+      return;
+    }
+
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
       logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`, {
         teamId: gameSessionState.teamId,
@@ -280,8 +291,6 @@ export function useGamePersistence({
       });
 
       try {
-        const currentSnapshot = createGameSnapshot();
-
         // Update savedGames state and storage
         const updatedSavedGames = { ...savedGames, [currentGameId]: currentSnapshot };
         setSavedGames(updatedSavedGames);
@@ -322,10 +331,9 @@ export function useGamePersistence({
     } else {
       // No current game ID - create new saved game entry using utility
       try {
-        const newSnapshot = createGameSnapshot();
-
         // Use createGame utility (DRY principle)
-        const { gameId: newGameId, gameData } = await utilCreateGame(newSnapshot);
+        // Note: currentSnapshot was already created at the start of handleQuickSaveGame
+        const { gameId: newGameId, gameData } = await utilCreateGame(currentSnapshot);
 
         // Update local state
         setSavedGames(prev => ({ ...prev, [newGameId]: gameData }));

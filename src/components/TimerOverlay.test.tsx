@@ -42,16 +42,40 @@ describe('TimerOverlay', () => {
     expect(baseProps.onStartPauseTimer).toHaveBeenCalledTimes(1);
   });
 
-  it('adjusts sub interval via +/- buttons when game not started', () => {
+  it('adjusts sub interval via +/- buttons with 0.5 increments when game not started', () => {
     render(<TimerOverlay {...baseProps} subIntervalMinutes={5} />);
     const dec = screen.getByRole('button', { name: /decrease interval/i });
     const inc = screen.getByRole('button', { name: /increase interval/i });
 
     fireEvent.click(inc);
-    expect(baseProps.onSetSubInterval).toHaveBeenCalledWith(6);
+    expect(baseProps.onSetSubInterval).toHaveBeenCalledWith(5.5);
     fireEvent.click(dec);
-    // After previous call 6, decrement should call with 4 or 5? The component uses current prop (5), so 4
-    expect(baseProps.onSetSubInterval).toHaveBeenCalledWith(4);
+    // The component uses current prop (5), so decrement calls with 4.5
+    expect(baseProps.onSetSubInterval).toHaveBeenCalledWith(4.5);
+  });
+
+  it('displays half-minute intervals with one decimal place', () => {
+    render(<TimerOverlay {...baseProps} subIntervalMinutes={2.5} />);
+    // Should display "2.5" not "2.5000..."
+    expect(screen.getByText('2.5')).toBeInTheDocument();
+  });
+
+  it('displays whole-minute intervals without decimal', () => {
+    render(<TimerOverlay {...baseProps} subIntervalMinutes={3} />);
+    // Should display "3" not "3.0"
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('disables decrease button at minimum 0.5 minutes', () => {
+    render(<TimerOverlay {...baseProps} subIntervalMinutes={0.5} />);
+    const dec = screen.getByRole('button', { name: /decrease interval/i });
+    expect(dec).toBeDisabled();
+  });
+
+  it('enables decrease button above 0.5 minutes', () => {
+    render(<TimerOverlay {...baseProps} subIntervalMinutes={1} />);
+    const dec = screen.getByRole('button', { name: /decrease interval/i });
+    expect(dec).not.toBeDisabled();
   });
 
   it('opens reset confirmation and calls onResetTimer on confirm', async () => {

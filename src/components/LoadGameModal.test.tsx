@@ -590,6 +590,81 @@ describe('LoadGameModal', () => {
   });
 
   /**
+   * Tests for game time display
+   * @integration
+   */
+  describe('game time display', () => {
+    it('displays game time next to date when gameTime is set', async () => {
+      const games: SavedGamesCollection = {
+        'game_with_time': {
+          teamName: 'Evening Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-08-15',
+          gameTime: '18:30',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({ savedGames: games });
+
+      const gameCard = await screen.findByTestId('game-item-game_with_time');
+      // Should display the time alongside the date
+      expect(gameCard.textContent).toContain('18:30');
+    });
+
+    it('displays only date when gameTime is not set', async () => {
+      const games: SavedGamesCollection = {
+        'game_no_time': {
+          teamName: 'No Time Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-08-15',
+          // gameTime intentionally omitted
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({ savedGames: games });
+
+      const gameCard = await screen.findByTestId('game-item-game_no_time');
+      // Should not contain any time-like pattern
+      expect(gameCard.textContent).not.toMatch(/\d{1,2}:\d{2}/);
+    });
+
+    it('displays only date when gameTime is empty string', async () => {
+      const games: SavedGamesCollection = {
+        'game_empty_time': {
+          teamName: 'Empty Time Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-08-15',
+          gameTime: '', // Empty string
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({ savedGames: games });
+
+      const gameCard = await screen.findByTestId('game-item-game_empty_time');
+      // Empty string should be falsy, so no time displayed
+      expect(gameCard.textContent).not.toMatch(/\d{1,2}:\d{2}/);
+    });
+  });
+
+  /**
    * Tests for game type (Soccer/Futsal) badge display
    * @integration
    */

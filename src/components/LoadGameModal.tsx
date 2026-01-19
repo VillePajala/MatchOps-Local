@@ -491,6 +491,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                           {game.gameDate && (
                             <span>
                               {new Date(game.gameDate).toLocaleDateString(i18n.language)}
+                              {game.gameTime && ` ${game.gameTime}`}
                             </span>
                           )}
                           {game.numberOfPeriods && game.periodDurationMinutes && (
