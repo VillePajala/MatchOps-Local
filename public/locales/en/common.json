@@ -1992,6 +1992,8 @@
     "disableButton": "Switch to Local Mode",
     "enabling": "Enabling...",
     "disabling": "Disabling...",
+    "enabledReloading": "Cloud mode enabled. Reloading...",
+    "disabledReloading": "Local mode enabled. Reloading...",
     "enabledRestartRequired": "Cloud mode enabled. Restart the app to apply changes.",
     "disabledRestartRequired": "Local mode enabled. Restart the app to apply changes.",
     "enableFailed": "Failed to enable cloud mode. Please try again.",

@@ -1992,6 +1992,8 @@
     "disableButton": "Vaihda paikalliseen tilaan",
     "enabling": "Otetaan käyttöön...",
     "disabling": "Poistetaan käytöstä...",
+    "enabledReloading": "Pilvitila käytössä. Ladataan uudelleen...",
+    "disabledReloading": "Paikallinen tila käytössä. Ladataan uudelleen...",
     "enabledRestartRequired": "Pilvitila käytössä. Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
     "disabledRestartRequired": "Paikallinen tila käytössä. Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
     "enableFailed": "Pilvitilan käyttöönotto epäonnistui. Yritä uudelleen.",

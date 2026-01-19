@@ -4053,10 +4053,12 @@ Extract SQL from `docs/02-technical/database/supabase-schema.md` into runnable f
 ```
 supabase/migrations/
 ├── 000_schema.sql           # All 15 tables + indexes + constraints
-├── 001_rls_policies.sql     # All RLS policies (separate for clarity)
-├── 002_rpc_functions.sql    # Rename existing 001_rpc_functions.sql
+├── 001_rpc_functions.sql    # KEEP existing file (no rename)
+├── 002_rls_policies.sql     # All RLS policies (runs after tables + RPC)
 └── README.md                # Deployment instructions
 ```
+
+> **Note**: Keep `001_rpc_functions.sql` as-is. Adding `000_schema.sql` before it and `002_rls_policies.sql` after maintains correct execution order without breaking existing references in code comments and checklists.
 
 **`000_schema.sql`** (~400 lines) - Tables in dependency order:
 ```sql
@@ -4104,8 +4106,8 @@ CREATE POLICY "Users can only access their own players"
 Run these in order via Supabase Dashboard > SQL Editor:
 
 1. `000_schema.sql` - Creates all tables and indexes
-2. `001_rls_policies.sql` - Enables Row Level Security
-3. `002_rpc_functions.sql` - Creates atomic transaction functions
+2. `001_rpc_functions.sql` - Creates atomic transaction functions (existing file)
+3. `002_rls_policies.sql` - Enables Row Level Security
 
 ## Quick Deploy
 ```bash
@@ -4118,166 +4120,262 @@ supabase db push
 
 #### 10.2.2 Create MigrationWizard Component
 
-The migration service exists but has **no UI**. Create the wizard:
+The migration service exists but has **no UI**. Create the wizard.
+
+> **⚠️ CRITICAL: Migration Requires Authentication**
+>
+> `migrateLocalToCloud()` instantiates `SupabaseDataStore` which requires an authenticated session.
+> The wizard **MUST** run AFTER the user has signed in, not before.
 
 **File**: `src/components/MigrationWizard.tsx` (~250 lines)
 
+**When Shown** (post-authentication only):
+```
+User enables cloud → App reloads → LoginScreen → User signs in
+    → Check: hasLocalData AND NOT hasMigrated?
+        → YES: Show MigrationWizard
+        → NO: Proceed to app
+```
+
+**Wizard Steps**:
+1. **Preview** - Show counts of data to migrate (all fields from `MigrationCounts`)
+2. **Confirm** - User confirms migration
+3. **Progress** - Show upload progress with entity names
+4. **Complete** - Success message with option to clear local data
+
+**Preview Must Show ALL Migrated Data** (matches `MigrationCounts` interface):
+- Players (`players`)
+- Teams (`teams`)
+- Team Rosters (`teamRosters`)
+- Seasons (`seasons`)
+- Tournaments (`tournaments`)
+- Games (`games`)
+- Personnel (`personnel`)
+- Player Adjustments (`playerAdjustments`)
+- Warmup Plan (`warmupPlan` - boolean)
+- Settings (`settings` - boolean)
+
+#### 10.2.3 Migration Completed Flag
+
+**Problem**: Without a persistent flag, MigrationWizard would appear on every login.
+
+**Solution**: Store completion flag in localStorage (per-user):
+
+**File**: `src/config/backendConfig.ts` (add functions)
+
+```typescript
+const MIGRATION_COMPLETED_PREFIX = 'matchops_cloud_migration_completed_';
+
+/**
+ * Check if migration has been completed for the current user.
+ * @param userId - Supabase auth user ID
+ */
+export function hasMigrationCompleted(userId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(`${MIGRATION_COMPLETED_PREFIX}${userId}`) === 'true';
+}
+
+/**
+ * Mark migration as completed for the current user.
+ * @param userId - Supabase auth user ID
+ */
+export function setMigrationCompleted(userId: string): void {
+  localStorage.setItem(`${MIGRATION_COMPLETED_PREFIX}${userId}`, 'true');
+}
+
+/**
+ * Clear migration completed flag (for testing or re-migration).
+ * @param userId - Supabase auth user ID
+ */
+export function clearMigrationCompleted(userId: string): void {
+  localStorage.removeItem(`${MIGRATION_COMPLETED_PREFIX}${userId}`);
+}
+```
+
+**Why localStorage (not AppSettings)**:
+- Checked BEFORE DataStore is initialized
+- Per-device (migration is device-specific)
+- Per-user (keyed by userId)
+- Survives mode switches
+
+#### 10.2.4 Clear Local Data (Safe Implementation)
+
+**Problem**: Existing `resetAppSettings()` clears ALL localStorage including `matchops_backend_mode`, which would flip users back to local mode.
+
+**Solution**: Create dedicated function that only clears IndexedDB data stores.
+
+**File**: `src/utils/clearLocalData.ts` (new file)
+
 ```typescript
 /**
- * MigrationWizard - Guides users through local → cloud data migration.
+ * Clear local IndexedDB data stores only.
  *
- * Shown when:
- * 1. User enables cloud mode AND has local data, OR
- * 2. User signs in to cloud mode for first time with local data
+ * DOES NOT clear:
+ * - localStorage settings (backend mode, migration flags, etc.)
+ * - Session storage
+ * - Service worker cache
  *
- * Steps:
- * 1. Preview - Show what will be migrated (counts)
- * 2. Confirm - User confirms migration
- * 3. Progress - Show upload progress
- * 4. Complete - Success message with option to clear local data
+ * Safe to call in cloud mode after successful migration.
  */
+export async function clearLocalIndexedDBData(): Promise<void> {
+  const localStore = new LocalDataStore();
+  await localStore.initialize();
 
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  migrateLocalToCloud,
-  getLocalDataSummary,
-  hasLocalDataToMigrate,
-  MigrationProgress,
-  MigrationCounts,
-} from '@/services/migrationService';
-
-type WizardStep = 'checking' | 'preview' | 'confirm' | 'migrating' | 'complete' | 'error';
-
-interface MigrationWizardProps {
-  onComplete: () => void;
-  onSkip: () => void;
+  // Clear each data type
+  await localStore.clearAllPlayers();
+  await localStore.clearAllTeams();
+  await localStore.clearAllSeasons();
+  await localStore.clearAllTournaments();
+  await localStore.clearAllPersonnel();
+  await localStore.clearAllGames();
+  await localStore.clearWarmupPlan();
+  await localStore.clearSettings();
+  // ... etc
 }
+```
 
-export default function MigrationWizard({ onComplete, onSkip }: MigrationWizardProps) {
-  const { t } = useTranslation();
-  const [step, setStep] = useState<WizardStep>('checking');
-  const [localCounts, setLocalCounts] = useState<MigrationCounts | null>(null);
-  const [progress, setProgress] = useState<MigrationProgress | null>(null);
-  const [error, setError] = useState<string | null>(null);
+> **Note**: LocalDataStore may need new `clear*()` methods added. Alternatively, use IndexedDB API directly to delete the database.
 
-  // Check for local data on mount
+#### 10.2.5 Integration Point (page.tsx - Post-Auth Only)
+
+```typescript
+// In page.tsx - AFTER authentication check
+const { isAuthenticated, user, mode } = useAuth();
+
+// Only show wizard when:
+// 1. Cloud mode AND
+// 2. Authenticated (required for SupabaseDataStore) AND
+// 3. Migration not already completed for this user
+const shouldShowMigrationWizard =
+  mode === 'cloud' &&
+  isAuthenticated &&
+  user?.id &&
+  !hasMigrationCompleted(user.id);
+
+if (shouldShowMigrationWizard) {
+  // Check if there's actually local data to migrate
+  const [hasLocalData, setHasLocalData] = useState<boolean | null>(null);
+
   useEffect(() => {
-    async function checkData() {
-      const hasData = await hasLocalDataToMigrate();
-      if (!hasData) {
-        onSkip(); // No data to migrate, skip wizard
-        return;
-      }
-      const counts = await getLocalDataSummary();
-      setLocalCounts(counts);
-      setStep('preview');
-    }
-    checkData();
-  }, [onSkip]);
+    hasLocalDataToMigrate().then(setHasLocalData);
+  }, []);
 
-  const handleMigrate = async () => {
-    setStep('migrating');
-    try {
-      const result = await migrateLocalToCloud(setProgress);
-      if (result.success) {
-        setStep('complete');
-      } else {
-        setError(result.errors.join('\n'));
-        setStep('error');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setStep('error');
-    }
-  };
-
-  // Render based on step...
-  // (Full implementation with UI for each step)
-}
-```
-
-**Integration Points**:
-
-1. **In `CloudSyncSection.tsx`** - When enabling cloud mode:
-```typescript
-const handleEnableCloud = async () => {
-  const hasData = await hasLocalDataToMigrate();
-  if (hasData) {
-    setShowMigrationWizard(true); // Show wizard before mode switch
-  } else {
-    enableCloudMode();
-    window.location.reload();
+  if (hasLocalData === null) {
+    return <LoadingSpinner />; // Checking...
   }
-};
-```
 
-2. **In `page.tsx`** - After first sign-in with local data:
-```typescript
-// After successful auth, check if migration needed
-if (mode === 'cloud' && isAuthenticated && !hasMigrated) {
-  const hasData = await hasLocalDataToMigrate();
-  if (hasData) {
-    return <MigrationWizard onComplete={...} onSkip={...} />;
+  if (hasLocalData) {
+    return (
+      <MigrationWizard
+        onComplete={() => {
+          setMigrationCompleted(user.id);
+          // Refresh app state
+        }}
+        onSkip={() => {
+          setMigrationCompleted(user.id); // Don't ask again
+        }}
+      />
+    );
   }
+
+  // No local data, mark as "completed" so we don't check again
+  setMigrationCompleted(user.id);
 }
+
+// Continue to normal app...
 ```
 
-#### 10.2.3 Add Translation Keys
+**CloudSyncSection Integration**: When enabling cloud mode, just enable and reload. The migration prompt will appear after login (when auth is available).
 
-**File**: `public/locales/en/common.json` (add):
+#### 10.2.6 Translation Keys
+
+**Existing Keys** (already in `common.json` - USE THESE):
 ```json
-{
-  "migration": {
-    "title": "Migrate Your Data",
-    "description": "Your local data can be uploaded to the cloud.",
-    "preview": {
-      "title": "Data to Migrate",
-      "players": "{{count}} players",
-      "teams": "{{count}} teams",
-      "games": "{{count}} games",
-      "seasons": "{{count}} seasons",
-      "tournaments": "{{count}} tournaments"
-    },
-    "confirm": {
-      "title": "Ready to Migrate?",
-      "description": "This will upload your local data to the cloud. Your local data will not be deleted.",
-      "button": "Start Migration"
-    },
-    "progress": {
-      "title": "Migrating...",
-      "uploading": "Uploading {{entity}}...",
-      "doNotClose": "Please don't close the app"
-    },
-    "complete": {
-      "title": "Migration Complete!",
-      "description": "Your data is now synced to the cloud.",
-      "clearLocal": "Clear local data (optional)",
-      "keepLocal": "Keep local data as backup"
-    },
-    "error": {
-      "title": "Migration Failed",
-      "retry": "Try Again",
-      "cancel": "Cancel"
-    },
-    "skip": "Skip for now"
+"migration": {
+  "title": "Migrate to Cloud",
+  "description": "Transfer your local data to your cloud account...",
+  "preparing": "Preparing migration...",
+  "exporting": "Exporting local data...",
+  "validating": "Validating data integrity...",
+  "uploading": "Uploading to cloud...",
+  "verifying": "Verifying migration...",
+  "success": "Migration complete! Your data is now synced to the cloud.",
+  "partialFailure": "Migration was interrupted...",
+  "verificationFailed": "Migration completed but verification failed...",
+  "networkError": "Network error during migration...",
+  "clearLocalPrompt": "Would you like to clear local data?...",
+  "startButton": "Start Migration",
+  "retryButton": "Retry Migration",
+  "cancelButton": "Cancel",
+  "summary": {
+    "title": "Data Summary",
+    "players": "Players",
+    "teams": "Teams",
+    "seasons": "Seasons",
+    "tournaments": "Tournaments",
+    "games": "Games",
+    "personnel": "Personnel"
+  },
+  "progress": {
+    "entity": "Migrating {{entity}}...",
+    "complete": "{{count}} items migrated"
   }
 }
 ```
 
-#### 10.2.4 PR #9 Deliverables Checklist
+**Keys to ADD** (extend `migration.summary` for missing counts):
+```json
+"migration": {
+  "summary": {
+    // ... existing keys ...
+    "teamRosters": "Team Rosters",
+    "playerAdjustments": "Player Adjustments",
+    "warmupPlan": "Warmup Plan",
+    "settings": "Settings"
+  },
+  "skipButton": "Skip for now",
+  "keepLocalButton": "Keep local data as backup",
+  "clearLocalButton": "Clear local data"
+}
+```
 
-- [ ] `supabase/migrations/000_schema.sql` - All tables and indexes
-- [ ] `supabase/migrations/001_rls_policies.sql` - All RLS policies
-- [ ] `supabase/migrations/002_rpc_functions.sql` - Renamed from 001
+> **Note**: After adding keys, regenerate types: `npm run generate:i18n-types`
+
+#### 10.2.7 PR #9 Deliverables Checklist
+
+**SQL Migration Files**:
+- [ ] `supabase/migrations/000_schema.sql` - All 15 tables and indexes
+- [ ] `supabase/migrations/002_rls_policies.sql` - All RLS policies
 - [ ] `supabase/migrations/README.md` - Deployment instructions
-- [ ] `src/components/MigrationWizard.tsx` - Migration UI
+- [ ] Keep `001_rpc_functions.sql` unchanged (already exists)
+
+**Migration Completed Flag**:
+- [ ] Add `hasMigrationCompleted(userId)` to `backendConfig.ts`
+- [ ] Add `setMigrationCompleted(userId)` to `backendConfig.ts`
+- [ ] Add `clearMigrationCompleted(userId)` to `backendConfig.ts`
+
+**Clear Local Data**:
+- [ ] Create `src/utils/clearLocalIndexedDBData.ts` (or add clear methods to LocalDataStore)
+- [ ] Ensure it does NOT clear localStorage (backend mode, migration flags)
+
+**MigrationWizard UI**:
+- [ ] `src/components/MigrationWizard.tsx` - Migration UI (shows AFTER auth)
 - [ ] `src/components/__tests__/MigrationWizard.test.tsx` - Tests
-- [ ] Updated `CloudSyncSection.tsx` - Integrate wizard
-- [ ] Updated translation files (EN/FI)
-- [ ] All tests pass
+- [ ] Preview shows ALL counts (players, teams, teamRosters, seasons, tournaments, games, personnel, playerAdjustments, warmupPlan, settings)
+
+**Integration**:
+- [ ] Update `page.tsx` - Show wizard post-auth when `hasLocalData && !hasMigrationCompleted`
+- [ ] `CloudSyncSection.tsx` - Just enables mode (wizard appears after login)
+
+**Translations**:
+- [ ] Add missing keys to `common.json` (EN): `migration.summary.teamRosters`, etc.
+- [ ] Add missing keys to `common.json` (FI)
+- [ ] Run `npm run generate:i18n-types`
+
+**Tests**:
+- [ ] All existing tests pass
+- [ ] New tests for migration flag functions
+- [ ] New tests for MigrationWizard component
 
 ---
 
