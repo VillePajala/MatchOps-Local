@@ -1948,5 +1948,35 @@
     "signInLink": "Kirjaudu sisään",
     "backToSignIn": "Takaisin kirjautumiseen",
     "networkErrorHint": "Tarkista internetyhteytesi ja yritä uudelleen."
+  },
+  "migration": {
+    "title": "Siirrä pilveen",
+    "description": "Siirrä paikalliset tietosi pilvitilillesi varmuuskopiointia ja synkronointia varten.",
+    "preparing": "Valmistellaan siirtoa...",
+    "exporting": "Viedään paikallisia tietoja...",
+    "validating": "Tarkistetaan tietojen eheys...",
+    "uploading": "Ladataan pilveen...",
+    "verifying": "Varmistetaan siirto...",
+    "success": "Siirto valmis! Tietosi on nyt synkronoitu pilveen.",
+    "partialFailure": "Siirto keskeytyi. Paikalliset tietosi ovat turvassa. Yritä uudelleen.",
+    "verificationFailed": "Siirto suoritettiin mutta varmennus epäonnistui. Yritä uudelleen.",
+    "networkError": "Verkkovirhe siirron aikana. Paikalliset tietosi ovat muuttumattomia.",
+    "clearLocalPrompt": "Haluatko tyhjentää paikalliset tiedot? (Pilvitietosi ovat turvassa)",
+    "startButton": "Aloita siirto",
+    "retryButton": "Yritä uudelleen",
+    "cancelButton": "Peruuta",
+    "summary": {
+      "title": "Tietojen yhteenveto",
+      "players": "Pelaajat",
+      "teams": "Joukkueet",
+      "seasons": "Kaudet",
+      "tournaments": "Turnaukset",
+      "games": "Ottelut",
+      "personnel": "Henkilöstö"
+    },
+    "progress": {
+      "entity": "Siirretään {{entity}}...",
+      "complete": "{{count}} kohdetta siirretty"
+    }
   }
 }
