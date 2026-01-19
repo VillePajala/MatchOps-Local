@@ -301,7 +301,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
           if (placement === null) {
             // Remove placement
             if (updatedItem.teamPlacements) {
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+               
               const { [mutationTeamId]: _removed, ...rest } = updatedItem.teamPlacements;
               updatedItem.teamPlacements = Object.keys(rest).length > 0 ? rest : undefined;
             }
