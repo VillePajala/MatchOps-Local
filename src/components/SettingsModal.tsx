@@ -20,6 +20,7 @@ import { HiSparkles } from 'react-icons/hi2';
 import { validateSeasonDates } from '@/utils/clubSeason';
 import { queryKeys } from '@/config/queryKeys';
 import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
+import CloudSyncSection from './CloudSyncSection';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -694,6 +695,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </p>
             </div>
+            {/* Cloud Sync */}
+            <CloudSyncSection />
             {/* About */}
             <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
