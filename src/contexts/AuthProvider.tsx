@@ -87,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
     let unsubscribe: (() => void) | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     async function initAuth() {
       try {
@@ -139,14 +140,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           setIsLoading(false);
         }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
       }
     }
+
+    // Safety timeout: if init hangs for 10 seconds, stop loading to prevent blank screen
+    timeoutId = setTimeout(() => {
+      if (mounted) {
+        logger.warn('[AuthProvider] Init timeout - forcing loading to complete');
+        setIsLoading(false);
+      }
+    }, 10000);
 
     initAuth();
 
     return () => {
       mounted = false;
       unsubscribe?.();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, []);
 

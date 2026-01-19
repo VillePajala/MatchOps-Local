@@ -1946,6 +1946,7 @@
     "signUpLink": "Rekisteröidy",
     "hasAccount": "Onko sinulla jo tili?",
     "signInLink": "Kirjaudu sisään",
-    "backToSignIn": "Takaisin kirjautumiseen"
+    "backToSignIn": "Takaisin kirjautumiseen",
+    "networkErrorHint": "Tarkista internetyhteytesi ja yritä uudelleen."
   }
 }

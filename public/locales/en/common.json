@@ -1946,6 +1946,7 @@
     "signUpLink": "Sign up",
     "hasAccount": "Already have an account?",
     "signInLink": "Sign in",
-    "backToSignIn": "Back to sign in"
+    "backToSignIn": "Back to sign in",
+    "networkErrorHint": "Please check your internet connection and try again."
   }
 }
