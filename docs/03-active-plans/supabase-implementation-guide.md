@@ -1,8 +1,8 @@
 # MatchOps Cloud Implementation Guide
 
-**Version**: 1.10.0
+**Version**: 1.11.0
 **Status**: Implementation Ready (Verified + Eight Adversarial Reviews)
-**Last Updated**: January 12, 2026 (v1.10.0: all migration transforms defined, NaN/Infinity guards, CHECK constraint handling)
+**Last Updated**: January 19, 2026 (v1.11.0: migration uses SupabaseDataStore upsert methods for DRY, ID-preserving uploads)
 
 ---
 
@@ -1376,7 +1376,7 @@ async createPlayer(player: Omit<Player, 'id'>): Promise<Player> {
 
 **Conflict resolution**: Last-write-wins (implicit in Supabase). If two devices edit same entity, last `UPDATE` wins. This matches typical cloud app behavior.
 
-#### 5.0.14 Migration Using DataStore Getters + Direct Inserts
+#### 5.0.14 Migration Using DataStore Getters + Upsert Methods
 
 **⚠️ CRITICAL: Migration must NOT use create* methods** - they generate new IDs!
 
@@ -1386,371 +1386,108 @@ await supabaseDataStore.createPlayer(player);  // player.id is ignored!
 
 // ❌ WRONG: Reading raw storage keys skips migrations
 const tournaments = JSON.parse(localStorage.getItem(TOURNAMENTS_LIST_KEY));
+
+// ✅ CORRECT: Use upsert methods that preserve original IDs
+await supabaseDataStore.upsertPlayer(player);  // Uses player.id as-is
 ```
 
-**Migration must:**
-1. **Read via DataStore getters** - applies legacy migrations
-2. **Write via direct Supabase inserts** - preserves existing IDs
+**Migration Design Principles**:
+1. **Read via DataStore getters** - applies legacy migrations (Rule 18)
+2. **Write via upsert methods** - preserves existing IDs using `onConflict: 'id'`
 3. **Await all writes** - no optimistic fire-and-forget
 4. **Verify completion** - only after all awaits resolve
 
-**Correct migration service flow**:
+**Implementation Pattern (DRY - reuses SupabaseDataStore transforms)**:
+
+SupabaseDataStore provides upsert methods that:
+- Accept entities with existing IDs
+- Use Supabase `.upsert()` with `onConflict: 'id'`
+- Reuse the same transforms as create/update methods
+
+```typescript
+// SupabaseDataStore upsert methods (added in PR #6):
+async upsertPlayer(player: Player): Promise<Player>
+async upsertTeam(team: Team): Promise<Team>
+async upsertSeason(season: Season): Promise<Season>
+async upsertTournament(tournament: Tournament): Promise<Tournament>
+async upsertPersonnel(personnel: Personnel): Promise<Personnel>
+```
+
+**Migration service upload flow**:
 
 ```typescript
 // src/services/migrationService.ts
-async function migrateLocalToCloud(
-  supabaseClient: SupabaseClient,
-  userId: string,  // ⚠️ REQUIRED: Get from auth.uid() after user signs in
-  onProgress?: (progress: MigrationProgress) => void
-): Promise<MigrationResult> {
-  const localDataStore = new LocalDataStore();
-  await localDataStore.initialize();
+async function uploadToCloud(
+  localData: LocalDataSnapshot,
+  cloudStore: DataStore,
+  onProgress?: ProgressCallback
+): Promise<void> {
+  // Upload in FK-safe order (parents before children)
 
-  // STEP 1: Read ALL data via DataStore getters (applies legacy migrations)
-  onProgress?.({ stage: 'exporting', progress: 0, currentEntity: 'Reading local data' });
-  const players = await localDataStore.getPlayers();
-  const seasons = await localDataStore.getSeasons(true);      // Computes clubSeason
-  const tournaments = await localDataStore.getTournaments(true);  // Applies migrateTournamentLevel
-  const teams = await localDataStore.getTeams();
-  const teamRosters = await localDataStore.getAllTeamRosters();  // Record<teamId, TeamPlayer[]>
-  const personnel = await localDataStore.getAllPersonnel();
-  const games = await localDataStore.getGames();
-  const settings = await localDataStore.getSettings();
-  const warmupPlan = await localDataStore.getWarmupPlan();
-  // Player adjustments: need to fetch for each player
-  const playerAdjustments: PlayerStatAdjustment[] = [];
-  for (const player of players) {
-    const adjustments = await localDataStore.getPlayerAdjustments(player.id);
-    playerAdjustments.push(...adjustments);
+  // 1. Players (no FK dependencies)
+  for (const player of localData.players) {
+    await cloudStore.upsertPlayer(player);  // Preserves player.id
   }
 
-  // STEP 2: Upload in FK-safe order (parents before children)
-  // ⚠️ CRITICAL: Order matters for foreign key constraints!
-  onProgress?.({ stage: 'uploading', progress: 10, currentEntity: 'players' });
-
-  // 2.1 Players (no FK dependencies)
-  for (const player of players) {
-    const { error } = await supabaseClient
-      .from('players')
-      .upsert(transformPlayerForMigration(player, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate player ${player.id}: ${error.message}`);
+  // 2. Seasons (no FK dependencies)
+  for (const season of localData.seasons) {
+    await cloudStore.upsertSeason(season);  // Preserves season.id
   }
 
-  // 2.2 Seasons (no FK dependencies)
-  onProgress?.({ stage: 'uploading', progress: 20, currentEntity: 'seasons' });
-  for (const season of seasons) {
-    const { error } = await supabaseClient
-      .from('seasons')
-      .upsert(transformSeasonForMigration(season, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate season ${season.id}: ${error.message}`);
+  // 3. Tournaments (no FK dependencies)
+  for (const tournament of localData.tournaments) {
+    await cloudStore.upsertTournament(tournament);  // Preserves tournament.id
   }
 
-  // 2.3 Tournaments (no FK dependencies)
-  onProgress?.({ stage: 'uploading', progress: 30, currentEntity: 'tournaments' });
-  for (const tournament of tournaments) {
-    const { error } = await supabaseClient
-      .from('tournaments')
-      .upsert(transformTournamentForMigration(tournament, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate tournament ${tournament.id}: ${error.message}`);
+  // 4. Teams (FK to seasons, tournaments - must come AFTER them)
+  for (const team of localData.teams) {
+    await cloudStore.upsertTeam(team);  // Preserves team.id
   }
 
-  // 2.4 Teams (FK to seasons, tournaments - must come AFTER them)
-  onProgress?.({ stage: 'uploading', progress: 40, currentEntity: 'teams' });
-  for (const team of teams) {
-    const { error } = await supabaseClient
-      .from('teams')
-      .upsert(transformTeamForMigration(team, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate team ${team.id}: ${error.message}`);
+  // 5. Team rosters (uses existing saveTeamRoster)
+  for (const [teamId, roster] of Object.entries(localData.teamRosters)) {
+    await cloudStore.saveTeamRoster(teamId, roster);
   }
 
-  // 2.5 Team rosters (FK to teams, players - must come AFTER both)
-  onProgress?.({ stage: 'uploading', progress: 45, currentEntity: 'team_players' });
-  for (const [teamId, roster] of Object.entries(teamRosters)) {
-    for (const teamPlayer of roster) {
-      const { error } = await supabaseClient
-        .from('team_players')
-        .upsert(transformTeamPlayerForMigration(teamId, teamPlayer, userId))
-        .select();
-      if (error) throw new MigrationError(`Failed to migrate team roster for ${teamId}: ${error.message}`);
-    }
+  // 6. Personnel (no FK dependencies)
+  for (const person of localData.personnel) {
+    await cloudStore.upsertPersonnel(person);  // Preserves personnel.id
   }
 
-  // 2.6 Personnel (no FK dependencies)
-  onProgress?.({ stage: 'uploading', progress: 50, currentEntity: 'personnel' });
-  for (const person of personnel) {
-    const { error } = await supabaseClient
-      .from('personnel')
-      .upsert(transformPersonnelForMigration(person, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate personnel ${person.id}: ${error.message}`);
+  // 7. Games (uses saveGame with RPC for atomic 5-table write)
+  for (const [gameId, game] of Object.entries(localData.games)) {
+    await cloudStore.saveGame(gameId, game);  // Preserves gameId
   }
 
-  // 2.7 Games (FK to seasons, tournaments, teams - uses RPC for atomic 5-table write)
-  onProgress?.({ stage: 'uploading', progress: 60, currentEntity: 'games' });
-  for (const [gameId, game] of Object.entries(games)) {
-    const tables = transformGameToTables(gameId, game, userId);
-    const { error } = await supabaseClient.rpc('save_game_with_relations', {
-      p_game: tables.game,
-      p_players: tables.players,
-      p_events: tables.events,
-      p_assessments: tables.assessments,
-      p_tactical_data: tables.tacticalData,
-    });
-    if (error) throw new MigrationError(`Failed to migrate game ${gameId}: ${error.message}`);
+  // 8. Player adjustments (FK to players, seasons, teams - must come AFTER all)
+  for (const adjustment of localData.adjustments) {
+    await cloudStore.addPlayerAdjustment(adjustment);
   }
 
-  // 2.8 Player adjustments (FK to players, seasons, teams - must come AFTER all)
-  onProgress?.({ stage: 'uploading', progress: 80, currentEntity: 'player_adjustments' });
-  for (const adjustment of playerAdjustments) {
-    const { error } = await supabaseClient
-      .from('player_adjustments')
-      .upsert(transformAdjustmentForMigration(adjustment, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate adjustment ${adjustment.id}: ${error.message}`);
+  // 9. Warmup plan (optional)
+  if (localData.warmupPlan) {
+    await cloudStore.saveWarmupPlan(localData.warmupPlan);
   }
 
-  // 2.9 Warmup plan (FK to seasons - optional, single row)
-  onProgress?.({ stage: 'uploading', progress: 90, currentEntity: 'warmup_plans' });
-  if (warmupPlan) {
-    const { error } = await supabaseClient
-      .from('warmup_plans')
-      .upsert(transformWarmupPlanForMigration(warmupPlan, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate warmup plan: ${error.message}`);
+  // 10. Settings
+  if (localData.settings) {
+    await cloudStore.saveSettings(localData.settings);
   }
-
-  // 2.10 Settings (single row per user)
-  onProgress?.({ stage: 'uploading', progress: 95, currentEntity: 'user_settings' });
-  if (settings) {
-    const { error } = await supabaseClient
-      .from('user_settings')
-      .upsert(transformSettingsForMigration(settings, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate settings: ${error.message}`);
-  }
-
-  // STEP 3: Verify counts match (only AFTER all awaits complete)
-  // CRITICAL: Verify ALL entities, not just players
-  onProgress?.({ stage: 'verifying', progress: 98, currentEntity: 'Verifying counts' });
-
-  const verifyCount = async (table: string, expected: number, label: string) => {
-    const { count, error } = await supabaseClient.from(table).select('id', { count: 'exact', head: true });
-    if (error) throw new MigrationError(`Failed to verify ${label}: ${error.message}`);
-    if (count !== expected) {
-      throw new MigrationError(`${label} count mismatch: local=${expected}, cloud=${count}`);
-    }
-  };
-
-  await verifyCount('players', players.length, 'Players');
-  await verifyCount('teams', teams.length, 'Teams');
-  await verifyCount('team_players', Object.values(teamRosters).flat().length, 'Team rosters');
-  await verifyCount('seasons', seasons.length, 'Seasons');
-  await verifyCount('tournaments', tournaments.length, 'Tournaments');
-  await verifyCount('games', Object.keys(games).length, 'Games');
-  await verifyCount('personnel', personnel.length, 'Personnel');
-  await verifyCount('player_adjustments', playerAdjustments.length, 'Player adjustments');
-  // warmup_plans and user_settings are single-row, verification optional
-
-  onProgress?.({ stage: 'complete', progress: 100 });
-  return {
-    success: true,
-    migrated: {
-      players: players.length,
-      teams: teams.length,
-      teamRosters: Object.values(teamRosters).flat().length,
-      seasons: seasons.length,
-      tournaments: tournaments.length,
-      games: Object.keys(games).length,
-      personnel: personnel.length,
-      playerAdjustments: playerAdjustments.length,
-      warmupPlan: !!warmupPlan,
-      settings: !!settings,
-    },
-    errors: [],
-  };
-}
-
-// Migration-specific transforms that preserve IDs
-function transformPlayerForMigration(player: Player, userId: string): DbPlayer {
-  return {
-    id: player.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: player.name,
-    nickname: player.nickname ?? null,
-    jersey_number: player.jerseyNumber ?? null,
-    is_goalie: player.isGoalie ?? false,
-    color: player.color ?? null,
-    notes: player.notes ?? null,
-    received_fair_play_card: player.receivedFairPlayCard ?? false,
-  };
-}
-
-function transformTeamForMigration(team: Team, userId: string): DbTeam {
-  return {
-    id: team.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: team.name,
-    color: team.color ?? null,
-    notes: team.notes ?? null,
-    age_group: team.ageGroup ?? null,
-    game_type: team.gameType ?? null,
-    archived: team.archived ?? false,
-    bound_season_id: team.boundSeasonId === '' ? null : team.boundSeasonId,
-    bound_tournament_id: team.boundTournamentId === '' ? null : team.boundTournamentId,
-    bound_tournament_series_id: team.boundTournamentSeriesId === '' ? null : team.boundTournamentSeriesId,
-    // created_at/updated_at handled by PostgreSQL DEFAULT
-  };
-}
-
-function transformTeamPlayerForMigration(teamId: string, tp: TeamPlayer, userId: string): DbTeamPlayer {
-  return {
-    id: `${teamId}_${tp.playerId}`,  // Composite key
-    team_id: teamId,
-    player_id: tp.playerId,
-    user_id: userId,
-    // Snapshot fields from player at time of roster assignment
-    name: tp.name,
-    nickname: tp.nickname ?? null,
-    jersey_number: tp.jerseyNumber ?? null,
-    is_goalie: tp.isGoalie ?? false,
-    color: tp.color ?? null,
-    notes: tp.notes ?? null,
-    received_fair_play_card: tp.receivedFairPlayCard ?? false,
-    // created_at/updated_at handled by PostgreSQL DEFAULT
-  };
-}
-
-function transformSeasonForMigration(season: Season, userId: string): DbSeason {
-  return {
-    id: season.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: season.name,
-    location: season.location ?? null,
-    period_count: season.periodCount ?? null,
-    period_duration: season.periodDuration ?? null,
-    start_date: season.startDate ?? null,  // ISO string → PostgreSQL date
-    end_date: season.endDate ?? null,
-    game_dates: season.gameDates ?? null,  // string[] → PostgreSQL date[] (ISO strings work)
-    archived: season.archived ?? false,
-    notes: season.notes ?? null,
-    color: season.color ?? null,
-    badge: season.badge ?? null,
-    age_group: season.ageGroup ?? null,
-    game_type: season.gameType ?? null,
-    gender: season.gender ?? null,
-    league_id: season.leagueId ?? null,
-    custom_league_name: season.customLeagueName ?? null,
-    club_season: season.clubSeason ?? null,
-    team_placements: season.teamPlacements ?? {},  // object → jsonb (Supabase handles serialization)
-  };
-}
-
-function transformTournamentForMigration(tournament: Tournament, userId: string): DbTournament {
-  return {
-    id: tournament.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: tournament.name,
-    location: tournament.location ?? null,
-    period_count: tournament.periodCount ?? null,
-    period_duration: tournament.periodDuration ?? null,
-    start_date: tournament.startDate ?? null,
-    end_date: tournament.endDate ?? null,
-    game_dates: tournament.gameDates ?? null,  // string[] → PostgreSQL date[]
-    archived: tournament.archived ?? false,
-    notes: tournament.notes ?? null,
-    color: tournament.color ?? null,
-    badge: tournament.badge ?? null,
-    level: tournament.level ?? null,  // Legacy field
-    age_group: tournament.ageGroup ?? null,
-    awarded_player_id: tournament.awardedPlayerId ?? null,
-    game_type: tournament.gameType ?? null,
-    gender: tournament.gender ?? null,
-    club_season: tournament.clubSeason ?? null,
-    team_placements: tournament.teamPlacements ?? {},  // object → jsonb
-    series: tournament.series ?? [],  // TournamentSeries[] → jsonb array
-  };
-}
-
-function transformPersonnelForMigration(person: Personnel, userId: string): DbPersonnel {
-  return {
-    id: person.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: person.name,
-    role: person.role ?? 'other',
-    email: person.email ?? null,
-    phone: person.phone ?? null,
-    certifications: person.certifications ?? [],  // string[] → PostgreSQL text[]
-    notes: person.notes ?? null,
-  };
-}
-
-function transformAdjustmentForMigration(adj: PlayerStatAdjustment, userId: string): DbPlayerAdjustment {
-  return {
-    id: adj.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    player_id: adj.playerId,
-    season_id: adj.seasonId === '' ? null : adj.seasonId,
-    team_id: adj.teamId === '' ? null : adj.teamId,
-    tournament_id: adj.tournamentId === '' ? null : adj.tournamentId,
-    external_team_name: adj.externalTeamName ?? null,
-    opponent_name: adj.opponentName ?? null,
-    score_for: adj.scoreFor ?? null,
-    score_against: adj.scoreAgainst ?? null,
-    game_date: adj.gameDate ?? null,
-    home_or_away: adj.homeOrAway ?? null,
-    include_in_season_tournament: adj.includeInSeasonTournament ?? false,
-    games_played_delta: adj.gamesPlayedDelta ?? 0,
-    goals_delta: adj.goalsDelta ?? 0,
-    assists_delta: adj.assistsDelta ?? 0,
-    fair_play_cards_delta: adj.fairPlayCardsDelta ?? 0,
-    note: adj.note ?? null,
-    created_by: adj.createdBy ?? null,
-    applied_at: adj.appliedAt ?? null,
-  };
-}
-
-function transformWarmupPlanForMigration(plan: WarmupPlan, userId: string): DbWarmupPlan {
-  return {
-    id: plan.id,  // Typically 'user_warmup_plan'
-    user_id: userId,
-    version: plan.version ?? 1,
-    last_modified: plan.lastModified ?? new Date().toISOString(),
-    is_default: plan.isDefault ?? false,
-    sections: plan.sections ?? [],  // WarmupPlanSection[] → jsonb
-  };
-}
-
-function transformSettingsForMigration(settings: AppSettings, userId: string): DbUserSettings {
-  return {
-    user_id: userId,  // Note: user_id is PRIMARY KEY, not a separate id field
-    current_game_id: settings.currentGameId ?? null,
-    last_home_team_name: settings.lastHomeTeamName ?? null,
-    language: settings.language ?? 'fi',
-    has_seen_app_guide: settings.hasSeenAppGuide ?? false,
-    use_demand_correction: settings.useDemandCorrection ?? false,
-    is_drawing_mode_enabled: settings.isDrawingModeEnabled ?? false,
-    club_season_start_date: settings.clubSeasonStartDate ?? '2000-11-15',
-    club_season_end_date: settings.clubSeasonEndDate ?? '2000-10-20',
-    has_configured_season_dates: settings.hasConfiguredSeasonDates ?? false,
-  };
 }
 ```
 
-**Type Conversion Notes**:
-- **Date strings**: PostgreSQL `date` accepts ISO format strings (`'2024-01-15'`) directly
-- **Date arrays**: PostgreSQL `date[]` accepts arrays of ISO strings
-- **JSONB**: Supabase client automatically serializes JavaScript objects to JSON
+**Why upsert methods in SupabaseDataStore (not direct Supabase calls)**:
+- **DRY**: Transform logic stays in one place (SupabaseDataStore)
+- **Consistency**: Same validation and transforms as normal operations
+- **Maintainability**: If transforms change, migration automatically uses updated logic
+- **Testing**: Can mock upsert methods in tests
 
 **Why this matters**:
 - `createPlayer(player)` ignores `player.id` and generates new ID
 - Games reference players by ID - if IDs change, all references break
 - Assessments, roster assignments, event scorer IDs all depend on stable IDs
 
-**Legacy migrations applied by getters**:
+**Legacy migrations applied by getters** (Rule 18):
 - `migrateTournamentLevel()` - converts `level` → `series[]`
 - `getClubSeasonForDate()` - computes missing `clubSeason`
 - Field normalization (undefined → default values)
