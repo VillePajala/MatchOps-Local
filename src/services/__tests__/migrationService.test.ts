@@ -262,6 +262,32 @@ describe('migrationService', () => {
       expect(result.errors[0]).toContain('Network error');
     });
 
+    it('should fail early when navigator.onLine is false', async () => {
+      // Mock navigator.onLine to return false
+      const originalNavigator = global.navigator;
+      Object.defineProperty(global, 'navigator', {
+        value: { onLine: false },
+        writable: true,
+        configurable: true,
+      });
+
+      try {
+        const result = await migrateLocalToCloud(() => {});
+
+        expect(result.success).toBe(false);
+        expect(result.errors).toContain(MIGRATION_MESSAGES.NETWORK_ERROR);
+        // Should not have attempted any uploads
+        expect(MockedLocalDataStore.mock.instances.length).toBe(0);
+      } finally {
+        // Restore navigator
+        Object.defineProperty(global, 'navigator', {
+          value: originalNavigator,
+          writable: true,
+          configurable: true,
+        });
+      }
+    });
+
     it('should fail verification when counts do not match', async () => {
       createMockLocalStore();
       const mockCloud = createMockCloudStore();
