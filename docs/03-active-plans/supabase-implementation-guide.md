@@ -48,7 +48,14 @@ npm test
 7. [Performance Architecture](#performance-architecture)
 8. [Migration System](#migration-system)
 9. [Testing Strategy](#testing-strategy)
-10. [Deployment Checklist](#deployment-checklist)
+10. [Final Phase: Infrastructure & Master Merge](#10-final-phase-infrastructure--master-merge)
+    - 10.1 [What's Missing After PR #8](#101-overview-whats-still-missing-after-pr-8)
+    - 10.2 [PR #9: Infrastructure & Migration UI](#102-pr-9-infrastructure--migration-ui-15-hours)
+    - 10.3 [Supabase Project Setup](#103-supabase-project-setup)
+    - 10.4 [Environment Configuration](#104-environment-configuration)
+    - 10.5 [E2E Testing with Real Supabase](#105-end-to-end-testing-with-real-supabase)
+    - 10.6 [Final Merge to Master](#106-final-merge-to-master)
+    - 10.7 [Rollback Plan](#107-rollback-plan)
 
 ---
 
@@ -543,35 +550,58 @@ tests/integration/cloud-flow.test.ts # End-to-end integration tests
 
 ### 2.5 PR Summary Table
 
-| PR | Branch | Est. Hours | Tests | Dependencies | Key Deliverables |
-|----|--------|------------|-------|--------------|------------------|
-| 1 | `supabase/pr1-foundation` | 8h | 15 | None | backendConfig.ts, factory mode detection |
-| 2 | `supabase/pr2-supabase-client` | 10h | 15 | PR #1 | Supabase client, lazy loading |
-| 3 | `supabase/pr3-datastore-core` | 30h | 80+ | PR #2 | Core CRUD + TDD + parity tests |
-| 4 | `supabase/pr4-datastore-games` | 35h | 70+ | PR #3 | Game transforms (TDD), RPC, all DataStore |
-| 5 | `supabase/pr5-auth-service` | 25h | 45 | PR #2 | Auth service + Auth UI + TDD |
-| 6 | `supabase/pr6-migration` | 25h | 30 | PR #4, #5 | Migration service + TDD + verification |
-| 7 | `supabase/pr7-performance` | 10h | 15 | PR #4 | QueryProvider optimization |
-| 8 | `supabase/pr8-integration` | 15h | 40 | All | UI, integration tests, RLS tests, polish |
+| PR | Branch | Status | Tests | Dependencies | Key Deliverables |
+|----|--------|--------|-------|--------------|------------------|
+| 1 | `supabase/pr1-foundation` | ✅ MERGED | 15 | None | backendConfig.ts, factory mode detection |
+| 2 | `supabase/pr2-supabase-client` | ✅ MERGED | 15 | PR #1 | Supabase client, lazy loading |
+| 3 | `supabase/pr3-datastore-core` | ✅ MERGED | 80+ | PR #2 | Core CRUD + TDD + parity tests |
+| 4 | `supabase/pr4-datastore-games` | ✅ MERGED | 70+ | PR #3 | Game transforms (TDD), RPC, all DataStore |
+| 5 | `supabase/pr5-auth-service` | ✅ MERGED | 45 | PR #2 | Auth service + Auth UI + TDD |
+| 6 | `supabase/pr6-migration` | ✅ MERGED | 30 | PR #4, #5 | Migration service + TDD + verification |
+| 7 | `supabase/pr7-performance` | ✅ MERGED | 15 | PR #4 | QueryProvider optimization |
+| 8 | `supabase/pr8-integration` | ✅ MERGED | 40 | All #1-7 | UI integration, polish |
+| **Final** | **`feature/...` → `master`** | **PENDING** | **—** | **All + Supabase setup** | **E2E testing, production merge** |
 
-**Total**: ~160 hours (~375 new tests)
+**Total**: ~183 hours (~390 new tests)
 
-> **Note**: Hours include TDD test-writing time. See Section 9 for detailed testing strategy.
+> **Note**: Hours include TDD test-writing time. See Section 9 for detailed testing strategy. See **Section 10** for complete infrastructure and final merge details.
 
 ### 2.6 Parallel Work Opportunities
 
 ```
 PR #1 ─────────┐
-               ├──► PR #2 ─────┬──► PR #3 ──► PR #4 ──┬──► PR #6 ──► PR #8
-               │               │                      │
-               │               └──► PR #5 ────────────┘
-               │                         │
-               │                         └──► PR #7 ──────────────────┘
+               ├──► PR #2 ─────┬──► PR #3 ──► PR #4 ──┬──► PR #6 ──► PR #8 ──► PR #9
+               │               │                      │                          │
+               │               └──► PR #5 ────────────┘                          │
+               │                         │                                       │
+               │                         └──► PR #7 ─────────────────────────────┤
+               │                                                                 │
+               │                                        ┌────────────────────────┘
+               │                                        ▼
+               │                              ┌─────────────────────┐
+               │                              │  Supabase Setup     │
+               │                              │  (create project,   │
+               │                              │   run migrations)   │
+               │                              └──────────┬──────────┘
+               │                                         │
+               │                                         ▼
+               │                              ┌─────────────────────┐
+               │                              │  E2E Testing        │
+               │                              │  (real Supabase)    │
+               │                              └──────────┬──────────┘
+               │                                         │
+               │                                         ▼
+               │                              ┌─────────────────────┐
+               │                              │  FINAL MERGE        │
+               │                              │  feature → master   │
+               │                              └─────────────────────┘
 ```
 
 - **PR #3 and PR #5** can be developed in parallel after PR #2
 - **PR #7** can start after PR #4, parallel with PR #6
-- **PR #8** requires all others complete
+- **PR #8** requires PRs #1-7 complete
+- **PR #9** requires PR #8 (adds SQL files and MigrationWizard)
+- **Final Merge** requires PR #9 + Supabase project setup + E2E testing
 
 ### 2.7 Definition of Done (Per PR)
 
@@ -3990,28 +4020,562 @@ coverageThreshold: {
 
 ---
 
-## 10. Deployment Checklist
+## 10. Final Phase: Infrastructure & Master Merge
 
-### Pre-deployment
+> **IMPORTANT**: This section covers everything needed AFTER PR #8 is merged to `feature/supabase-cloud-backend` but BEFORE the final merge to `master`. This is when the cloud backend becomes actually functional.
 
-- [ ] Create Supabase project
-- [ ] Run database migrations (create tables)
-- [ ] Configure RLS policies
-- [ ] Set environment variables
-- [ ] Test with cloud mode enabled
-- [ ] Verify migration tool works
-- [ ] Load test with 100+ games
+### 10.1 Overview: What's Still Missing After PR #8
 
-### Environment Variables
+After all 8 PRs are merged to the feature branch, you have:
+- ✅ All application code (DataStore, AuthService, UI components)
+- ✅ All unit tests passing
+- ✅ RPC functions SQL file (`supabase/migrations/001_rpc_functions.sql`)
 
-```bash
-# Production
-NEXT_PUBLIC_BACKEND_MODE=local  # Keep default as local
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+But you still need:
+- ❌ **SQL migration files** for tables, indexes, RLS policies
+- ❌ **MigrationWizard UI** to trigger local→cloud migration
+- ❌ **Supabase project** created and configured
+- ❌ **End-to-end testing** with real Supabase (not mocks)
+- ❌ **Production environment** configured
+
+### 10.2 PR #9: Infrastructure & Migration UI (~15 hours)
+
+**Branch**: `supabase/pr9-infrastructure`
+**Depends on**: PR #8 merged to `feature/supabase-cloud-backend`
+
+This PR creates the missing pieces needed for a functional cloud backend.
+
+#### 10.2.1 Create SQL Migration Files
+
+Extract SQL from `docs/02-technical/database/supabase-schema.md` into runnable files:
+
+**Files to Create**:
+```
+supabase/migrations/
+├── 000_schema.sql           # All 15 tables + indexes + constraints
+├── 001_rls_policies.sql     # All RLS policies (separate for clarity)
+├── 002_rpc_functions.sql    # Rename existing 001_rpc_functions.sql
+└── README.md                # Deployment instructions
 ```
 
-### Rollback Plan
+**`000_schema.sql`** (~400 lines) - Tables in dependency order:
+```sql
+-- 1. Independent tables (no foreign keys to other app tables)
+CREATE TABLE players (...);
+CREATE TABLE seasons (...);
+CREATE TABLE tournaments (...);
+CREATE TABLE personnel (...);
+CREATE TABLE warmup_plans (...);
+CREATE TABLE user_settings (...);
+
+-- 2. Tables with foreign keys
+CREATE TABLE teams (...);           -- refs seasons, tournaments
+CREATE TABLE team_players (...);    -- refs teams
+CREATE TABLE games (...);           -- refs teams, seasons, tournaments
+CREATE TABLE game_players (...);    -- refs games
+CREATE TABLE game_events (...);     -- refs games
+CREATE TABLE player_assessments (...); -- refs games
+CREATE TABLE game_tactical_data (...); -- refs games
+CREATE TABLE player_adjustments (...); -- refs players
+
+-- 3. All indexes
+CREATE INDEX idx_players_user_id ON players(user_id);
+-- ... (all indexes from schema.md)
+```
+
+**`001_rls_policies.sql`** (~150 lines):
+```sql
+-- Enable RLS on all tables
+ALTER TABLE players ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+-- ... (all 15 tables)
+
+-- Create policies for each table
+CREATE POLICY "Users can only access their own players"
+  ON players FOR ALL
+  USING (auth.uid() = user_id);
+-- ... (all policies from schema.md)
+```
+
+**`supabase/migrations/README.md`**:
+```markdown
+# Supabase Migration Files
+
+Run these in order via Supabase Dashboard > SQL Editor:
+
+1. `000_schema.sql` - Creates all tables and indexes
+2. `001_rls_policies.sql` - Enables Row Level Security
+3. `002_rpc_functions.sql` - Creates atomic transaction functions
+
+## Quick Deploy
+```bash
+# Using Supabase CLI (if configured)
+supabase db push
+
+# Or manually in SQL Editor - copy/paste each file in order
+```
+```
+
+#### 10.2.2 Create MigrationWizard Component
+
+The migration service exists but has **no UI**. Create the wizard:
+
+**File**: `src/components/MigrationWizard.tsx` (~250 lines)
+
+```typescript
+/**
+ * MigrationWizard - Guides users through local → cloud data migration.
+ *
+ * Shown when:
+ * 1. User enables cloud mode AND has local data, OR
+ * 2. User signs in to cloud mode for first time with local data
+ *
+ * Steps:
+ * 1. Preview - Show what will be migrated (counts)
+ * 2. Confirm - User confirms migration
+ * 3. Progress - Show upload progress
+ * 4. Complete - Success message with option to clear local data
+ */
+
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  migrateLocalToCloud,
+  getLocalDataSummary,
+  hasLocalDataToMigrate,
+  MigrationProgress,
+  MigrationCounts,
+} from '@/services/migrationService';
+
+type WizardStep = 'checking' | 'preview' | 'confirm' | 'migrating' | 'complete' | 'error';
+
+interface MigrationWizardProps {
+  onComplete: () => void;
+  onSkip: () => void;
+}
+
+export default function MigrationWizard({ onComplete, onSkip }: MigrationWizardProps) {
+  const { t } = useTranslation();
+  const [step, setStep] = useState<WizardStep>('checking');
+  const [localCounts, setLocalCounts] = useState<MigrationCounts | null>(null);
+  const [progress, setProgress] = useState<MigrationProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check for local data on mount
+  useEffect(() => {
+    async function checkData() {
+      const hasData = await hasLocalDataToMigrate();
+      if (!hasData) {
+        onSkip(); // No data to migrate, skip wizard
+        return;
+      }
+      const counts = await getLocalDataSummary();
+      setLocalCounts(counts);
+      setStep('preview');
+    }
+    checkData();
+  }, [onSkip]);
+
+  const handleMigrate = async () => {
+    setStep('migrating');
+    try {
+      const result = await migrateLocalToCloud(setProgress);
+      if (result.success) {
+        setStep('complete');
+      } else {
+        setError(result.errors.join('\n'));
+        setStep('error');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setStep('error');
+    }
+  };
+
+  // Render based on step...
+  // (Full implementation with UI for each step)
+}
+```
+
+**Integration Points**:
+
+1. **In `CloudSyncSection.tsx`** - When enabling cloud mode:
+```typescript
+const handleEnableCloud = async () => {
+  const hasData = await hasLocalDataToMigrate();
+  if (hasData) {
+    setShowMigrationWizard(true); // Show wizard before mode switch
+  } else {
+    enableCloudMode();
+    window.location.reload();
+  }
+};
+```
+
+2. **In `page.tsx`** - After first sign-in with local data:
+```typescript
+// After successful auth, check if migration needed
+if (mode === 'cloud' && isAuthenticated && !hasMigrated) {
+  const hasData = await hasLocalDataToMigrate();
+  if (hasData) {
+    return <MigrationWizard onComplete={...} onSkip={...} />;
+  }
+}
+```
+
+#### 10.2.3 Add Translation Keys
+
+**File**: `public/locales/en/common.json` (add):
+```json
+{
+  "migration": {
+    "title": "Migrate Your Data",
+    "description": "Your local data can be uploaded to the cloud.",
+    "preview": {
+      "title": "Data to Migrate",
+      "players": "{{count}} players",
+      "teams": "{{count}} teams",
+      "games": "{{count}} games",
+      "seasons": "{{count}} seasons",
+      "tournaments": "{{count}} tournaments"
+    },
+    "confirm": {
+      "title": "Ready to Migrate?",
+      "description": "This will upload your local data to the cloud. Your local data will not be deleted.",
+      "button": "Start Migration"
+    },
+    "progress": {
+      "title": "Migrating...",
+      "uploading": "Uploading {{entity}}...",
+      "doNotClose": "Please don't close the app"
+    },
+    "complete": {
+      "title": "Migration Complete!",
+      "description": "Your data is now synced to the cloud.",
+      "clearLocal": "Clear local data (optional)",
+      "keepLocal": "Keep local data as backup"
+    },
+    "error": {
+      "title": "Migration Failed",
+      "retry": "Try Again",
+      "cancel": "Cancel"
+    },
+    "skip": "Skip for now"
+  }
+}
+```
+
+#### 10.2.4 PR #9 Deliverables Checklist
+
+- [ ] `supabase/migrations/000_schema.sql` - All tables and indexes
+- [ ] `supabase/migrations/001_rls_policies.sql` - All RLS policies
+- [ ] `supabase/migrations/002_rpc_functions.sql` - Renamed from 001
+- [ ] `supabase/migrations/README.md` - Deployment instructions
+- [ ] `src/components/MigrationWizard.tsx` - Migration UI
+- [ ] `src/components/__tests__/MigrationWizard.test.tsx` - Tests
+- [ ] Updated `CloudSyncSection.tsx` - Integrate wizard
+- [ ] Updated translation files (EN/FI)
+- [ ] All tests pass
+
+---
+
+### 10.3 Supabase Project Setup
+
+After PR #9 is merged, set up the actual Supabase infrastructure.
+
+#### 10.3.1 Create Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) → New Project
+2. Choose region closest to users (e.g., `eu-central-1` for Finland)
+3. Set a strong database password (save it securely)
+4. Wait for project to provision (~2 minutes)
+
+#### 10.3.2 Run Database Migrations
+
+In Supabase Dashboard → SQL Editor:
+
+```bash
+# Option A: Supabase CLI (recommended)
+cd /path/to/project
+supabase link --project-ref <your-project-ref>
+supabase db push
+
+# Option B: Manual (copy/paste in SQL Editor)
+# 1. Open 000_schema.sql → Run
+# 2. Open 001_rls_policies.sql → Run
+# 3. Open 002_rpc_functions.sql → Run
+```
+
+#### 10.3.3 Verify Schema
+
+After running migrations, verify in Supabase Dashboard → Table Editor:
+
+- [ ] 15 tables visible (players, teams, seasons, tournaments, personnel, games, game_players, game_events, player_assessments, game_tactical_data, player_adjustments, team_players, warmup_plans, user_settings)
+- [ ] Each table has RLS enabled (lock icon)
+- [ ] Indexes visible in Database → Indexes
+
+#### 10.3.4 Configure Authentication
+
+In Supabase Dashboard → Authentication → Settings:
+
+1. **Email Auth**:
+   - Enable "Email" provider
+   - Disable "Confirm email" for testing (enable for production)
+   - Set site URL: `https://your-domain.com`
+   - Add redirect URLs: `https://your-domain.com/*`, `http://localhost:3000/*`
+
+2. **Email Templates** (Authentication → Email Templates):
+   - Customize confirmation email
+   - Customize password reset email
+   - Add your app name and branding
+
+3. **Rate Limits** (optional):
+   - Default limits are usually fine for single-user app
+
+#### 10.3.5 Get API Credentials
+
+In Supabase Dashboard → Settings → API:
+
+- **Project URL**: `https://<project-ref>.supabase.co`
+- **anon/public key**: Safe for client-side (RLS protects data)
+- **service_role key**: ⚠️ NEVER expose client-side (admin access)
+
+---
+
+### 10.4 Environment Configuration
+
+#### 10.4.1 Local Development
+
+**File**: `.env.local`
+```bash
+# Backend mode (local = IndexedDB, cloud = Supabase)
+NEXT_PUBLIC_BACKEND_MODE=local
+
+# Supabase credentials (required for cloud mode)
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Optional: Force cloud mode for testing
+# NEXT_PUBLIC_BACKEND_MODE=cloud
+```
+
+#### 10.4.2 Production (Vercel)
+
+In Vercel Dashboard → Project → Settings → Environment Variables:
+
+| Variable | Value | Environment |
+|----------|-------|-------------|
+| `NEXT_PUBLIC_BACKEND_MODE` | `local` | Production |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<project>.supabase.co` | Production |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` | Production |
+
+> **Note**: Keep `NEXT_PUBLIC_BACKEND_MODE=local` as default. Users opt-in to cloud via Settings.
+
+---
+
+### 10.5 End-to-End Testing with Real Supabase
+
+Before merging to master, test against the real Supabase project (not mocks).
+
+#### 10.5.1 Create Test Supabase Project
+
+Create a **separate** Supabase project for testing:
+- Name: `matchops-test` or `matchops-staging`
+- Run same migrations as production
+- Use for E2E tests and manual testing
+
+#### 10.5.2 E2E Test Checklist
+
+**Authentication Flow**:
+- [ ] Sign up with email → receives confirmation email
+- [ ] Confirm email → can sign in
+- [ ] Sign in → redirected to app
+- [ ] Sign out → redirected to login
+- [ ] Password reset → receives email → can reset
+
+**Data Operations** (as authenticated user):
+- [ ] Create player → appears in Supabase `players` table
+- [ ] Create team → appears with correct `user_id`
+- [ ] Create game → all 5 tables populated (games, game_players, game_events, player_assessments, game_tactical_data)
+- [ ] Update game → changes persisted
+- [ ] Delete game → cascade deletes child rows
+
+**RLS Verification** (critical security test):
+- [ ] User A's data not visible to User B
+- [ ] Direct API call with forged `user_id` rejected
+- [ ] Unauthenticated requests rejected
+
+**Migration Flow**:
+- [ ] Local mode → has data → enable cloud → MigrationWizard appears
+- [ ] Migration preview shows correct counts
+- [ ] Migration uploads all data
+- [ ] Verification passes
+- [ ] Data accessible in cloud mode
+
+**Mode Switching**:
+- [ ] Local → Cloud → restart → Login shown
+- [ ] Cloud → Local → restart → immediate access
+- [ ] Data preserved in both modes
+
+#### 10.5.3 Load Testing
+
+With 100+ games in local storage:
+- [ ] Migration completes without timeout
+- [ ] Cloud mode loads game list in <3s
+- [ ] Game save completes in <2s
+- [ ] No memory issues during migration
+
+---
+
+### 10.6 Final Merge to Master
+
+#### 10.6.1 Pre-Merge Checklist
+
+**Code Quality**:
+- [ ] All PRs (#1-#9) merged to `feature/supabase-cloud-backend`
+- [ ] `npm test` passes (3,200+ tests)
+- [ ] `npm run build` passes
+- [ ] `npm run lint` passes
+- [ ] No TypeScript errors
+
+**Infrastructure**:
+- [ ] Production Supabase project created
+- [ ] All migrations run successfully
+- [ ] RLS policies verified
+- [ ] Environment variables set in Vercel
+
+**Manual Testing** (on staging/preview):
+- [ ] Fresh install → local mode works perfectly
+- [ ] Enable cloud → sign up → migrate → data syncs
+- [ ] Disable cloud → returns to local mode
+- [ ] Offline behavior: cloud mode shows clear error
+- [ ] Mode switch requires restart (expected)
+
+**Documentation**:
+- [ ] CLAUDE.md updated with cloud mode info
+- [ ] Changelog updated
+- [ ] User-facing docs (if any) updated
+
+#### 10.6.2 Merge Process
+
+```bash
+# 1. Ensure feature branch is up to date with master
+git checkout feature/supabase-cloud-backend
+git pull origin feature/supabase-cloud-backend
+git merge master  # Resolve any conflicts
+
+# 2. Final verification
+npm test
+npm run build
+npm run lint
+
+# 3. Create PR to master
+gh pr create \
+  --base master \
+  --head feature/supabase-cloud-backend \
+  --title "feat: Add Supabase cloud backend" \
+  --body "## Summary
+- Dual-backend architecture (local + cloud)
+- Cloud mode with Supabase auth and storage
+- Migration service for local → cloud data transfer
+- All 9 PRs included
+
+## Test Plan
+- [ ] Local mode regression tested
+- [ ] Cloud mode E2E tested
+- [ ] Migration tested with 100+ games
+- [ ] RLS security verified
+
+🤖 Generated with Claude Code"
+
+# 4. After approval and merge
+git checkout master
+git pull origin master
+```
+
+#### 10.6.3 Post-Merge Verification
+
+After merging to master and deploying:
+
+1. **Verify local mode unchanged**:
+   - New users get local mode by default
+   - All existing functionality works
+
+2. **Verify cloud mode available**:
+   - Settings → Cloud Sync section visible
+   - "Enable Cloud Sync" button works
+   - Sign up/in flow works
+
+3. **Monitor for errors**:
+   - Check Sentry for new errors
+   - Check Supabase logs for failed queries
+   - Monitor user feedback
+
+---
+
+### 10.7 Rollback Plan
+
+If issues occur after master merge:
+
+**Immediate (no code change)**:
+1. Set Vercel env: `NEXT_PUBLIC_BACKEND_MODE=local`
+2. Redeploy
+3. Cloud features hidden, local mode only
+
+**User-level**:
+1. User disables cloud in Settings
+2. App restarts in local mode
+3. Local data always preserved
+
+**Code rollback** (if critical):
+```bash
+git revert <merge-commit-sha>
+git push origin master
+```
+
+---
+
+### 10.8 PR Summary Table (Updated)
+
+| PR | Branch | Est. Hours | Description |
+|----|--------|------------|-------------|
+| 1 | `supabase/pr1-foundation` | 8h | backendConfig.ts, mode detection |
+| 2 | `supabase/pr2-supabase-client` | 10h | Supabase client, lazy loading |
+| 3 | `supabase/pr3-datastore-core` | 30h | Core CRUD + TDD |
+| 4 | `supabase/pr4-datastore-games` | 35h | Game transforms, RPC |
+| 5 | `supabase/pr5-auth-service` | 25h | Auth service + UI |
+| 6 | `supabase/pr6-migration` | 25h | Migration service |
+| 7 | `supabase/pr7-performance` | 10h | QueryProvider optimization |
+| 8 | `supabase/pr8-integration` | 15h | UI integration, tests |
+| **9** | **`supabase/pr9-infrastructure`** | **15h** | **SQL files, MigrationWizard, setup** |
+| **Final** | **`feature/supabase-cloud-backend` → `master`** | **5h** | **E2E testing, merge** |
+
+**Total**: ~180 hours
+
+---
+
+### 10.9 Environment Variables Reference
+
+```bash
+# === REQUIRED FOR CLOUD MODE ===
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+
+# === MODE CONTROL ===
+# Default: local (IndexedDB, no auth)
+# Cloud: Supabase + auth
+NEXT_PUBLIC_BACKEND_MODE=local
+
+# === EXISTING (unchanged) ===
+NEXT_PUBLIC_SENTRY_DSN=...
+SENTRY_AUTH_TOKEN=...
+```
+
+---
+
+### 10.10 Rollback Plan
 
 If issues occur:
 1. Set `NEXT_PUBLIC_BACKEND_MODE=local` (immediate)
@@ -4042,19 +4606,59 @@ This implementation guide ensures:
 2. **Local Default**: Current behavior unchanged until enabled
 3. **Professional Performance**: Optimistic updates, aggressive caching
 4. **Parallel Development**: Cloud code exists but dormant
+5. **Complete Infrastructure**: SQL migrations, setup guide, E2E testing plan
 
-**Effort Breakdown**:
-- SupabaseDataStore: 50-60h
-- SupabaseAuthService + Auth UI: 25-30h (includes AuthProvider, LoginScreen, page.tsx integration)
-- Migration: 20-25h
-- UI/Config: 10-15h
-- Testing: 30-40h (TDD for transforms, DataStore, Auth, Migration + integration tests)
+### Complete PR Flow
 
-**Total**: 135-170 hours
+```
+PRs #1-#8: Application Code
+    │
+    └──► All merge to feature/supabase-cloud-backend
+              │
+PR #9: Infrastructure & Migration UI
+    │
+    └──► Merges to feature/supabase-cloud-backend
+              │
+              ▼
+    ┌─────────────────────────────────┐
+    │  Supabase Project Setup         │
+    │  - Create project               │
+    │  - Run SQL migrations           │
+    │  - Configure auth               │
+    │  - Set environment variables    │
+    └─────────────────────────────────┘
+              │
+              ▼
+    ┌─────────────────────────────────┐
+    │  E2E Testing (Real Supabase)    │
+    │  - Auth flow                    │
+    │  - Data operations              │
+    │  - Migration flow               │
+    │  - RLS security                 │
+    └─────────────────────────────────┘
+              │
+              ▼
+FINAL: PR feature/supabase-cloud-backend → master
+    │
+    └──► Production deployment
+```
 
-**Note on Testing**: Testing effort increased from 10-15h to 30-40h to ensure comprehensive coverage:
+### Effort Breakdown
+
+| Phase | Hours | Description |
+|-------|-------|-------------|
+| PRs #1-#8 | 158h | Application code, tests |
+| PR #9 | 15h | SQL files, MigrationWizard |
+| Supabase Setup | 3h | Project creation, migrations |
+| E2E Testing | 5h | Real Supabase testing |
+| Final Merge | 2h | PR review, merge, verify |
+| **Total** | **~183h** | |
+
+### Test Coverage Summary
+
 - ~250 unit tests (TDD for critical code)
 - ~60 cross-backend parity tests
 - ~40 integration tests (real Supabase)
 - ~25 UI component tests
+- Manual E2E testing checklist
 - 90% coverage target for transform functions

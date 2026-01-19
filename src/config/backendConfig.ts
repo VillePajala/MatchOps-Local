@@ -181,13 +181,18 @@ export function enableCloudMode(): boolean {
  * Disable cloud mode at runtime (switch to local mode).
  *
  * Stores preference in localStorage. Takes effect on next factory initialization.
+ *
+ * @returns true if local mode was enabled, false if localStorage write failed
  */
-export function disableCloudMode(): void {
+export function disableCloudMode(): boolean {
   if (typeof window !== 'undefined') {
     if (safeSetItem(MODE_STORAGE_KEY, 'local')) {
       log.info('[backendConfig] Local mode enabled - will take effect on next initialization');
+      return true;
     }
+    return false;
   }
+  return false;
 }
 
 /**

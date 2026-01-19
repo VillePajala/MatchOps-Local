@@ -1996,6 +1996,7 @@
     "disabledRestartRequired": "Paikallinen tila käytössä. Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
     "enableFailed": "Pilvitilan käyttöönotto epäonnistui. Yritä uudelleen.",
     "enableError": "Virhe pilvitilan käyttöönotossa.",
+    "disableFailed": "Paikalliseen tilaan vaihtaminen epäonnistui. Yritä uudelleen.",
     "disableError": "Virhe pilvitilan poistamisessa käytöstä.",
     "restartRequired": "Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
     "migrationNote": "Kun otat pilvisynkronoinnin käyttöön, voit siirtää nykyiset paikalliset tietosi pilveen."
