@@ -66,8 +66,15 @@ function transformUser(supabaseUser: { id: string; email?: string | null; create
  * Transform Supabase session to our Session type.
  */
 function transformSession(supabaseSession: SupabaseSession): Session {
-  // Default to 1 hour from now if expires_at is missing
-  const expiresAtSeconds = supabaseSession.expires_at ?? Math.floor(Date.now() / 1000) + 3600;
+  // expires_at should always be present in valid Supabase sessions, but we provide
+  // a fallback for edge cases (e.g., malformed responses, testing). The 1-hour default
+  // matches Supabase's typical JWT expiry. Auto-refresh will correct this quickly.
+  let expiresAtSeconds = supabaseSession.expires_at;
+  if (!expiresAtSeconds) {
+    expiresAtSeconds = Math.floor(Date.now() / 1000) + 3600;
+    logger.warn('[SupabaseAuthService] Session missing expires_at, using 1-hour fallback');
+  }
+
   return {
     accessToken: supabaseSession.access_token,
     refreshToken: supabaseSession.refresh_token,
@@ -115,13 +122,37 @@ function validateEmail(email: string): void {
 /**
  * Check if error is a network error.
  * Handles both Error instances and Supabase error objects.
+ *
+ * Detection strategy (in order):
+ * 1. Check for Supabase AuthApiError status codes (0 or 5xx typically indicate network issues)
+ * 2. Check for standard fetch/network error names
+ * 3. Fall back to message content matching (least reliable)
  */
 function isNetworkError(error: unknown): boolean {
-  let message: string | undefined;
+  if (!error || typeof error !== 'object') return false;
 
+  // Check for Supabase AuthApiError with status code
+  // Status 0 or 5xx typically indicate network/server issues
+  if ('status' in error) {
+    const status = (error as { status: number }).status;
+    if (status === 0 || (status >= 500 && status < 600)) {
+      return true;
+    }
+  }
+
+  // Check for standard error names
+  if ('name' in error) {
+    const name = (error as { name: string }).name;
+    if (name === 'TypeError' || name === 'NetworkError' || name === 'AbortError') {
+      return true;
+    }
+  }
+
+  // Fall back to message content matching
+  let message: string | undefined;
   if (error instanceof Error) {
     message = error.message;
-  } else if (error && typeof error === 'object' && 'message' in error) {
+  } else if ('message' in error) {
     message = (error as { message: string }).message;
   }
 
@@ -132,7 +163,8 @@ function isNetworkError(error: unknown): boolean {
     lowerMessage.includes('network') ||
     lowerMessage.includes('fetch') ||
     lowerMessage.includes('offline') ||
-    lowerMessage.includes('connection')
+    lowerMessage.includes('connection') ||
+    lowerMessage.includes('failed to fetch')
   );
 }
 
@@ -342,10 +374,9 @@ export class SupabaseAuthService implements AuthService {
 
     validateEmail(email);
 
-    const { error } = await this.client!.auth.resetPasswordForEmail(email, {
-      // Redirect URL after password reset (if applicable)
-      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
-    });
+    // Note: Not specifying redirectTo lets Supabase use its default flow.
+    // A custom /reset-password page can be added in PR #8 if needed.
+    const { error } = await this.client!.auth.resetPasswordForEmail(email);
 
     if (error) {
       logger.warn('[SupabaseAuthService] Password reset failed:', error.message);

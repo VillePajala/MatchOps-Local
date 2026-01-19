@@ -85,9 +85,21 @@ export default function Home() {
     // Stay in current screen - modal will close naturally after user clicks Continue
   }, []);
 
+  // Re-run checkAppState when:
+  // - Component mounts (initial load)
+  // - refreshTrigger changes (data import, app resume)
+  // - isAuthenticated changes (user signs in/out in cloud mode)
+  // In cloud mode, checkAppState() needs auth to access DataStore, so we gate on isAuthenticated
   useEffect(() => {
+    // Skip if auth is still loading
+    if (isAuthLoading) return;
+
+    // In cloud mode, only check state when authenticated (DataStore requires auth)
+    // In local mode, always check (no auth required)
+    if (mode === 'cloud' && !isAuthenticated) return;
+
     checkAppState();
-  }, [checkAppState, refreshTrigger]);
+  }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode]);
 
 
   // Handle app resume from background (Android TWA blank screen fix)
