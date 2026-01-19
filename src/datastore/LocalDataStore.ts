@@ -25,6 +25,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
+import { validateGame } from '@/datastore/validation';
 import {
   APP_SETTINGS_KEY,
   LAST_HOME_TEAM_NAME_KEY,
@@ -311,41 +312,6 @@ const migrateTournamentLevel = (tournament: Tournament): Tournament => {
   }
 
   return tournament;
-};
-
-/**
- * Validate a game's required and optional fields.
- * Throws ValidationError if validation fails.
- * Used by both saveGame and saveAllGames for consistent validation.
- *
- * @param game - The game state to validate
- * @param context - Optional context for error messages (e.g., gameId for batch operations)
- */
-const validateGame = (game: AppState, context?: string): void => {
-  const prefix = context ? `Game ${context}: ` : '';
-
-  // Validate required fields
-  if (!game.teamName || !game.opponentName || !game.gameDate) {
-    throw new ValidationError(
-      `${prefix}Missing required game fields`,
-      'game',
-      { hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
-    );
-  }
-
-  // Validate gameNotes length
-  if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
-    throw new ValidationError(
-      `${prefix}Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`,
-      'gameNotes',
-      game.gameNotes
-    );
-  }
-
-  // Validate ageGroup if present
-  if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
-    throw new ValidationError(`${prefix}Invalid age group`, 'ageGroup', game.ageGroup);
-  }
 };
 
 // Type for parsed settings with legacy month fields

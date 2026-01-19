@@ -1,8 +1,8 @@
 {
-  "version": "b9c42742",
-  "date": "2026-01-13",
+  "version": "b3926ec7",
+  "date": "2026-01-19",
   "notes": {
-    "en": "Strengthen PR review process requirements",
-    "fi": "Strengthen PR review process requirements"
+    "en": "Use non-empty defaults for teamName/opponentName in createGame",
+    "fi": "Use non-empty defaults for teamName/opponentName in createGame"
   }
 }

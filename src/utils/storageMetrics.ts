@@ -479,7 +479,7 @@ export class StorageMetrics {
  * No-op stub for production (tree-shakeable)
  */
 class StorageMetricsStub {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   startOperation(_operation: OperationType, _id?: string): OperationTimer {
     return {
       success: () => {},
@@ -490,13 +490,13 @@ class StorageMetricsStub {
   }
 
   recordLatency(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     _operation: OperationType,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     _duration: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     _success?: boolean,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     _metadata?: Record<string, unknown>
   ): void {
     // No-op

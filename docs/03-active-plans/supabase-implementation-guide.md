@@ -531,6 +531,7 @@ tests/integration/cloud-flow.test.ts # End-to-end integration tests
 - [ ] Full integration test suite
 - [ ] Documentation updates
 - [ ] Final cleanup and code review
+- [ ] **Deferred from PR #4**: Generate proper Supabase types to replace `unknown` JSONB columns in `src/types/supabase.ts` (tactical_discs, tactical_ball_position, etc.) - removes `as unknown` type assertions
 
 **Acceptance Criteria**:
 - User can enable cloud mode from settings

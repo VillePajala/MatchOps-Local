@@ -351,6 +351,12 @@ Run these against test data:
   // Use: SELECT id FROM teams WHERE name = ? AND bound_season_id = ? ... LIMIT 1
   ```
   Applies to: Teams, Seasons, Tournaments, Personnel (createX/updateX methods)
+- [ ] Parallelize `saveAllGames()` with controlled concurrency:
+  ```typescript
+  // Current: Sequential saves to avoid overwhelming DB
+  // Potential: Use Promise.all with batches of 5-10 concurrent saves
+  // Only needed if migration of large game collections is slow
+  ```
 
 ### Test Checklist
 - [ ] Performance benchmarks:
@@ -378,6 +384,11 @@ Run these against test data:
 - [ ] Create integration test suite: `tests/integration/cloud-flow.test.ts`
 - [ ] Update documentation
 - [ ] Final cleanup and code review
+
+### Deferred from PR #4
+- [ ] Generate proper Supabase types: `npx supabase gen types typescript --project-id <id> > src/types/supabase.ts`
+- [ ] Verify JSONB columns have proper types (not `unknown`): tactical_discs, tactical_ball_position, tactical_drawings, etc.
+- [ ] Remove `as unknown` type assertions in SupabaseDataStore.ts where proper types now exist
 
 ### Integration Test Scenarios
 - [ ] Fresh install → local mode works

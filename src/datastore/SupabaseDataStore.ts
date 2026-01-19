@@ -23,9 +23,10 @@ import type {
   TournamentSeries,
   PlayerStatAdjustment,
 } from '@/types';
-import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
+import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog } from '@/types/game';
+import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
-import type { WarmupPlan } from '@/types/warmupPlan';
+import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore } from '@/interfaces/DataStore';
@@ -37,6 +38,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
+import { validateGame } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -45,26 +47,78 @@ import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 import logger from '@/utils/logger';
 
-// Type-safe helper for database operations with placeholder types
-// Using explicit any for database operations until proper types are generated from Supabase
+// Type-safe database types using the Database schema from supabase.ts
+// These types provide full type safety for all database operations.
 //
-// TODO(PR #4/#5): Generate proper Supabase types to replace these placeholders
-// Run: npx supabase gen types typescript --project-id <project-id> > src/types/supabase.ts
-// Then update Database type in src/types/supabase.ts and remove these any-based types
-//
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type DbInsertData = Record<string, any>;
-type DbRow = Record<string, any>;
+// Note: If Supabase project schema changes, regenerate types with:
+// npx supabase gen types typescript --project-id <project-id> > src/types/supabase.ts
 
-// Row type aliases for readability - these will resolve to proper types after regeneration
-type PlayerRow = DbRow;
-type TeamRow = DbRow;
-type TeamPlayerRow = DbRow;
-type SeasonRow = DbRow;
-type TournamentRow = DbRow;
-type PersonnelRow = DbRow;
-type UserSettingsRow = DbRow;
-/* eslint-enable @typescript-eslint/no-explicit-any */
+// Row types (data returned from SELECT queries)
+type PlayerRow = Database['public']['Tables']['players']['Row'];
+type TeamRow = Database['public']['Tables']['teams']['Row'];
+type TeamPlayerRow = Database['public']['Tables']['team_players']['Row'];
+type SeasonRow = Database['public']['Tables']['seasons']['Row'];
+type TournamentRow = Database['public']['Tables']['tournaments']['Row'];
+type PersonnelRow = Database['public']['Tables']['personnel']['Row'];
+type UserSettingsRow = Database['public']['Tables']['user_settings']['Row'];
+
+// Game-related row types (for PR #4 game transforms)
+type GameRow = Database['public']['Tables']['games']['Row'];
+type GamePlayerRow = Database['public']['Tables']['game_players']['Row'];
+type GameEventRow = Database['public']['Tables']['game_events']['Row'];
+type GameTacticalDataRow = Database['public']['Tables']['game_tactical_data']['Row'];
+type PlayerAssessmentRow = Database['public']['Tables']['player_assessments']['Row'];
+type PlayerAdjustmentRow = Database['public']['Tables']['player_adjustments']['Row'];
+type WarmupPlanRow = Database['public']['Tables']['warmup_plans']['Row'];
+
+// Insert types (data for INSERT operations)
+type PlayerInsert = Database['public']['Tables']['players']['Insert'];
+type TeamInsert = Database['public']['Tables']['teams']['Insert'];
+type TeamPlayerInsert = Database['public']['Tables']['team_players']['Insert'];
+type SeasonInsert = Database['public']['Tables']['seasons']['Insert'];
+type TournamentInsert = Database['public']['Tables']['tournaments']['Insert'];
+type PersonnelInsert = Database['public']['Tables']['personnel']['Insert'];
+type UserSettingsInsert = Database['public']['Tables']['user_settings']['Insert'];
+type GameInsert = Database['public']['Tables']['games']['Insert'];
+type GamePlayerInsert = Database['public']['Tables']['game_players']['Insert'];
+type GameEventInsert = Database['public']['Tables']['game_events']['Insert'];
+type GameTacticalDataInsert = Database['public']['Tables']['game_tactical_data']['Insert'];
+type PlayerAssessmentInsert = Database['public']['Tables']['player_assessments']['Insert'];
+type PlayerAdjustmentInsert = Database['public']['Tables']['player_adjustments']['Insert'];
+type WarmupPlanInsert = Database['public']['Tables']['warmup_plans']['Insert'];
+
+/**
+ * GameTableSet - Container for all 5 tables of game data.
+ *
+ * Used by game transforms to hold the decomposed game data before/after
+ * database operations. The relationship is:
+ * - 1 game row
+ * - N game_players rows (availablePlayers with on_field/is_selected flags)
+ * - M game_events rows (ordered by order_index)
+ * - K player_assessments rows (one per assessed player)
+ * - 1 game_tactical_data row (JSONB fields for tactical data)
+ */
+interface GameTableSet {
+  game: GameInsert;
+  players: GamePlayerInsert[];
+  events: GameEventInsert[];
+  assessments: PlayerAssessmentInsert[];
+  tacticalData: GameTacticalDataInsert;
+}
+
+/**
+ * GameTableSetRow - Container for loaded game data from database.
+ *
+ * Similar to GameTableSet but uses Row types (data from SELECT queries)
+ * instead of Insert types (data for INSERT operations).
+ */
+interface GameTableSetRow {
+  game: GameRow;
+  players: GamePlayerRow[];
+  events: GameEventRow[];
+  assessments: PlayerAssessmentRow[];
+  tacticalData: GameTacticalDataRow | null;
+}
 
 // Default settings matching LocalDataStore
 const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -77,6 +131,12 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
   clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
 };
+
+/**
+ * Default field position for players (center of field).
+ * Used when player position data is missing or undefined.
+ */
+const DEFAULT_FIELD_POSITION = { relX: 0.5, relY: 0.5 } as const;
 
 /**
  * Normalize optional string: trim whitespace, convert empty to undefined.
@@ -351,8 +411,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('players')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformPlayerToDb(newPlayer, now, userId) as any);
+       
+      .insert(this.transformPlayerToDb(newPlayer, now, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create player: ${error.message}`);
@@ -451,7 +511,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformPlayerToDb(player: Player, now: string, userId: string): DbInsertData {
+  private transformPlayerToDb(player: Player, now: string, userId: string): PlayerInsert {
     return {
       id: player.id,
       user_id: userId,
@@ -590,8 +650,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('teams')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformTeamToDb(newTeam, userId) as any);
+       
+      .insert(this.transformTeamToDb(newTeam, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create team: ${error.message}`);
@@ -744,7 +804,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformTeamToDb(team: Team, userId: string): DbInsertData {
+  private transformTeamToDb(team: Team, userId: string): TeamInsert {
     return {
       id: team.id,
       user_id: userId,
@@ -783,36 +843,35 @@ export class SupabaseDataStore implements DataStore {
     return (data || []).map(this.transformTeamPlayerFromDb);
   }
 
+  /**
+   * Set team roster atomically using RPC function.
+   *
+   * Uses the RPC function `set_team_roster` for atomic delete + insert.
+   * This prevents data loss if network fails mid-operation.
+   *
+   * @see supabase/migrations/001_rpc_functions.sql
+   */
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
     checkOnline();
 
-    // Delete existing roster
-    const { error: deleteError } = await this.getClient()
-      .from('team_players')
-      .delete()
-      .eq('team_id', teamId);
-
-    if (deleteError) {
-      throw new NetworkError(`Failed to clear team roster: ${deleteError.message}`);
-    }
-
-    if (roster.length === 0) {
-      return;
-    }
-
-    // Insert new roster
+    // Transform roster to database format
     const now = new Date().toISOString();
     const userId = await this.getUserId();
     const rows = roster.map((player) => this.transformTeamPlayerToDb(teamId, player, now, userId));
 
-    const { error: insertError } = await this.getClient()
-      .from('team_players')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(rows as any);
+    // Use RPC for atomic delete + insert within a single PostgreSQL transaction
+    // Type assertion needed: RPC functions are not in generated Supabase types until deployed
+    const { error } = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string } | null }>)(
+      'set_team_roster',
+      {
+        p_team_id: teamId,
+        p_roster: rows,
+      }
+    );
 
-    if (insertError) {
-      throw new NetworkError(`Failed to set team roster: ${insertError.message}`);
+    if (error) {
+      throw new NetworkError(`Failed to set team roster: ${error.message}`);
     }
   }
 
@@ -857,7 +916,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformTeamPlayerToDb(teamId: string, player: TeamPlayer, now: string, userId: string): DbInsertData {
+  private transformTeamPlayerToDb(teamId: string, player: TeamPlayer, now: string, userId: string): TeamPlayerInsert {
     return {
       id: `${teamId}_${player.id}`, // Composite key
       team_id: teamId,
@@ -966,8 +1025,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('seasons')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformSeasonToDb(newSeason, now, userId) as any);
+       
+      .insert(this.transformSeasonToDb(newSeason, now, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create season: ${error.message}`);
@@ -1106,7 +1165,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformSeasonToDb(season: Season, now: string, userId: string): DbInsertData {
+  private transformSeasonToDb(season: Season, now: string, userId: string): SeasonInsert {
     return {
       id: season.id,
       user_id: userId,
@@ -1222,8 +1281,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('tournaments')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformTournamentToDb(newTournament, now, userId) as any);
+       
+      .insert(this.transformTournamentToDb(newTournament, now, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create tournament: ${error.message}`);
@@ -1362,7 +1421,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformTournamentToDb(tournament: Tournament, now: string, userId: string): DbInsertData {
+  private transformTournamentToDb(tournament: Tournament, now: string, userId: string): TournamentInsert {
     return {
       id: tournament.id,
       user_id: userId,
@@ -1462,8 +1521,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('personnel')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .insert(this.transformPersonnelToDb(newPersonnel, userId) as any);
+       
+      .insert(this.transformPersonnelToDb(newPersonnel, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to create personnel: ${error.message}`);
@@ -1540,23 +1599,34 @@ export class SupabaseDataStore implements DataStore {
     return updated;
   }
 
+  /**
+   * Remove a personnel member with cascade delete.
+   *
+   * Uses the RPC function `delete_personnel_cascade` for atomic cascade delete.
+   * This removes the personnel and cleans up all game_personnel references
+   * in a single PostgreSQL transaction (Rule #7).
+   *
+   * @see supabase/migrations/001_rpc_functions.sql
+   */
   async removePersonnelMember(id: string): Promise<boolean> {
     this.ensureInitialized();
     checkOnline();
 
-    // NOTE: Cascade delete (removing from games) is handled by the RPC function
-    // or will be implemented in PR #4 when games are added.
-    // For now, just delete the personnel record.
-    const { error, count } = await this.getClient()
-      .from('personnel')
-      .delete({ count: 'exact' })
-      .eq('id', id);
+    // Use RPC for atomic cascade delete within a single PostgreSQL transaction
+    // Type assertion needed: RPC functions are not in generated Supabase types until deployed
+    const { data, error } = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ data: boolean | null; error: { message: string } | null }>)(
+      'delete_personnel_cascade',
+      {
+        p_personnel_id: id,
+      }
+    );
 
     if (error) {
       throw new NetworkError(`Failed to delete personnel: ${error.message}`);
     }
 
-    return (count ?? 0) > 0;
+    // RPC returns boolean: true if deleted, false if not found or unauthorized
+    return data === true;
   }
 
   // Personnel transform helpers
@@ -1574,7 +1644,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformPersonnelToDb(personnel: Personnel, userId: string): DbInsertData {
+  private transformPersonnelToDb(personnel: Personnel, userId: string): PersonnelInsert {
     return {
       id: personnel.id,
       user_id: userId,
@@ -1617,8 +1687,8 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('user_settings')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder Database types until generated
-      .upsert(this.transformSettingsToDb(settings, userId) as any);
+       
+      .upsert(this.transformSettingsToDb(settings, userId) as unknown as never);
 
     if (error) {
       throw new NetworkError(`Failed to save settings: ${error.message}`);
@@ -1655,7 +1725,7 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  private transformSettingsToDb(settings: AppSettings, userId: string): DbInsertData {
+  private transformSettingsToDb(settings: AppSettings, userId: string): UserSettingsInsert {
     return {
       user_id: userId,
       current_game_id: settings.currentGameId ?? null,
@@ -1664,97 +1734,884 @@ export class SupabaseDataStore implements DataStore {
       has_seen_app_guide: settings.hasSeenAppGuide ?? false,
       use_demand_correction: settings.useDemandCorrection ?? false,
       has_configured_season_dates: settings.hasConfiguredSeasonDates ?? false,
-      club_season_start_date: settings.clubSeasonStartDate ?? null,
-      club_season_end_date: settings.clubSeasonEndDate ?? null,
+      club_season_start_date: settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE,
+      club_season_end_date: settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE,
       is_drawing_mode_enabled: settings.isDrawingModeEnabled ?? false,
       updated_at: new Date().toISOString(),
     };
   }
 
   // ==========================================================================
-  // GAMES (PR #4 - Stub implementations)
+  // GAME TRANSFORMS
   // ==========================================================================
+
+  /**
+   * Transform AppState game to database tables.
+   *
+   * Converts a single AppState game object into 5 separate database table rows:
+   * - game: main game metadata
+   * - players: availablePlayers merged with on_field/is_selected flags
+   * - events: gameEvents with order_index for ordering
+   * - assessments: player assessments with flattened sliders
+   * - tacticalData: JSONB fields for tactical data
+   *
+   * @see docs/03-active-plans/supabase-implementation-guide.md Section 5.6
+   */
+  private transformGameToTables(gameId: string, game: AppState, userId: string): GameTableSet {
+    // Build player rows by merging availablePlayers with playersOnField state
+    // Relationship: playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers (nested subsets)
+    const selectedIds = new Set(game.selectedPlayerIds ?? []);
+    const onFieldMap = new Map((game.playersOnField ?? []).map((p) => [p.id, p]));
+
+    const playerRows: GamePlayerInsert[] = (game.availablePlayers ?? []).map((player) => {
+      const onFieldPlayer = onFieldMap.get(player.id);
+      const isOnField = !!onFieldPlayer;
+      const isSelected = selectedIds.has(player.id);
+
+      return {
+        id: `${gameId}_${player.id}`,
+        game_id: gameId,
+        player_id: player.id,
+        user_id: userId,
+        // Snapshot fields - use onField version if available (more current state)
+        player_name: onFieldPlayer?.name ?? player.name,
+        nickname: onFieldPlayer?.nickname ?? player.nickname ?? '',
+        jersey_number: onFieldPlayer?.jerseyNumber ?? player.jerseyNumber ?? '',
+        is_goalie: onFieldPlayer?.isGoalie ?? player.isGoalie ?? false,
+        color: onFieldPlayer?.color ?? player.color,
+        notes: onFieldPlayer?.notes ?? player.notes ?? '',
+        received_fair_play_card: onFieldPlayer?.receivedFairPlayCard ?? player.receivedFairPlayCard ?? false,
+        // Status flags
+        // CRITICAL: Normalize is_selected - if on field, must be selected
+        is_selected: isSelected || isOnField,
+        on_field: isOnField,
+        // Field position (only for on-field players)
+        rel_x: isOnField ? onFieldPlayer!.relX : null,
+        rel_y: isOnField ? onFieldPlayer!.relY : null,
+      };
+    });
+
+    // Build event rows with order_index for ordering
+    const eventRows: GameEventInsert[] = (game.gameEvents ?? []).map((e, index) => ({
+      id: e.id,
+      game_id: gameId,
+      user_id: userId,
+      event_type: e.type,
+      time_seconds: e.time,
+      // CRITICAL: Array index becomes order_index for ordering
+      order_index: index,
+      scorer_id: e.scorerId ?? null,
+      assister_id: e.assisterId ?? null,
+      entity_id: e.entityId ?? null,
+    }));
+
+    // Build assessment rows with flattened sliders
+    const assessmentRows: PlayerAssessmentInsert[] = Object.entries(game.assessments ?? {}).map(
+      ([playerId, a]) => ({
+        id: `assessment_${gameId}_${playerId}`,
+        game_id: gameId,
+        player_id: playerId,
+        user_id: userId,
+        overall_rating: a.overall ?? null,
+        // CRITICAL: Flatten nested sliders object to individual columns
+        intensity: a.sliders?.intensity ?? null,
+        courage: a.sliders?.courage ?? null,
+        duels: a.sliders?.duels ?? null,
+        technique: a.sliders?.technique ?? null,
+        creativity: a.sliders?.creativity ?? null,
+        decisions: a.sliders?.decisions ?? null,
+        awareness: a.sliders?.awareness ?? null,
+        teamwork: a.sliders?.teamwork ?? null,
+        fair_play: a.sliders?.fair_play ?? null,
+        impact: a.sliders?.impact ?? null,
+        notes: a.notes ?? null,
+        minutes_played: a.minutesPlayed ?? null,
+        created_by: a.createdBy ?? 'coach',
+        created_at: a.createdAt ?? Date.now(),
+      })
+    );
+
+    // Build tactical data row
+    const tacticalDataRow: GameTacticalDataInsert = {
+      id: gameId,
+      game_id: gameId,
+      user_id: userId,
+      // CRITICAL: Default undefined tactical fields for legacy games
+      opponents: (game.opponents ?? []) as unknown,
+      drawings: (game.drawings ?? []) as unknown,
+      tactical_discs: (game.tacticalDiscs ?? []) as unknown,
+      tactical_drawings: (game.tacticalDrawings ?? []) as unknown,
+      tactical_ball_position: (game.tacticalBallPosition ?? null) as unknown,
+      completed_interval_durations: (game.completedIntervalDurations ?? []) as unknown,
+      last_sub_confirmation_time_seconds: game.lastSubConfirmationTimeSeconds ?? null,
+    };
+
+    return {
+      game: {
+        id: gameId,
+        user_id: userId,
+        // === CRITICAL: Empty string → NULL for ALL nullable string fields ===
+        season_id: game.seasonId === '' ? null : game.seasonId,
+        tournament_id: game.tournamentId === '' ? null : game.tournamentId,
+        tournament_series_id: game.tournamentSeriesId === '' ? null : (game.tournamentSeriesId ?? null),
+        tournament_level: game.tournamentLevel === '' ? null : (game.tournamentLevel ?? null),
+        team_id: game.teamId === '' ? null : (game.teamId ?? null),
+        game_time: game.gameTime === '' ? null : (game.gameTime ?? null),
+        game_location: game.gameLocation === '' ? null : (game.gameLocation ?? null),
+        age_group: game.ageGroup === '' ? null : (game.ageGroup ?? null),
+        league_id: game.leagueId === '' ? null : (game.leagueId ?? null),
+        custom_league_name: game.customLeagueName === '' ? null : (game.customLeagueName ?? null),
+        // === Required fields (direct mapping) ===
+        team_name: game.teamName,
+        opponent_name: game.opponentName,
+        game_date: game.gameDate,
+        // DEFENSIVE: Use || to catch both undefined AND empty string
+        home_or_away: game.homeOrAway || 'home',
+        number_of_periods: game.numberOfPeriods,
+        period_duration_minutes: game.periodDurationMinutes,
+        current_period: game.currentPeriod,
+        game_status: game.gameStatus,
+        // CRITICAL: Local semantics treat undefined as true (legacy migration)
+        is_played: game.isPlayed ?? true,
+        home_score: game.homeScore,
+        away_score: game.awayScore,
+        game_notes: game.gameNotes,
+        show_player_names: game.showPlayerNames,
+        // === Optional fields ===
+        sub_interval_minutes: game.subIntervalMinutes ?? null,
+        // DEFENSIVE: Guard against NaN/Infinity which PostgreSQL rejects
+        demand_factor: (game.demandFactor != null && isFinite(game.demandFactor)) ? game.demandFactor : null,
+        game_type: game.gameType ?? null,
+        gender: game.gender ?? null,
+        // === Array/object fields ===
+        game_personnel: game.gamePersonnel ?? [],
+        formation_snap_points: (game.formationSnapPoints ?? null) as unknown,
+        // === Timer restoration ===
+        time_elapsed_in_seconds: (game.timeElapsedInSeconds != null && isFinite(game.timeElapsedInSeconds))
+          ? game.timeElapsedInSeconds : null,
+      },
+      players: playerRows,
+      events: eventRows,
+      assessments: assessmentRows,
+      tacticalData: tacticalDataRow,
+    };
+  }
+
+  /**
+   * Transform database tables to AppState game.
+   *
+   * Reverses the transformation to reconstruct an AppState game from the 5 tables.
+   *
+   * @see docs/03-active-plans/supabase-implementation-guide.md Section 5.6
+   */
+  private transformTablesToGame(tables: GameTableSetRow): AppState {
+    const { game, players, events, assessments, tacticalData } = tables;
+
+    // Reconstruct availablePlayers (ALL game_players, NO relX/relY)
+    const availablePlayers: Player[] = players.map((p) => ({
+      id: p.player_id,
+      name: p.player_name,
+      nickname: p.nickname ?? '',
+      jerseyNumber: p.jersey_number ?? '',
+      isGoalie: p.is_goalie ?? false,
+      color: p.color ?? undefined,
+      notes: p.notes ?? '',
+      receivedFairPlayCard: p.received_fair_play_card ?? false,
+    }));
+
+    // Reconstruct playersOnField (game_players WHERE on_field = true, WITH relX/relY)
+    // DEFENSIVE: Use default position (center field) if rel_x/rel_y are null due to data corruption
+    const playersOnField: Player[] = players
+      .filter((p) => p.on_field)
+      .map((p) => ({
+        id: p.player_id,
+        name: p.player_name,
+        nickname: p.nickname ?? '',
+        jerseyNumber: p.jersey_number ?? '',
+        isGoalie: p.is_goalie ?? false,
+        color: p.color ?? undefined,
+        notes: p.notes ?? '',
+        receivedFairPlayCard: p.received_fair_play_card ?? false,
+        relX: p.rel_x ?? DEFAULT_FIELD_POSITION.relX,
+        relY: p.rel_y ?? DEFAULT_FIELD_POSITION.relY,
+      }));
+
+    // Reconstruct selectedPlayerIds (on-field players first for UI ordering)
+    const selectedPlayerIds = players
+      .filter((p) => p.is_selected)
+      .sort((a, b) => {
+        if (a.on_field && !b.on_field) return -1;
+        if (!a.on_field && b.on_field) return 1;
+        return 0;
+      })
+      .map((p) => p.player_id);
+
+    // Reconstruct gameEvents (sorted by order_index)
+    const gameEvents: GameEvent[] = events
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((e) => ({
+        id: e.id,
+        type: e.event_type as GameEvent['type'],
+        time: e.time_seconds,
+        scorerId: e.scorer_id ?? undefined,
+        assisterId: e.assister_id ?? undefined,
+        entityId: e.entity_id ?? undefined,
+      }));
+
+    // Reconstruct assessments as Record<playerId, Assessment>
+    const assessmentsRecord: { [playerId: string]: PlayerAssessment } = {};
+    for (const a of assessments) {
+      assessmentsRecord[a.player_id] = {
+        overall: a.overall_rating ?? 0,
+        sliders: {
+          intensity: a.intensity ?? 0,
+          courage: a.courage ?? 0,
+          duels: a.duels ?? 0,
+          technique: a.technique ?? 0,
+          creativity: a.creativity ?? 0,
+          decisions: a.decisions ?? 0,
+          awareness: a.awareness ?? 0,
+          teamwork: a.teamwork ?? 0,
+          fair_play: a.fair_play ?? 0,
+          impact: a.impact ?? 0,
+        },
+        notes: a.notes ?? '',
+        minutesPlayed: a.minutes_played ?? 0,
+        createdBy: a.created_by ?? 'coach',
+        createdAt: typeof a.created_at === 'number' ? a.created_at : Date.now(),
+      };
+    }
+
+    return {
+      // === NULL → empty string for ALL nullable string fields ===
+      seasonId: game.season_id ?? '',
+      tournamentId: game.tournament_id ?? '',
+      tournamentSeriesId: game.tournament_series_id ?? '',
+      tournamentLevel: game.tournament_level ?? '',
+      teamId: game.team_id ?? '',
+      gameTime: game.game_time ?? '',
+      gameLocation: game.game_location ?? '',
+      ageGroup: game.age_group ?? '',
+      leagueId: game.league_id ?? '',
+      customLeagueName: game.custom_league_name ?? '',
+      // === Required fields (direct mapping) ===
+      teamName: game.team_name,
+      opponentName: game.opponent_name,
+      gameDate: game.game_date,
+      homeOrAway: game.home_or_away as 'home' | 'away',
+      numberOfPeriods: game.number_of_periods as 1 | 2,
+      periodDurationMinutes: game.period_duration_minutes,
+      currentPeriod: game.current_period,
+      gameStatus: game.game_status as AppState['gameStatus'],
+      isPlayed: game.is_played,
+      homeScore: game.home_score,
+      awayScore: game.away_score,
+      gameNotes: game.game_notes,
+      showPlayerNames: game.show_player_names,
+      // === Optional fields (null → undefined for TypeScript semantics) ===
+      subIntervalMinutes: game.sub_interval_minutes ?? undefined,
+      demandFactor: game.demand_factor ?? undefined,
+      gameType: game.game_type as AppState['gameType'] ?? undefined,
+      gender: game.gender as AppState['gender'] ?? undefined,
+      // === Array/object fields ===
+      gamePersonnel: game.game_personnel ?? [],
+      formationSnapPoints: (game.formation_snap_points as Point[] | null) ?? undefined,
+      // === Timer restoration ===
+      timeElapsedInSeconds: game.time_elapsed_in_seconds ?? undefined,
+      // === Player arrays ===
+      playersOnField,
+      availablePlayers,
+      selectedPlayerIds,
+      // === Events and assessments ===
+      gameEvents,
+      assessments: assessmentsRecord,
+      // === Tactical data from JSONB columns ===
+      opponents: (tacticalData?.opponents as Opponent[] | null) ?? [],
+      drawings: (tacticalData?.drawings as Point[][] | null) ?? [],
+      tacticalDiscs: (tacticalData?.tactical_discs as TacticalDisc[] | null) ?? [],
+      tacticalDrawings: (tacticalData?.tactical_drawings as Point[][] | null) ?? [],
+      tacticalBallPosition: (tacticalData?.tactical_ball_position as Point | null) ?? null,
+      completedIntervalDurations: (tacticalData?.completed_interval_durations as IntervalLog[] | null) ?? [],
+      lastSubConfirmationTimeSeconds: tacticalData?.last_sub_confirmation_time_seconds ?? undefined,
+    };
+  }
+
+  // ==========================================================================
+  // GAMES
+  // ==========================================================================
+
+  /**
+   * Fetch a single game with all related data from 5 tables.
+   */
+  private async fetchGameTables(gameId: string): Promise<GameTableSetRow | null> {
+    const client = this.getClient();
+
+    // Type aliases for query results (Supabase client type inference doesn't work well with Promise.all)
+    type GameQueryResult = { data: GameRow | null; error: { message: string; code?: string } | null };
+    type PlayersQueryResult = { data: GamePlayerRow[] | null; error: { message: string } | null };
+    type EventsQueryResult = { data: GameEventRow[] | null; error: { message: string } | null };
+    type AssessmentsQueryResult = { data: PlayerAssessmentRow[] | null; error: { message: string } | null };
+    type TacticalQueryResult = { data: GameTacticalDataRow | null; error: { message: string; code?: string } | null };
+
+    // Fetch all 5 tables in parallel
+    const [gameResult, playersResult, eventsResult, assessmentsResult, tacticalResult] = await Promise.all([
+      client.from('games').select('*').eq('id', gameId).single() as unknown as Promise<GameQueryResult>,
+      client.from('game_players').select('*').eq('game_id', gameId) as unknown as Promise<PlayersQueryResult>,
+      client.from('game_events').select('*').eq('game_id', gameId) as unknown as Promise<EventsQueryResult>,
+      client.from('player_assessments').select('*').eq('game_id', gameId) as unknown as Promise<AssessmentsQueryResult>,
+      client.from('game_tactical_data').select('*').eq('game_id', gameId).single() as unknown as Promise<TacticalQueryResult>,
+    ]);
+
+    // Game not found
+    if (gameResult.error || !gameResult.data) {
+      return null;
+    }
+
+    // Handle errors from child tables (non-fatal since game exists)
+    if (playersResult.error) {
+      logger.warn(`[SupabaseDataStore] Failed to fetch game_players: ${playersResult.error.message}`);
+    }
+    if (eventsResult.error) {
+      logger.warn(`[SupabaseDataStore] Failed to fetch game_events: ${eventsResult.error.message}`);
+    }
+    if (assessmentsResult.error) {
+      logger.warn(`[SupabaseDataStore] Failed to fetch player_assessments: ${assessmentsResult.error.message}`);
+    }
+    // Tactical data may legitimately not exist (PGRST116 = not found)
+    if (tacticalResult.error && tacticalResult.error.code !== 'PGRST116') {
+      logger.warn(`[SupabaseDataStore] Failed to fetch game_tactical_data: ${tacticalResult.error.message}`);
+    }
+
+    return {
+      game: gameResult.data,
+      players: playersResult.data || [],
+      events: eventsResult.data || [],
+      assessments: assessmentsResult.data || [],
+      tacticalData: tacticalResult.data || null,
+    };
+  }
 
   async getGames(): Promise<SavedGamesCollection> {
-    throw new Error('Games not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    // Fetch all games
+    const { data: games, error } = await this.getClient()
+      .from('games')
+      .select('id')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new NetworkError(`Failed to fetch games: ${error.message}`);
+    }
+
+    if (!games || games.length === 0) {
+      return {};
+    }
+
+    // Fetch full data for each game
+    const collection: SavedGamesCollection = {};
+    for (const { id } of games) {
+      const tables = await this.fetchGameTables(id);
+      if (tables) {
+        collection[id] = this.transformTablesToGame(tables);
+      }
+    }
+
+    return collection;
   }
 
-  async getGameById(_id: string): Promise<AppState | null> {
-    throw new Error('Games not implemented - PR #4');
+  async getGameById(id: string): Promise<AppState | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const tables = await this.fetchGameTables(id);
+    if (!tables) {
+      return null;
+    }
+
+    return this.transformTablesToGame(tables);
   }
 
-  async createGame(_game: Partial<AppState>): Promise<{ gameId: string; gameData: AppState }> {
-    throw new Error('Games not implemented - PR #4');
+  /**
+   * Create a new game with defaults.
+   *
+   * CRITICAL: Applies defaults per implementation guide Rule #10.
+   * Especially periodDurationMinutes which has NO schema default.
+   */
+  async createGame(partialGame: Partial<AppState> = {}): Promise<{ gameId: string; gameData: AppState }> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const gameId = generateId('game');
+    const now = new Date();
+
+    // Build complete game with defaults (Rule #10)
+    const gameData: AppState = {
+      // === Defaults that MUST be provided (no DB default) ===
+      periodDurationMinutes: 10,
+      subIntervalMinutes: 5,
+      showPlayerNames: true,
+      tacticalBallPosition: DEFAULT_FIELD_POSITION,
+      lastSubConfirmationTimeSeconds: 0,
+      // === Other sensible defaults (must match LocalDataStore for parity) ===
+      teamName: 'My Team',
+      opponentName: 'Opponent',
+      gameDate: now.toISOString().split('T')[0],
+      homeOrAway: 'home',
+      numberOfPeriods: 2,
+      currentPeriod: 1,
+      gameStatus: 'notStarted',
+      isPlayed: true,
+      homeScore: 0,
+      awayScore: 0,
+      gameNotes: '',
+      // === Arrays default to empty ===
+      playersOnField: [],
+      availablePlayers: [],
+      selectedPlayerIds: [],
+      gameEvents: [],
+      assessments: {},
+      opponents: [],
+      drawings: [],
+      tacticalDiscs: [],
+      tacticalDrawings: [],
+      completedIntervalDurations: [],
+      gamePersonnel: [],
+      // === Nullable strings default to empty ===
+      seasonId: '',
+      tournamentId: '',
+      tournamentSeriesId: '',
+      tournamentLevel: '',
+      teamId: '',
+      gameTime: '',
+      gameLocation: '',
+      ageGroup: '',
+      leagueId: '',
+      customLeagueName: '',
+      // === Override with provided values ===
+      ...partialGame,
+    };
+
+    // Save the game
+    await this.saveGame(gameId, gameData);
+
+    return { gameId, gameData };
   }
 
-  async saveGame(_id: string, _game: AppState): Promise<AppState> {
-    throw new Error('Games not implemented - PR #4');
+  /**
+   * Save (create or update) a game with all related data.
+   *
+   * Uses the RPC function `save_game_with_relations` for atomic 5-table writes.
+   * This ensures all game data is saved in a single PostgreSQL transaction,
+   * preventing partial writes if network fails mid-operation.
+   *
+   * @see supabase/migrations/001_rpc_functions.sql
+   */
+  async saveGame(id: string, game: AppState): Promise<AppState> {
+    this.ensureInitialized();
+    checkOnline();
+
+    // Validate using shared helper (Rule #14 - same validation as LocalDataStore)
+    validateGame(game);
+
+    const userId = await this.getUserId();
+    const tables = this.transformGameToTables(id, game, userId);
+
+    // Use RPC for atomic 5-table write within a single PostgreSQL transaction
+    // Type assertion needed: RPC functions are not in generated Supabase types until deployed
+    const client = this.getClient();
+    const { error } = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string } | null }>)(
+      'save_game_with_relations',
+      {
+        p_game: tables.game,
+        p_players: tables.players,
+        p_events: tables.events,
+        p_assessments: tables.assessments,
+        p_tactical_data: tables.tacticalData,
+      }
+    );
+
+    if (error) {
+      throw new NetworkError(`Failed to save game: ${error.message}`);
+    }
+
+    return game;
   }
 
-  async saveAllGames(_games: SavedGamesCollection): Promise<void> {
-    throw new Error('Games not implemented - PR #4');
+  /**
+   * Save all games (bulk operation for migration).
+   *
+   * Validates ALL games before saving ANY to ensure atomic-like behavior.
+   * If any game fails validation, no games are saved.
+   */
+  async saveAllGames(games: SavedGamesCollection): Promise<void> {
+    this.ensureInitialized();
+    checkOnline();
+
+    // Validate ALL games before saving ANY (fail-fast, matches LocalDataStore)
+    for (const [gameId, game] of Object.entries(games)) {
+      if (!game || typeof game !== 'object') {
+        throw new ValidationError(`Invalid game data for ${gameId}`, 'games', game);
+      }
+      validateGame(game, gameId);
+    }
+
+    // Save each game sequentially to avoid overwhelming the database
+    for (const [id, game] of Object.entries(games)) {
+      await this.saveGame(id, game);
+    }
   }
 
-  async deleteGame(_id: string): Promise<boolean> {
-    throw new Error('Games not implemented - PR #4');
+  async deleteGame(id: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    // Child tables have ON DELETE CASCADE, so just delete the game
+    const { error, count } = await this.getClient()
+      .from('games')
+      .delete({ count: 'exact' })
+      .eq('id', id);
+
+    if (error) {
+      throw new NetworkError(`Failed to delete game: ${error.message}`);
+    }
+
+    return (count ?? 0) > 0;
   }
 
   // ==========================================================================
-  // GAME EVENTS (PR #4 - Stub implementations)
+  // GAME EVENTS (Rule #11: Full-save approach for order_index integrity)
   // ==========================================================================
 
-  async addGameEvent(_gameId: string, _event: GameEvent): Promise<AppState | null> {
-    throw new Error('Game events not implemented - PR #4');
+  /**
+   * Add a game event.
+   *
+   * Uses full-save strategy to maintain contiguous order_index values.
+   */
+  async addGameEvent(gameId: string, event: GameEvent): Promise<AppState | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const game = await this.getGameById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    // Add event to the end of the array
+    const updatedGame: AppState = {
+      ...game,
+      gameEvents: [...(game.gameEvents ?? []), event],
+    };
+
+    // Full save ensures order_index is recalculated
+    await this.saveGame(gameId, updatedGame);
+    return updatedGame;
   }
 
-  async updateGameEvent(_gameId: string, _eventIndex: number, _event: GameEvent): Promise<AppState | null> {
-    throw new Error('Game events not implemented - PR #4');
+  /**
+   * Update a game event at a specific index.
+   *
+   * Uses full-save strategy to maintain order_index integrity.
+   */
+  async updateGameEvent(gameId: string, eventIndex: number, event: GameEvent): Promise<AppState | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const game = await this.getGameById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    const events = [...(game.gameEvents ?? [])];
+    if (eventIndex < 0 || eventIndex >= events.length) {
+      return null;
+    }
+
+    events[eventIndex] = event;
+
+    const updatedGame: AppState = {
+      ...game,
+      gameEvents: events,
+    };
+
+    await this.saveGame(gameId, updatedGame);
+    return updatedGame;
   }
 
-  async removeGameEvent(_gameId: string, _eventIndex: number): Promise<AppState | null> {
-    throw new Error('Game events not implemented - PR #4');
+  /**
+   * Remove a game event at a specific index.
+   *
+   * Uses full-save strategy - array splice ensures order_index stays contiguous.
+   */
+  async removeGameEvent(gameId: string, eventIndex: number): Promise<AppState | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const game = await this.getGameById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    const events = [...(game.gameEvents ?? [])];
+    if (eventIndex < 0 || eventIndex >= events.length) {
+      return null;
+    }
+
+    // Splice removes the event and reindexes remaining
+    events.splice(eventIndex, 1);
+
+    const updatedGame: AppState = {
+      ...game,
+      gameEvents: events,
+    };
+
+    await this.saveGame(gameId, updatedGame);
+    return updatedGame;
   }
 
   // ==========================================================================
-  // PLAYER ADJUSTMENTS (PR #4 - Stub implementations)
+  // PLAYER ADJUSTMENTS
   // ==========================================================================
 
-  async getPlayerAdjustments(_playerId: string): Promise<PlayerStatAdjustment[]> {
-    throw new Error('Player adjustments not implemented - PR #4');
+  async getPlayerAdjustments(playerId: string): Promise<PlayerStatAdjustment[]> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const { data, error } = await this.getClient()
+      .from('player_adjustments')
+      .select('*')
+      .eq('player_id', playerId)
+      .order('applied_at', { ascending: false });
+
+    if (error) {
+      throw new NetworkError(`Failed to fetch player adjustments: ${error.message}`);
+    }
+
+    return (data || []).map((row: PlayerAdjustmentRow) => this.transformAdjustmentFromDb(row));
   }
 
   async addPlayerAdjustment(
-    _adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment> {
-    throw new Error('Player adjustments not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const id = adjustment.id || generateId('adjustment');
+    const appliedAt = adjustment.appliedAt || new Date().toISOString();
+
+    const dbAdjustment = this.transformAdjustmentToDb(
+      { ...adjustment, id, appliedAt } as PlayerStatAdjustment,
+      userId
+    );
+
+    const { error } = await this.getClient()
+      .from('player_adjustments')
+       
+      .insert(dbAdjustment as unknown as never);
+
+    if (error) {
+      throw new NetworkError(`Failed to add player adjustment: ${error.message}`);
+    }
+
+    return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
   }
 
   async updatePlayerAdjustment(
-    _playerId: string,
-    _adjustmentId: string,
-    _patch: Partial<PlayerStatAdjustment>
+    playerId: string,
+    adjustmentId: string,
+    patch: Partial<PlayerStatAdjustment>
   ): Promise<PlayerStatAdjustment | null> {
-    throw new Error('Player adjustments not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    // Fetch existing adjustment
+    const { data: existing, error: fetchError } = await this.getClient()
+      .from('player_adjustments')
+      .select('*')
+      .eq('id', adjustmentId)
+      .eq('player_id', playerId)
+      .single();
+
+    if (fetchError || !existing) {
+      return null;
+    }
+
+    const existingAdjustment = this.transformAdjustmentFromDb(existing as PlayerAdjustmentRow);
+    const updated = { ...existingAdjustment, ...patch };
+    const userId = await this.getUserId();
+
+    const { error: updateError } = await this.getClient()
+      .from('player_adjustments')
+       
+      .update(this.transformAdjustmentToDb(updated, userId) as unknown as never)
+      .eq('id', adjustmentId)
+      .eq('player_id', playerId);
+
+    if (updateError) {
+      throw new NetworkError(`Failed to update player adjustment: ${updateError.message}`);
+    }
+
+    return updated;
   }
 
-  async deletePlayerAdjustment(_playerId: string, _adjustmentId: string): Promise<boolean> {
-    throw new Error('Player adjustments not implemented - PR #4');
+  async deletePlayerAdjustment(playerId: string, adjustmentId: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const { error, count } = await this.getClient()
+      .from('player_adjustments')
+      .delete({ count: 'exact' })
+      .eq('id', adjustmentId)
+      .eq('player_id', playerId);
+
+    if (error) {
+      throw new NetworkError(`Failed to delete player adjustment: ${error.message}`);
+    }
+
+    return (count ?? 0) > 0;
+  }
+
+  // Player adjustment transforms
+  private transformAdjustmentFromDb(row: PlayerAdjustmentRow): PlayerStatAdjustment {
+    return {
+      id: row.id,
+      playerId: row.player_id,
+      seasonId: row.season_id ?? undefined,
+      teamId: row.team_id ?? undefined,
+      tournamentId: row.tournament_id ?? undefined,
+      externalTeamName: row.external_team_name ?? undefined,
+      opponentName: row.opponent_name ?? undefined,
+      scoreFor: row.score_for ?? undefined,
+      scoreAgainst: row.score_against ?? undefined,
+      gameDate: row.game_date ?? undefined,
+      homeOrAway: (row.home_or_away as 'home' | 'away' | 'neutral') ?? undefined,
+      includeInSeasonTournament: row.include_in_season_tournament ?? true,
+      gamesPlayedDelta: row.games_played_delta ?? 0,
+      goalsDelta: row.goals_delta ?? 0,
+      assistsDelta: row.assists_delta ?? 0,
+      fairPlayCardsDelta: row.fair_play_cards_delta ?? undefined,
+      note: row.note ?? undefined,
+      createdBy: row.created_by ?? undefined,
+      appliedAt: row.applied_at ?? new Date().toISOString(),
+    };
+  }
+
+  private transformAdjustmentToDb(
+    adjustment: PlayerStatAdjustment,
+    userId: string
+  ): PlayerAdjustmentInsert {
+    return {
+      id: adjustment.id,
+      user_id: userId,
+      player_id: adjustment.playerId,
+      season_id: adjustment.seasonId,
+      team_id: adjustment.teamId,
+      tournament_id: adjustment.tournamentId,
+      external_team_name: adjustment.externalTeamName,
+      opponent_name: adjustment.opponentName,
+      score_for: adjustment.scoreFor,
+      score_against: adjustment.scoreAgainst,
+      game_date: adjustment.gameDate,
+      home_or_away: adjustment.homeOrAway,
+      include_in_season_tournament: adjustment.includeInSeasonTournament ?? true,
+      games_played_delta: adjustment.gamesPlayedDelta,
+      goals_delta: adjustment.goalsDelta,
+      assists_delta: adjustment.assistsDelta,
+      fair_play_cards_delta: adjustment.fairPlayCardsDelta,
+      note: adjustment.note,
+      created_by: adjustment.createdBy,
+      applied_at: adjustment.appliedAt,
+    };
   }
 
   // ==========================================================================
-  // WARMUP PLAN (PR #4 - Stub implementations)
+  // WARMUP PLAN
   // ==========================================================================
 
   async getWarmupPlan(): Promise<WarmupPlan | null> {
-    throw new Error('Warmup plan not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    // Each user has at most one warmup plan
+    const { data, error } = await this.getClient()
+      .from('warmup_plans')
+      .select('*')
+      .limit(1)
+      .single();
+
+    // PGRST116 = row not found - this is expected if no plan exists
+    if (error && error.code !== 'PGRST116') {
+      throw new NetworkError(`Failed to fetch warmup plan: ${error.message}`);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return this.transformWarmupPlanFromDb(data as WarmupPlanRow);
   }
 
-  async saveWarmupPlan(_plan: WarmupPlan): Promise<boolean> {
-    throw new Error('Warmup plan not implemented - PR #4');
+  async saveWarmupPlan(plan: WarmupPlan): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const dbPlan = this.transformWarmupPlanToDb(plan, userId);
+
+    const { error } = await this.getClient()
+      .from('warmup_plans')
+       
+      .upsert(dbPlan as unknown as never);
+
+    if (error) {
+      throw new NetworkError(`Failed to save warmup plan: ${error.message}`);
+    }
+
+    return true;
   }
 
   async deleteWarmupPlan(): Promise<boolean> {
-    throw new Error('Warmup plan not implemented - PR #4');
+    this.ensureInitialized();
+    checkOnline();
+
+    // Get user ID for explicit filter (defense in depth - don't rely solely on RLS)
+    const userId = await this.getUserId();
+
+    // Delete warmup plan for current user only (should be only one)
+    const { error, count } = await this.getClient()
+      .from('warmup_plans')
+      .delete({ count: 'exact' })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new NetworkError(`Failed to delete warmup plan: ${error.message}`);
+    }
+
+    return (count ?? 0) > 0;
+  }
+
+  // Warmup plan transforms
+  private transformWarmupPlanFromDb(row: WarmupPlanRow): WarmupPlan {
+    return {
+      id: row.id,
+      version: row.version,
+      lastModified: row.last_modified,
+      isDefault: row.is_default,
+      sections: (row.sections as WarmupPlanSection[]) ?? [],
+    };
+  }
+
+  private transformWarmupPlanToDb(plan: WarmupPlan, userId: string): WarmupPlanInsert {
+    return {
+      id: plan.id,
+      user_id: userId,
+      version: plan.version,
+      last_modified: plan.lastModified,
+      is_default: plan.isDefault,
+      sections: plan.sections as unknown as Database['public']['Tables']['warmup_plans']['Insert']['sections'],
+    };
   }
 
   // ==========================================================================
