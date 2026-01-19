@@ -8,7 +8,6 @@ import {
   isCloudAvailable,
   enableCloudMode,
   disableCloudMode,
-  hasModeOverride,
 } from '@/config/backendConfig';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
@@ -36,9 +35,9 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
   const { t } = useTranslation();
   const { showToast } = useToast();
 
-  const [currentMode, setCurrentMode] = useState<'local' | 'cloud'>('local');
-  const [cloudAvailable, setCloudAvailable] = useState(false);
-  const [hasOverride, setHasOverride] = useState(false);
+  // Use lazy initialization to load values only once on mount (avoids lint warning about setState in useEffect)
+  const [currentMode] = useState<'local' | 'cloud'>(() => getBackendMode());
+  const [cloudAvailable] = useState(() => isCloudAvailable());
   const [isChangingMode, setIsChangingMode] = useState(false);
 
   // Track mount state to prevent state updates after unmount
@@ -47,13 +46,6 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
     return () => {
       isMountedRef.current = false;
     };
-  }, []);
-
-  // Load current state on mount
-  useEffect(() => {
-    setCurrentMode(getBackendMode());
-    setCloudAvailable(isCloudAvailable());
-    setHasOverride(hasModeOverride());
   }, []);
 
   const handleEnableCloud = () => {
@@ -70,20 +62,22 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
       const success = enableCloudMode();
       if (success) {
         showToast(
-          t('cloudSync.enabledRestartRequired', 'Cloud mode enabled. Restart the app to apply changes.'),
+          t('cloudSync.enabledReloading', 'Cloud mode enabled. Reloading...'),
           'success'
         );
-        // Optimistically update local state for immediate UI feedback.
-        // Note: getBackendMode() won't return 'cloud' until after restart,
-        // but this component's local state shows the pending mode.
-        setCurrentMode('cloud');
-        setHasOverride(true);
         onModeChange?.();
+        // Reload after brief delay so user sees the toast
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         showToast(
           t('cloudSync.enableFailed', 'Failed to enable cloud mode. Please try again.'),
           'error'
         );
+        if (isMountedRef.current) {
+          setIsChangingMode(false);
+        }
       }
     } catch (error) {
       logger.error('[CloudSyncSection] Failed to enable cloud mode:', error);
@@ -91,7 +85,6 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
         t('cloudSync.enableError', 'An error occurred while enabling cloud mode.'),
         'error'
       );
-    } finally {
       if (isMountedRef.current) {
         setIsChangingMode(false);
       }
@@ -104,15 +97,14 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
       const success = disableCloudMode();
       if (success) {
         showToast(
-          t('cloudSync.disabledRestartRequired', 'Local mode enabled. Restart the app to apply changes.'),
+          t('cloudSync.disabledReloading', 'Local mode enabled. Reloading...'),
           'success'
         );
-        // Optimistically update local state for immediate UI feedback.
-        // Note: getBackendMode() won't return 'local' until after restart,
-        // but this component's local state shows the pending mode.
-        setCurrentMode('local');
-        setHasOverride(true);
         onModeChange?.();
+        // Reload after brief delay so user sees the toast
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         // localStorage write was denied (e.g., browser policy, quota exceeded)
         logger.warn('[CloudSyncSection] Failed to persist local mode - localStorage write denied');
@@ -120,6 +112,9 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
           t('cloudSync.disableFailed', 'Failed to switch to local mode. Please try again.'),
           'error'
         );
+        if (isMountedRef.current) {
+          setIsChangingMode(false);
+        }
       }
     } catch (error) {
       logger.error('[CloudSyncSection] Failed to disable cloud mode:', error);
@@ -127,7 +122,6 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
         t('cloudSync.disableError', 'An error occurred while disabling cloud mode.'),
         'error'
       );
-    } finally {
       if (isMountedRef.current) {
         setIsChangingMode(false);
       }
@@ -221,13 +215,6 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
           </button>
         )}
       </div>
-
-      {/* Restart Required Notice */}
-      {hasOverride && (
-        <p className="text-xs text-amber-400 text-center">
-          {t('cloudSync.restartRequired', 'Restart the app to apply mode changes.')}
-        </p>
-      )}
 
       {/* Migration Note */}
       {currentMode === 'local' && cloudAvailable && (
