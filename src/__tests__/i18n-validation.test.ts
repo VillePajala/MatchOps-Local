@@ -257,14 +257,14 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // PR #8: Added 19 cloudSync keys (1698 + 19 = 1717)
-      expect(enKeys.length).toBe(1717);
+      // PR #8: Added 20 cloudSync keys (1698 + 20 = 1718)
+      expect(enKeys.length).toBe(1718);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // PR #8: Added 19 cloudSync keys (1698 + 19 = 1717)
-      expect(fiKeys.length).toBe(1717);
+      // PR #8: Added 20 cloudSync keys (1698 + 20 = 1718)
+      expect(fiKeys.length).toBe(1718);
     });
   });
 });

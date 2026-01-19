@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import {
@@ -41,6 +41,14 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
   const [hasOverride, setHasOverride] = useState(false);
   const [isChangingMode, setIsChangingMode] = useState(false);
 
+  // Track mount state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Load current state on mount
   useEffect(() => {
     setCurrentMode(getBackendMode());
@@ -65,6 +73,9 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
           t('cloudSync.enabledRestartRequired', 'Cloud mode enabled. Restart the app to apply changes.'),
           'success'
         );
+        // Optimistically update local state for immediate UI feedback.
+        // Note: getBackendMode() won't return 'cloud' until after restart,
+        // but this component's local state shows the pending mode.
         setCurrentMode('cloud');
         setHasOverride(true);
         onModeChange?.();
@@ -81,21 +92,35 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
         'error'
       );
     } finally {
-      setIsChangingMode(false);
+      if (isMountedRef.current) {
+        setIsChangingMode(false);
+      }
     }
   };
 
   const handleDisableCloud = () => {
     setIsChangingMode(true);
     try {
-      disableCloudMode();
-      showToast(
-        t('cloudSync.disabledRestartRequired', 'Local mode enabled. Restart the app to apply changes.'),
-        'success'
-      );
-      setCurrentMode('local');
-      setHasOverride(true);
-      onModeChange?.();
+      const success = disableCloudMode();
+      if (success) {
+        showToast(
+          t('cloudSync.disabledRestartRequired', 'Local mode enabled. Restart the app to apply changes.'),
+          'success'
+        );
+        // Optimistically update local state for immediate UI feedback.
+        // Note: getBackendMode() won't return 'local' until after restart,
+        // but this component's local state shows the pending mode.
+        setCurrentMode('local');
+        setHasOverride(true);
+        onModeChange?.();
+      } else {
+        // localStorage write was denied (e.g., browser policy, quota exceeded)
+        logger.warn('[CloudSyncSection] Failed to persist local mode - localStorage write denied');
+        showToast(
+          t('cloudSync.disableFailed', 'Failed to switch to local mode. Please try again.'),
+          'error'
+        );
+      }
     } catch (error) {
       logger.error('[CloudSyncSection] Failed to disable cloud mode:', error);
       showToast(
@@ -103,7 +128,9 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
         'error'
       );
     } finally {
-      setIsChangingMode(false);
+      if (isMountedRef.current) {
+        setIsChangingMode(false);
+      }
     }
   };
 
