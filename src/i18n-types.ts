@@ -17,6 +17,7 @@ export type TranslationKey =
   | 'auth.email'
   | 'auth.forgotPassword'
   | 'auth.hasAccount'
+  | 'auth.networkErrorHint'
   | 'auth.noAccount'
   | 'auth.password'
   | 'auth.passwordMismatch'
