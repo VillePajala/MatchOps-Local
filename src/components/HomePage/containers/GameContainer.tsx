@@ -37,8 +37,8 @@ export function GameContainer({
   onToggleGoalie,
   onTeamNameChange,
   onOpponentNameChange,
-  orphanedGameInfo,
-  onOpenTeamReassignModal,
+  orphanedGameInfo: _orphanedGameInfo,
+  onOpenTeamReassignModal: _onOpenTeamReassignModal,
   fieldProps,
   controlBarProps,
 }: GameContainerProps) {
