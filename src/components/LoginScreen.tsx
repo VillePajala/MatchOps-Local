@@ -20,6 +20,14 @@ import { useAuth } from '@/contexts/AuthProvider';
 type AuthMode = 'signIn' | 'signUp' | 'resetPassword';
 
 /**
+ * Check if an error message indicates a network problem.
+ */
+function isNetworkErrorMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('network') || lower.includes('offline') || lower.includes('connection');
+}
+
+/**
  * Login screen component for cloud authentication.
  *
  * @remarks
@@ -150,7 +158,12 @@ export default function LoginScreen() {
         {/* Error/Success Messages */}
         {error && (
           <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
-            {error}
+            <p>{error}</p>
+            {isNetworkErrorMessage(error) && (
+              <p className="mt-1 text-red-300/80">
+                {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
+              </p>
+            )}
           </div>
         )}
         {success && (
