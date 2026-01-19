@@ -16,6 +16,7 @@
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
+import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import logger from '@/utils/logger';
@@ -109,6 +110,11 @@ interface ValidationError {
 
 /**
  * User-facing messages for migration states.
+ *
+ * NOTE: These are hardcoded English strings intentionally. The migration service
+ * runs at the data layer before React context is available, so i18n hooks cannot
+ * be used here. UI components that display MigrationProgress should use i18n keys
+ * from common.json (migration.*) to translate these messages for display.
  */
 export const MIGRATION_MESSAGES = {
   PREPARING: 'Preparing migration...',
@@ -319,7 +325,10 @@ export async function migrateLocalToCloud(
     logger.error('[MigrationService] Migration failed:', error);
 
     // Classify error type for better user feedback
+    // Check NetworkError class first (thrown by SupabaseDataStore), then fallback to string matching
+    // for third-party errors (Supabase client, fetch API)
     const isNetworkError =
+      error instanceof NetworkError ||
       (error instanceof Error && error.name === 'TypeError' && errorMessage.includes('fetch')) ||
       errorMessage.toLowerCase().includes('network') ||
       errorMessage.toLowerCase().includes('offline') ||
@@ -384,8 +393,8 @@ async function exportAllLocalData(
   exportProgress(3, 'team rosters');
   const allRosters = await localStore.getAllTeamRosters();
   const teamRosters = new Map<string, TeamPlayer[]>();
-  for (const teamId of Object.keys(allRosters)) {
-    teamRosters.set(teamId, allRosters[teamId]);
+  for (const [teamId, roster] of Object.entries(allRosters)) {
+    teamRosters.set(teamId, roster);
   }
 
   // Seasons - use getSeasons(true) to apply runtime migrations:

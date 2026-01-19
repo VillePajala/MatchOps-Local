@@ -40,6 +40,8 @@ const mockTeam: Team = {
   id: 'team-1',
   name: 'Test Team',
   gameType: 'soccer',
+  createdAt: '2025-01-01T00:00:00.000Z',
+  updatedAt: '2025-01-01T00:00:00.000Z',
 };
 
 const mockSeason: Season = {
@@ -62,6 +64,8 @@ const mockPersonnel: Personnel = {
   id: 'personnel-1',
   name: 'Coach Smith',
   role: 'head_coach',
+  createdAt: '2025-01-01T00:00:00.000Z',
+  updatedAt: '2025-01-01T00:00:00.000Z',
 };
 
 // TeamPlayer is the roster entry format (different from Player)
@@ -72,13 +76,21 @@ const mockTeamPlayer: TeamPlayer = {
   isGoalie: false,
 };
 
+// Note: AppState doesn't have an 'id' field - game IDs are keys in SavedGamesCollection
 const mockGame: AppState = {
-  id: 'game-1',
-  gameName: 'Test Game',
+  teamName: 'Home Team',
+  opponentName: 'Test Opponent',
+  gameDate: '2025-01-15',
   homeScore: 2,
   awayScore: 1,
   homeOrAway: 'home',
+  numberOfPeriods: 2,
+  periodDurationMinutes: 20,
+  currentPeriod: 2,
+  gameStatus: 'gameEnd',
   isPlayed: true,
+  showPlayerNames: true,
+  gameNotes: '',
   availablePlayers: [mockPlayer],
   selectedPlayerIds: ['player-1'],
   playersOnField: [],
@@ -87,6 +99,7 @@ const mockGame: AppState = {
   drawings: [],
   tacticalDiscs: [],
   tacticalDrawings: [],
+  tacticalBallPosition: null,
   completedIntervalDurations: [],
   gamePersonnel: [],
   seasonId: '',
@@ -99,7 +112,6 @@ const mockGame: AppState = {
   ageGroup: '',
   leagueId: '',
   customLeagueName: '',
-  opponentName: 'Test Opponent',
 };
 
 // =============================================================================
