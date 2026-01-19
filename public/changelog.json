@@ -1,8 +1,8 @@
 {
-  "version": "b3926ec7",
+  "version": "e31cf0dd",
   "date": "2026-01-19",
   "notes": {
-    "en": "Use non-empty defaults for teamName/opponentName in createGame",
-    "fi": "Use non-empty defaults for teamName/opponentName in createGame"
+    "en": "Update i18n key count for networkErrorHint addition",
+    "fi": "Update i18n key count for networkErrorHint addition"
   }
 }

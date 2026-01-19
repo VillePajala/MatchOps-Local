@@ -1948,5 +1948,35 @@
     "signInLink": "Sign in",
     "backToSignIn": "Back to sign in",
     "networkErrorHint": "Please check your internet connection and try again."
+  },
+  "migration": {
+    "title": "Migrate to Cloud",
+    "description": "Transfer your local data to your cloud account for backup and sync across devices.",
+    "preparing": "Preparing migration...",
+    "exporting": "Exporting local data...",
+    "validating": "Validating data integrity...",
+    "uploading": "Uploading to cloud...",
+    "verifying": "Verifying migration...",
+    "success": "Migration complete! Your data is now synced to the cloud.",
+    "partialFailure": "Migration was interrupted. Your local data is safe. Please try again.",
+    "verificationFailed": "Migration completed but verification failed. Please retry.",
+    "networkError": "Network error during migration. Your local data is unchanged.",
+    "clearLocalPrompt": "Would you like to clear local data? (Your cloud data is safe)",
+    "startButton": "Start Migration",
+    "retryButton": "Retry Migration",
+    "cancelButton": "Cancel",
+    "summary": {
+      "title": "Data Summary",
+      "players": "Players",
+      "teams": "Teams",
+      "seasons": "Seasons",
+      "tournaments": "Tournaments",
+      "games": "Games",
+      "personnel": "Personnel"
+    },
+    "progress": {
+      "entity": "Migrating {{entity}}...",
+      "complete": "{{count}} items migrated"
+    }
   }
 }
