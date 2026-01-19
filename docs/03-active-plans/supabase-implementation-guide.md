@@ -4030,6 +4030,8 @@ The following items are deferred and can be implemented if/when needed:
 
 - [ ] **Real-time subscriptions**: Supabase supports real-time via websockets. Could enable for multi-device sync if user has multiple devices.
 
+- [ ] **Remove legacy personnel array normalization**: `normalizePersonnelArray()` in `migrationService.ts` handles legacy `Record<string, Personnel>` format that may no longer exist in production. Monitor logs for 3 months after launch (it logs a warning when triggered). If never triggered, remove the backward compatibility code. Added: January 2026.
+
 ---
 
 ## Summary
