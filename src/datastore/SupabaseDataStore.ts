@@ -2154,9 +2154,9 @@ export class SupabaseDataStore implements DataStore {
       showPlayerNames: true,
       tacticalBallPosition: DEFAULT_FIELD_POSITION,
       lastSubConfirmationTimeSeconds: 0,
-      // === Other sensible defaults ===
-      teamName: '',
-      opponentName: '',
+      // === Other sensible defaults (must match LocalDataStore for parity) ===
+      teamName: 'My Team',
+      opponentName: 'Opponent',
       gameDate: now.toISOString().split('T')[0],
       homeOrAway: 'home',
       numberOfPeriods: 2,
