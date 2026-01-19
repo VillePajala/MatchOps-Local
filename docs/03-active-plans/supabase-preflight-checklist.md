@@ -390,6 +390,16 @@ Run these against test data:
 - [ ] Verify JSONB columns have proper types (not `unknown`): tactical_discs, tactical_ball_position, tactical_drawings, etc.
 - [ ] Remove `as unknown` type assertions in SupabaseDataStore.ts where proper types now exist
 
+### Deferred from PR #5
+- [ ] Create `/reset-password` page for password reset flow
+  - Currently: Reset email links to `/reset-password` which returns 404
+  - User must manually navigate to `/` and sign in after resetting password
+  - Create `src/app/reset-password/page.tsx` to handle the redirect gracefully
+- [ ] Mode switching cleanup verification
+  - Verify local→cloud and cloud→local mode switches properly clear caches
+  - Ensure no stale data persists across mode changes
+- [ ] (Optional) Real-time password strength feedback in LoginScreen
+
 ### Integration Test Scenarios
 - [ ] Fresh install → local mode works
 - [ ] Enable cloud → sign up → migrate → data syncs
