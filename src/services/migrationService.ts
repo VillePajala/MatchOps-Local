@@ -104,6 +104,18 @@ interface ValidationError {
   message: string;
 }
 
+/**
+ * Cloud entity counts for pre/post migration comparison.
+ */
+interface CloudCounts {
+  players: number;
+  teams: number;
+  seasons: number;
+  tournaments: number;
+  games: number;
+  personnel: number;
+}
+
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -284,15 +296,19 @@ export async function migrateLocalToCloud(
       logger.warn('[MigrationService] Validation warnings:', validationWarnings);
     }
 
-    // Step 3: Upload to cloud (uses upserts - safe to retry)
+    // Step 3: Get pre-migration cloud counts (for verification)
+    // This allows us to detect partial upload failures by comparing (post - pre) vs expected
+    const preCounts = await getCloudCounts(cloudStore);
+
+    // Step 4: Upload to cloud (uses upserts - safe to retry)
     safeProgress({ stage: 'uploading', progress: PROGRESS_RANGES.UPLOADING.start, message: MIGRATION_MESSAGES.UPLOADING });
 
     const uploadedCounts = await uploadToCloud(localData, cloudStore, safeProgress);
 
-    // Step 4: Verify counts match
+    // Step 5: Verify counts match (compares actual uploads vs expected)
     safeProgress({ stage: 'verifying', progress: PROGRESS_RANGES.VERIFYING.start, message: MIGRATION_MESSAGES.VERIFYING });
 
-    const verified = await verifyMigration(localData, cloudStore);
+    const verified = await verifyMigration(localData, cloudStore, preCounts);
 
     // Add verification warnings (e.g., pre-existing cloud data)
     if (verified.warnings.length > 0) {
@@ -645,7 +661,10 @@ async function uploadToCloud(
     const game = data.games[gameId];
 
     // Update progress more frequently for games (step 7 of 10)
-    if (i % 10 === 0) {
+    // For small datasets (< 10 games), update on first and every game to show activity
+    // For larger datasets, update every 10 games to avoid excessive updates
+    const updateEvery = gameIds.length < 10 ? 1 : 10;
+    if (i % updateEvery === 0) {
       const gameStep = 6 + (i / gameIds.length); // Steps 6-7 for games
       const gamesProgress = Math.round(start + (gameStep / totalSteps) * range);
       onProgress({
@@ -690,58 +709,98 @@ async function uploadToCloud(
 // =============================================================================
 
 /**
- * Verify migration by comparing counts.
+ * Get current cloud entity counts.
+ * Used for pre/post migration comparison to detect partial upload failures.
+ */
+async function getCloudCounts(cloudStore: SupabaseDataStore): Promise<CloudCounts> {
+  const [players, teams, seasons, tournaments, games, personnel] = await Promise.all([
+    cloudStore.getPlayers(),
+    cloudStore.getTeams(true),
+    cloudStore.getSeasons(true),
+    cloudStore.getTournaments(true),
+    cloudStore.getGames(),
+    cloudStore.getAllPersonnel(),
+  ]);
+
+  return {
+    players: players.length,
+    teams: teams.length,
+    seasons: seasons.length,
+    tournaments: tournaments.length,
+    games: Object.keys(games).length,
+    personnel: normalizePersonnelArray(personnel).length,
+  };
+}
+
+/**
+ * Verify migration by comparing actual uploads against expected.
  *
- * Uses "at least" comparison (>=) rather than exact (===) because:
- * - Cloud may have pre-existing data from previous migrations
- * - Upsert pattern merges new data with existing
+ * Uses pre/post snapshot comparison to detect partial upload failures:
+ * - Fresh migration (pre=0): postCount should equal localCount
+ * - Merge migration (pre>0): postCount should be >= max(pre, local) due to upserts
  *
- * Returns warnings when cloud has MORE data than local (indicates pre-existing data).
+ * Why this is complex:
+ * - Upserts UPDATE existing entities (count unchanged) or INSERT new ones (count +1)
+ * - If local and cloud have overlapping IDs, upserts update, not insert
+ * - We can't distinguish "updated existing" from "failed to upload" by count alone
+ *
+ * Strategy:
+ * - If pre=0 (fresh): post should equal local (simple case)
+ * - If pre>0 (merge): post should be >= pre (no data lost) AND post >= local (all local exists)
+ *   The second check catches the edge case where pre=50, local=100, only 30 new uploaded → post=80
+ *   80 >= 50 (ok) but 80 < 100 (fail)
+ *
+ * Returns warnings when cloud had pre-existing data (pre > 0).
  */
 async function verifyMigration(
   localData: LocalDataSnapshot,
-  cloudStore: SupabaseDataStore
+  cloudStore: SupabaseDataStore,
+  preCounts: CloudCounts
 ): Promise<{ success: boolean; errors: string[]; warnings: string[] }> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Get cloud counts in parallel for better performance
-  const [cloudPlayers, cloudTeams, cloudSeasons, cloudTournaments, cloudGames, cloudPersonnel] =
-    await Promise.all([
-      cloudStore.getPlayers(),
-      cloudStore.getTeams(true),
-      cloudStore.getSeasons(true),
-      cloudStore.getTournaments(true),
-      cloudStore.getGames(),
-      cloudStore.getAllPersonnel(),
-    ]);
+  // Get post-migration counts
+  const postCounts = await getCloudCounts(cloudStore);
 
-  // Helper to compare counts and generate appropriate error/warning.
-  // NOTE: Uses >= check (cloudCount >= localCount passes) rather than exact equality.
-  // This means if cloud has pre-existing data, migration succeeds with a warning.
-  // Limitation: Could mask partial failures if cloud already has N items and migration
-  // uploads M < localCount items, resulting in N+M >= localCount passing incorrectly.
-  // For MVP this is acceptable - the upsert pattern makes partial failures unlikely.
-  const compareCount = (entity: string, localCount: number, cloudCount: number) => {
-    if (cloudCount < localCount) {
-      errors.push(`${entity}: expected at least ${localCount}, found ${cloudCount}`);
-    } else if (cloudCount > localCount) {
-      warnings.push(`${entity}: cloud has ${cloudCount} (local had ${localCount}) - pre-existing data merged`);
+  // Helper to verify counts
+  const compareCount = (
+    entity: string,
+    localCount: number,
+    preCount: number,
+    postCount: number
+  ) => {
+    if (preCount === 0) {
+      // Fresh migration: post should equal local
+      if (postCount < localCount) {
+        errors.push(`${entity}: expected ${localCount}, found ${postCount} (${localCount - postCount} failed to upload)`);
+      } else if (postCount > localCount) {
+        // Concurrent upload from another source? Log but don't fail.
+        warnings.push(`${entity}: expected ${localCount}, found ${postCount} (concurrent changes?)`);
+      }
+    } else {
+      // Merge migration: cloud had pre-existing data
+      warnings.push(`${entity}: cloud had ${preCount} pre-existing (now ${postCount} total)`);
+
+      // Post should be at least as many as local (all local data should exist)
+      if (postCount < localCount) {
+        errors.push(`${entity}: cloud has ${postCount} but local had ${localCount} (some failed to upload)`);
+      }
+
+      // Post should be >= pre (no data was lost during migration)
+      if (postCount < preCount) {
+        errors.push(`${entity}: cloud lost data during migration (was ${preCount}, now ${postCount})`);
+      }
     }
   };
 
   // Compare all entity counts
-  compareCount('Players', localData.players.length, cloudPlayers.length);
-  compareCount('Teams', localData.teams.length, cloudTeams.length);
-  compareCount('Seasons', localData.seasons.length, cloudSeasons.length);
-  compareCount('Tournaments', localData.tournaments.length, cloudTournaments.length);
-
-  const localGameCount = Object.keys(localData.games).length;
-  const cloudGameCount = Object.keys(cloudGames).length;
-  compareCount('Games', localGameCount, cloudGameCount);
-
-  const cloudPersonnelArray = normalizePersonnelArray(cloudPersonnel);
-  compareCount('Personnel', localData.personnel.length, cloudPersonnelArray.length);
+  compareCount('Players', localData.players.length, preCounts.players, postCounts.players);
+  compareCount('Teams', localData.teams.length, preCounts.teams, postCounts.teams);
+  compareCount('Seasons', localData.seasons.length, preCounts.seasons, postCounts.seasons);
+  compareCount('Tournaments', localData.tournaments.length, preCounts.tournaments, postCounts.tournaments);
+  compareCount('Games', Object.keys(localData.games).length, preCounts.games, postCounts.games);
+  compareCount('Personnel', localData.personnel.length, preCounts.personnel, postCounts.personnel);
 
   return {
     success: errors.length === 0,
