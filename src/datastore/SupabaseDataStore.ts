@@ -361,6 +361,16 @@ export class SupabaseDataStore implements DataStore {
     this.seasonDatesCache = null;
   }
 
+  /**
+   * Clear all user-specific caches.
+   * Called when auth state changes (user sign out / sign in).
+   */
+  public clearUserCaches(): void {
+    this.seasonDatesCache = null;
+    this.cachedUserId = null;
+    logger.debug('[SupabaseDataStore] User caches cleared');
+  }
+
   // ==========================================================================
   // PLAYERS
   // ==========================================================================

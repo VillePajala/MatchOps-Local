@@ -3,11 +3,13 @@
 import ModalProvider from '@/contexts/ModalProvider';
 import HomePage from '@/components/HomePage';
 import StartScreen from '@/components/StartScreen';
+import LoginScreen from '@/components/LoginScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback } from 'react';
 import { useAppResume } from '@/hooks/useAppResume';
 import { useToast } from '@/contexts/ToastProvider';
+import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -26,6 +28,7 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const { showToast } = useToast();
+  const { isAuthenticated, isLoading: isAuthLoading, mode } = useAuth();
 
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
@@ -154,13 +157,16 @@ export default function Home() {
     setScreen('home');
   };
 
+  // Show login screen in cloud mode when not authenticated
+  const needsAuth = mode === 'cloud' && !isAuthenticated;
+
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
-        {isCheckingState ? (
-          // Loading state while checking for data
+        {isAuthLoading || isCheckingState ? (
+          // Loading state while checking auth or data
           <div className="flex flex-col items-center justify-center h-screen bg-slate-900">
             <div className="flex flex-col items-center gap-6">
               {/* Spinner */}
@@ -170,6 +176,11 @@ export default function Home() {
               <p className="text-slate-400 text-sm">Loading...</p>
             </div>
           </div>
+        ) : needsAuth ? (
+          // Cloud mode: show login screen when not authenticated
+          <ErrorBoundary>
+            <LoginScreen />
+          </ErrorBoundary>
         ) : screen === 'start' ? (
           <ErrorBoundary>
             <StartScreen
