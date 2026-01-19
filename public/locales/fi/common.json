@@ -1978,5 +1978,26 @@
       "entity": "Siirretään {{entity}}...",
       "complete": "{{count}} kohdetta siirretty"
     }
+  },
+  "cloudSync": {
+    "title": "Pilvisynkronointi",
+    "statusLabel": "Nykyinen tila",
+    "cloudMode": "Pilvisynkronointi käytössä",
+    "localMode": "Paikallinen tallennus",
+    "cloudDescription": "Tietosi synkronoidaan pilveen. Pääset niihin käsiksi miltä tahansa laitteelta kirjautumisen jälkeen.",
+    "localDescription": "Tietosi tallennetaan paikallisesti tälle laitteelle. Toimii offline-tilassa, mutta tietoja ei synkronoida.",
+    "notAvailable": "Pilvisynkronointi ei ole käytettävissä. Tämä ominaisuus vaatii premium-tilauksen ja palvelimen määrityksen.",
+    "notConfigured": "Pilvisynkronointia ei ole määritetty. Ota yhteyttä tukeen.",
+    "enableButton": "Ota pilvisynkronointi käyttöön",
+    "disableButton": "Vaihda paikalliseen tilaan",
+    "enabling": "Otetaan käyttöön...",
+    "disabling": "Poistetaan käytöstä...",
+    "enabledRestartRequired": "Pilvitila käytössä. Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
+    "disabledRestartRequired": "Paikallinen tila käytössä. Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
+    "enableFailed": "Pilvitilan käyttöönotto epäonnistui. Yritä uudelleen.",
+    "enableError": "Virhe pilvitilan käyttöönotossa.",
+    "disableError": "Virhe pilvitilan poistamisessa käytöstä.",
+    "restartRequired": "Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
+    "migrationNote": "Kun otat pilvisynkronoinnin käyttöön, voit siirtää nykyiset paikalliset tietosi pilveen."
   }
 }

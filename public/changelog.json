@@ -1,8 +1,8 @@
 {
-  "version": "e31cf0dd",
+  "version": "7ebf5230",
   "date": "2026-01-19",
   "notes": {
-    "en": "Update i18n key count for networkErrorHint addition",
-    "fi": "Update i18n key count for networkErrorHint addition"
+    "en": "Add mode-specific React Query configuration",
+    "fi": "Add mode-specific React Query configuration"
   }
 }
