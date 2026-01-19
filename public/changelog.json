@@ -1,8 +1,8 @@
 {
-  "version": "8b3aacc4",
-  "date": "2026-01-14",
+  "version": "b3926ec7",
+  "date": "2026-01-19",
   "notes": {
-    "en": "PR #4 - Implement RPC calls and shared validation",
-    "fi": "PR #4 - Implement RPC calls and shared validation"
+    "en": "Use non-empty defaults for teamName/opponentName in createGame",
+    "fi": "Use non-empty defaults for teamName/opponentName in createGame"
   }
 }

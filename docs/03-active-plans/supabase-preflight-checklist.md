@@ -351,6 +351,12 @@ Run these against test data:
   // Use: SELECT id FROM teams WHERE name = ? AND bound_season_id = ? ... LIMIT 1
   ```
   Applies to: Teams, Seasons, Tournaments, Personnel (createX/updateX methods)
+- [ ] Parallelize `saveAllGames()` with controlled concurrency:
+  ```typescript
+  // Current: Sequential saves to avoid overwhelming DB
+  // Potential: Use Promise.all with batches of 5-10 concurrent saves
+  // Only needed if migration of large game collections is slow
+  ```
 
 ### Test Checklist
 - [ ] Performance benchmarks:

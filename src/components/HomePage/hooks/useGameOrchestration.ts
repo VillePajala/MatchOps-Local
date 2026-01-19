@@ -351,7 +351,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // showToast already defined earlier (needed by useFieldCoordination)
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
 
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);

@@ -151,7 +151,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const filteredGamesByClubSeason = useMemo(() => {
     // Inline filtering to avoid redundant object transformations
     return Object.fromEntries(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       Object.entries(savedGames).filter(([_id, game]) => {
         // Filter by club season
         if (selectedClubSeason !== 'all') {

@@ -153,7 +153,7 @@ function verifyTestDataEdgeCases(): VerificationResult[] {
     let missingGamePersonnel = 0;
     let missingTacticalFields = 0;
 
-    for (const [gameId, game] of Object.entries(games)) {
+    for (const [_gameId, game] of Object.entries(games)) {
       if (!game.homeOrAway) missingHomeOrAway++;
       if (game.isPlayed === undefined) missingIsPlayed++;
       if (!game.gamePersonnel) missingGamePersonnel++;
