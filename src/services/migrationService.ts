@@ -222,8 +222,8 @@ export async function migrateLocalToCloud(
     try {
       onProgress(progress);
     } catch (err) {
-      // Use error level - callback failures indicate a bug in the caller
-      logger.error('[MigrationService] Progress callback error:', err);
+      // Use warn level - callback failures don't stop migration, but should be investigated
+      logger.warn('[MigrationService] Progress callback error:', err);
     }
   };
 
@@ -716,7 +716,12 @@ async function verifyMigration(
       cloudStore.getAllPersonnel(),
     ]);
 
-  // Helper to compare counts and generate appropriate error/warning
+  // Helper to compare counts and generate appropriate error/warning.
+  // NOTE: Uses >= check (cloudCount >= localCount passes) rather than exact equality.
+  // This means if cloud has pre-existing data, migration succeeds with a warning.
+  // Limitation: Could mask partial failures if cloud already has N items and migration
+  // uploads M < localCount items, resulting in N+M >= localCount passing incorrectly.
+  // For MVP this is acceptable - the upsert pattern makes partial failures unlikely.
   const compareCount = (entity: string, localCount: number, cloudCount: number) => {
     if (cloudCount < localCount) {
       errors.push(`${entity}: expected at least ${localCount}, found ${cloudCount}`);
@@ -760,7 +765,12 @@ async function verifyMigration(
 function normalizePersonnelArray(
   personnel: Personnel[] | Record<string, Personnel>
 ): Personnel[] {
-  return Array.isArray(personnel) ? personnel : Object.values(personnel);
+  if (!Array.isArray(personnel)) {
+    // Log when legacy format is encountered to track if this code path is still used
+    logger.warn('[MigrationService] Legacy personnel format detected (Record instead of Array)');
+    return Object.values(personnel);
+  }
+  return personnel;
 }
 
 /**
