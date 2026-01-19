@@ -1,8 +1,8 @@
 {
-  "version": "674db4a3",
-  "date": "2026-01-15",
+  "version": "0324c335",
+  "date": "2026-01-16",
   "notes": {
-    "en": "Maintain phone proportions on mobile feature cards",
-    "fi": "Maintain phone proportions on mobile feature cards"
+    "en": "Address code review feedback",
+    "fi": "Address code review feedback"
   }
 }

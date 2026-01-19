@@ -113,7 +113,7 @@ export const appStateSchema = z.object({
     z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Time must be in HH:MM format'),
   ]).optional(),
   subIntervalMinutes: z.number()
-    .min(1, 'Sub interval must be at least 1 minute')
+    .min(0.5, 'Sub interval must be at least 30 seconds')
     .max(60, 'Sub interval cannot exceed 60 minutes')
     .optional(),
   completedIntervalDurations: z.array(intervalLogSchema).optional(),

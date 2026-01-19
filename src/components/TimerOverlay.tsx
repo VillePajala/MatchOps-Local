@@ -312,14 +312,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               <span className={controlLabelStyle}>{t('timerOverlay.subIntervalLabel', 'Sub Interval:')}</span>
               <div className="flex items-center">
                 <button
-                  onClick={() => onSetSubInterval(subIntervalMinutes - 1)}
-                  disabled={subIntervalMinutes <= 1}
+                  onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
+                  disabled={subIntervalMinutes <= 0.5}
                   className={controlButtonStyle} aria-label="Decrease interval">
                   -
                 </button>
-                <span className={controlValueStyle}>{subIntervalMinutes}</span>
+                <span className={controlValueStyle}>
+                  {Number.isInteger(subIntervalMinutes) ? subIntervalMinutes : subIntervalMinutes.toFixed(1)}
+                </span>
                 <button
-                  onClick={() => onSetSubInterval(subIntervalMinutes + 1)}
+                  onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}
                   className={controlButtonStyle} aria-label="Increase interval">
                   +
                 </button>
