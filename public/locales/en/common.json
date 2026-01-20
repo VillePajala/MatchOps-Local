@@ -2006,7 +2006,11 @@
     "modeMergeDesc": "Merge with existing cloud data. Matching items will be updated.",
     "modeReplace": "Replace cloud data",
     "modeReplaceDesc": "Clear all existing cloud data first, then upload fresh.",
-    "modeReplaceWarning": "Warning: Replace mode will delete all your existing cloud data before uploading."
+    "modeReplaceWarning": "Warning: Replace mode will delete all your existing cloud data before uploading.",
+    "replaceWarningTitle": "Replace mode will DELETE all existing cloud data!",
+    "replaceWarningDesc": "All your games, players, teams, seasons, and other data currently in the cloud will be permanently deleted before uploading your local data.",
+    "replaceConfirmLabel": "Type REPLACE to confirm:",
+    "startReplaceButton": "Replace & Upload"
   },
   "cloudSync": {
     "title": "Cloud Sync",
@@ -2042,6 +2046,7 @@
     "clearSuccess": "All cloud data has been deleted.",
     "clearSuccessReloading": "All cloud data deleted. Reloading...",
     "clearError": "Failed to clear cloud data. Please try again.",
-    "cloudUnavailable": "Cloud is not available. Cannot clear cloud data."
+    "cloudUnavailable": "Cloud is not available. Cannot clear cloud data.",
+    "wrongBackend": "Cannot clear: not connected to cloud storage."
   }
 }

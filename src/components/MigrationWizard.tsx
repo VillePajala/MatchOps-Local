@@ -74,6 +74,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const [clearLocalFailed, setClearLocalFailed] = useState(false);
   const [retryCooldown, setRetryCooldown] = useState(0); // Seconds remaining in cooldown
   const [migrationMode, setMigrationMode] = useState<MigrationMode>('merge'); // Migration mode selection
+  const [replaceConfirmText, setReplaceConfirmText] = useState(''); // Confirmation text for replace mode
 
   // Focus trap
   useFocusTrap(modalRef, true);
@@ -418,7 +419,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         return (
           <>
             <div className="text-center mb-6">
-              <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
+              <HiOutlineExclamationTriangle className={`h-12 w-12 mx-auto mb-3 ${migrationMode === 'replace' ? 'text-red-400' : 'text-amber-400'}`} />
               <p className="text-slate-300 mb-4">
                 {t('migration.confirmMessage', 'Are you sure you want to migrate your data to the cloud?')}
               </p>
@@ -428,6 +429,35 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                 </p>
               </div>
             </div>
+
+            {/* Extra warning and confirmation for replace mode */}
+            {migrationMode === 'replace' && (
+              <div className="mt-4 p-4 bg-red-900/30 border border-red-500/50 rounded-lg">
+                <div className="flex items-start gap-2 mb-3">
+                  <HiOutlineTrash className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-300">
+                      {t('migration.replaceWarningTitle', 'Replace mode will DELETE all existing cloud data!')}
+                    </p>
+                    <p className="text-xs text-red-300/80 mt-1">
+                      {t('migration.replaceWarningDesc', 'All your games, players, teams, seasons, and other data currently in the cloud will be permanently deleted before uploading your local data.')}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-300 mb-1">
+                    {t('migration.replaceConfirmLabel', 'Type REPLACE to confirm:')}
+                  </label>
+                  <input
+                    type="text"
+                    value={replaceConfirmText}
+                    onChange={(e) => setReplaceConfirmText(e.target.value)}
+                    placeholder="REPLACE"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            )}
           </>
         );
 
@@ -570,23 +600,29 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           </>
         );
 
-      case 'confirm':
+      case 'confirm': {
+        // For replace mode, require confirmation text
+        const isReplaceConfirmed = migrationMode !== 'replace' || replaceConfirmText === 'REPLACE';
+        const buttonStyle = migrationMode === 'replace' ? dangerButtonStyle : primaryButtonStyle;
         return (
           <>
-            <button onClick={() => setStep('preview')} className={secondaryButtonStyle}>
+            <button onClick={() => { setStep('preview'); setReplaceConfirmText(''); }} className={secondaryButtonStyle}>
               {t('common.back', 'Back')}
             </button>
             <button
               onClick={handleStartMigration}
-              disabled={isMigrating}
-              className={primaryButtonStyle}
+              disabled={isMigrating || !isReplaceConfirmed}
+              className={buttonStyle}
             >
               {isMigrating
                 ? t('common.processing', 'Processing...')
-                : t('migration.startButton', 'Start Migration')}
+                : migrationMode === 'replace'
+                  ? t('migration.startReplaceButton', 'Replace & Upload')
+                  : t('migration.startButton', 'Start Migration')}
             </button>
           </>
         );
+      }
 
       case 'progress':
         return null; // No actions during progress

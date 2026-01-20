@@ -154,6 +154,19 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
     setIsClearingCloud(true);
     try {
       const dataStore = await getDataStore();
+
+      // Defense-in-depth: Verify we're actually using cloud backend
+      // This catches edge cases where cloudAvailable is true but factory returned LocalDataStore
+      const backendName = dataStore.getBackendName();
+      if (backendName !== 'supabase') {
+        logger.error(`[CloudSyncSection] Expected supabase backend but got ${backendName}`);
+        showToast(
+          t('cloudSync.wrongBackend', 'Cannot clear: not connected to cloud storage.'),
+          'error'
+        );
+        return;
+      }
+
       await dataStore.clearAllUserData();
 
       showToast(

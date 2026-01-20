@@ -2006,7 +2006,11 @@
     "modeMergeDesc": "Yhdistä olemassa oleviin pilvitietoihin. Vastaavat kohteet päivitetään.",
     "modeReplace": "Korvaa pilvitiedot",
     "modeReplaceDesc": "Tyhjennä kaikki olemassa olevat pilvitiedot ensin, sitten lataa uudet.",
-    "modeReplaceWarning": "Varoitus: Korvaustila poistaa kaikki olemassa olevat pilvitietosi ennen latausta."
+    "modeReplaceWarning": "Varoitus: Korvaustila poistaa kaikki olemassa olevat pilvitietosi ennen latausta.",
+    "replaceWarningTitle": "Korvaustila POISTAA kaikki olemassa olevat pilvitiedot!",
+    "replaceWarningDesc": "Kaikki ottelusi, pelaajasi, joukkueesi, kautesi ja muut pilvessä olevat tietosi poistetaan pysyvästi ennen paikallisten tietojen lataamista.",
+    "replaceConfirmLabel": "Kirjoita REPLACE vahvistaaksesi:",
+    "startReplaceButton": "Korvaa ja lataa"
   },
   "cloudSync": {
     "title": "Pilvisynkronointi",
@@ -2042,6 +2046,7 @@
     "clearSuccess": "Kaikki pilvitiedot on poistettu.",
     "clearSuccessReloading": "Kaikki pilvitiedot poistettu. Ladataan uudelleen...",
     "clearError": "Pilvitietojen tyhjentäminen epäonnistui. Yritä uudelleen.",
-    "cloudUnavailable": "Pilvi ei ole käytettävissä. Pilvitietoja ei voida tyhjentää."
+    "cloudUnavailable": "Pilvi ei ole käytettävissä. Pilvitietoja ei voida tyhjentää.",
+    "wrongBackend": "Tyhjennys epäonnistui: ei yhteyttä pilvitallennustilaan."
   }
 }
