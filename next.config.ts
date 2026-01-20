@@ -78,7 +78,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'", // Required for CSS-in-JS and Next.js styles
       "img-src 'self'", // Strict: no data: or blob: URIs needed for images
       "font-src 'self' data:",
-      "connect-src 'self' https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com",
+      "connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com",
       "worker-src 'self'",
       "object-src 'none'", // Block Flash, Java applets, and other plugins
       "frame-ancestors 'none'",
