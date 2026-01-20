@@ -2151,10 +2151,15 @@
       "switching": "Switching to local mode..."
     },
     "complete": {
-      "title": "Migration Complete",
-      "description": "Your data has been successfully migrated to local storage.",
+      "title": "Switch Complete!",
+      "titleWithWarnings": "Switch Complete with Warnings",
+      "description": "Your data has been downloaded to this device.",
+      "deletedDescription": "Your data has been downloaded and cloud data has been deleted.",
       "cloudDeleted": "Your cloud data has been permanently deleted.",
       "cloudKept": "Your cloud data has been preserved.",
+      "done": "Done",
+      "doneAndReload": "Done & Reload",
+      "reloadNote": "The page will reload to apply changes",
       "reloading": "Reloading app..."
     },
     "error": {

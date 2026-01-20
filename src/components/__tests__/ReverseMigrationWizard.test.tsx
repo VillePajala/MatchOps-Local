@@ -544,8 +544,9 @@ describe('ReverseMigrationWizard', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
       });
 
+      // Wait for complete step - look for the Done & Reload button which only appears on complete step
       await waitFor(() => {
-        expect(screen.getByText('Switch Complete!')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Done & Reload' })).toBeInTheDocument();
       });
     };
 
@@ -566,12 +567,12 @@ describe('ReverseMigrationWizard', () => {
     it('should call onComplete when done clicked', async () => {
       await triggerSuccessfulMigration();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Done & Reload' }));
 
       expect(mockOnComplete).toHaveBeenCalled();
     });
 
-    it('should show warnings if present', async () => {
+    it('should show warnings if present with different title', async () => {
       mockMigrateCloudToLocal.mockResolvedValue({
         ...mockSuccessResult,
         warnings: ['Warning 1', 'Warning 2'],
@@ -579,6 +580,8 @@ describe('ReverseMigrationWizard', () => {
 
       await triggerSuccessfulMigration();
 
+      // P1-2: When there are warnings, title should indicate this
+      expect(screen.getByText('Switch Complete with Warnings')).toBeInTheDocument();
       expect(screen.getByText('Warnings')).toBeInTheDocument();
       expect(screen.getByText(/Warning 1/)).toBeInTheDocument();
       expect(screen.getByText(/Warning 2/)).toBeInTheDocument();
