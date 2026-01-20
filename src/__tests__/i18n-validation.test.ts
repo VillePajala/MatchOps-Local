@@ -257,14 +257,14 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // PR #10: Added 26 cloud data management keys (1738 + 26 = 1764)
-      expect(enKeys.length).toBe(1764);
+      // PR #10: Added 27 cloud data management keys (1738 + 27 = 1765)
+      expect(enKeys.length).toBe(1765);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // PR #10: Added 26 cloud data management keys (1738 + 26 = 1764)
-      expect(fiKeys.length).toBe(1764);
+      // PR #10: Added 27 cloud data management keys (1738 + 27 = 1765)
+      expect(fiKeys.length).toBe(1765);
     });
   });
 });

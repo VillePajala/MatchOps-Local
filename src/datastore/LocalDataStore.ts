@@ -1889,6 +1889,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     // Import dynamically to avoid circular dependencies
+    // clearStorage() clears IndexedDB only, NOT localStorage.
+    // This preserves app settings (backend mode, migration flags, etc.)
+    // which is intentional: clearing data shouldn't reset preferences.
     const { clearStorage } = await import('@/utils/storage');
     await clearStorage();
 
