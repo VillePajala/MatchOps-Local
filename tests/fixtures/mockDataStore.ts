@@ -174,6 +174,11 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
       id: `adj_${Date.now()}`,
       appliedAt: new Date().toISOString(),
     })) as unknown as jest.MockedFunction<DataStore['addPlayerAdjustment']>,
+    upsertPlayerAdjustment: jest.fn(async (adj: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }) => ({
+      ...adj,
+      id: adj.id || `adj_${Date.now()}`,
+      appliedAt: adj.appliedAt || new Date().toISOString(),
+    })) as unknown as jest.MockedFunction<DataStore['upsertPlayerAdjustment']>,
     updatePlayerAdjustment: jest.fn(async () => null) as unknown as jest.MockedFunction<DataStore['updatePlayerAdjustment']>,
     deletePlayerAdjustment: jest.fn(async () => false) as unknown as jest.MockedFunction<DataStore['deletePlayerAdjustment']>,
 

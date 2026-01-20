@@ -316,11 +316,22 @@ export async function migrateLocalToCloud(
     const sanitizedLocalData = { ...localData, games: sanitizedGames };
 
     // Step 4: Clear cloud data if mode is 'replace'
+    // This must succeed before upload - if clear fails, abort migration to prevent
+    // unexpected merge behavior when user expected replace
     if (mode === 'replace') {
       safeProgress({ stage: 'clearing', progress: PROGRESS_RANGES.UPLOADING.start, message: 'Clearing existing cloud data...' });
       logger.info('[MigrationService] Replace mode: clearing existing cloud data');
-      await cloudStore.clearAllUserData();
-      warnings.push('CLOUD_CLEARED'); // Translation key marker - handled in MigrationWizard
+      try {
+        await cloudStore.clearAllUserData();
+        warnings.push('CLOUD_CLEARED'); // Translation key marker - handled in MigrationWizard
+      } catch (clearError) {
+        const errorMessage = clearError instanceof Error ? clearError.message : 'Unknown error';
+        logger.error('[MigrationService] Failed to clear cloud data in replace mode:', clearError);
+        return {
+          ...emptyResult,
+          errors: [`Failed to clear existing cloud data: ${errorMessage}. Migration aborted to prevent unexpected merge.`],
+        };
+      }
     }
 
     // Step 5: Get pre-migration cloud counts (for verification)
