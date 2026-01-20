@@ -2161,6 +2161,8 @@
       "title": "Migration Failed",
       "description": "An error occurred during migration. Your data has not been changed.",
       "retry": "Try Again",
+      "retryIn": "Retry ({{seconds}}s)",
+      "maxRetries": "Maximum retries reached. Please try again later or contact support.",
       "cancel": "Cancel"
     },
     "buttons": {
