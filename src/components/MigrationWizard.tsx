@@ -232,6 +232,37 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     );
   };
 
+  // Translate entity name for progress display
+  // Maps migration service entity keys to translation keys in migration.summary.*
+  const translateEntity = (entity: string): string => {
+    // Extract base entity name (before any parentheses like "games (1/5)")
+    const match = entity.match(/^([a-z ]+)(?:\s*\((.+)\))?$/i);
+    if (!match) return entity;
+
+    const [, baseName, suffix] = match;
+    const key = baseName.trim().replace(/\s+/g, ''); // "team rosters" -> "teamrosters"
+
+    // Map to translation keys (migration.summary.*)
+    const entityKeyMap: Record<string, string> = {
+      'players': 'players',
+      'seasons': 'seasons',
+      'tournaments': 'tournaments',
+      'teams': 'teams',
+      'teamrosters': 'teamRosters',
+      'personnel': 'personnel',
+      'games': 'games',
+      'playeradjustments': 'playerAdjustments',
+      'warmupplan': 'warmupPlan',
+      'settings': 'settings',
+    };
+
+    const translationKey = entityKeyMap[key.toLowerCase()];
+    if (!translationKey) return entity;
+
+    const translatedName = t(`migration.summary.${translationKey}`, baseName);
+    return suffix ? `${translatedName} (${suffix})` : translatedName;
+  };
+
   // Render progress bar
   const renderProgress = () => {
     if (!progress) return null;
@@ -266,7 +297,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           </p>
           {currentEntity && (
             <p className="text-sm text-slate-500 mt-1">
-              {t('migration.progress.entity', 'Migrating {{entity}}...', { entity: currentEntity })}
+              {t('migration.progress.entity', 'Migrating {{entity}}...', { entity: translateEntity(currentEntity) })}
             </p>
           )}
         </div>
