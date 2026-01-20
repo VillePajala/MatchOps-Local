@@ -339,6 +339,7 @@ export async function migrateLocalToCloud(
     const preCounts = await getCloudCounts(cloudStore);
 
     // Step 6: Upload to cloud (uses upserts - safe to retry)
+    // +5% offset accounts for clearing step (if replace mode) taking ~5% of upload phase time
     safeProgress({ stage: 'uploading', progress: PROGRESS_RANGES.UPLOADING.start + 5, message: MIGRATION_MESSAGES.UPLOADING });
 
     const uploadedCounts = await uploadToCloud(sanitizedLocalData, cloudStore, safeProgress);

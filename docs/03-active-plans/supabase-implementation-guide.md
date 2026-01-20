@@ -51,6 +51,7 @@ npm test
 10. [Final Phase: Infrastructure & Master Merge](#10-final-phase-infrastructure--master-merge)
     - 10.1 [What's Missing After PR #8](#101-overview-whats-still-missing-after-pr-8)
     - 10.2 [PR #9: Infrastructure & Migration UI](#102-pr-9-infrastructure--migration-ui-15-hours)
+    - 10.2.8 [PR #10: Cloud Data Management](#1028-pr-10-cloud-data-management-3-hours)
     - 10.3 [Supabase Project Setup](#103-supabase-project-setup)
     - 10.4 [Environment Configuration](#104-environment-configuration)
     - 10.5 [E2E Testing with Real Supabase](#105-end-to-end-testing-with-real-supabase)
@@ -4376,6 +4377,190 @@ if (shouldShowMigrationWizard) {
 - [ ] All existing tests pass
 - [ ] New tests for migration flag functions
 - [ ] New tests for MigrationWizard component
+
+---
+
+### 10.2.8 PR #10: Cloud Data Management (~3 hours)
+
+**Branch**: `feature/supabase-cloud-backend` (direct commit)
+**Depends on**: PR #9 merged
+
+This PR adds critical cloud data management features: migration mode selection and clear cloud data functionality.
+
+#### 10.2.8.1 Migration Mode Selection
+
+**Problem**: Original migration only supports merge mode. Users need ability to completely replace cloud data with local data (e.g., after testing or to reset).
+
+**Solution**: Add `replace` mode that clears all cloud data before uploading.
+
+**File Changes**: `src/components/MigrationWizard.tsx`
+
+```typescript
+// Add migration mode state
+const [migrationMode, setMigrationMode] = useState<'merge' | 'replace'>('merge');
+const [replaceConfirmText, setReplaceConfirmText] = useState('');
+
+// Mode selection UI with radio buttons
+// Replace mode requires typed "REPLACE" confirmation
+// Shows rollback warning: data cannot be recovered if migration fails after clearing
+```
+
+**File Changes**: `src/services/migrationService.ts`
+
+```typescript
+// Extend migrateLocalToCloud to accept mode parameter
+export async function migrateLocalToCloud(
+  options?: { mode?: 'merge' | 'replace' }
+): Promise<MigrationResult> {
+  const mode = options?.mode ?? 'merge';
+
+  if (mode === 'replace') {
+    try {
+      await cloudStore.clearAllUserData();
+      warnings.push('CLOUD_CLEARED');
+    } catch (clearError) {
+      // Abort migration if clear fails - don't leave partial state
+      return { ...emptyResult, errors: [`Failed to clear: ${message}. Migration aborted.`] };
+    }
+  }
+  // Continue with upload...
+}
+```
+
+#### 10.2.8.2 Clear All Cloud Data
+
+**Problem**: Users need ability to delete all their cloud data (account cleanup, privacy, testing).
+
+**Solution**: Add clear functionality with safety checks.
+
+**File Changes**: `src/datastore/SupabaseDataStore.ts`
+
+```typescript
+async clearAllUserData(): Promise<void> {
+  const userId = await this.getUserId();
+
+  // FK Constraints (verified in supabase-schema.md):
+  // - game_events, game_players, game_tactical_data, player_assessments:
+  //     game_id REFERENCES games(id) ON DELETE CASCADE
+  // - games: season_id, tournament_id, team_id ON DELETE SET NULL
+  // - team_players: team_id REFERENCES teams(id) ON DELETE CASCADE
+  //
+  // Deletion order: child tables first, parent tables last
+  const tablesToClear = [
+    'game_events', 'game_players', 'game_tactical_data', 'player_assessments',
+    'games', 'player_adjustments', 'team_players', 'teams', 'tournaments',
+    'seasons', 'personnel', 'players', 'warmup_plans', 'user_settings'
+  ] as const;
+
+  for (const table of tablesToClear) {
+    // Explicit user_id filter (defense in depth - don't rely solely on RLS)
+    const { error } = await client.from(table).delete().eq('user_id', userId);
+    if (error) throw new NetworkError(`Failed to clear ${table}: ${error.message}`);
+  }
+}
+```
+
+**File Changes**: `src/components/CloudSyncSection.tsx`
+
+```typescript
+// Add "Clear All Cloud Data" button with safety checks
+const handleClearCloudData = async () => {
+  // Safety check 1: UI-level cloud availability
+  if (!cloudAvailable) {
+    showToast(t('cloudSync.cloudUnavailable'), 'error');
+    return;
+  }
+
+  // Safety check 2: Runtime backend verification
+  const dataStore = await getDataStore();
+  if (dataStore.getBackendName() !== 'supabase') {
+    showToast(t('cloudSync.wrongBackend'), 'error');
+    return;
+  }
+
+  // Require typed "DELETE" confirmation
+  if (deleteConfirmText !== 'DELETE') return;
+
+  await dataStore.clearAllUserData();
+  showToast(t('cloudSync.cloudCleared'), 'success');
+};
+```
+
+#### 10.2.8.3 Interface Updates
+
+**File Changes**: `src/interfaces/DataStore.ts`
+
+```typescript
+// Add upsertPlayerAdjustment for both local and cloud parity
+upsertPlayerAdjustment(
+  adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+): Promise<PlayerStatAdjustment>;
+```
+
+**File Changes**: `src/datastore/LocalDataStore.ts`
+
+```typescript
+// Implement upsertPlayerAdjustment with DRY helpers
+private buildPlayerAdjustment(adjustment: ...): PlayerStatAdjustment { /* ... */ }
+private validateAdjustmentNote(note: string | undefined): void { /* ... */ }
+
+async upsertPlayerAdjustment(adjustment: ...): Promise<PlayerStatAdjustment> {
+  // Insert or update based on existing id
+}
+```
+
+#### 10.2.8.4 Translation Keys Added
+
+**EN (`public/locales/en/common.json`)**:
+```json
+{
+  "cloudSync": {
+    "cloudUnavailable": "Cloud is not available. Cannot clear cloud data.",
+    "wrongBackend": "Cannot clear: not connected to cloud storage."
+  },
+  "migration": {
+    "replaceWarningTitle": "Replace mode will DELETE all existing cloud data!",
+    "replaceWarningDesc": "This will clear all your cloud data before uploading local data.",
+    "replaceConfirmLabel": "Type REPLACE to confirm:",
+    "startReplaceButton": "Start Replace Migration",
+    "replaceNoRollback": "Warning: If migration fails after clearing, your cloud data cannot be recovered."
+  }
+}
+```
+
+#### 10.2.8.5 PR #10 Deliverables Checklist
+
+**Migration Mode Selection**:
+- [x] Add `migrationMode` state to MigrationWizard
+- [x] Add mode selection radio buttons UI
+- [x] Add typed "REPLACE" confirmation for replace mode
+- [x] Add rollback warning message
+- [x] Update migrationService to accept mode parameter
+- [x] Clear cloud data before upload in replace mode
+- [x] Handle clear failure gracefully (abort migration)
+
+**Clear Cloud Data**:
+- [x] Implement `clearAllUserData()` in SupabaseDataStore
+- [x] Verify FK constraint deletion order
+- [x] Add explicit userId filter (defense in depth)
+- [x] Add "Clear All Cloud Data" button in CloudSyncSection
+- [x] Add cloudAvailable UI gating
+- [x] Add runtime backend verification
+- [x] Add typed "DELETE" confirmation
+
+**Interface Parity**:
+- [x] Add `upsertPlayerAdjustment()` to DataStore interface
+- [x] Implement in LocalDataStore with DRY helpers
+- [x] Update mockDataStore for tests
+
+**Translations**:
+- [x] Add EN translations for new keys
+- [x] Add FI translations for new keys
+- [x] Regenerate i18n types
+
+**Tests**:
+- [x] All existing tests pass
+- [x] i18n validation tests updated
 
 ---
 
