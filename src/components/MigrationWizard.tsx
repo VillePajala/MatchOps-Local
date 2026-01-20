@@ -17,6 +17,7 @@ import {
   getLocalDataSummary,
   type MigrationCounts,
   type MigrationProgress,
+  type MigrationMode,
 } from '@/services/migrationService';
 import { clearLocalIndexedDBData } from '@/utils/clearLocalData';
 import logger from '@/utils/logger';
@@ -72,6 +73,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const [isMigrating, setIsMigrating] = useState(false);
   const [clearLocalFailed, setClearLocalFailed] = useState(false);
   const [retryCooldown, setRetryCooldown] = useState(0); // Seconds remaining in cooldown
+  const [migrationMode, setMigrationMode] = useState<MigrationMode>('merge'); // Migration mode selection
 
   // Focus trap
   useFocusTrap(modalRef, true);
@@ -126,7 +128,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     setProgress({ stage: 'preparing', progress: 0, message: t('migration.preparing', 'Preparing migration...') });
 
     try {
-      const result = await migrateLocalToCloud(handleProgress);
+      const result = await migrateLocalToCloud(handleProgress, migrationMode);
       setMigrationResult(result);
 
       if (result.success) {
@@ -157,7 +159,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     } finally {
       setIsMigrating(false);
     }
-  }, [isMigrating, handleProgress, t]);
+  }, [isMigrating, handleProgress, t, migrationMode]);
 
   // Clear local data after migration
   const handleClearLocalData = useCallback(async () => {
@@ -263,6 +265,29 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     return suffix ? `${translatedName} (${suffix})` : translatedName;
   };
 
+  // Translate warning messages
+  // Maps warning markers to translation keys in migration.warnings.*
+  const translateWarning = (warning: string): string => {
+    // Known warning markers that need translation
+    const warningKeyMap: Record<string, string> = {
+      'CLOUD_CLEARED': 'cloudCleared',
+    };
+
+    const translationKey = warningKeyMap[warning];
+    if (translationKey) {
+      return t(`migration.warnings.${translationKey}`, warning);
+    }
+
+    // Check if warning contains a game ID pattern (orphaned reference warnings)
+    // These are dynamically generated and include game IDs
+    if (warning.includes('references non-existent') || warning.includes('Cleared invalid')) {
+      // These are technical warnings, keep as-is for debugging
+      return warning;
+    }
+
+    return warning;
+  };
+
   // Render progress bar
   const renderProgress = () => {
     if (!progress) return null;
@@ -334,6 +359,58 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                 {t('migration.noData', 'No data found to migrate.')}
               </p>
             )}
+
+            {/* Migration mode selection */}
+            {dataSummary && (
+              <div className="mt-6 bg-slate-900/50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-slate-300 mb-3">
+                  {t('migration.modeTitle', 'Migration Mode')}
+                </h4>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 cursor-pointer p-2 rounded hover:bg-slate-700/50">
+                    <input
+                      type="radio"
+                      name="migrationMode"
+                      value="merge"
+                      checked={migrationMode === 'merge'}
+                      onChange={() => setMigrationMode('merge')}
+                      className="mt-1 accent-sky-500"
+                    />
+                    <div>
+                      <div className="text-slate-200 font-medium">
+                        {t('migration.modeMerge', 'Add to cloud')}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {t('migration.modeMergeDesc', 'Merge with existing cloud data. Matching items will be updated.')}
+                      </div>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer p-2 rounded hover:bg-slate-700/50">
+                    <input
+                      type="radio"
+                      name="migrationMode"
+                      value="replace"
+                      checked={migrationMode === 'replace'}
+                      onChange={() => setMigrationMode('replace')}
+                      className="mt-1 accent-sky-500"
+                    />
+                    <div>
+                      <div className="text-slate-200 font-medium">
+                        {t('migration.modeReplace', 'Replace cloud data')}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {t('migration.modeReplaceDesc', 'Clear all existing cloud data first, then upload fresh.')}
+                      </div>
+                    </div>
+                  </label>
+                </div>
+                {migrationMode === 'replace' && (
+                  <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-300">
+                    {t('migration.modeReplaceWarning', '⚠️ Replace mode will delete all your existing cloud data before uploading.')}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         );
 
@@ -381,10 +458,10 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                 </p>
                 <ul className="text-xs text-amber-300 space-y-1">
                   {migrationResult.warnings.slice(0, MAX_DISPLAYED_WARNINGS).map((warning, i) => (
-                    <li key={i}>{warning}</li>
+                    <li key={i}>{translateWarning(warning)}</li>
                   ))}
                   {migrationResult.warnings.length > MAX_DISPLAYED_WARNINGS && (
-                    <li>...and {migrationResult.warnings.length - MAX_DISPLAYED_WARNINGS} more</li>
+                    <li>{t('migration.warnings.andMore', '...and {{count}} more', { count: migrationResult.warnings.length - MAX_DISPLAYED_WARNINGS })}</li>
                   )}
                 </ul>
               </div>

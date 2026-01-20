@@ -1828,6 +1828,28 @@ export class LocalDataStore implements DataStore {
     }
   }
 
+  // ==========================================================================
+  // DATA MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Clear all user data from local storage.
+   *
+   * Deletes all data from IndexedDB.
+   * Does NOT clear localStorage settings (backend mode, migration flags).
+   *
+   * @throws {Error} If deletion fails
+   */
+  async clearAllUserData(): Promise<void> {
+    this.ensureInitialized();
+
+    // Import dynamically to avoid circular dependencies
+    const { clearStorage } = await import('@/utils/storage');
+    await clearStorage();
+
+    logger.info('[LocalDataStore] All user data cleared from local storage');
+  }
+
   private ensureInitialized(): void {
     if (!this.initialized) {
       throw new NotInitializedError();
