@@ -1,8 +1,8 @@
 {
-  "version": "fff4ec01",
+  "version": "00ca923f",
   "date": "2026-01-20",
   "notes": {
-    "en": "Address final PR #10 review concerns",
-    "fi": "Address final PR #10 review concerns"
+    "en": "Add replace mode and clear cloud data tests",
+    "fi": "Add replace mode and clear cloud data tests"
   }
 }

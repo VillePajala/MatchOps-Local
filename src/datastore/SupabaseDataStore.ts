@@ -2902,66 +2902,25 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const client = this.getClient();
-    const userId = await this.getUserId();
 
-    // Deletion order: child tables before parent tables to respect FK constraints
-    // Even though CASCADE would handle this, explicit ordering is safer and clearer
+    // Use RPC for ATOMIC deletion - all tables in single PostgreSQL transaction
+    // This ensures all-or-nothing semantics: if any delete fails, entire operation rolls back.
     //
-    // FK Constraints (verified in supabase-schema.md):
-    // - game_events, game_players, game_tactical_data, player_assessments:
-    //     game_id REFERENCES games(id) ON DELETE CASCADE
-    // - games:
-    //     season_id REFERENCES seasons(id) ON DELETE SET NULL
-    //     tournament_id REFERENCES tournaments(id) ON DELETE SET NULL
-    //     team_id REFERENCES teams(id) ON DELETE SET NULL
-    // - player_adjustments:
-    //     season_id REFERENCES seasons(id) ON DELETE SET NULL
-    //     tournament_id REFERENCES tournaments(id) ON DELETE SET NULL
-    // - team_players:
-    //     team_id REFERENCES teams(id) ON DELETE CASCADE
+    // The RPC function clear_all_user_data():
+    // - Uses auth.uid() for user identification (no client-provided user_id)
+    // - Deletes tables in FK-compliant order (child tables first)
+    // - Runs in single transaction for atomicity
     //
-    // Note: Supabase JS doesn't support multi-table transactions, so deletions
-    // are sequential. If one fails midway, cloud will be in partial state.
-    // This is acceptable because: (1) RLS prevents cross-user data access,
-    // (2) user can retry, (3) partial data is better than corrupted data.
-    const tablesToClear = [
-      // Game child tables first (would CASCADE from games, but explicit is safer)
-      'game_events',
-      'game_players',
-      'game_tactical_data',
-      'player_assessments',
-      // Games next (SET NULL on seasons/tournaments/teams)
-      'games',
-      // Player adjustments (SET NULL on seasons/tournaments)
-      'player_adjustments',
-      // Team players (would CASCADE from teams)
-      'team_players',
-      // Independent entities last
-      'teams',
-      'tournaments',
-      'seasons',
-      'personnel',
-      'players',
-      'warmup_plans',
-      'user_settings',
-    ] as const;
+    // See: docs/02-technical/database/supabase-schema.md "Clear All User Data (Atomic)"
+    const { error } = await client.rpc('clear_all_user_data');
 
-    for (const table of tablesToClear) {
-      // Explicit user_id filter (defense in depth - don't rely solely on RLS)
-      // Using .not('user_id', 'is', null) was considered but .eq is clearer
-      const { error } = await client
-        .from(table)
-        .delete()
-        .eq('user_id', userId);
-
-      if (error) {
-        throw new NetworkError(`Failed to clear ${table}: ${error.message}`);
-      }
+    if (error) {
+      throw new NetworkError(`Failed to clear user data: ${error.message}`);
     }
 
     // Clear local caches
     this.clearUserCaches();
 
-    logger.info('[SupabaseDataStore] All user data cleared from cloud');
+    logger.info('[SupabaseDataStore] All user data cleared from cloud (atomic RPC)');
   }
 }

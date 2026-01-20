@@ -1058,6 +1058,70 @@ GRANT EXECUTE ON FUNCTION delete_personnel_cascade TO authenticated;
 
 **Note**: The `p_user_id` parameter was removed - the function now uses `auth.uid()` exclusively to prevent cross-user operations.
 
+### Clear All User Data (Atomic)
+
+```sql
+-- Function to atomically delete ALL user data
+-- SECURITY: Uses auth.uid() exclusively - no client-provided user_id
+-- ATOMIC: All deletions in single transaction - all-or-nothing semantics
+-- ORDER: Child tables first to respect FK constraints (CASCADE would handle it, but explicit is clearer)
+CREATE OR REPLACE FUNCTION clear_all_user_data()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- REQUIRED: Prevents search_path injection
+AS $$
+DECLARE
+  v_user_id uuid;
+BEGIN
+  -- CRITICAL: Get authenticated user ID from Supabase Auth
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  -- Delete in order: child tables first, then parent tables
+  -- This respects FK constraints even though CASCADE would handle most
+
+  -- Game child tables (would CASCADE from games, but explicit is clearer)
+  DELETE FROM game_events WHERE user_id = v_user_id;
+  DELETE FROM game_players WHERE user_id = v_user_id;
+  DELETE FROM game_tactical_data WHERE user_id = v_user_id;
+  DELETE FROM player_assessments WHERE user_id = v_user_id;
+
+  -- Games (SET NULL on seasons/tournaments/teams)
+  DELETE FROM games WHERE user_id = v_user_id;
+
+  -- Player adjustments (SET NULL on seasons/tournaments)
+  DELETE FROM player_adjustments WHERE user_id = v_user_id;
+
+  -- Team players (would CASCADE from teams)
+  DELETE FROM team_players WHERE user_id = v_user_id;
+
+  -- Independent entities
+  DELETE FROM teams WHERE user_id = v_user_id;
+  DELETE FROM tournaments WHERE user_id = v_user_id;
+  DELETE FROM seasons WHERE user_id = v_user_id;
+  DELETE FROM personnel WHERE user_id = v_user_id;
+  DELETE FROM players WHERE user_id = v_user_id;
+  DELETE FROM warmup_plans WHERE user_id = v_user_id;
+  DELETE FROM user_settings WHERE user_id = v_user_id;
+
+  -- Success - transaction commits automatically
+END;
+$$;
+
+-- Restrict execute to authenticated users only
+REVOKE ALL ON FUNCTION clear_all_user_data FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION clear_all_user_data TO authenticated;
+```
+
+**Why RPC instead of sequential client-side deletes?**
+- **Atomicity**: Single PostgreSQL transaction ensures all-or-nothing semantics
+- **Network resilience**: One round-trip instead of 14 (one per table)
+- **No partial state**: If any delete fails, entire transaction rolls back
+- **Performance**: Database executes deletes in sequence without network latency
+
 ---
 
 ## Row Level Security (RLS)

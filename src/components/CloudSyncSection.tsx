@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash } from 'react-icons/hi2';
 import {
   getBackendMode,
@@ -36,6 +37,7 @@ interface CloudSyncSectionProps {
 export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
   // Use lazy initialization to load values only once on mount (avoids lint warning about setState in useEffect)
   const [currentMode] = useState<'local' | 'cloud'>(() => getBackendMode());
@@ -169,15 +171,18 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
 
       await dataStore.clearAllUserData();
 
+      // Invalidate all React Query cache to refresh UI with empty state
+      // This avoids page reload which could lose unsaved work
+      await queryClient.invalidateQueries();
+
       showToast(
-        t('cloudSync.clearSuccessReloading', 'All cloud data deleted. Reloading...'),
+        t('cloudSync.clearSuccess', 'All cloud data deleted.'),
         'success'
       );
 
-      // Reload after brief delay so user sees the toast (similar to mode change)
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Reset the confirmation dialog
+      setShowClearConfirm(false);
+      setClearConfirmText('');
     } catch (error) {
       logger.error('[CloudSyncSection] Failed to clear cloud data:', error);
       showToast(

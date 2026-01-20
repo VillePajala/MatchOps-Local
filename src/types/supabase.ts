@@ -908,6 +908,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_all_user_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       delete_personnel_cascade: {
         Args: { p_personnel_id: string }
         Returns: boolean
