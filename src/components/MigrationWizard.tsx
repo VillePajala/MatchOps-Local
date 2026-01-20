@@ -23,6 +23,9 @@ import logger from '@/utils/logger';
 
 type WizardStep = 'preview' | 'confirm' | 'progress' | 'complete' | 'error';
 
+/** Maximum warnings to display before truncating with "...and X more" */
+const MAX_DISPLAYED_WARNINGS = 5;
+
 export interface MigrationWizardProps {
   /** Called when migration completes successfully (with or without clearing local data) */
   onComplete: () => void;
@@ -346,11 +349,11 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                   {t('common.warnings', 'Warnings')}:
                 </p>
                 <ul className="text-xs text-amber-300 space-y-1">
-                  {migrationResult.warnings.slice(0, 5).map((warning, i) => (
+                  {migrationResult.warnings.slice(0, MAX_DISPLAYED_WARNINGS).map((warning, i) => (
                     <li key={i}>{warning}</li>
                   ))}
-                  {migrationResult.warnings.length > 5 && (
-                    <li>...and {migrationResult.warnings.length - 5} more</li>
+                  {migrationResult.warnings.length > MAX_DISPLAYED_WARNINGS && (
+                    <li>...and {migrationResult.warnings.length - MAX_DISPLAYED_WARNINGS} more</li>
                   )}
                 </ul>
               </div>
