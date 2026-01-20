@@ -1,8 +1,8 @@
 {
-  "version": "00ca923f",
+  "version": "cddb2a6f",
   "date": "2026-01-20",
   "notes": {
-    "en": "Add replace mode and clear cloud data tests",
-    "fi": "Add replace mode and clear cloud data tests"
+    "en": "Add missing PR #10 files after merge",
+    "fi": "Add missing PR #10 files after merge"
   }
 }

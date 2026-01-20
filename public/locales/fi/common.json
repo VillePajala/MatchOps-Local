@@ -2048,6 +2048,128 @@
     "clearSuccessReloading": "Kaikki pilvitiedot poistettu. Ladataan uudelleen...",
     "clearError": "Pilvitietojen tyhjentäminen epäonnistui. Yritä uudelleen.",
     "cloudUnavailable": "Pilvi ei ole käytettävissä. Pilvitietoja ei voida tyhjentää.",
-    "wrongBackend": "Tyhjennys epäonnistui: ei yhteyttä pilvitallennustilaan."
+    "wrongBackend": "Tyhjennys epäonnistui: ei yhteyttä pilvitallennustilaan.",
+    "cloudAccount": {
+      "title": "Pilvitili",
+      "lastSynced": "Viimeksi synkronoitu: {{date}}",
+      "hasCloudData": "Sinulla on tietoja tallennettuna pilveen.",
+      "deleteCloudData": "Poista kaikki pilvitiedot",
+      "deleteWarning": "Sinun täytyy kirjautua uudelleen poistaaksesi pilvitietosi.",
+      "signInToDelete": "Kirjaudu poistaaksesi",
+      "deleteNote": "Tämä poistaa pysyvästi kaikki tietosi palvelimiltamme.",
+      "deleteSuccess": "Pilvitiedot poistettu onnistuneesti."
+    }
+  },
+  "cloudAuth": {
+    "title": {
+      "auth": "Kirjaudu sisään",
+      "confirm": "Vahvista poisto",
+      "deleting": "Poistetaan...",
+      "success": "Valmis",
+      "error": "Virhe"
+    },
+    "description": "Kirjaudu sisään poistaaksesi pilvitietosi.",
+    "email": "Sähköposti",
+    "password": "Salasana",
+    "passwordPlaceholder": "Syötä salasanasi",
+    "signingIn": "Kirjaudutaan...",
+    "signIn": "Kirjaudu sisään",
+    "errors": {
+      "passwordRequired": "Salasana vaaditaan",
+      "signInFailed": "Kirjautuminen epäonnistui. Yritä uudelleen."
+    },
+    "confirm": {
+      "title": "Vahvista poisto",
+      "warning": "Tämä poistaa pysyvästi KAIKKI tietosi palvelimiltamme:",
+      "allGames": "Kaikki ottelut ja ottelutiedot",
+      "allPlayers": "Kaikki pelaajat ja kokoonpanot",
+      "allOther": "Kaikki kaudet, turnaukset ja asetukset",
+      "cannotUndo": "Tätä toimintoa ei voi kumota.",
+      "typeDelete": "Kirjoita DELETE vahvistaaksesi:",
+      "deleteAll": "Poista kaikki pilvitiedot"
+    },
+    "deleting": "Poistetaan pilvitietojasi...",
+    "deletingNote": "Tämä voi kestää hetken.",
+    "success": {
+      "title": "Pilvitiedot poistettu",
+      "description": "Kaikki tietosi on poistettu pysyvästi palvelimiltamme."
+    },
+    "error": {
+      "title": "Poisto epäonnistui"
+    }
+  },
+  "reverseMigration": {
+    "title": "Vaihda paikalliseen tilaan",
+    "steps": {
+      "preview": "Esikatselu",
+      "choose": "Valinnat",
+      "confirm": "Vahvista",
+      "progress": "Edistyminen",
+      "complete": "Valmis",
+      "error": "Virhe"
+    },
+    "preview": {
+      "title": "Pilvitietosi",
+      "description": "Sinulla on seuraavat tiedot tallennettuna pilveen:",
+      "games": "{{count}} ottelua",
+      "players": "{{count}} pelaajaa",
+      "teams": "{{count}} joukkuetta",
+      "seasons": "{{count}} kautta",
+      "tournaments": "{{count}} turnausta",
+      "personnel": "{{count}} henkilökuntaa",
+      "loading": "Ladataan pilvitietojasi...",
+      "loadError": "Pilvitietojen lataus epäonnistui."
+    },
+    "choose": {
+      "title": "Mitä haluat tehdä?",
+      "description": "Valitse mitä pilvitiedoillesi tapahtuu kun vaihdat paikalliseen tilaan.",
+      "keepCloud": {
+        "title": "Säilytä pilvitiedot",
+        "description": "Lataa tiedot tälle laitteelle ja säilytä kopio pilvessä. Voit vaihtaa takaisin pilvitilaan myöhemmin.",
+        "recommended": "(Suositeltu)"
+      },
+      "deleteCloud": {
+        "title": "Poista pilvitiedot",
+        "description": "Lataa tiedot tälle laitteelle ja poista ne pysyvästi pilvestä. Tätä ei voi kumota."
+      }
+    },
+    "confirm": {
+      "title": "Vahvista valintasi",
+      "keepCloudSummary": "Tietosi ladataan tälle laitteelle. Pilvitietosi säilyvät muuttumattomina.",
+      "deleteCloudSummary": "Tietosi ladataan tälle laitteelle, sitten ne poistetaan pysyvästi pilvestä.",
+      "warning": "Varmista että sinulla on vakaa internetyhteys ennen jatkamista.",
+      "typeConfirm": "Kirjoita CONFIRM jatkaaksesi:",
+      "typeDelete": "Kirjoita DELETE vahvistaaksesi pysyvän poiston:"
+    },
+    "progress": {
+      "title": "Siirretään tietoja",
+      "preparing": "Valmistellaan...",
+      "downloading": "Ladataan pilvestä...",
+      "saving": "Tallennetaan paikalliseen tallennustilaan...",
+      "verifying": "Varmistetaan tiedot...",
+      "deleting": "Poistetaan pilvitiedot...",
+      "switching": "Vaihdetaan paikalliseen tilaan..."
+    },
+    "complete": {
+      "title": "Siirto valmis",
+      "description": "Tietosi on siirretty onnistuneesti paikalliseen tallennustilaan.",
+      "cloudDeleted": "Pilvitietosi on poistettu pysyvästi.",
+      "cloudKept": "Pilvitietosi on säilytetty.",
+      "reloading": "Ladataan sovellusta uudelleen..."
+    },
+    "error": {
+      "title": "Siirto epäonnistui",
+      "description": "Siirron aikana tapahtui virhe. Tietojasi ei ole muutettu.",
+      "retry": "Yritä uudelleen",
+      "cancel": "Peruuta"
+    },
+    "buttons": {
+      "next": "Seuraava",
+      "back": "Takaisin",
+      "cancel": "Peruuta",
+      "confirm": "Vahvista",
+      "startMigration": "Aloita siirto",
+      "done": "Valmis"
+    }
   }
 }

@@ -74,6 +74,9 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     })) as unknown as jest.MockedFunction<DataStore['createPlayer']>,
     updatePlayer: jest.fn(async () => null) as unknown as jest.MockedFunction<DataStore['updatePlayer']>,
     deletePlayer: jest.fn(async () => false) as unknown as jest.MockedFunction<DataStore['deletePlayer']>,
+    upsertPlayer: jest.fn(async (player: Player) => player) as unknown as jest.MockedFunction<
+      DataStore['upsertPlayer']
+    >,
 
     // Teams
     getTeams: jest.fn(async () => []),
@@ -86,6 +89,7 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     })) as unknown as jest.MockedFunction<DataStore['createTeam']>,
     updateTeam: jest.fn(async () => null) as unknown as jest.MockedFunction<DataStore['updateTeam']>,
     deleteTeam: jest.fn(async () => false) as unknown as jest.MockedFunction<DataStore['deleteTeam']>,
+    upsertTeam: jest.fn(async (team: Team) => team) as unknown as jest.MockedFunction<DataStore['upsertTeam']>,
 
     // Team Rosters
     getTeamRoster: jest.fn(async () => []) as unknown as jest.MockedFunction<DataStore['getTeamRoster']>,
@@ -101,6 +105,9 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     })) as unknown as jest.MockedFunction<DataStore['createSeason']>,
     updateSeason: jest.fn(async () => null) as unknown as jest.MockedFunction<DataStore['updateSeason']>,
     deleteSeason: jest.fn(async () => false) as unknown as jest.MockedFunction<DataStore['deleteSeason']>,
+    upsertSeason: jest.fn(async (season: Season) => season) as unknown as jest.MockedFunction<
+      DataStore['upsertSeason']
+    >,
 
     // Tournaments
     getTournaments: jest.fn(async () => []),
@@ -110,7 +117,12 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
       ...extra,
     })) as unknown as jest.MockedFunction<DataStore['createTournament']>,
     updateTournament: jest.fn(async () => null) as unknown as jest.MockedFunction<DataStore['updateTournament']>,
-    deleteTournament: jest.fn(async () => false) as unknown as jest.MockedFunction<DataStore['deleteTournament']>,
+    deleteTournament: jest.fn(async () => false) as unknown as jest.MockedFunction<
+      DataStore['deleteTournament']
+    >,
+    upsertTournament: jest.fn(async (tournament: Tournament) => tournament) as unknown as jest.MockedFunction<
+      DataStore['upsertTournament']
+    >,
 
     // Personnel
     getAllPersonnel: jest.fn(async () => []),
@@ -122,7 +134,12 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
       updatedAt: new Date().toISOString(),
     })) as unknown as jest.MockedFunction<DataStore['addPersonnelMember']>,
     updatePersonnelMember: jest.fn(async () => null) as unknown as jest.MockedFunction<DataStore['updatePersonnelMember']>,
-    removePersonnelMember: jest.fn(async () => false) as unknown as jest.MockedFunction<DataStore['removePersonnelMember']>,
+    removePersonnelMember: jest.fn(async () => false) as unknown as jest.MockedFunction<
+      DataStore['removePersonnelMember']
+    >,
+    upsertPersonnelMember: jest.fn(async (personnel: Personnel) => personnel) as unknown as jest.MockedFunction<
+      DataStore['upsertPersonnelMember']
+    >,
 
     // Games
     getGames: jest.fn(async () => ({})),
@@ -250,6 +267,124 @@ export const createStatefulMockDataStore = (): {
       state.players.splice(index, 1);
       return true;
     }),
+    upsertPlayer: jest.fn(async (player: Player) => {
+      const index = state.players.findIndex((p) => p.id === player.id);
+      if (index === -1) {
+        state.players.push(player);
+      } else {
+        state.players[index] = player;
+      }
+      return player;
+    }),
+
+    // Teams with state
+    getTeams: jest.fn(async () => [...state.teams]),
+    getTeamById: jest.fn(async (id: string) => state.teams.find((t) => t.id === id) || null),
+    createTeam: jest.fn(async (team: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
+      const now = new Date().toISOString();
+      const newTeam: Team = {
+        ...team,
+        id: `team_${Date.now()}_${state.teams.length}`,
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.teams.push(newTeam);
+      return newTeam;
+    }),
+    updateTeam: jest.fn(async (id: string, updates: Partial<Team>) => {
+      const index = state.teams.findIndex((t) => t.id === id);
+      if (index === -1) return null;
+      state.teams[index] = { ...state.teams[index], ...updates, updatedAt: new Date().toISOString() };
+      return state.teams[index];
+    }),
+    deleteTeam: jest.fn(async (id: string) => {
+      const index = state.teams.findIndex((t) => t.id === id);
+      if (index === -1) return false;
+      state.teams.splice(index, 1);
+      return true;
+    }),
+    upsertTeam: jest.fn(async (team: Team) => {
+      const index = state.teams.findIndex((t) => t.id === team.id);
+      if (index === -1) {
+        state.teams.push(team);
+      } else {
+        state.teams[index] = team;
+      }
+      return team;
+    }),
+
+    // Team Rosters with state
+    getTeamRoster: jest.fn(async (teamId: string) => state.teamRosters[teamId] || []),
+    setTeamRoster: jest.fn(async (teamId: string, roster: TeamPlayer[]) => {
+      state.teamRosters[teamId] = roster;
+    }),
+    getAllTeamRosters: jest.fn(async () => ({ ...state.teamRosters })),
+
+    // Seasons with state
+    getSeasons: jest.fn(async () => [...state.seasons]),
+    createSeason: jest.fn(async (name: string, extra?: Partial<Season>) => {
+      const newSeason: Season = {
+        id: `season_${Date.now()}_${state.seasons.length}`,
+        name,
+        ...extra,
+      };
+      state.seasons.push(newSeason);
+      return newSeason;
+    }),
+    updateSeason: jest.fn(async (id: string, updates: Partial<Season>) => {
+      const index = state.seasons.findIndex((s) => s.id === id);
+      if (index === -1) return null;
+      state.seasons[index] = { ...state.seasons[index], ...updates };
+      return state.seasons[index];
+    }),
+    deleteSeason: jest.fn(async (id: string) => {
+      const index = state.seasons.findIndex((s) => s.id === id);
+      if (index === -1) return false;
+      state.seasons.splice(index, 1);
+      return true;
+    }),
+    upsertSeason: jest.fn(async (season: Season) => {
+      const index = state.seasons.findIndex((s) => s.id === season.id);
+      if (index === -1) {
+        state.seasons.push(season);
+      } else {
+        state.seasons[index] = season;
+      }
+      return season;
+    }),
+
+    // Tournaments with state
+    getTournaments: jest.fn(async () => [...state.tournaments]),
+    createTournament: jest.fn(async (name: string, extra?: Partial<Tournament>) => {
+      const newTournament: Tournament = {
+        id: `tournament_${Date.now()}_${state.tournaments.length}`,
+        name,
+        ...extra,
+      };
+      state.tournaments.push(newTournament);
+      return newTournament;
+    }),
+    updateTournament: jest.fn(async (id: string, updates: Partial<Tournament>) => {
+      const index = state.tournaments.findIndex((t) => t.id === id);
+      if (index === -1) return null;
+      state.tournaments[index] = { ...state.tournaments[index], ...updates };
+      return state.tournaments[index];
+    }),
+    deleteTournament: jest.fn(async (id: string) => {
+      const index = state.tournaments.findIndex((t) => t.id === id);
+      if (index === -1) return false;
+      state.tournaments.splice(index, 1);
+      return true;
+    }),
+    upsertTournament: jest.fn(async (tournament: Tournament) => {
+      const index = state.tournaments.findIndex((t) => t.id === tournament.id);
+      if (index === -1) {
+        state.tournaments.push(tournament);
+      } else {
+        state.tournaments[index] = tournament;
+      }
+      return tournament;
+    }),
 
     // Games with state
     getGames: jest.fn(async () => ({ ...state.games })),
@@ -286,6 +421,15 @@ export const createStatefulMockDataStore = (): {
       if (index === -1) return false;
       state.personnel.splice(index, 1);
       return true;
+    }),
+    upsertPersonnelMember: jest.fn(async (personnel: Personnel) => {
+      const index = state.personnel.findIndex((p) => p.id === personnel.id);
+      if (index === -1) {
+        state.personnel.push(personnel);
+      } else {
+        state.personnel[index] = personnel;
+      }
+      return personnel;
     }),
 
     // Settings with state

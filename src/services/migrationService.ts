@@ -757,7 +757,7 @@ async function uploadToCloud(
   // 6. Personnel - upsert preserves original IDs
   updateProgress('personnel');
   for (const member of data.personnel) {
-    await cloudStore.upsertPersonnel(member);
+    await cloudStore.upsertPersonnelMember(member);
     counts.personnel++;
   }
 

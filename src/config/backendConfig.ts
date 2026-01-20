@@ -290,6 +290,110 @@ export function clearMigrationCompleted(userId: string): void {
   safeRemoveItem(key);
   log.info(`[backendConfig] Migration completed flag cleared for user ${userId.slice(0, 8)}...`);
 }
+// ============================================================================
+// CLOUD ACCOUNT INFO
+// ============================================================================
+
+/**
+ * Storage key for cloud account information.
+ * Stores minimal info about the user's cloud account for:
+ * - Showing cloud account status in settings (even when in local mode)
+ * - Enabling "Delete Cloud Data" from local mode
+ * - Displaying last sync time
+ */
+const CLOUD_ACCOUNT_KEY = 'matchops_cloud_account';
+
+/**
+ * Cloud account information stored locally.
+ * This persists even after switching to local mode.
+ */
+export interface CloudAccountInfo {
+  /** User's email from Supabase auth */
+  email: string;
+  /** User's UUID from Supabase */
+  userId: string;
+  /** ISO timestamp of last successful sync/migration */
+  lastSyncedAt: string;
+  /** Whether user has data in cloud (set after migration/sync) */
+  hasCloudData: boolean;
+}
+
+/**
+ * Get stored cloud account information.
+ *
+ * Returns info about the user's cloud account even when in local mode.
+ * Used to show "You have cloud data" in settings.
+ *
+ * @returns CloudAccountInfo or null if never connected to cloud
+ */
+export function getCloudAccountInfo(): CloudAccountInfo | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const stored = safeGetItem(CLOUD_ACCOUNT_KEY);
+  if (!stored) {
+    return null;
+  }
+  try {
+    return JSON.parse(stored) as CloudAccountInfo;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    log.warn(`[backendConfig] Failed to parse cloud account info: ${errorMsg} (length: ${stored?.length})`);
+    return null;
+  }
+}
+
+/**
+ * Store cloud account information.
+ *
+ * Call this after:
+ * - Successful authentication
+ * - Successful migration
+ * - Successful sync operations
+ *
+ * @param info - Cloud account information to store
+ * @returns true if stored successfully
+ */
+export function setCloudAccountInfo(info: CloudAccountInfo): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  const success = safeSetItem(CLOUD_ACCOUNT_KEY, JSON.stringify(info));
+  if (success) {
+    log.info(`[backendConfig] Cloud account info saved for ${info.email}`);
+  }
+  return success;
+}
+
+/**
+ * Update cloud account info partially.
+ * Preserves existing fields not provided in the update.
+ *
+ * @param update - Partial cloud account info to update
+ * @returns true if updated successfully
+ */
+export function updateCloudAccountInfo(update: Partial<CloudAccountInfo>): boolean {
+  const existing = getCloudAccountInfo();
+  if (!existing) {
+    return false;
+  }
+  return setCloudAccountInfo({ ...existing, ...update });
+}
+
+/**
+ * Clear stored cloud account information.
+ *
+ * Call this after:
+ * - User deletes all cloud data
+ * - User explicitly signs out from cloud
+ */
+export function clearCloudAccountInfo(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  safeRemoveItem(CLOUD_ACCOUNT_KEY);
+  log.info('[backendConfig] Cloud account info cleared');
+}
 /* eslint-enable no-restricted-globals */
 
 // ============================================================================

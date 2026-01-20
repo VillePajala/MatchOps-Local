@@ -106,6 +106,14 @@ export interface DataStore {
    */
   deletePlayer(id: string): Promise<boolean>;
 
+  /**
+   * Upsert a player - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param player - Player with ID to upsert
+   * @returns The upserted player
+   */
+  upsertPlayer(player: Player): Promise<Player>;
+
   // ==========================================================================
   // TEAMS
   // Note: Teams have getTeamById because teams have associated rosters and
@@ -147,6 +155,14 @@ export interface DataStore {
    * @returns true if deleted, false if not found
    */
   deleteTeam(id: string): Promise<boolean>;
+
+  /**
+   * Upsert a team - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param team - Team with ID to upsert
+   * @returns The upserted team
+   */
+  upsertTeam(team: Team): Promise<Team>;
 
   // ==========================================================================
   // TEAM ROSTERS
@@ -207,6 +223,14 @@ export interface DataStore {
    */
   deleteSeason(id: string): Promise<boolean>;
 
+  /**
+   * Upsert a season - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param season - Season with ID to upsert
+   * @returns The upserted season
+   */
+  upsertSeason(season: Season): Promise<Season>;
+
   // ==========================================================================
   // TOURNAMENTS
   // Note: No getTournamentById - filter from getTournaments() in consuming code.
@@ -241,6 +265,14 @@ export interface DataStore {
    * @returns true if deleted, false if not found
    */
   deleteTournament(id: string): Promise<boolean>;
+
+  /**
+   * Upsert a tournament - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param tournament - Tournament with ID to upsert
+   * @returns The upserted tournament
+   */
+  upsertTournament(tournament: Tournament): Promise<Tournament>;
 
   // ==========================================================================
   // PERSONNEL
@@ -295,6 +327,14 @@ export interface DataStore {
    * @throws {Error} If storage operation fails
    */
   removePersonnelMember(id: string): Promise<boolean>;
+
+  /**
+   * Upsert a personnel member - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param personnel - Personnel with ID to upsert
+   * @returns The upserted personnel
+   */
+  upsertPersonnelMember(personnel: Personnel): Promise<Personnel>;
 
   // ==========================================================================
   // GAMES

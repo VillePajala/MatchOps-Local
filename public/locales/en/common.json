@@ -2048,6 +2048,128 @@
     "clearSuccessReloading": "All cloud data deleted. Reloading...",
     "clearError": "Failed to clear cloud data. Please try again.",
     "cloudUnavailable": "Cloud is not available. Cannot clear cloud data.",
-    "wrongBackend": "Cannot clear: not connected to cloud storage."
+    "wrongBackend": "Cannot clear: not connected to cloud storage.",
+    "cloudAccount": {
+      "title": "Cloud Account",
+      "lastSynced": "Last synced: {{date}}",
+      "hasCloudData": "You have data stored in the cloud.",
+      "deleteCloudData": "Delete All Cloud Data",
+      "deleteWarning": "You will need to sign in again to delete your cloud data.",
+      "signInToDelete": "Sign In to Delete",
+      "deleteNote": "This will permanently delete all your data from our servers.",
+      "deleteSuccess": "Cloud data deleted successfully."
+    }
+  },
+  "cloudAuth": {
+    "title": {
+      "auth": "Sign In",
+      "confirm": "Confirm Deletion",
+      "deleting": "Deleting...",
+      "success": "Complete",
+      "error": "Error"
+    },
+    "description": "Sign in to delete your cloud data.",
+    "email": "Email",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "signingIn": "Signing in...",
+    "signIn": "Sign In",
+    "errors": {
+      "passwordRequired": "Password is required",
+      "signInFailed": "Sign in failed. Please try again."
+    },
+    "confirm": {
+      "title": "Confirm Deletion",
+      "warning": "This will permanently delete ALL your data from our servers:",
+      "allGames": "All games and game data",
+      "allPlayers": "All players and rosters",
+      "allOther": "All seasons, tournaments, and settings",
+      "cannotUndo": "This action cannot be undone.",
+      "typeDelete": "Type DELETE to confirm:",
+      "deleteAll": "Delete All Cloud Data"
+    },
+    "deleting": "Deleting your cloud data...",
+    "deletingNote": "This may take a moment.",
+    "success": {
+      "title": "Cloud Data Deleted",
+      "description": "All your data has been permanently removed from our servers."
+    },
+    "error": {
+      "title": "Deletion Failed"
+    }
+  },
+  "reverseMigration": {
+    "title": "Switch to Local Mode",
+    "steps": {
+      "preview": "Preview",
+      "choose": "Options",
+      "confirm": "Confirm",
+      "progress": "Progress",
+      "complete": "Complete",
+      "error": "Error"
+    },
+    "preview": {
+      "title": "Your Cloud Data",
+      "description": "You have the following data stored in the cloud:",
+      "games": "{{count}} games",
+      "players": "{{count}} players",
+      "teams": "{{count}} teams",
+      "seasons": "{{count}} seasons",
+      "tournaments": "{{count}} tournaments",
+      "personnel": "{{count}} personnel",
+      "loading": "Loading your cloud data...",
+      "loadError": "Failed to load cloud data preview."
+    },
+    "choose": {
+      "title": "What would you like to do?",
+      "description": "Choose what happens to your cloud data when you switch to local mode.",
+      "keepCloud": {
+        "title": "Keep Cloud Data",
+        "description": "Download your data to this device and keep a copy in the cloud. You can switch back to cloud mode later.",
+        "recommended": "(Recommended)"
+      },
+      "deleteCloud": {
+        "title": "Delete Cloud Data",
+        "description": "Download your data to this device and permanently delete it from the cloud. This cannot be undone."
+      }
+    },
+    "confirm": {
+      "title": "Confirm Your Choice",
+      "keepCloudSummary": "Your data will be downloaded to this device. Your cloud data will remain intact.",
+      "deleteCloudSummary": "Your data will be downloaded to this device, then permanently deleted from the cloud.",
+      "warning": "Make sure you have a stable internet connection before proceeding.",
+      "typeConfirm": "Type CONFIRM to proceed:",
+      "typeDelete": "Type DELETE to confirm permanent deletion:"
+    },
+    "progress": {
+      "title": "Migrating Data",
+      "preparing": "Preparing...",
+      "downloading": "Downloading from cloud...",
+      "saving": "Saving to local storage...",
+      "verifying": "Verifying data...",
+      "deleting": "Deleting cloud data...",
+      "switching": "Switching to local mode..."
+    },
+    "complete": {
+      "title": "Migration Complete",
+      "description": "Your data has been successfully migrated to local storage.",
+      "cloudDeleted": "Your cloud data has been permanently deleted.",
+      "cloudKept": "Your cloud data has been preserved.",
+      "reloading": "Reloading app..."
+    },
+    "error": {
+      "title": "Migration Failed",
+      "description": "An error occurred during migration. Your data has not been changed.",
+      "retry": "Try Again",
+      "cancel": "Cancel"
+    },
+    "buttons": {
+      "next": "Next",
+      "back": "Back",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "startMigration": "Start Migration",
+      "done": "Done"
+    }
   }
 }

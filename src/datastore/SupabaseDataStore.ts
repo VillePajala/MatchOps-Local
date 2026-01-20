@@ -1844,7 +1844,7 @@ export class SupabaseDataStore implements DataStore {
    * @param personnel - Complete personnel object WITH id
    * @returns The upserted personnel
    */
-  async upsertPersonnel(personnel: Personnel): Promise<Personnel> {
+  async upsertPersonnelMember(personnel: Personnel): Promise<Personnel> {
     this.ensureInitialized();
     checkOnline();
 
