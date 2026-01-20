@@ -563,14 +563,22 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           </>
         );
 
-      case 'complete':
+      case 'complete': {
+        // Differentiate between clean success and success with warnings
+        const hasWarnings = migrationResult && migrationResult.warnings.length > 0;
         return (
           <>
-            {/* Success icon */}
+            {/* Status icon - amber warning if there are warnings, green check if clean */}
             <div className="text-center mb-6">
-              <HiOutlineCheckCircle className="h-12 w-12 text-green-400 mx-auto mb-3" />
+              {hasWarnings ? (
+                <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
+              ) : (
+                <HiOutlineCheckCircle className="h-12 w-12 text-green-400 mx-auto mb-3" />
+              )}
               <h3 className="text-lg font-semibold text-slate-100 mb-2">
-                {t('reverseMigration.complete.title', 'Switch Complete!')}
+                {hasWarnings
+                  ? t('reverseMigration.complete.titleWithWarnings', 'Switch Complete with Warnings')
+                  : t('reverseMigration.complete.title', 'Switch Complete!')}
               </h3>
               <p className="text-slate-400">
                 {migrationMode === 'delete-cloud'
@@ -604,17 +612,21 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               </div>
             )}
 
-            {/* Action */}
-            <div className="flex justify-center mt-6">
+            {/* Action - user must explicitly click to reload */}
+            <div className="flex flex-col items-center mt-6 gap-2">
               <button
                 onClick={onComplete}
                 className={primaryButtonStyle}
               >
-                {t('reverseMigration.complete.done', 'Done')}
+                {t('reverseMigration.complete.doneAndReload', 'Done & Reload')}
               </button>
+              <p className="text-xs text-slate-500">
+                {t('reverseMigration.complete.reloadNote', 'The page will reload to apply changes')}
+              </p>
             </div>
           </>
         );
+      }
 
       case 'error':
         return (

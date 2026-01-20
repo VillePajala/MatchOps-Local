@@ -2151,10 +2151,15 @@
       "switching": "Vaihdetaan paikalliseen tilaan..."
     },
     "complete": {
-      "title": "Siirto valmis",
-      "description": "Tietosi on siirretty onnistuneesti paikalliseen tallennustilaan.",
+      "title": "Vaihto valmis!",
+      "titleWithWarnings": "Vaihto valmis varoituksin",
+      "description": "Tietosi on ladattu tälle laitteelle.",
+      "deletedDescription": "Tietosi on ladattu ja pilvitiedot on poistettu.",
       "cloudDeleted": "Pilvitietosi on poistettu pysyvästi.",
       "cloudKept": "Pilvitietosi on säilytetty.",
+      "done": "Valmis",
+      "doneAndReload": "Valmis ja päivitä",
+      "reloadNote": "Sivu päivitetään muutosten käyttöönottamiseksi",
       "reloading": "Ladataan sovellusta uudelleen..."
     },
     "error": {

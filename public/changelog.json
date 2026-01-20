@@ -1,8 +1,8 @@
 {
-  "version": "cddb2a6f",
+  "version": "4e60e42b",
   "date": "2026-01-20",
   "notes": {
-    "en": "Add missing PR #10 files after merge",
-    "fi": "Add missing PR #10 files after merge"
+    "en": "Add retry limit and clarify teamRosters count",
+    "fi": "Add retry limit and clarify teamRosters count"
   }
 }
