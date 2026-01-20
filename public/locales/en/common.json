@@ -2041,6 +2041,7 @@
     "clearNote": "This will delete all your data from the cloud. Local data on this device will not be affected.",
     "clearSuccess": "All cloud data has been deleted.",
     "clearSuccessReloading": "All cloud data deleted. Reloading...",
-    "clearError": "Failed to clear cloud data. Please try again."
+    "clearError": "Failed to clear cloud data. Please try again.",
+    "cloudUnavailable": "Cloud is not available. Cannot clear cloud data."
   }
 }

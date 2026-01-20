@@ -72,6 +72,7 @@ export type TranslationKey =
   | 'cloudSync.clearing'
   | 'cloudSync.cloudDescription'
   | 'cloudSync.cloudMode'
+  | 'cloudSync.cloudUnavailable'
   | 'cloudSync.confirmClear'
   | 'cloudSync.dangerZone'
   | 'cloudSync.disableButton'
