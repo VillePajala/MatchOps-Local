@@ -603,21 +603,21 @@ function sanitizeGameReferences(data: LocalDataSnapshot): {
 
     // Check seasonId
     if (game.seasonId && game.seasonId !== '' && !seasonIds.has(game.seasonId)) {
-      warnings.push(`Game "${game.gameName || gameId}": cleared orphaned season reference (${game.seasonId})`);
+      warnings.push(`Game ${gameId}: cleared orphaned season reference`);
       gameCopy = { ...gameCopy, seasonId: '' };
       modified = true;
     }
 
     // Check tournamentId
     if (game.tournamentId && game.tournamentId !== '' && !tournamentIds.has(game.tournamentId)) {
-      warnings.push(`Game "${game.gameName || gameId}": cleared orphaned tournament reference (${game.tournamentId})`);
+      warnings.push(`Game ${gameId}: cleared orphaned tournament reference`);
       gameCopy = { ...gameCopy, tournamentId: '' };
       modified = true;
     }
 
     // Check teamId
     if (game.teamId && game.teamId !== '' && !teamIds.has(game.teamId)) {
-      warnings.push(`Game "${game.gameName || gameId}": cleared orphaned team reference (${game.teamId})`);
+      warnings.push(`Game ${gameId}: cleared orphaned team reference`);
       gameCopy = { ...gameCopy, teamId: '' };
       modified = true;
     }
