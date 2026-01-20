@@ -1647,38 +1647,58 @@ export class LocalDataStore implements DataStore {
     return all[playerId] || [];
   }
 
+  /**
+   * Helper to build a PlayerStatAdjustment with defaults.
+   * Extracted to avoid duplication between add and upsert methods.
+   */
+  private buildPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): PlayerStatAdjustment {
+    return {
+      id: adjustment.id || generateId('adj'),
+      appliedAt: adjustment.appliedAt || new Date().toISOString(),
+      playerId: adjustment.playerId,
+      seasonId: adjustment.seasonId,
+      teamId: adjustment.teamId,
+      tournamentId: adjustment.tournamentId,
+      externalTeamName: adjustment.externalTeamName,
+      opponentName: adjustment.opponentName,
+      scoreFor: adjustment.scoreFor,
+      scoreAgainst: adjustment.scoreAgainst,
+      gameDate: adjustment.gameDate,
+      homeOrAway: adjustment.homeOrAway,
+      includeInSeasonTournament: adjustment.includeInSeasonTournament,
+      gamesPlayedDelta: adjustment.gamesPlayedDelta || 0,
+      goalsDelta: adjustment.goalsDelta || 0,
+      assistsDelta: adjustment.assistsDelta || 0,
+      fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
+      note: adjustment.note,
+      createdBy: adjustment.createdBy,
+    };
+  }
+
+  /**
+   * Validate adjustment note length.
+   */
+  private validateAdjustmentNote(note: string | undefined): void {
+    if (note && note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
+      throw new ValidationError(
+        `Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${note.length})`,
+        'note',
+        note
+      );
+    }
+  }
+
   async addPlayerAdjustment(
     adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment> {
     this.ensureInitialized();
-
-    if (adjustment.note && adjustment.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
-      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${adjustment.note.length})`, 'note', adjustment.note);
-    }
+    this.validateAdjustmentNote(adjustment.note);
 
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
       const all = await this.loadPlayerAdjustments();
-      const newAdjustment: PlayerStatAdjustment = {
-        id: adjustment.id || generateId('adj'),
-        appliedAt: adjustment.appliedAt || new Date().toISOString(),
-        playerId: adjustment.playerId,
-        seasonId: adjustment.seasonId,
-        teamId: adjustment.teamId,
-        tournamentId: adjustment.tournamentId,
-        externalTeamName: adjustment.externalTeamName,
-        opponentName: adjustment.opponentName,
-        scoreFor: adjustment.scoreFor,
-        scoreAgainst: adjustment.scoreAgainst,
-        gameDate: adjustment.gameDate,
-        homeOrAway: adjustment.homeOrAway,
-        includeInSeasonTournament: adjustment.includeInSeasonTournament,
-        gamesPlayedDelta: adjustment.gamesPlayedDelta || 0,
-        goalsDelta: adjustment.goalsDelta || 0,
-        assistsDelta: adjustment.assistsDelta || 0,
-        fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
-        note: adjustment.note,
-        createdBy: adjustment.createdBy,
-      };
+      const newAdjustment = this.buildPlayerAdjustment(adjustment);
 
       const list = all[newAdjustment.playerId] || [];
       all[newAdjustment.playerId] = [...list, newAdjustment];
@@ -1692,34 +1712,11 @@ export class LocalDataStore implements DataStore {
     adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment> {
     this.ensureInitialized();
-
-    if (adjustment.note && adjustment.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
-      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${adjustment.note.length})`, 'note', adjustment.note);
-    }
+    this.validateAdjustmentNote(adjustment.note);
 
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
       const all = await this.loadPlayerAdjustments();
-      const newAdjustment: PlayerStatAdjustment = {
-        id: adjustment.id || generateId('adj'),
-        appliedAt: adjustment.appliedAt || new Date().toISOString(),
-        playerId: adjustment.playerId,
-        seasonId: adjustment.seasonId,
-        teamId: adjustment.teamId,
-        tournamentId: adjustment.tournamentId,
-        externalTeamName: adjustment.externalTeamName,
-        opponentName: adjustment.opponentName,
-        scoreFor: adjustment.scoreFor,
-        scoreAgainst: adjustment.scoreAgainst,
-        gameDate: adjustment.gameDate,
-        homeOrAway: adjustment.homeOrAway,
-        includeInSeasonTournament: adjustment.includeInSeasonTournament,
-        gamesPlayedDelta: adjustment.gamesPlayedDelta || 0,
-        goalsDelta: adjustment.goalsDelta || 0,
-        assistsDelta: adjustment.assistsDelta || 0,
-        fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
-        note: adjustment.note,
-        createdBy: adjustment.createdBy,
-      };
+      const newAdjustment = this.buildPlayerAdjustment(adjustment);
 
       const list = all[newAdjustment.playerId] || [];
       // Upsert: Replace existing if found, otherwise append
