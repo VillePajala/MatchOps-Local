@@ -442,8 +442,15 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                     <p className="text-xs text-red-300/80 mt-1">
                       {t('migration.replaceWarningDesc', 'All your games, players, teams, seasons, and other data currently in the cloud will be permanently deleted before uploading your local data.')}
                     </p>
+                    <p className="text-xs text-red-300/80 mt-2 font-medium">
+                      {t('migration.replaceNoRollback', 'Warning: If migration fails after clearing, your cloud data cannot be recovered. Your local data will remain safe.')}
+                    </p>
                   </div>
                 </div>
+                {/* Note: "REPLACE" is kept as English constant across all languages for:
+                    1. Consistency with industry practice (e.g., GitHub "delete")
+                    2. Preventing accidental confirmation via autocomplete
+                    3. Clear intent regardless of UI language */}
                 <div>
                   <label className="block text-sm text-slate-300 mb-1">
                     {t('migration.replaceConfirmLabel', 'Type REPLACE to confirm:')}

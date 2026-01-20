@@ -2902,22 +2902,41 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const client = this.getClient();
+    const userId = await this.getUserId();
 
-    // Delete in correct order due to foreign key constraints
-    // Child tables must be deleted before parent tables
+    // Deletion order: child tables before parent tables to respect FK constraints
+    // Even though CASCADE would handle this, explicit ordering is safer and clearer
+    //
+    // FK Constraints (verified in supabase-schema.md):
+    // - game_events, game_players, game_tactical_data, player_assessments:
+    //     game_id REFERENCES games(id) ON DELETE CASCADE
+    // - games:
+    //     season_id REFERENCES seasons(id) ON DELETE SET NULL
+    //     tournament_id REFERENCES tournaments(id) ON DELETE SET NULL
+    //     team_id REFERENCES teams(id) ON DELETE SET NULL
+    // - player_adjustments:
+    //     season_id REFERENCES seasons(id) ON DELETE SET NULL
+    //     tournament_id REFERENCES tournaments(id) ON DELETE SET NULL
+    // - team_players:
+    //     team_id REFERENCES teams(id) ON DELETE CASCADE
+    //
+    // Note: Supabase JS doesn't support multi-table transactions, so deletions
+    // are sequential. If one fails midway, cloud will be in partial state.
+    // This is acceptable because: (1) RLS prevents cross-user data access,
+    // (2) user can retry, (3) partial data is better than corrupted data.
     const tablesToClear = [
-      // Game child tables (FK to games with ON DELETE CASCADE)
+      // Game child tables first (would CASCADE from games, but explicit is safer)
       'game_events',
       'game_players',
       'game_tactical_data',
       'player_assessments',
-      // Games (FK to seasons, tournaments, teams with ON DELETE SET NULL)
+      // Games next (SET NULL on seasons/tournaments/teams)
       'games',
-      // Player adjustments (FK to seasons, tournaments with ON DELETE SET NULL)
+      // Player adjustments (SET NULL on seasons/tournaments)
       'player_adjustments',
-      // Team players (FK to teams, players with ON DELETE CASCADE)
+      // Team players (would CASCADE from teams)
       'team_players',
-      // Independent entities (no incoming FK constraints from remaining tables)
+      // Independent entities last
       'teams',
       'tournaments',
       'seasons',
@@ -2928,11 +2947,12 @@ export class SupabaseDataStore implements DataStore {
     ] as const;
 
     for (const table of tablesToClear) {
-      // Delete all rows for current user (RLS ensures user can only delete their own data)
+      // Explicit user_id filter (defense in depth - don't rely solely on RLS)
+      // Using .not('user_id', 'is', null) was considered but .eq is clearer
       const { error } = await client
         .from(table)
         .delete()
-        .neq('user_id', '00000000-0000-0000-0000-000000000000'); // Delete all (dummy condition that's always true for real users)
+        .eq('user_id', userId);
 
       if (error) {
         throw new NetworkError(`Failed to clear ${table}: ${error.message}`);
