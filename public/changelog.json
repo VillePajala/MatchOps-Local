@@ -1,8 +1,8 @@
 {
-  "version": "3f9624d2",
+  "version": "c0ddd717",
   "date": "2026-01-20",
   "notes": {
-    "en": "Make action buttons sticky at bottom",
-    "fi": "Make action buttons sticky at bottom"
+    "en": "Add PR #11 reverse migration plan",
+    "fi": "Add PR #11 reverse migration plan"
   }
 }
