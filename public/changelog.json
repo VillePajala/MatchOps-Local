@@ -1,8 +1,8 @@
 {
-  "version": "c0ddd717",
+  "version": "fff4ec01",
   "date": "2026-01-20",
   "notes": {
-    "en": "Add PR #11 reverse migration plan",
-    "fi": "Add PR #11 reverse migration plan"
+    "en": "Address final PR #10 review concerns",
+    "fi": "Address final PR #10 review concerns"
   }
 }

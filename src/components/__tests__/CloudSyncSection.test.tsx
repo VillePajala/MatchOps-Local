@@ -33,12 +33,23 @@ jest.mock('@/utils/logger', () => ({
   info: jest.fn(),
 }));
 
+// Mock getDataStore for cloud data clearing tests
+jest.mock('@/datastore/factory', () => ({
+  getDataStore: jest.fn().mockImplementation(() =>
+    Promise.resolve({
+      clearAllUserData: jest.fn(),
+      getBackendName: jest.fn().mockReturnValue('supabase'),
+    })
+  ),
+}));
+
 import {
   getBackendMode,
   isCloudAvailable,
   enableCloudMode,
   disableCloudMode,
 } from '@/config/backendConfig';
+import { getDataStore } from '@/datastore/factory';
 
 const mockGetBackendMode = getBackendMode as jest.MockedFunction<typeof getBackendMode>;
 const mockIsCloudAvailable = isCloudAvailable as jest.MockedFunction<typeof isCloudAvailable>;
@@ -213,6 +224,133 @@ describe('CloudSyncSection', () => {
       render(<CloudSyncSection />);
 
       expect(screen.queryByText(/migrate your existing local data/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('clear cloud data', () => {
+    let mockDataStoreInstance: { clearAllUserData: jest.Mock; getBackendName: jest.Mock };
+
+    beforeEach(() => {
+      mockDataStoreInstance = {
+        clearAllUserData: jest.fn().mockResolvedValue(undefined),
+        getBackendName: jest.fn().mockReturnValue('supabase'),
+      };
+      (getDataStore as jest.Mock).mockResolvedValue(mockDataStoreInstance);
+    });
+
+    it('shows danger zone only in cloud mode with cloud available', () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      render(<CloudSyncSection />);
+
+      expect(screen.getByText('Danger Zone')).toBeInTheDocument();
+      expect(screen.getByText('Clear All Cloud Data')).toBeInTheDocument();
+    });
+
+    it('does not show danger zone in local mode', () => {
+      mockGetBackendMode.mockReturnValue('local');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      render(<CloudSyncSection />);
+
+      expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
+    });
+
+    it('shows confirmation dialog when clear button is clicked', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      render(<CloudSyncSection />);
+
+      const clearButton = screen.getByRole('button', { name: /clear all cloud data/i });
+      fireEvent.click(clearButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('This action cannot be undone!')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('DELETE')).toBeInTheDocument();
+      });
+    });
+
+    it('requires DELETE confirmation to proceed', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockDataStoreInstance.getBackendName.mockReturnValue('supabase');
+
+      render(<CloudSyncSection />);
+
+      // Open confirmation dialog
+      const clearButton = screen.getByRole('button', { name: /clear all cloud data/i });
+      fireEvent.click(clearButton);
+
+      // Find the confirm button - it should be disabled until DELETE is typed
+      const confirmButton = await screen.findByRole('button', { name: /clear all data/i });
+      expect(confirmButton).toBeDisabled();
+
+      // Type partial text - should still be disabled
+      const input = screen.getByPlaceholderText('DELETE');
+      fireEvent.change(input, { target: { value: 'DELE' } });
+      expect(confirmButton).toBeDisabled();
+
+      // Type DELETE - should be enabled
+      fireEvent.change(input, { target: { value: 'DELETE' } });
+      expect(confirmButton).not.toBeDisabled();
+    });
+
+    it('prevents clear if backend is not supabase (defense-in-depth)', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      // Simulate edge case where factory returns wrong backend
+      mockDataStoreInstance.getBackendName.mockReturnValue('local');
+
+      const mockShowToast = jest.fn();
+      jest.spyOn(require('@/contexts/ToastProvider'), 'useToast').mockReturnValue({
+        showToast: mockShowToast,
+      });
+
+      render(<CloudSyncSection />);
+
+      // Open confirmation dialog
+      const clearButton = screen.getByRole('button', { name: /clear all cloud data/i });
+      fireEvent.click(clearButton);
+
+      // Type DELETE and confirm
+      const input = await screen.findByPlaceholderText('DELETE');
+      fireEvent.change(input, { target: { value: 'DELETE' } });
+
+      const confirmButton = screen.getByRole('button', { name: /clear all data/i });
+      fireEvent.click(confirmButton);
+
+      await waitFor(() => {
+        // Should show error toast about wrong backend
+        expect(mockShowToast).toHaveBeenCalledWith(
+          expect.stringContaining('not connected to cloud'),
+          'error'
+        );
+      });
+
+      // clearAllUserData should NOT have been called
+      expect(mockDataStoreInstance.clearAllUserData).not.toHaveBeenCalled();
+    });
+
+    it('can cancel the confirmation dialog', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      render(<CloudSyncSection />);
+
+      // Open confirmation dialog
+      const clearButton = screen.getByRole('button', { name: /clear all cloud data/i });
+      fireEvent.click(clearButton);
+
+      // Click cancel
+      const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+      fireEvent.click(cancelButton);
+
+      // Confirmation dialog should be hidden
+      await waitFor(() => {
+        expect(screen.queryByPlaceholderText('DELETE')).not.toBeInTheDocument();
+      });
     });
   });
 });
