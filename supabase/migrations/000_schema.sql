@@ -65,9 +65,9 @@ CREATE TABLE seasons (
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
 
-  -- NOTE: LocalDataStore uses composite uniqueness (name + clubSeason + gameType + gender + ageGroup + leagueId)
-  -- Database uses simple name uniqueness; app-level validation handles composite rules
-  CONSTRAINT seasons_name_user_unique UNIQUE (user_id, name)
+  -- Uniqueness: App-level validation enforces composite uniqueness
+  -- (name + clubSeason + gameType + gender + ageGroup + leagueId)
+  -- No database constraint - allows same name in different contexts
 );
 
 -- Tournaments
@@ -105,9 +105,9 @@ CREATE TABLE tournaments (
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
 
-  -- NOTE: LocalDataStore uses composite uniqueness (name + clubSeason + gameType + gender + ageGroup)
-  -- Database uses simple name uniqueness; app-level validation handles composite rules
-  CONSTRAINT tournaments_name_user_unique UNIQUE (user_id, name)
+  -- Uniqueness: App-level validation enforces composite uniqueness
+  -- (name + clubSeason + gameType + gender + ageGroup)
+  -- No database constraint - allows same name in different contexts
 );
 
 -- Personnel
@@ -193,9 +193,9 @@ CREATE TABLE teams (
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
 
-  -- NOTE: LocalDataStore uses composite uniqueness (name + context bindings + gameType)
-  -- Database uses simple name uniqueness; app-level validation handles composite rules
-  CONSTRAINT teams_name_user_unique UNIQUE (user_id, name)
+  -- Uniqueness: App-level validation enforces composite uniqueness
+  -- (name + boundSeasonId + boundTournamentId + boundTournamentSeriesId + gameType)
+  -- No database constraint - allows same name in different contexts
 );
 
 -- Team Players

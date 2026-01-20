@@ -1,850 +1,1060 @@
 /**
  * Supabase Database Types
  *
- * This file contains TypeScript types for the Supabase database schema.
- * In production, these types should be generated using the Supabase CLI:
+ * AUTO-GENERATED from Supabase project: matchops-cloud (aybjmnxxtgspqesdiqxd)
+ * Generated: 2026-01-20
  *
- *   npx supabase gen types typescript --project-id <project-id> > src/types/supabase.ts
+ * To regenerate:
+ *   npx supabase gen types typescript --project-id aybjmnxxtgspqesdiqxd > src/types/supabase.ts
  *
- * For now, this is a placeholder with the Database type structure that matches
- * our schema defined in docs/02-technical/database/supabase-schema.md
+ * Or use the MCP tool: generate_typescript_types
  *
  * @module types/supabase
  */
 
-/**
- * Database type for Supabase client typing.
- *
- * When Supabase project is set up, regenerate with:
- * npx supabase gen types typescript --project-id <project-id> --schema public
- *
- * These placeholder types match supabase-schema.md v15 (2026-01-12).
- */
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   public: {
     Tables: {
-      players: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          nickname: string | null;
-          jersey_number: string | null;
-          is_goalie: boolean;
-          color: string | null;
-          notes: string | null;
-          received_fair_play_card: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          user_id: string;
-          name: string;
-          nickname?: string | null;
-          jersey_number?: string | null;
-          is_goalie?: boolean;
-          color?: string | null;
-          notes?: string | null;
-          received_fair_play_card?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          nickname?: string | null;
-          jersey_number?: string | null;
-          is_goalie?: boolean;
-          color?: string | null;
-          notes?: string | null;
-          received_fair_play_card?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      teams: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          color: string | null;
-          notes: string | null;
-          age_group: string | null;
-          game_type: string | null;
-          archived: boolean;
-          bound_season_id: string | null;
-          bound_tournament_id: string | null;
-          bound_tournament_series_id: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          user_id: string;
-          name: string;
-          color?: string | null;
-          notes?: string | null;
-          age_group?: string | null;
-          game_type?: string | null;
-          archived?: boolean;
-          bound_season_id?: string | null;
-          bound_tournament_id?: string | null;
-          bound_tournament_series_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          color?: string | null;
-          notes?: string | null;
-          age_group?: string | null;
-          game_type?: string | null;
-          archived?: boolean;
-          bound_season_id?: string | null;
-          bound_tournament_id?: string | null;
-          bound_tournament_series_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      team_players: {
-        Row: {
-          id: string;
-          team_id: string;
-          player_id: string;
-          user_id: string;
-          name: string;
-          nickname: string | null;
-          jersey_number: string | null;
-          is_goalie: boolean;
-          color: string | null;
-          notes: string | null;
-          received_fair_play_card: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          team_id: string;
-          player_id: string;
-          user_id: string;
-          name: string;
-          nickname?: string | null;
-          jersey_number?: string | null;
-          is_goalie?: boolean;
-          color?: string | null;
-          notes?: string | null;
-          received_fair_play_card?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          team_id?: string;
-          player_id?: string;
-          user_id?: string;
-          name?: string;
-          nickname?: string | null;
-          jersey_number?: string | null;
-          is_goalie?: boolean;
-          color?: string | null;
-          notes?: string | null;
-          received_fair_play_card?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      seasons: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          location: string | null;
-          period_count: number | null;
-          period_duration: number | null;
-          start_date: string | null;
-          end_date: string | null;
-          game_dates: string[] | null;
-          archived: boolean;
-          notes: string | null;
-          color: string | null;
-          badge: string | null;
-          age_group: string | null;
-          game_type: string | null;
-          gender: string | null;
-          league_id: string | null;
-          custom_league_name: string | null;
-          club_season: string | null;
-          team_placements: unknown;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          user_id: string;
-          name: string;
-          location?: string | null;
-          period_count?: number | null;
-          period_duration?: number | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          game_dates?: string[] | null;
-          archived?: boolean;
-          notes?: string | null;
-          color?: string | null;
-          badge?: string | null;
-          age_group?: string | null;
-          game_type?: string | null;
-          gender?: string | null;
-          league_id?: string | null;
-          custom_league_name?: string | null;
-          club_season?: string | null;
-          team_placements?: unknown;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          location?: string | null;
-          period_count?: number | null;
-          period_duration?: number | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          game_dates?: string[] | null;
-          archived?: boolean;
-          notes?: string | null;
-          color?: string | null;
-          badge?: string | null;
-          age_group?: string | null;
-          game_type?: string | null;
-          gender?: string | null;
-          league_id?: string | null;
-          custom_league_name?: string | null;
-          club_season?: string | null;
-          team_placements?: unknown;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      tournaments: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          location: string | null;
-          period_count: number | null;
-          period_duration: number | null;
-          start_date: string | null;
-          end_date: string | null;
-          game_dates: string[] | null;
-          archived: boolean;
-          notes: string | null;
-          color: string | null;
-          badge: string | null;
-          level: string | null;
-          age_group: string | null;
-          awarded_player_id: string | null;
-          game_type: string | null;
-          gender: string | null;
-          club_season: string | null;
-          team_placements: unknown;
-          series: unknown;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          user_id: string;
-          name: string;
-          location?: string | null;
-          period_count?: number | null;
-          period_duration?: number | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          game_dates?: string[] | null;
-          archived?: boolean;
-          notes?: string | null;
-          color?: string | null;
-          badge?: string | null;
-          level?: string | null;
-          age_group?: string | null;
-          awarded_player_id?: string | null;
-          game_type?: string | null;
-          gender?: string | null;
-          club_season?: string | null;
-          team_placements?: unknown;
-          series?: unknown;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          location?: string | null;
-          period_count?: number | null;
-          period_duration?: number | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          game_dates?: string[] | null;
-          archived?: boolean;
-          notes?: string | null;
-          color?: string | null;
-          badge?: string | null;
-          level?: string | null;
-          age_group?: string | null;
-          awarded_player_id?: string | null;
-          game_type?: string | null;
-          gender?: string | null;
-          club_season?: string | null;
-          team_placements?: unknown;
-          series?: unknown;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      personnel: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          role: string;
-          email: string | null;
-          phone: string | null;
-          certifications: string[];
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          user_id: string;
-          name: string;
-          role?: string;
-          email?: string | null;
-          phone?: string | null;
-          certifications?: string[];
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          role?: string;
-          email?: string | null;
-          phone?: string | null;
-          certifications?: string[];
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      games: {
-        Row: {
-          id: string;
-          user_id: string;
-          team_id: string | null;
-          season_id: string | null;
-          tournament_id: string | null;
-          tournament_series_id: string | null;
-          tournament_level: string | null;
-          team_name: string;
-          opponent_name: string;
-          game_date: string;
-          game_time: string | null;
-          game_location: string | null;
-          home_or_away: string;
-          age_group: string | null;
-          number_of_periods: number;
-          period_duration_minutes: number;
-          sub_interval_minutes: number | null;
-          demand_factor: number | null;
-          game_status: string;
-          current_period: number;
-          is_played: boolean;
-          time_elapsed_in_seconds: number | null;
-          home_score: number;
-          away_score: number;
-          show_player_names: boolean;
-          game_notes: string;
-          game_type: string | null;
-          gender: string | null;
-          league_id: string | null;
-          custom_league_name: string | null;
-          game_personnel: string[];
-          formation_snap_points: unknown | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          user_id: string;
-          team_id?: string | null;
-          season_id?: string | null;
-          tournament_id?: string | null;
-          tournament_series_id?: string | null;
-          tournament_level?: string | null;
-          team_name: string;
-          opponent_name: string;
-          game_date: string;
-          game_time?: string | null;
-          game_location?: string | null;
-          home_or_away?: string;
-          age_group?: string | null;
-          number_of_periods?: number;
-          period_duration_minutes: number;
-          sub_interval_minutes?: number | null;
-          demand_factor?: number | null;
-          game_status?: string;
-          current_period?: number;
-          is_played?: boolean;
-          time_elapsed_in_seconds?: number | null;
-          home_score?: number;
-          away_score?: number;
-          show_player_names?: boolean;
-          game_notes?: string;
-          game_type?: string | null;
-          gender?: string | null;
-          league_id?: string | null;
-          custom_league_name?: string | null;
-          game_personnel?: string[];
-          formation_snap_points?: unknown | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          team_id?: string | null;
-          season_id?: string | null;
-          tournament_id?: string | null;
-          tournament_series_id?: string | null;
-          tournament_level?: string | null;
-          team_name?: string;
-          opponent_name?: string;
-          game_date?: string;
-          game_time?: string | null;
-          game_location?: string | null;
-          home_or_away?: string;
-          age_group?: string | null;
-          number_of_periods?: number;
-          period_duration_minutes?: number;
-          sub_interval_minutes?: number | null;
-          demand_factor?: number | null;
-          game_status?: string;
-          current_period?: number;
-          is_played?: boolean;
-          time_elapsed_in_seconds?: number | null;
-          home_score?: number;
-          away_score?: number;
-          show_player_names?: boolean;
-          game_notes?: string;
-          game_type?: string | null;
-          gender?: string | null;
-          league_id?: string | null;
-          custom_league_name?: string | null;
-          game_personnel?: string[];
-          formation_snap_points?: unknown | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      game_players: {
-        Row: {
-          id: string;
-          game_id: string;
-          player_id: string;
-          user_id: string;
-          player_name: string;
-          nickname: string | null;
-          jersey_number: string | null;
-          is_goalie: boolean;
-          color: string | null;
-          notes: string | null;
-          received_fair_play_card: boolean;
-          is_selected: boolean;
-          on_field: boolean;
-          rel_x: number | null;
-          rel_y: number | null;
-          created_at: string;
-        };
-        Insert: {
-          id: string;
-          game_id: string;
-          player_id: string;
-          user_id: string;
-          player_name: string;
-          nickname?: string | null;
-          jersey_number?: string | null;
-          is_goalie?: boolean;
-          color?: string | null;
-          notes?: string | null;
-          received_fair_play_card?: boolean;
-          is_selected?: boolean;
-          on_field?: boolean;
-          rel_x?: number | null;
-          rel_y?: number | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          game_id?: string;
-          player_id?: string;
-          user_id?: string;
-          player_name?: string;
-          nickname?: string | null;
-          jersey_number?: string | null;
-          is_goalie?: boolean;
-          color?: string | null;
-          notes?: string | null;
-          received_fair_play_card?: boolean;
-          is_selected?: boolean;
-          on_field?: boolean;
-          rel_x?: number | null;
-          rel_y?: number | null;
-          created_at?: string;
-        };
-      };
       game_events: {
         Row: {
-          id: string;
-          game_id: string;
-          user_id: string;
-          event_type: string;
-          time_seconds: number;
-          order_index: number;
-          scorer_id: string | null;
-          assister_id: string | null;
-          entity_id: string | null;
-          created_at: string;
-        };
+          assister_id: string | null
+          created_at: string | null
+          entity_id: string | null
+          event_type: string
+          game_id: string
+          id: string
+          order_index: number
+          scorer_id: string | null
+          time_seconds: number
+          user_id: string
+        }
         Insert: {
-          id: string;
-          game_id: string;
-          user_id: string;
-          event_type: string;
-          time_seconds: number;
-          order_index: number;
-          scorer_id?: string | null;
-          assister_id?: string | null;
-          entity_id?: string | null;
-          created_at?: string;
-        };
+          assister_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          event_type: string
+          game_id: string
+          id: string
+          order_index: number
+          scorer_id?: string | null
+          time_seconds: number
+          user_id: string
+        }
         Update: {
-          id?: string;
-          game_id?: string;
-          user_id?: string;
-          event_type?: string;
-          time_seconds?: number;
-          order_index?: number;
-          scorer_id?: string | null;
-          assister_id?: string | null;
-          entity_id?: string | null;
-          created_at?: string;
-        };
-      };
+          assister_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          event_type?: string
+          game_id?: string
+          id?: string
+          order_index?: number
+          scorer_id?: string | null
+          time_seconds?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_players: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          game_id: string
+          id: string
+          is_goalie: boolean | null
+          is_selected: boolean | null
+          jersey_number: string | null
+          nickname: string | null
+          notes: string | null
+          on_field: boolean | null
+          player_id: string
+          player_name: string
+          received_fair_play_card: boolean | null
+          rel_x: number | null
+          rel_y: number | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          game_id: string
+          id: string
+          is_goalie?: boolean | null
+          is_selected?: boolean | null
+          jersey_number?: string | null
+          nickname?: string | null
+          notes?: string | null
+          on_field?: boolean | null
+          player_id: string
+          player_name: string
+          received_fair_play_card?: boolean | null
+          rel_x?: number | null
+          rel_y?: number | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          game_id?: string
+          id?: string
+          is_goalie?: boolean | null
+          is_selected?: boolean | null
+          jersey_number?: string | null
+          nickname?: string | null
+          notes?: string | null
+          on_field?: boolean | null
+          player_id?: string
+          player_name?: string
+          received_fair_play_card?: boolean | null
+          rel_x?: number | null
+          rel_y?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_tactical_data: {
         Row: {
-          id: string;
-          game_id: string;
-          user_id: string;
-          opponents: unknown;
-          drawings: unknown;
-          tactical_discs: unknown;
-          tactical_drawings: unknown;
-          tactical_ball_position: unknown | null;
-          completed_interval_durations: unknown;
-          last_sub_confirmation_time_seconds: number | null;
-          created_at: string;
-          updated_at: string;
-        };
+          completed_interval_durations: Json | null
+          created_at: string | null
+          drawings: Json | null
+          game_id: string
+          id: string
+          last_sub_confirmation_time_seconds: number | null
+          opponents: Json | null
+          tactical_ball_position: Json | null
+          tactical_discs: Json | null
+          tactical_drawings: Json | null
+          updated_at: string | null
+          user_id: string
+        }
         Insert: {
-          id: string;
-          game_id: string;
-          user_id: string;
-          opponents?: unknown;
-          drawings?: unknown;
-          tactical_discs?: unknown;
-          tactical_drawings?: unknown;
-          tactical_ball_position?: unknown | null;
-          completed_interval_durations?: unknown;
-          last_sub_confirmation_time_seconds?: number | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          completed_interval_durations?: Json | null
+          created_at?: string | null
+          drawings?: Json | null
+          game_id: string
+          id: string
+          last_sub_confirmation_time_seconds?: number | null
+          opponents?: Json | null
+          tactical_ball_position?: Json | null
+          tactical_discs?: Json | null
+          tactical_drawings?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
         Update: {
-          id?: string;
-          game_id?: string;
-          user_id?: string;
-          opponents?: unknown;
-          drawings?: unknown;
-          tactical_discs?: unknown;
-          tactical_drawings?: unknown;
-          tactical_ball_position?: unknown | null;
-          completed_interval_durations?: unknown;
-          last_sub_confirmation_time_seconds?: number | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      player_assessments: {
+          completed_interval_durations?: Json | null
+          created_at?: string | null
+          drawings?: Json | null
+          game_id?: string
+          id?: string
+          last_sub_confirmation_time_seconds?: number | null
+          opponents?: Json | null
+          tactical_ball_position?: Json | null
+          tactical_discs?: Json | null
+          tactical_drawings?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_tactical_data_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: true
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
         Row: {
-          id: string;
-          game_id: string;
-          player_id: string;
-          user_id: string;
-          overall_rating: number | null;
-          intensity: number | null;
-          courage: number | null;
-          duels: number | null;
-          technique: number | null;
-          creativity: number | null;
-          decisions: number | null;
-          awareness: number | null;
-          teamwork: number | null;
-          fair_play: number | null;
-          impact: number | null;
-          notes: string | null;
-          minutes_played: number | null;
-          created_by: string | null;
-          created_at: number; // Unix timestamp milliseconds
-        };
+          age_group: string | null
+          away_score: number
+          created_at: string | null
+          current_period: number
+          custom_league_name: string | null
+          demand_factor: number | null
+          formation_snap_points: Json | null
+          game_date: string
+          game_location: string | null
+          game_notes: string
+          game_personnel: string[] | null
+          game_status: string
+          game_time: string | null
+          game_type: string | null
+          gender: string | null
+          home_or_away: string
+          home_score: number
+          id: string
+          is_played: boolean
+          league_id: string | null
+          number_of_periods: number
+          opponent_name: string
+          period_duration_minutes: number
+          season_id: string | null
+          show_player_names: boolean
+          sub_interval_minutes: number | null
+          team_id: string | null
+          team_name: string
+          time_elapsed_in_seconds: number | null
+          tournament_id: string | null
+          tournament_level: string | null
+          tournament_series_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
         Insert: {
-          id: string;
-          game_id: string;
-          player_id: string;
-          user_id: string;
-          overall_rating?: number | null;
-          intensity?: number | null;
-          courage?: number | null;
-          duels?: number | null;
-          technique?: number | null;
-          creativity?: number | null;
-          decisions?: number | null;
-          awareness?: number | null;
-          teamwork?: number | null;
-          fair_play?: number | null;
-          impact?: number | null;
-          notes?: string | null;
-          minutes_played?: number | null;
-          created_by?: string | null;
-          created_at: number;
-        };
+          age_group?: string | null
+          away_score?: number
+          created_at?: string | null
+          current_period?: number
+          custom_league_name?: string | null
+          demand_factor?: number | null
+          formation_snap_points?: Json | null
+          game_date: string
+          game_location?: string | null
+          game_notes?: string
+          game_personnel?: string[] | null
+          game_status?: string
+          game_time?: string | null
+          game_type?: string | null
+          gender?: string | null
+          home_or_away?: string
+          home_score?: number
+          id: string
+          is_played?: boolean
+          league_id?: string | null
+          number_of_periods?: number
+          opponent_name: string
+          period_duration_minutes?: number
+          season_id?: string | null
+          show_player_names?: boolean
+          sub_interval_minutes?: number | null
+          team_id?: string | null
+          team_name: string
+          time_elapsed_in_seconds?: number | null
+          tournament_id?: string | null
+          tournament_level?: string | null
+          tournament_series_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
         Update: {
-          id?: string;
-          game_id?: string;
-          player_id?: string;
-          user_id?: string;
-          overall_rating?: number | null;
-          intensity?: number | null;
-          courage?: number | null;
-          duels?: number | null;
-          technique?: number | null;
-          creativity?: number | null;
-          decisions?: number | null;
-          awareness?: number | null;
-          teamwork?: number | null;
-          fair_play?: number | null;
-          impact?: number | null;
-          notes?: string | null;
-          minutes_played?: number | null;
-          created_by?: string | null;
-          created_at?: number;
-        };
-      };
+          age_group?: string | null
+          away_score?: number
+          created_at?: string | null
+          current_period?: number
+          custom_league_name?: string | null
+          demand_factor?: number | null
+          formation_snap_points?: Json | null
+          game_date?: string
+          game_location?: string | null
+          game_notes?: string
+          game_personnel?: string[] | null
+          game_status?: string
+          game_time?: string | null
+          game_type?: string | null
+          gender?: string | null
+          home_or_away?: string
+          home_score?: number
+          id?: string
+          is_played?: boolean
+          league_id?: string | null
+          number_of_periods?: number
+          opponent_name?: string
+          period_duration_minutes?: number
+          season_id?: string | null
+          show_player_names?: boolean
+          sub_interval_minutes?: number | null
+          team_id?: string | null
+          team_name?: string
+          time_elapsed_in_seconds?: number | null
+          tournament_id?: string | null
+          tournament_level?: string | null
+          tournament_series_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "games_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "games_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personnel: {
+        Row: {
+          certifications: string[] | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          certifications?: string[] | null
+          created_at?: string | null
+          email?: string | null
+          id: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          certifications?: string[] | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_adjustments: {
         Row: {
-          id: string;
-          user_id: string;
-          player_id: string;
-          season_id: string | null;
-          team_id: string | null;
-          tournament_id: string | null;
-          external_team_name: string | null;
-          opponent_name: string | null;
-          score_for: number | null;
-          score_against: number | null;
-          game_date: string | null;
-          home_or_away: string | null;
-          include_in_season_tournament: boolean;
-          games_played_delta: number;
-          goals_delta: number;
-          assists_delta: number;
-          fair_play_cards_delta: number;
-          note: string | null;
-          created_by: string | null;
-          applied_at: string;
-          created_at: string;
-        };
+          applied_at: string | null
+          assists_delta: number | null
+          created_at: string | null
+          created_by: string | null
+          external_team_name: string | null
+          fair_play_cards_delta: number | null
+          game_date: string | null
+          games_played_delta: number | null
+          goals_delta: number | null
+          home_or_away: string | null
+          id: string
+          include_in_season_tournament: boolean | null
+          note: string | null
+          opponent_name: string | null
+          player_id: string
+          score_against: number | null
+          score_for: number | null
+          season_id: string | null
+          team_id: string | null
+          tournament_id: string | null
+          user_id: string
+        }
         Insert: {
-          id: string;
-          user_id: string;
-          player_id: string;
-          season_id?: string | null;
-          team_id?: string | null;
-          tournament_id?: string | null;
-          external_team_name?: string | null;
-          opponent_name?: string | null;
-          score_for?: number | null;
-          score_against?: number | null;
-          game_date?: string | null;
-          home_or_away?: string | null;
-          include_in_season_tournament?: boolean;
-          games_played_delta?: number;
-          goals_delta?: number;
-          assists_delta?: number;
-          fair_play_cards_delta?: number;
-          note?: string | null;
-          created_by?: string | null;
-          applied_at?: string;
-          created_at?: string;
-        };
+          applied_at?: string | null
+          assists_delta?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          external_team_name?: string | null
+          fair_play_cards_delta?: number | null
+          game_date?: string | null
+          games_played_delta?: number | null
+          goals_delta?: number | null
+          home_or_away?: string | null
+          id: string
+          include_in_season_tournament?: boolean | null
+          note?: string | null
+          opponent_name?: string | null
+          player_id: string
+          score_against?: number | null
+          score_for?: number | null
+          season_id?: string | null
+          team_id?: string | null
+          tournament_id?: string | null
+          user_id: string
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          player_id?: string;
-          season_id?: string | null;
-          team_id?: string | null;
-          tournament_id?: string | null;
-          external_team_name?: string | null;
-          opponent_name?: string | null;
-          score_for?: number | null;
-          score_against?: number | null;
-          game_date?: string | null;
-          home_or_away?: string | null;
-          include_in_season_tournament?: boolean;
-          games_played_delta?: number;
-          goals_delta?: number;
-          assists_delta?: number;
-          fair_play_cards_delta?: number;
-          note?: string | null;
-          created_by?: string | null;
-          applied_at?: string;
-          created_at?: string;
-        };
-      };
-      warmup_plans: {
+          applied_at?: string | null
+          assists_delta?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          external_team_name?: string | null
+          fair_play_cards_delta?: number | null
+          game_date?: string | null
+          games_played_delta?: number | null
+          goals_delta?: number | null
+          home_or_away?: string | null
+          id?: string
+          include_in_season_tournament?: boolean | null
+          note?: string | null
+          opponent_name?: string | null
+          player_id?: string
+          score_against?: number | null
+          score_for?: number | null
+          season_id?: string | null
+          team_id?: string | null
+          tournament_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_adjustments_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_adjustments_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_assessments: {
         Row: {
-          id: string;
-          user_id: string;
-          version: number;
-          last_modified: string;
-          is_default: boolean;
-          sections: unknown;
-          created_at: string;
-          updated_at: string;
-        };
+          awareness: number | null
+          courage: number | null
+          created_at: number
+          created_by: string | null
+          creativity: number | null
+          decisions: number | null
+          duels: number | null
+          fair_play: number | null
+          game_id: string
+          id: string
+          impact: number | null
+          intensity: number | null
+          minutes_played: number | null
+          notes: string | null
+          overall_rating: number | null
+          player_id: string
+          teamwork: number | null
+          technique: number | null
+          user_id: string
+        }
         Insert: {
-          id: string;
-          user_id: string;
-          version?: number;
-          last_modified?: string;
-          is_default?: boolean;
-          sections?: unknown;
-          created_at?: string;
-          updated_at?: string;
-        };
+          awareness?: number | null
+          courage?: number | null
+          created_at: number
+          created_by?: string | null
+          creativity?: number | null
+          decisions?: number | null
+          duels?: number | null
+          fair_play?: number | null
+          game_id: string
+          id: string
+          impact?: number | null
+          intensity?: number | null
+          minutes_played?: number | null
+          notes?: string | null
+          overall_rating?: number | null
+          player_id: string
+          teamwork?: number | null
+          technique?: number | null
+          user_id: string
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          version?: number;
-          last_modified?: string;
-          is_default?: boolean;
-          sections?: unknown;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
+          awareness?: number | null
+          courage?: number | null
+          created_at?: number
+          created_by?: string | null
+          creativity?: number | null
+          decisions?: number | null
+          duels?: number | null
+          fair_play?: number | null
+          game_id?: string
+          id?: string
+          impact?: number | null
+          intensity?: number | null
+          minutes_played?: number | null
+          notes?: string | null
+          overall_rating?: number | null
+          player_id?: string
+          teamwork?: number | null
+          technique?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_assessments_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          is_goalie: boolean | null
+          jersey_number: string | null
+          name: string
+          nickname: string | null
+          notes: string | null
+          received_fair_play_card: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id: string
+          is_goalie?: boolean | null
+          jersey_number?: string | null
+          name: string
+          nickname?: string | null
+          notes?: string | null
+          received_fair_play_card?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_goalie?: boolean | null
+          jersey_number?: string | null
+          name?: string
+          nickname?: string | null
+          notes?: string | null
+          received_fair_play_card?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      seasons: {
+        Row: {
+          age_group: string | null
+          archived: boolean | null
+          badge: string | null
+          club_season: string | null
+          color: string | null
+          created_at: string | null
+          custom_league_name: string | null
+          end_date: string | null
+          game_dates: string[] | null
+          game_type: string | null
+          gender: string | null
+          id: string
+          league_id: string | null
+          location: string | null
+          name: string
+          notes: string | null
+          period_count: number | null
+          period_duration: number | null
+          start_date: string | null
+          team_placements: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          archived?: boolean | null
+          badge?: string | null
+          club_season?: string | null
+          color?: string | null
+          created_at?: string | null
+          custom_league_name?: string | null
+          end_date?: string | null
+          game_dates?: string[] | null
+          game_type?: string | null
+          gender?: string | null
+          id: string
+          league_id?: string | null
+          location?: string | null
+          name: string
+          notes?: string | null
+          period_count?: number | null
+          period_duration?: number | null
+          start_date?: string | null
+          team_placements?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          archived?: boolean | null
+          badge?: string | null
+          club_season?: string | null
+          color?: string | null
+          created_at?: string | null
+          custom_league_name?: string | null
+          end_date?: string | null
+          game_dates?: string[] | null
+          game_type?: string | null
+          gender?: string | null
+          id?: string
+          league_id?: string | null
+          location?: string | null
+          name?: string
+          notes?: string | null
+          period_count?: number | null
+          period_duration?: number | null
+          start_date?: string | null
+          team_placements?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      team_players: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          is_goalie: boolean | null
+          jersey_number: string | null
+          name: string
+          nickname: string | null
+          notes: string | null
+          player_id: string
+          received_fair_play_card: boolean | null
+          team_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id: string
+          is_goalie?: boolean | null
+          jersey_number?: string | null
+          name: string
+          nickname?: string | null
+          notes?: string | null
+          player_id: string
+          received_fair_play_card?: boolean | null
+          team_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_goalie?: boolean | null
+          jersey_number?: string | null
+          name?: string
+          nickname?: string | null
+          notes?: string | null
+          player_id?: string
+          received_fair_play_card?: boolean | null
+          team_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_players_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          age_group: string | null
+          archived: boolean | null
+          bound_season_id: string | null
+          bound_tournament_id: string | null
+          bound_tournament_series_id: string | null
+          color: string | null
+          created_at: string | null
+          game_type: string | null
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          archived?: boolean | null
+          bound_season_id?: string | null
+          bound_tournament_id?: string | null
+          bound_tournament_series_id?: string | null
+          color?: string | null
+          created_at?: string | null
+          game_type?: string | null
+          id: string
+          name: string
+          notes?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          archived?: boolean | null
+          bound_season_id?: string | null
+          bound_tournament_id?: string | null
+          bound_tournament_series_id?: string | null
+          color?: string | null
+          created_at?: string | null
+          game_type?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournaments: {
+        Row: {
+          age_group: string | null
+          archived: boolean | null
+          awarded_player_id: string | null
+          badge: string | null
+          club_season: string | null
+          color: string | null
+          created_at: string | null
+          end_date: string | null
+          game_dates: string[] | null
+          game_type: string | null
+          gender: string | null
+          id: string
+          level: string | null
+          location: string | null
+          name: string
+          notes: string | null
+          period_count: number | null
+          period_duration: number | null
+          series: Json | null
+          start_date: string | null
+          team_placements: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          archived?: boolean | null
+          awarded_player_id?: string | null
+          badge?: string | null
+          club_season?: string | null
+          color?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          game_dates?: string[] | null
+          game_type?: string | null
+          gender?: string | null
+          id: string
+          level?: string | null
+          location?: string | null
+          name: string
+          notes?: string | null
+          period_count?: number | null
+          period_duration?: number | null
+          series?: Json | null
+          start_date?: string | null
+          team_placements?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          archived?: boolean | null
+          awarded_player_id?: string | null
+          badge?: string | null
+          club_season?: string | null
+          color?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          game_dates?: string[] | null
+          game_type?: string | null
+          gender?: string | null
+          id?: string
+          level?: string | null
+          location?: string | null
+          name?: string
+          notes?: string | null
+          period_count?: number | null
+          period_duration?: number | null
+          series?: Json | null
+          start_date?: string | null
+          team_placements?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
-          user_id: string;
-          current_game_id: string | null;
-          last_home_team_name: string | null;
-          language: string;
-          has_seen_app_guide: boolean;
-          use_demand_correction: boolean;
-          is_drawing_mode_enabled: boolean;
-          club_season_start_date: string;
-          club_season_end_date: string;
-          has_configured_season_dates: boolean;
-          created_at: string;
-          updated_at: string;
-        };
+          club_season_end_date: string | null
+          club_season_start_date: string | null
+          created_at: string | null
+          current_game_id: string | null
+          has_configured_season_dates: boolean | null
+          has_seen_app_guide: boolean | null
+          is_drawing_mode_enabled: boolean | null
+          language: string | null
+          last_home_team_name: string | null
+          updated_at: string | null
+          use_demand_correction: boolean | null
+          user_id: string
+        }
         Insert: {
-          user_id: string;
-          current_game_id?: string | null;
-          last_home_team_name?: string | null;
-          language?: string;
-          has_seen_app_guide?: boolean;
-          use_demand_correction?: boolean;
-          is_drawing_mode_enabled?: boolean;
-          club_season_start_date?: string;
-          club_season_end_date?: string;
-          has_configured_season_dates?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
+          club_season_end_date?: string | null
+          club_season_start_date?: string | null
+          created_at?: string | null
+          current_game_id?: string | null
+          has_configured_season_dates?: boolean | null
+          has_seen_app_guide?: boolean | null
+          is_drawing_mode_enabled?: boolean | null
+          language?: string | null
+          last_home_team_name?: string | null
+          updated_at?: string | null
+          use_demand_correction?: boolean | null
+          user_id: string
+        }
         Update: {
-          user_id?: string;
-          current_game_id?: string | null;
-          last_home_team_name?: string | null;
-          language?: string;
-          has_seen_app_guide?: boolean;
-          use_demand_correction?: boolean;
-          is_drawing_mode_enabled?: boolean;
-          club_season_start_date?: string;
-          club_season_end_date?: string;
-          has_configured_season_dates?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-    };
-    Views: Record<string, never>;
+          club_season_end_date?: string | null
+          club_season_start_date?: string | null
+          created_at?: string | null
+          current_game_id?: string | null
+          has_configured_season_dates?: boolean | null
+          has_seen_app_guide?: boolean | null
+          is_drawing_mode_enabled?: boolean | null
+          language?: string | null
+          last_home_team_name?: string | null
+          updated_at?: string | null
+          use_demand_correction?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      warmup_plans: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          last_modified: string | null
+          sections: Json | null
+          updated_at: string | null
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          is_default?: boolean | null
+          last_modified?: string | null
+          sections?: Json | null
+          updated_at?: string | null
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          last_modified?: string | null
+          sections?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
+      delete_personnel_cascade: {
+        Args: { p_personnel_id: string }
+        Returns: boolean
+      }
       save_game_with_relations: {
         Args: {
-          p_game: unknown;
-          p_players: unknown;
-          p_events: unknown;
-          p_tactical: unknown;
-          p_assessments: unknown;
-        };
-        Returns: string;
-      };
-      delete_personnel_cascade: {
-        Args: {
-          p_personnel_id: string;
-        };
-        Returns: void;
-      };
-    };
-    Enums: Record<string, never>;
-  };
-};
+          p_assessments: Json[]
+          p_events: Json[]
+          p_game: Json
+          p_players: Json[]
+          p_tactical_data: Json
+        }
+        Returns: undefined
+      }
+      set_team_roster: {
+        Args: { p_roster: Json[]; p_team_id: string }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
 
-/**
- * Helper type to extract table row types.
- */
-export type Tables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Row'];
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-/**
- * Helper type to extract table insert types.
- */
-export type TablesInsert<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert'];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-/**
- * Helper type to extract table update types.
- */
-export type TablesUpdate<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Update'];
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

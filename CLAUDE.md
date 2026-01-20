@@ -180,16 +180,18 @@ certifications: personnel.certifications ?? [],  // text[] array
 
 #### Rule 10: createGame() Defaults
 
-**SupabaseDataStore.createGame() MUST provide these defaults** (especially `periodDurationMinutes` which has NO schema default):
+**SupabaseDataStore.createGame() MUST provide these defaults** to ensure consistent behavior with LocalDataStore:
 
 ```typescript
-periodDurationMinutes: 10,       // ⚠️ NOT NULL, NO DB DEFAULT - will fail without this!
+periodDurationMinutes: 10,       // Schema has DEFAULT 10, but app should set explicitly
 subIntervalMinutes: 5,
 showPlayerNames: true,
 tacticalBallPosition: { relX: 0.5, relY: 0.5 },
 lastSubConfirmationTimeSeconds: 0,
 // See implementation guide Section 5.0.1 for full list
 ```
+
+Note: The schema provides `DEFAULT 10` for `period_duration_minutes` as a safety net, but the app layer should always provide the value explicitly for clarity and consistency.
 
 #### Rule 11: Event CRUD Uses Full-Save
 
