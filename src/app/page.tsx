@@ -8,6 +8,7 @@ import MigrationWizard from '@/components/MigrationWizard';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -36,6 +37,7 @@ export default function Home() {
   const migrationCheckInitiatedRef = useRef(false);
   const { showToast } = useToast();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
@@ -173,9 +175,12 @@ export default function Home() {
       setMigrationCompleted(userId);
     }
     setShowMigrationWizard(false);
-    // Refresh app state to pick up any migrated data
+    // CRITICAL: Invalidate ALL React Query cache to force refetch from cloud
+    // Without this, the app shows stale/empty data from the old local cache
+    queryClient.invalidateQueries();
+    // Also trigger state refresh
     setRefreshTrigger(prev => prev + 1);
-  }, [userId]);
+  }, [userId, queryClient]);
 
   // Handle migration wizard skip
   const handleMigrationSkip = useCallback(() => {
