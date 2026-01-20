@@ -9,6 +9,8 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 | `000_schema.sql` | Creates all 14 tables and indexes |
 | `001_rpc_functions.sql` | Creates atomic transaction functions (RPC) |
 | `002_rls_policies.sql` | Enables Row Level Security on all tables |
+| `003_fix_composite_uniqueness.sql` | Removes overly restrictive unique constraints |
+| `004_add_series_gin_index.sql` | Adds GIN index for tournaments.series JSONB queries |
 
 ## Deployment Order
 
@@ -17,6 +19,8 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 1. `000_schema.sql` - Creates all tables and indexes
 2. `001_rpc_functions.sql` - Creates atomic transaction functions
 3. `002_rls_policies.sql` - Enables Row Level Security
+4. `003_fix_composite_uniqueness.sql` - Fixes unique constraints for composite keys
+5. `004_add_series_gin_index.sql` - Adds performance index for tournaments
 
 ## Quick Deploy
 
@@ -36,7 +40,7 @@ supabase db push
 ### Option 2: Manual via SQL Editor
 
 1. Open Supabase Dashboard > SQL Editor
-2. Copy/paste each file in order (000 → 001 → 002)
+2. Copy/paste each file in order (000 → 001 → 002 → 003 → 004)
 3. Run each script and verify no errors
 
 ## Verification

@@ -67,6 +67,8 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   } | null>(null);
   const [isClearingLocal, setIsClearingLocal] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [clearLocalFailed, setClearLocalFailed] = useState(false);
+  const [retryCooldown, setRetryCooldown] = useState(0); // Seconds remaining in cooldown
 
   // Focus trap
   useFocusTrap(modalRef, true);
@@ -96,6 +98,17 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       isMounted = false;
     };
   }, []);
+
+  // Retry cooldown timer
+  useEffect(() => {
+    if (retryCooldown <= 0) return;
+
+    const timer = setTimeout(() => {
+      setRetryCooldown(prev => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [retryCooldown]);
 
   // Progress callback
   const handleProgress = useCallback((progressUpdate: MigrationProgress) => {
@@ -146,14 +159,15 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   // Clear local data after migration
   const handleClearLocalData = useCallback(async () => {
     setIsClearingLocal(true);
+    setClearLocalFailed(false);
     try {
       await clearLocalIndexedDBData();
       logger.info('[MigrationWizard] Local data cleared successfully');
       onComplete();
     } catch (error) {
       logger.error('[MigrationWizard] Failed to clear local data:', error);
-      // Notify user that clear failed but migration was successful
-      // Add to warnings so user sees it before completing
+      // Mark clear as failed - user must acknowledge before completing
+      setClearLocalFailed(true);
       setMigrationResult(prev => prev ? {
         ...prev,
         warnings: [...prev.warnings, t('migration.clearFailed', 'Failed to clear local data. You can try again later in Settings.')],
@@ -162,12 +176,15 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     }
   }, [onComplete, t]);
 
-  // Retry migration
+  // Retry migration with cooldown to prevent spam
+  const RETRY_COOLDOWN_SECONDS = 3;
   const handleRetry = useCallback(() => {
+    if (retryCooldown > 0) return; // Ignore if in cooldown
     setStep('preview');
     setProgress(null);
     setMigrationResult(null);
-  }, []);
+    setRetryCooldown(RETRY_COOLDOWN_SECONDS);
+  }, [retryCooldown]);
 
   // Render data summary table
   const renderDataSummary = (counts: MigrationCounts) => {
@@ -341,23 +358,50 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
             {/* Clear local data option */}
             <div className="mt-6 p-4 bg-slate-900/50 rounded-lg">
-              <p className="text-sm text-slate-300 mb-3">
-                {t('migration.clearLocalPrompt', 'Would you like to clear local data? (Your cloud data is safe)')}
-              </p>
-              <button
-                onClick={handleClearLocalData}
-                disabled={isClearingLocal}
-                className={`${dangerButtonStyle} w-full flex items-center justify-center gap-2`}
-              >
-                {isClearingLocal ? (
-                  <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
-                ) : (
-                  <HiOutlineTrash className="h-4 w-4" />
-                )}
-                {isClearingLocal
-                  ? t('common.processing', 'Processing...')
-                  : t('migration.clearLocalButton', 'Clear Local Data')}
-              </button>
+              {clearLocalFailed ? (
+                <>
+                  <div className="flex items-start gap-2 mb-3">
+                    <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-300">
+                      {t('migration.clearFailedAcknowledge', 'Failed to clear local data. You can clear it later from Settings, or try again now.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleClearLocalData}
+                    disabled={isClearingLocal}
+                    className={`${dangerButtonStyle} w-full flex items-center justify-center gap-2`}
+                  >
+                    {isClearingLocal ? (
+                      <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <HiOutlineArrowPath className="h-4 w-4" />
+                    )}
+                    {isClearingLocal
+                      ? t('common.processing', 'Processing...')
+                      : t('migration.retryClear', 'Retry Clear')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-300 mb-3">
+                    {t('migration.clearLocalPrompt', 'Would you like to clear local data? (Your cloud data is safe)')}
+                  </p>
+                  <button
+                    onClick={handleClearLocalData}
+                    disabled={isClearingLocal}
+                    className={`${dangerButtonStyle} w-full flex items-center justify-center gap-2`}
+                  >
+                    {isClearingLocal ? (
+                      <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <HiOutlineTrash className="h-4 w-4" />
+                    )}
+                    {isClearingLocal
+                      ? t('common.processing', 'Processing...')
+                      : t('migration.clearLocalButton', 'Clear Local Data')}
+                  </button>
+                </>
+              )}
             </div>
           </>
         );
@@ -439,7 +483,9 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       case 'complete':
         return (
           <button onClick={onComplete} className={primaryButtonStyle}>
-            {t('migration.doneButton', 'Done')}
+            {clearLocalFailed
+              ? t('migration.continueWithoutClear', 'Continue (Clear Later)')
+              : t('migration.doneButton', 'Done')}
           </button>
         );
 
@@ -449,8 +495,14 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
             <button onClick={onSkip} className={secondaryButtonStyle}>
               {t('migration.skipButton', 'Skip for Now')}
             </button>
-            <button onClick={handleRetry} className={primaryButtonStyle}>
-              {t('migration.retryButton', 'Retry Migration')}
+            <button
+              onClick={handleRetry}
+              disabled={retryCooldown > 0}
+              className={primaryButtonStyle}
+            >
+              {retryCooldown > 0
+                ? t('migration.retryWait', 'Retry ({{seconds}}s)', { seconds: retryCooldown })
+                : t('migration.retryButton', 'Retry Migration')}
             </button>
           </>
         );

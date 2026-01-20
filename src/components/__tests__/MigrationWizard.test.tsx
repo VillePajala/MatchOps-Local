@@ -94,10 +94,7 @@ describe('MigrationWizard', () => {
   });
 
   it('shows loading state while fetching data summary', async () => {
-    // Use fake timers for deterministic timing
-    jest.useFakeTimers();
-
-    // Create a manually resolvable promise
+    // Create a manually resolvable promise to control when data loads
     let resolvePromise: (value: typeof mockDataSummary) => void;
     const delayedPromise = new Promise<typeof mockDataSummary>(resolve => {
       resolvePromise = resolve;
@@ -109,7 +106,7 @@ describe('MigrationWizard', () => {
     // Should show loading initially
     expect(screen.getByText('Loading...')).toBeInTheDocument();
 
-    // Resolve the promise and flush
+    // Resolve the promise
     await act(async () => {
       resolvePromise!(mockDataSummary);
     });
@@ -118,9 +115,6 @@ describe('MigrationWizard', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     });
-
-    // Restore real timers
-    jest.useRealTimers();
   });
 
   it('calls onSkip when skip button is clicked', async () => {

@@ -1,8 +1,8 @@
 {
-  "version": "9b288c09",
+  "version": "8d031bd3",
   "date": "2026-01-20",
   "notes": {
-    "en": "Auto-reload after mode change",
-    "fi": "Auto-reload after mode change"
+    "en": "PR #9 - Infrastructure & Migration UI",
+    "fi": "PR #9 - Infrastructure & Migration UI"
   }
 }

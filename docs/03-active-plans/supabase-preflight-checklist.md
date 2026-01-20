@@ -358,6 +358,12 @@ Run these against test data:
   // Only needed if migration of large game collections is slow
   ```
 
+**Database Index Optimizations** (profile first, add if queries are slow):
+- [x] GIN index on `tournaments.series` for JSONB queries (added in migration 004)
+- [ ] Covering index for game list queries: `(user_id, is_played, game_date) INCLUDE (id, opponent_name, home_score, away_score)`
+- [ ] Covering index for field positions: `game_players(game_id, on_field) INCLUDE (rel_x, rel_y, player_id)`
+- [ ] Analyze query patterns with `EXPLAIN ANALYZE` before adding indexes
+
 ### Test Checklist
 - [ ] Performance benchmarks:
   - [ ] Add player: <50ms perceived latency
