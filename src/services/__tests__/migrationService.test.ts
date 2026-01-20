@@ -144,7 +144,7 @@ function createMockCloudStore() {
     upsertTeam: jest.fn().mockResolvedValue(mockTeam),
     upsertSeason: jest.fn().mockResolvedValue(mockSeason),
     upsertTournament: jest.fn().mockResolvedValue(mockTournament),
-    upsertPersonnel: jest.fn().mockResolvedValue(mockPersonnel),
+    upsertPersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
     // Other methods used by migration
     setTeamRoster: jest.fn().mockResolvedValue(undefined),
     saveGame: jest.fn().mockResolvedValue(mockGame),
@@ -221,7 +221,7 @@ describe('migrationService', () => {
       expect(mockCloud.upsertTeam).toHaveBeenCalled();
       expect(mockCloud.upsertSeason).toHaveBeenCalled();
       expect(mockCloud.upsertTournament).toHaveBeenCalled();
-      expect(mockCloud.upsertPersonnel).toHaveBeenCalled();
+      expect(mockCloud.upsertPersonnelMember).toHaveBeenCalled();
     });
 
     it('should report validation warnings for orphan references', async () => {
