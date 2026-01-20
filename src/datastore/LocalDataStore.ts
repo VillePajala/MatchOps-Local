@@ -1688,6 +1688,54 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  async upsertPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): Promise<PlayerStatAdjustment> {
+    this.ensureInitialized();
+
+    if (adjustment.note && adjustment.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
+      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${adjustment.note.length})`, 'note', adjustment.note);
+    }
+
+    return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
+      const all = await this.loadPlayerAdjustments();
+      const newAdjustment: PlayerStatAdjustment = {
+        id: adjustment.id || generateId('adj'),
+        appliedAt: adjustment.appliedAt || new Date().toISOString(),
+        playerId: adjustment.playerId,
+        seasonId: adjustment.seasonId,
+        teamId: adjustment.teamId,
+        tournamentId: adjustment.tournamentId,
+        externalTeamName: adjustment.externalTeamName,
+        opponentName: adjustment.opponentName,
+        scoreFor: adjustment.scoreFor,
+        scoreAgainst: adjustment.scoreAgainst,
+        gameDate: adjustment.gameDate,
+        homeOrAway: adjustment.homeOrAway,
+        includeInSeasonTournament: adjustment.includeInSeasonTournament,
+        gamesPlayedDelta: adjustment.gamesPlayedDelta || 0,
+        goalsDelta: adjustment.goalsDelta || 0,
+        assistsDelta: adjustment.assistsDelta || 0,
+        fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
+        note: adjustment.note,
+        createdBy: adjustment.createdBy,
+      };
+
+      const list = all[newAdjustment.playerId] || [];
+      // Upsert: Replace existing if found, otherwise append
+      const existingIndex = list.findIndex((item) => item.id === newAdjustment.id);
+      if (existingIndex !== -1) {
+        list[existingIndex] = newAdjustment;
+      } else {
+        list.push(newAdjustment);
+      }
+      all[newAdjustment.playerId] = list;
+      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+
+      return newAdjustment;
+    });
+  }
+
   async updatePlayerAdjustment(
     playerId: string,
     adjustmentId: string,
