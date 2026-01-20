@@ -106,7 +106,11 @@ export default function Home() {
 
     // In cloud mode, only check state when authenticated (DataStore requires auth)
     // In local mode, always check (no auth required)
-    if (mode === 'cloud' && !isAuthenticated) return;
+    if (mode === 'cloud' && !isAuthenticated) {
+      // Clear loading state so LoginScreen can render instead of spinner
+      setIsCheckingState(false);
+      return;
+    }
 
     checkAppState();
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode]);
