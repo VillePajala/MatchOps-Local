@@ -2009,6 +2009,7 @@
     "modeReplaceWarning": "Varoitus: Korvaustila poistaa kaikki olemassa olevat pilvitietosi ennen latausta.",
     "replaceWarningTitle": "Korvaustila POISTAA kaikki olemassa olevat pilvitiedot!",
     "replaceWarningDesc": "Kaikki ottelusi, pelaajasi, joukkueesi, kautesi ja muut pilvessä olevat tietosi poistetaan pysyvästi ennen paikallisten tietojen lataamista.",
+    "replaceNoRollback": "Varoitus: Jos siirto epäonnistuu tyhjennyksen jälkeen, pilvitietojasi ei voida palauttaa. Paikalliset tietosi pysyvät turvassa.",
     "replaceConfirmLabel": "Kirjoita REPLACE vahvistaaksesi:",
     "startReplaceButton": "Korvaa ja lataa"
   },

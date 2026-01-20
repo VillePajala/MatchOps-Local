@@ -898,6 +898,7 @@ export type TranslationKey =
   | 'migration.progress.complete'
   | 'migration.progress.entity'
   | 'migration.replaceConfirmLabel'
+  | 'migration.replaceNoRollback'
   | 'migration.replaceWarningDesc'
   | 'migration.replaceWarningTitle'
   | 'migration.retryButton'

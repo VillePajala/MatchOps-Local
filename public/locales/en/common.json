@@ -2009,6 +2009,7 @@
     "modeReplaceWarning": "Warning: Replace mode will delete all your existing cloud data before uploading.",
     "replaceWarningTitle": "Replace mode will DELETE all existing cloud data!",
     "replaceWarningDesc": "All your games, players, teams, seasons, and other data currently in the cloud will be permanently deleted before uploading your local data.",
+    "replaceNoRollback": "Warning: If migration fails after clearing, your cloud data cannot be recovered. Your local data will remain safe.",
     "replaceConfirmLabel": "Type REPLACE to confirm:",
     "startReplaceButton": "Replace & Upload"
   },
