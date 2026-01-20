@@ -438,8 +438,19 @@ export interface DataStore {
    * Add a new player adjustment.
    * @param adjustment - Adjustment data (id and appliedAt will be generated if not provided)
    * @returns The created adjustment
+   * @throws {Error} If adjustment with same id already exists (use upsertPlayerAdjustment for merge)
    */
   addPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): Promise<PlayerStatAdjustment>;
+
+  /**
+   * Upsert a player adjustment (insert or update if exists).
+   * Used by migration service for merge mode to handle re-migration scenarios.
+   * @param adjustment - Adjustment data (id and appliedAt will be generated if not provided)
+   * @returns The created or updated adjustment
+   */
+  upsertPlayerAdjustment(
     adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment>;
 
