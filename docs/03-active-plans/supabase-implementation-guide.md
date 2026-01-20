@@ -52,6 +52,7 @@ npm test
     - 10.1 [What's Missing After PR #8](#101-overview-whats-still-missing-after-pr-8)
     - 10.2 [PR #9: Infrastructure & Migration UI](#102-pr-9-infrastructure--migration-ui-15-hours)
     - 10.2.8 [PR #10: Cloud Data Management](#1028-pr-10-cloud-data-management-3-hours)
+    - 10.2.9 [PR #11: Reverse Migration & Cloud Account](#1029-pr-11-reverse-migration--cloud-account-8-12-hours)
     - 10.3 [Supabase Project Setup](#103-supabase-project-setup)
     - 10.4 [Environment Configuration](#104-environment-configuration)
     - 10.5 [E2E Testing with Real Supabase](#105-end-to-end-testing-with-real-supabase)
@@ -4561,6 +4562,70 @@ async upsertPlayerAdjustment(adjustment: ...): Promise<PlayerStatAdjustment> {
 **Tests**:
 - [x] All existing tests pass
 - [x] i18n validation tests updated
+
+---
+
+### 10.2.9 PR #11: Reverse Migration & Cloud Account (~8-12 hours)
+
+**Branch**: `supabase/pr11-reverse-migration`
+**Depends on**: PR #10 merged to `feature/supabase-cloud-backend`
+
+This PR enables users to downgrade from cloud mode to local mode while keeping their data, and provides cloud account management accessible from local mode.
+
+> **Full Plan**: See [pr11-reverse-migration-plan.md](./pr11-reverse-migration-plan.md) for detailed design.
+
+#### Key Features
+
+1. **Reverse Migration Wizard**: Downloads cloud data to local IndexedDB when disabling cloud sync
+2. **Cloud Account Section**: Visible in Settings even when in local mode
+3. **Delete Cloud Data from Local Mode**: GDPR compliance - delete all cloud data without re-enabling cloud
+4. **Re-authentication Modal**: For operations requiring auth when session expired
+
+#### User Scenarios
+
+| Scenario | Behavior |
+|----------|----------|
+| Downgrade (keep cloud) | Data copied to local, cloud preserved for re-subscription |
+| Downgrade (delete cloud) | Data copied to local, cloud data deleted |
+| Delete from local mode | Re-authenticate, then delete all cloud data |
+| Re-subscribe after downgrade | Migration wizard with merge/replace options |
+
+#### New Files
+
+- `src/services/reverseMigrationService.ts` - Cloud → Local migration logic
+- `src/components/ReverseMigrationWizard.tsx` - Wizard UI
+- `src/components/CloudAuthModal.tsx` - Re-auth for deletion
+
+#### PR #11 Deliverables Checklist
+
+**Reverse Migration**:
+- [ ] `reverseMigrationService.ts` with download logic
+- [ ] `ReverseMigrationWizard.tsx` component
+- [ ] Preview cloud data counts
+- [ ] Choose keep/delete mode
+- [ ] DELETE confirmation for cloud deletion
+- [ ] Progress indicator
+- [ ] Error handling with retry
+
+**Cloud Account Section**:
+- [ ] Show in Settings when user has ever used cloud
+- [ ] Display email and last sync date
+- [ ] "Delete All Cloud Data" button works from local mode
+- [ ] Re-auth modal when session expired
+
+**Data Integrity**:
+- [ ] All entity types transferred correctly
+- [ ] Verification step confirms counts match
+- [ ] No data loss during transfer
+
+**Translations**:
+- [ ] EN translations for `reverseMigration.*` and `cloudAccount.*`
+- [ ] FI translations
+
+**Tests**:
+- [ ] Unit tests for reverseMigrationService
+- [ ] Component tests for ReverseMigrationWizard
+- [ ] Integration tests for full flow
 
 ---
 
