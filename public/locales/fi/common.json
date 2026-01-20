@@ -2041,6 +2041,7 @@
     "clearNote": "Tämä poistaa kaikki tietosi pilvestä. Tämän laitteen paikallisiin tietoihin ei vaikuteta.",
     "clearSuccess": "Kaikki pilvitiedot on poistettu.",
     "clearSuccessReloading": "Kaikki pilvitiedot poistettu. Ladataan uudelleen...",
-    "clearError": "Pilvitietojen tyhjentäminen epäonnistui. Yritä uudelleen."
+    "clearError": "Pilvitietojen tyhjentäminen epäonnistui. Yritä uudelleen.",
+    "cloudUnavailable": "Pilvi ei ole käytettävissä. Pilvitietoja ei voida tyhjentää."
   }
 }

@@ -140,6 +140,17 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
       return;
     }
 
+    // Safety check: Ensure cloud is actually available
+    // This prevents accidentally clearing local data if cloud config is missing
+    if (!cloudAvailable) {
+      logger.error('[CloudSyncSection] Attempted to clear cloud data but cloud is unavailable');
+      showToast(
+        t('cloudSync.cloudUnavailable', 'Cloud is not available. Cannot clear cloud data.'),
+        'error'
+      );
+      return;
+    }
+
     setIsClearingCloud(true);
     try {
       const dataStore = await getDataStore();
@@ -262,8 +273,10 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
         </p>
       )}
 
-      {/* Clear Cloud Data Section - Only shown in cloud mode */}
-      {currentMode === 'cloud' && (
+      {/* Clear Cloud Data Section - Only shown when cloud mode is active AND cloud is available */}
+      {/* Safety: If cloudAvailable is false, getDataStore() falls back to LocalDataStore */}
+      {/* which would clear local IndexedDB instead of cloud data - so we must gate on both */}
+      {currentMode === 'cloud' && cloudAvailable && (
         <div className="pt-4 mt-4 border-t border-slate-700">
           <h4 className="text-sm font-medium text-slate-300 mb-2">
             {t('cloudSync.dangerZone', 'Danger Zone')}
