@@ -296,19 +296,29 @@ export async function migrateLocalToCloud(
       logger.warn('[MigrationService] Validation warnings:', validationWarnings);
     }
 
-    // Step 3: Get pre-migration cloud counts (for verification)
+    // Step 3: Sanitize orphaned references in games
+    // Games may reference seasons/tournaments/teams that no longer exist
+    // We clean these up by setting to empty string (becomes NULL in DB)
+    const { sanitizedGames, warnings: sanitizeWarnings } = sanitizeGameReferences(localData);
+    if (sanitizeWarnings.length > 0) {
+      warnings.push(...sanitizeWarnings);
+    }
+    // Update localData with sanitized games for upload
+    const sanitizedLocalData = { ...localData, games: sanitizedGames };
+
+    // Step 4: Get pre-migration cloud counts (for verification)
     // This allows us to detect partial upload failures by comparing (post - pre) vs expected
     const preCounts = await getCloudCounts(cloudStore);
 
-    // Step 4: Upload to cloud (uses upserts - safe to retry)
+    // Step 5: Upload to cloud (uses upserts - safe to retry)
     safeProgress({ stage: 'uploading', progress: PROGRESS_RANGES.UPLOADING.start, message: MIGRATION_MESSAGES.UPLOADING });
 
-    const uploadedCounts = await uploadToCloud(localData, cloudStore, safeProgress);
+    const uploadedCounts = await uploadToCloud(sanitizedLocalData, cloudStore, safeProgress);
 
-    // Step 5: Verify counts match (compares actual uploads vs expected)
+    // Step 6: Verify counts match (compares actual uploads vs expected)
     safeProgress({ stage: 'verifying', progress: PROGRESS_RANGES.VERIFYING.start, message: MIGRATION_MESSAGES.VERIFYING });
 
-    const verified = await verifyMigration(localData, cloudStore, preCounts);
+    const verified = await verifyMigration(sanitizedLocalData, cloudStore, preCounts);
 
     // Add verification warnings (e.g., pre-existing cloud data)
     if (verified.warnings.length > 0) {
@@ -325,7 +335,7 @@ export async function migrateLocalToCloud(
       };
     }
 
-    // Step 5: SUCCESS
+    // Step 7: SUCCESS
     safeProgress({ stage: 'complete', progress: PROGRESS_RANGES.VERIFYING.end, message: MIGRATION_MESSAGES.SUCCESS });
 
     logger.info('[MigrationService] Migration completed successfully', uploadedCounts);
@@ -560,6 +570,66 @@ function validateLocalData(data: LocalDataSnapshot): ValidationError[] {
   }
 
   return errors;
+}
+
+/**
+ * Sanitize game foreign key references to handle orphaned data.
+ *
+ * Games may reference seasons, tournaments, or teams that no longer exist
+ * (e.g., user deleted a season but game reference wasn't cleaned up).
+ * This function sets orphaned references to empty string, which becomes NULL
+ * in the database transform (per Rule 1 in CLAUDE.md).
+ *
+ * @param data - Local data snapshot
+ * @returns Object with sanitized games and list of warnings for cleaned references
+ */
+function sanitizeGameReferences(data: LocalDataSnapshot): {
+  sanitizedGames: SavedGamesCollection;
+  warnings: string[];
+} {
+  const warnings: string[] = [];
+
+  // Build sets of valid IDs
+  const seasonIds = new Set(data.seasons.map(s => s.id));
+  const tournamentIds = new Set(data.tournaments.map(t => t.id));
+  const teamIds = new Set(data.teams.map(t => t.id));
+
+  // Clone games and sanitize references
+  const sanitizedGames: SavedGamesCollection = {};
+
+  for (const [gameId, game] of Object.entries(data.games)) {
+    let gameCopy = { ...game };
+    let modified = false;
+
+    // Check seasonId
+    if (game.seasonId && game.seasonId !== '' && !seasonIds.has(game.seasonId)) {
+      warnings.push(`Game "${game.gameName || gameId}": cleared orphaned season reference (${game.seasonId})`);
+      gameCopy = { ...gameCopy, seasonId: '' };
+      modified = true;
+    }
+
+    // Check tournamentId
+    if (game.tournamentId && game.tournamentId !== '' && !tournamentIds.has(game.tournamentId)) {
+      warnings.push(`Game "${game.gameName || gameId}": cleared orphaned tournament reference (${game.tournamentId})`);
+      gameCopy = { ...gameCopy, tournamentId: '' };
+      modified = true;
+    }
+
+    // Check teamId
+    if (game.teamId && game.teamId !== '' && !teamIds.has(game.teamId)) {
+      warnings.push(`Game "${game.gameName || gameId}": cleared orphaned team reference (${game.teamId})`);
+      gameCopy = { ...gameCopy, teamId: '' };
+      modified = true;
+    }
+
+    sanitizedGames[gameId] = modified ? gameCopy : game;
+  }
+
+  if (warnings.length > 0) {
+    logger.info(`[MigrationService] Sanitized ${warnings.length} orphaned references in games`);
+  }
+
+  return { sanitizedGames, warnings };
 }
 
 // =============================================================================
