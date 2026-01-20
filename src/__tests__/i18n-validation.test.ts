@@ -257,14 +257,14 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // PR #11: Added 88 reverse migration and cloud auth keys (1765 + 88 = 1853)
-      expect(enKeys.length).toBe(1853);
+      // PR #11: Added 93 reverse migration and cloud auth keys (1765 + 93 = 1858)
+      expect(enKeys.length).toBe(1858);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // PR #11: Added 88 reverse migration and cloud auth keys (1765 + 88 = 1853)
-      expect(fiKeys.length).toBe(1853);
+      // PR #11: Added 93 reverse migration and cloud auth keys (1765 + 93 = 1858)
+      expect(fiKeys.length).toBe(1858);
     });
   });
 });
