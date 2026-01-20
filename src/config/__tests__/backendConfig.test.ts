@@ -37,6 +37,9 @@ import {
   hasModeOverride,
   getSupabaseUrl,
   getSupabaseAnonKey,
+  hasMigrationCompleted,
+  setMigrationCompleted,
+  clearMigrationCompleted,
 } from '../backendConfig';
 
 describe('backendConfig', () => {
@@ -47,13 +50,20 @@ describe('backendConfig', () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // Reset localStorage mock
+    // Reset localStorage mock - restore default implementations
     localStorageMock.clear();
+    localStorageMock.getItem.mockReset();
+    localStorageMock.setItem.mockReset();
+    localStorageMock.removeItem.mockReset();
+    // Restore default behavior
+    localStorageMock.getItem.mockImplementation((_key: string) => null);
+    localStorageMock.setItem.mockImplementation(() => undefined);
+    localStorageMock.removeItem.mockImplementation(() => undefined);
+
     Object.defineProperty(window, 'localStorage', {
       value: localStorageMock,
       writable: true,
     });
-    jest.clearAllMocks();
   });
 
   afterAll(() => {
@@ -303,6 +313,106 @@ describe('backendConfig', () => {
         isCloudAvailable: false,
         supabaseUrl: null,
         supabaseAnonKey: null,
+      });
+    });
+  });
+
+  describe('Migration Completed Flag', () => {
+    const testUserId = 'test-user-12345';
+
+    describe('hasMigrationCompleted', () => {
+      it('returns false when no flag is set', () => {
+        localStorageMock.getItem.mockReturnValue(null);
+        expect(hasMigrationCompleted(testUserId)).toBe(false);
+      });
+
+      it('returns false for empty userId', () => {
+        expect(hasMigrationCompleted('')).toBe(false);
+      });
+
+      it('returns true when flag is set to "true"', () => {
+        localStorageMock.getItem.mockReturnValue('true');
+        expect(hasMigrationCompleted(testUserId)).toBe(true);
+        expect(localStorageMock.getItem).toHaveBeenCalledWith(
+          `matchops_cloud_migration_completed_${testUserId}`
+        );
+      });
+
+      it('returns false for any value other than "true"', () => {
+        localStorageMock.getItem.mockReturnValue('false');
+        expect(hasMigrationCompleted(testUserId)).toBe(false);
+
+        localStorageMock.getItem.mockReturnValue('yes');
+        expect(hasMigrationCompleted(testUserId)).toBe(false);
+      });
+    });
+
+    describe('setMigrationCompleted', () => {
+      it('sets the flag in localStorage', () => {
+        const result = setMigrationCompleted(testUserId);
+
+        expect(result).toBe(true);
+        expect(localStorageMock.setItem).toHaveBeenCalledWith(
+          `matchops_cloud_migration_completed_${testUserId}`,
+          'true'
+        );
+      });
+
+      it('returns false for empty userId', () => {
+        expect(setMigrationCompleted('')).toBe(false);
+        expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      });
+
+      it('returns false when localStorage throws', () => {
+        localStorageMock.setItem.mockImplementation(() => {
+          throw new DOMException('Storage access denied', 'SecurityError');
+        });
+
+        expect(setMigrationCompleted(testUserId)).toBe(false);
+      });
+    });
+
+    describe('clearMigrationCompleted', () => {
+      it('removes the flag from localStorage', () => {
+        clearMigrationCompleted(testUserId);
+
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith(
+          `matchops_cloud_migration_completed_${testUserId}`
+        );
+      });
+
+      it('does nothing for empty userId', () => {
+        clearMigrationCompleted('');
+        expect(localStorageMock.removeItem).not.toHaveBeenCalled();
+      });
+
+      it('does not throw when localStorage throws', () => {
+        localStorageMock.removeItem.mockImplementation(() => {
+          throw new DOMException('Storage access denied', 'SecurityError');
+        });
+
+        expect(() => clearMigrationCompleted(testUserId)).not.toThrow();
+      });
+    });
+
+    describe('per-user isolation', () => {
+      it('keeps flags separate for different users', () => {
+        const user1 = 'user-1';
+        const user2 = 'user-2';
+
+        // Set migration completed for user1
+        setMigrationCompleted(user1);
+        expect(localStorageMock.setItem).toHaveBeenCalledWith(
+          `matchops_cloud_migration_completed_${user1}`,
+          'true'
+        );
+
+        // Check for user2 (should be false since not set)
+        localStorageMock.getItem.mockReturnValue(null);
+        expect(hasMigrationCompleted(user2)).toBe(false);
+        expect(localStorageMock.getItem).toHaveBeenCalledWith(
+          `matchops_cloud_migration_completed_${user2}`
+        );
       });
     });
   });

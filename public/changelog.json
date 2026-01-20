@@ -1,8 +1,8 @@
 {
-  "version": "0f716c62",
-  "date": "2026-01-19",
+  "version": "9b288c09",
+  "date": "2026-01-20",
   "notes": {
-    "en": "Handle failed localStorage writes and prevent unmount warnings",
-    "fi": "Handle failed localStorage writes and prevent unmount warnings"
+    "en": "Auto-reload after mode change",
+    "fi": "Auto-reload after mode change"
   }
 }

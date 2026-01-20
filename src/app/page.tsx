@@ -4,6 +4,7 @@ import ModalProvider from '@/contexts/ModalProvider';
 import HomePage from '@/components/HomePage';
 import StartScreen from '@/components/StartScreen';
 import LoginScreen from '@/components/LoginScreen';
+import MigrationWizard from '@/components/MigrationWizard';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback } from 'react';
@@ -14,6 +15,8 @@ import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGam
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
+import { hasMigrationCompleted, setMigrationCompleted } from '@/config/backendConfig';
+import { hasLocalDataToMigrate } from '@/services/migrationService';
 import logger from '@/utils/logger';
 
 // Toast display duration before force reload - allows user to see the notification
@@ -27,8 +30,14 @@ export default function Home() {
   const [hasSavedGames, setHasSavedGames] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
+  const [showMigrationWizard, setShowMigrationWizard] = useState(false);
+  const [isCheckingMigration, setIsCheckingMigration] = useState(false);
+  const [hasSkippedMigration, setHasSkippedMigration] = useState(false);
   const { showToast } = useToast();
-  const { isAuthenticated, isLoading: isAuthLoading, mode } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
+
+  // Extract userId to avoid effect re-runs when user object reference changes
+  const userId = user?.id;
 
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
@@ -101,6 +110,62 @@ export default function Home() {
     checkAppState();
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode]);
 
+  // Check if migration wizard should be shown (cloud mode only, post-authentication)
+  // This runs once when the user first authenticates in cloud mode
+  useEffect(() => {
+    // Only check in cloud mode when authenticated
+    if (mode !== 'cloud' || !isAuthenticated || !userId) return;
+
+    // Skip if we're already showing the wizard, already checked, or user skipped this session
+    if (showMigrationWizard || isCheckingMigration || hasSkippedMigration) return;
+
+    const checkMigrationNeeded = async () => {
+      setIsCheckingMigration(true);
+      try {
+        // Skip if migration already completed for this user
+        if (hasMigrationCompleted(userId)) {
+          logger.info('[page.tsx] Migration already completed for this user');
+          return;
+        }
+
+        // Check if there's local data to migrate
+        const hasData = await hasLocalDataToMigrate();
+        if (hasData) {
+          logger.info('[page.tsx] Local data found, showing migration wizard');
+          setShowMigrationWizard(true);
+        } else {
+          // No local data - mark migration as complete so we don't check again
+          logger.info('[page.tsx] No local data to migrate, marking as complete');
+          setMigrationCompleted(userId);
+        }
+      } catch (error) {
+        logger.warn('[page.tsx] Failed to check migration status', { error });
+        // Don't show wizard on error - user can trigger migration manually if needed
+      } finally {
+        setIsCheckingMigration(false);
+      }
+    };
+
+    checkMigrationNeeded();
+  }, [mode, isAuthenticated, userId, showMigrationWizard, isCheckingMigration, hasSkippedMigration]);
+
+  // Handle migration wizard completion
+  const handleMigrationComplete = useCallback(() => {
+    if (userId) {
+      setMigrationCompleted(userId);
+    }
+    setShowMigrationWizard(false);
+    // Refresh app state to pick up any migrated data
+    setRefreshTrigger(prev => prev + 1);
+  }, [userId]);
+
+  // Handle migration wizard skip
+  const handleMigrationSkip = useCallback(() => {
+    // Don't mark as completed - allow user to migrate later via settings
+    // But do mark as skipped for this session so the wizard doesn't reopen immediately
+    setHasSkippedMigration(true);
+    setShowMigrationWizard(false);
+  }, []);
 
   // Handle app resume from background (Android TWA blank screen fix)
   // Triggers refreshTrigger to re-run checkAppState when returning from extended background
@@ -192,6 +257,14 @@ export default function Home() {
           // Cloud mode: show login screen when not authenticated
           <ErrorBoundary>
             <LoginScreen />
+          </ErrorBoundary>
+        ) : showMigrationWizard ? (
+          // Cloud mode: show migration wizard when local data needs to be migrated
+          <ErrorBoundary>
+            <MigrationWizard
+              onComplete={handleMigrationComplete}
+              onSkip={handleMigrationSkip}
+            />
           </ErrorBoundary>
         ) : screen === 'start' ? (
           <ErrorBoundary>

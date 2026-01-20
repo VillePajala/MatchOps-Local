@@ -219,6 +219,77 @@ export function hasModeOverride(): boolean {
   const mode = safeGetItem(MODE_STORAGE_KEY);
   return mode === 'local' || mode === 'cloud';
 }
+// ============================================================================
+// MIGRATION COMPLETED FLAG
+// ============================================================================
+
+/**
+ * Storage key prefix for migration completed flag.
+ * Keyed by userId to support multiple users on same device.
+ */
+const MIGRATION_COMPLETED_PREFIX = 'matchops_cloud_migration_completed_';
+
+/**
+ * Check if migration has been completed for a specific user.
+ *
+ * This flag prevents the MigrationWizard from appearing on every login.
+ * It's stored in localStorage (not IndexedDB) because:
+ * - Checked BEFORE DataStore is initialized
+ * - Per-device (migration is device-specific)
+ * - Per-user (keyed by userId)
+ * - Survives mode switches
+ *
+ * @param userId - The authenticated user's ID
+ * @returns true if migration has been completed for this user on this device
+ */
+export function hasMigrationCompleted(userId: string): boolean {
+  if (typeof window === 'undefined' || !userId) {
+    return false;
+  }
+  const key = `${MIGRATION_COMPLETED_PREFIX}${userId}`;
+  return safeGetItem(key) === 'true';
+}
+
+/**
+ * Mark migration as completed for a specific user.
+ *
+ * Called after:
+ * - Successful migration from local to cloud
+ * - User skips migration (don't ask again)
+ * - No local data found (nothing to migrate)
+ *
+ * @param userId - The authenticated user's ID
+ * @returns true if the flag was set successfully
+ */
+export function setMigrationCompleted(userId: string): boolean {
+  if (typeof window === 'undefined' || !userId) {
+    return false;
+  }
+  const key = `${MIGRATION_COMPLETED_PREFIX}${userId}`;
+  const success = safeSetItem(key, 'true');
+  if (success) {
+    log.info(`[backendConfig] Migration marked as completed for user ${userId.slice(0, 8)}...`);
+  }
+  return success;
+}
+
+/**
+ * Clear migration completed flag for a specific user.
+ *
+ * Useful for:
+ * - Testing migration flow
+ * - Allowing user to re-migrate if needed
+ *
+ * @param userId - The authenticated user's ID
+ */
+export function clearMigrationCompleted(userId: string): void {
+  if (typeof window === 'undefined' || !userId) {
+    return;
+  }
+  const key = `${MIGRATION_COMPLETED_PREFIX}${userId}`;
+  safeRemoveItem(key);
+  log.info(`[backendConfig] Migration completed flag cleared for user ${userId.slice(0, 8)}...`);
+}
 /* eslint-enable no-restricted-globals */
 
 // ============================================================================
