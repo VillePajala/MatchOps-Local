@@ -13,7 +13,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 
@@ -130,24 +129,19 @@ export default function LoginScreen() {
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
 
       <div className="relative z-10 w-full max-w-sm px-6 py-8">
-        {/* Logo */}
+        {/* App name */}
         <div className="flex justify-center mb-8">
-          <Image
-            src="/logos/app-logo-yellow.png"
-            alt="MatchOps Local"
-            width={280}
-            height={93}
-            priority
-            className="h-auto w-auto max-w-[200px]"
-          />
+          <h1 className="text-4xl font-bold text-yellow-400 tracking-tight">
+            MatchOps
+          </h1>
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl font-bold text-center mb-2">
+        <h2 className="text-2xl font-bold text-center mb-2">
           {mode === 'signIn' && t('auth.signIn', 'Sign In')}
           {mode === 'signUp' && t('auth.createAccount', 'Create Account')}
           {mode === 'resetPassword' && t('auth.resetPassword', 'Reset Password')}
-        </h1>
+        </h2>
 
         <p className="text-slate-400 text-center mb-6 text-sm">
           {mode === 'signIn' && t('auth.signInSubtitle', 'Sign in to sync your data across devices')}
