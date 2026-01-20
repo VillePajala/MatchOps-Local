@@ -3,8 +3,35 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, RenderOptions } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CloudSyncSection from '../CloudSyncSection';
+
+// Create a test query client
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+// Wrapper that provides QueryClient context
+const renderWithQueryClient = (
+  ui: React.ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>
+) => {
+  const testQueryClient = createTestQueryClient();
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={testQueryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+  return {
+    ...render(ui, { wrapper: Wrapper, ...options }),
+    queryClient: testQueryClient,
+  };
+};
 
 // Mock dependencies
 jest.mock('@/config/backendConfig', () => ({
@@ -67,7 +94,7 @@ describe('CloudSyncSection', () => {
     it('shows local mode status when in local mode', () => {
       mockGetBackendMode.mockReturnValue('local');
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.getByText('Local Storage')).toBeInTheDocument();
       expect(screen.getByText('Enable Cloud Sync')).toBeInTheDocument();
@@ -76,7 +103,7 @@ describe('CloudSyncSection', () => {
     it('shows local mode description', () => {
       mockGetBackendMode.mockReturnValue('local');
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.getByText(/stored locally on this device/i)).toBeInTheDocument();
     });
@@ -85,7 +112,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('local');
       mockIsCloudAvailable.mockReturnValue(false);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.getByText(/Cloud sync is not available/i)).toBeInTheDocument();
     });
@@ -94,7 +121,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('local');
       mockIsCloudAvailable.mockReturnValue(false);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       const enableButton = screen.getByRole('button', { name: /enable cloud sync/i });
       expect(enableButton).toBeDisabled();
@@ -106,7 +133,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.getByText('Cloud Sync Enabled')).toBeInTheDocument();
       expect(screen.getByText('Switch to Local Mode')).toBeInTheDocument();
@@ -116,7 +143,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.getByText(/syncs to the cloud/i)).toBeInTheDocument();
     });
@@ -128,7 +155,7 @@ describe('CloudSyncSection', () => {
       mockIsCloudAvailable.mockReturnValue(true);
       mockEnableCloudMode.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       const enableButton = screen.getByRole('button', { name: /enable cloud sync/i });
       fireEvent.click(enableButton);
@@ -144,7 +171,7 @@ describe('CloudSyncSection', () => {
       mockEnableCloudMode.mockReturnValue(true);
 
       const onModeChange = jest.fn();
-      render(<CloudSyncSection onModeChange={onModeChange} />);
+      renderWithQueryClient(<CloudSyncSection onModeChange={onModeChange} />);
 
       const enableButton = screen.getByRole('button', { name: /enable cloud sync/i });
       fireEvent.click(enableButton);
@@ -161,7 +188,7 @@ describe('CloudSyncSection', () => {
       mockIsCloudAvailable.mockReturnValue(true);
       mockDisableCloudMode.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
       fireEvent.click(disableButton);
@@ -177,7 +204,7 @@ describe('CloudSyncSection', () => {
       mockDisableCloudMode.mockReturnValue(true);
 
       const onModeChange = jest.fn();
-      render(<CloudSyncSection onModeChange={onModeChange} />);
+      renderWithQueryClient(<CloudSyncSection onModeChange={onModeChange} />);
 
       const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
       fireEvent.click(disableButton);
@@ -193,7 +220,7 @@ describe('CloudSyncSection', () => {
       mockDisableCloudMode.mockReturnValue(false);
 
       const onModeChange = jest.fn();
-      render(<CloudSyncSection onModeChange={onModeChange} />);
+      renderWithQueryClient(<CloudSyncSection onModeChange={onModeChange} />);
 
       const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
       fireEvent.click(disableButton);
@@ -212,7 +239,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('local');
       mockIsCloudAvailable.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.getByText(/migrate your existing local data/i)).toBeInTheDocument();
     });
@@ -221,7 +248,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.queryByText(/migrate your existing local data/i)).not.toBeInTheDocument();
     });
@@ -242,7 +269,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.getByText('Danger Zone')).toBeInTheDocument();
       expect(screen.getByText('Clear All Cloud Data')).toBeInTheDocument();
@@ -252,7 +279,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('local');
       mockIsCloudAvailable.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
     });
@@ -261,7 +288,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       const clearButton = screen.getByRole('button', { name: /clear all cloud data/i });
       fireEvent.click(clearButton);
@@ -277,7 +304,7 @@ describe('CloudSyncSection', () => {
       mockIsCloudAvailable.mockReturnValue(true);
       mockDataStoreInstance.getBackendName.mockReturnValue('supabase');
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       // Open confirmation dialog
       const clearButton = screen.getByRole('button', { name: /clear all cloud data/i });
@@ -308,7 +335,7 @@ describe('CloudSyncSection', () => {
         showToast: mockShowToast,
       });
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       // Open confirmation dialog
       const clearButton = screen.getByRole('button', { name: /clear all cloud data/i });
@@ -337,7 +364,7 @@ describe('CloudSyncSection', () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
 
-      render(<CloudSyncSection />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       // Open confirmation dialog
       const clearButton = screen.getByRole('button', { name: /clear all cloud data/i });
