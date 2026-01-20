@@ -88,6 +88,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       // re-authenticating against cloud (Supabase), even when in local mode.
       // Using getAuthService() would return LocalAuthService which throws NotSupportedError.
       const authService = new SupabaseAuthService();
+      await authService.initialize();
       await authService.signIn(email, password);
 
       // Authentication successful, proceed to confirm step
