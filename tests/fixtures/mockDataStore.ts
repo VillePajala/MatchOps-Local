@@ -186,6 +186,9 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     getTimerState: jest.fn(async () => null),
     saveTimerState: jest.fn(async () => {}) as unknown as jest.MockedFunction<DataStore['saveTimerState']>,
     clearTimerState: jest.fn(async () => {}),
+
+    // Danger Zone
+    clearAllUserData: jest.fn(async () => {}),
   };
 
   // Apply overrides

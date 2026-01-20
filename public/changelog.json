@@ -1,8 +1,8 @@
 {
-  "version": "ff1b0695",
+  "version": "3f9624d2",
   "date": "2026-01-20",
   "notes": {
-    "en": "Use constant for max warnings display",
-    "fi": "Use constant for max warnings display"
+    "en": "Make action buttons sticky at bottom",
+    "fi": "Make action buttons sticky at bottom"
   }
 }

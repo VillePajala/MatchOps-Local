@@ -508,6 +508,22 @@ export interface DataStore {
    * Clear timer state.
    */
   clearTimerState(): Promise<void>;
+
+  // ==========================================================================
+  // DATA MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Clear all user data.
+   *
+   * For cloud backends: Deletes all data from cloud storage.
+   * For local backends: Clears all IndexedDB data.
+   *
+   * IMPORTANT: This is destructive and irreversible!
+   *
+   * @throws {Error} If deletion fails
+   */
+  clearAllUserData(): Promise<void>;
 }
 
 // =============================================================================
