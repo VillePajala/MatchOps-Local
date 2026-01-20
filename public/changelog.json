@@ -1,8 +1,8 @@
 {
-  "version": "8d031bd3",
+  "version": "ff1b0695",
   "date": "2026-01-20",
   "notes": {
-    "en": "PR #9 - Infrastructure & Migration UI",
-    "fi": "PR #9 - Infrastructure & Migration UI"
+    "en": "Use constant for max warnings display",
+    "fi": "Use constant for max warnings display"
   }
 }

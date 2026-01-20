@@ -521,17 +521,29 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[80] font-display"
+      className="relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-800 bg-noise-texture text-slate-100 overflow-hidden font-display"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
     >
-      <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-lg w-full mx-4 shadow-2xl">
+      {/* Background effects matching LoginScreen */}
+      <div className="absolute inset-0 bg-grid-squares opacity-[0.35]" />
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
+
+      <div className="relative z-10 w-full max-w-lg px-6 py-8">
         {/* Screen reader description */}
         <p id={descriptionId} className="sr-only">
           {t('migration.description', 'Transfer your local data to your cloud account for backup and sync across devices.')}
         </p>
+
+        {/* App name */}
+        <div className="flex justify-center mb-6">
+          <h1 className="text-4xl font-bold text-yellow-400 tracking-tight">
+            MatchOps
+          </h1>
+        </div>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
