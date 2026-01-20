@@ -57,6 +57,7 @@ export interface ReverseMigrationProgress {
 export interface ReverseMigrationCounts {
   players: number;
   teams: number;
+  /** Count of player-team assignments (roster entries), not number of teams with rosters */
   teamRosters: number;
   seasons: number;
   tournaments: number;

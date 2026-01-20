@@ -2161,6 +2161,8 @@
       "title": "Siirto epäonnistui",
       "description": "Siirron aikana tapahtui virhe. Tietojasi ei ole muutettu.",
       "retry": "Yritä uudelleen",
+      "retryIn": "Yritä uudelleen ({{seconds}}s)",
+      "maxRetries": "Uudelleenyritysraja saavutettu. Yritä myöhemmin uudelleen tai ota yhteyttä tukeen.",
       "cancel": "Peruuta"
     },
     "buttons": {

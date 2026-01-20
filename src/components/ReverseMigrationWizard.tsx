@@ -70,6 +70,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
   } | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
   const [retryCooldown, setRetryCooldown] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
   const [migrationMode, setMigrationMode] = useState<ReverseMigrationMode>('keep-cloud');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
@@ -166,15 +167,17 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
     }
   }, [isMigrating, handleProgress, t, migrationMode]);
 
-  // Retry migration with cooldown
+  // Retry migration with cooldown and limit
   const RETRY_COOLDOWN_SECONDS = 3;
+  const MAX_RETRIES = 3;
   const handleRetry = useCallback(() => {
-    if (retryCooldown > 0) return;
+    if (retryCooldown > 0 || retryCount >= MAX_RETRIES) return;
     setStep('preview');
     setProgress(null);
     setMigrationResult(null);
     setRetryCooldown(RETRY_COOLDOWN_SECONDS);
-  }, [retryCooldown]);
+    setRetryCount(prev => prev + 1);
+  }, [retryCooldown, retryCount]);
 
   // Handle continue from preview
   const handleContinueFromPreview = useCallback(() => {
@@ -643,15 +646,21 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               >
                 {t('common.cancel', 'Cancel')}
               </button>
-              <button
-                onClick={handleRetry}
-                className={primaryButtonStyle}
-                disabled={retryCooldown > 0}
-              >
-                {retryCooldown > 0
-                  ? t('reverseMigration.error.retryIn', 'Retry ({{seconds}}s)', { seconds: retryCooldown })
-                  : t('common.retry', 'Retry')}
-              </button>
+              {retryCount >= MAX_RETRIES ? (
+                <p className="text-sm text-slate-400 py-2">
+                  {t('reverseMigration.error.maxRetries', 'Maximum retries reached. Please try again later or contact support.')}
+                </p>
+              ) : (
+                <button
+                  onClick={handleRetry}
+                  className={primaryButtonStyle}
+                  disabled={retryCooldown > 0}
+                >
+                  {retryCooldown > 0
+                    ? t('reverseMigration.error.retryIn', 'Retry ({{seconds}}s)', { seconds: retryCooldown })
+                    : t('common.retry', 'Retry')}
+                </button>
+              )}
             </div>
           </>
         );
