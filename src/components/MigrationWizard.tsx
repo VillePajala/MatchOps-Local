@@ -563,7 +563,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-lg mx-auto px-6 py-8 flex-1 flex flex-col">
+      <div className="relative z-10 w-full max-w-lg mx-auto px-6 py-8 pb-safe flex-1 flex flex-col">
         {/* Screen reader description */}
         <p id={descriptionId} className="sr-only">
           {t('migration.description', 'Transfer your local data to your cloud account for backup and sync across devices.')}
@@ -597,9 +597,11 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           {renderContent()}
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 justify-end mt-6">
-          {renderActions()}
+        {/* Actions - sticky at bottom with background */}
+        <div className="sticky bottom-0 pt-4 pb-6 mt-6 bg-gradient-to-t from-slate-800 via-slate-800 to-transparent -mx-6 px-6">
+          <div className="flex gap-3 justify-end">
+            {renderActions()}
+          </div>
         </div>
       </div>
     </div>
