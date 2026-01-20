@@ -161,6 +161,14 @@ export const PROGRESS_RANGES = {
   VERIFYING: { start: 85, end: 100 },
 } as const;
 
+/**
+ * In replace mode, the "clearing" step happens before uploading.
+ * This offset shifts the uploading progress bar to account for clearing time,
+ * so the progress bar doesn't appear to "jump" when clearing completes.
+ * Value: 5% of total progress (allocates first 5% of UPLOADING range to clearing).
+ */
+export const CLEARING_STAGE_PROGRESS_OFFSET = 5;
+
 // =============================================================================
 // MIGRATION LOCK
 // =============================================================================
@@ -340,7 +348,7 @@ export async function migrateLocalToCloud(
 
     // Step 6: Upload to cloud (uses upserts - safe to retry)
     // In replace mode, add 5% offset to account for clearing step time
-    const uploadStartProgress = PROGRESS_RANGES.UPLOADING.start + (mode === 'replace' ? 5 : 0);
+    const uploadStartProgress = PROGRESS_RANGES.UPLOADING.start + (mode === 'replace' ? CLEARING_STAGE_PROGRESS_OFFSET : 0);
     safeProgress({ stage: 'uploading', progress: uploadStartProgress, message: MIGRATION_MESSAGES.UPLOADING });
 
     const uploadedCounts = await uploadToCloud(sanitizedLocalData, cloudStore, safeProgress);
