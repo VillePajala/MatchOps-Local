@@ -32,6 +32,7 @@ export type MigrationStage =
   | 'preparing'
   | 'exporting'
   | 'validating'
+  | 'clearing'
   | 'uploading'
   | 'verifying'
   | 'complete'
@@ -78,6 +79,13 @@ export interface MigrationResult {
  * Progress callback type.
  */
 export type MigrationProgressCallback = (progress: MigrationProgress) => void;
+
+/**
+ * Migration mode.
+ * - 'merge': Add/update cloud data (upsert behavior, default)
+ * - 'replace': Clear cloud data first, then upload fresh
+ */
+export type MigrationMode = 'merge' | 'replace';
 
 /**
  * Local data snapshot for migration.
@@ -198,7 +206,8 @@ export function isMigrationRunning(): boolean {
  * ```
  */
 export async function migrateLocalToCloud(
-  onProgress: MigrationProgressCallback
+  onProgress: MigrationProgressCallback,
+  mode: MigrationMode = 'merge'
 ): Promise<MigrationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -306,16 +315,24 @@ export async function migrateLocalToCloud(
     // Update localData with sanitized games for upload
     const sanitizedLocalData = { ...localData, games: sanitizedGames };
 
-    // Step 4: Get pre-migration cloud counts (for verification)
+    // Step 4: Clear cloud data if mode is 'replace'
+    if (mode === 'replace') {
+      safeProgress({ stage: 'clearing', progress: PROGRESS_RANGES.UPLOADING.start, message: 'Clearing existing cloud data...' });
+      logger.info('[MigrationService] Replace mode: clearing existing cloud data');
+      await cloudStore.clearAllUserData();
+      warnings.push('CLOUD_CLEARED'); // Translation key marker - handled in MigrationWizard
+    }
+
+    // Step 5: Get pre-migration cloud counts (for verification)
     // This allows us to detect partial upload failures by comparing (post - pre) vs expected
     const preCounts = await getCloudCounts(cloudStore);
 
-    // Step 5: Upload to cloud (uses upserts - safe to retry)
-    safeProgress({ stage: 'uploading', progress: PROGRESS_RANGES.UPLOADING.start, message: MIGRATION_MESSAGES.UPLOADING });
+    // Step 6: Upload to cloud (uses upserts - safe to retry)
+    safeProgress({ stage: 'uploading', progress: PROGRESS_RANGES.UPLOADING.start + 5, message: MIGRATION_MESSAGES.UPLOADING });
 
     const uploadedCounts = await uploadToCloud(sanitizedLocalData, cloudStore, safeProgress);
 
-    // Step 6: Verify counts match (compares actual uploads vs expected)
+    // Step 7: Verify counts match (compares actual uploads vs expected)
     safeProgress({ stage: 'verifying', progress: PROGRESS_RANGES.VERIFYING.start, message: MIGRATION_MESSAGES.VERIFYING });
 
     const verified = await verifyMigration(sanitizedLocalData, cloudStore, preCounts);
@@ -335,7 +352,7 @@ export async function migrateLocalToCloud(
       };
     }
 
-    // Step 7: SUCCESS
+    // Step 8: SUCCESS
     safeProgress({ stage: 'complete', progress: PROGRESS_RANGES.VERIFYING.end, message: MIGRATION_MESSAGES.SUCCESS });
 
     logger.info('[MigrationService] Migration completed successfully', uploadedCounts);
@@ -748,11 +765,11 @@ async function uploadToCloud(
     counts.games++;
   }
 
-  // 8. Player adjustments (adjustment includes playerId, so we just pass it directly)
+  // 8. Player adjustments - upsert preserves original IDs (handles merge mode)
   updateProgress('player adjustments');
   for (const [_playerId, adjustments] of data.playerAdjustments) {
     for (const adjustment of adjustments) {
-      await cloudStore.addPlayerAdjustment(adjustment);
+      await cloudStore.upsertPlayerAdjustment(adjustment);
       counts.playerAdjustments++;
     }
   }

@@ -2636,6 +2636,36 @@ export class SupabaseDataStore implements DataStore {
     return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
   }
 
+  /**
+   * Upsert a player adjustment (insert or update if exists).
+   * Used by migration service for merge mode.
+   */
+  async upsertPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): Promise<PlayerStatAdjustment> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const id = adjustment.id || generateId('adjustment');
+    const appliedAt = adjustment.appliedAt || new Date().toISOString();
+
+    const dbAdjustment = this.transformAdjustmentToDb(
+      { ...adjustment, id, appliedAt } as PlayerStatAdjustment,
+      userId
+    );
+
+    const { error } = await this.getClient()
+      .from('player_adjustments')
+      .upsert(dbAdjustment as unknown as never, { onConflict: 'id' });
+
+    if (error) {
+      throw new NetworkError(`Failed to upsert player adjustment: ${error.message}`);
+    }
+
+    return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
+  }
+
   async updatePlayerAdjustment(
     playerId: string,
     adjustmentId: string,
@@ -2849,5 +2879,69 @@ export class SupabaseDataStore implements DataStore {
   async clearTimerState(): Promise<void> {
     // Timer state is local-only (high-frequency writes)
     // No-op for cloud mode
+  }
+
+  // ==========================================================================
+  // DATA MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Clear all user data from cloud.
+   *
+   * Deletes all data owned by the current user from all tables.
+   * Used for:
+   * - "Replace cloud data" migration mode
+   * - Manual cloud data reset from settings
+   *
+   * IMPORTANT: This is destructive and irreversible!
+   *
+   * @throws NetworkError if deletion fails
+   */
+  async clearAllUserData(): Promise<void> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const client = this.getClient();
+
+    // Delete in correct order due to foreign key constraints
+    // Child tables must be deleted before parent tables
+    const tablesToClear = [
+      // Game child tables (FK to games with ON DELETE CASCADE)
+      'game_events',
+      'game_players',
+      'game_tactical_data',
+      'player_assessments',
+      // Games (FK to seasons, tournaments, teams with ON DELETE SET NULL)
+      'games',
+      // Player adjustments (FK to seasons, tournaments with ON DELETE SET NULL)
+      'player_adjustments',
+      // Team players (FK to teams, players with ON DELETE CASCADE)
+      'team_players',
+      // Independent entities (no incoming FK constraints from remaining tables)
+      'teams',
+      'tournaments',
+      'seasons',
+      'personnel',
+      'players',
+      'warmup_plans',
+      'user_settings',
+    ] as const;
+
+    for (const table of tablesToClear) {
+      // Delete all rows for current user (RLS ensures user can only delete their own data)
+      const { error } = await client
+        .from(table)
+        .delete()
+        .neq('user_id', '00000000-0000-0000-0000-000000000000'); // Delete all (dummy condition that's always true for real users)
+
+      if (error) {
+        throw new NetworkError(`Failed to clear ${table}: ${error.message}`);
+      }
+    }
+
+    // Clear local caches
+    this.clearUserCaches();
+
+    logger.info('[SupabaseDataStore] All user data cleared from cloud');
   }
 }

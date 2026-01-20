@@ -1955,6 +1955,7 @@
     "preparing": "Valmistellaan siirtoa...",
     "exporting": "Viedään paikallisia tietoja...",
     "validating": "Tarkistetaan tietojen eheys...",
+    "clearing": "Tyhjennetään olemassa olevat pilvitiedot...",
     "uploading": "Ladataan pilveen...",
     "verifying": "Varmistetaan siirto...",
     "success": "Siirto valmis!",
@@ -1995,7 +1996,17 @@
     "progress": {
       "entity": "Siirretään {{entity}}...",
       "complete": "{{count}} kohdetta siirretty"
-    }
+    },
+    "warnings": {
+      "cloudCleared": "Olemassa olevat pilvitiedot tyhjennettiin ennen siirtoa (korvaustila)",
+      "andMore": "...ja {{count}} lisää"
+    },
+    "modeTitle": "Siirtotapa",
+    "modeMerge": "Lisää pilveen",
+    "modeMergeDesc": "Yhdistä olemassa oleviin pilvitietoihin. Vastaavat kohteet päivitetään.",
+    "modeReplace": "Korvaa pilvitiedot",
+    "modeReplaceDesc": "Tyhjennä kaikki olemassa olevat pilvitiedot ensin, sitten lataa uudet.",
+    "modeReplaceWarning": "Varoitus: Korvaustila poistaa kaikki olemassa olevat pilvitietosi ennen latausta."
   },
   "cloudSync": {
     "title": "Pilvisynkronointi",
@@ -2019,6 +2030,17 @@
     "disableFailed": "Paikalliseen tilaan vaihtaminen epäonnistui. Yritä uudelleen.",
     "disableError": "Virhe pilvitilan poistamisessa käytöstä.",
     "restartRequired": "Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
-    "migrationNote": "Kun otat pilvisynkronoinnin käyttöön, voit siirtää nykyiset paikalliset tietosi pilveen."
+    "migrationNote": "Kun otat pilvisynkronoinnin käyttöön, voit siirtää nykyiset paikalliset tietosi pilveen.",
+    "dangerZone": "Vaaravyöhyke",
+    "clearCloudData": "Tyhjennä kaikki pilvitiedot",
+    "clearWarningTitle": "Tätä toimintoa ei voi kumota!",
+    "clearWarningDescription": "Kaikki ottelusi, pelaajasi, joukkueesi, kautesi ja muut tietosi poistetaan pysyvästi pilvestä.",
+    "clearConfirmLabel": "Kirjoita DELETE vahvistaaksesi:",
+    "clearing": "Tyhjennetään...",
+    "confirmClear": "Tyhjennä kaikki tiedot",
+    "clearNote": "Tämä poistaa kaikki tietosi pilvestä. Tämän laitteen paikallisiin tietoihin ei vaikuteta.",
+    "clearSuccess": "Kaikki pilvitiedot on poistettu.",
+    "clearSuccessReloading": "Kaikki pilvitiedot poistettu. Ladataan uudelleen...",
+    "clearError": "Pilvitietojen tyhjentäminen epäonnistui. Yritä uudelleen."
   }
 }

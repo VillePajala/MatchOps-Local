@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle } from 'react-icons/hi2';
+import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash } from 'react-icons/hi2';
 import {
   getBackendMode,
   isCloudAvailable,
@@ -10,6 +10,8 @@ import {
   disableCloudMode,
 } from '@/config/backendConfig';
 import { useToast } from '@/contexts/ToastProvider';
+import { getDataStore } from '@/datastore/factory';
+import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 
 interface CloudSyncSectionProps {
@@ -39,6 +41,11 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
   const [currentMode] = useState<'local' | 'cloud'>(() => getBackendMode());
   const [cloudAvailable] = useState(() => isCloudAvailable());
   const [isChangingMode, setIsChangingMode] = useState(false);
+
+  // Clear cloud data confirmation state
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState('');
+  const [isClearingCloud, setIsClearingCloud] = useState(false);
 
   // Track mount state to prevent state updates after unmount
   const isMountedRef = useRef(true);
@@ -128,6 +135,38 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
     }
   };
 
+  const handleClearCloudData = async () => {
+    if (clearConfirmText !== 'DELETE') {
+      return;
+    }
+
+    setIsClearingCloud(true);
+    try {
+      const dataStore = await getDataStore();
+      await dataStore.clearAllUserData();
+
+      showToast(
+        t('cloudSync.clearSuccessReloading', 'All cloud data deleted. Reloading...'),
+        'success'
+      );
+
+      // Reload after brief delay so user sees the toast (similar to mode change)
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      logger.error('[CloudSyncSection] Failed to clear cloud data:', error);
+      showToast(
+        t('cloudSync.clearError', 'Failed to clear cloud data. Please try again.'),
+        'error'
+      );
+    } finally {
+      if (isMountedRef.current) {
+        setIsClearingCloud(false);
+      }
+    }
+  };
+
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
 
   return (
@@ -185,7 +224,7 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
           <button
             onClick={handleEnableCloud}
             disabled={isChangingMode || !cloudAvailable}
-            className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+            className={`${primaryButtonStyle} flex items-center justify-center gap-2 w-full py-3`}
           >
             {isChangingMode ? (
               <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
@@ -201,7 +240,7 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
           <button
             onClick={handleDisableCloud}
             disabled={isChangingMode}
-            className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-3`}
           >
             {isChangingMode ? (
               <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
@@ -221,6 +260,88 @@ export default function CloudSyncSection({ onModeChange }: CloudSyncSectionProps
         <p className="text-xs text-slate-500">
           {t('cloudSync.migrationNote', 'When you enable cloud sync, you can migrate your existing local data to the cloud.')}
         </p>
+      )}
+
+      {/* Clear Cloud Data Section - Only shown in cloud mode */}
+      {currentMode === 'cloud' && (
+        <div className="pt-4 mt-4 border-t border-slate-700">
+          <h4 className="text-sm font-medium text-slate-300 mb-2">
+            {t('cloudSync.dangerZone', 'Danger Zone')}
+          </h4>
+
+          {!showClearConfirm ? (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              disabled={isChangingMode}
+              className={`${dangerButtonStyle} flex items-center justify-center gap-2 w-full py-3 !bg-red-600/20 hover:!bg-red-600/30 !text-red-400 border border-red-500/50`}
+            >
+              <HiOutlineTrash className="h-5 w-5" />
+              {t('cloudSync.clearCloudData', 'Clear All Cloud Data')}
+            </button>
+          ) : (
+            <div className="p-4 rounded-md bg-red-900/20 border border-red-500/50">
+              <div className="flex items-start gap-2 mb-3">
+                <HiOutlineExclamationTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-red-300 font-medium">
+                    {t('cloudSync.clearWarningTitle', 'This action cannot be undone!')}
+                  </p>
+                  <p className="text-sm text-red-300/80 mt-1">
+                    {t('cloudSync.clearWarningDescription', 'All your games, players, teams, seasons, and other data will be permanently deleted from the cloud.')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="block text-sm text-slate-300 mb-1">
+                  {t('cloudSync.clearConfirmLabel', 'Type DELETE to confirm:')}
+                </label>
+                <input
+                  type="text"
+                  value={clearConfirmText}
+                  onChange={(e) => setClearConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  disabled={isClearingCloud}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowClearConfirm(false);
+                    setClearConfirmText('');
+                  }}
+                  disabled={isClearingCloud}
+                  className={`${secondaryButtonStyle} flex-1`}
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={handleClearCloudData}
+                  disabled={clearConfirmText !== 'DELETE' || isClearingCloud}
+                  className={`${dangerButtonStyle} flex-1 flex items-center justify-center gap-2`}
+                >
+                  {isClearingCloud ? (
+                    <>
+                      <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                      {t('cloudSync.clearing', 'Clearing...')}
+                    </>
+                  ) : (
+                    <>
+                      <HiOutlineTrash className="h-4 w-4" />
+                      {t('cloudSync.confirmClear', 'Clear All Data')}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-slate-500 mt-2">
+            {t('cloudSync.clearNote', 'This will delete all your data from the cloud. Local data on this device will not be affected.')}
+          </p>
+        </div>
       )}
     </div>
   );

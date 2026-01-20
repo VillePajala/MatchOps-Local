@@ -1955,6 +1955,7 @@
     "preparing": "Preparing migration...",
     "exporting": "Exporting local data...",
     "validating": "Validating data integrity...",
+    "clearing": "Clearing existing cloud data...",
     "uploading": "Uploading to cloud...",
     "verifying": "Verifying migration...",
     "success": "Migration complete!",
@@ -1995,7 +1996,17 @@
     "progress": {
       "entity": "Migrating {{entity}}...",
       "complete": "{{count}} items migrated"
-    }
+    },
+    "warnings": {
+      "cloudCleared": "Existing cloud data was cleared before migration (replace mode)",
+      "andMore": "...and {{count}} more"
+    },
+    "modeTitle": "Migration Mode",
+    "modeMerge": "Add to cloud",
+    "modeMergeDesc": "Merge with existing cloud data. Matching items will be updated.",
+    "modeReplace": "Replace cloud data",
+    "modeReplaceDesc": "Clear all existing cloud data first, then upload fresh.",
+    "modeReplaceWarning": "Warning: Replace mode will delete all your existing cloud data before uploading."
   },
   "cloudSync": {
     "title": "Cloud Sync",
@@ -2019,6 +2030,17 @@
     "disableFailed": "Failed to switch to local mode. Please try again.",
     "disableError": "An error occurred while disabling cloud mode.",
     "restartRequired": "Restart the app to apply mode changes.",
-    "migrationNote": "When you enable cloud sync, you can migrate your existing local data to the cloud."
+    "migrationNote": "When you enable cloud sync, you can migrate your existing local data to the cloud.",
+    "dangerZone": "Danger Zone",
+    "clearCloudData": "Clear All Cloud Data",
+    "clearWarningTitle": "This action cannot be undone!",
+    "clearWarningDescription": "All your games, players, teams, seasons, and other data will be permanently deleted from the cloud.",
+    "clearConfirmLabel": "Type DELETE to confirm:",
+    "clearing": "Clearing...",
+    "confirmClear": "Clear All Data",
+    "clearNote": "This will delete all your data from the cloud. Local data on this device will not be affected.",
+    "clearSuccess": "All cloud data has been deleted.",
+    "clearSuccessReloading": "All cloud data deleted. Reloading...",
+    "clearError": "Failed to clear cloud data. Please try again."
   }
 }
