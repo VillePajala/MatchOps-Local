@@ -7,7 +7,7 @@ import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppResume } from '@/hooks/useAppResume';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -31,8 +31,9 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
-  const [isCheckingMigration, setIsCheckingMigration] = useState(false);
   const [hasSkippedMigration, setHasSkippedMigration] = useState(false);
+  // Ref to track if migration check has been initiated (prevents race conditions)
+  const migrationCheckInitiatedRef = useRef(false);
   const { showToast } = useToast();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
 
@@ -112,15 +113,25 @@ export default function Home() {
 
   // Check if migration wizard should be shown (cloud mode only, post-authentication)
   // This runs once when the user first authenticates in cloud mode
+  // Uses ref to prevent race conditions without causing effect re-runs
   useEffect(() => {
     // Only check in cloud mode when authenticated
-    if (mode !== 'cloud' || !isAuthenticated || !userId) return;
+    if (mode !== 'cloud' || !isAuthenticated || !userId) {
+      // Reset ref when conditions aren't met (allows re-check on sign in)
+      migrationCheckInitiatedRef.current = false;
+      return;
+    }
 
-    // Skip if we're already showing the wizard, already checked, or user skipped this session
-    if (showMigrationWizard || isCheckingMigration || hasSkippedMigration) return;
+    // Skip if check already initiated this session (ref prevents race conditions)
+    if (migrationCheckInitiatedRef.current) return;
+
+    // Skip if user already skipped migration this session (read state but don't depend on it)
+    if (hasSkippedMigration) return;
+
+    // Mark as initiated before async work
+    migrationCheckInitiatedRef.current = true;
 
     const checkMigrationNeeded = async () => {
-      setIsCheckingMigration(true);
       try {
         // Skip if migration already completed for this user
         if (hasMigrationCompleted(userId)) {
@@ -141,13 +152,16 @@ export default function Home() {
       } catch (error) {
         logger.warn('[page.tsx] Failed to check migration status', { error });
         // Don't show wizard on error - user can trigger migration manually if needed
-      } finally {
-        setIsCheckingMigration(false);
+        // Reset ref to allow retry on next effect run
+        migrationCheckInitiatedRef.current = false;
       }
     };
 
     checkMigrationNeeded();
-  }, [mode, isAuthenticated, userId, showMigrationWizard, isCheckingMigration, hasSkippedMigration]);
+    // Note: hasSkippedMigration is intentionally read inside but not in deps
+    // to prevent re-triggering. The ref handles race condition prevention.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, isAuthenticated, userId]);
 
   // Handle migration wizard completion
   const handleMigrationComplete = useCallback(() => {

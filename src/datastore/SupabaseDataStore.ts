@@ -30,7 +30,7 @@ import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore } from '@/interfaces/DataStore';
-import type { Database } from '@/types/supabase';
+import type { Database, Json } from '@/types/supabase';
 import {
   AlreadyExistsError,
   AuthError,
@@ -1557,7 +1557,7 @@ export class SupabaseDataStore implements DataStore {
       gender: row.gender as 'boys' | 'girls' | undefined,
       ageGroup: row.age_group ?? undefined,
       level: row.level ?? undefined,
-      series: Array.isArray(row.series) ? (row.series as TournamentSeries[]) : undefined,
+      series: Array.isArray(row.series) ? (row.series as unknown as TournamentSeries[]) : undefined,
       archived: row.archived ?? false,
     };
   }
@@ -1575,7 +1575,7 @@ export class SupabaseDataStore implements DataStore {
       gender: tournament.gender ?? null,
       age_group: tournament.ageGroup ?? null,
       level: tournament.level ?? null,
-      series: tournament.series ?? null,
+      series: (tournament.series as unknown as Json) ?? null,
       archived: tournament.archived ?? false,
       created_at: now,
       updated_at: now,
@@ -2054,12 +2054,13 @@ export class SupabaseDataStore implements DataStore {
       game_id: gameId,
       user_id: userId,
       // CRITICAL: Default undefined tactical fields for legacy games
-      opponents: (game.opponents ?? []) as unknown,
-      drawings: (game.drawings ?? []) as unknown,
-      tactical_discs: (game.tacticalDiscs ?? []) as unknown,
-      tactical_drawings: (game.tacticalDrawings ?? []) as unknown,
-      tactical_ball_position: (game.tacticalBallPosition ?? null) as unknown,
-      completed_interval_durations: (game.completedIntervalDurations ?? []) as unknown,
+      // Cast through unknown to Json for JSONB columns
+      opponents: (game.opponents ?? []) as unknown as Json,
+      drawings: (game.drawings ?? []) as unknown as Json,
+      tactical_discs: (game.tacticalDiscs ?? []) as unknown as Json,
+      tactical_drawings: (game.tacticalDrawings ?? []) as unknown as Json,
+      tactical_ball_position: (game.tacticalBallPosition ?? null) as unknown as Json,
+      completed_interval_durations: (game.completedIntervalDurations ?? []) as unknown as Json,
       last_sub_confirmation_time_seconds: game.lastSubConfirmationTimeSeconds ?? null,
     };
 
@@ -2102,7 +2103,7 @@ export class SupabaseDataStore implements DataStore {
         gender: game.gender ?? null,
         // === Array/object fields ===
         game_personnel: game.gamePersonnel ?? [],
-        formation_snap_points: (game.formationSnapPoints ?? null) as unknown,
+        formation_snap_points: (game.formationSnapPoints ?? null) as unknown as Json,
         // === Timer restoration ===
         time_elapsed_in_seconds: (game.timeElapsedInSeconds != null && isFinite(game.timeElapsedInSeconds))
           ? game.timeElapsedInSeconds : null,
@@ -2814,9 +2815,9 @@ export class SupabaseDataStore implements DataStore {
     return {
       id: row.id,
       version: row.version,
-      lastModified: row.last_modified,
-      isDefault: row.is_default,
-      sections: (row.sections as WarmupPlanSection[]) ?? [],
+      lastModified: row.last_modified ?? new Date().toISOString(),
+      isDefault: row.is_default ?? false,
+      sections: (row.sections as unknown as WarmupPlanSection[]) ?? [],
     };
   }
 
