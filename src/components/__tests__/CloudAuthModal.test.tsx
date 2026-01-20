@@ -11,9 +11,11 @@ import CloudAuthModal from '../CloudAuthModal';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock SupabaseAuthService
+const mockAuthInitialize = jest.fn();
 const mockSignIn = jest.fn();
 jest.mock('@/auth/SupabaseAuthService', () => ({
   SupabaseAuthService: jest.fn().mockImplementation(() => ({
+    initialize: mockAuthInitialize,
     signIn: mockSignIn,
   })),
 }));
@@ -89,6 +91,7 @@ describe('CloudAuthModal', () => {
         mutations: { retry: false },
       },
     });
+    mockAuthInitialize.mockResolvedValue(undefined);
     mockSignIn.mockResolvedValue({});
     mockInitialize.mockResolvedValue(undefined);
     mockClearAllUserData.mockResolvedValue(undefined);
