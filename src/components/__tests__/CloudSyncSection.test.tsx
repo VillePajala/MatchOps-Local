@@ -39,6 +39,8 @@ jest.mock('@/config/backendConfig', () => ({
   isCloudAvailable: jest.fn(),
   enableCloudMode: jest.fn(),
   disableCloudMode: jest.fn(),
+  getCloudAccountInfo: jest.fn(() => null),
+  clearCloudAccountInfo: jest.fn(),
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({
@@ -70,18 +72,28 @@ jest.mock('@/datastore/factory', () => ({
   ),
 }));
 
+// Mock ReverseMigrationWizard for testing wizard flow
+jest.mock('../ReverseMigrationWizard', () => {
+  return function MockReverseMigrationWizard({ onComplete, onCancel }: { onComplete: () => void; onCancel: () => void }) {
+    return (
+      <div data-testid="reverse-migration-wizard">
+        <button onClick={onComplete}>Complete Migration</button>
+        <button onClick={onCancel}>Cancel Migration</button>
+      </div>
+    );
+  };
+});
+
 import {
   getBackendMode,
   isCloudAvailable,
   enableCloudMode,
-  disableCloudMode,
 } from '@/config/backendConfig';
 import { getDataStore } from '@/datastore/factory';
 
 const mockGetBackendMode = getBackendMode as jest.MockedFunction<typeof getBackendMode>;
 const mockIsCloudAvailable = isCloudAvailable as jest.MockedFunction<typeof isCloudAvailable>;
 const mockEnableCloudMode = enableCloudMode as jest.MockedFunction<typeof enableCloudMode>;
-const mockDisableCloudMode = disableCloudMode as jest.MockedFunction<typeof disableCloudMode>;
 
 describe('CloudSyncSection', () => {
   beforeEach(() => {
@@ -183,10 +195,9 @@ describe('CloudSyncSection', () => {
   });
 
   describe('disabling cloud mode', () => {
-    it('calls disableCloudMode when button is clicked', async () => {
+    it('shows reverse migration wizard when button is clicked', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
-      mockDisableCloudMode.mockReturnValue(true);
 
       renderWithQueryClient(<CloudSyncSection />);
 
@@ -194,43 +205,48 @@ describe('CloudSyncSection', () => {
       fireEvent.click(disableButton);
 
       await waitFor(() => {
-        expect(mockDisableCloudMode).toHaveBeenCalled();
+        expect(screen.getByTestId('reverse-migration-wizard')).toBeInTheDocument();
       });
     });
 
-    it('calls onModeChange callback when mode is disabled successfully', async () => {
+    it('closes wizard when cancelled', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
-      mockDisableCloudMode.mockReturnValue(true);
 
-      const onModeChange = jest.fn();
-      renderWithQueryClient(<CloudSyncSection onModeChange={onModeChange} />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
       fireEvent.click(disableButton);
 
       await waitFor(() => {
-        expect(onModeChange).toHaveBeenCalled();
+        expect(screen.getByTestId('reverse-migration-wizard')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel Migration' }));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
       });
     });
 
-    it('does not call onModeChange when disableCloudMode returns false', async () => {
+    it('closes wizard on completion', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
-      mockDisableCloudMode.mockReturnValue(false);
 
-      const onModeChange = jest.fn();
-      renderWithQueryClient(<CloudSyncSection onModeChange={onModeChange} />);
+      renderWithQueryClient(<CloudSyncSection />);
 
       const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
       fireEvent.click(disableButton);
 
       await waitFor(() => {
-        expect(mockDisableCloudMode).toHaveBeenCalled();
+        expect(screen.getByTestId('reverse-migration-wizard')).toBeInTheDocument();
       });
 
-      // onModeChange should NOT be called when disable fails
-      expect(onModeChange).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Complete Migration' }));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
+      });
     });
   });
 

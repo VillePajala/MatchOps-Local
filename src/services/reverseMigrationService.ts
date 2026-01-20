@@ -1,0 +1,804 @@
+/**
+ * Reverse Migration Service - Cloud to Local Data Migration
+ *
+ * Handles migration from Supabase (cloud mode) to IndexedDB (local mode).
+ * This allows users to downgrade from cloud sync while keeping their data.
+ *
+ * CRITICAL PRINCIPLES:
+ * 1. Cloud data is READ during migration
+ * 2. Local writes use upserts - safe to retry, handles duplicates
+ * 3. Verification required - migration not "complete" until counts verified
+ * 4. Cloud deletion is OPTIONAL and happens AFTER successful download
+ * 5. Mode switch happens AFTER successful verification
+ *
+ * Part of Phase 4 Supabase implementation (PR #11).
+ *
+ * @see docs/03-active-plans/pr11-reverse-migration-plan.md
+ */
+
+import { LocalDataStore } from '@/datastore/LocalDataStore';
+import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
+import { NetworkError } from '@/interfaces/DataStoreErrors';
+import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
+import type { WarmupPlan } from '@/types/warmupPlan';
+import { disableCloudMode, clearCloudAccountInfo, updateCloudAccountInfo } from '@/config/backendConfig';
+import logger from '@/utils/logger';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/**
+ * Reverse migration progress stages.
+ */
+export type ReverseMigrationStage =
+  | 'preparing'
+  | 'downloading'
+  | 'saving'
+  | 'verifying'
+  | 'deleting'
+  | 'complete'
+  | 'error';
+
+/**
+ * Progress information during reverse migration.
+ */
+export interface ReverseMigrationProgress {
+  stage: ReverseMigrationStage;
+  progress: number; // 0-100
+  currentEntity?: string;
+  message?: string;
+  error?: string;
+}
+
+/**
+ * Counts of migrated entities.
+ */
+export interface ReverseMigrationCounts {
+  players: number;
+  teams: number;
+  teamRosters: number;
+  seasons: number;
+  tournaments: number;
+  games: number;
+  personnel: number;
+  playerAdjustments: number;
+  warmupPlan: boolean;
+  settings: boolean;
+}
+
+/**
+ * Result of reverse migration operation.
+ */
+export interface ReverseMigrationResult {
+  success: boolean;
+  downloaded: ReverseMigrationCounts;
+  errors: string[];
+  warnings: string[];
+  cloudDeleted: boolean;
+}
+
+/**
+ * Progress callback type.
+ */
+export type ReverseMigrationProgressCallback = (progress: ReverseMigrationProgress) => void;
+
+/**
+ * Reverse migration mode.
+ * - 'keep-cloud': Download data but keep cloud copy
+ * - 'delete-cloud': Download data then delete from cloud
+ */
+export type ReverseMigrationMode = 'keep-cloud' | 'delete-cloud';
+
+/**
+ * Result of checking if user has cloud data.
+ * Distinguishes between "no data" and "check failed".
+ */
+export interface CloudDataCheckResult {
+  /** Whether user has data in cloud (only valid if checkFailed is false) */
+  hasData: boolean;
+  /** Whether the check itself failed (network error, auth expired, etc.) */
+  checkFailed: boolean;
+  /** Error message if check failed */
+  error?: string;
+}
+
+/**
+ * Tracks an individual entity that failed to save during migration.
+ */
+export interface EntitySaveFailure {
+  /** Type of entity that failed */
+  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings';
+  /** ID of the entity (if available) */
+  entityId?: string;
+  /** Display name for the entity (for user-friendly error messages) */
+  entityName?: string;
+  /** Error message */
+  error: string;
+}
+
+/**
+ * Result of saving data to local storage.
+ */
+interface SaveToLocalResult {
+  counts: ReverseMigrationCounts;
+  failures: EntitySaveFailure[];
+}
+
+/**
+ * Cloud data snapshot for reverse migration.
+ */
+interface CloudDataSnapshot {
+  players: Player[];
+  teams: Team[];
+  teamRosters: Map<string, TeamPlayer[]>; // teamId -> roster
+  seasons: Season[];
+  tournaments: Tournament[];
+  personnel: Personnel[];
+  games: SavedGamesCollection;
+  playerAdjustments: Map<string, PlayerStatAdjustment[]>; // playerId -> adjustments
+  warmupPlan: WarmupPlan | null;
+  settings: AppSettings | null;
+}
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+/**
+ * User-facing messages for reverse migration states.
+ * UI components should use i18n translation keys to display these.
+ */
+export const REVERSE_MIGRATION_MESSAGES = {
+  PREPARING: 'Preparing download...',
+  DOWNLOADING: 'Downloading from cloud...',
+  SAVING: 'Saving to local storage...',
+  VERIFYING: 'Verifying download...',
+  DELETING: 'Deleting cloud data...',
+  SUCCESS: 'Download complete! Your data is now stored locally.',
+  SUCCESS_DELETED: 'Download complete! Cloud data has been deleted.',
+  NETWORK_ERROR: 'Network error during download. Please try again.',
+  VERIFICATION_FAILED: 'Download completed but verification failed. Please retry.',
+} as const;
+
+/**
+ * Progress ranges for each stage (percentage).
+ */
+export const REVERSE_PROGRESS_RANGES = {
+  PREPARING: { start: 0, end: 5 },
+  DOWNLOADING: { start: 5, end: 50 },
+  SAVING: { start: 50, end: 85 },
+  VERIFYING: { start: 85, end: 95 },
+  DELETING: { start: 95, end: 100 },
+} as const;
+
+// =============================================================================
+// MIGRATION LOCK
+// =============================================================================
+
+let isReverseMigrationInProgress = false;
+
+/**
+ * Check if a reverse migration is currently in progress.
+ */
+export function isReverseMigrationRunning(): boolean {
+  return isReverseMigrationInProgress;
+}
+
+// =============================================================================
+// MAIN MIGRATION FUNCTION
+// =============================================================================
+
+/**
+ * Migrate all data from cloud (Supabase) to local (IndexedDB).
+ *
+ * Process:
+ * 1. Download all data from Supabase
+ * 2. Save to IndexedDB
+ * 3. Verify counts match
+ * 4. Optionally delete cloud data
+ * 5. Switch to local mode
+ *
+ * @param onProgress - Callback for progress updates
+ * @param mode - 'keep-cloud' or 'delete-cloud'
+ * @returns Migration result with counts and status
+ */
+export async function migrateCloudToLocal(
+  onProgress: ReverseMigrationProgressCallback,
+  mode: ReverseMigrationMode = 'keep-cloud'
+): Promise<ReverseMigrationResult> {
+  // Prevent concurrent migrations
+  if (isReverseMigrationInProgress) {
+    return {
+      success: false,
+      downloaded: createEmptyCounts(),
+      errors: ['Migration already in progress'],
+      warnings: [],
+      cloudDeleted: false,
+    };
+  }
+
+  isReverseMigrationInProgress = true;
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  let cloudDeleted = false;
+
+  // Safe progress callback that won't throw
+  const safeProgress = (progress: ReverseMigrationProgress) => {
+    try {
+      onProgress(progress);
+    } catch (e) {
+      logger.warn('[ReverseMigrationService] Progress callback threw error:', e);
+    }
+  };
+
+  try {
+    // Check network connectivity
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      logger.warn('[ReverseMigrationService] Reverse migration aborted: No network connectivity');
+      throw new NetworkError('Cannot download while offline. Please check your connection.');
+    }
+
+    // Step 1: Prepare
+    safeProgress({ stage: 'preparing', progress: REVERSE_PROGRESS_RANGES.PREPARING.start, message: REVERSE_MIGRATION_MESSAGES.PREPARING });
+
+    const cloudStore = new SupabaseDataStore();
+    await cloudStore.initialize();
+
+    const localStore = new LocalDataStore();
+    await localStore.initialize();
+
+    // Step 2: Download from cloud
+    safeProgress({ stage: 'downloading', progress: REVERSE_PROGRESS_RANGES.DOWNLOADING.start, message: REVERSE_MIGRATION_MESSAGES.DOWNLOADING });
+
+    const cloudData = await downloadFromCloud(cloudStore, safeProgress);
+
+    // Step 3: Save to local
+    safeProgress({ stage: 'saving', progress: REVERSE_PROGRESS_RANGES.SAVING.start, message: REVERSE_MIGRATION_MESSAGES.SAVING });
+
+    const { counts: savedCounts, failures: saveFailures } = await saveToLocal(cloudData, localStore, safeProgress);
+
+    // Report save failures as errors (critical failures for important data types)
+    // or warnings (for less critical data like adjustments)
+    const MAX_FAILURES_TO_REPORT = 5;
+    if (saveFailures.length > 0) {
+      const criticalTypes = ['player', 'team', 'game', 'season', 'tournament', 'personnel'];
+      const criticalFailures = saveFailures.filter(f => criticalTypes.includes(f.entityType));
+      const otherFailures = saveFailures.filter(f => !criticalTypes.includes(f.entityType));
+
+      // Report critical failures as errors
+      for (const failure of criticalFailures.slice(0, MAX_FAILURES_TO_REPORT)) {
+        errors.push(`Failed to save ${failure.entityType} "${failure.entityName || failure.entityId}": ${failure.error}`);
+      }
+      if (criticalFailures.length > MAX_FAILURES_TO_REPORT) {
+        errors.push(`... and ${criticalFailures.length - MAX_FAILURES_TO_REPORT} more critical failures`);
+      }
+
+      // Report other failures as warnings
+      for (const failure of otherFailures.slice(0, MAX_FAILURES_TO_REPORT)) {
+        warnings.push(`Failed to save ${failure.entityType} "${failure.entityName || failure.entityId}": ${failure.error}`);
+      }
+      if (otherFailures.length > MAX_FAILURES_TO_REPORT) {
+        warnings.push(`... and ${otherFailures.length - MAX_FAILURES_TO_REPORT} more non-critical failures`);
+      }
+    }
+
+    // Step 4: Verify
+    safeProgress({ stage: 'verifying', progress: REVERSE_PROGRESS_RANGES.VERIFYING.start, message: REVERSE_MIGRATION_MESSAGES.VERIFYING });
+
+    const verificationResult = await verifyReverseMigration(cloudData, localStore);
+    if (verificationResult.warnings.length > 0) {
+      warnings.push(...verificationResult.warnings);
+    }
+    if (!verificationResult.success) {
+      errors.push('Verification failed: Local counts do not match downloaded data');
+    }
+
+    // Check for critical save failures that should prevent success
+    const hasCriticalSaveFailures = saveFailures.some(f =>
+      ['player', 'team', 'game', 'season', 'tournament', 'personnel'].includes(f.entityType)
+    );
+
+    // Step 5: Delete cloud data if requested (only after successful verification and no critical failures)
+    if (mode === 'delete-cloud' && verificationResult.success && !hasCriticalSaveFailures) {
+      safeProgress({ stage: 'deleting', progress: REVERSE_PROGRESS_RANGES.DELETING.start, message: REVERSE_MIGRATION_MESSAGES.DELETING });
+
+      try {
+        await cloudStore.clearAllUserData();
+        cloudDeleted = true;
+        clearCloudAccountInfo();
+        logger.info('[ReverseMigrationService] Cloud data deleted successfully');
+      } catch (deleteError) {
+        const errorMsg = deleteError instanceof Error ? deleteError.message : 'Unknown error';
+        warnings.push(`Failed to delete cloud data: ${errorMsg}. Your data was downloaded successfully but remains in the cloud.`);
+        logger.error('[ReverseMigrationService] Failed to delete cloud data:', deleteError);
+      }
+    } else if (mode === 'delete-cloud' && hasCriticalSaveFailures) {
+      warnings.push('Cloud data was NOT deleted because some entities failed to save locally. Please retry the migration.');
+    } else if (mode === 'keep-cloud') {
+      // Update cloud account info to indicate data still exists
+      updateCloudAccountInfo({ hasCloudData: true, lastSyncedAt: new Date().toISOString() });
+    }
+
+    // Step 6: Switch to local mode
+    const modeSwitch = disableCloudMode();
+    if (!modeSwitch) {
+      // Mode switch failure is an error - the migration goal was not achieved
+      errors.push('Failed to switch to local mode. Your data was downloaded but the app is still in cloud mode. Please go to Settings and disable cloud sync manually.');
+    }
+
+    // Determine overall success: verification passed AND mode switched AND no critical save failures
+    const overallSuccess = verificationResult.success && modeSwitch && !hasCriticalSaveFailures;
+
+    // Complete
+    const message = cloudDeleted ? REVERSE_MIGRATION_MESSAGES.SUCCESS_DELETED : REVERSE_MIGRATION_MESSAGES.SUCCESS;
+    safeProgress({ stage: 'complete', progress: 100, message });
+
+    logger.info('[ReverseMigrationService] Reverse migration completed', { savedCounts, success: overallSuccess, failureCount: saveFailures.length });
+
+    return {
+      success: overallSuccess,
+      downloaded: savedCounts,
+      errors,
+      warnings,
+      cloudDeleted,
+    };
+
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('[ReverseMigrationService] Reverse migration failed:', error);
+
+    safeProgress({
+      stage: 'error',
+      progress: 0,
+      message: REVERSE_MIGRATION_MESSAGES.NETWORK_ERROR,
+      error: errorMsg,
+    });
+
+    return {
+      success: false,
+      downloaded: createEmptyCounts(),
+      errors: [errorMsg],
+      warnings,
+      cloudDeleted: false,
+    };
+
+  } finally {
+    isReverseMigrationInProgress = false;
+  }
+}
+
+// =============================================================================
+// HELPER: DOWNLOAD FROM CLOUD
+// =============================================================================
+
+async function downloadFromCloud(
+  cloudStore: SupabaseDataStore,
+  onProgress: ReverseMigrationProgressCallback
+): Promise<CloudDataSnapshot> {
+  const { start, end } = REVERSE_PROGRESS_RANGES.DOWNLOADING;
+  const range = end - start;
+  // 10 top-level progress steps (note: team rosters and player adjustments also fetch within loops)
+  const stepCount = 10;
+
+  let step = 0;
+  const progressStep = () => {
+    step++;
+    const progress = start + (step / stepCount) * range;
+    onProgress({ stage: 'downloading', progress, currentEntity: getEntityName(step) });
+  };
+
+  // Download all entities
+  const players = await cloudStore.getPlayers();
+  progressStep();
+
+  const teams = await cloudStore.getTeams(true); // includeDeleted=true for full backup
+  progressStep();
+
+  // Get team rosters
+  const teamRosters = new Map<string, TeamPlayer[]>();
+  for (const team of teams) {
+    const roster = await cloudStore.getTeamRoster(team.id);
+    teamRosters.set(team.id, roster);
+  }
+  progressStep();
+
+  const seasons = await cloudStore.getSeasons(true);
+  progressStep();
+
+  const tournaments = await cloudStore.getTournaments(true);
+  progressStep();
+
+  const personnel = await cloudStore.getAllPersonnel();
+  progressStep();
+
+  const games = await cloudStore.getGames();
+  progressStep();
+
+  // Get player adjustments for all players
+  const playerAdjustments = new Map<string, PlayerStatAdjustment[]>();
+  for (const player of players) {
+    const adjustments = await cloudStore.getPlayerAdjustments(player.id);
+    if (adjustments.length > 0) {
+      playerAdjustments.set(player.id, adjustments);
+    }
+  }
+  progressStep();
+
+  const warmupPlan = await cloudStore.getWarmupPlan();
+  progressStep();
+
+  const settings = await cloudStore.getSettings();
+  progressStep();
+
+  return {
+    players,
+    teams,
+    teamRosters,
+    seasons,
+    tournaments,
+    personnel,
+    games,
+    playerAdjustments,
+    warmupPlan,
+    settings,
+  };
+}
+
+function getEntityName(step: number): string {
+  const names = ['players', 'teams', 'team rosters', 'seasons', 'tournaments', 'personnel', 'games', 'adjustments', 'warmup plan', 'settings'];
+  return names[step - 1] || 'data';
+}
+
+// =============================================================================
+// HELPER: SAVE TO LOCAL
+// =============================================================================
+
+async function saveToLocal(
+  data: CloudDataSnapshot,
+  localStore: LocalDataStore,
+  onProgress: ReverseMigrationProgressCallback
+): Promise<SaveToLocalResult> {
+  const { start, end } = REVERSE_PROGRESS_RANGES.SAVING;
+  const range = end - start;
+  // 10 top-level progress steps (individual entities save within loops per step)
+  const stepCount = 10;
+
+  let step = 0;
+  const progressStep = (entityName: string) => {
+    step++;
+    const progress = start + (step / stepCount) * range;
+    onProgress({ stage: 'saving', progress, currentEntity: entityName });
+  };
+
+  const counts: ReverseMigrationCounts = createEmptyCounts();
+  const failures: EntitySaveFailure[] = [];
+
+  // Save players (upsert: insert if new, update if exists)
+  for (const player of data.players) {
+    try {
+      await localStore.upsertPlayer(player);
+      counts.players++;
+    } catch (err) {
+      failures.push({
+        entityType: 'player',
+        entityId: player.id,
+        entityName: player.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[ReverseMigration] Failed to save player ${player.id}:`, err);
+    }
+  }
+  progressStep('players');
+
+  // Save teams (upsert)
+  for (const team of data.teams) {
+    try {
+      await localStore.upsertTeam(team);
+      counts.teams++;
+    } catch (err) {
+      failures.push({
+        entityType: 'team',
+        entityId: team.id,
+        entityName: team.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[ReverseMigration] Failed to save team ${team.id}:`, err);
+    }
+  }
+  progressStep('teams');
+
+  // Save team rosters
+  for (const [teamId, roster] of data.teamRosters) {
+    try {
+      await localStore.setTeamRoster(teamId, roster);
+      counts.teamRosters += roster.length;
+    } catch (err) {
+      failures.push({
+        entityType: 'teamRoster',
+        entityId: teamId,
+        entityName: `Roster for team ${teamId}`,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[ReverseMigration] Failed to save team roster ${teamId}:`, err);
+    }
+  }
+  progressStep('team rosters');
+
+  // Save seasons (upsert)
+  for (const season of data.seasons) {
+    try {
+      await localStore.upsertSeason(season);
+      counts.seasons++;
+    } catch (err) {
+      failures.push({
+        entityType: 'season',
+        entityId: season.id,
+        entityName: season.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[ReverseMigration] Failed to save season ${season.id}:`, err);
+    }
+  }
+  progressStep('seasons');
+
+  // Save tournaments (upsert)
+  for (const tournament of data.tournaments) {
+    try {
+      await localStore.upsertTournament(tournament);
+      counts.tournaments++;
+    } catch (err) {
+      failures.push({
+        entityType: 'tournament',
+        entityId: tournament.id,
+        entityName: tournament.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[ReverseMigration] Failed to save tournament ${tournament.id}:`, err);
+    }
+  }
+  progressStep('tournaments');
+
+  // Save personnel (upsert)
+  for (const person of data.personnel) {
+    try {
+      await localStore.upsertPersonnelMember(person);
+      counts.personnel++;
+    } catch (err) {
+      failures.push({
+        entityType: 'personnel',
+        entityId: person.id,
+        entityName: person.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[ReverseMigration] Failed to save personnel ${person.id}:`, err);
+    }
+  }
+  progressStep('personnel');
+
+  // Save games
+  for (const gameId of Object.keys(data.games)) {
+    const game = data.games[gameId];
+    try {
+      await localStore.saveGame(gameId, game);
+      counts.games++;
+    } catch (err) {
+      failures.push({
+        entityType: 'game',
+        entityId: gameId,
+        entityName: `${game.teamName} vs ${game.opponentName}`,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[ReverseMigration] Failed to save game ${gameId}:`, err);
+    }
+  }
+  progressStep('games');
+
+  // Save player adjustments
+  for (const [playerId, adjustments] of data.playerAdjustments) {
+    for (const adjustment of adjustments) {
+      try {
+        await localStore.upsertPlayerAdjustment(adjustment);
+        counts.playerAdjustments++;
+      } catch (err) {
+        failures.push({
+          entityType: 'adjustment',
+          entityId: adjustment.id,
+          entityName: `Adjustment for player ${playerId}`,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+        logger.error(`[ReverseMigration] Failed to save adjustment ${adjustment.id}:`, err);
+      }
+    }
+  }
+  progressStep('adjustments');
+
+  // Save warmup plan
+  if (data.warmupPlan) {
+    try {
+      await localStore.saveWarmupPlan(data.warmupPlan);
+      counts.warmupPlan = true;
+    } catch (err) {
+      failures.push({
+        entityType: 'warmupPlan',
+        entityName: 'Warmup plan',
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error('[ReverseMigration] Failed to save warmup plan:', err);
+    }
+  }
+  progressStep('warmup plan');
+
+  // Save settings
+  if (data.settings) {
+    try {
+      await localStore.saveSettings(data.settings);
+      counts.settings = true;
+    } catch (err) {
+      failures.push({
+        entityType: 'settings',
+        entityName: 'Settings',
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error('[ReverseMigration] Failed to save settings:', err);
+    }
+  }
+  progressStep('settings');
+
+  return { counts, failures };
+}
+
+// =============================================================================
+// HELPER: VERIFY MIGRATION
+// =============================================================================
+
+interface VerificationResult {
+  success: boolean;
+  warnings: string[];
+}
+
+async function verifyReverseMigration(
+  cloudData: CloudDataSnapshot,
+  localStore: LocalDataStore
+): Promise<VerificationResult> {
+  const warnings: string[] = [];
+
+  // Get local counts
+  const localPlayers = await localStore.getPlayers();
+  const localTeams = await localStore.getTeams(true);
+  const localSeasons = await localStore.getSeasons(true);
+  const localTournaments = await localStore.getTournaments(true);
+  const localPersonnel = await localStore.getAllPersonnel();
+  const localGames = await localStore.getGames();
+
+  // Compare counts
+  // Note: Local may have MORE data if user had existing local data
+  // We verify that AT LEAST all cloud data was downloaded
+
+  if (localPlayers.length < cloudData.players.length) {
+    warnings.push(`Player count mismatch: expected ${cloudData.players.length}, got ${localPlayers.length}`);
+  }
+
+  if (localTeams.length < cloudData.teams.length) {
+    warnings.push(`Team count mismatch: expected ${cloudData.teams.length}, got ${localTeams.length}`);
+  }
+
+  if (localSeasons.length < cloudData.seasons.length) {
+    warnings.push(`Season count mismatch: expected ${cloudData.seasons.length}, got ${localSeasons.length}`);
+  }
+
+  if (localTournaments.length < cloudData.tournaments.length) {
+    warnings.push(`Tournament count mismatch: expected ${cloudData.tournaments.length}, got ${localTournaments.length}`);
+  }
+
+  if (localPersonnel.length < cloudData.personnel.length) {
+    warnings.push(`Personnel count mismatch: expected ${cloudData.personnel.length}, got ${localPersonnel.length}`);
+  }
+
+  const localGameCount = Object.keys(localGames).length;
+  const cloudGameCount = Object.keys(cloudData.games).length;
+  if (localGameCount < cloudGameCount) {
+    warnings.push(`Game count mismatch: expected ${cloudGameCount}, got ${localGameCount}`);
+  }
+
+  return {
+    success: warnings.length === 0,
+    warnings,
+  };
+}
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+function createEmptyCounts(): ReverseMigrationCounts {
+  return {
+    players: 0,
+    teams: 0,
+    teamRosters: 0,
+    seasons: 0,
+    tournaments: 0,
+    games: 0,
+    personnel: 0,
+    playerAdjustments: 0,
+    warmupPlan: false,
+    settings: false,
+  };
+}
+
+// =============================================================================
+// CLOUD DATA CHECK FUNCTIONS
+// =============================================================================
+
+/**
+ * Check if user has any data in Supabase.
+ * Works even in local mode (uses stored auth session).
+ *
+ * @returns CloudDataCheckResult that distinguishes "no data" from "check failed"
+ */
+export async function hasCloudData(): Promise<CloudDataCheckResult> {
+  try {
+    const summary = await getCloudDataSummary();
+    const hasData = (
+      summary.players > 0 ||
+      summary.teams > 0 ||
+      summary.games > 0 ||
+      summary.seasons > 0 ||
+      summary.tournaments > 0 ||
+      summary.personnel > 0
+    );
+    return { hasData, checkFailed: false };
+  } catch (err) {
+    // Log the actual error for debugging
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    logger.error('[ReverseMigrationService] Failed to check cloud data:', err);
+    return { hasData: false, checkFailed: true, error: errorMsg };
+  }
+}
+
+/**
+ * Get counts of all cloud data.
+ * Used for preview in reverse migration wizard.
+ *
+ * @returns Counts of all entity types in cloud
+ */
+export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
+  const cloudStore = new SupabaseDataStore();
+  await cloudStore.initialize();
+
+  const players = await cloudStore.getPlayers();
+  const teams = await cloudStore.getTeams(true);
+  const seasons = await cloudStore.getSeasons(true);
+  const tournaments = await cloudStore.getTournaments(true);
+  const personnel = await cloudStore.getAllPersonnel();
+  const games = await cloudStore.getGames();
+  const warmupPlan = await cloudStore.getWarmupPlan();
+  const settings = await cloudStore.getSettings();
+
+  // Count team rosters
+  let teamRostersCount = 0;
+  for (const team of teams) {
+    const roster = await cloudStore.getTeamRoster(team.id);
+    teamRostersCount += roster.length;
+  }
+
+  // Count player adjustments
+  let adjustmentCount = 0;
+  for (const player of players) {
+    const adjustments = await cloudStore.getPlayerAdjustments(player.id);
+    adjustmentCount += adjustments.length;
+  }
+
+  return {
+    players: players.length,
+    teams: teams.length,
+    teamRosters: teamRostersCount,
+    seasons: seasons.length,
+    tournaments: tournaments.length,
+    games: Object.keys(games).length,
+    personnel: personnel.length,
+    playerAdjustments: adjustmentCount,
+    warmupPlan: warmupPlan !== null,
+    settings: settings !== null,
+  };
+}
