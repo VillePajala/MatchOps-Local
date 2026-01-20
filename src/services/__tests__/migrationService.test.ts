@@ -158,6 +158,8 @@ function createMockCloudStore() {
     getTournaments: jest.fn().mockResolvedValue([mockTournament]),
     getGames: jest.fn().mockResolvedValue({ 'game-1': mockGame }),
     getAllPersonnel: jest.fn().mockResolvedValue([mockPersonnel]),
+    // Replace mode methods
+    clearAllUserData: jest.fn().mockResolvedValue(undefined),
   };
   MockedSupabaseDataStore.mockImplementation(() => mockInstance as unknown as SupabaseDataStore);
   return mockInstance;
@@ -536,6 +538,84 @@ describe('migrationService', () => {
       expect(result.success).toBe(true);
       // Should have warning about pre-existing data
       expect(result.warnings.some((w) => w.includes('pre-existing'))).toBe(true);
+    });
+  });
+
+  describe('replace mode', () => {
+    it('should clear cloud data before upload in replace mode', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      const result = await migrateLocalToCloud(() => {}, 'replace');
+
+      // clearAllUserData should be called before upload
+      expect(mockCloud.clearAllUserData).toHaveBeenCalled();
+
+      // Migration should succeed
+      expect(result.success).toBe(true);
+
+      // Should have CLOUD_CLEARED warning indicating clear happened
+      expect(result.warnings).toContain('CLOUD_CLEARED');
+
+      // Verify upload methods were called after clear
+      expect(mockCloud.upsertPlayer).toHaveBeenCalled();
+    });
+
+    it('should not clear cloud data in merge mode (default)', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      const result = await migrateLocalToCloud(() => {}, 'merge');
+
+      // clearAllUserData should NOT be called in merge mode
+      expect(mockCloud.clearAllUserData).not.toHaveBeenCalled();
+
+      // Migration should succeed
+      expect(result.success).toBe(true);
+
+      // Should NOT have CLOUD_CLEARED warning
+      expect(result.warnings).not.toContain('CLOUD_CLEARED');
+    });
+
+    it('should abort migration if clear fails in replace mode', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      // Suppress expected console.error for this test
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Mock clearAllUserData to throw network error
+      mockCloud.clearAllUserData.mockRejectedValue(new Error('Network error during clear'));
+
+      const result = await migrateLocalToCloud(() => {}, 'replace');
+
+      // Migration should fail
+      expect(result.success).toBe(false);
+      expect(result.errors[0]).toContain('Failed to clear existing cloud data');
+      expect(result.errors[0]).toContain('Network error during clear');
+
+      // Verify no data was uploaded (migration aborted early)
+      expect(mockCloud.upsertPlayer).not.toHaveBeenCalled();
+      expect(mockCloud.saveGame).not.toHaveBeenCalled();
+
+      errorSpy.mockRestore();
+    });
+
+    it('should include clearing stage in progress updates for replace mode', async () => {
+      createMockLocalStore();
+      createMockCloudStore();
+
+      const stages: string[] = [];
+      const onProgress = (progress: MigrationProgress) => {
+        if (!stages.includes(progress.stage)) {
+          stages.push(progress.stage);
+        }
+      };
+
+      await migrateLocalToCloud(onProgress, 'replace');
+
+      // Should include clearing stage
+      expect(stages).toContain('clearing');
     });
   });
 });
