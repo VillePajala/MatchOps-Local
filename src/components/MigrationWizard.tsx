@@ -552,18 +552,18 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   return (
     <div
       ref={modalRef}
-      className="relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-800 bg-noise-texture text-slate-100 overflow-hidden font-display"
+      className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-800 bg-noise-texture text-slate-100 overflow-y-auto font-display"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
     >
       {/* Background effects matching LoginScreen */}
-      <div className="absolute inset-0 bg-grid-squares opacity-[0.35]" />
-      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
-      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-grid-squares opacity-[0.35] pointer-events-none" />
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-lg px-6 py-8">
+      <div className="relative z-10 w-full max-w-lg mx-auto px-6 py-8 flex-1 flex flex-col">
         {/* Screen reader description */}
         <p id={descriptionId} className="sr-only">
           {t('migration.description', 'Transfer your local data to your cloud account for backup and sync across devices.')}
@@ -593,7 +593,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         </div>
 
         {/* Content */}
-        <div className="min-h-[200px]">
+        <div className="flex-1">
           {renderContent()}
         </div>
 
