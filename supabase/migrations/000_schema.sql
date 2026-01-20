@@ -240,7 +240,7 @@ CREATE TABLE games (
 
   -- Configuration
   number_of_periods integer NOT NULL DEFAULT 2 CHECK (number_of_periods IN (1, 2)),
-  period_duration_minutes integer NOT NULL DEFAULT 10,  -- Default per CLAUDE.md Rule 10
+  period_duration_minutes integer NOT NULL DEFAULT 10,  -- Safety net default per CLAUDE.md Rule 10
   sub_interval_minutes integer DEFAULT 5,
   demand_factor numeric(4,2) CHECK (demand_factor BETWEEN 0.1 AND 10),
 
