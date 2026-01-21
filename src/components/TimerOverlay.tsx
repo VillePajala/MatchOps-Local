@@ -117,11 +117,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const controlButtonStyle = "text-slate-100 font-bold py-1 px-3 rounded shadow bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-lg active:scale-95";
   const controlValueStyle = "text-slate-100 font-bold text-lg tabular-nums w-8 mx-2 text-center";
   const controlLabelStyle = "text-sm font-medium text-slate-300 mr-2";
-  // Add action button styles for consistency
-  const actionButtonBase = "text-slate-100 font-bold py-2.5 px-4 rounded-lg shadow-lg pointer-events-auto text-base transition-all duration-150 hover:shadow-md";
-  const primaryActionStyle = `${actionButtonBase} bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 active:scale-[0.98] focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900`;
-  const secondaryActionStyle = `${actionButtonBase} bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 active:from-indigo-700 active:to-indigo-800 active:scale-[0.98] focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900`;
-  const dangerActionStyle = `${actionButtonBase} bg-red-700 hover:bg-red-600 active:bg-red-800 active:scale-[0.98] focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900`;
+  // Add action button styles for consistency - flat style with subtle border
+  const actionButtonBase = "text-white font-bold py-2.5 px-4 rounded-sm pointer-events-auto text-base transition-colors";
+  const primaryActionStyle = `${actionButtonBase} bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-indigo-400/30`;
+  const secondaryActionStyle = `${actionButtonBase} bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-indigo-400/30`;
+  const dangerActionStyle = `${actionButtonBase} bg-red-700 hover:bg-red-600 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-red-500/30`;
   
   const handleConfirmSubClick = () => {
     onSubstitutionMade();
@@ -312,14 +312,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               <span className={controlLabelStyle}>{t('timerOverlay.subIntervalLabel', 'Sub Interval:')}</span>
               <div className="flex items-center">
                 <button
-                  onClick={() => onSetSubInterval(subIntervalMinutes - 1)}
-                  disabled={subIntervalMinutes <= 1}
+                  onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
+                  disabled={subIntervalMinutes <= 0.5}
                   className={controlButtonStyle} aria-label="Decrease interval">
                   -
                 </button>
-                <span className={controlValueStyle}>{subIntervalMinutes}</span>
+                <span className={controlValueStyle}>
+                  {Number.isInteger(subIntervalMinutes) ? subIntervalMinutes : subIntervalMinutes.toFixed(1)}
+                </span>
                 <button
-                  onClick={() => onSetSubInterval(subIntervalMinutes + 1)}
+                  onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}
                   className={controlButtonStyle} aria-label="Increase interval">
                   +
                 </button>

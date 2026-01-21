@@ -469,11 +469,11 @@ describe('PersonnelManagerModal', () => {
   });
 
   describe('Modal Controls', () => {
-    it('should call onClose when close button clicked', () => {
+    it('should call onClose when done button clicked', () => {
       renderModal();
 
-      const closeButton = screen.getByRole('button', { name: /Close/i });
-      fireEvent.click(closeButton);
+      const doneButton = screen.getByRole('button', { name: /Done/i });
+      fireEvent.click(doneButton);
 
       expect(mockOnClose).toHaveBeenCalled();
     });
@@ -535,7 +535,7 @@ describe('PersonnelManagerModal', () => {
       renderModal();
 
       expect(screen.getByRole('button', { name: /Add Personnel/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Close/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Done/i })).toBeInTheDocument();
     });
 
     it('should have accessible form inputs', async () => {

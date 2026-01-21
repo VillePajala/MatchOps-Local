@@ -28,7 +28,7 @@ export default function GuideNavigation({
 
   return (
     <nav
-      className="mt-12 pt-8 border-t border-slate-700"
+      className="mt-12 pt-8 border-t border-slate-800"
       aria-label="Guide navigation"
     >
       <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -36,11 +36,11 @@ export default function GuideNavigation({
         {prevSection ? (
           <Link
             href={`/guide/${prevSection.slug}`}
-            className="group flex items-center gap-3 p-4 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 transition-all flex-1"
+            className="group flex items-center gap-3 p-4 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 transition-all flex-1"
           >
-            <FaArrowLeft className="text-slate-400 group-hover:text-primary transition-colors flex-shrink-0" />
+            <FaArrowLeft className="text-primary flex-shrink-0" />
             <div className="text-left min-w-0">
-              <span className="text-xs text-slate-500 uppercase tracking-wider">
+              <span className="text-xs text-primary uppercase tracking-wider font-semibold">
                 {t('navigation.previous')}
               </span>
               <p className="text-white font-medium truncate group-hover:text-primary transition-colors">
@@ -56,17 +56,17 @@ export default function GuideNavigation({
         {nextSection ? (
           <Link
             href={`/guide/${nextSection.slug}`}
-            className="group flex items-center gap-3 p-4 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 transition-all flex-1 justify-end text-right"
+            className="group flex items-center gap-3 p-4 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 transition-all flex-1 justify-end text-right"
           >
             <div className="min-w-0">
-              <span className="text-xs text-slate-500 uppercase tracking-wider">
+              <span className="text-xs text-primary uppercase tracking-wider font-semibold">
                 {t('navigation.next')}
               </span>
               <p className="text-white font-medium truncate group-hover:text-primary transition-colors">
                 {getNextTitle()}
               </p>
             </div>
-            <FaArrowRight className="text-slate-400 group-hover:text-primary transition-colors flex-shrink-0" />
+            <FaArrowRight className="text-primary flex-shrink-0" />
           </Link>
         ) : (
           <div className="flex-1" />

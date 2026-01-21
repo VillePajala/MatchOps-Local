@@ -1,8 +1,8 @@
 {
-  "version": "8a7e7983",
+  "version": "a206c791",
   "date": "2026-01-21",
   "notes": {
-    "en": "Final review fixes - cleanup, accessibility, lock safety",
-    "fi": "Final review fixes - cleanup, accessibility, lock safety"
+    "en": "Supabase cloud backend - robustness improvements",
+    "fi": "Supabase cloud backend - robustness improvements"
   }
 }

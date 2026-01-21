@@ -108,7 +108,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
             type="button"
             onClick={handleAddSeries}
             disabled={!newSeriesLevel}
-            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md text-sm"
+            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-indigo-400/30"
             aria-label={t('tournamentDetailsModal.confirmAddSeries', 'Confirm add series')}
           >
             {t('common.add', 'Add')}
@@ -116,7 +116,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
           <button
             type="button"
             onClick={handleCancelAdd}
-            className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md text-sm"
+            className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium border border-slate-400/30"
           >
             {t('common.cancel', 'Cancel')}
           </button>
@@ -126,7 +126,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
           type="button"
           onClick={() => setIsAddingNewSeries(true)}
           disabled={availableLevels.length === 0}
-          className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-md text-sm"
+          className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-slate-400/30"
           aria-label={t('tournamentDetailsModal.addSeries', 'Add series')}
         >
           + {t('tournamentDetailsModal.addSeries', 'Add Series')}

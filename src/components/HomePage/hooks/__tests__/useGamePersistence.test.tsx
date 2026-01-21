@@ -639,6 +639,166 @@ describe('useGamePersistence', () => {
 
       jest.useRealTimers();
     });
+
+    /**
+     * Tests that auto-save (silent=true) is skipped when required fields are empty
+     * This prevents false-positive ValidationErrors during user editing
+     * @edge-case
+     */
+    it('should skip auto-save silently when required fields are empty (user editing)', async () => {
+      // Suppress console.log for this test to check logger calls
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const setSavedGames = jest.fn();
+      const { saveGame: mockSaveGame } = jest.requireMock('@/utils/savedGames');
+      mockSaveGame.mockClear();
+
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        // Simulate user clearing the opponentName field while typing
+        gameSessionState: createMockGameSessionState({ opponentName: '' }),
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        // Call with silent=true (auto-save mode)
+        await result.current.handleQuickSaveGame(true);
+      });
+
+      // Save should NOT be attempted when required field is empty during auto-save
+      expect(setSavedGames).not.toHaveBeenCalled();
+      expect(mockSaveGame).not.toHaveBeenCalled();
+
+      // Logger should indicate the skip reason
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Skipping auto-save: required fields empty')
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    /**
+     * Tests that auto-save is skipped when teamName is empty
+     * @edge-case
+     */
+    it('should skip auto-save when teamName is empty', async () => {
+      const setSavedGames = jest.fn();
+      const { saveGame: mockSaveGame } = jest.requireMock('@/utils/savedGames');
+      mockSaveGame.mockClear();
+
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ teamName: '' }),
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true);
+      });
+
+      expect(setSavedGames).not.toHaveBeenCalled();
+      expect(mockSaveGame).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Tests that auto-save is skipped when gameDate is empty
+     * @edge-case
+     */
+    it('should skip auto-save when gameDate is empty', async () => {
+      const setSavedGames = jest.fn();
+      const { saveGame: mockSaveGame } = jest.requireMock('@/utils/savedGames');
+      mockSaveGame.mockClear();
+
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ gameDate: '' }),
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true);
+      });
+
+      expect(setSavedGames).not.toHaveBeenCalled();
+      expect(mockSaveGame).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Tests that manual save (silent=false) still attempts save even with empty fields
+     * This allows showing validation errors to the user for manual saves
+     * @critical
+     */
+    it('should attempt manual save even when required fields are empty', async () => {
+      const setSavedGames = jest.fn();
+      const showToast = jest.fn();
+      const { saveGame: mockSaveGame } = jest.requireMock('@/utils/savedGames');
+      mockSaveGame.mockClear();
+
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        showToast,
+        // Empty opponentName - would trigger validation error
+        gameSessionState: createMockGameSessionState({ opponentName: '' }),
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        // Call with silent=false (manual save)
+        await result.current.handleQuickSaveGame(false);
+      });
+
+      // Save SHOULD be attempted for manual saves (to show validation error)
+      // Note: The save utility is mocked to succeed, but in real scenario
+      // it would throw ValidationError which would show toast
+      expect(setSavedGames).toHaveBeenCalled();
+      expect(mockSaveGame).toHaveBeenCalled();
+    });
+
+    /**
+     * Tests that auto-save proceeds when all required fields have values
+     * @integration
+     */
+    it('should proceed with auto-save when all required fields are present', async () => {
+      const setSavedGames = jest.fn();
+      const { saveGame: mockSaveGame } = jest.requireMock('@/utils/savedGames');
+      mockSaveGame.mockClear();
+
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        // All required fields have values
+        gameSessionState: createMockGameSessionState({
+          teamName: 'My Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-01',
+        }),
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true);
+      });
+
+      // Save should proceed normally
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+        expect(mockSaveGame).toHaveBeenCalled();
+      });
+    });
   });
 
   describe('Snapshot Creation', () => {

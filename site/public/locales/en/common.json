@@ -76,7 +76,7 @@
     }
   },
   "footer": {
-    "tagline": "Local-first soccer coaching mobile app that respects your privacy.",
+    "tagline": "The complete toolkit for soccer and futsal coaches. Tactical board, game timer, player rotations, and match statistics.",
     "home": "Home",
     "navigation": "Navigation",
     "legal": "Legal",
@@ -272,7 +272,7 @@
     "faq": {
       "title": "Common Questions",
       "q1": "How do I install the app?",
-      "a1": "Open the app in your browser [Link coming soon]. The app will prompt you to install it - just tap 'Install'.",
+      "a1": "The app is available on Google Play. We're currently in beta testing - use the contact button below or email hello@match-ops.com to request access.",
       "q2": "Where is my data stored?",
       "a2": "All data is stored locally on your device. Nothing is sent to external servers.",
       "q3": "Can I use it on multiple devices?",
@@ -293,7 +293,7 @@
       "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
     },
     "cta": {
-      "title": "Currently in Limited Testing. Contact: hello@match‑ops.com"
+      "title": "The app is in beta testing. Get in touch to join."
     }
   },
   "screenshots": {
@@ -330,6 +330,8 @@
     },
     "taglines": {
       "power": "Your clipboard, stopwatch, notebook, and stats — in one app.",
+      "powerLine1": "Your clipboard, stopwatch, notebook, and stats",
+      "powerLine2": "— in one app.",
       "memorable": "Every game remembered.",
       "toolkit": "Your game day toolkit",
       "threePillars": "Plan Lineups • Track Games • Build Statistics"
@@ -465,25 +467,50 @@
       "formations": "Quick Formations",
       "formationsDesc": "Set up your team in seconds with formation templates. Snap players to position with one tap.",
       "roster": "Player Roster",
-      "rosterDesc": "Manage player profiles with jersey numbers, custom colors, and notes. Mark goalies and track availability.",
-      "assessment": "Player Assessment",
-      "assessmentDesc": "Rate players on 10 metrics: intensity, technique, decisions, teamwork, and more. Build a complete player profile.",
-      "trends": "Performance Trends",
-      "trendsDesc": "Track player progress with visual charts. See goals, assists, and ratings evolve over the season.",
-      "seasons": "Season Management",
-      "seasonsDesc": "Organize your full season. Track standings, placements, and awards. Finnish league integration included.",
+      "rosterDesc": "Add players with names, jersey numbers, and nicknames. The nickname is shown on the disc on the field.",
+      "assessment": "Match Assessment",
+      "assessmentDesc": "Assess match performances on 10 metrics: intensity, technique, decisions, teamwork, and more.",
+      "trends": "Trends",
+      "trendsDesc": "Track match performance trends with visual charts. See goals, assists, and ratings evolve over the season.",
+      "seasons": "Leagues",
+      "seasonsDesc": "Create and manage leagues. Link games to leagues and track league statistics.",
       "tournaments": "Tournament Hub",
-      "tournamentsDesc": "Manage multi-series tournaments. Track team placements and award tournament MVP.",
+      "tournamentsDesc": "Manage tournaments with multiple levels. Record team placements and view tournament statistics.",
       "teams": "Team Builder",
-      "teamsDesc": "Create and manage multiple teams. Bind teams to seasons and tournaments for organized tracking.",
+      "teamsDesc": "Create and manage multiple teams. Link teams to seasons and tournaments for organized statistics.",
       "archive": "Game Archive",
       "archiveDesc": "Browse all your saved games. Search by opponent, filter by season or tournament. Your complete game history.",
-      "goalTimeline": "Goal Timeline",
-      "goalTimelineDesc": "Log every goal with timestamp. Assign scorer and assister. Build complete match records.",
-      "excelExport": "Excel Reports",
-      "excelExportDesc": "Export statistics to Excel. Single game reports or full season aggregates. Your data, your way.",
+      "goalTimeline": "Match Log",
+      "goalTimelineDesc": "Tap to log goals with scorer and assister. Timestamps and match records build automatically.",
+      "excelExport": "Reports",
+      "excelExportDesc": "Export statistics to Excel. Reports by players, competitions, single matches, or teams.",
       "personnel": "Coaching Staff",
-      "personnelDesc": "Manage your coaching team. Track roles, contact info, and certifications for all staff members."
+      "personnelDesc": "Keep record of your staff. Save roles and contact info.",
+      "futsal": "Futsal",
+      "futsalDesc": "Futsal court view and game labeling for accurate stats and filtering.",
+      "officialRules": "Official Rules",
+      "officialRulesDesc": "Quick access to official soccer and futsal rules from the Finnish FA."
+    },
+    "techCards": {
+      "development": "DEVELOPMENT",
+      "techStats": "TECH STATS",
+      "quality": "QUALITY",
+      "aiPowered": "100% AI-Built",
+      "aiPoweredDesc": "Zero handwritten code. Built with Claude Code, Cursor, and Codex. Even these marketing materials.",
+      "linesOfCode": "200,000+ Lines",
+      "linesOfCodeDesc": "66K tests, 60K source, 75K docs. Test-first development at scale.",
+      "testCoverage": "3,200+ Tests",
+      "testCoverageDesc": "182 test suites with 100% pass rate. Quality enforced at every commit.",
+      "techStack": "Cutting-Edge Stack",
+      "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, installable, auto-updating.",
+      "documentation": "75K Lines of Context",
+      "documentationDesc": "AI assistants need context to stay consistent. Documentation serves as the project's persistent memory across sessions.",
+      "architecture": "Clean Architecture",
+      "architectureDesc": "71 components, 26 hooks. Clean separation of UI, logic, and data layers.",
+      "codeQuality": "Enterprise Quality",
+      "codeQualityDesc": "ESLint enforced, TypeScript strict mode, Sentry monitoring, accessibility tested.",
+      "cicd": "Automated CI/CD",
+      "cicdDesc": "Lint, types, 3200+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge."
     }
   }
 }

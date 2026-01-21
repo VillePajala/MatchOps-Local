@@ -1138,12 +1138,20 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
           {/* Footer */}
           <ModalFooter>
-            <button onClick={onCancel} className={secondaryButtonStyle}>
-              {t('common.cancelButton', 'Cancel')}
-            </button>
-            <button onClick={handleStartClick} className={primaryButtonStyle}>
-              {t('newGameSetupModal.confirmAndStart', 'Confirm & Start Game')}
-            </button>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={onCancel}
+                className="flex-1 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30"
+              >
+                {t('common.cancelButton', 'Cancel')}
+              </button>
+              <button
+                onClick={handleStartClick}
+                className="flex-[2] py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+              >
+                {t('newGameSetupModal.createGame', 'Create Game')}
+              </button>
+            </div>
           </ModalFooter>
         </div>
       </div>

@@ -1,27 +1,65 @@
 import Layout from '@/components/Layout';
-import FeatureCard from '@/components/FeatureCard';
+import { PhoneMockup, GlowBg } from '@/components/marketing';
 import Head from 'next/head';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-// Polished lists now use CSS-based checkmarks via .list-checked
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
-import { FaFutbol, FaClock, FaPencilAlt, FaChartLine, FaTrophy, FaUsers, FaBolt, FaShieldAlt, FaDatabase, FaGlobe, FaClipboardList, FaPlay, FaChartBar } from 'react-icons/fa';
+import { FaArrowUp } from 'react-icons/fa';
 
-// Language-aware screenshot paths
+// Language-aware screenshot paths (matches marketing-assets.tsx)
 const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg', // Language agnostic
+    // Main hero screenshots
+    soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg',
     timer: isEnglish
       ? '/screenshots/MatchOps_main_timer_en.jpg'
       : '/screenshots/MatchOps_Main_timer_full.jpg',
     playerstats: isEnglish
       ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
       : '/screenshots/MatchOps_Main_playerstats_full.jpg',
+    // Feature card screenshots
+    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi&en.jpg',
+    formations: isEnglish
+      ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
+      : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
+    roster: isEnglish
+      ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
+      : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
+    assessment: isEnglish
+      ? '/screenshots/MatcOps_main_playerassesments_en.jpg'
+      : '/screenshots/MatchOps_main_playerassesments_fi.jpg',
+    trends: isEnglish
+      ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
+      : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',
+    seasons: isEnglish
+      ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
+      : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
+    tournaments: isEnglish
+      ? '/screenshots/MatcOps_main_tournamentcreationmodal_en.jpg'
+      : '/screenshots/MatchOps_main_tournamentcreationmodel_fi.jpg',
+    teams: isEnglish
+      ? '/screenshots/MatcOps_main_teamcreatiommodal_en.jpg'
+      : '/screenshots/MatchOps_main_teamcreatingmodal_fi.jpg',
+    archive: isEnglish
+      ? '/screenshots/MatcOps_main_savedgames_en.jpg'
+      : '/screenshots/MatchOps_main_savedgames_fi.jpg',
+    goalTimeline: isEnglish
+      ? '/screenshots/MatchOps_main_goallogs_en.jpg'
+      : '/screenshots/MatchOps_main_goallogs_fi.jpg',
+    excelExport: isEnglish
+      ? '/screenshots/MatcOps_main_excelexport_en.jpg'
+      : '/screenshots/MatchOps_main_excelexport_fi.jpg',
+    personnel: isEnglish
+      ? '/screenshots/MatcOps_main_personnel_en.jpg'
+      : '/screenshots/MatchOps_main_personnel_fi.jpg',
+    futsal: '/screenshots/MatchOps_main_futsal_en&fi.jpg',
+    officialRules: isEnglish
+      ? '/screenshots/MatchOps_main_rules_en.jpg'
+      : '/screenshots/MatchOps_main_rules_fi.jpg',
   };
 };
 
@@ -32,6 +70,13 @@ export default function HomePage() {
   const mobileCarouselRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [lightbox, setLightbox] = useState<null | { src: string; alt: string }>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const isEnglish = router.locale === 'en';
+
+  // Mobile carousel labels (5 items now)
+  const carouselLabels = isEnglish
+    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Events']
+    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Loki'];
 
   useEffect(() => {
     const container = mobileCarouselRef.current;
@@ -40,32 +85,43 @@ export default function HomePage() {
     const items = Array.from(container.children) as HTMLElement[];
     if (items.length === 0) return;
 
-    let raf: number | null = null;
+    // Track visibility ratios for all items
+    const visibilityMap = new Map<Element, number>();
+
     const observer = new IntersectionObserver(
       (entries) => {
-        // Pick the most visible item
-        const mostVisible = entries
-          .slice()
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!mostVisible) return;
-        const index = items.indexOf(mostVisible.target as HTMLElement);
-        if (index >= 0) {
-          // Throttle state updates with rAF to avoid jank on scroll
-          if (raf) cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(() => setActiveSlide(index));
+        // Update visibility map
+        entries.forEach((entry) => {
+          visibilityMap.set(entry.target, entry.intersectionRatio);
+        });
+
+        // Find the most visible item
+        let maxRatio = 0;
+        let maxIndex = -1;
+        items.forEach((item, index) => {
+          const ratio = visibilityMap.get(item) || 0;
+          if (ratio > maxRatio) {
+            maxRatio = ratio;
+            maxIndex = index;
+          }
+        });
+
+        // Only update if we have a clear winner (> 50% visible)
+        if (maxIndex >= 0 && maxRatio > 0.5) {
+          setActiveSlide(maxIndex);
         }
       },
-      { root: container, threshold: [0.3, 0.6, 0.9] }
+      { root: container, threshold: [0.5] }
     );
 
     items.forEach((el) => observer.observe(el));
     return () => {
-      if (raf) cancelAnimationFrame(raf);
       observer.disconnect();
     };
   }, []);
 
   const goTo = (index: number) => {
+    setActiveSlide(index); // Update immediately on click
     const container = mobileCarouselRef.current;
     if (!container) return;
     const items = Array.from(container.children) as HTMLElement[];
@@ -83,6 +139,15 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [lightbox]);
 
+  // Back to top button visibility
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 500);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
   return (
     <Layout>
       <Head>
@@ -93,112 +158,67 @@ export default function HomePage() {
         <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}`} />
         <meta property="og:image" content="https://www.match-ops.com/screenshots/OG.png" />
       </Head>
-      {/* What Is This? */}
-      <section className="section bg-slate-900">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            {/* Title with highlight */}
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-6">
-              {router.locale === 'fi' ? (
-                <>Mikä on <span className="text-primary">MatchOps Local</span>?</>
-              ) : (
-                <>What is <span className="text-primary">MatchOps Local</span>?</>
-              )}
-            </h1>
 
-            {/* Main description */}
-            <p className="text-slate-200 text-lg md:text-xl leading-relaxed mb-6">
-              {t('info.whatIsThis.description')}
+      {/* ===== HERO SECTION ===== */}
+      <section className="section bg-slate-900 relative overflow-hidden">
+        {/* Ambient glow effects - subtle */}
+        <div className="hidden md:block">
+          <GlowBg color="primary" position="top-right" size="md" blur={150} />
+          <GlowBg color="amber" position="bottom-left" size="sm" blur={130} />
+        </div>
+
+        <div className="container-custom relative z-10">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Bold tagline */}
+            <p className="text-sm md:text-base text-slate-400 uppercase tracking-wider mb-3">
+              {t('marketing.cards.forCoaches')}
+            </p>
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
+              <span className="text-primary">MatchOps Local</span>
+            </h1>
+            <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
+              {t('marketing.taglines.power')}
             </p>
 
-            {/* Badge-style highlights */}
-            <div className="flex flex-wrap justify-center gap-3 mt-8 mb-10">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
-                <FaShieldAlt className="text-primary text-sm flex-shrink-0" />
-                <span className="text-slate-300 text-sm md:text-base">
-                  {router.locale === 'fi' ? 'Ei rekisteröitymistä' : 'No signup required'}
-                </span>
-              </div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
-                <FaDatabase className="text-primary text-sm flex-shrink-0" />
-                <span className="text-slate-300 text-sm md:text-base">
-                  {router.locale === 'fi' ? 'Tietosi pysyvät laitteellasi' : 'Your data stays on your device'}
-                </span>
-              </div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
-                <FaBolt className="text-primary text-sm flex-shrink-0" />
-                <span className="text-slate-300 text-sm md:text-base">
-                  {router.locale === 'fi' ? 'Toimii ilman nettiä' : 'Works offline'}
-                </span>
-              </div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
-                <FaShieldAlt className="text-primary text-sm flex-shrink-0" />
-                <span className="text-slate-300 text-sm md:text-base">
-                  {router.locale === 'fi' ? 'Ei seurantaa tai analytiikkaa' : 'No tracking or analytics'}
-                </span>
-              </div>
-            </div>
-
-            {/* Hero Screenshots: mobile carousel + desktop grid */}
-            {/* Mobile: swipeable scroll-snap carousel */}
-            <div className="md:hidden mt-8 -mx-4 relative">
+            {/* ===== 5-PHONE SHOWCASE ===== */}
+            {/* Mobile: swipeable carousel */}
+            <div className="md:hidden -mx-4 relative">
               <div
                 ref={mobileCarouselRef}
-                className="flex overflow-x-auto snap-x snap-mandatory snap-always px-0 no-scrollbar"
+                className="flex overflow-x-auto snap-x snap-mandatory snap-always px-0 py-8 no-scrollbar"
                 role="region"
                 aria-label={t('screenshots.aria.carousel')}
-                aria-roledescription="carousel"
               >
-                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
-                  <div className="phone-frame phone-frame-full">
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.soccerfield}
-                        alt="App view screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(max-width: 768px) 50vw, 288px"
-                        className="w-auto h-auto max-h-[65vh] object-contain"
-                        priority
-                      />
+                {[
+                  { src: screenshots.soccerfield, alt: 'Lineup view' },
+                  { src: screenshots.timer, alt: 'Timer view' },
+                  { src: screenshots.playerstats, alt: 'Stats view' },
+                  { src: screenshots.tacticalBoard, alt: 'Tactics view' },
+                  { src: screenshots.goalTimeline, alt: 'Events view' },
+                ].map((screen, i) => (
+                  <div key={i} className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
+                    <div className="phone-frame phone-frame-full">
+                      <div className="phone-frame-screen">
+                        <Image
+                          src={screen.src}
+                          alt={screen.alt}
+                          width={1080}
+                          height={2340}
+                          sizes="(max-width: 768px) 50vw, 288px"
+                          className="w-auto h-auto max-h-[65vh] object-contain"
+                          priority={i < 2}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
-                  <div className="phone-frame phone-frame-full">
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.timer}
-                        alt="Timer view screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(max-width: 768px) 50vw, 288px"
-                        className="w-auto h-auto max-h-[65vh] object-contain"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
-                  <div className="phone-frame phone-frame-full">
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.playerstats}
-                        alt="Player stats screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(max-width: 768px) 50vw, 288px"
-                        className="w-auto h-auto max-h-[65vh] object-contain"
-                      />
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Carousel controls */}
               <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1 pointer-events-none">
                 <button
                   type="button"
-                  aria-label={t('screenshots.aria.prev')}
+                  aria-label="Previous"
                   className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/60 border border-slate-700 text-white grid place-items-center shadow hover:bg-slate-800/70"
                   onClick={() => goTo(Math.max(0, activeSlide - 1))}
                 >
@@ -206,26 +226,21 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  aria-label={t('screenshots.aria.next')}
+                  aria-label="Next"
                   className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/60 border border-slate-700 text-white grid place-items-center shadow hover:bg-slate-800/70"
-                  onClick={() => goTo(Math.min(2, activeSlide + 1))}
+                  onClick={() => goTo(Math.min(4, activeSlide + 1))}
                 >
                   <span aria-hidden>›</span>
                 </button>
               </div>
 
               {/* Pill navigation */}
-              <div className="mt-6 flex items-center justify-center gap-2">
-                {[
-                  t('screenshots.labels.plan'),
-                  t('screenshots.labels.track'),
-                  t('screenshots.labels.review'),
-                ].map((label, i) => (
+              <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
+                {carouselLabels.map((label, i) => (
                   <button
                     key={label}
                     type="button"
-                    aria-label={t('screenshots.aria.goTo', { label })}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                       activeSlide === i
                         ? 'bg-primary text-slate-900'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -238,303 +253,286 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Desktop/Tablet: 3D phone showcase */}
-            <div className="hidden md:block phone-showcase-container mt-8 mx-auto max-w-4xl lg:max-w-5xl">
-              <div className="phone-showcase">
-                <div className="phone-wrapper">
-                  <button
-                    type="button"
-                    className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: screenshots.soccerfield, alt: 'App view screenshot' })}
-                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.plan') })}
-                  >
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.soccerfield}
-                        alt="App view screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(min-width: 1024px) 280px, 25vw"
-                        className="w-full h-auto"
-                        priority
-                      />
-                    </div>
-                  </button>
-                  <div className="mt-4 flex justify-center">
-                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.plan')}</span>
-                  </div>
-                </div>
-                <div className="phone-wrapper">
-                  <button
-                    type="button"
-                    className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: screenshots.timer, alt: 'Timer view screenshot' })}
-                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.track') })}
-                  >
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.timer}
-                        alt="Timer view screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(min-width: 1024px) 280px, 25vw"
-                        className="w-full h-auto"
-                      />
-                    </div>
-                  </button>
-                  <div className="mt-4 flex justify-center">
-                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.track')}</span>
-                  </div>
-                </div>
-                <div className="phone-wrapper">
-                  <button
-                    type="button"
-                    className="phone-frame phone-frame-full cursor-zoom-in"
-                    onClick={() => setLightbox({ src: screenshots.playerstats, alt: 'Player stats screenshot' })}
-                    aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.review') })}
-                  >
-                    <div className="phone-frame-screen">
-                      <Image
-                        src={screenshots.playerstats}
-                        alt="Player stats screenshot"
-                        width={1080}
-                        height={2340}
-                        sizes="(min-width: 1024px) 280px, 25vw"
-                        className="w-full h-auto"
-                      />
-                    </div>
-                  </button>
-                  <div className="mt-4 flex justify-center">
-                    <span className="px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-300">{t('screenshots.captions.review')}</span>
-                  </div>
-                </div>
+            {/* Desktop: 5-phone Arc layout */}
+            <div className="hidden md:block mt-12 relative">
+              <div className="relative flex items-center justify-center h-[500px]">
+                {/* Phone 1: Tactical Board - far left */}
+                <PhoneMockup
+                  screenshot={screenshots.tacticalBoard}
+                  size="md"
+                  style={{
+                    position: 'absolute',
+                    left: '8%',
+                    top: '48%',
+                    transform: 'translateY(-50%) rotate(-8deg)',
+                  }}
+                  zIndex={1}
+                />
+                {/* Phone 2: Player Stats - left of center */}
+                <PhoneMockup
+                  screenshot={screenshots.playerstats}
+                  size="lg"
+                  style={{
+                    position: 'absolute',
+                    left: '22%',
+                    top: '48%',
+                    transform: 'translateY(-45%) rotate(-4deg)',
+                  }}
+                  zIndex={2}
+                />
+                {/* Phone 3: Soccer Field - CENTER (hero) */}
+                <PhoneMockup
+                  screenshot={screenshots.soccerfield}
+                  size="xl"
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '48%',
+                    transform: 'translate(-50%, -45%)',
+                  }}
+                  zIndex={10}
+                  priority
+                />
+                {/* Phone 4: Timer - right of center */}
+                <PhoneMockup
+                  screenshot={screenshots.timer}
+                  size="lg"
+                  style={{
+                    position: 'absolute',
+                    right: '22%',
+                    top: '48%',
+                    transform: 'translateY(-45%) rotate(4deg)',
+                  }}
+                  zIndex={2}
+                />
+                {/* Phone 5: Goal Timeline - far right */}
+                <PhoneMockup
+                  screenshot={screenshots.goalTimeline}
+                  size="md"
+                  style={{
+                    position: 'absolute',
+                    right: '8%',
+                    top: '48%',
+                    transform: 'translateY(-50%) rotate(8deg)',
+                  }}
+                  zIndex={1}
+                />
               </div>
             </div>
 
-            {/* Desktop Lightbox Modal */}
-            {lightbox && (
-              <div
-                className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-                role="dialog"
-                aria-modal="true"
-                aria-label={t('screenshots.aria.preview')}
-                onClick={() => setLightbox(null)}
-              >
-                <div className="relative max-w-screen-lg w-full" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-slate-900 border border-slate-700 text-white shadow hover:bg-slate-800"
-                    aria-label={t('screenshots.aria.close')}
-                    onClick={() => setLightbox(null)}
-                  >
-                    ×
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Close preview"
-                    onClick={() => setLightbox(null)}
-                    className="max-h-[85vh] w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-900/40 cursor-zoom-out"
-                  >
-                    <Image
-                      src={lightbox.src}
-                      alt={lightbox.alt}
-                      width={1024}
-                      height={1536}
-                      sizes="(min-width: 1024px) 70vw, 90vw"
-                      className="block mx-auto h-auto w-auto max-w-full max-h-[85vh]"
-                    />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Removed Plan → Track → Review card band per request */}
           </div>
         </div>
       </section>
 
-      {/* The Coach's Challenge - HIDDEN */}
-      {/* eslint-disable-next-line no-constant-binary-expression */}
-      {false && (
-      <section className="section section-divider bg-slate-800/50">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
-              {t('info.challenges.title')}
-            </h2>
-            <div className="space-y-4">
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge1')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge2')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge3')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge4')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge5')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge6')}</p>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge7')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      )}
-
-      {/* Section 1: Your Game Day Toolkit */}
-      <section className="section section-divider bg-slate-900">
-        <div className="container-custom">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
-              {t('features.gameDay.title')}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FeatureCard
-                icon={<FaFutbol />}
-                title={t('features.gameDay.field.title')}
-                description={t('features.gameDay.field.desc')}
-              />
-              <FeatureCard
-                icon={<FaClock />}
-                title={t('features.gameDay.timer.title')}
-                description={t('features.gameDay.timer.desc')}
-              />
-              <FeatureCard
-                icon={<FaPencilAlt />}
-                title={t('features.gameDay.tactics.title')}
-                description={t('features.gameDay.tactics.desc')}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 2: Beyond the Match */}
+      {/* ===== PLAN • TRACK • ASSESS ===== */}
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
-              {t('features.management.title')}
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
+              {isEnglish ? 'Plan • Track • Assess' : 'Suunnittele • Seuraa • Arvioi'}
             </h2>
-            <div className="mb-6">
-              <FeatureCard
-                icon={<FaChartLine />}
-                title={t('features.management.analytics.title')}
-                description={t('features.management.analytics.desc')}
-                variant="wide"
-                highlights={[
-                  t('features.management.analytics.h1'),
-                  t('features.management.analytics.h2'),
-                  t('features.management.analytics.h3'),
-                  t('features.management.analytics.h4'),
-                  t('features.management.analytics.h5'),
-                  t('features.management.analytics.h6'),
-                ]}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FeatureCard
-                icon={<FaTrophy />}
-                title={t('features.management.seasons.title')}
-                description={t('features.management.seasons.desc')}
-              />
-              <FeatureCard
-                icon={<FaUsers />}
-                title={t('features.management.team.title')}
-                description={t('features.management.team.desc')}
-              />
-              <FeatureCard
-                icon={<FaDatabase />}
-                title={t('features.management.data.title')}
-                description={t('features.management.data.desc')}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 3: Built Different */}
-      <section className="section section-divider bg-slate-900">
-        <div className="container-custom">
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
-              {t('features.foundation.title')}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              <FeatureCard
-                icon={<FaBolt />}
-                title={t('features.foundation.offline.title')}
-                description={t('features.foundation.offline.desc')}
-              />
-              <FeatureCard
-                icon={<FaShieldAlt />}
-                title={t('features.foundation.private.title')}
-                description={t('features.foundation.private.desc')}
-              />
-              <FeatureCard
-                icon={<FaDatabase />}
-                title={t('features.foundation.backup.title')}
-                description={t('features.foundation.backup.desc')}
-              />
-              <FeatureCard
-                icon={<FaGlobe />}
-                title={t('features.foundation.i18n.title')}
-                description={t('features.foundation.i18n.desc')}
-              />
+            <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
+              {t('info.whatIsThis.description')}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* PLAN */}
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="lg" />
+                </div>
+                <h3 className="text-xl font-bold text-primary mb-2">
+                  {isEnglish ? 'Plan' : 'Suunnittele'}
+                </h3>
+                <p className="text-slate-300">
+                  {t('marketing.features.plan.desc')}
+                </p>
+              </div>
+              {/* TRACK */}
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <PhoneMockup screenshot={screenshots.timer} size="lg" />
+                </div>
+                <h3 className="text-xl font-bold text-primary mb-2">
+                  {isEnglish ? 'Track' : 'Seuraa'}
+                </h3>
+                <p className="text-slate-300">
+                  {t('marketing.features.track.desc')}
+                </p>
+              </div>
+              {/* ASSESS */}
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <PhoneMockup screenshot={screenshots.playerstats} size="lg" />
+                </div>
+                <h3 className="text-xl font-bold text-primary mb-2">
+                  {isEnglish ? 'Assess' : 'Arvioi'}
+                </h3>
+                <p className="text-slate-300">
+                  {t('marketing.features.assess.desc')}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Common Questions */}
+      {/* ===== FEATURE CARDS (14 features) ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
-              {t('info.faq.title')}
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-10 text-center">
+              {isEnglish ? 'More Features' : 'Lisää ominaisuuksia'}
             </h2>
-            <div className="space-y-4 prose prose-invert max-w-none">
-              {(['q1', 'q2', 'q3', 'q4'] as const).map((key) => (
-                <details key={key} className="group rounded-lg border border-slate-700 bg-slate-800/40 p-4">
-                  <summary className="cursor-pointer list-none text-white font-semibold">
-                    {t(`info.faq.${key}`)}
-                  </summary>
-                  <div className="mt-2 text-slate-300">
-                    {t(`info.faq.a${key.slice(1)}`)}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
+                { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
+                { key: 'formations', screenshot: screenshots.formations },
+                { key: 'assessment', screenshot: screenshots.assessment },
+                { key: 'trends', screenshot: screenshots.trends },
+                { key: 'excelExport', screenshot: screenshots.excelExport },
+                { key: 'roster', screenshot: screenshots.roster },
+                { key: 'archive', screenshot: screenshots.archive },
+                { key: 'teams', screenshot: screenshots.teams },
+                { key: 'seasons', screenshot: screenshots.seasons },
+                { key: 'tournaments', screenshot: screenshots.tournaments },
+                { key: 'futsal', screenshot: screenshots.futsal },
+                { key: 'personnel', screenshot: screenshots.personnel },
+                { key: 'officialRules', screenshot: screenshots.officialRules },
+              ].map((card, i) => (
+                <div
+                  key={card.key}
+                  className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 sm:p-6 md:p-8 flex gap-6 sm:gap-4 md:gap-6 ${
+                    i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
+                  }`}
+                >
+                  <div className="w-1/2 flex flex-col justify-center items-start">
+                    <div className="text-primary text-xs sm:text-sm font-semibold mb-1 sm:mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-lg sm:text-xl md:text-3xl font-bold mb-2 sm:mb-3">
+                      {t(`marketing.featureCards.${card.key}`)}
+                    </h3>
+                    <p className="text-gray-400 text-sm sm:text-base">{t(`marketing.featureCards.${card.key}Desc`)}</p>
                   </div>
-                </details>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PhoneMockup screenshot={card.screenshot} size="lg" zIndex={10} />
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Limited Testing Notice */}
+      {/* ===== TECH STATS ===== */}
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
-          <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-2xl font-bold text-white">
-              {t('info.cta.title')}
-            </h3>
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
+              {isEnglish ? 'Built Different' : 'Rakennettu eri tavalla'}
+            </h2>
+            <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
+              {isEnglish
+                ? 'Enterprise-grade quality with 3,200+ automated tests.'
+                : 'Yritystason laatu ja yli 3 200 automaattista testiä.'}
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+              {[
+                { key: 'testCoverage', icon: '✓' },
+                { key: 'techStack', icon: '⚡' },
+                { key: 'architecture', icon: '🏗️' },
+                { key: 'codeQuality', icon: '💎' },
+                { key: 'cicd', icon: '🔄' },
+                { key: 'linesOfCode', icon: '📊' },
+              ].map((card) => (
+                <div
+                  key={card.key}
+                  className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 md:p-6 text-center border border-slate-700/50"
+                >
+                  <div className="text-2xl md:text-3xl mb-2">{card.icon}</div>
+                  <h3 className="text-white text-sm md:text-lg font-bold mb-1">
+                    {t(`marketing.techCards.${card.key}`)}
+                  </h3>
+                  <p className="text-gray-400 text-xs md:text-sm">
+                    {t(`marketing.techCards.${card.key}Desc`)}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
+
+      {/* ===== CTA ===== */}
+      <section className="section section-divider bg-slate-900 relative overflow-hidden">
+        <div className="hidden md:block">
+          <GlowBg color="primary" position="center" size="md" blur={120} />
+        </div>
+        <div className="container-custom relative z-10">
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
+              {isEnglish ? 'The app is in beta testing' : 'Sovellus on betatestauksessa'}
+            </h3>
+            <p className="text-slate-300 mb-6">
+              {isEnglish ? 'Contact us if you are interested in joining' : 'Ota yhteyttä, mikäli olet kiinnostunut osallistumaan'}
+            </p>
+            <a
+              href="mailto:hello@match-ops.com"
+              className="inline-block px-8 py-3 bg-primary text-slate-900 font-semibold rounded-lg hover:bg-amber-400 transition-colors"
+            >
+              {isEnglish ? 'Contact for Early Access' : 'Ota yhteyttä'}
+            </a>
+            <p className="text-slate-500 text-sm mt-4">hello@match-ops.com</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Lightbox Modal */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightbox(null)}
+        >
+          <div className="relative max-w-screen-lg w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-slate-900 border border-slate-700 text-white shadow hover:bg-slate-800"
+              onClick={() => setLightbox(null)}
+            >
+              ×
+            </button>
+            <button
+              type="button"
+              onClick={() => setLightbox(null)}
+              className="max-h-[85vh] w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-900/40 cursor-zoom-out"
+            >
+              <Image
+                src={lightbox.src}
+                alt={lightbox.alt}
+                width={1024}
+                height={1536}
+                sizes="(min-width: 1024px) 70vw, 90vw"
+                className="block mx-auto h-auto w-auto max-w-full max-h-[85vh]"
+              />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Back to top button */}
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-primary text-slate-900 shadow-lg hover:bg-amber-400 transition-all"
+          aria-label="Back to top"
+        >
+          <FaArrowUp />
+        </button>
+      )}
     </Layout>
   );
 }

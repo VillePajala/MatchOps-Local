@@ -23,7 +23,7 @@ interface RulesDirectoryModalProps {
  * @see https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet - Main rules page (stable URL)
  */
 const RULE_LINKS = {
-  soccerRules: 'https://www-assets.palloliitto.fi/62562/1739435685-jalkapallosaannot-2025.pdf',
+  soccerRules: 'https://www-assets.palloliitto.fi/62562/1767775686-jalkapallosaannot-2026.pdf',
   futsalRules: 'https://www-assets.palloliitto.fi/62562/1760095939-futsalsaannot-2025-2026.pdf',
   youthRules: 'https://www-assets.palloliitto.fi/62562/1737814984-1710753804-kaikki-pelaa-ohjelma-2025.pdf',
   palloliitoAll: 'https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet',
@@ -91,7 +91,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
               <Section title="Palloliitto">
                 <LinkButton
                   url={RULE_LINKS.soccerRules}
-                  label={t('rulesDirectory.soccerRules', 'Jalkapallosäännöt 2025')}
+                  label={t('rulesDirectory.soccerRules', 'Jalkapallosäännöt 2026')}
                 />
                 <LinkButton
                   url={RULE_LINKS.futsalRules}
