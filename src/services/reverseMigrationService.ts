@@ -301,6 +301,7 @@ export async function migrateCloudToLocal(
     );
 
     // Step 5: Delete cloud data if requested (only after successful verification and no critical failures)
+    let deleteFailed = false;
     if (mode === 'delete-cloud' && verificationResult.success && !hasCriticalSaveFailures) {
       safeProgress({ stage: 'deleting', progress: REVERSE_PROGRESS_RANGES.DELETING.start, message: REVERSE_MIGRATION_MESSAGES.DELETING });
 
@@ -310,8 +311,9 @@ export async function migrateCloudToLocal(
         clearCloudAccountInfo();
         logger.info('[ReverseMigrationService] Cloud data deleted successfully');
       } catch (deleteError) {
+        deleteFailed = true;
         const errorMsg = deleteError instanceof Error ? deleteError.message : 'Unknown error';
-        warnings.push(`Failed to delete cloud data: ${errorMsg}. Your data was downloaded successfully but remains in the cloud.`);
+        warnings.push(`Failed to delete cloud data: ${errorMsg}. Staying in cloud mode so you can retry.`);
         logger.error('[ReverseMigrationService] Failed to delete cloud data:', deleteError);
       }
     } else if (mode === 'delete-cloud' && hasCriticalSaveFailures) {
@@ -322,13 +324,22 @@ export async function migrateCloudToLocal(
     }
 
     // Step 6: Switch to local mode
-    const modeSwitch = disableCloudMode();
-    if (!modeSwitch) {
-      // Mode switch failure is an error - the migration goal was not achieved
-      errors.push('Failed to switch to local mode. Your data was downloaded but the app is still in cloud mode. Please go to Settings and disable cloud sync manually.');
+    // For delete-cloud mode: only switch if deletion succeeded (prevents confusing state)
+    // For keep-cloud mode: always attempt to switch
+    let modeSwitch = false;
+    if (mode === 'delete-cloud' && deleteFailed) {
+      // Don't switch to local mode if deletion failed - user can retry from cloud mode
+      logger.warn('[ReverseMigrationService] Not switching to local mode because cloud deletion failed');
+    } else {
+      modeSwitch = disableCloudMode();
+      if (!modeSwitch) {
+        // Mode switch failure is an error - the migration goal was not achieved
+        errors.push('Failed to switch to local mode. Your data was downloaded but the app is still in cloud mode. Please go to Settings and disable cloud sync manually.');
+      }
     }
 
     // Determine overall success: verification passed AND mode switched AND no critical save failures
+    // For delete-cloud mode, deletion failure means not switching (so modeSwitch=false), which means not success
     const overallSuccess = verificationResult.success && modeSwitch && !hasCriticalSaveFailures;
 
     // Complete
