@@ -57,13 +57,15 @@ export async function clearLocalIndexedDBData(): Promise<void> {
  * This is a quick check to determine if the "clear local data" option
  * should be shown to the user after migration.
  *
- * @returns true if there is local data to clear
+ * @returns true if there is local data to clear, or if check failed (safer to assume data exists)
  */
 export async function hasLocalDataToClear(): Promise<boolean> {
   try {
     // Import dynamically to avoid circular dependencies
     const { hasLocalDataToMigrate } = await import('@/services/migrationService');
-    return hasLocalDataToMigrate();
+    const result = await hasLocalDataToMigrate();
+    // If check failed, assume there might be data (safer)
+    return result.checkFailed || result.hasData;
   } catch {
     // If we can't check, assume there might be data
     return true;

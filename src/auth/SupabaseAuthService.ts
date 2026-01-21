@@ -45,7 +45,10 @@ function mapAuthEvent(event: AuthChangeEvent): AuthState {
     case 'USER_UPDATED':
       return 'user_updated';
     default:
-      return 'signed_in';
+      // Log unknown events - use signed_out as safer default to force re-verification
+      // This prevents assuming user is authenticated when they might not be
+      logger.warn(`[SupabaseAuthService] Unknown auth event "${event}", defaulting to signed_out for safety`);
+      return 'signed_out';
   }
 }
 
@@ -179,35 +182,69 @@ export class SupabaseAuthService implements AuthService {
   private initialized = false;
   private currentSession: Session | null = null;
   private currentUser: User | null = null;
+  // Promise deduplication for initialize() to prevent race conditions
+  private initPromise: Promise<void> | null = null;
 
   // ==========================================================================
   // LIFECYCLE
   // ==========================================================================
 
   async initialize(): Promise<void> {
+    // Return immediately if already initialized
     if (this.initialized) {
       return;
     }
 
-    this.client = getSupabaseClient();
-
-    // Get initial session
-    const { data: { session }, error } = await this.client.auth.getSession();
-
-    if (error) {
-      logger.error('[SupabaseAuthService] Failed to get initial session:', error.message);
-      // Don't throw - app should still work, just not authenticated
+    // Promise deduplication: if initialization is already in progress, wait for it
+    // This prevents concurrent initialize() calls from racing
+    if (this.initPromise) {
+      return this.initPromise;
     }
 
-    if (session) {
-      this.currentSession = transformSession(session);
-      this.currentUser = this.currentSession.user;
-      logger.info('[SupabaseAuthService] Initialized with existing session');
-    } else {
-      logger.info('[SupabaseAuthService] Initialized without session');
-    }
+    // Create and cache the initialization promise
+    this.initPromise = (async () => {
+      try {
+        this.client = getSupabaseClient();
 
-    this.initialized = true;
+        // Get initial session
+        const { data: { session }, error } = await this.client.auth.getSession();
+
+        if (error) {
+          // Distinguish between network errors and other session errors
+          if (isNetworkError(error)) {
+            logger.warn('[SupabaseAuthService] Network error during init - session may not be loaded:', error.message);
+          } else {
+            // Non-network error suggests corrupted state, expired token, or SDK issue
+            logger.error('[SupabaseAuthService] Failed to get initial session (non-network):', error.message);
+          }
+          // Don't throw - app should still work, user will need to sign in again
+        }
+
+        if (session) {
+          this.currentSession = transformSession(session);
+          this.currentUser = this.currentSession.user;
+          logger.info('[SupabaseAuthService] Initialized with existing session');
+        } else if (!error) {
+          // Only log "without session" if there was no error (legitimate no-session state)
+          logger.info('[SupabaseAuthService] Initialized without session');
+        } else {
+          // Had an error and no session - user's session was lost
+          logger.warn('[SupabaseAuthService] Initialized without session due to error - user may need to sign in again');
+        }
+
+        this.initialized = true;
+      } catch (error) {
+        // Log initialization failures for debugging before re-throwing
+        logger.error('[SupabaseAuthService] Initialization failed:', error instanceof Error ? error.message : String(error));
+        throw error;
+      } finally {
+        // Clear the promise when done (success or failure)
+        // This allows retry on next call if initialization failed
+        this.initPromise = null;
+      }
+    })();
+
+    return this.initPromise;
   }
 
   getMode(): 'local' | 'cloud' {
@@ -231,7 +268,8 @@ export class SupabaseAuthService implements AuthService {
       if (isNetworkError(error)) {
         throw new NetworkError('Failed to get current user: network error');
       }
-      // User not found or invalid token - not an error, just not authenticated
+      // Non-network error (invalid token, user deleted, etc.) - log for debugging
+      logger.info('[SupabaseAuthService] getUser returned non-network error (user may be signed out):', error.message);
       return null;
     }
 
@@ -408,7 +446,8 @@ export class SupabaseAuthService implements AuthService {
       if (isNetworkError(error)) {
         throw new NetworkError('Failed to get session: network error');
       }
-      // Session error - just return null
+      // Non-network session error (corrupted token, expired, etc.) - log for debugging
+      logger.info('[SupabaseAuthService] getSession returned non-network error:', error.message);
       return null;
     }
 

@@ -1,8 +1,8 @@
 {
-  "version": "4e60e42b",
-  "date": "2026-01-20",
+  "version": "8a7e7983",
+  "date": "2026-01-21",
   "notes": {
-    "en": "Add retry limit and clarify teamRosters count",
-    "fi": "Add retry limit and clarify teamRosters count"
+    "en": "Final review fixes - cleanup, accessibility, lock safety",
+    "fi": "Final review fixes - cleanup, accessibility, lock safety"
   }
 }
