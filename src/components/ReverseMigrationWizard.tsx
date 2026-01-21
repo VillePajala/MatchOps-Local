@@ -46,6 +46,7 @@ export interface ReverseMigrationWizardProps {
  * 3. Confirm - Type DELETE to confirm deletion (if delete mode)
  * 4. Progress - Show download progress
  * 5. Complete - Success message
+ * 6. Error - Handle migration failures with retry option
  *
  * @see docs/03-active-plans/pr11-reverse-migration-plan.md
  */
@@ -76,6 +77,19 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
 
   // Focus trap
   useFocusTrap(modalRef, true);
+
+  // Handle Escape key to close modal (when not busy)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't allow closing during progress or when migration is starting
+      if (e.key === 'Escape' && step !== 'progress' && !isMigrating) {
+        onCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [step, isMigrating, onCancel]);
 
   // Load data summary on mount
   useEffect(() => {

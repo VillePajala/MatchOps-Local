@@ -885,5 +885,106 @@ describe('ReverseMigrationWizard', () => {
       // Should not throw
       await new Promise(resolve => setTimeout(resolve, 150));
     });
+
+    it('should close modal when Escape is pressed during preview step', async () => {
+      renderWizard();
+
+      await waitFor(() => {
+        expect(screen.getByText('Your Cloud Data')).toBeInTheDocument();
+      });
+
+      // Press Escape
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(mockOnCancel).toHaveBeenCalled();
+    });
+
+    it('should NOT close modal when Escape is pressed during progress step', async () => {
+      // Make migration take time
+      mockMigrateCloudToLocal.mockImplementation(
+        () => new Promise(resolve => setTimeout(resolve, 500))
+      );
+
+      renderWizard();
+
+      await waitFor(() => {
+        expect(screen.getByText('Your Cloud Data')).toBeInTheDocument();
+      });
+
+      // Go to choose step
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('What should happen to your cloud data?')).toBeInTheDocument();
+      });
+
+      // Start migration (keep-cloud mode - no confirm step)
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      });
+
+      // Wait for progress step
+      await waitFor(() => {
+        expect(screen.getByText(/Downloading Your Data/)).toBeInTheDocument();
+      });
+
+      // Try to close with Escape - should be blocked
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      // onCancel should NOT have been called
+      expect(mockOnCancel).not.toHaveBeenCalled();
+    });
+
+    it('should disable retry button during cooldown', async () => {
+      // Make migration fail
+      mockMigrateCloudToLocal.mockResolvedValue({
+        success: false,
+        errors: ['Test error'],
+        warnings: [],
+        downloaded: mockSummary,
+        cloudDeleted: false,
+      });
+
+      renderWizard();
+
+      await waitFor(() => {
+        expect(screen.getByText('Your Cloud Data')).toBeInTheDocument();
+      });
+
+      // Go to choose step
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('What should happen to your cloud data?')).toBeInTheDocument();
+      });
+
+      // Start migration
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      });
+
+      // Wait for error step (use heading role to avoid duplicate text match)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { level: 2, name: 'Download Failed' })).toBeInTheDocument();
+      });
+
+      // Retry button should exist (first retry, no cooldown yet)
+      const retryButton = screen.getByRole('button', { name: 'Retry' });
+      expect(retryButton).toBeInTheDocument();
+
+      // Click retry - this will trigger cooldown for next retry
+      await act(async () => {
+        fireEvent.click(retryButton);
+      });
+
+      // Should go back to preview
+      await waitFor(() => {
+        expect(screen.getByText('Your Cloud Data')).toBeInTheDocument();
+      });
+    });
   });
 });

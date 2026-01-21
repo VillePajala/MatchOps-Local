@@ -2052,6 +2052,9 @@
     "cloudAccount": {
       "title": "Cloud Account",
       "lastSynced": "Last synced: {{date}}",
+      "neverSynced": "Never",
+      "unknownDate": "Unknown",
+      "unknownEmail": "Unknown",
       "hasCloudData": "You have data stored in the cloud.",
       "deleteCloudData": "Delete All Cloud Data",
       "deleteWarning": "You will need to sign in again to delete your cloud data.",
@@ -2076,7 +2079,8 @@
     "signIn": "Sign In",
     "errors": {
       "passwordRequired": "Password is required",
-      "signInFailed": "Sign in failed. Please try again."
+      "signInFailed": "Sign in failed. Please try again.",
+      "deleteFailed": "Delete failed"
     },
     "confirm": {
       "title": "Confirm Deletion",
