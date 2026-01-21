@@ -13,10 +13,13 @@ import {
 } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { SupabaseAuthService } from '@/auth/SupabaseAuthService';
-import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import { clearCloudAccountInfo } from '@/config/backendConfig';
 import logger from '@/utils/logger';
+
+// Dynamic imports for Supabase services to avoid bundling in local mode
+// These are only loaded when the modal is actually used for cloud operations
+type SupabaseAuthServiceType = typeof import('@/auth/SupabaseAuthService').SupabaseAuthService;
+type SupabaseDataStoreType = typeof import('@/datastore/SupabaseDataStore').SupabaseDataStore;
 
 type ModalStep = 'auth' | 'confirm' | 'deleting' | 'success' | 'error';
 
@@ -118,9 +121,19 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     setError(null);
 
     try {
+      // Dynamic import to avoid bundling Supabase in local mode
       // Use SupabaseAuthService directly since this modal is specifically for
       // re-authenticating against cloud (Supabase), even when in local mode.
       // Using getAuthService() would return LocalAuthService which throws NotSupportedError.
+      let SupabaseAuthService: SupabaseAuthServiceType;
+      try {
+        const authModule = await import('@/auth/SupabaseAuthService');
+        SupabaseAuthService = authModule.SupabaseAuthService as SupabaseAuthServiceType;
+      } catch (importErr) {
+        logger.error('[CloudAuthModal] Failed to load auth module:', importErr);
+        throw new Error(t('cloudAuth.errors.moduleLoadFailed', 'Failed to load cloud services. Please check your connection and try again.'));
+      }
+
       const authService = new SupabaseAuthService();
       await authService.initialize();
       await authService.signIn(email, password);
@@ -149,7 +162,8 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
    */
   const handleDelete = useCallback(async () => {
     // Prevent double-submission during the brief moment before state updates
-    if (isDeleting) {
+    // Check both isDeleting flag AND step state to handle rapid clicks
+    if (isDeleting || step === 'deleting') {
       return;
     }
     if (confirmText.toUpperCase() !== 'DELETE') {
@@ -160,10 +174,21 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     setStep('deleting');
     setError(null);
 
-    let cloudStore: SupabaseDataStore | null = null;
+    // Use generic type for cloudStore since we're using dynamic imports
+    let cloudStore: InstanceType<SupabaseDataStoreType> | null = null;
     try {
+      // Dynamic import to avoid bundling Supabase in local mode
       // Create SupabaseDataStore directly since we're in local mode
       // but need to delete cloud data after re-authentication
+      let SupabaseDataStore: SupabaseDataStoreType;
+      try {
+        const datastoreModule = await import('@/datastore/SupabaseDataStore');
+        SupabaseDataStore = datastoreModule.SupabaseDataStore as SupabaseDataStoreType;
+      } catch (importErr) {
+        logger.error('[CloudAuthModal] Failed to load datastore module:', importErr);
+        throw new Error(t('cloudAuth.errors.moduleLoadFailed', 'Failed to load cloud services. Please check your connection and try again.'));
+      }
+
       cloudStore = new SupabaseDataStore();
       await cloudStore.initialize();
 
@@ -176,20 +201,22 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       // Delete all cloud data
       await cloudStore.clearAllUserData();
 
-      // Clear stored cloud account info
-      clearCloudAccountInfo();
-
       // SECURITY: Invalidate the Supabase session to prevent session hijacking
       // The session was created for deletion only - don't leave it active
       // This is non-critical cleanup - if it fails, deletion still succeeded
       try {
-        const authService = new SupabaseAuthService();
+        const { SupabaseAuthService } = await import('@/auth/SupabaseAuthService');
+        const authService = new (SupabaseAuthService as SupabaseAuthServiceType)();
         await authService.initialize();
         await authService.signOut();
       } catch (signOutErr) {
         // Non-critical: data is already deleted, session will expire naturally
         logger.warn('[CloudAuthModal] Sign out after deletion failed (non-critical):', signOutErr);
       }
+
+      // Clear stored cloud account info AFTER signOut completes
+      // This ensures proper ordering: delete data → invalidate session → clear local info
+      clearCloudAccountInfo();
 
       // SECURITY: Clear sensitive data
       if (passwordInputRef.current) {
@@ -220,7 +247,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       }
       setIsDeleting(false);
     }
-  }, [confirmText, isDeleting, queryClient, t]);
+  }, [confirmText, isDeleting, step, queryClient, t]);
 
   /**
    * Handle key press for form submission

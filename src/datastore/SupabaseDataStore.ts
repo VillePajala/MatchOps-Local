@@ -262,21 +262,47 @@ export class SupabaseDataStore implements DataStore {
   private initialized = false;
   private seasonDatesCache: { start: string; end: string } | null = null;
   private cachedUserId: string | null = null;
+  // Promise deduplication for getUserId() to prevent race conditions
+  private userIdPromise: Promise<string> | null = null;
+  // Promise deduplication for initialize() to prevent race conditions
+  private initPromise: Promise<void> | null = null;
 
   // ==========================================================================
   // LIFECYCLE
   // ==========================================================================
 
   async initialize(): Promise<void> {
+    // Return immediately if already initialized
     if (this.initialized) {
       return;
     }
 
-    // Lazy load supabase client to avoid bundling in local mode
-    const { getSupabaseClient } = await import('@/datastore/supabase');
-    this.supabase = getSupabaseClient();
-    this.initialized = true;
-    logger.info('[SupabaseDataStore] Initialized');
+    // Promise deduplication: if initialization is already in progress, wait for it
+    // This prevents concurrent initialize() calls from racing
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    // Create and cache the initialization promise
+    this.initPromise = (async () => {
+      try {
+        // Lazy load supabase client to avoid bundling in local mode
+        const { getSupabaseClient } = await import('@/datastore/supabase');
+        this.supabase = getSupabaseClient();
+        this.initialized = true;
+        logger.info('[SupabaseDataStore] Initialized');
+      } catch (error) {
+        // Log initialization failures for debugging before re-throwing
+        logger.error('[SupabaseDataStore] Initialization failed:', error instanceof Error ? error.message : String(error));
+        throw error;
+      } finally {
+        // Clear the promise when done (success or failure)
+        // This allows retry on next call if initialization failed
+        this.initPromise = null;
+      }
+    })();
+
+    return this.initPromise;
   }
 
   async close(): Promise<void> {
@@ -297,14 +323,19 @@ export class SupabaseDataStore implements DataStore {
 
   async isAvailable(): Promise<boolean> {
     if (!this.initialized || !this.supabase) {
+      logger.debug('[SupabaseDataStore] isAvailable: false (not initialized)');
       return false;
     }
 
     // Quick health check using auth session (faster than table query, doesn't depend on RLS)
     try {
       const { error } = await this.supabase.auth.getSession();
-      return !error;
-    } catch {
+      const available = !error;
+      logger.debug(`[SupabaseDataStore] isAvailable: ${available}${error ? ` (error: ${error.message})` : ''}`);
+      return available;
+    } catch (err) {
+      // Exceptions during availability check are unusual and warrant visibility
+      logger.warn(`[SupabaseDataStore] isAvailable check threw exception: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   }
@@ -323,19 +354,38 @@ export class SupabaseDataStore implements DataStore {
   /**
    * Get the current authenticated user ID.
    * Throws AuthError if no user is authenticated.
+   *
+   * Uses promise deduplication to prevent race conditions when multiple
+   * concurrent operations call getUserId() simultaneously.
    */
   private async getUserId(): Promise<string> {
+    // Return cached value if available
     if (this.cachedUserId) {
       return this.cachedUserId;
     }
 
-    const { data: { user }, error } = await this.getClient().auth.getUser();
-    if (error || !user) {
-      throw new AuthError('Not authenticated. Please sign in to use cloud mode.');
+    // Promise deduplication: if a getUserId() call is in progress, wait for it
+    if (this.userIdPromise) {
+      return this.userIdPromise;
     }
 
-    this.cachedUserId = user.id;
-    return user.id;
+    // Create and cache the promise
+    this.userIdPromise = (async () => {
+      try {
+        const { data: { user }, error } = await this.getClient().auth.getUser();
+        if (error || !user) {
+          throw new AuthError('Not authenticated. Please sign in to use cloud mode.');
+        }
+
+        this.cachedUserId = user.id;
+        return user.id;
+      } finally {
+        // Clear the promise when done (success or failure)
+        this.userIdPromise = null;
+      }
+    })();
+
+    return this.userIdPromise;
   }
 
   /**
@@ -461,7 +511,16 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id)
       .single();
 
-    if (fetchError || !existing) {
+    // PGRST116 = row not found - return null
+    // Other errors should be thrown as NetworkError
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        return null;
+      }
+      throw new NetworkError(`Failed to fetch player: ${fetchError.message}`);
+    }
+
+    if (!existing) {
       return null;
     }
 
@@ -616,7 +675,16 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id)
       .single();
 
-    if (error || !data) {
+    // PGRST116 = row not found - return null
+    // Other errors should be thrown as NetworkError
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw new NetworkError(`Failed to fetch team: ${error.message}`);
+    }
+
+    if (!data) {
       return null;
     }
 
@@ -1168,7 +1236,16 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', season.id)
       .single();
 
-    if (fetchError || !existing) {
+    // PGRST116 = row not found - return null
+    // Other errors should be thrown as NetworkError
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        return null;
+      }
+      throw new NetworkError(`Failed to fetch season: ${fetchError.message}`);
+    }
+
+    if (!existing) {
       return null;
     }
 
@@ -1461,7 +1538,16 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', tournament.id)
       .single();
 
-    if (fetchError || !existing) {
+    // PGRST116 = row not found - return null
+    // Other errors should be thrown as NetworkError
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        return null;
+      }
+      throw new NetworkError(`Failed to fetch tournament: ${fetchError.message}`);
+    }
+
+    if (!existing) {
       return null;
     }
 
@@ -1649,7 +1735,16 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id)
       .single();
 
-    if (error || !data) {
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Personnel not found - return null per interface contract
+        return null;
+      }
+      // Actual error (network, permission, etc.) - throw
+      throw new NetworkError(`Failed to fetch personnel by ID: ${error.message}`);
+    }
+
+    if (!data) {
       return null;
     }
 
@@ -1889,8 +1984,17 @@ export class SupabaseDataStore implements DataStore {
       .select('*')
       .single();
 
-    if (error || !data) {
-      // Return defaults if no settings exist
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No settings exist yet - return defaults
+        return { ...DEFAULT_APP_SETTINGS };
+      }
+      // Actual error (network, permission, etc.) - throw
+      throw new NetworkError(`Failed to fetch settings: ${error.message}`);
+    }
+
+    if (!data) {
+      // No data but also no error - return defaults
       return { ...DEFAULT_APP_SETTINGS };
     }
 
@@ -2265,10 +2369,11 @@ export class SupabaseDataStore implements DataStore {
     const client = this.getClient();
 
     // Type aliases for query results (Supabase client type inference doesn't work well with Promise.all)
+    // All error types include code?: string since any Supabase query can return PGRST-prefixed errors
     type GameQueryResult = { data: GameRow | null; error: { message: string; code?: string } | null };
-    type PlayersQueryResult = { data: GamePlayerRow[] | null; error: { message: string } | null };
-    type EventsQueryResult = { data: GameEventRow[] | null; error: { message: string } | null };
-    type AssessmentsQueryResult = { data: PlayerAssessmentRow[] | null; error: { message: string } | null };
+    type PlayersQueryResult = { data: GamePlayerRow[] | null; error: { message: string; code?: string } | null };
+    type EventsQueryResult = { data: GameEventRow[] | null; error: { message: string; code?: string } | null };
+    type AssessmentsQueryResult = { data: PlayerAssessmentRow[] | null; error: { message: string; code?: string } | null };
     type TacticalQueryResult = { data: GameTacticalDataRow | null; error: { message: string; code?: string } | null };
 
     // Fetch all 5 tables in parallel
@@ -2280,24 +2385,33 @@ export class SupabaseDataStore implements DataStore {
       client.from('game_tactical_data').select('*').eq('game_id', gameId).single() as unknown as Promise<TacticalQueryResult>,
     ]);
 
-    // Game not found
-    if (gameResult.error || !gameResult.data) {
+    // Handle game fetch error - distinguish "not found" from actual errors
+    if (gameResult.error) {
+      if (gameResult.error.code === 'PGRST116') {
+        // Game not found - return null per interface contract
+        return null;
+      }
+      // Actual error (network, permission, etc.) - throw
+      throw new NetworkError(`Failed to fetch game ${gameId}: ${gameResult.error.message}`);
+    }
+    if (!gameResult.data) {
       return null;
     }
 
-    // Handle errors from child tables (non-fatal since game exists)
+    // Handle errors from child tables - throw to prevent partial data load
+    // Child data (players, events, assessments) is essential for a complete game view
     if (playersResult.error) {
-      logger.warn(`[SupabaseDataStore] Failed to fetch game_players: ${playersResult.error.message}`);
+      throw new NetworkError(`Failed to fetch game players for game ${gameId}: ${playersResult.error.message}`);
     }
     if (eventsResult.error) {
-      logger.warn(`[SupabaseDataStore] Failed to fetch game_events: ${eventsResult.error.message}`);
+      throw new NetworkError(`Failed to fetch game events for game ${gameId}: ${eventsResult.error.message}`);
     }
     if (assessmentsResult.error) {
-      logger.warn(`[SupabaseDataStore] Failed to fetch player_assessments: ${assessmentsResult.error.message}`);
+      throw new NetworkError(`Failed to fetch player assessments for game ${gameId}: ${assessmentsResult.error.message}`);
     }
-    // Tactical data may legitimately not exist (PGRST116 = not found)
+    // Tactical data may legitimately not exist (PGRST116 = not found) - only throw for other errors
     if (tacticalResult.error && tacticalResult.error.code !== 'PGRST116') {
-      logger.warn(`[SupabaseDataStore] Failed to fetch game_tactical_data: ${tacticalResult.error.message}`);
+      throw new NetworkError(`Failed to fetch tactical data for game ${gameId}: ${tacticalResult.error.message}`);
     }
 
     return {
@@ -2313,7 +2427,7 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    // Fetch all games
+    // Fetch all game IDs
     const { data: games, error } = await this.getClient()
       .from('games')
       .select('id')
@@ -2327,12 +2441,37 @@ export class SupabaseDataStore implements DataStore {
       return {};
     }
 
-    // Fetch full data for each game
+    // Fetch full data for each game in parallel batches
+    // Batch size of 10 balances parallelism vs. connection pool limits
+    const BATCH_SIZE = 10;
     const collection: SavedGamesCollection = {};
-    for (const { id } of games) {
-      const tables = await this.fetchGameTables(id);
-      if (tables) {
-        collection[id] = this.transformTablesToGame(tables);
+
+    for (let i = 0; i < games.length; i += BATCH_SIZE) {
+      const batch = games.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(async ({ id }) => {
+          try {
+            const tables = await this.fetchGameTables(id);
+            return { id, tables, error: null };
+          } catch (err) {
+            // Catch errors from individual game fetches to allow batch to continue
+            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+            logger.error(`[SupabaseDataStore] Error fetching game ${id}: ${errorMsg}`);
+            return { id, tables: null, error: errorMsg };
+          }
+        })
+      );
+
+      const failedIds: string[] = [];
+      for (const { id, tables } of results) {
+        if (tables) {
+          collection[id] = this.transformTablesToGame(tables);
+        } else {
+          failedIds.push(id);
+        }
+      }
+      if (failedIds.length > 0) {
+        logger.warn(`[SupabaseDataStore] Failed to fetch ${failedIds.length} game(s) in batch: ${failedIds.join(', ')}`);
       }
     }
 
@@ -2682,7 +2821,16 @@ export class SupabaseDataStore implements DataStore {
       .eq('player_id', playerId)
       .single();
 
-    if (fetchError || !existing) {
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        // Adjustment not found - return null per interface contract
+        return null;
+      }
+      // Actual error (network, permission, etc.) - throw
+      throw new NetworkError(`Failed to fetch player adjustment for update: ${fetchError.message}`);
+    }
+
+    if (!existing) {
       return null;
     }
 
@@ -2806,12 +2954,21 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const userId = await this.getUserId();
-    const dbPlan = this.transformWarmupPlanToDb(plan, userId);
 
+    // Normalize metadata before saving (ensure consistent values)
+    const normalizedPlan: WarmupPlan = {
+      ...plan,
+      lastModified: new Date().toISOString(),
+      isDefault: false, // User-saved plans are never defaults
+    };
+
+    const dbPlan = this.transformWarmupPlanToDb(normalizedPlan, userId);
+
+    // Use onConflict: 'user_id' since warmup_plans has UNIQUE(user_id) constraint
+    // This ensures upsert finds existing row by user_id (not by 'id' which may differ)
     const { error } = await this.getClient()
       .from('warmup_plans')
-       
-      .upsert(dbPlan as unknown as never);
+      .upsert(dbPlan as unknown as never, { onConflict: 'user_id' });
 
     if (error) {
       throw new NetworkError(`Failed to save warmup plan: ${error.message}`);
@@ -2852,8 +3009,12 @@ export class SupabaseDataStore implements DataStore {
   }
 
   private transformWarmupPlanToDb(plan: WarmupPlan, userId: string): WarmupPlanInsert {
+    // Use user-scoped ID to avoid cross-user PK collisions
+    // The schema has both PRIMARY KEY(id) and UNIQUE(user_id), so each user needs a unique id
+    const userScopedId = `warmup_plan_${userId}`;
+
     return {
-      id: plan.id,
+      id: userScopedId,
       user_id: userId,
       version: plan.version,
       last_modified: plan.lastModified,
