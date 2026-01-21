@@ -327,7 +327,12 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
         </div>
 
         {/* Status message */}
-        <div className="text-center">
+        <div
+          className="text-center"
+          role={isError ? 'alert' : 'status'}
+          aria-live={isError ? 'assertive' : 'polite'}
+          aria-atomic="true"
+        >
           {!isError && (
             <HiOutlineArrowPath className="h-8 w-8 text-sky-400 mx-auto animate-spin mb-2" />
           )}

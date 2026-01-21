@@ -160,10 +160,11 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     setStep('deleting');
     setError(null);
 
+    let cloudStore: SupabaseDataStore | null = null;
     try {
       // Create SupabaseDataStore directly since we're in local mode
       // but need to delete cloud data after re-authentication
-      const cloudStore = new SupabaseDataStore();
+      cloudStore = new SupabaseDataStore();
       await cloudStore.initialize();
 
       // Verify we're connected to cloud backend
@@ -210,6 +211,13 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       setError(err instanceof Error ? err.message : t('cloudAuth.errors.deleteFailed', 'Delete failed'));
       setStep('error');
     } finally {
+      if (cloudStore) {
+        try {
+          await cloudStore.close();
+        } catch (closeErr) {
+          logger.warn('[CloudAuthModal] Failed to close cloud store (non-critical):', closeErr);
+        }
+      }
       setIsDeleting(false);
     }
   }, [confirmText, isDeleting, queryClient, t]);
