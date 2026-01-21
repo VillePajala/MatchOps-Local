@@ -88,6 +88,19 @@ export type MigrationProgressCallback = (progress: MigrationProgress) => void;
 export type MigrationMode = 'merge' | 'replace';
 
 /**
+ * Result of checking if user has local data.
+ * Distinguishes between "no data" and "check failed".
+ */
+export interface LocalDataCheckResult {
+  /** Whether user has data locally (only valid if checkFailed is false) */
+  hasData: boolean;
+  /** Whether the check itself failed (IndexedDB error, etc.) */
+  checkFailed: boolean;
+  /** Error message if check failed */
+  error?: string;
+}
+
+/**
  * Local data snapshot for migration.
  */
 interface LocalDataSnapshot {
@@ -110,6 +123,29 @@ interface ValidationError {
   entity: string;
   id?: string;
   message: string;
+}
+
+/**
+ * Tracks an individual entity that failed to upload during migration.
+ * Mirrors the EntitySaveFailure type from reverseMigrationService for consistency.
+ */
+export interface EntityUploadFailure {
+  /** Type of entity that failed */
+  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings';
+  /** ID of the entity (if available) */
+  entityId?: string;
+  /** Display name for the entity (for user-friendly error messages) */
+  entityName?: string;
+  /** Error message */
+  error: string;
+}
+
+/**
+ * Result of uploading data to cloud storage.
+ */
+interface UploadToCloudResult {
+  counts: MigrationCounts;
+  failures: EntityUploadFailure[];
 }
 
 /**
@@ -258,6 +294,8 @@ export async function migrateLocalToCloud(
 
   // Acquire migration lock
   isMigrationInProgress = true;
+  let localStore: LocalDataStore | null = null;
+  let cloudStore: SupabaseDataStore | null = null;
 
   try {
     // Check network connectivity before starting
@@ -272,8 +310,8 @@ export async function migrateLocalToCloud(
     // Initialize data stores
     safeProgress({ stage: 'preparing', progress: 0, message: MIGRATION_MESSAGES.PREPARING });
 
-    const localStore = new LocalDataStore();
-    const cloudStore = new SupabaseDataStore();
+    localStore = new LocalDataStore();
+    cloudStore = new SupabaseDataStore();
 
     await localStore.initialize();
     await cloudStore.initialize();
@@ -351,7 +389,36 @@ export async function migrateLocalToCloud(
     const uploadStartProgress = PROGRESS_RANGES.UPLOADING.start + (mode === 'replace' ? CLEARING_STAGE_PROGRESS_OFFSET : 0);
     safeProgress({ stage: 'uploading', progress: uploadStartProgress, message: MIGRATION_MESSAGES.UPLOADING });
 
-    const uploadedCounts = await uploadToCloud(sanitizedLocalData, cloudStore, safeProgress);
+    const { counts: uploadedCounts, failures: uploadFailures } = await uploadToCloud(sanitizedLocalData, cloudStore, safeProgress);
+
+    // Report upload failures (similar to reverseMigrationService pattern)
+    const MAX_FAILURES_TO_REPORT = 5;
+    if (uploadFailures.length > 0) {
+      const criticalTypes = ['player', 'team', 'game', 'season', 'tournament', 'personnel'];
+      const criticalFailures = uploadFailures.filter(f => criticalTypes.includes(f.entityType));
+      const otherFailures = uploadFailures.filter(f => !criticalTypes.includes(f.entityType));
+
+      // Report critical failures as errors
+      for (const failure of criticalFailures.slice(0, MAX_FAILURES_TO_REPORT)) {
+        errors.push(`Failed to upload ${failure.entityType} "${failure.entityName || failure.entityId}": ${failure.error}`);
+      }
+      if (criticalFailures.length > MAX_FAILURES_TO_REPORT) {
+        errors.push(`... and ${criticalFailures.length - MAX_FAILURES_TO_REPORT} more critical failures`);
+      }
+
+      // Report other failures as warnings
+      for (const failure of otherFailures.slice(0, MAX_FAILURES_TO_REPORT)) {
+        warnings.push(`Failed to upload ${failure.entityType} "${failure.entityName || failure.entityId}": ${failure.error}`);
+      }
+      if (otherFailures.length > MAX_FAILURES_TO_REPORT) {
+        warnings.push(`... and ${otherFailures.length - MAX_FAILURES_TO_REPORT} more non-critical failures`);
+      }
+    }
+
+    // Check for critical upload failures
+    const hasCriticalUploadFailures = uploadFailures.some(f =>
+      ['player', 'team', 'game', 'season', 'tournament', 'personnel'].includes(f.entityType)
+    );
 
     // Step 7: Verify counts match (compares actual uploads vs expected)
     safeProgress({ stage: 'verifying', progress: PROGRESS_RANGES.VERIFYING.start, message: MIGRATION_MESSAGES.VERIFYING });
@@ -373,15 +440,17 @@ export async function migrateLocalToCloud(
       };
     }
 
-    // Step 8: SUCCESS
-    safeProgress({ stage: 'complete', progress: PROGRESS_RANGES.VERIFYING.end, message: MIGRATION_MESSAGES.SUCCESS });
+    // Step 8: SUCCESS (only if no critical failures)
+    const overallSuccess = verified.success && !hasCriticalUploadFailures;
+    const message = overallSuccess ? MIGRATION_MESSAGES.SUCCESS : MIGRATION_MESSAGES.PARTIAL_FAILURE;
+    safeProgress({ stage: 'complete', progress: PROGRESS_RANGES.VERIFYING.end, message });
 
-    logger.info('[MigrationService] Migration completed successfully', uploadedCounts);
+    logger.info('[MigrationService] Migration completed', { uploadedCounts, success: overallSuccess, failureCount: uploadFailures.length });
 
     return {
-      success: true,
+      success: overallSuccess,
       migrated: uploadedCounts,
-      errors: [],
+      errors,
       warnings,
     };
   } catch (error) {
@@ -416,6 +485,21 @@ export async function migrateLocalToCloud(
       warnings,
     };
   } finally {
+    // Clean up resources
+    if (cloudStore) {
+      try {
+        await cloudStore.close();
+      } catch (e) {
+        logger.warn('[MigrationService] Error closing cloudStore:', e);
+      }
+    }
+    if (localStore) {
+      try {
+        await localStore.close();
+      } catch (e) {
+        logger.warn('[MigrationService] Error closing localStore:', e);
+      }
+    }
     // Always release migration lock
     isMigrationInProgress = false;
   }
@@ -688,12 +772,17 @@ function sanitizeGameReferences(data: LocalDataSnapshot): {
  * 8. Player adjustments (references players)
  * 9. Warmup plan (no dependencies)
  * 10. Settings (no dependencies)
+ *
+ * Uses per-entity failure tracking (like reverseMigrationService) to:
+ * - Continue migration even if some entities fail
+ * - Report which specific entities failed
+ * - Distinguish critical failures from non-critical ones
  */
 async function uploadToCloud(
   data: LocalDataSnapshot,
   cloudStore: SupabaseDataStore,
   onProgress: MigrationProgressCallback
-): Promise<MigrationCounts> {
+): Promise<UploadToCloudResult> {
   const counts: MigrationCounts = {
     players: 0,
     teams: 0,
@@ -706,6 +795,7 @@ async function uploadToCloud(
     warmupPlan: false,
     settings: false,
   };
+  const failures: EntityUploadFailure[] = [];
 
   // Calculate progress within the uploading range
   const { start, end } = PROGRESS_RANGES.UPLOADING;
@@ -722,43 +812,103 @@ async function uploadToCloud(
   // 1. Players - upsert preserves original IDs (critical for references)
   updateProgress('players');
   for (const player of data.players) {
-    await cloudStore.upsertPlayer(player);
-    counts.players++;
+    try {
+      await cloudStore.upsertPlayer(player);
+      counts.players++;
+    } catch (err) {
+      failures.push({
+        entityType: 'player',
+        entityId: player.id,
+        entityName: player.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload player ${player.id}:`, err);
+    }
   }
 
   // 2. Seasons - upsert preserves original IDs
   updateProgress('seasons');
   for (const season of data.seasons) {
-    await cloudStore.upsertSeason(season);
-    counts.seasons++;
+    try {
+      await cloudStore.upsertSeason(season);
+      counts.seasons++;
+    } catch (err) {
+      failures.push({
+        entityType: 'season',
+        entityId: season.id,
+        entityName: season.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload season ${season.id}:`, err);
+    }
   }
 
   // 3. Tournaments - upsert preserves original IDs
   updateProgress('tournaments');
   for (const tournament of data.tournaments) {
-    await cloudStore.upsertTournament(tournament);
-    counts.tournaments++;
+    try {
+      await cloudStore.upsertTournament(tournament);
+      counts.tournaments++;
+    } catch (err) {
+      failures.push({
+        entityType: 'tournament',
+        entityId: tournament.id,
+        entityName: tournament.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload tournament ${tournament.id}:`, err);
+    }
   }
 
   // 4. Teams - upsert preserves original IDs (must come after seasons/tournaments for FK refs)
   updateProgress('teams');
   for (const team of data.teams) {
-    await cloudStore.upsertTeam(team);
-    counts.teams++;
+    try {
+      await cloudStore.upsertTeam(team);
+      counts.teams++;
+    } catch (err) {
+      failures.push({
+        entityType: 'team',
+        entityId: team.id,
+        entityName: team.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload team ${team.id}:`, err);
+    }
   }
 
   // 5. Team rosters (must come after players and teams)
   updateProgress('team rosters');
   for (const [teamId, roster] of data.teamRosters) {
-    await cloudStore.setTeamRoster(teamId, roster);
-    counts.teamRosters += roster.length;
+    try {
+      await cloudStore.setTeamRoster(teamId, roster);
+      counts.teamRosters += roster.length;
+    } catch (err) {
+      failures.push({
+        entityType: 'teamRoster',
+        entityId: teamId,
+        entityName: `Roster for team ${teamId}`,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload team roster ${teamId}:`, err);
+    }
   }
 
   // 6. Personnel - upsert preserves original IDs
   updateProgress('personnel');
   for (const member of data.personnel) {
-    await cloudStore.upsertPersonnelMember(member);
-    counts.personnel++;
+    try {
+      await cloudStore.upsertPersonnelMember(member);
+      counts.personnel++;
+    } catch (err) {
+      failures.push({
+        entityType: 'personnel',
+        entityId: member.id,
+        entityName: member.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload personnel ${member.id}:`, err);
+    }
   }
 
   // 7. Games (the big one - uses RPC for atomic 5-table writes)
@@ -782,34 +932,72 @@ async function uploadToCloud(
       });
     }
 
-    await cloudStore.saveGame(gameId, game);
-    counts.games++;
+    try {
+      await cloudStore.saveGame(gameId, game);
+      counts.games++;
+    } catch (err) {
+      failures.push({
+        entityType: 'game',
+        entityId: gameId,
+        entityName: `${game.teamName} vs ${game.opponentName}`,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload game ${gameId}:`, err);
+    }
   }
 
   // 8. Player adjustments - upsert preserves original IDs (handles merge mode)
   updateProgress('player adjustments');
-  for (const [_playerId, adjustments] of data.playerAdjustments) {
+  for (const [playerId, adjustments] of data.playerAdjustments) {
     for (const adjustment of adjustments) {
-      await cloudStore.upsertPlayerAdjustment(adjustment);
-      counts.playerAdjustments++;
+      try {
+        await cloudStore.upsertPlayerAdjustment(adjustment);
+        counts.playerAdjustments++;
+      } catch (err) {
+        failures.push({
+          entityType: 'adjustment',
+          entityId: adjustment.id,
+          entityName: `Adjustment for player ${playerId}`,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+        logger.error(`[MigrationService] Failed to upload adjustment ${adjustment.id}:`, err);
+      }
     }
   }
 
   // 9. Warmup plan
   updateProgress('warmup plan');
   if (data.warmupPlan) {
-    await cloudStore.saveWarmupPlan(data.warmupPlan);
-    counts.warmupPlan = true;
+    try {
+      await cloudStore.saveWarmupPlan(data.warmupPlan);
+      counts.warmupPlan = true;
+    } catch (err) {
+      failures.push({
+        entityType: 'warmupPlan',
+        entityName: 'Warmup plan',
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error('[MigrationService] Failed to upload warmup plan:', err);
+    }
   }
 
   // 10. Settings
   updateProgress('settings');
   if (data.settings) {
-    await cloudStore.saveSettings(data.settings);
-    counts.settings = true;
+    try {
+      await cloudStore.saveSettings(data.settings);
+      counts.settings = true;
+    } catch (err) {
+      failures.push({
+        entityType: 'settings',
+        entityName: 'Settings',
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error('[MigrationService] Failed to upload settings:', err);
+    }
   }
 
-  return counts;
+  return { counts, failures };
 }
 
 // =============================================================================
@@ -973,19 +1161,35 @@ async function processBatch<T, R>(
 
 /**
  * Check if user has local data that can be migrated.
+ *
+ * Returns a discriminated result to distinguish between:
+ * - No data exists (hasData: false, checkFailed: false)
+ * - Data exists (hasData: true, checkFailed: false)
+ * - Check failed due to error (checkFailed: true)
+ *
+ * This prevents silent failures where storage errors are mistaken for "no data".
  */
-export async function hasLocalDataToMigrate(): Promise<boolean> {
+export async function hasLocalDataToMigrate(): Promise<LocalDataCheckResult> {
+  const localStore = new LocalDataStore();
   try {
-    const localStore = new LocalDataStore();
     await localStore.initialize();
 
     const players = await localStore.getPlayers();
     const games = await localStore.getGames();
 
     // Consider there's data to migrate if there are players or games
-    return players.length > 0 || Object.keys(games).length > 0;
-  } catch {
-    return false;
+    const hasData = players.length > 0 || Object.keys(games).length > 0;
+    return { hasData, checkFailed: false };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    logger.error('[MigrationService] Failed to check local data:', err);
+    return { hasData: false, checkFailed: true, error: errorMsg };
+  } finally {
+    try {
+      await localStore.close();
+    } catch (e) {
+      logger.warn('[MigrationService] Error closing localStore in hasLocalDataToMigrate:', e);
+    }
   }
 }
 
@@ -994,51 +1198,64 @@ export async function hasLocalDataToMigrate(): Promise<boolean> {
  */
 export async function getLocalDataSummary(): Promise<MigrationCounts> {
   const localStore = new LocalDataStore();
-  await localStore.initialize();
+  try {
+    await localStore.initialize();
 
-  // Fetch all data in parallel for better performance
-  const [players, teams, seasons, tournaments, personnel, games, warmupPlan, settings, allRosters] =
-    await Promise.all([
-      localStore.getPlayers(),
-      localStore.getTeams(true),
-      localStore.getSeasons(true),
-      localStore.getTournaments(true),
-      localStore.getAllPersonnel(),
-      localStore.getGames(),
-      localStore.getWarmupPlan(),
-      localStore.getSettings(),
-      localStore.getAllTeamRosters(),
-    ]);
+    // Fetch all data in parallel for better performance
+    const [players, teams, seasons, tournaments, personnel, games, warmupPlan, settings, allRosters] =
+      await Promise.all([
+        localStore.getPlayers(),
+        localStore.getTeams(true),
+        localStore.getSeasons(true),
+        localStore.getTournaments(true),
+        localStore.getAllPersonnel(),
+        localStore.getGames(),
+        localStore.getWarmupPlan(),
+        localStore.getSettings(),
+        localStore.getAllTeamRosters(),
+      ]);
 
-  // Count team roster entries
-  let teamRosterCount = 0;
-  for (const roster of Object.values(allRosters)) {
-    teamRosterCount += roster.length;
+    // Count team roster entries
+    let teamRosterCount = 0;
+    for (const roster of Object.values(allRosters)) {
+      teamRosterCount += roster.length;
+    }
+
+    // Count player adjustments (batch for performance)
+    const adjustmentCounts = await processBatch(
+      players,
+      async (player) => {
+        const adjustments = await localStore.getPlayerAdjustments(player.id);
+        return adjustments.length;
+      },
+      BATCH_SIZE
+    );
+    const adjustmentCount = adjustmentCounts.reduce((sum, count) => sum + count, 0);
+
+    const personnelArray = normalizePersonnelArray(personnel);
+
+    return {
+      players: players.length,
+      teams: teams.length,
+      teamRosters: teamRosterCount,
+      seasons: seasons.length,
+      tournaments: tournaments.length,
+      games: Object.keys(games).length,
+      personnel: personnelArray.length,
+      playerAdjustments: adjustmentCount,
+      warmupPlan: warmupPlan !== null,
+      settings: settings !== null,
+    };
+  } catch (err) {
+    // Log with context for debugging - callers get the error but we have a record
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    logger.error('[MigrationService] Failed to get local data summary:', errorMsg);
+    throw err;
+  } finally {
+    try {
+      await localStore.close();
+    } catch (e) {
+      logger.warn('[MigrationService] Error closing localStore in getLocalDataSummary:', e);
+    }
   }
-
-  // Count player adjustments (batch for performance)
-  const adjustmentCounts = await processBatch(
-    players,
-    async (player) => {
-      const adjustments = await localStore.getPlayerAdjustments(player.id);
-      return adjustments.length;
-    },
-    BATCH_SIZE
-  );
-  const adjustmentCount = adjustmentCounts.reduce((sum, count) => sum + count, 0);
-
-  const personnelArray = normalizePersonnelArray(personnel);
-
-  return {
-    players: players.length,
-    teams: teams.length,
-    teamRosters: teamRosterCount,
-    seasons: seasons.length,
-    tournaments: tournaments.length,
-    games: Object.keys(games).length,
-    personnel: personnelArray.length,
-    playerAdjustments: adjustmentCount,
-    warmupPlan: warmupPlan !== null,
-    settings: settings !== null,
-  };
 }

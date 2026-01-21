@@ -257,6 +257,8 @@ export async function migrateCloudToLocal(
   const warnings: string[] = [];
   let cloudDeleted = false;
   let lockAcquired = false;
+  let cloudStore: SupabaseDataStore | null = null;
+  let localStore: LocalDataStore | null = null;
 
   // Safe progress callback that won't throw
   const safeProgress = (progress: ReverseMigrationProgress) => {
@@ -279,10 +281,10 @@ export async function migrateCloudToLocal(
     // Step 1: Prepare
     safeProgress({ stage: 'preparing', progress: REVERSE_PROGRESS_RANGES.PREPARING.start, message: REVERSE_MIGRATION_MESSAGES.PREPARING });
 
-    const cloudStore = new SupabaseDataStore();
+    cloudStore = new SupabaseDataStore();
     await cloudStore.initialize();
 
-    const localStore = new LocalDataStore();
+    localStore = new LocalDataStore();
     await localStore.initialize();
 
     // Step 2: Download from cloud
@@ -294,6 +296,27 @@ export async function migrateCloudToLocal(
     safeProgress({ stage: 'saving', progress: REVERSE_PROGRESS_RANGES.SAVING.start, message: REVERSE_MIGRATION_MESSAGES.SAVING });
 
     const { counts: savedCounts, failures: saveFailures } = await saveToLocal(cloudData, localStore, safeProgress);
+
+    // Cross-check: savedCounts + failures should equal cloud data counts
+    // This catches silent failures where saveToLocal thought it succeeded but didn't track correctly
+    const expectedPlayers = cloudData.players.length;
+    const playerFailures = saveFailures.filter(f => f.entityType === 'player').length;
+    const actualPlayersTracked = savedCounts.players + playerFailures;
+    if (actualPlayersTracked !== expectedPlayers) {
+      warnings.push(`Save tracking inconsistency: ${actualPlayersTracked} players tracked (saved: ${savedCounts.players}, failed: ${playerFailures}) but ${expectedPlayers} expected`);
+    }
+
+    const expectedTeams = cloudData.teams.length;
+    const actualTeamsTracked = savedCounts.teams + saveFailures.filter(f => f.entityType === 'team').length;
+    if (actualTeamsTracked !== expectedTeams) {
+      warnings.push(`Save tracking inconsistency: ${actualTeamsTracked} teams tracked but ${expectedTeams} expected`);
+    }
+
+    const expectedGames = Object.keys(cloudData.games).length;
+    const actualGamesTracked = savedCounts.games + saveFailures.filter(f => f.entityType === 'game').length;
+    if (actualGamesTracked !== expectedGames) {
+      warnings.push(`Save tracking inconsistency: ${actualGamesTracked} games tracked but ${expectedGames} expected`);
+    }
 
     // Report save failures as errors (critical failures for important data types)
     // or warnings (for less critical data like adjustments)
@@ -370,10 +393,13 @@ export async function migrateCloudToLocal(
       // Don't switch to local mode if deletion failed - user can retry from cloud mode
       logger.warn('[ReverseMigrationService] Not switching to local mode because cloud deletion failed');
     } else {
-      modeSwitch = disableCloudMode();
+      const switchResult = disableCloudMode();
+      modeSwitch = switchResult.success;
       if (!modeSwitch) {
         // Mode switch failure is an error - the migration goal was not achieved
-        errors.push('Failed to switch to local mode. Your data was downloaded but the app is still in cloud mode. Please go to Settings and disable cloud sync manually.');
+        // Include the detailed error message from the switch result
+        const detail = switchResult.message || 'Unknown error.';
+        errors.push(`Failed to switch to local mode. ${detail} Your data was downloaded but the app is still in cloud mode. Please go to Settings and disable cloud sync manually.`);
       }
     }
 
@@ -415,6 +441,21 @@ export async function migrateCloudToLocal(
     };
 
   } finally {
+    // Clean up resources
+    if (cloudStore) {
+      try {
+        await cloudStore.close();
+      } catch (e) {
+        logger.warn('[ReverseMigrationService] Error closing cloudStore:', e);
+      }
+    }
+    if (localStore) {
+      try {
+        await localStore.close();
+      } catch (e) {
+        logger.warn('[ReverseMigrationService] Error closing localStore:', e);
+      }
+    }
     if (lockAcquired) {
       isReverseMigrationInProgress = false;
     }
@@ -875,8 +916,12 @@ async function verifyReverseMigration(
     warnings.push(`Could not verify ${adjustmentVerifyErrors} player adjustment(s)`);
   }
 
+  // Determine success: only fail on fatal warnings (missing entities), not informational warnings
+  // Fatal warnings indicate actual data loss; informational warnings are verification read errors or count mismatches
+  const fatalWarnings = warnings.filter(w => w.startsWith('Missing '));
+
   return {
-    success: warnings.length === 0,
+    success: fatalWarnings.length === 0,
     warnings,
   };
 }
@@ -944,41 +989,49 @@ export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
   }
 
   const cloudStore = new SupabaseDataStore();
-  await cloudStore.initialize();
+  try {
+    await cloudStore.initialize();
 
-  const players = await cloudStore.getPlayers();
-  const teams = await cloudStore.getTeams(true);
-  const seasons = await cloudStore.getSeasons(true);
-  const tournaments = await cloudStore.getTournaments(true);
-  const personnel = await cloudStore.getAllPersonnel();
-  const games = await cloudStore.getGames();
-  const warmupPlan = await cloudStore.getWarmupPlan();
-  const settings = await cloudStore.getSettings();
+    const players = await cloudStore.getPlayers();
+    const teams = await cloudStore.getTeams(true);
+    const seasons = await cloudStore.getSeasons(true);
+    const tournaments = await cloudStore.getTournaments(true);
+    const personnel = await cloudStore.getAllPersonnel();
+    const games = await cloudStore.getGames();
+    const warmupPlan = await cloudStore.getWarmupPlan();
+    const settings = await cloudStore.getSettings();
 
-  // Count team rosters
-  let teamRostersCount = 0;
-  for (const team of teams) {
-    const roster = await cloudStore.getTeamRoster(team.id);
-    teamRostersCount += roster.length;
+    // Count team rosters
+    let teamRostersCount = 0;
+    for (const team of teams) {
+      const roster = await cloudStore.getTeamRoster(team.id);
+      teamRostersCount += roster.length;
+    }
+
+    // Count player adjustments
+    let adjustmentCount = 0;
+    for (const player of players) {
+      const adjustments = await cloudStore.getPlayerAdjustments(player.id);
+      adjustmentCount += adjustments.length;
+    }
+
+    return {
+      players: players.length,
+      teams: teams.length,
+      teamRosters: teamRostersCount,
+      seasons: seasons.length,
+      tournaments: tournaments.length,
+      games: Object.keys(games).length,
+      personnel: personnel.length,
+      playerAdjustments: adjustmentCount,
+      warmupPlan: warmupPlan !== null,
+      settings: settings !== null,
+    };
+  } finally {
+    try {
+      await cloudStore.close();
+    } catch (e) {
+      logger.warn('[ReverseMigrationService] Error closing cloudStore in getCloudDataSummary:', e);
+    }
   }
-
-  // Count player adjustments
-  let adjustmentCount = 0;
-  for (const player of players) {
-    const adjustments = await cloudStore.getPlayerAdjustments(player.id);
-    adjustmentCount += adjustments.length;
-  }
-
-  return {
-    players: players.length,
-    teams: teams.length,
-    teamRosters: teamRostersCount,
-    seasons: seasons.length,
-    tournaments: tournaments.length,
-    games: Object.keys(games).length,
-    personnel: personnel.length,
-    playerAdjustments: adjustmentCount,
-    warmupPlan: warmupPlan !== null,
-    settings: settings !== null,
-  };
 }
