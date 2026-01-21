@@ -461,14 +461,14 @@ export default function CloudSyncSection({
           <div className="p-3 rounded-md bg-slate-800/50 space-y-2 mb-3">
             <div className="flex items-center gap-2">
               <HiOutlineUser className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-300">{cloudAccountInfo.email}</span>
+              <span className="text-sm text-slate-300">{cloudAccountInfo?.email ?? 'Unknown'}</span>
             </div>
             <div className="text-xs text-slate-500">
               {t('cloudSync.cloudAccount.lastSynced', 'Last synced: {{date}}', {
-                date: formatDate(cloudAccountInfo.lastSyncedAt),
+                date: formatDate(cloudAccountInfo?.lastSyncedAt),
               })}
             </div>
-            {cloudAccountInfo.hasCloudData && (
+            {cloudAccountInfo?.hasCloudData && (
               <div className="text-xs text-amber-400">
                 {t('cloudSync.cloudAccount.hasCloudData', 'You have data stored in the cloud.')}
               </div>
@@ -476,7 +476,7 @@ export default function CloudSyncSection({
           </div>
 
           {/* Delete cloud data from local mode */}
-          {cloudAccountInfo.hasCloudData && (
+          {cloudAccountInfo?.hasCloudData && (
             <>
               <button
                 onClick={handleDeleteCloudFromLocalMode}

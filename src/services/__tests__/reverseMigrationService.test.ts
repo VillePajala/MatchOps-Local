@@ -421,17 +421,22 @@ describe('reverseMigrationService', () => {
     });
 
     /**
-     * @edge-case Delete cloud data failure after successful migration
+     * @edge-case Delete cloud data failure after successful download
+     * When deletion fails in delete-cloud mode, we stay in cloud mode so user can retry.
+     * This means overall success is false (migration goal not achieved).
      */
-    it('should succeed migration but warn if cloud deletion fails', async () => {
+    it('should fail migration and stay in cloud mode if cloud deletion fails', async () => {
       mockSupabaseDataStore.clearAllUserData.mockRejectedValue(new Error('Delete failed'));
 
       const result = await migrateCloudToLocal(mockOnProgress, 'delete-cloud');
 
-      // Migration itself should succeed
-      expect(result.success).toBe(true);
+      // Migration fails because we don't switch to local mode when deletion fails
+      expect(result.success).toBe(false);
       expect(result.cloudDeleted).toBe(false);
       expect(result.warnings.some(w => w.includes('Failed to delete cloud data'))).toBe(true);
+      expect(result.warnings.some(w => w.includes('Staying in cloud mode'))).toBe(true);
+      // Mode switch should NOT have been called since deletion failed
+      expect(mockDisableCloudMode).not.toHaveBeenCalled();
     });
 
     /**
