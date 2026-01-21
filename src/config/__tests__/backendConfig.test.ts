@@ -206,9 +206,20 @@ describe('backendConfig', () => {
   });
 
   describe('disableCloudMode', () => {
-    it('sets localStorage to local', () => {
-      disableCloudMode();
+    it('sets localStorage to local and returns success', () => {
+      const result = disableCloudMode();
       expect(localStorageMock.setItem).toHaveBeenCalledWith('matchops_backend_mode', 'local');
+      expect(result.success).toBe(true);
+    });
+
+    it('returns failure with reason when localStorage write fails', () => {
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new DOMException('Storage access denied', 'SecurityError');
+      });
+      const result = disableCloudMode();
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('storage_write_failed');
+      expect(result.message).toContain('Failed to save mode preference');
     });
   });
 
@@ -262,13 +273,15 @@ describe('backendConfig', () => {
       expect(enableCloudMode()).toBe(false);
     });
 
-    it('disableCloudMode does not throw when localStorage throws', () => {
+    it('disableCloudMode returns failure result when localStorage throws', () => {
       localStorageMock.setItem.mockImplementation(() => {
         throw new DOMException('Storage access denied', 'SecurityError');
       });
 
-      // Should not throw
-      expect(() => disableCloudMode()).not.toThrow();
+      // Should not throw, should return failure result
+      const result = disableCloudMode();
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('storage_write_failed');
     });
 
     it('clearModeOverride does not throw when localStorage throws', () => {

@@ -55,7 +55,7 @@ describe('clearLocalData', () => {
 
   describe('hasLocalDataToClear', () => {
     it('returns true when there is local data', async () => {
-      (hasLocalDataToMigrate as jest.Mock).mockResolvedValue(true);
+      (hasLocalDataToMigrate as jest.Mock).mockResolvedValue({ hasData: true, checkFailed: false });
 
       const result = await hasLocalDataToClear();
 
@@ -63,17 +63,25 @@ describe('clearLocalData', () => {
     });
 
     it('returns false when there is no local data', async () => {
-      (hasLocalDataToMigrate as jest.Mock).mockResolvedValue(false);
+      (hasLocalDataToMigrate as jest.Mock).mockResolvedValue({ hasData: false, checkFailed: false });
 
       const result = await hasLocalDataToClear();
 
       expect(result).toBe(false);
     });
 
-    it('returns true when check fails (safe default)', async () => {
-      // Mock to simulate a failure during the check
+    it('returns true when hasLocalDataToMigrate check failed (safe default)', async () => {
+      (hasLocalDataToMigrate as jest.Mock).mockResolvedValue({ hasData: false, checkFailed: true, error: 'Storage error' });
+
+      const result = await hasLocalDataToClear();
+
+      expect(result).toBe(true);
+    });
+
+    it('returns true when dynamic import throws (safe default)', async () => {
+      // Mock to simulate a failure during the dynamic import
       (hasLocalDataToMigrate as jest.Mock).mockImplementation(() => {
-        throw new Error('Check failed');
+        throw new Error('Import failed');
       });
 
       const result = await hasLocalDataToClear();

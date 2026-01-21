@@ -356,43 +356,47 @@ describe('migrationService', () => {
   });
 
   describe('hasLocalDataToMigrate', () => {
-    it('should return true when there are players', async () => {
+    it('should return hasData: true when there are players', async () => {
       const mockLocal = createMockLocalStore();
       mockLocal.getPlayers.mockResolvedValue([mockPlayer]);
       mockLocal.getGames.mockResolvedValue({});
 
       const result = await hasLocalDataToMigrate();
 
-      expect(result).toBe(true);
+      expect(result.hasData).toBe(true);
+      expect(result.checkFailed).toBe(false);
     });
 
-    it('should return true when there are games', async () => {
+    it('should return hasData: true when there are games', async () => {
       const mockLocal = createMockLocalStore();
       mockLocal.getPlayers.mockResolvedValue([]);
       mockLocal.getGames.mockResolvedValue({ 'game-1': mockGame });
 
       const result = await hasLocalDataToMigrate();
 
-      expect(result).toBe(true);
+      expect(result.hasData).toBe(true);
+      expect(result.checkFailed).toBe(false);
     });
 
-    it('should return false when there is no data', async () => {
+    it('should return hasData: false when there is no data', async () => {
       const mockLocal = createMockLocalStore();
       mockLocal.getPlayers.mockResolvedValue([]);
       mockLocal.getGames.mockResolvedValue({});
 
       const result = await hasLocalDataToMigrate();
 
-      expect(result).toBe(false);
+      expect(result.hasData).toBe(false);
+      expect(result.checkFailed).toBe(false);
     });
 
-    it('should return false on error', async () => {
+    it('should return checkFailed: true on error', async () => {
       const mockLocal = createMockLocalStore();
       mockLocal.initialize.mockRejectedValue(new Error('Init failed'));
 
       const result = await hasLocalDataToMigrate();
 
-      expect(result).toBe(false);
+      expect(result.checkFailed).toBe(true);
+      expect(result.error).toBe('Init failed');
     });
   });
 
