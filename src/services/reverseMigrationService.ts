@@ -173,6 +173,40 @@ export const REVERSE_PROGRESS_RANGES = {
   DELETING: { start: 95, end: 100 },
 } as const;
 
+/**
+ * Maximum number of failure details to include in results.
+ */
+const MAX_FAILURES_TO_REPORT = 5;
+
+/**
+ * Entity names used in progress reporting.
+ */
+const REVERSE_MIGRATION_ENTITY_NAMES = {
+  PLAYERS: 'players',
+  TEAMS: 'teams',
+  TEAM_ROSTERS: 'team rosters',
+  SEASONS: 'seasons',
+  TOURNAMENTS: 'tournaments',
+  PERSONNEL: 'personnel',
+  GAMES: 'games',
+  ADJUSTMENTS: 'adjustments',
+  WARMUP_PLAN: 'warmup plan',
+  SETTINGS: 'settings',
+} as const;
+
+const REVERSE_MIGRATION_ENTITY_ORDER = [
+  REVERSE_MIGRATION_ENTITY_NAMES.PLAYERS,
+  REVERSE_MIGRATION_ENTITY_NAMES.TEAMS,
+  REVERSE_MIGRATION_ENTITY_NAMES.TEAM_ROSTERS,
+  REVERSE_MIGRATION_ENTITY_NAMES.SEASONS,
+  REVERSE_MIGRATION_ENTITY_NAMES.TOURNAMENTS,
+  REVERSE_MIGRATION_ENTITY_NAMES.PERSONNEL,
+  REVERSE_MIGRATION_ENTITY_NAMES.GAMES,
+  REVERSE_MIGRATION_ENTITY_NAMES.ADJUSTMENTS,
+  REVERSE_MIGRATION_ENTITY_NAMES.WARMUP_PLAN,
+  REVERSE_MIGRATION_ENTITY_NAMES.SETTINGS,
+] as const;
+
 // =============================================================================
 // MIGRATION LOCK
 // =============================================================================
@@ -219,10 +253,10 @@ export async function migrateCloudToLocal(
     };
   }
 
-  isReverseMigrationInProgress = true;
   const errors: string[] = [];
   const warnings: string[] = [];
   let cloudDeleted = false;
+  let lockAcquired = false;
 
   // Safe progress callback that won't throw
   const safeProgress = (progress: ReverseMigrationProgress) => {
@@ -234,6 +268,8 @@ export async function migrateCloudToLocal(
   };
 
   try {
+    isReverseMigrationInProgress = true;
+    lockAcquired = true;
     // Check network connectivity
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       logger.warn('[ReverseMigrationService] Reverse migration aborted: No network connectivity');
@@ -261,7 +297,6 @@ export async function migrateCloudToLocal(
 
     // Report save failures as errors (critical failures for important data types)
     // or warnings (for less critical data like adjustments)
-    const MAX_FAILURES_TO_REPORT = 5;
     if (saveFailures.length > 0) {
       const criticalTypes = ['player', 'team', 'game', 'season', 'tournament', 'personnel'];
       const criticalFailures = saveFailures.filter(f => criticalTypes.includes(f.entityType));
@@ -380,7 +415,9 @@ export async function migrateCloudToLocal(
     };
 
   } finally {
-    isReverseMigrationInProgress = false;
+    if (lockAcquired) {
+      isReverseMigrationInProgress = false;
+    }
   }
 }
 
@@ -398,54 +435,85 @@ async function downloadFromCloud(
   const stepCount = 10;
 
   let step = 0;
-  const progressStep = () => {
+  const reportProgress = (fraction = 1, entityName?: string) => {
+    const clamped = Math.max(0, Math.min(1, fraction));
+    const progress = start + ((step + clamped) / stepCount) * range;
+    onProgress({ stage: 'downloading', progress, currentEntity: entityName ?? getEntityName(step + 1) });
+  };
+
+  const completeStep = (entityName?: string) => {
+    reportProgress(1, entityName);
     step++;
-    const progress = start + (step / stepCount) * range;
-    onProgress({ stage: 'downloading', progress, currentEntity: getEntityName(step) });
   };
 
   // Download all entities
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.PLAYERS);
   const players = await cloudStore.getPlayers();
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.PLAYERS);
 
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.TEAMS);
   const teams = await cloudStore.getTeams(true); // includeDeleted=true for full backup
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.TEAMS);
 
   // Get team rosters
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.TEAM_ROSTERS);
   const teamRosters = new Map<string, TeamPlayer[]>();
-  for (const team of teams) {
+  const teamCount = teams.length;
+  for (let index = 0; index < teamCount; index++) {
+    const team = teams[index];
     const roster = await cloudStore.getTeamRoster(team.id);
     teamRosters.set(team.id, roster);
+    if (teamCount > 0) {
+      reportProgress(
+        (index + 1) / teamCount,
+        `${REVERSE_MIGRATION_ENTITY_NAMES.TEAM_ROSTERS} (${index + 1}/${teamCount})`
+      );
+    }
   }
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.TEAM_ROSTERS);
 
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.SEASONS);
   const seasons = await cloudStore.getSeasons(true);
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.SEASONS);
 
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.TOURNAMENTS);
   const tournaments = await cloudStore.getTournaments(true);
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.TOURNAMENTS);
 
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.PERSONNEL);
   const personnel = await cloudStore.getAllPersonnel();
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.PERSONNEL);
 
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
   const games = await cloudStore.getGames();
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
 
   // Get player adjustments for all players
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.ADJUSTMENTS);
   const playerAdjustments = new Map<string, PlayerStatAdjustment[]>();
-  for (const player of players) {
+  const playerCount = players.length;
+  for (let index = 0; index < playerCount; index++) {
+    const player = players[index];
     const adjustments = await cloudStore.getPlayerAdjustments(player.id);
     if (adjustments.length > 0) {
       playerAdjustments.set(player.id, adjustments);
     }
+    if (playerCount > 0) {
+      reportProgress(
+        (index + 1) / playerCount,
+        `${REVERSE_MIGRATION_ENTITY_NAMES.ADJUSTMENTS} (${index + 1}/${playerCount})`
+      );
+    }
   }
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.ADJUSTMENTS);
 
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.WARMUP_PLAN);
   const warmupPlan = await cloudStore.getWarmupPlan();
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.WARMUP_PLAN);
 
+  reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.SETTINGS);
   const settings = await cloudStore.getSettings();
-  progressStep();
+  completeStep(REVERSE_MIGRATION_ENTITY_NAMES.SETTINGS);
 
   return {
     players,
@@ -462,8 +530,7 @@ async function downloadFromCloud(
 }
 
 function getEntityName(step: number): string {
-  const names = ['players', 'teams', 'team rosters', 'seasons', 'tournaments', 'personnel', 'games', 'adjustments', 'warmup plan', 'settings'];
-  return names[step - 1] || 'data';
+  return REVERSE_MIGRATION_ENTITY_ORDER[step - 1] || 'data';
 }
 
 // =============================================================================
