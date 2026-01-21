@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -40,8 +40,9 @@ export interface CloudAuthModalProps {
  * 2. Confirm - Type DELETE to confirm deletion
  * 3. Deleting - Progress while deleting
  * 4. Success - Deletion complete
+ * 5. Error - Handle deletion failures with retry option
  *
- * @see docs/03-active-plans/pr11-reverse-migration-plan.md Section 5
+ * @see docs/03-active-plans/pr11-reverse-migration-plan.md
  */
 const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
   email,
@@ -52,9 +53,12 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
   const queryClient = useQueryClient();
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // SECURITY: Password input ref (uncontrolled) - prevents password from appearing in React DevTools/state snapshots
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
   // Modal state
   const [step, setStep] = useState<ModalStep>('auth');
-  const [password, setPassword] = useState('');
+  const [hasPassword, setHasPassword] = useState(false); // Track if password has value, not the value itself
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -63,18 +67,48 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
   // Focus trap
   useFocusTrap(modalRef, true);
 
+  // SECURITY: Clear password input when modal unmounts
+  useEffect(() => {
+    // Capture ref value at effect setup time for cleanup
+    const passwordInput = passwordInputRef.current;
+    return () => {
+      // Clear password on unmount
+      if (passwordInput) {
+        passwordInput.value = '';
+      }
+    };
+  }, []);
+
   /**
    * Handle cancel - clear sensitive data before closing
    */
   const handleCancel = useCallback(() => {
-    setPassword(''); // Clear sensitive data
+    // SECURITY: Clear password input before closing
+    if (passwordInputRef.current) {
+      passwordInputRef.current.value = '';
+    }
+    setHasPassword(false);
     onCancel();
   }, [onCancel]);
+
+  // Handle Escape key to close modal (when not busy)
+  useEffect(() => {
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      // Don't allow closing during deleting or authenticating
+      if (e.key === 'Escape' && step !== 'deleting' && !isAuthenticating) {
+        handleCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [step, isAuthenticating, handleCancel]);
 
   /**
    * Handle sign in attempt
    */
   const handleSignIn = useCallback(async () => {
+    const password = passwordInputRef.current?.value || '';
     if (!password.trim()) {
       setError(t('cloudAuth.errors.passwordRequired', 'Password is required'));
       return;
@@ -95,6 +129,11 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       setStep('confirm');
     } catch (err) {
       logger.error('[CloudAuthModal] Sign in failed:', err);
+      // SECURITY: Clear password on failed attempt
+      if (passwordInputRef.current) {
+        passwordInputRef.current.value = '';
+      }
+      setHasPassword(false);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -103,12 +142,16 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     } finally {
       setIsAuthenticating(false);
     }
-  }, [email, password, t]);
+  }, [email, t]);
 
   /**
    * Handle delete confirmation
    */
   const handleDelete = useCallback(async () => {
+    // Prevent double-submission during the brief moment before state updates
+    if (isDeleting) {
+      return;
+    }
     if (confirmText.toUpperCase() !== 'DELETE') {
       return;
     }
@@ -135,22 +178,41 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       // Clear stored cloud account info
       clearCloudAccountInfo();
 
-      // Clear sensitive data
-      setPassword('');
+      // SECURITY: Invalidate the Supabase session to prevent session hijacking
+      // The session was created for deletion only - don't leave it active
+      // This is non-critical cleanup - if it fails, deletion still succeeded
+      try {
+        const authService = new SupabaseAuthService();
+        await authService.initialize();
+        await authService.signOut();
+      } catch (signOutErr) {
+        // Non-critical: data is already deleted, session will expire naturally
+        logger.warn('[CloudAuthModal] Sign out after deletion failed (non-critical):', signOutErr);
+      }
 
-      // Invalidate React Query cache
-      await queryClient.invalidateQueries();
+      // SECURITY: Clear sensitive data
+      if (passwordInputRef.current) {
+        passwordInputRef.current.value = '';
+      }
+      setHasPassword(false);
+
+      // Invalidate React Query cache (non-critical - don't fail deletion for this)
+      try {
+        await queryClient.invalidateQueries();
+      } catch (cacheErr) {
+        logger.warn('[CloudAuthModal] Failed to invalidate query cache (non-critical):', cacheErr);
+      }
 
       // Show success step
       setStep('success');
     } catch (err) {
       logger.error('[CloudAuthModal] Delete failed:', err);
-      setError(err instanceof Error ? err.message : 'Delete failed');
+      setError(err instanceof Error ? err.message : t('cloudAuth.errors.deleteFailed', 'Delete failed'));
       setStep('error');
     } finally {
       setIsDeleting(false);
     }
-  }, [confirmText, queryClient]);
+  }, [confirmText, isDeleting, queryClient, t]);
 
   /**
    * Handle key press for form submission
@@ -158,13 +220,13 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (step === 'auth' && password.trim() && !isAuthenticating) {
+      if (step === 'auth' && hasPassword && !isAuthenticating) {
         handleSignIn();
       } else if (step === 'confirm' && confirmText.toUpperCase() === 'DELETE' && !isDeleting) {
         handleDelete();
       }
     }
-  }, [step, password, isAuthenticating, confirmText, isDeleting, handleSignIn, handleDelete]);
+  }, [step, hasPassword, isAuthenticating, confirmText, isDeleting, handleSignIn, handleDelete]);
 
   /**
    * Render step content
@@ -195,15 +257,16 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
               />
             </div>
 
-            {/* Password */}
+            {/* Password - SECURITY: Using uncontrolled input to keep password out of React state/DevTools */}
             <div className="mb-4">
               <label className="block text-sm text-slate-400 mb-1">
                 {t('cloudAuth.password', 'Password')}
               </label>
               <input
+                ref={passwordInputRef}
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                defaultValue=""
+                onChange={(e) => setHasPassword(!!e.target.value.trim())}
                 onKeyDown={handleKeyDown}
                 placeholder={t('cloudAuth.passwordPlaceholder', 'Enter your password')}
                 className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
@@ -232,7 +295,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
               <button
                 onClick={handleSignIn}
                 className={primaryButtonStyle}
-                disabled={!password.trim() || isAuthenticating}
+                disabled={!hasPassword || isAuthenticating}
               >
                 {isAuthenticating ? (
                   <>

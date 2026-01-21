@@ -2052,6 +2052,9 @@
     "cloudAccount": {
       "title": "Pilvitili",
       "lastSynced": "Viimeksi synkronoitu: {{date}}",
+      "neverSynced": "Ei koskaan",
+      "unknownDate": "Tuntematon",
+      "unknownEmail": "Tuntematon",
       "hasCloudData": "Sinulla on tietoja tallennettuna pilveen.",
       "deleteCloudData": "Poista kaikki pilvitiedot",
       "deleteWarning": "Sinun täytyy kirjautua uudelleen poistaaksesi pilvitietosi.",
@@ -2076,7 +2079,8 @@
     "signIn": "Kirjaudu sisään",
     "errors": {
       "passwordRequired": "Salasana vaaditaan",
-      "signInFailed": "Kirjautuminen epäonnistui. Yritä uudelleen."
+      "signInFailed": "Kirjautuminen epäonnistui. Yritä uudelleen.",
+      "deleteFailed": "Poisto epäonnistui"
     },
     "confirm": {
       "title": "Vahvista poisto",

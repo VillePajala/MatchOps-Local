@@ -173,6 +173,8 @@ describe('reverseMigrationService', () => {
       upsertPersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
       upsertPlayerAdjustment: jest.fn().mockResolvedValue({}),
       setTeamRoster: jest.fn().mockResolvedValue(undefined),
+      getTeamRoster: jest.fn().mockResolvedValue([mockPlayer.id]),
+      getPlayerAdjustments: jest.fn().mockResolvedValue([]),
       saveGame: jest.fn().mockResolvedValue(mockGame),
       saveWarmupPlan: jest.fn().mockResolvedValue(undefined),
       saveSettings: jest.fn().mockResolvedValue(undefined),

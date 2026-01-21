@@ -313,14 +313,18 @@ export async function migrateCloudToLocal(
       } catch (deleteError) {
         deleteFailed = true;
         const errorMsg = deleteError instanceof Error ? deleteError.message : 'Unknown error';
-        warnings.push(`Failed to delete cloud data: ${errorMsg}. Staying in cloud mode so you can retry.`);
+        warnings.push(`Failed to delete cloud data: ${errorMsg}. Your data was downloaded locally but still exists in the cloud. Staying in cloud mode so you can retry the deletion.`);
         logger.error('[ReverseMigrationService] Failed to delete cloud data:', deleteError);
       }
     } else if (mode === 'delete-cloud' && hasCriticalSaveFailures) {
       warnings.push('Cloud data was NOT deleted because some entities failed to save locally. Please retry the migration.');
     } else if (mode === 'keep-cloud') {
       // Update cloud account info to indicate data still exists
-      updateCloudAccountInfo({ hasCloudData: true, lastSyncedAt: new Date().toISOString() });
+      const updateSuccess = updateCloudAccountInfo({ hasCloudData: true, lastSyncedAt: new Date().toISOString() });
+      if (!updateSuccess) {
+        // Non-critical: UI display may be stale but data is safe
+        logger.warn('[ReverseMigrationService] Could not update cloud account info display');
+      }
     }
 
     // Step 6: Switch to local mode
@@ -675,7 +679,7 @@ async function verifyReverseMigration(
 ): Promise<VerificationResult> {
   const warnings: string[] = [];
 
-  // Get local counts
+  // Get local data
   const localPlayers = await localStore.getPlayers();
   const localTeams = await localStore.getTeams(true);
   const localSeasons = await localStore.getSeasons(true);
@@ -683,34 +687,125 @@ async function verifyReverseMigration(
   const localPersonnel = await localStore.getAllPersonnel();
   const localGames = await localStore.getGames();
 
-  // Compare counts
-  // Note: Local may have MORE data if user had existing local data
-  // We verify that AT LEAST all cloud data was downloaded
+  // IMPORTANT: Verify by ID, not count
+  // Count comparison is insufficient because:
+  // - User may have existing local data (local count > cloud count is normal)
+  // - If upsert fails, count might still match due to existing data
+  // Instead, verify that EVERY cloud entity ID exists in local storage
 
-  if (localPlayers.length < cloudData.players.length) {
-    warnings.push(`Player count mismatch: expected ${cloudData.players.length}, got ${localPlayers.length}`);
+  // Create ID sets for efficient lookup
+  const localPlayerIds = new Set(localPlayers.map(p => p.id));
+  const localTeamIds = new Set(localTeams.map(t => t.id));
+  const localSeasonIds = new Set(localSeasons.map(s => s.id));
+  const localTournamentIds = new Set(localTournaments.map(t => t.id));
+  const localPersonnelIds = new Set(localPersonnel.map(p => p.id));
+  const localGameIds = new Set(Object.keys(localGames));
+
+  // Verify all cloud entities exist in local by ID
+  const missingPlayers = cloudData.players.filter(p => !localPlayerIds.has(p.id));
+  if (missingPlayers.length > 0) {
+    warnings.push(`Missing ${missingPlayers.length} player(s): ${missingPlayers.slice(0, 3).map(p => p.name).join(', ')}${missingPlayers.length > 3 ? '...' : ''}`);
   }
 
-  if (localTeams.length < cloudData.teams.length) {
-    warnings.push(`Team count mismatch: expected ${cloudData.teams.length}, got ${localTeams.length}`);
+  const missingTeams = cloudData.teams.filter(t => !localTeamIds.has(t.id));
+  if (missingTeams.length > 0) {
+    warnings.push(`Missing ${missingTeams.length} team(s): ${missingTeams.slice(0, 3).map(t => t.name).join(', ')}${missingTeams.length > 3 ? '...' : ''}`);
   }
 
-  if (localSeasons.length < cloudData.seasons.length) {
-    warnings.push(`Season count mismatch: expected ${cloudData.seasons.length}, got ${localSeasons.length}`);
+  const missingSeasons = cloudData.seasons.filter(s => !localSeasonIds.has(s.id));
+  if (missingSeasons.length > 0) {
+    warnings.push(`Missing ${missingSeasons.length} season(s): ${missingSeasons.slice(0, 3).map(s => s.name).join(', ')}${missingSeasons.length > 3 ? '...' : ''}`);
   }
 
-  if (localTournaments.length < cloudData.tournaments.length) {
-    warnings.push(`Tournament count mismatch: expected ${cloudData.tournaments.length}, got ${localTournaments.length}`);
+  const missingTournaments = cloudData.tournaments.filter(t => !localTournamentIds.has(t.id));
+  if (missingTournaments.length > 0) {
+    warnings.push(`Missing ${missingTournaments.length} tournament(s): ${missingTournaments.slice(0, 3).map(t => t.name).join(', ')}${missingTournaments.length > 3 ? '...' : ''}`);
   }
 
-  if (localPersonnel.length < cloudData.personnel.length) {
-    warnings.push(`Personnel count mismatch: expected ${cloudData.personnel.length}, got ${localPersonnel.length}`);
+  const missingPersonnel = cloudData.personnel.filter(p => !localPersonnelIds.has(p.id));
+  if (missingPersonnel.length > 0) {
+    warnings.push(`Missing ${missingPersonnel.length} personnel: ${missingPersonnel.slice(0, 3).map(p => p.name).join(', ')}${missingPersonnel.length > 3 ? '...' : ''}`);
   }
 
-  const localGameCount = Object.keys(localGames).length;
-  const cloudGameCount = Object.keys(cloudData.games).length;
-  if (localGameCount < cloudGameCount) {
-    warnings.push(`Game count mismatch: expected ${cloudGameCount}, got ${localGameCount}`);
+  const cloudGameIds = Object.keys(cloudData.games);
+  const missingGames = cloudGameIds.filter(id => !localGameIds.has(id));
+  if (missingGames.length > 0) {
+    warnings.push(`Missing ${missingGames.length} game(s)`);
+  }
+
+  // Content verification for games (most complex entity)
+  // Check that event counts match to detect partial/corrupted saves
+  let gameContentMismatches = 0;
+  for (const gameId of cloudGameIds) {
+    if (localGameIds.has(gameId)) {
+      const cloudGame = cloudData.games[gameId];
+      const localGame = localGames[gameId];
+
+      // Verify event count matches
+      const cloudEventCount = cloudGame.gameEvents?.length ?? 0;
+      const localEventCount = localGame.gameEvents?.length ?? 0;
+      if (cloudEventCount !== localEventCount) {
+        gameContentMismatches++;
+      }
+
+      // Verify player count matches
+      const cloudPlayerCount = cloudGame.availablePlayers?.length ?? 0;
+      const localPlayerCount = localGame.availablePlayers?.length ?? 0;
+      if (cloudPlayerCount !== localPlayerCount) {
+        gameContentMismatches++;
+      }
+    }
+  }
+  if (gameContentMismatches > 0) {
+    warnings.push(`${gameContentMismatches} game(s) have content mismatches (events or players differ)`);
+  }
+
+  // Verify team rosters
+  let rosterMismatches = 0;
+  let rosterVerifyErrors = 0;
+  for (const [teamId, cloudRoster] of cloudData.teamRosters) {
+    if (localTeamIds.has(teamId)) {
+      try {
+        const localRoster = await localStore.getTeamRoster(teamId);
+        if (localRoster.length !== cloudRoster.length) {
+          rosterMismatches++;
+        }
+      } catch (err) {
+        // Individual roster verification failure shouldn't fail entire migration
+        logger.warn(`[ReverseMigrationService] Failed to verify roster for team ${teamId}:`, err);
+        rosterVerifyErrors++;
+      }
+    }
+  }
+  if (rosterMismatches > 0) {
+    warnings.push(`${rosterMismatches} team(s) have roster count mismatches`);
+  }
+  if (rosterVerifyErrors > 0) {
+    warnings.push(`Could not verify ${rosterVerifyErrors} team roster(s)`);
+  }
+
+  // Verify player adjustments
+  let adjustmentMismatches = 0;
+  let adjustmentVerifyErrors = 0;
+  for (const [playerId, cloudAdjustments] of cloudData.playerAdjustments) {
+    if (localPlayerIds.has(playerId)) {
+      try {
+        const localAdjustments = await localStore.getPlayerAdjustments(playerId);
+        if (localAdjustments.length !== cloudAdjustments.length) {
+          adjustmentMismatches++;
+        }
+      } catch (err) {
+        // Individual adjustment verification failure shouldn't fail entire migration
+        logger.warn(`[ReverseMigrationService] Failed to verify adjustments for player ${playerId}:`, err);
+        adjustmentVerifyErrors++;
+      }
+    }
+  }
+  if (adjustmentMismatches > 0) {
+    warnings.push(`${adjustmentMismatches} player(s) have adjustment count mismatches`);
+  }
+  if (adjustmentVerifyErrors > 0) {
+    warnings.push(`Could not verify ${adjustmentVerifyErrors} player adjustment(s)`);
   }
 
   return {
@@ -773,8 +868,14 @@ export async function hasCloudData(): Promise<CloudDataCheckResult> {
  * Used for preview in reverse migration wizard.
  *
  * @returns Counts of all entity types in cloud
+ * @throws {NetworkError} If offline
  */
 export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
+  // Check network connectivity first for clear error message
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new NetworkError('Cannot check cloud data while offline. Please check your connection.');
+  }
+
   const cloudStore = new SupabaseDataStore();
   await cloudStore.initialize();
 

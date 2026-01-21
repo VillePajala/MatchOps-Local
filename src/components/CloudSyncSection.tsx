@@ -254,9 +254,17 @@ export default function CloudSyncSection({
   /**
    * Format date for display
    */
-  const formatDate = (isoString: string): string => {
+  const formatDate = (isoString: string | undefined): string => {
+    if (!isoString) {
+      return t('cloudSync.cloudAccount.neverSynced', 'Never');
+    }
     try {
       const date = new Date(isoString);
+      // Check for invalid date (NaN check)
+      if (isNaN(date.getTime())) {
+        logger.warn('[CloudSyncSection] Invalid date received:', { isoString });
+        return t('cloudSync.cloudAccount.unknownDate', 'Unknown');
+      }
       return date.toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
@@ -461,7 +469,7 @@ export default function CloudSyncSection({
           <div className="p-3 rounded-md bg-slate-800/50 space-y-2 mb-3">
             <div className="flex items-center gap-2">
               <HiOutlineUser className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-300">{cloudAccountInfo?.email ?? 'Unknown'}</span>
+              <span className="text-sm text-slate-300">{cloudAccountInfo?.email || t('cloudSync.cloudAccount.unknownEmail', 'Unknown')}</span>
             </div>
             <div className="text-xs text-slate-500">
               {t('cloudSync.cloudAccount.lastSynced', 'Last synced: {{date}}', {
