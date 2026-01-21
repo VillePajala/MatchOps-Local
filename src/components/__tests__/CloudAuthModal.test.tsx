@@ -27,12 +27,14 @@ jest.mock('@/auth/SupabaseAuthService', () => ({
 const mockClearAllUserData = jest.fn();
 const mockInitialize = jest.fn();
 const mockGetBackendName = jest.fn(() => 'supabase');
+const mockClose = jest.fn();
 
 jest.mock('@/datastore/SupabaseDataStore', () => ({
   SupabaseDataStore: jest.fn().mockImplementation(() => ({
     initialize: mockInitialize,
     clearAllUserData: mockClearAllUserData,
     getBackendName: mockGetBackendName,
+    close: mockClose,
   })),
 }));
 
@@ -129,6 +131,7 @@ describe('CloudAuthModal', () => {
     mockInitialize.mockResolvedValue(undefined);
     mockClearAllUserData.mockResolvedValue(undefined);
     mockGetBackendName.mockReturnValue('supabase');
+    mockClose.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
