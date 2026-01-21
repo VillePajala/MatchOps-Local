@@ -338,7 +338,9 @@ export function getCloudAccountInfo(): CloudAccountInfo | null {
     return JSON.parse(stored) as CloudAccountInfo;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    log.warn(`[backendConfig] Failed to parse cloud account info: ${errorMsg} (length: ${stored?.length})`);
+    // Log preview of malformed data for debugging (safe to log - not sensitive auth data)
+    const preview = stored.length > 100 ? stored.substring(0, 100) + '...' : stored;
+    log.warn(`[backendConfig] Failed to parse cloud account info: ${errorMsg} (length: ${stored.length}, preview: ${preview})`);
     return null;
   }
 }
@@ -375,6 +377,7 @@ export function setCloudAccountInfo(info: CloudAccountInfo): boolean {
 export function updateCloudAccountInfo(update: Partial<CloudAccountInfo>): boolean {
   const existing = getCloudAccountInfo();
   if (!existing) {
+    log.warn('[backendConfig] Cannot update cloud account info: no existing info found');
     return false;
   }
   return setCloudAccountInfo({ ...existing, ...update });
