@@ -25,7 +25,7 @@ jest.mock('@/datastore/SupabaseDataStore');
 
 // Mock backendConfig
 jest.mock('@/config/backendConfig', () => ({
-  disableCloudMode: jest.fn(() => true),
+  disableCloudMode: jest.fn(() => ({ success: true })),
   clearCloudAccountInfo: jest.fn(),
   updateCloudAccountInfo: jest.fn(),
 }));
@@ -125,7 +125,7 @@ describe('reverseMigrationService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockDisableCloudMode.mockReturnValue(true);
+    mockDisableCloudMode.mockReturnValue({ success: true });
     mockClearCloudAccountInfo.mockClear();
     mockUpdateCloudAccountInfo.mockClear();
 
@@ -364,7 +364,7 @@ describe('reverseMigrationService', () => {
      * @edge-case Mode switch failure
      */
     it('should report error when mode switch fails', async () => {
-      mockDisableCloudMode.mockReturnValue(false);
+      mockDisableCloudMode.mockReturnValue({ success: false, reason: 'storage_write_failed', message: 'Storage write failed' });
 
       const result = await migrateCloudToLocal(mockOnProgress);
 

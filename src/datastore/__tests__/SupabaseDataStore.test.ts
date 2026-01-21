@@ -286,7 +286,7 @@ describe('SupabaseDataStore', () => {
     });
 
     it('should wrap Supabase errors in NetworkError for update', async () => {
-      // Mock existing player fetch
+      // Mock existing player fetch to succeed
       mockQueryBuilder.single = jest.fn().mockResolvedValue({
         data: {
           id: 'player_123',
@@ -297,15 +297,23 @@ describe('SupabaseDataStore', () => {
         error: null,
       });
 
-      // Note: Testing update failure after successful select is tricky with current mock setup
-      // For now, test the select failure path (when player not found)
-      mockQueryBuilder.single = jest.fn().mockResolvedValue({
-        data: null,
-        error: { message: 'Database error' },
+      // Mock eq() to behave differently based on call count:
+      // - First call (during fetch): chains to single() for player lookup
+      // - Second call (during update): returns error
+      let eqCallCount = 0;
+      mockQueryBuilder.eq = jest.fn().mockImplementation(() => {
+        eqCallCount++;
+        if (eqCallCount === 1) {
+          // First call is during fetch - return builder for chaining to single()
+          return mockQueryBuilder;
+        }
+        // Second call is during update - return error
+        return Promise.resolve({ error: { message: 'Database error' } });
       });
 
-      const result = await dataStore.updatePlayer('player_123', { name: 'New Name' });
-      expect(result).toBeNull();
+      await expect(
+        dataStore.updatePlayer('player_123', { name: 'New Name' })
+      ).rejects.toThrow(NetworkError);
     });
 
     it('should wrap Supabase errors in NetworkError for delete', async () => {
@@ -464,7 +472,7 @@ describe('SupabaseDataStore', () => {
       it('should return null for non-existent player', async () => {
         mockQueryBuilder.single = jest.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Not found' },
+          error: { message: 'Not found', code: 'PGRST116' },
         });
 
         const result = await dataStore.updatePlayer('nonexistent', { name: 'New Name' });
@@ -1065,7 +1073,7 @@ describe('SupabaseDataStore', () => {
       it('should return null when season not found', async () => {
         mockQueryBuilder.single = jest.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Not found' },
+          error: { message: 'Not found', code: 'PGRST116' },
         });
 
         const season: Season = {
@@ -1369,7 +1377,7 @@ describe('SupabaseDataStore', () => {
       it('should return null when tournament not found', async () => {
         mockQueryBuilder.single = jest.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Not found' },
+          error: { message: 'Not found', code: 'PGRST116' },
         });
 
         const tournament: Tournament = {
@@ -1521,7 +1529,7 @@ describe('SupabaseDataStore', () => {
       it('should return default settings when none exist', async () => {
         mockQueryBuilder.single = jest.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Not found' },
+          error: { message: 'Not found', code: 'PGRST116' },
         });
 
         const settings = await dataStore.getSettings();

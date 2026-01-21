@@ -74,6 +74,13 @@ BEGIN
   -- This prevents client from injecting another user's ID
   p_game := jsonb_set(p_game, '{user_id}', to_jsonb(v_user_id::text));
 
+  -- Set timestamps: created_at for new games, updated_at for all
+  -- jsonb_populate_record doesn't apply column defaults, so we must inject them
+  p_game := jsonb_set(p_game, '{updated_at}', to_jsonb(now()));
+  IF NOT (p_game ? 'created_at') OR (p_game->>'created_at') IS NULL THEN
+    p_game := jsonb_set(p_game, '{created_at}', to_jsonb(now()));
+  END IF;
+
   -- Upsert game (CRITICAL: List ALL updatable columns explicitly)
   INSERT INTO games SELECT * FROM jsonb_populate_record(null::games, p_game)
   ON CONFLICT (id) DO UPDATE SET

@@ -28,6 +28,19 @@ export interface BackendConfig {
   supabaseAnonKey: string | null;
 }
 
+/**
+ * Result of a mode switch operation.
+ * Provides details about why it failed if unsuccessful.
+ */
+export interface ModeSwitchResult {
+  /** Whether the mode switch succeeded */
+  success: boolean;
+  /** Reason for failure (only set if success is false) */
+  reason?: 'server_side' | 'storage_write_failed';
+  /** Human-readable error message */
+  message?: string;
+}
+
 // ============================================================================
 // ENVIRONMENT VARIABLE DETECTION
 // ============================================================================
@@ -182,17 +195,27 @@ export function enableCloudMode(): boolean {
  *
  * Stores preference in localStorage. Takes effect on next factory initialization.
  *
- * @returns true if local mode was enabled, false if localStorage write failed
+ * @returns ModeSwitchResult with success status and reason if failed
  */
-export function disableCloudMode(): boolean {
-  if (typeof window !== 'undefined') {
-    if (safeSetItem(MODE_STORAGE_KEY, 'local')) {
-      log.info('[backendConfig] Local mode enabled - will take effect on next initialization');
-      return true;
-    }
-    return false;
+export function disableCloudMode(): ModeSwitchResult {
+  if (typeof window === 'undefined') {
+    return {
+      success: false,
+      reason: 'server_side',
+      message: 'Cannot switch mode on server - localStorage not available',
+    };
   }
-  return false;
+
+  if (!safeSetItem(MODE_STORAGE_KEY, 'local')) {
+    return {
+      success: false,
+      reason: 'storage_write_failed',
+      message: 'Failed to save mode preference. Your browser may be in private mode or have storage restrictions.',
+    };
+  }
+
+  log.info('[backendConfig] Local mode enabled - will take effect on next initialization');
+  return { success: true };
 }
 
 /**

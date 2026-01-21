@@ -146,8 +146,12 @@ export default function Home() {
         }
 
         // Check if there's local data to migrate
-        const hasData = await hasLocalDataToMigrate();
-        if (hasData) {
+        const result = await hasLocalDataToMigrate();
+        if (result.checkFailed) {
+          // Storage check failed - log warning but don't show wizard
+          // User can trigger migration manually from settings if needed
+          logger.warn('[page.tsx] Failed to check local data:', result.error);
+        } else if (result.hasData) {
           logger.info('[page.tsx] Local data found, showing migration wizard');
           setShowMigrationWizard(true);
         } else {
