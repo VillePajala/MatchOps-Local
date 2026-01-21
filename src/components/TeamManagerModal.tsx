@@ -286,7 +286,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           {/* Add Team Button */}
           <button
             onClick={handleCreateTeam}
-            className="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg bg-indigo-600 hover:bg-indigo-700"
+            className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
             aria-label={t('teamManager.createNewTeam', 'Create new team')}
           >
             {t('teamManager.addTeam', 'Add Team')}
@@ -550,7 +550,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             </button>
           )}
           <div className="flex-1" />
-          <button onClick={onClose} className={primaryButtonStyle}>{t('common.doneButton', 'Done')}</button>
+          <button onClick={onClose} className="px-10 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30">{t('common.doneButton', 'Done')}</button>
         </ModalFooter>
 
         {/* Delete Confirmation Modal */}

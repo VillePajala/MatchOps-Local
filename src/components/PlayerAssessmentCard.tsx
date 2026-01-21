@@ -125,7 +125,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
           <div className="flex gap-2">
             <button
               type="button"
-              className="px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 border border-indigo-400/30"
               onClick={handleSave}
               disabled={!isValid}
               aria-label={t('playerAssessmentModal.saveButton', 'Save')}
@@ -135,7 +135,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             {assessment && onDelete && (
               <button
                 type="button"
-                className="px-3 py-2 rounded-md text-sm font-medium transition-colors bg-red-600 hover:bg-red-700"
+                className="px-3 py-2 rounded-sm text-sm font-medium transition-colors bg-red-600 hover:bg-red-500 text-white border border-red-400/30"
                 onClick={() => onDelete()}
               >
                 {t('playerAssessmentModal.resetButton', 'Reset')}

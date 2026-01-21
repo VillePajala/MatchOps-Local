@@ -9,6 +9,8 @@
  * @category Utils
  */
 
+import { getPositionLabelForFormationPosition } from './positionLabels';
+
 /**
  * Position on the soccer field using relative coordinates
  */
@@ -240,6 +242,109 @@ export function generateSidelinePositions(count: number): FieldPosition[] {
   }
 
   return positions;
+}
+
+/**
+ * Sub slot for substitution planning
+ * Represents a position on the sideline where a sub can be placed
+ */
+export interface SubSlot {
+  /** X position on sideline (typically 0.96 for right edge) */
+  relX: number;
+  /** Y position matching the formation position */
+  relY: number;
+  /** Position label (CB, LW, ST, etc.) */
+  positionLabel: string;
+}
+
+/**
+ * Generate sub slots on the right sideline corresponding to formation positions
+ *
+ * Creates labeled slots where substitutes can be placed. When multiple positions
+ * share the same row (e.g., LB and RB), slots are stacked vertically to avoid overlap.
+ *
+ * @param formationPositions - Array of field positions from the current formation
+ * @returns Array of sub slots with position labels
+ */
+export function generateSubSlots(formationPositions: FieldPosition[]): SubSlot[] {
+  // Defensive guard for null/undefined/empty input
+  if (!formationPositions?.length) {
+    return [];
+  }
+
+  const SUB_SLOT_X = 0.96; // Right sideline
+  const ROW_TOLERANCE = 0.08; // Positions within this relY range are considered same row
+  // Vertical spacing between stacked slots. Increased from 0.045 after player transparency
+  // was removed - opaque players need more spacing to prevent visual overlap
+  const SLOT_SPACING = 0.07;
+
+  // Add position labels to each position
+  const positionsWithLabels = formationPositions.map(pos => ({
+    ...pos,
+    label: getPositionLabelForFormationPosition(pos.relX, pos.relY).label,
+  }));
+
+  // Group positions by similar relY (same row)
+  const rows: Array<typeof positionsWithLabels> = [];
+  const used = new Set<number>();
+
+  for (let i = 0; i < positionsWithLabels.length; i++) {
+    if (used.has(i)) continue;
+
+    const row = [positionsWithLabels[i]];
+    used.add(i);
+
+    // Find other positions in the same row
+    for (let j = i + 1; j < positionsWithLabels.length; j++) {
+      if (used.has(j)) continue;
+      if (Math.abs(positionsWithLabels[j].relY - positionsWithLabels[i].relY) < ROW_TOLERANCE) {
+        row.push(positionsWithLabels[j]);
+        used.add(j);
+      }
+    }
+
+    // Sort row by relX (left to right on field)
+    row.sort((a, b) => a.relX - b.relX);
+    rows.push(row);
+  }
+
+  // Generate sub slots, stacking vertically within each row
+  const subSlots: SubSlot[] = [];
+
+  // Midline avoidance: nudge slots away from relY = 0.5 for better visibility
+  const MIDLINE_Y = 0.5;
+  const MIDLINE_BUFFER = 0.03; // Minimum distance from midline
+  const MIDLINE_NUDGE = 0.04;  // How far to nudge away
+
+  for (const row of rows) {
+    // Calculate center relY for this row
+    const centerY = row.reduce((sum, p) => sum + p.relY, 0) / row.length;
+
+    // Stack slots vertically around the center
+    const totalHeight = (row.length - 1) * SLOT_SPACING;
+    const startY = centerY - totalHeight / 2;
+
+    row.forEach((pos, index) => {
+      let slotY = startY + index * SLOT_SPACING;
+
+      // Nudge away from midline if too close
+      const distanceFromMidline = Math.abs(slotY - MIDLINE_Y);
+      if (distanceFromMidline < MIDLINE_BUFFER) {
+        // Nudge up or down depending on which side of midline
+        slotY = slotY < MIDLINE_Y
+          ? MIDLINE_Y - MIDLINE_NUDGE
+          : MIDLINE_Y + MIDLINE_NUDGE;
+      }
+
+      subSlots.push({
+        relX: SUB_SLOT_X,
+        relY: slotY,
+        positionLabel: pos.label,
+      });
+    });
+  }
+
+  return subSlots;
 }
 
 /**

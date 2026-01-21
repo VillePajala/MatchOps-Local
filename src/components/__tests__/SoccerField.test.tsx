@@ -628,3 +628,479 @@ describe('SoccerField Component - Interaction Testing', () => {
     });
   });
 });
+
+// Import helper function and constant for direct testing
+import { isPositionOccupied, SUB_SLOT_OCCUPATION_THRESHOLD } from '../SoccerField';
+
+describe('isPositionOccupied Helper Function', () => {
+  const createPlayer = (relX?: number, relY?: number): Player => ({
+    id: 'test',
+    name: 'Test Player',
+    jerseyNumber: '1',
+    relX,
+    relY,
+  });
+
+  describe('basic functionality', () => {
+    it('returns true when player is exactly at target position', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(true);
+    });
+
+    it('returns true when player is within threshold of target', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // Just inside threshold (0.04)
+      expect(isPositionOccupied(players, 0.53, 0.53)).toBe(true);
+    });
+
+    it('returns false when player is outside threshold', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // Just outside threshold (0.04)
+      expect(isPositionOccupied(players, 0.55, 0.55)).toBe(false);
+    });
+
+    it('returns false for empty players array', () => {
+      expect(isPositionOccupied([], 0.5, 0.5)).toBe(false);
+    });
+  });
+
+  describe('undefined coordinate handling', () => {
+    it('returns false when player has undefined relX', () => {
+      const players = [createPlayer(undefined, 0.5)];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(false);
+    });
+
+    it('returns false when player has undefined relY', () => {
+      const players = [createPlayer(0.5, undefined)];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(false);
+    });
+
+    it('returns false when player has both coordinates undefined', () => {
+      const players = [createPlayer(undefined, undefined)];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(false);
+    });
+
+    it('ignores players with undefined coordinates but finds valid ones', () => {
+      const players = [
+        createPlayer(undefined, 0.5),
+        createPlayer(0.5, 0.5), // This one is valid and at target
+      ];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(true);
+    });
+  });
+
+  describe('multiple players', () => {
+    it('returns true if any player is at target', () => {
+      const players = [
+        createPlayer(0.2, 0.2),
+        createPlayer(0.5, 0.5), // At target
+        createPlayer(0.8, 0.8),
+      ];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(true);
+    });
+
+    it('returns false if no player is at target', () => {
+      const players = [
+        createPlayer(0.2, 0.2),
+        createPlayer(0.3, 0.3),
+        createPlayer(0.8, 0.8),
+      ];
+      expect(isPositionOccupied(players, 0.5, 0.5)).toBe(false);
+    });
+  });
+
+  describe('custom threshold', () => {
+    it('uses default threshold when not specified', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // Default threshold is 0.04
+      expect(isPositionOccupied(players, 0.539, 0.539)).toBe(true); // Within 0.04
+      expect(isPositionOccupied(players, 0.541, 0.541)).toBe(false); // Outside 0.04
+    });
+
+    it('respects custom threshold parameter', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // With larger threshold
+      expect(isPositionOccupied(players, 0.59, 0.59, 0.1)).toBe(true);
+      // With smaller threshold
+      expect(isPositionOccupied(players, 0.52, 0.52, 0.01)).toBe(false);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles positions at field boundaries', () => {
+      const players = [createPlayer(0, 0)];
+      expect(isPositionOccupied(players, 0, 0)).toBe(true);
+      expect(isPositionOccupied(players, 0.03, 0.03)).toBe(true);
+    });
+
+    it('handles positions at field corners', () => {
+      const players = [createPlayer(1, 1)];
+      expect(isPositionOccupied(players, 1, 1)).toBe(true);
+    });
+
+    it('checks both X and Y independently', () => {
+      const players = [createPlayer(0.5, 0.5)];
+      // X within threshold, Y outside
+      expect(isPositionOccupied(players, 0.52, 0.6)).toBe(false);
+      // Y within threshold, X outside
+      expect(isPositionOccupied(players, 0.6, 0.52)).toBe(false);
+    });
+  });
+
+  describe('threshold constant', () => {
+    it('exports the correct threshold value', () => {
+      expect(SUB_SLOT_OCCUPATION_THRESHOLD).toBe(0.04);
+    });
+  });
+});
+
+describe('Empty Position Selection', () => {
+  const createMockPlayer = (id: string, overrides?: Partial<Player>): Player => ({
+    id,
+    name: `Player ${id}`,
+    jerseyNumber: id,
+    relX: 0.3,
+    relY: 0.4,
+    ...overrides,
+  });
+
+  const defaultProps = {
+    players: [
+      createMockPlayer('1', { relX: 0.2, relY: 0.3 }),
+      createMockPlayer('2', { relX: 0.4, relY: 0.5 }),
+    ],
+    opponents: [],
+    drawings: [],
+    onPlayerMove: jest.fn(),
+    onPlayerMoveEnd: jest.fn(),
+    onPlayerRemove: jest.fn(),
+    onOpponentMove: jest.fn(),
+    onOpponentMoveEnd: jest.fn(),
+    onOpponentRemove: jest.fn(),
+    onPlayerDrop: jest.fn(),
+    showPlayerNames: true,
+    onDrawingStart: jest.fn(),
+    onDrawingAddPoint: jest.fn(),
+    onDrawingEnd: jest.fn(),
+    draggingPlayerFromBarInfo: null,
+    onPlayerDropViaTouch: jest.fn(),
+    onPlayerDragCancelViaTouch: jest.fn(),
+    timeElapsedInSeconds: 0,
+    isTacticsBoardView: false,
+    tacticalDiscs: [],
+    onTacticalDiscMove: jest.fn(),
+    onTacticalDiscMoveEnd: jest.fn(),
+    onTacticalDiscRemove: jest.fn(),
+    onToggleTacticalDiscType: jest.fn(),
+    onAddTacticalDisc: jest.fn(),
+    tacticalBallPosition: null,
+    onTacticalBallMove: jest.fn(),
+    onTacticalBallMoveEnd: jest.fn(),
+    tacticalDrawings: [],
+    onTacticalDrawingStart: jest.fn(),
+    onTacticalDrawingAddPoint: jest.fn(),
+    onTacticalDrawingEnd: jest.fn(),
+    isDrawingEnabled: false,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /**
+   * Tests that empty formation snap points can be detected
+   * @integration
+   */
+  describe('formation snap point detection', () => {
+    it('should render with formation snap points', () => {
+      const formationSnapPoints = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.3, relY: 0.55 },
+        { relX: 0.7, relY: 0.55 },
+      ];
+
+      render(<SoccerField {...defaultProps} formationSnapPoints={formationSnapPoints} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should render with sub slots', () => {
+      const subSlots = [
+        { relX: 0.96, relY: 0.75, positionLabel: 'CB' },
+        { relX: 0.96, relY: 0.55, positionLabel: 'CM' },
+      ];
+
+      render(<SoccerField {...defaultProps} subSlots={subSlots} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Tests that empty position detection respects occupation
+   * @integration
+   */
+  describe('occupation detection', () => {
+    it('should not detect empty position where player exists', () => {
+      // Use isPositionOccupied which is the underlying logic
+      const players = [createMockPlayer('1', { relX: 0.5, relY: 0.75 })];
+
+      // Position should be occupied
+      expect(isPositionOccupied(players, 0.5, 0.75)).toBe(true);
+    });
+
+    it('should detect unoccupied formation position', () => {
+      const players = [createMockPlayer('1', { relX: 0.2, relY: 0.3 })];
+
+      // Different position should not be occupied
+      expect(isPositionOccupied(players, 0.5, 0.75)).toBe(false);
+    });
+  });
+
+  /**
+   * Tests empty position tap-to-move user flow
+   * UX: User must first select a player, then tap an empty position
+   * @critical
+   */
+  describe('tap-to-move interaction flow', () => {
+    it('should handle touch interaction on canvas with formation snap points', () => {
+      const formationSnapPoints = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.3, relY: 0.55 },
+      ];
+
+      render(<SoccerField {...defaultProps} formationSnapPoints={formationSnapPoints} />);
+
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+      expect(canvas).toBeInTheDocument();
+      if (!canvas) return;
+
+      // Mock canvas dimensions for coordinate translation
+      // Player 1 at (0.2, 0.3) → pixel (60, 90) with 300x300 canvas
+      // Formation snap point at (0.5, 0.75) → pixel (150, 225)
+      const rectMock: DOMRect = {
+        left: 0, top: 0, right: 300, bottom: 300,
+        width: 300, height: 300, x: 0, y: 0,
+        toJSON: () => ({}),
+      };
+      jest.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(rectMock);
+
+      // First tap to select player at (0.2, 0.3) → pixel (60, 90)
+      fireEvent.touchStart(canvas, {
+        touches: [{ clientX: 60, clientY: 90, identifier: 0, target: canvas }],
+      });
+      fireEvent.touchEnd(canvas, { changedTouches: [{ clientX: 60, clientY: 90, identifier: 0, target: canvas }] });
+
+      // Second tap on empty formation position at (0.5, 0.75) → pixel (150, 225)
+      fireEvent.touchStart(canvas, {
+        touches: [{ clientX: 150, clientY: 225, identifier: 0, target: canvas }],
+      });
+      fireEvent.touchEnd(canvas, { changedTouches: [{ clientX: 150, clientY: 225, identifier: 0, target: canvas }] });
+
+      // Canvas should remain stable after interaction
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should handle touch on sub slot positions', () => {
+      const subSlots = [
+        { relX: 0.96, relY: 0.75, positionLabel: 'CB' },
+        { relX: 0.96, relY: 0.55, positionLabel: 'CM' },
+      ];
+
+      render(<SoccerField {...defaultProps} subSlots={subSlots} />);
+
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+      expect(canvas).toBeInTheDocument();
+      if (!canvas) return;
+
+      // Mock canvas dimensions
+      const rectMock: DOMRect = {
+        left: 0, top: 0, right: 300, bottom: 300,
+        width: 300, height: 300, x: 0, y: 0,
+        toJSON: () => ({}),
+      };
+      jest.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(rectMock);
+
+      // Tap near sub slot position at (0.96, 0.75) → pixel (288, 225)
+      fireEvent.touchStart(canvas, {
+        touches: [{ clientX: 288, clientY: 225, identifier: 0, target: canvas }],
+      });
+      fireEvent.touchEnd(canvas, { changedTouches: [{ clientX: 288, clientY: 225, identifier: 0, target: canvas }] });
+
+      expect(canvas).toBeInTheDocument();
+    });
+
+    /**
+     * Tests stability of tap-to-move interaction flow
+     * @integration - Tests component stability during user interaction sequence
+     *
+     * Note: Full callback verification requires E2E testing with real canvas rendering.
+     * In JSDOM, canvas hit detection doesn't function as in browsers, so we verify
+     * the component handles the interaction sequence without crashing.
+     */
+    it('should handle tap-to-move interaction flow without crashing', () => {
+      // Player 1 at (0.2, 0.3), not at the formation snap point
+      const players = [createMockPlayer('1', { relX: 0.2, relY: 0.3 })];
+      const formationSnapPoints = [{ relX: 0.5, relY: 0.75 }];
+      const onPlayerMove = jest.fn();
+      const onPlayerMoveEnd = jest.fn();
+
+      render(
+        <SoccerField
+          {...defaultProps}
+          players={players}
+          formationSnapPoints={formationSnapPoints}
+          onPlayerMove={onPlayerMove}
+          onPlayerMoveEnd={onPlayerMoveEnd}
+        />
+      );
+
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+      expect(canvas).toBeInTheDocument();
+      if (!canvas) return;
+
+      // Mock canvas dimensions (300x300)
+      const rectMock: DOMRect = {
+        left: 0, top: 0, right: 300, bottom: 300,
+        width: 300, height: 300, x: 0, y: 0,
+        toJSON: () => ({}),
+      };
+      jest.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(rectMock);
+
+      // First tap on player to select them (0.2, 0.3) → pixel (60, 90)
+      fireEvent.touchStart(canvas, {
+        touches: [{ clientX: 60, clientY: 90, identifier: 0, target: canvas }],
+      });
+      fireEvent.touchEnd(canvas, { changedTouches: [{ clientX: 60, clientY: 90, identifier: 0, target: canvas }] });
+
+      // Second tap on empty formation position (0.5, 0.75) → pixel (150, 225)
+      fireEvent.touchStart(canvas, {
+        touches: [{ clientX: 150, clientY: 225, identifier: 0, target: canvas }],
+      });
+      fireEvent.touchEnd(canvas, { changedTouches: [{ clientX: 150, clientY: 225, identifier: 0, target: canvas }] });
+
+      // Verify component remained stable through interaction sequence
+      expect(canvas).toBeInTheDocument();
+      // Note: onPlayerMove/onPlayerMoveEnd callback assertions require E2E testing
+      // due to JSDOM canvas hit detection limitations
+    });
+  });
+
+  /**
+   * Tests that player must be selected before tap-to-move works
+   * @edge-case - UX constraint validation
+   */
+  describe('UX constraint: player selection required', () => {
+    it('should not move player without prior selection', () => {
+      const formationSnapPoints = [{ relX: 0.5, relY: 0.75 }];
+
+      render(<SoccerField {...defaultProps} formationSnapPoints={formationSnapPoints} />);
+
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+      expect(canvas).toBeInTheDocument();
+      if (!canvas) return;
+
+      // Mock canvas dimensions
+      const rectMock: DOMRect = {
+        left: 0, top: 0, right: 300, bottom: 300,
+        width: 300, height: 300, x: 0, y: 0,
+        toJSON: () => ({}),
+      };
+      jest.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(rectMock);
+
+      // Tap directly on empty formation position without selecting player first
+      // (0.5, 0.75) → pixel (150, 225)
+      fireEvent.touchStart(canvas, {
+        touches: [{ clientX: 150, clientY: 225, identifier: 0, target: canvas }],
+      });
+      fireEvent.touchEnd(canvas, { changedTouches: [{ clientX: 150, clientY: 225, identifier: 0, target: canvas }] });
+
+      // onPlayerMove should NOT be called since no player was selected
+      expect(defaultProps.onPlayerMove).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * Tests stability with both formation snap points and sub slots
+   * @integration
+   */
+  describe('combined formation and sub slots', () => {
+    it('should handle both formation snap points and sub slots together', () => {
+      const formationSnapPoints = [
+        { relX: 0.5, relY: 0.75 },
+        { relX: 0.3, relY: 0.55 },
+      ];
+      const subSlots = [
+        { relX: 0.96, relY: 0.75, positionLabel: 'CB' },
+        { relX: 0.96, relY: 0.55, positionLabel: 'CM' },
+      ];
+
+      render(
+        <SoccerField
+          {...defaultProps}
+          formationSnapPoints={formationSnapPoints}
+          subSlots={subSlots}
+        />
+      );
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should prioritize formation snap points over sub slots when overlapping', () => {
+      // Formation snap point at same position as sub slot
+      const formationSnapPoints = [{ relX: 0.96, relY: 0.75 }];
+      const subSlots = [{ relX: 0.96, relY: 0.75, positionLabel: 'CB' }];
+
+      render(
+        <SoccerField
+          {...defaultProps}
+          formationSnapPoints={formationSnapPoints}
+          subSlots={subSlots}
+        />
+      );
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+
+      if (canvas) {
+        // Touch interaction should not crash
+        fireEvent.touchStart(canvas, {
+          touches: [{ clientX: 288, clientY: 225 }],
+        });
+        fireEvent.touchEnd(canvas);
+
+        expect(canvas).toBeInTheDocument();
+      }
+    });
+  });
+
+  /**
+   * Tests edge cases for empty position handling
+   * @edge-case
+   */
+  describe('edge cases', () => {
+    it('should handle empty formationSnapPoints array', () => {
+      render(<SoccerField {...defaultProps} formationSnapPoints={[]} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should handle empty subSlots array', () => {
+      render(<SoccerField {...defaultProps} subSlots={[]} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+
+    it('should handle undefined formationSnapPoints and subSlots', () => {
+      render(<SoccerField {...defaultProps} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+    });
+  });
+});

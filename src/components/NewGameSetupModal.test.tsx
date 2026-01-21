@@ -25,7 +25,7 @@ const translations: { [key: string]: string } = {
   'newGameSetupModal.playersSelected': 'selected',
   'newGameSetupModal.selectAll': 'Select All',
   'common.cancel': 'Cancel',
-  'newGameSetupModal.confirmButton': 'Confirm & Start Game',
+  'newGameSetupModal.createGame': 'Create Game',
   'newGameSetupModal.errorHomeTeamRequired': 'Home Team Name is required.',
   'newGameSetupModal.unplayedToggle': 'Not played yet',
   // Level translations for series
@@ -169,7 +169,7 @@ describe('NewGameSetupModal', () => {
     fireEvent.change(homeTeamInput, { target: { value: 'New Team Name' } });
     const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
-    const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+    const startButton = screen.getByRole('button', { name: /Create Game/i });
     
     await act(async () => {
         fireEvent.click(startButton);
@@ -210,7 +210,7 @@ describe('NewGameSetupModal', () => {
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
     const toggle = screen.getByLabelText(translations['newGameSetupModal.unplayedToggle']);
     fireEvent.click(toggle);
-    const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+    const startButton = screen.getByRole('button', { name: /Create Game/i });
     await act(async () => {
         fireEvent.click(startButton);
     });
@@ -243,7 +243,7 @@ describe('NewGameSetupModal', () => {
     fireEvent.change(homeTeamInput, { target: { value: '' } });
     const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
-    const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+    const startButton = screen.getByRole('button', { name: /Create Game/i });
 
     await act(async () => {
         fireEvent.click(startButton);
@@ -352,7 +352,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Submit the form
-      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      const startButton = screen.getByRole('button', { name: /Create Game/i });
       await act(async () => {
         fireEvent.click(startButton);
       });
@@ -469,7 +469,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Submit the form
-      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      const startButton = screen.getByRole('button', { name: /Create Game/i });
       await act(async () => {
         fireEvent.click(startButton);
       });
@@ -723,7 +723,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Submit the form
-      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      const startButton = screen.getByRole('button', { name: /Create Game/i });
       await act(async () => {
         fireEvent.click(startButton);
       });
@@ -802,7 +802,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Submit the form
-      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      const startButton = screen.getByRole('button', { name: /Create Game/i });
       await act(async () => {
         fireEvent.click(startButton);
       });
@@ -927,7 +927,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Submit without entering custom league name
-      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      const startButton = screen.getByRole('button', { name: /Create Game/i });
       await act(async () => {
         fireEvent.click(startButton);
       });
@@ -1076,7 +1076,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Submit the form
-      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      const startButton = screen.getByRole('button', { name: /Create Game/i });
       await act(async () => {
         fireEvent.click(startButton);
       });

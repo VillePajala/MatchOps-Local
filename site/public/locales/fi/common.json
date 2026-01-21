@@ -44,25 +44,6 @@
         "title": "Datan hallinta",
         "desc": "Luo varmuuskopio datastasi ja palauta sovelluksen tila tiedostosta tarvittaessa."
       }
-    },
-    "foundation": {
-      "title": "Erilainen lähestymistapa",
-      "offline": {
-        "title": "Toimii ilman nettiyhteyttä",
-        "desc": ""
-      },
-      "private": {
-        "title": "Data tallentuu vain laitteellesi",
-        "desc": ""
-      },
-      "backup": {
-        "title": "Varmuuskopioi tietosi",
-        "desc": ""
-      },
-      "i18n": {
-        "title": "Englannin ja suomen kielen tuki",
-        "desc": ""
-      }
     }
   },
   "seo": {
@@ -76,7 +57,7 @@
     }
   },
   "footer": {
-    "tagline": "Jalkapallovalmentajan mobiilisovellus, jossa yksityisyytesi on turvassa.",
+    "tagline": "Jalkapallo- ja futsalvalmentajan työkalu. Taktiikkataulu, pelikello, pelaajarotaatiot ja ottelutilastot.",
     "home": "Etusivu",
     "navigation": "Navigaatio",
     "legal": "Juridiikka",
@@ -272,7 +253,7 @@
     "faq": {
       "title": "Yleisiä kysymyksiä",
       "q1": "Miten asennan sovelluksen?",
-      "a1": "Avaa sovellus selaimellasi [Linkki tulossa pian]. Sovellus kysyy haluatko asentaa sen - napauta vain 'Asenna'.",
+      "a1": "Sovellus on saatavilla Google Playsta. Olemme parhaillaan betatestausvaiheessa - pyydä pääsy alla olevalla yhteydenottopainikkeella tai lähetä kysely osoitteeseen hello@match-ops.com.",
       "q2": "Mihin tietoni tallennetaan?",
       "a2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Mitään ei lähetetä ulkoisille palvelimille.",
       "q3": "Voinko käyttää useammalla laitteella?",
@@ -293,7 +274,7 @@
       "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa."
     },
     "cta": {
-      "title": "Rajoitettu testaus käynnissä. Yhteydenotot: hello@match‑ops.com"
+      "title": "Sovellus on betatestausvaiheessa. Ota yhteyttä päästäksesi mukaan."
     }
   },
   "screenshots": {
@@ -329,8 +310,10 @@
       "screenshotsLanguage": "Kuvakaappausten kieli:"
     },
     "taglines": {
-      "power": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot — yhdessä sovelluksessa.",
-      "memorable": "Jokainen peli jää muistiin.",
+      "power": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot yhdessä sovelluksessa.",
+      "powerLine1": "Taktiikkataulu, sekuntikello, muistivihko ja tilastot",
+      "powerLine2": "yhdessä sovelluksessa.",
+      "memorable": "Yksikään peli ei unohdu.",
       "toolkit": "Ottelupäivän työkalut",
       "threePillars": "Suunnittele · Kirjaa · Arvioi"
     },
@@ -465,25 +448,50 @@
       "formations": "Pikamuodostelmat",
       "formationsDesc": "Aseta joukkue sekunneissa valmiilla muodostelmapohjilla. Napsauta pelaajat paikoilleen yhdellä kosketuksella.",
       "roster": "Pelaajarekisteri",
-      "rosterDesc": "Hallitse pelaajatietoja: pelinumerot, omat värit ja muistiinpanot. Merkitse maalivahdit ja seuraa saatavuutta.",
-      "assessment": "Pelaajaarviointi",
-      "assessmentDesc": "Arvioi pelaajia 10 mittarilla: intensiteetti, tekniikka, päätöksenteko, joukkuepeli ja muut. Rakenna kattava pelaajaprofiili.",
-      "trends": "Kehityskäyrät",
-      "trendsDesc": "Seuraa pelaajien kehitystä visuaalisilla kaavioilla. Näe maalien, syöttöjen ja arvioiden kehitys kauden aikana.",
-      "seasons": "Kausihallinta",
-      "seasonsDesc": "Organisoi koko kausi. Seuraa sijoituksia ja palkintoja. Suomen sarjat valmiina.",
+      "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
+      "assessment": "Pelisuoritus",
+      "assessmentDesc": "Arvioi pelaajien ottelusuoritukset 10 mittarilla: intensiteetti, tekniikka, päätöksenteko, joukkuepeli ja muut.",
+      "trends": "Trendit",
+      "trendsDesc": "Seuraa ottelusuoritusten kehitystä visuaalisilla kaavioilla. Näe maalien, syöttöjen ja arvioiden trendit kauden aikana.",
+      "seasons": "Kausikeskus",
+      "seasonsDesc": "Luo ja hallitse sarjoja. Yhdistä pelit sarjoihin ja seuraa sarjan tilastoja.",
       "tournaments": "Turnauskeskus",
-      "tournamentsDesc": "Hallitse monitasoisia turnauksia. Seuraa joukkueiden sijoituksia ja palkitse turnauksen paras pelaaja.",
+      "tournamentsDesc": "Hallitse monitasoisia turnauksia. Kirjaa joukkueiden sijoitukset ja tarkastele turnauksen tilastoja.",
       "teams": "Joukkueet",
-      "teamsDesc": "Luo ja hallitse useita joukkueita. Sido joukkueet kausiin ja turnauksiin järjestelmällistä seurantaa varten.",
+      "teamsDesc": "Luo ja hallitse useita joukkueita. Liitä joukkueet kausiin ja turnauksiin järjestelmällistä tilastointia varten.",
       "archive": "Pelihistoria",
       "archiveDesc": "Selaa kaikkia tallennettuja pelejä. Hae vastustajan nimellä, suodata kauden tai turnauksen mukaan. Täydellinen pelihistoriasi.",
-      "goalTimeline": "Maalitapahtumat",
-      "goalTimelineDesc": "Kirjaa jokainen maali aikaleimalla. Merkitse maalintekijä ja syöttäjä. Rakenna täydelliset ottelutiedot.",
-      "excelExport": "Excel-raportit",
-      "excelExportDesc": "Vie tilastot Exceliin. Yksittäisen pelin raportit tai koko kauden yhteenvedot. Tietosi, sinun tavallasi.",
-      "personnel": "Valmennustiimi",
-      "personnelDesc": "Hallitse valmennustiimiäsi. Seuraa rooleja, yhteystietoja ja pätevyyksiä kaikille tiimin jäsenille."
+      "goalTimeline": "Otteluloki",
+      "goalTimelineDesc": "Napauta kirjataksesi maalintekijät ja syöttäjät. Aikaleimat ja ottelutiedot rakentuvat automaattisesti.",
+      "excelExport": "Raportit",
+      "excelExportDesc": "Vie tilastot Exceliin. Raportit pelaajista, kilpailuista, yksittäisistä otteluista tai joukkueista.",
+      "personnel": "Taustat",
+      "personnelDesc": "Pidä kirjaa taustahenkilöistä. Tallenna roolit ja yhteystiedot.",
+      "futsal": "Futsal",
+      "futsalDesc": "Futsal-kenttänäkymä ja -pelimuotomerkintä tilastointia ja suodatusta varten.",
+      "officialRules": "Viralliset säännöt",
+      "officialRulesDesc": "Pikalinkit Palloliiton virallisiin jalkapallo- ja futsal-sääntöihin."
+    },
+    "techCards": {
+      "development": "KEHITYS",
+      "techStats": "TEKNISTÄ",
+      "quality": "LAATU",
+      "aiPowered": "100% tekoälyrakennettu",
+      "aiPoweredDesc": "Ei käsin kirjoitettua koodia. Rakennettu Claude Codella, Cursorilla ja Codexilla. Jopa nämä markkinointimateriaalit.",
+      "linesOfCode": "200 000+ riviä",
+      "linesOfCodeDesc": "66K riviä testejä, 60K riviä lähdekoodia, 75K riviä dokumentaatiota.",
+      "testCoverage": "3 200+ testiä",
+      "testCoverageDesc": "182 testisettiä. Toimivuus tarkastetaan testein automaattisesti jokaisen muutoksen yhteydessä.",
+      "techStack": "Uusin teknologia",
+      "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, asennettava, automaattipäivitykset.",
+      "documentation": "75K riviä kontekstia",
+      "documentationDesc": "Tekoälyavustajat tarvitsevat kontekstia pysyäkseen johdonmukaisina. Dokumentaatio toimii projektin pysyvänä muistina istuntojen välillä.",
+      "architecture": "Selkeä arkkitehtuuri",
+      "architectureDesc": "71 komponenttia, 26 hookkia. Selkeä erottelu: käyttöliittymä, logiikka ja data.",
+      "codeQuality": "Yritystason laatu",
+      "codeQualityDesc": "ESLint käytössä, TypeScript tiukka tila, Sentry-seuranta, saavutettavuustestattu.",
+      "cicd": "Automatisoitu CI/CD",
+      "cicdDesc": "Lint, tyypit, 3200+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Autom. julkaisu."
     }
   }
 }

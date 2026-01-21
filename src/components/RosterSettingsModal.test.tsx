@@ -237,7 +237,7 @@ describe('<RosterSettingsModal />', () => {
     // Click Remove in the confirmation modal (not the Delete buttons)
     const allButtons = screen.getAllByRole('button');
     const removeButton = allButtons.find(btn =>
-      btn.textContent === 'Remove' && btn.className.includes('bg-gradient-to-b')
+      btn.textContent === 'Remove' && btn.className.includes('bg-red-600')
     );
     fireEvent.click(removeButton!);
 

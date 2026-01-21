@@ -1,9 +1,83 @@
+import React from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import type { GetStaticProps } from 'next';
+import { toPng } from 'html-to-image';
+import { PhoneMockup, GlowBg } from '@/components/marketing';
+
+// Section navigation data
+const SECTIONS = [
+  { id: 'linkedin-personal', label: 'LinkedIn Personal' },
+  { id: 'linkedin-company', label: 'LinkedIn Company' },
+  { id: 'linkedin-posts', label: 'LinkedIn Posts' },
+  { id: 'twitter', label: 'Twitter/X' },
+  { id: 'facebook', label: 'Facebook' },
+  { id: 'opengraph', label: 'Open Graph' },
+  { id: 'instagram-posts', label: 'Instagram Posts' },
+  { id: 'instagram-stories', label: 'Instagram Stories' },
+  { id: 'appstore', label: 'App Store' },
+  { id: 'cards', label: 'Cards' },
+  { id: 'tech-stats', label: 'Tech Stats' },
+  { id: 'logos', label: 'Logos' },
+  { id: 'heroes', label: 'Heroes' },
+];
+
+// Floating navigation for mobile
+function FloatingNav({ locale, onLocaleChange }: { locale: string; onLocaleChange: (locale: string) => void }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 md:hidden">
+      {/* Expanded menu */}
+      {isOpen && (
+        <div className="absolute bottom-14 right-0 bg-slate-800 rounded-lg shadow-xl border border-slate-700 p-3 min-w-[200px]">
+          {/* Language switcher */}
+          <div className="flex gap-2 mb-3 pb-3 border-b border-slate-700">
+            <button
+              onClick={() => onLocaleChange('en')}
+              className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                locale === 'en' ? 'bg-primary text-black' : 'bg-slate-700 text-gray-300'
+              }`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => onLocaleChange('fi')}
+              className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                locale === 'fi' ? 'bg-primary text-black' : 'bg-slate-700 text-gray-300'
+              }`}
+            >
+              FI
+            </button>
+          </div>
+          {/* Section links */}
+          <div className="space-y-1 max-h-[50vh] overflow-y-auto">
+            {SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                onClick={() => setIsOpen(false)}
+                className="block px-3 py-2 text-sm text-gray-300 hover:bg-slate-700 rounded transition-colors"
+              >
+                {section.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Toggle button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-12 h-12 bg-primary text-slate-900 rounded-full shadow-lg flex items-center justify-center text-xl font-bold"
+      >
+        {isOpen ? '×' : '☰'}
+      </button>
+    </div>
+  );
+}
 
 // Language-aware screenshot paths
 const getScreenshots = (locale: string | undefined) => {
@@ -67,76 +141,7 @@ const FORMATS = {
   appStoreFeature: { width: 1024, height: 500, name: 'App Store Feature Graphic' },
 };
 
-// Phone mockup component with CSS styling
-function PhoneMockup({
-  screenshot,
-  size = 'md',
-  className = '',
-  style = {},
-  zIndex = 0,
-  imageFilter = 'contrast(1.075) saturate(1.025)',
-}: {
-  screenshot: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-  className?: string;
-  style?: React.CSSProperties;
-  zIndex?: number;
-  imageFilter?: string;
-}) {
-  const sizes = {
-    xs: { width: 60, height: 130 },
-    sm: { width: 80, height: 173 },
-    md: { width: 120, height: 260 },
-    lg: { width: 160, height: 347 },
-    xl: { width: 200, height: 433 },
-    '2xl': { width: 240, height: 520 },
-  };
-
-  const { width, height } = sizes[size];
-  const borderRadius = size === 'xs' ? '1rem' : size === 'sm' ? '1.25rem' : '1.5rem';
-  const innerRadius = size === 'xs' ? '0.75rem' : size === 'sm' ? '1rem' : '1.25rem';
-
-  return (
-    <div
-      className={`relative ${className}`}
-      style={{
-        width: width + 8,
-        height: height + 8,
-        background: 'linear-gradient(145deg, #3a3a3a, #1a1a1a)',
-        borderRadius,
-        padding: '4px',
-        boxShadow: `
-          0 0 0 1px rgba(255,255,255,0.1),
-          0 25px 50px -12px rgba(0,0,0,0.7),
-          0 0 60px -15px rgba(245, 158, 11, 0.2),
-          inset 0 1px 1px rgba(255,255,255,0.1)
-        `,
-        zIndex,
-        ...style,
-      }}
-    >
-      {/* Camera hole */}
-      {size !== 'xs' && (
-        <div
-          className="absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-gray-800"
-          style={{
-            width: size === 'sm' ? 4 : 6,
-            height: size === 'sm' ? 4 : 6,
-            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.5)',
-            zIndex: 10,
-          }}
-        />
-      )}
-      {/* Screen */}
-      <div
-        className="relative w-full h-full overflow-hidden bg-black"
-        style={{ borderRadius: innerRadius, filter: imageFilter || undefined }}
-      >
-        <Image src={screenshot} alt="App screenshot" fill className="object-cover" />
-      </div>
-    </div>
-  );
-}
+// PhoneMockup imported from @/components/marketing
 
 // Three phones arrangement - balanced sizes, aligned (no stagger)
 function ThreePhonesBalanced({
@@ -243,8 +248,36 @@ function AssetContainer({
   className?: string;
   scale?: number;
 }) {
+  const [isDownloading, setIsDownloading] = React.useState(false);
   const displayWidth = width * scale;
   const displayHeight = height * scale;
+
+  const handleDownload = async () => {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    setIsDownloading(true);
+    try {
+      // Wait for fonts to load
+      await document.fonts.ready;
+
+      const dataUrl = await toPng(element, {
+        width: width,
+        height: height,
+        pixelRatio: window.devicePixelRatio || 1,
+        cacheBust: true,
+      });
+
+      const link = document.createElement('a');
+      link.download = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Failed to download asset:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="mb-12">
@@ -256,6 +289,13 @@ function AssetContainer({
             {width} × {height}px {scale !== 1 && `(${Math.round(scale * 100)}% scale)`}
           </p>
         </div>
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="ml-auto px-3 py-1.5 bg-primary text-slate-900 text-sm font-semibold rounded hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isDownloading ? 'Downloading...' : 'Download PNG'}
+        </button>
       </div>
       <div
         id={id}
@@ -264,6 +304,7 @@ function AssetContainer({
           width: displayWidth,
           height: displayHeight,
           overflow: 'hidden',
+          borderRadius: 0,
         }}
       >
         {children}
@@ -360,41 +401,7 @@ function SiteUrl({
   return <span className={`${sizes[size]} ${colors[variant]} ${className}`}>match-ops.com</span>;
 }
 
-// Glow effect background
-function GlowBg({
-  color = 'primary',
-  position = 'center',
-  size = 'lg',
-  blur = 100,
-}: {
-  color?: 'primary' | 'amber' | 'blue' | 'green';
-  position?: 'center' | 'top-right' | 'bottom-left' | 'top-left' | 'bottom-right' | 'bottom-center';
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  blur?: number;
-}) {
-  const colors = {
-    primary: 'bg-primary/20',
-    amber: 'bg-amber-500/15',
-    blue: 'bg-blue-500/15',
-    green: 'bg-green-500/15',
-  };
-  const sizes = { sm: 300, md: 500, lg: 700, xl: 900 };
-  const positions = {
-    center: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-    'top-right': 'top-0 right-0 translate-x-1/4 -translate-y-1/4',
-    'bottom-left': 'bottom-0 left-0 -translate-x-1/4 translate-y-1/4',
-    'top-left': 'top-0 left-0 -translate-x-1/4 -translate-y-1/4',
-    'bottom-right': 'bottom-0 right-0 translate-x-1/4 translate-y-1/4',
-    'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/4',
-  };
-
-  return (
-    <div
-      className={`absolute ${positions[position]} ${colors[color]} rounded-full`}
-      style={{ width: sizes[size], height: sizes[size], filter: `blur(${blur}px)` }}
-    />
-  );
-}
+// GlowBg imported from @/components/marketing
 
 export default function MarketingAssets() {
   const router = useRouter();
@@ -407,6 +414,12 @@ export default function MarketingAssets() {
         <title>{t('marketing.page.title')} - MatchOps Local</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
+
+      {/* Floating navigation for mobile */}
+      <FloatingNav
+        locale={router.locale || 'en'}
+        onLocaleChange={(locale) => router.push(router.pathname, router.asPath, { locale })}
+      />
 
       <div className="min-h-screen bg-gray-950 py-12 px-8">
         <div className="max-w-[2800px] mx-auto">
@@ -447,12 +460,25 @@ export default function MarketingAssets() {
                 FI
               </button>
             </div>
+
+            {/* Section navigation */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              {SECTIONS.map((section) => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  className="px-3 py-1.5 bg-slate-800 text-gray-300 text-sm rounded hover:bg-slate-700 transition-colors"
+                >
+                  {section.label}
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* ============================================ */}
           {/* LINKEDIN PERSONAL BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="linkedin-personal" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               LinkedIn Personal Banners (1584×396)
             </h2>
@@ -742,7 +768,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* LINKEDIN COMPANY BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="linkedin-company" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               LinkedIn Company Banners (1128×191)
             </h2>
@@ -792,9 +818,342 @@ export default function MarketingAssets() {
           </section>
 
           {/* ============================================ */}
+          {/* LINKEDIN POSTS - 5 Phone Showcase */}
+          {/* ============================================ */}
+          <section id="linkedin-posts" className="mb-24 scroll-mt-8">
+            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+              LinkedIn Posts - 5 Phone Showcase (1200×628)
+            </h2>
+            <p className="text-gray-400 mb-8">
+              Five key screens: Soccer Field, Timer, Player Stats, Tactical Board, Goal Timeline
+            </p>
+
+            <div className="space-y-8">
+              {/* Layout 1: Arc/Fan - center phone largest, others smaller radiating out */}
+              <AssetContainer id="li-post-arc" width={1200} height={628} name="LinkedIn Post - Arc Layout">
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Ambient glows - like front page hero */}
+                  <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[300px] h-[300px] bg-amber-500/15 rounded-full blur-[130px]" />
+
+                  {/* 5 phones in arc arrangement - shifted up */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    {/* Phone 1: Tactical Board - far left, tilted */}
+                    <PhoneMockup
+                      screenshot={screenshots.tacticalBoard}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        left: '8%',
+                        top: '48%',
+                        transform: 'translateY(-50%) rotate(-8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                    {/* Phone 2: Player Stats - left of center */}
+                    <PhoneMockup
+                      screenshot={screenshots.playerstats}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        left: '22%',
+                        top: '48%',
+                        transform: 'translateY(-45%) rotate(-4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    {/* Phone 3: Soccer Field - CENTER (hero) */}
+                    <PhoneMockup
+                      screenshot={screenshots.soccerfield}
+                      size="xl"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '48%',
+                        transform: 'translate(-50%, -45%)',
+                      }}
+                      zIndex={10}
+                    />
+                    {/* Phone 4: Timer - right of center */}
+                    <PhoneMockup
+                      screenshot={screenshots.timer}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        right: '22%',
+                        top: '48%',
+                        transform: 'translateY(-45%) rotate(4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    {/* Phone 5: Goal Timeline - far right, tilted */}
+                    <PhoneMockup
+                      screenshot={screenshots.goalTimeline}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        right: '8%',
+                        top: '48%',
+                        transform: 'translateY(-50%) rotate(8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-8 left-0 right-0 flex justify-center z-20">
+                    <TitleText size="2xl" />
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                  </div>
+                  <div className="absolute bottom-6 right-8 z-20">
+                    <SiteUrl size="md" variant="yellow" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Layout 1b: Arc Tight - phones closer together */}
+              <AssetContainer id="li-post-arc-tight" width={1200} height={628} name="LinkedIn Post - Arc Tight">
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Ambient glows - like front page hero */}
+                  <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[300px] h-[300px] bg-amber-500/15 rounded-full blur-[130px]" />
+
+                  {/* 5 phones in arc arrangement - tighter spacing */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    {/* Phone 1: Tactical Board - far left, tilted */}
+                    <PhoneMockup
+                      screenshot={screenshots.tacticalBoard}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        left: '14%',
+                        top: '48%',
+                        transform: 'translateY(-50%) rotate(-8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                    {/* Phone 2: Player Stats - left of center */}
+                    <PhoneMockup
+                      screenshot={screenshots.playerstats}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        left: '26%',
+                        top: '48%',
+                        transform: 'translateY(-45%) rotate(-4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    {/* Phone 3: Soccer Field - CENTER (hero) */}
+                    <PhoneMockup
+                      screenshot={screenshots.soccerfield}
+                      size="xl"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '48%',
+                        transform: 'translate(-50%, -45%)',
+                      }}
+                      zIndex={10}
+                    />
+                    {/* Phone 4: Timer - right of center */}
+                    <PhoneMockup
+                      screenshot={screenshots.timer}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        right: '26%',
+                        top: '48%',
+                        transform: 'translateY(-45%) rotate(4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    {/* Phone 5: Goal Timeline - far right, tilted */}
+                    <PhoneMockup
+                      screenshot={screenshots.goalTimeline}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        right: '14%',
+                        top: '48%',
+                        transform: 'translateY(-50%) rotate(8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-8 left-0 right-0 flex justify-center z-20">
+                    <TitleText size="2xl" />
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                  </div>
+                  <div className="absolute bottom-6 right-8 z-20">
+                    <SiteUrl size="md" variant="yellow" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Layout 1c: Uniform Row - all phones same size, straight line */}
+              <AssetContainer id="li-post-uniform" width={1200} height={628} name="LinkedIn Post - Uniform Row">
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Ambient glows - like front page hero */}
+                  <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[300px] h-[300px] bg-amber-500/15 rounded-full blur-[130px]" />
+
+                  {/* 5 phones in uniform row with labels */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center gap-4 pt-12" style={{ transform: 'scale(0.92)' }}>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.tacticalBoard} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Tactics</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Stats</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Lineup</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.timer} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Timer</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.goalTimeline} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Events</span>
+                    </div>
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-8 left-0 right-0 flex justify-center z-20">
+                    <TitleText size="2xl" />
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                  </div>
+                  <div className="absolute bottom-6 right-8 z-20">
+                    <SiteUrl size="md" variant="yellow" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Layout 2: Staggered Row - hero center-raised, others at baseline */}
+              <AssetContainer id="li-post-staggered" width={1200} height={628} name="LinkedIn Post - Staggered Row">
+                <div className="w-full h-full bg-gradient-to-b from-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Spotlight glow under phones */}
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[900px] h-[300px] bg-primary/8 rounded-full blur-[80px]" />
+
+                  {/* 5 phones in staggered row */}
+                  <div className="relative z-10 w-full h-full flex items-end justify-center pb-8 gap-[-20px]">
+                    {/* Phone 1: Tactical Board */}
+                    <PhoneMockup
+                      screenshot={screenshots.tacticalBoard}
+                      size="lg"
+                      style={{ marginRight: -15, marginBottom: 20 }}
+                      zIndex={1}
+                    />
+                    {/* Phone 2: Player Stats */}
+                    <PhoneMockup
+                      screenshot={screenshots.playerstats}
+                      size="lg"
+                      style={{ marginRight: -20, marginBottom: 40 }}
+                      zIndex={2}
+                    />
+                    {/* Phone 3: Soccer Field - CENTER (hero, raised) */}
+                    <PhoneMockup
+                      screenshot={screenshots.soccerfield}
+                      size="xl"
+                      style={{ marginBottom: 60 }}
+                      zIndex={10}
+                    />
+                    {/* Phone 4: Timer */}
+                    <PhoneMockup
+                      screenshot={screenshots.timer}
+                      size="lg"
+                      style={{ marginLeft: -20, marginBottom: 40 }}
+                      zIndex={2}
+                    />
+                    {/* Phone 5: Goal Timeline */}
+                    <PhoneMockup
+                      screenshot={screenshots.goalTimeline}
+                      size="lg"
+                      style={{ marginLeft: -15, marginBottom: 20 }}
+                      zIndex={1}
+                    />
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-6 left-8 flex items-center gap-3 z-20">
+                    <Logo size={40} />
+                    <div>
+                      <TitleText size="md" />
+                      <p className="text-gray-400 text-sm">Local-first soccer coaching</p>
+                    </div>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* Layout 3: Two Rows - 3 top, 2 bottom */}
+              <AssetContainer id="li-post-grid" width={1200} height={628} name="LinkedIn Post - Two Rows">
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 to-slate-900 relative overflow-hidden">
+                  {/* Diagonal accent */}
+                  <div className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[60px]" />
+                  <div className="absolute -bottom-20 -left-20 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[60px]" />
+
+                  {/* Left side: branding */}
+                  <div className="absolute left-10 top-1/2 -translate-y-1/2 z-20 max-w-[280px]">
+                    <Logo size={50} className="mb-4" />
+                    <TitleText size="lg" className="block mb-2" />
+                    <p className="text-gray-300 text-lg mb-4">Every game remembered.</p>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-gray-400 text-sm flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                        Works Offline
+                      </span>
+                      <span className="text-gray-400 text-sm flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                        No Signup Required
+                      </span>
+                      <span className="text-gray-400 text-sm flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                        Data Stays Private
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right side: phones in 2 rows */}
+                  <div className="absolute right-8 top-1/2 -translate-y-1/2 z-10">
+                    {/* Top row: 3 phones */}
+                    <div className="flex items-end gap-2 mb-2">
+                      <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={3} />
+                      <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={2} />
+                      <PhoneMockup screenshot={screenshots.tacticalBoard} size="lg" zIndex={1} />
+                    </div>
+                    {/* Bottom row: 2 phones, centered */}
+                    <div className="flex items-start gap-2 justify-center">
+                      <PhoneMockup screenshot={screenshots.playerstats} size="md" zIndex={2} />
+                      <PhoneMockup screenshot={screenshots.goalTimeline} size="md" zIndex={1} />
+                    </div>
+                  </div>
+                </div>
+              </AssetContainer>
+            </div>
+          </section>
+
+          {/* ============================================ */}
           {/* TWITTER/X HEADERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="twitter" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Twitter/X Headers (1500×500)
             </h2>
@@ -992,7 +1351,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* FACEBOOK COVERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="facebook" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Facebook Covers (820×312)
             </h2>
@@ -1070,7 +1429,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* OPEN GRAPH / SOCIAL SHARE */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="opengraph" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Open Graph / Social Share (1200×630)
             </h2>
@@ -1280,7 +1639,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* INSTAGRAM POSTS (SQUARE) */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="instagram-posts" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Instagram Posts (1080×1080)
             </h2>
@@ -1631,7 +1990,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* INSTAGRAM STORIES */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="instagram-stories" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Instagram Stories (1080×1920)
             </h2>
@@ -1783,7 +2142,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* APP STORE FEATURE GRAPHICS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="appstore" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               App Store Feature Graphics (1024×500)
             </h2>
@@ -1898,7 +2257,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* PROMOTIONAL CARDS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="cards" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Promotional Cards (Various Sizes)
             </h2>
@@ -2005,58 +2364,171 @@ export default function MarketingAssets() {
               </AssetContainer>
             </div>
 
-            {/* ===== STANDALONE FEATURE CARDS ===== */}
-            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Standalone Feature Cards</h3>
+            {/* ===== STANDALONE INTRO CARD ===== */}
+            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Standalone Intro Card</h3>
             <div className="flex flex-wrap gap-8">
-              {/* Feature cards */}
-              <AssetContainer id="card-plan" width={600} height={400} name="Feature Card - Plan">
+              {/* Intro card */}
+              <AssetContainer id="card-intro" width={600} height={400} name="Feature Card - Intro">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.planYourLineup')}</h3>
+                  <div className="w-[55%] flex flex-col justify-center pr-6">
+                    <div className="text-primary text-sm font-semibold mb-2 uppercase">{t('marketing.cards.introducing')}</div>
+                    <h3 className="text-3xl font-bold mb-3">
+                      <span className="font-rajdhani text-primary">MatchOps Local</span><br />
+                      <span className="text-white">{t('marketing.cards.forCoaches')}</span>
+                    </h3>
                     <p className="text-gray-400 mb-3">
-                      {t('marketing.descriptions.fieldDesc')}
+                      {t('marketing.taglines.powerLine1')}<br />
+                      {t('marketing.taglines.powerLine2')}
                     </p>
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
-                  <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot={screenshots.soccerfield} size="lg" zIndex={10} />
+                  <div className="w-[45%] flex items-center justify-center">
+                    <ThreePhonesBalanced sideSize="sm" middleSize="md" overlap={40} screenshots={screenshots} />
                   </div>
                 </div>
               </AssetContainer>
 
-              <AssetContainer id="card-track" width={600} height={400} name="Feature Card - Track">
+            </div>
+
+            {/* ===== TECH SHOWCASE CARDS (Developer Audience) ===== */}
+            <h3 id="tech-stats" className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2 scroll-mt-8">Tech Showcase Cards (8 cards)</h3>
+            <div className="flex flex-wrap gap-8">
+              {/* 1. AI-Powered Development */}
+              <AssetContainer id="card-ai-powered" width={600} height={400} name="Technical Card - AI Powered">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.trackLiveGames')}</h3>
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.development')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.aiPowered')}</h3>
                     <p className="text-gray-400 mb-3">
-                      {t('marketing.descriptions.timerDesc')}
+                      {t('marketing.techCards.aiPoweredDesc')}
                     </p>
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot={screenshots.timer} size="lg" zIndex={10} />
+                    <span className="text-8xl font-bold text-primary font-rajdhani">100%</span>
                   </div>
                 </div>
               </AssetContainer>
 
-              <AssetContainer id="card-stats" width={600} height={400} name="Feature Card - Statistics">
+              {/* 2. Lines of Code */}
+              <AssetContainer id="card-lines-of-code" width={600} height={400} name="Technical Card - Lines of Code">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.ui.reviewStatistics')}</h3>
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.linesOfCode')}</h3>
                     <p className="text-gray-400 mb-3">
-                      {t('marketing.descriptions.statsDesc')}
+                      {t('marketing.techCards.linesOfCodeDesc')}
                     </p>
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup
-                      screenshot={screenshots.playerstats}
-                      size="lg"
-                      zIndex={10}
-                    />
+                    <span className="text-8xl font-bold text-primary font-rajdhani">210K</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 3. Test Coverage */}
+              <AssetContainer id="card-test-coverage" width={600} height={400} name="Technical Card - Test Coverage">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.quality')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.testCoverage')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.testCoverageDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <span className="text-7xl font-bold text-primary font-rajdhani">3,200+</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 4. Modern Tech Stack */}
+              <AssetContainer id="card-tech-stack" width={600} height={400} name="Technical Card - Tech Stack">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-[60%] flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.techStack')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.techStackDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-[40%] flex items-center justify-center flex-col">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">v19</span>
+                    <span className="text-gray-500 text-sm mt-1">React</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 5. Documentation */}
+              <AssetContainer id="card-documentation" width={600} height={400} name="Technical Card - Documentation">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.documentation')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.documentationDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">75K</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 6. Architecture */}
+              <AssetContainer id="card-architecture" width={600} height={400} name="Technical Card - Architecture">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-[60%] flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.techStats')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.architecture')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.architectureDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-[40%] flex items-center justify-center flex-col">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">71</span>
+                    <span className="text-gray-500 text-sm mt-1">components</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 7. Code Quality */}
+              <AssetContainer id="card-code-quality" width={600} height={400} name="Technical Card - Code Quality">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.quality')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.codeQuality')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.codeQualityDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center flex-col">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">100%</span>
+                    <span className="text-gray-500 text-sm mt-1">pass rate</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 8. CI/CD */}
+              <AssetContainer id="card-cicd" width={600} height={400} name="Technical Card - CI/CD">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-[60%] flex flex-col justify-center pl-6 pr-8">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.techCards.quality')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.techCards.cicd')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.techCards.cicdDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-[40%] flex items-center justify-center flex-col">
+                    <span className="text-8xl font-bold text-primary font-rajdhani">10</span>
+                    <span className="text-gray-500 text-sm mt-1">checks</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2341,7 +2813,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* LOGO LOCKUPS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="logos" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Logo Lockups
             </h2>
@@ -2403,7 +2875,7 @@ export default function MarketingAssets() {
           {/* ============================================ */}
           {/* HERO BANNERS */}
           {/* ============================================ */}
-          <section className="mb-24">
+          <section id="heroes" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
               Hero Banners (1920×600)
             </h2>

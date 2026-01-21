@@ -21,6 +21,7 @@ jest.mock('@/utils/logger', () => ({
 jest.mock('@/utils/formations', () => ({
   __esModule: true,
   calculateFormationPositions: jest.fn(() => []),
+  generateSubSlots: jest.fn(() => []),
 }));
 
 jest.mock('@/utils/appSettings', () => ({

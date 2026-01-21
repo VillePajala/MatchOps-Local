@@ -52,8 +52,8 @@ const MenuContent: React.FC<{
     ? "relative z-10 overflow-y-auto flex-1 p-6 pb-20 space-y-4"
     : "relative z-10 overflow-y-auto min-h-0 flex-1 p-2 space-y-2";
   const autoButtonClass = isMobile
-    ? "w-full px-4 py-2 text-center text-sm rounded-md font-medium transition-colors bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
-    : "w-full px-3 py-2 text-center text-sm rounded-md font-medium transition-colors bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg";
+    ? "w-full px-4 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+    : "w-full px-3 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
   const cardClass = isMobile ? "p-4 rounded-lg" : "p-2 rounded-lg";
   const sizeHeaderClass = isMobile
     ? "px-1 py-1 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2"

@@ -2182,5 +2182,24 @@
       "startMigration": "Aloita siirto",
       "done": "Valmis"
     }
+  },
+  "positions": {
+    "GK": "MV",
+    "LB": "VP",
+    "CB": "KP",
+    "RB": "OP",
+    "LDM": "VPK",
+    "CDM": "PKK",
+    "RDM": "OPK",
+    "LM": "VK",
+    "CM": "KK",
+    "RM": "OK",
+    "LAM": "VHK",
+    "CAM": "KHK",
+    "RAM": "OHK",
+    "LW": "VL",
+    "ST": "HK",
+    "RW": "OL",
+    "SUB": "VAR"
   }
 }
