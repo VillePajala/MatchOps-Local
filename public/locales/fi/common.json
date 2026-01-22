@@ -71,7 +71,8 @@
     "startNewMatchWarning": "Varmista että olet tallentanut nykyisen pelin jos haluat säilyttää sen.",
     "drawingMode": "Piirtotila",
     "resetFieldNormalTitle": "Nollataanko kenttä?",
-    "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?"
+    "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?",
+    "signOut": "Kirjaudu ulos"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -2186,6 +2187,22 @@
       "startMigration": "Aloita siirto",
       "done": "Valmis"
     }
+  },
+  "welcome": {
+    "title": "Tervetuloa!",
+    "subtitle": "Seuraa joukkueesi pelejä, pelaajia ja tilastoja",
+    "startFresh": "Aloita alusta",
+    "startFreshDesc": "Tiedot pysyvät tällä laitteella",
+    "startFreshAria": "Aloita alusta paikallisessa tilassa",
+    "signInCloud": "Kirjaudu pilveen",
+    "signInCloudDesc": "Synkronoi kaikkien laitteidesi välillä",
+    "signInCloudAria": "Kirjaudu pilvisynkronointiin",
+    "importBackup": "Tuo varmuuskopio",
+    "importBackupDesc": "Palauta viedystä tiedostosta",
+    "importBackupAria": "Tuo varmuuskopiotiedosto",
+    "importing": "Tuodaan...",
+    "importingAria": "Tuodaan varmuuskopiotiedostoa",
+    "changeInSettings": "Voit muuttaa tätä myöhemmin Asetuksissa"
   },
   "positions": {
     "GK": "MV",
