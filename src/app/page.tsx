@@ -7,10 +7,12 @@ import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
+import { useCloudUpgradeGate } from '@/hooks/useCloudUpgradeGate';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
@@ -24,10 +26,11 @@ import {
   setWelcomeSeen,
   clearWelcomeSeen,
   enableCloudMode,
+  disableCloudMode,
   isCloudAvailable,
 } from '@/config/backendConfig';
-import { hasLocalDataToMigrate } from '@/services/migrationService';
-import { hasCloudData } from '@/services/reverseMigrationService';
+import { hasLocalDataToMigrate, type MigrationCounts } from '@/services/migrationService';
+import { hasCloudData, getCloudDataSummary } from '@/services/reverseMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
 import logger from '@/utils/logger';
@@ -44,7 +47,8 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
-  const [hasSkippedMigration, setHasSkippedMigration] = useState(false);
+  const [cloudCounts, setCloudCounts] = useState<MigrationCounts | null>(null);
+  const [isLoadingCloudCounts, setIsLoadingCloudCounts] = useState(false);
   // Welcome screen state (first-install onboarding)
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
@@ -53,6 +57,14 @@ export default function Home() {
   const { showToast } = useToast();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Cloud upgrade gate - shows upgrade modal when enabling cloud without premium
+  const {
+    showModal: showCloudUpgradeModal,
+    gateCloudAction,
+    handleUpgradeSuccess: handleCloudUpgradeSuccess,
+    handleCancel: handleCloudUpgradeCancel,
+  } = useCloudUpgradeGate();
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
@@ -140,9 +152,9 @@ export default function Home() {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  // Handle "Sign In to Cloud" from welcome screen
-  const handleWelcomeSignInCloud = useCallback(() => {
-    logger.info('[page.tsx] Welcome: User chose cloud mode');
+  // Actually enable cloud mode (called after premium check passes)
+  const executeEnableCloudFromWelcome = useCallback(() => {
+    logger.info('[page.tsx] Welcome: Enabling cloud mode');
     const success = enableCloudMode();
     if (success) {
       // Cloud mode enabled - reload to re-initialize AuthProvider in cloud mode
@@ -166,6 +178,12 @@ export default function Home() {
       showToast('Cloud sync is not available', 'error');
     }
   }, [showToast]);
+
+  // Handle "Sign In to Cloud" from welcome screen - gated behind premium
+  const handleWelcomeSignInCloud = useCallback(() => {
+    logger.info('[page.tsx] Welcome: User chose cloud mode');
+    gateCloudAction(executeEnableCloudFromWelcome);
+  }, [gateCloudAction, executeEnableCloudFromWelcome]);
 
   // Handle "Import Backup" from welcome screen
   const handleWelcomeImportBackup = useCallback(async () => {
@@ -207,6 +225,60 @@ export default function Home() {
     }
   }, [showToast]);
 
+  // Handle "Back" from LoginScreen - return to WelcomeScreen
+  const handleLoginBack = useCallback(() => {
+    logger.info('[page.tsx] Login: User clicked back, returning to welcome screen');
+    setShowWelcome(true);
+  }, []);
+
+  // Handle "Use without account" from LoginScreen - switch to local mode
+  const handleLoginUseLocalMode = useCallback(() => {
+    logger.info('[page.tsx] Login: User chose local mode');
+    const result = disableCloudMode();
+    if (result.success) {
+      // Local mode enabled - reload to re-initialize AuthProvider in local mode
+      setWelcomeSeen();
+      showToast('Local mode enabled. Reloading...', 'info');
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch (error) {
+          clearWelcomeSeen();
+          logger.error('[page.tsx] Reload blocked', error);
+          showToast('Please refresh the page manually to continue', 'error');
+        }
+      }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
+    } else {
+      logger.error('[page.tsx] Failed to switch to local mode:', result.message);
+      showToast('Failed to switch to local mode', 'error');
+    }
+  }, [showToast]);
+
+  // Actually enable cloud sync (called after premium check passes)
+  const executeEnableCloudSync = useCallback(() => {
+    logger.info('[page.tsx] StartScreen: Enabling cloud sync');
+    const success = enableCloudMode();
+    if (success) {
+      showToast('Cloud mode enabled. Reloading...', 'info');
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch (error) {
+          logger.error('[page.tsx] Reload blocked', error);
+          showToast('Please refresh the page manually to continue', 'error');
+        }
+      }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
+    } else {
+      showToast('Cloud sync is not available', 'error');
+    }
+  }, [showToast]);
+
+  // Handle "Enable Cloud Sync" from StartScreen (local mode users) - gated behind premium
+  const handleEnableCloudSync = useCallback(() => {
+    logger.info('[page.tsx] StartScreen: User chose to enable cloud sync');
+    gateCloudAction(executeEnableCloudSync);
+  }, [gateCloudAction, executeEnableCloudSync]);
+
   // Re-run checkAppState when:
   // - Component mounts (initial load)
   // - refreshTrigger changes (data import, app resume)
@@ -241,9 +313,6 @@ export default function Home() {
     // Skip if check already initiated this session (ref prevents race conditions)
     if (migrationCheckInitiatedRef.current) return;
 
-    // Skip if user already skipped migration this session (read state but don't depend on it)
-    if (hasSkippedMigration) return;
-
     // Mark as initiated before async work
     migrationCheckInitiatedRef.current = true;
 
@@ -265,7 +334,19 @@ export default function Home() {
           // User can trigger migration manually from settings if needed
           logger.warn('[page.tsx] Failed to check local data:', result.error);
         } else if (result.hasData) {
-          logger.info('[page.tsx] Local data found, showing migration wizard');
+          logger.info('[page.tsx] Local data found, fetching cloud counts for migration wizard');
+          // Fetch cloud counts to determine migration scenario
+          setIsLoadingCloudCounts(true);
+          try {
+            const counts = await getCloudDataSummary();
+            setCloudCounts(counts);
+          } catch (cloudError) {
+            // Cloud fetch failed - wizard will assume cloud is empty
+            logger.warn('[page.tsx] Failed to fetch cloud counts:', cloudError);
+            setCloudCounts(null);
+          } finally {
+            setIsLoadingCloudCounts(false);
+          }
           setShowMigrationWizard(true);
         } else {
           // No local data - check if cloud has data that needs to be loaded
@@ -300,8 +381,6 @@ export default function Home() {
     };
 
     checkMigrationNeeded();
-    // Note: hasSkippedMigration is intentionally read inside but not in deps
-    // to prevent re-triggering. The ref handles race condition prevention.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, isAuthenticated, userId]);
 
@@ -330,24 +409,29 @@ export default function Home() {
     setRefreshTrigger(prev => prev + 1);
   }, [userId, queryClient]);
 
-  // Handle migration wizard skip
-  const handleMigrationSkip = useCallback(async () => {
-    // Don't mark as completed - allow user to migrate later via settings
-    // But do mark as skipped for this session so the wizard doesn't reopen immediately
-    setHasSkippedMigration(true);
+  // Handle migration wizard cancel - return to local mode
+  const handleMigrationCancel = useCallback(() => {
+    logger.info('[page.tsx] Migration cancelled, switching to local mode');
     setShowMigrationWizard(false);
+    setCloudCounts(null);
 
-    // Reset factory in case migration partially changed state
-    try {
-      await resetFactory();
-    } catch {
-      // Best effort - continue regardless
+    // Disable cloud mode and reload to reinitialize in local mode
+    const result = disableCloudMode();
+    if (result.success) {
+      showToast('Returning to local mode...', 'info');
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch (error) {
+          logger.error('[page.tsx] Reload blocked', error);
+          showToast('Please refresh the page manually', 'error');
+        }
+      }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
+    } else {
+      logger.error('[page.tsx] Failed to switch to local mode:', result.message);
+      showToast('Failed to switch to local mode. Please try again.', 'error');
     }
-
-    // Refresh cached data in case migration partially succeeded
-    await queryClient.refetchQueries();
-    setRefreshTrigger(prev => prev + 1);
-  }, [queryClient]);
+  }, [showToast]);
 
   // Handle app resume from background (Android TWA blank screen fix)
   // Triggers refreshTrigger to re-run checkAppState when returning from extended background
@@ -449,14 +533,19 @@ export default function Home() {
         ) : needsAuth ? (
           // Cloud mode: show login screen when not authenticated
           <ErrorBoundary>
-            <LoginScreen />
+            <LoginScreen
+              onBack={handleLoginBack}
+              onUseLocalMode={handleLoginUseLocalMode}
+            />
           </ErrorBoundary>
         ) : showMigrationWizard ? (
           // Cloud mode: show migration wizard when local data needs to be migrated
           <ErrorBoundary>
             <MigrationWizard
               onComplete={handleMigrationComplete}
-              onSkip={handleMigrationSkip}
+              onCancel={handleMigrationCancel}
+              cloudCounts={cloudCounts}
+              isLoadingCloudCounts={isLoadingCloudCounts}
             />
           </ErrorBoundary>
         ) : screen === 'start' ? (
@@ -470,6 +559,8 @@ export default function Home() {
               canResume={canResume}
               hasSavedGames={hasSavedGames}
               isFirstTimeUser={isFirstTimeUser}
+              onEnableCloudSync={handleEnableCloudSync}
+              isCloudAvailable={isCloudAvailable()}
             />
           </ErrorBoundary>
         ) : (
@@ -486,6 +577,14 @@ export default function Home() {
 
         {/* Migration status overlay */}
         <MigrationStatus />
+
+        {/* Cloud upgrade modal - shown when enabling cloud without premium */}
+        <UpgradePromptModal
+          isOpen={showCloudUpgradeModal}
+          onClose={handleCloudUpgradeCancel}
+          variant="cloudUpgrade"
+          onUpgradeSuccess={handleCloudUpgradeSuccess}
+        />
       </ModalProvider>
     </ErrorBoundary>
   );

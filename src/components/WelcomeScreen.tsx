@@ -111,43 +111,46 @@ export default function WelcomeScreen({
               </h1>
             </div>
 
-            {/* Welcome Message */}
-            <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">
-              {t('welcome.title', 'Welcome!')}
-            </h2>
-            <p className="text-slate-400">
-              {t('welcome.subtitle', 'Track your team\'s games, players, and stats')}
+            {/* Tagline */}
+            <p className="text-lg text-slate-400">
+              {language === 'en' ? 'Plan · Track · Assess' : 'Suunnittele · Kirjaa · Arvioi'}
             </p>
           </div>
 
           {/* === OPTION BUTTONS === */}
           <div className="max-w-sm mx-auto w-full space-y-3">
-            {/* Start Fresh (Local) */}
+            {/* Start without account (Local) */}
             <button
               onClick={onStartLocal}
               className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
-              aria-label={t('welcome.startFreshAria', 'Start fresh in local mode')}
+              aria-label={t('welcome.startLocalAria', 'Start without an account, free')}
             >
               <div className="text-white font-semibold text-lg">
-                {t('welcome.startFresh', 'Start Fresh')}
+                {t('welcome.startLocal', 'Start without an account')}
+              </div>
+              <div className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">
+                {t('welcome.badgeFree', 'Free')}
               </div>
               <div className="text-slate-400 text-sm">
-                {t('welcome.startFreshDesc', 'Data stays on this device')}
+                {t('welcome.startLocalDesc', 'Your data is saved on this device only.')}
               </div>
             </button>
 
-            {/* Sign In to Cloud - only if Supabase is configured */}
+            {/* Sign in or create account - only if Supabase is configured */}
             {isCloudAvailable && (
               <button
                 onClick={onSignInCloud}
                 className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all text-left shadow-lg shadow-amber-500/20"
-                aria-label={t('welcome.signInCloudAria', 'Sign in to cloud sync')}
+                aria-label={t('welcome.signInCloudAria', 'Sign in or create an account, paid')}
               >
                 <div className="font-bold text-lg">
-                  {t('welcome.signInCloud', 'Sign In to Cloud')}
+                  {t('welcome.signInCloud', 'Sign in or create an account')}
+                </div>
+                <div className="text-slate-700 text-xs font-medium uppercase tracking-wide mb-1">
+                  {t('welcome.badgePaid', 'Paid')}
                 </div>
                 <div className="text-slate-800 text-sm">
-                  {t('welcome.signInCloudDesc', 'Sync across all your devices')}
+                  {t('welcome.signInCloudDesc', 'Your data syncs across devices.')}
                 </div>
               </button>
             )}
@@ -160,10 +163,13 @@ export default function WelcomeScreen({
               aria-label={isImporting ? t('welcome.importingAria', 'Importing backup file') : t('welcome.importBackupAria', 'Import backup file')}
             >
               <div className="text-white font-semibold text-lg">
-                {isImporting ? t('welcome.importing', 'Importing...') : t('welcome.importBackup', 'Import Backup')}
+                {isImporting ? t('welcome.importing', 'Importing...') : t('welcome.importBackup', 'Import a backup')}
+              </div>
+              <div className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">
+                {t('welcome.badgeFree', 'Free')}
               </div>
               <div className="text-slate-400 text-sm">
-                {t('welcome.importBackupDesc', 'Restore from exported file')}
+                {t('welcome.importBackupDesc', 'Restore your previous data from a file and continue where you left off.')}
               </div>
             </button>
           </div>

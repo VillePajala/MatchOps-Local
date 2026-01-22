@@ -12,6 +12,8 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 
+export type UpgradePromptVariant = 'resourceLimit' | 'cloudUpgrade';
+
 export interface UpgradePromptModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +21,10 @@ export interface UpgradePromptModalProps {
   resource?: ResourceType;
   /** Current count of the resource (for display) */
   currentCount?: number;
+  /** Variant determines UI content: 'resourceLimit' for hitting limits, 'cloudUpgrade' for enabling cloud */
+  variant?: UpgradePromptVariant;
+  /** Callback after successful upgrade (used by cloudUpgrade variant to continue action) */
+  onUpgradeSuccess?: () => void;
 }
 
 /**
@@ -35,6 +41,8 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   onClose,
   resource,
   currentCount,
+  variant = 'resourceLimit',
+  onUpgradeSuccess,
 }) => {
   const { t } = useTranslation();
   const { grantPremiumAccess } = usePremium();
@@ -97,6 +105,8 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         await grantPremiumAccess(token);
         showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
         onClose();
+        // Call success callback (e.g., to continue enabling cloud mode)
+        onUpgradeSuccess?.();
       } catch (error) {
         logger.error('Failed to grant premium access:', error);
         showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
@@ -124,12 +134,23 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
             <HiSparkles className="w-6 h-6 text-amber-400" aria-hidden="true" />
           </div>
           <h3 id={titleId} className="text-lg font-semibold text-slate-100">
-            {t('premium.freeVersionLimitReached', 'Free version limit reached')}
+            {variant === 'cloudUpgrade'
+              ? t('premium.cloudUpgradeTitle', 'Cloud Sync Requires Premium')
+              : t('premium.freeVersionLimitReached', 'Free version limit reached')}
           </h3>
         </div>
 
-        {/* Limit explanation - only show specific resource info if triggered by hitting a limit */}
-        {resource && (
+        {/* Cloud upgrade description (cloudUpgrade variant only) */}
+        {variant === 'cloudUpgrade' && (
+          <div className="mb-4 p-3 bg-slate-700/50 rounded-md border border-slate-600">
+            <p className="text-slate-300 text-sm">
+              {t('premium.cloudUpgradeDescription', 'Cloud sync lets you backup and access your data from any device. Upgrade to premium to unlock this feature.')}
+            </p>
+          </div>
+        )}
+
+        {/* Limit explanation - only show for resourceLimit variant */}
+        {variant === 'resourceLimit' && resource && (
           <div className="mb-4 p-3 bg-slate-700/50 rounded-md border border-slate-600">
             <p className="text-slate-300 text-sm">
               {t('premium.limitExplanation', {
@@ -150,18 +171,27 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           </div>
         )}
 
-        {/* What premium offers */}
+        {/* What premium offers - different benefits based on variant */}
         <div className="mb-5">
           <p className="text-slate-200 font-medium mb-2">
-            {t('premium.fullVersionIncludes', 'The full version includes:')}
+            {variant === 'cloudUpgrade'
+              ? t('premium.cloudBenefitsTitle', 'Cloud sync includes:')
+              : t('premium.fullVersionIncludes', 'The full version includes:')}
           </p>
           <ul className="space-y-1.5">
-            {[
-              t('premium.benefit.unlimitedTeams', 'Unlimited teams'),
-              t('premium.benefit.unlimitedPlayers', 'Unlimited players'),
-              t('premium.benefit.unlimitedSeasons', 'Unlimited seasons & tournaments'),
-              t('premium.benefit.unlimitedGames', 'Unlimited games per competition'),
-            ].map((benefit, index) => (
+            {(variant === 'cloudUpgrade'
+              ? [
+                  t('premium.cloudBenefit.sync', 'Sync across all your devices'),
+                  t('premium.cloudBenefit.backup', 'Automatic cloud backup'),
+                  t('premium.cloudBenefit.security', 'Secure cloud storage'),
+                ]
+              : [
+                  t('premium.benefit.unlimitedTeams', 'Unlimited teams'),
+                  t('premium.benefit.unlimitedPlayers', 'Unlimited players'),
+                  t('premium.benefit.unlimitedSeasons', 'Unlimited seasons & tournaments'),
+                  t('premium.benefit.unlimitedGames', 'Unlimited games per competition'),
+                ]
+            ).map((benefit, index) => (
               <li key={index} className="flex items-center gap-2 text-sm text-slate-300">
                 <HiCheck className="w-4 h-4 text-green-400 flex-shrink-0" aria-hidden="true" />
                 {benefit}

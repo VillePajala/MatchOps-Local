@@ -125,6 +125,7 @@
     "avgGoalsFor": "Avg Goals For",
     "avgPointsShort": "Avg Points Short",
     "away": "Away",
+    "back": "Back",
     "cancel": "Cancel",
     "cancelButton": "Cancel",
     "clear": "Clear",
@@ -898,8 +899,12 @@
     "howItWorks": "How It Works",
     "getStarted": "Get Started",
     "manageTeams": "Manage Teams",
-    "appSettings": "App Settings",
-    "freeVersionLimits": "Free version includes:"
+    "appSettings": "Settings",
+    "freeVersionLimits": "Free version includes:",
+    "newGame": "New Game",
+    "signedInAs": "Signed in as",
+    "usingLocalStorage": "Using local storage",
+    "enableCloudSync": "Enable Cloud Sync →"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -1924,7 +1929,15 @@
     "purchaseComingSoon": "In-app purchase coming soon!",
     "grantSuccess": "Premium activated! You can reset in Settings.",
     "grantError": "Failed to activate premium. Please try again.",
-    "availableSoon": "Premium upgrade will be available soon via Google Play!"
+    "availableSoon": "Premium upgrade will be available soon via Google Play!",
+    "cloudUpgradeTitle": "Cloud Sync Requires Premium",
+    "cloudUpgradeDescription": "Cloud sync lets you backup and access your data from any device. Upgrade to premium to unlock this feature.",
+    "cloudBenefitsTitle": "Cloud sync includes:",
+    "cloudBenefit": {
+      "sync": "Sync across all your devices",
+      "backup": "Automatic cloud backup",
+      "security": "Secure cloud storage"
+    }
   },
   "auth": {
     "signIn": "Sign In",
@@ -1948,7 +1961,8 @@
     "hasAccount": "Already have an account?",
     "signInLink": "Sign in",
     "backToSignIn": "Back to sign in",
-    "networkErrorHint": "Please check your internet connection and try again."
+    "networkErrorHint": "Please check your internet connection and try again.",
+    "useWithoutAccount": "Or continue without an account"
   },
   "migration": {
     "title": "Migrate to Cloud",
@@ -2016,10 +2030,32 @@
     "replaceWarningDesc": "All your games, players, teams, seasons, and other data currently in the cloud will be permanently deleted before uploading your local data.",
     "replaceNoRollback": "Warning: If migration fails after clearing, your cloud data cannot be recovered. Your local data will remain safe.",
     "replaceConfirmLabel": "Type REPLACE to confirm:",
-    "startReplaceButton": "Replace & Upload"
+    "startReplaceButton": "Replace & Upload",
+    "loadingData": "Loading data summary...",
+    "bothHaveDataTitle": "Data Found in Both Locations",
+    "bothHaveDataDesc": "You have data stored locally and in the cloud. Choose how to proceed:",
+    "localOnlyTitle": "Local Data Found",
+    "localOnlyDesc": "You have data stored locally that can be migrated to the cloud.",
+    "localData": "Local Data",
+    "cloudData": "Cloud Data",
+    "action": {
+      "merge": "Merge Data",
+      "mergeDesc": "Combine local and cloud data. Matching items will be updated from local.",
+      "replaceCloud": "Replace Cloud Data",
+      "replaceCloudDesc": "Delete all cloud data and upload local data instead.",
+      "keepCloud": "Keep Cloud Data",
+      "keepCloudDesc": "Discard local data and continue using cloud data only.",
+      "migrate": "Migrate to Cloud",
+      "migrateDesc": "Upload your local data to the cloud for backup and sync.",
+      "startFresh": "Start Fresh",
+      "startFreshDesc": "Discard local data and start with an empty cloud account.",
+      "startFreshWarning": "This will permanently delete your local data!",
+      "cancel": "Cancel",
+      "cancelDesc": "Return to local mode and keep using local data."
+    }
   },
   "cloudSync": {
-    "title": "Cloud Sync",
+    "title": "Account & Sync",
     "statusLabel": "Current Mode",
     "cloudMode": "Cloud Sync Enabled",
     "localMode": "Local Storage",
@@ -2191,18 +2227,20 @@
   "welcome": {
     "title": "Welcome!",
     "subtitle": "Track your team's games, players, and stats",
-    "startFresh": "Start Fresh",
-    "startFreshDesc": "Data stays on this device",
-    "startFreshAria": "Start fresh in local mode",
-    "signInCloud": "Sign In to Cloud",
-    "signInCloudDesc": "Sync across all your devices",
-    "signInCloudAria": "Sign in to cloud sync",
-    "importBackup": "Import Backup",
-    "importBackupDesc": "Restore from exported file",
+    "startLocal": "Start without an account",
+    "startLocalDesc": "Your data is saved on this device only.",
+    "startLocalAria": "Start without an account, free",
+    "signInCloud": "Sign in or create an account",
+    "signInCloudDesc": "Your data syncs across devices.",
+    "signInCloudAria": "Sign in or create an account, paid",
+    "importBackup": "Import a backup",
+    "importBackupDesc": "Restore your previous data from a file and continue where you left off.",
     "importBackupAria": "Import backup file",
     "importing": "Importing...",
     "importingAria": "Importing backup file",
-    "changeInSettings": "You can change this later in Settings"
+    "changeInSettings": "You can change this later in Settings",
+    "badgeFree": "FREE",
+    "badgePaid": "PAID"
   },
   "positions": {
     "GK": "GK",

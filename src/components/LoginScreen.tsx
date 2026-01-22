@@ -29,6 +29,13 @@ function isNetworkErrorMessage(message: string): boolean {
   return lower.includes('network') || lower.includes('offline') || lower.includes('connection');
 }
 
+interface LoginScreenProps {
+  /** Called when user wants to go back to WelcomeScreen */
+  onBack?: () => void;
+  /** Called when user wants to use local mode instead */
+  onUseLocalMode?: () => void;
+}
+
 /**
  * Login screen component for cloud authentication.
  *
@@ -39,7 +46,7 @@ function isNetworkErrorMessage(message: string): boolean {
  * - Sign up with email/password (with password requirements)
  * - Password reset via email
  */
-export default function LoginScreen() {
+export default function LoginScreen({ onBack, onUseLocalMode }: LoginScreenProps) {
   const { t } = useTranslation();
   const { signIn, signUp, resetPassword } = useAuth();
 
@@ -155,8 +162,25 @@ export default function LoginScreen() {
       {/* === MAIN CONTENT === */}
       <div className="relative z-10 flex-1 flex flex-col px-6 py-8 pb-safe">
 
-        {/* === TOP: Language Switcher === */}
-        <div className="flex justify-end mb-4">
+        {/* === TOP: Back Button + Language Switcher === */}
+        <div className="flex justify-between items-center mb-4">
+          {/* Back button */}
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {t('common.back', 'Back')}
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {/* Language Switcher */}
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               type="button"
@@ -315,6 +339,19 @@ export default function LoginScreen() {
                 </button>
               )}
             </div>
+
+            {/* Use without account option */}
+            {onUseLocalMode && (
+              <div className="mt-8 pt-6 border-t border-slate-700/50 text-center">
+                <button
+                  type="button"
+                  onClick={onUseLocalMode}
+                  className="text-slate-400 hover:text-amber-400 text-sm transition-colors"
+                >
+                  {t('auth.useWithoutAccount', 'Or continue without an account')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

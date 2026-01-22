@@ -11,6 +11,7 @@ import {
   type ResourceCounts,
 } from '@/utils/premiumManager';
 import { FREE_LIMITS, ResourceType, PREMIUM_PRICE } from '@/config/premiumLimits';
+import { getBackendMode } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
 interface PremiumContextValue {
@@ -52,9 +53,20 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const loadPremiumStatus = useCallback(async () => {
     try {
       setIsLoading(true);
+
+      // In local mode, premium is always granted (no limits)
+      // Cloud mode requires actual premium license check
+      const mode = getBackendMode();
+      if (mode === 'local') {
+        setIsPremium(true);
+        logger.debug('Premium status: local mode = always premium');
+        return;
+      }
+
+      // Cloud mode: check actual license
       const license = await getPremiumLicense();
       setIsPremium(license.isPremium);
-      logger.debug('Premium status loaded', { isPremium: license.isPremium });
+      logger.debug('Premium status loaded', { isPremium: license.isPremium, mode });
     } catch (error) {
       logger.error('Failed to load premium status', error);
       setIsPremium(false);

@@ -12,6 +12,7 @@ import { render, screen, act, waitFor } from '@testing-library/react';
 import { PremiumProvider, usePremiumContext } from '../PremiumContext';
 import { usePremium, useResourceLimit } from '@/hooks/usePremium';
 import * as premiumManager from '@/utils/premiumManager';
+import * as backendConfig from '@/config/backendConfig';
 
 // Mock premiumManager
 jest.mock('@/utils/premiumManager', () => ({
@@ -22,6 +23,16 @@ jest.mock('@/utils/premiumManager', () => ({
   getRemainingCount: jest.fn(),
   isOverFreeLimit: jest.fn(),
 }));
+
+// Mock backendConfig - default to 'cloud' mode so tests behave as before
+// (local mode = always premium, cloud mode = check license)
+jest.mock('@/config/backendConfig', () => ({
+  getBackendMode: jest.fn(() => 'cloud'),
+}));
+
+const mockGetBackendMode = backendConfig.getBackendMode as jest.MockedFunction<
+  typeof backendConfig.getBackendMode
+>;
 
 const mockGetPremiumLicense = premiumManager.getPremiumLicense as jest.MockedFunction<
   typeof premiumManager.getPremiumLicense
@@ -45,6 +56,9 @@ const mockIsOverFreeLimit = premiumManager.isOverFreeLimit as jest.MockedFunctio
 describe('PremiumContext', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default to cloud mode so tests check actual license
+    // (local mode = always premium, cloud mode = check license)
+    mockGetBackendMode.mockReturnValue('cloud');
     mockGetPremiumLicense.mockResolvedValue({ isPremium: false });
     mockCanCreateResource.mockReturnValue(true);
     mockGetRemainingCount.mockReturnValue(1);
@@ -117,6 +131,39 @@ describe('PremiumContext', () => {
       await waitFor(() => {
         expect(screen.getByTestId('limits').textContent).toBe('no-limits');
       });
+    });
+
+    it('should always be premium in local mode (regardless of license)', async () => {
+      // Local mode = always premium, no license check needed
+      mockGetBackendMode.mockReturnValue('local');
+      // Even if license says not premium, local mode should still be premium
+      mockGetPremiumLicense.mockResolvedValue({ isPremium: false });
+
+      const TestComponent = () => {
+        const { isPremium, limits } = usePremiumContext();
+        return (
+          <div>
+            <span data-testid="premium">{isPremium.toString()}</span>
+            <span data-testid="limits">{limits ? 'has-limits' : 'no-limits'}</span>
+          </div>
+        );
+      };
+
+      render(
+        <PremiumProvider>
+          <TestComponent />
+        </PremiumProvider>
+      );
+
+      await waitFor(() => {
+        // In local mode, premium is always true
+        expect(screen.getByTestId('premium').textContent).toBe('true');
+        // And limits should be null (no restrictions)
+        expect(screen.getByTestId('limits').textContent).toBe('no-limits');
+      });
+
+      // License check should not have been called in local mode
+      expect(mockGetPremiumLicense).not.toHaveBeenCalled();
     });
 
     it('should handle grant premium access', async () => {
