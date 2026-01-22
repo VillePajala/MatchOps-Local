@@ -18,6 +18,7 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
 import { hasMigrationCompleted, setMigrationCompleted } from '@/config/backendConfig';
 import { hasLocalDataToMigrate } from '@/services/migrationService';
+import { resetFactory } from '@/datastore/factory';
 import logger from '@/utils/logger';
 
 // Toast display duration before force reload - allows user to see the notification
@@ -174,11 +175,22 @@ export default function Home() {
   }, [mode, isAuthenticated, userId]);
 
   // Handle migration wizard completion
-  const handleMigrationComplete = useCallback(() => {
+  const handleMigrationComplete = useCallback(async () => {
     if (userId) {
       setMigrationCompleted(userId);
     }
     setShowMigrationWizard(false);
+
+    // CRITICAL: Reset factory to ensure fresh DataStore instance
+    // Without this, the factory may return a stale cached DataStore
+    // that was initialized before migration completed
+    try {
+      await resetFactory();
+      logger.info('[page.tsx] Factory reset after migration complete');
+    } catch (error) {
+      logger.warn('[page.tsx] Factory reset failed, continuing with cache invalidation', { error });
+    }
+
     // CRITICAL: Invalidate ALL React Query cache to force refetch from cloud
     // Without this, the app shows stale/empty data from the old local cache
     queryClient.invalidateQueries();
@@ -187,12 +199,23 @@ export default function Home() {
   }, [userId, queryClient]);
 
   // Handle migration wizard skip
-  const handleMigrationSkip = useCallback(() => {
+  const handleMigrationSkip = useCallback(async () => {
     // Don't mark as completed - allow user to migrate later via settings
     // But do mark as skipped for this session so the wizard doesn't reopen immediately
     setHasSkippedMigration(true);
     setShowMigrationWizard(false);
-  }, []);
+
+    // Reset factory in case migration partially changed state
+    try {
+      await resetFactory();
+    } catch {
+      // Best effort - continue regardless
+    }
+
+    // Refresh cached data in case migration partially succeeded
+    queryClient.invalidateQueries();
+    setRefreshTrigger(prev => prev + 1);
+  }, [queryClient]);
 
   // Handle app resume from background (Android TWA blank screen fix)
   // Triggers refreshTrigger to re-run checkAppState when returning from extended background

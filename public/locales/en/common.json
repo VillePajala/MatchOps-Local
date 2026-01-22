@@ -1980,6 +1980,10 @@
     "clearFailedAcknowledge": "Failed to clear local data. You can clear it later from Settings, or try again now.",
     "retryClear": "Retry Clear",
     "continueWithoutClear": "Continue (Clear Later)",
+    "switchToLocal": "Switch to Local Mode",
+    "switchingToLocal": "Switching...",
+    "switchToLocalFailed": "Failed to switch to local mode.",
+    "continueInCloud": "Continue in Cloud",
     "summary": {
       "title": "Data Summary",
       "players": "Players",

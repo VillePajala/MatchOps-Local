@@ -872,10 +872,11 @@ describe('ReverseMigrationWizard', () => {
     });
 
     it('should handle unmount during loading gracefully', async () => {
-      // Slow loading
-      mockGetCloudDataSummary.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockSummary), 100))
-      );
+      let resolveSummary: (value: typeof mockSummary) => void;
+      const summaryPromise = new Promise<typeof mockSummary>((resolve) => {
+        resolveSummary = resolve;
+      });
+      mockGetCloudDataSummary.mockReturnValue(summaryPromise);
 
       const { unmount } = renderWizard();
 
@@ -883,7 +884,9 @@ describe('ReverseMigrationWizard', () => {
       unmount();
 
       // Should not throw
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await act(async () => {
+        resolveSummary!(mockSummary);
+      });
     });
 
     it('should close modal when Escape is pressed during preview step', async () => {
@@ -900,10 +903,11 @@ describe('ReverseMigrationWizard', () => {
     });
 
     it('should NOT close modal when Escape is pressed during progress step', async () => {
-      // Make migration take time
-      mockMigrateCloudToLocal.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 500))
-      );
+      let resolveMigration: () => void;
+      const migrationPromise = new Promise<void>((resolve) => {
+        resolveMigration = resolve;
+      });
+      mockMigrateCloudToLocal.mockReturnValue(migrationPromise);
 
       renderWizard();
 
@@ -935,6 +939,10 @@ describe('ReverseMigrationWizard', () => {
 
       // onCancel should NOT have been called
       expect(mockOnCancel).not.toHaveBeenCalled();
+
+      await act(async () => {
+        resolveMigration!();
+      });
     });
 
     it('should disable retry button during cooldown', async () => {

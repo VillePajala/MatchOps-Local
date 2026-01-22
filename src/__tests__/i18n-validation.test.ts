@@ -257,14 +257,14 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // PR #11: Cloud translations (1862) + positions section from master (17) = 1879
-      expect(enKeys.length).toBe(1879);
+      // PR #11: Cloud translations (1862) + positions (17) + migration fallback buttons (4) = 1883
+      expect(enKeys.length).toBe(1883);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // PR #11: Cloud translations (1862) + positions section from master (17) = 1879
-      expect(fiKeys.length).toBe(1879);
+      // PR #11: Cloud translations (1862) + positions (17) + migration fallback buttons (4) = 1883
+      expect(fiKeys.length).toBe(1883);
     });
   });
 });

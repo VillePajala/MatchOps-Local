@@ -131,6 +131,7 @@ function createMockLocalStore() {
     getPlayerAdjustments: jest.fn().mockResolvedValue([]),
     getWarmupPlan: jest.fn().mockResolvedValue(null),
     getSettings: jest.fn().mockResolvedValue({ language: 'en' }),
+    close: jest.fn().mockResolvedValue(undefined),
   };
   MockedLocalDataStore.mockImplementation(() => mockInstance as unknown as LocalDataStore);
   return mockInstance;
@@ -148,7 +149,7 @@ function createMockCloudStore() {
     // Other methods used by migration
     setTeamRoster: jest.fn().mockResolvedValue(undefined),
     saveGame: jest.fn().mockResolvedValue(mockGame),
-    addPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
+    upsertPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
     saveWarmupPlan: jest.fn().mockResolvedValue(true),
     saveSettings: jest.fn().mockResolvedValue(undefined),
     // Verification methods
@@ -160,6 +161,8 @@ function createMockCloudStore() {
     getAllPersonnel: jest.fn().mockResolvedValue([mockPersonnel]),
     // Replace mode methods
     clearAllUserData: jest.fn().mockResolvedValue(undefined),
+    // Cleanup
+    close: jest.fn().mockResolvedValue(undefined),
   };
   MockedSupabaseDataStore.mockImplementation(() => mockInstance as unknown as SupabaseDataStore);
   return mockInstance;

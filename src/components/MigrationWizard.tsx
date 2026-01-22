@@ -20,6 +20,7 @@ import {
   type MigrationMode,
 } from '@/services/migrationService';
 import { clearLocalIndexedDBData } from '@/utils/clearLocalData';
+import { disableCloudMode } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
 type WizardStep = 'preview' | 'confirm' | 'progress' | 'complete' | 'error';
@@ -75,6 +76,8 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const [retryCooldown, setRetryCooldown] = useState(0); // Seconds remaining in cooldown
   const [migrationMode, setMigrationMode] = useState<MigrationMode>('merge'); // Migration mode selection
   const [replaceConfirmText, setReplaceConfirmText] = useState(''); // Confirmation text for replace mode
+  const [isSwitchingToLocal, setIsSwitchingToLocal] = useState(false);
+  const [switchToLocalError, setSwitchToLocalError] = useState<string | null>(null);
 
   // Focus trap
   useFocusTrap(modalRef, true);
@@ -191,6 +194,21 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     setMigrationResult(null);
     setRetryCooldown(RETRY_COOLDOWN_SECONDS);
   }, [retryCooldown]);
+
+  const handleSwitchToLocal = useCallback(() => {
+    if (isSwitchingToLocal) return;
+    setIsSwitchingToLocal(true);
+    setSwitchToLocalError(null);
+
+    const result = disableCloudMode();
+    if (result.success) {
+      window.location.reload();
+      return;
+    }
+
+    setSwitchToLocalError(result.message || t('migration.switchToLocalFailed', 'Failed to switch to local mode.'));
+    setIsSwitchingToLocal(false);
+  }, [isSwitchingToLocal, t]);
 
   // Render data summary table
   const renderDataSummary = (counts: MigrationCounts) => {
@@ -580,6 +598,12 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                 </ul>
               </div>
             )}
+
+            {switchToLocalError && (
+              <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-300">
+                {switchToLocalError}
+              </div>
+            )}
           </>
         );
 
@@ -646,8 +670,17 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       case 'error':
         return (
           <>
+            <button
+              onClick={handleSwitchToLocal}
+              disabled={isSwitchingToLocal}
+              className={secondaryButtonStyle}
+            >
+              {isSwitchingToLocal
+                ? t('migration.switchingToLocal', 'Switching...')
+                : t('migration.switchToLocal', 'Switch to Local Mode')}
+            </button>
             <button onClick={onSkip} className={secondaryButtonStyle}>
-              {t('migration.skipButton', 'Skip for Now')}
+              {t('migration.continueInCloud', 'Continue in Cloud')}
             </button>
             <button
               onClick={handleRetry}
