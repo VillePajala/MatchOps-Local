@@ -1,5 +1,5 @@
 {
-  "version": "7fc81b53",
+  "version": "e2862b42",
   "date": "2026-01-22",
   "notes": {
     "en": "Defensive initialization, ID-based verification, deterministic ordering",

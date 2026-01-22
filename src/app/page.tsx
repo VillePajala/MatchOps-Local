@@ -191,9 +191,10 @@ export default function Home() {
       logger.warn('[page.tsx] Factory reset failed, continuing with cache invalidation', { error });
     }
 
-    // CRITICAL: Invalidate ALL React Query cache to force refetch from cloud
-    // Without this, the app shows stale/empty data from the old local cache
-    queryClient.invalidateQueries();
+    // CRITICAL: Refetch ALL React Query queries to load fresh data from cloud
+    // invalidateQueries() only marks as stale; refetchQueries() forces immediate refetch
+    // Without this, the app shows stale/empty data until user manually reloads
+    await queryClient.refetchQueries();
     // Also trigger state refresh
     setRefreshTrigger(prev => prev + 1);
   }, [userId, queryClient]);
@@ -213,7 +214,7 @@ export default function Home() {
     }
 
     // Refresh cached data in case migration partially succeeded
-    queryClient.invalidateQueries();
+    await queryClient.refetchQueries();
     setRefreshTrigger(prev => prev + 1);
   }, [queryClient]);
 
