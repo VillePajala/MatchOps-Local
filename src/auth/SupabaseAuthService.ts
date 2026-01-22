@@ -368,11 +368,10 @@ export class SupabaseAuthService implements AuthService {
       }
 
       // Map Supabase errors to user-friendly messages
-      if (error.message.includes('Invalid login credentials')) {
-        throw new AuthError('Invalid email or password');
-      }
-      if (error.message.includes('Email not confirmed')) {
-        throw new AuthError('Please confirm your email before signing in');
+      // Use unified message to prevent user enumeration attacks
+      if (error.message.includes('Invalid login credentials') ||
+          error.message.includes('Email not confirmed')) {
+        throw new AuthError('Invalid email or password. If you recently signed up, please check your email for confirmation.');
       }
 
       throw new AuthError(error.message);

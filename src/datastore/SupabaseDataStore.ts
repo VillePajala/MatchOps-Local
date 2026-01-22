@@ -2657,7 +2657,8 @@ export class SupabaseDataStore implements DataStore {
       periodDurationMinutes: game.period_duration_minutes,
       currentPeriod: normalizePeriodCount(game.current_period) ?? 1,
       gameStatus: normalizeGameStatus(game.game_status) ?? 'notStarted',
-      isPlayed: game.is_played,
+      // Rule 2: Legacy default - undefined → true (legacy games assumed played)
+      isPlayed: game.is_played ?? true,
       homeScore: game.home_score,
       awayScore: game.away_score,
       gameNotes: game.game_notes,

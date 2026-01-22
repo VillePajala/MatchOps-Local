@@ -4976,6 +4976,20 @@ The following items are quality improvements identified during code review. None
 
 - [ ] **Pagination for 500+ games**: Current `getGames()` fetches all games. For users with 500+ games, implement pagination: prefetch recent 100 on initialize, load older on demand. Not needed for current user base (<100 games typical).
 
+- [ ] **Composite uniqueness via DB constraints**: `createTeam()`, `createSeason()`, `createTournament()` fetch ALL entities to check uniqueness (O(N) per create). For power users with 500+ teams, add database unique indexes and catch constraint violations. Per-user impact (not system-wide due to RLS isolation).
+
+- [ ] **Batch game fetch retry**: Failed games in batch fetch are logged but excluded. Add single retry for failed game IDs to handle transient errors.
+
+### Security Hardening
+
+- [ ] **Defense-in-depth user_id filters**: SELECT queries rely on RLS without explicit `.eq('user_id', userId)`. RLS is the security layer by design, but client-side filters provide defense-in-depth if RLS is misconfigured. Trade-off: could mask RLS failures.
+
+- [ ] **Document localStorage token trade-off**: Supabase stores tokens in localStorage (XSS risk). This is an accepted trade-off for PWAs (httpOnly cookies require backend). Document in security considerations.
+
+### Logging Improvements
+
+- [ ] **Structured error logging**: Add context to error logs (userId, operation, stack trace) for better debugging in production.
+
 *Added: January 22, 2026 during PR #12 (Welcome Screen) review*
 
 ---

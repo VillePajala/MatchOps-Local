@@ -246,7 +246,7 @@ describe('SupabaseAuthService', () => {
       ).rejects.toThrow(AuthError);
     });
 
-    it('should throw AuthError for invalid credentials', async () => {
+    it('should throw AuthError for invalid credentials (unified message prevents enumeration)', async () => {
       mockAuth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Invalid login credentials' },
@@ -257,7 +257,9 @@ describe('SupabaseAuthService', () => {
       ).rejects.toThrow('Invalid email or password');
     });
 
-    it('should throw AuthError for unconfirmed email', async () => {
+    it('should throw same AuthError for unconfirmed email (prevents user enumeration)', async () => {
+      // Security: Same error message as invalid credentials to prevent attackers
+      // from determining if an email is registered but unconfirmed
       mockAuth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Email not confirmed' },
@@ -265,7 +267,7 @@ describe('SupabaseAuthService', () => {
 
       await expect(
         authService.signIn('test@example.com', 'Password123!@#')
-      ).rejects.toThrow('Please confirm your email before signing in');
+      ).rejects.toThrow('Invalid email or password');
     });
 
     it('should throw NetworkError on network failure', async () => {
