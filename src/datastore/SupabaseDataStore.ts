@@ -480,13 +480,19 @@ export class SupabaseDataStore implements DataStore {
     // Create and cache the promise
     this.userIdPromise = (async () => {
       try {
-        const { data: { user }, error } = await this.getClient().auth.getUser();
-        if (error || !user) {
+        // Use getSession() instead of getUser() to avoid network request.
+        // getSession() reads from local storage/memory, which is much faster
+        // and more reliable immediately after sign-in. The session was already
+        // verified during signIn(), so we can trust it for immediate operations.
+        // This fixes the race condition where queries fail with "Failed to fetch"
+        // because getUser() makes a network call that can fail transiently.
+        const { data: { session }, error } = await this.getClient().auth.getSession();
+        if (error || !session?.user) {
           throw new AuthError('Not authenticated. Please sign in to use cloud mode.');
         }
 
-        this.cachedUserId = user.id;
-        return user.id;
+        this.cachedUserId = session.user.id;
+        return session.user.id;
       } finally {
         // Clear the promise when done (success or failure)
         this.userIdPromise = null;
