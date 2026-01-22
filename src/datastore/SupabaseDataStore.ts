@@ -21,6 +21,7 @@ import type {
   Season,
   Tournament,
   TournamentSeries,
+  TeamPlacementInfo,
   PlayerStatAdjustment,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog } from '@/types/game';
@@ -87,6 +88,13 @@ type PlayerAssessmentInsert = Database['public']['Tables']['player_assessments']
 type PlayerAdjustmentInsert = Database['public']['Tables']['player_adjustments']['Insert'];
 type WarmupPlanInsert = Database['public']['Tables']['warmup_plans']['Insert'];
 
+// Update types (for UPDATE operations without any casts)
+type PlayerUpdate = Database['public']['Tables']['players']['Update'];
+type TeamUpdate = Database['public']['Tables']['teams']['Update'];
+type SeasonUpdate = Database['public']['Tables']['seasons']['Update'];
+type TournamentUpdate = Database['public']['Tables']['tournaments']['Update'];
+type PersonnelUpdate = Database['public']['Tables']['personnel']['Update'];
+
 /**
  * GameTableSet - Container for all 5 tables of game data.
  *
@@ -146,6 +154,102 @@ const normalizeOptionalString = (value?: string): string | undefined => {
   const trimmed = value.trim();
   return trimmed === '' ? undefined : trimmed;
 };
+
+/**
+ * Normalize enum-like values to allowed set; returns null for invalid or empty.
+ */
+const normalizeEnumValue = <T extends string>(value: unknown, allowed: readonly T[]): T | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return (allowed as readonly string[]).includes(trimmed) ? (trimmed as T) : null;
+};
+
+const normalizeGameType = (value: unknown): 'soccer' | 'futsal' | null =>
+  normalizeEnumValue(value, ['soccer', 'futsal']);
+
+const normalizeGender = (value: unknown): 'boys' | 'girls' | null =>
+  normalizeEnumValue(value, ['boys', 'girls']);
+
+const normalizeGameStatus = (value: unknown): AppState['gameStatus'] | null =>
+  normalizeEnumValue(value, ['notStarted', 'inProgress', 'periodEnd', 'gameEnd']);
+
+const normalizeGameHomeOrAway = (value: unknown): 'home' | 'away' | null =>
+  normalizeEnumValue(value, ['home', 'away']);
+
+const normalizeAdjustmentHomeOrAway = (value: unknown): 'home' | 'away' | 'neutral' | null =>
+  normalizeEnumValue(value, ['home', 'away', 'neutral']);
+
+const normalizePeriodCount = (value: unknown): 1 | 2 | null =>
+  value === 1 || value === 2 ? value : null;
+
+const normalizePositiveNumber = (value: unknown): number | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return value;
+};
+
+const normalizeDateString = (value: unknown): string | null => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().split('T')[0];
+  }
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().split('T')[0];
+};
+
+const normalizeDateArray = (value: unknown): string[] | null => {
+  if (!Array.isArray(value)) return null;
+  const normalized = value
+    .map((item) => normalizeDateString(item))
+    .filter((item): item is string => typeof item === 'string');
+  return normalized.length > 0 ? normalized : null;
+};
+
+const normalizeTeamPlacements = (value?: Record<string, TeamPlacementInfo>): Json | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as unknown as Json;
+};
+
+const parseTeamPlacements = (value: Json | null): Record<string, TeamPlacementInfo> | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as unknown as Record<string, TeamPlacementInfo>;
+  return Object.keys(record).length > 0 ? record : undefined;
+};
+
+/**
+ * Normalize a numeric rating to the DB constraint range (1-10).
+ * Returns null for invalid/unknown values to avoid constraint violations.
+ */
+const normalizeRating = (value?: number | null): number | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  if (value < 1 || value > 10) return null;
+  return value;
+};
+
+/**
+ * Normalize demand factor to the DB constraint range (0.1-10).
+ * Returns null for invalid/unknown values to avoid constraint violations.
+ */
+const normalizeDemandFactor = (value?: number | null): number | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  if (value < 0.1 || value > 10) return null;
+  return value;
+};
+
+const VALID_GAME_EVENT_TYPES = new Set<GameEvent['type']>([
+  'goal',
+  'opponentGoal',
+  'substitution',
+  'periodEnd',
+  'gameEnd',
+  'fairPlayCard',
+]);
 
 /**
  * Calculate club season from a date string.
@@ -527,20 +631,20 @@ export class SupabaseDataStore implements DataStore {
     const updatedPlayer = { ...this.transformPlayerFromDb(existing), ...updates };
     const now = new Date().toISOString();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = this.getClient() as any;
-    const { error: updateError } = await client
+    const updatePayload: PlayerUpdate = {
+      name: updatedPlayer.name,
+      nickname: updatedPlayer.nickname ?? null,
+      jersey_number: updatedPlayer.jerseyNumber ?? null,
+      is_goalie: updatedPlayer.isGoalie ?? false,
+      color: updatedPlayer.color ?? null,
+      notes: updatedPlayer.notes ?? null,
+      received_fair_play_card: updatedPlayer.receivedFairPlayCard ?? false,
+      updated_at: now,
+    };
+
+    const { error: updateError } = await this.getClient()
       .from('players')
-      .update({
-        name: updatedPlayer.name,
-        nickname: updatedPlayer.nickname ?? null,
-        jersey_number: updatedPlayer.jerseyNumber ?? null,
-        is_goalie: updatedPlayer.isGoalie ?? false,
-        color: updatedPlayer.color ?? null,
-        notes: updatedPlayer.notes ?? null,
-        received_fair_play_card: updatedPlayer.receivedFairPlayCard ?? false,
-        updated_at: now,
-      })
+      .update(updatePayload)
       .eq('id', id);
 
     if (updateError) {
@@ -870,22 +974,22 @@ export class SupabaseDataStore implements DataStore {
       updatedAt: new Date().toISOString(),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = this.getClient() as any;
-    const { error } = await client
+    const updatePayload: TeamUpdate = {
+      name: updatedTeam.name,
+      color: updatedTeam.color ?? null,
+      notes: updatedTeam.notes ?? null,
+      age_group: updatedTeam.ageGroup ?? null,
+      game_type: normalizeGameType(updatedTeam.gameType),
+      archived: updatedTeam.archived ?? false,
+      bound_season_id: updatedTeam.boundSeasonId ?? null,
+      bound_tournament_id: updatedTeam.boundTournamentId ?? null,
+      bound_tournament_series_id: updatedTeam.boundTournamentSeriesId ?? null,
+      updated_at: updatedTeam.updatedAt,
+    };
+
+    const { error } = await this.getClient()
       .from('teams')
-      .update({
-        name: updatedTeam.name,
-        color: updatedTeam.color ?? null,
-        notes: updatedTeam.notes ?? null,
-        age_group: updatedTeam.ageGroup ?? null,
-        game_type: updatedTeam.gameType ?? null,
-        archived: updatedTeam.archived ?? false,
-        bound_season_id: updatedTeam.boundSeasonId ?? null,
-        bound_tournament_id: updatedTeam.boundTournamentId ?? null,
-        bound_tournament_series_id: updatedTeam.boundTournamentSeriesId ?? null,
-        updated_at: updatedTeam.updatedAt,
-      })
+      .update(updatePayload)
       .eq('id', id);
 
     if (error) {
@@ -919,7 +1023,7 @@ export class SupabaseDataStore implements DataStore {
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
       ageGroup: row.age_group ?? undefined,
-      gameType: row.game_type as 'soccer' | 'futsal' | undefined,
+      gameType: normalizeGameType(row.game_type) ?? undefined,
       archived: row.archived ?? false,
       boundSeasonId: row.bound_season_id ?? undefined,
       boundTournamentId: row.bound_tournament_id ?? undefined,
@@ -937,7 +1041,7 @@ export class SupabaseDataStore implements DataStore {
       color: team.color ?? null,
       notes: team.notes ?? null,
       age_group: team.ageGroup ?? null,
-      game_type: team.gameType ?? null,
+      game_type: normalizeGameType(team.gameType),
       archived: team.archived ?? false,
       bound_season_id: team.boundSeasonId ?? null,
       bound_tournament_id: team.boundTournamentId ?? null,
@@ -971,11 +1075,16 @@ export class SupabaseDataStore implements DataStore {
       );
     }
 
+    const normalizedNotes = normalizeOptionalString(team.notes);
+    const normalizedAgeGroup = normalizeOptionalString(team.ageGroup);
+
     const now = new Date().toISOString();
     const userId = await this.getUserId();
     const teamToUpsert: Team = {
       ...team,
       name: trimmedName,
+      notes: normalizedNotes ?? undefined,
+      ageGroup: normalizedAgeGroup ?? undefined,
       archived: team.archived ?? false,
       createdAt: team.createdAt ?? now,
       updatedAt: now,
@@ -1034,7 +1143,7 @@ export class SupabaseDataStore implements DataStore {
 
     // Use RPC for atomic delete + insert within a single PostgreSQL transaction
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
-    const { error } = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string } | null }>)(
+    const { error } = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string; code?: string } | null }>)(
       'set_team_roster',
       {
         p_team_id: teamId,
@@ -1043,7 +1152,54 @@ export class SupabaseDataStore implements DataStore {
     );
 
     if (error) {
-      throw new NetworkError(`Failed to set team roster: ${error.message}`);
+      const errorMessage = error.message.toLowerCase();
+      const isMissingRpc =
+        error.code === 'PGRST202' ||
+        errorMessage.includes('does not exist') ||
+        errorMessage.includes('function set_team_roster');
+      const isPermissionIssue =
+        error.code === '42501' ||
+        errorMessage.includes('permission denied');
+
+      if (!isMissingRpc && !isPermissionIssue) {
+        throw new NetworkError(`Failed to set team roster: ${error.message}`);
+      }
+
+      logger.warn('[SupabaseDataStore] set_team_roster RPC failed, falling back to manual writes', {
+        code: error.code,
+        message: error.message,
+      });
+
+      await this.setTeamRosterManually(teamId, rows, userId);
+    }
+  }
+
+  /**
+   * Manual (non-atomic) fallback for setting team rosters when RPC is unavailable.
+   */
+  private async setTeamRosterManually(teamId: string, rows: TeamPlayerInsert[], userId: string): Promise<void> {
+    const client = this.getClient();
+
+    const { error: deleteError } = await client
+      .from('team_players')
+      .delete()
+      .eq('team_id', teamId)
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      throw new NetworkError(`Failed to reset team roster (manual): ${deleteError.message}`);
+    }
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    const { error: insertError } = await client
+      .from('team_players')
+      .insert(rows as unknown as never);
+
+    if (insertError) {
+      throw new NetworkError(`Failed to save team roster (manual): ${insertError.message}`);
     }
   }
 
@@ -1287,23 +1443,31 @@ export class SupabaseDataStore implements DataStore {
       clubSeason: newClubSeason,
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = this.getClient() as any;
-    const { error: updateError } = await client
+    const updatePayload: SeasonUpdate = {
+      name: updatedSeason.name,
+      location: updatedSeason.location ?? null,
+      period_count: normalizePeriodCount(updatedSeason.periodCount),
+      period_duration: normalizePositiveNumber(updatedSeason.periodDuration),
+      start_date: normalizeDateString(updatedSeason.startDate),
+      end_date: normalizeDateString(updatedSeason.endDate),
+      game_dates: normalizeDateArray(updatedSeason.gameDates),
+      club_season: updatedSeason.clubSeason ?? null,
+      game_type: normalizeGameType(updatedSeason.gameType),
+      gender: normalizeGender(updatedSeason.gender),
+      age_group: updatedSeason.ageGroup ?? null,
+      league_id: updatedSeason.leagueId ?? null,
+      custom_league_name: updatedSeason.customLeagueName ?? null,
+      archived: updatedSeason.archived ?? false,
+      notes: updatedSeason.notes ?? null,
+      color: updatedSeason.color ?? null,
+      badge: updatedSeason.badge ?? null,
+      team_placements: normalizeTeamPlacements(updatedSeason.teamPlacements),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: updateError } = await this.getClient()
       .from('seasons')
-      .update({
-        name: updatedSeason.name,
-        start_date: updatedSeason.startDate ?? null,
-        end_date: updatedSeason.endDate ?? null,
-        club_season: updatedSeason.clubSeason ?? null,
-        game_type: updatedSeason.gameType ?? null,
-        gender: updatedSeason.gender ?? null,
-        age_group: updatedSeason.ageGroup ?? null,
-        league_id: updatedSeason.leagueId ?? null,
-        custom_league_name: updatedSeason.customLeagueName ?? null,
-        archived: updatedSeason.archived ?? false,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', season.id);
 
     if (updateError) {
@@ -1334,15 +1498,23 @@ export class SupabaseDataStore implements DataStore {
     return {
       id: row.id,
       name: row.name,
+      location: row.location ?? undefined,
+      periodCount: normalizePeriodCount(row.period_count) ?? undefined,
+      periodDuration: normalizePositiveNumber(row.period_duration) ?? undefined,
       startDate: row.start_date ?? undefined,
       endDate: row.end_date ?? undefined,
+      gameDates: row.game_dates ?? undefined,
       clubSeason: row.club_season ?? undefined,
-      gameType: row.game_type as 'soccer' | 'futsal' | undefined,
-      gender: row.gender as 'boys' | 'girls' | undefined,
+      gameType: normalizeGameType(row.game_type) ?? undefined,
+      gender: normalizeGender(row.gender) ?? undefined,
       ageGroup: row.age_group ?? undefined,
       leagueId: row.league_id ?? undefined,
       customLeagueName: row.custom_league_name ?? undefined,
       archived: row.archived ?? false,
+      notes: row.notes ?? undefined,
+      color: row.color ?? undefined,
+      badge: row.badge ?? undefined,
+      teamPlacements: parseTeamPlacements(row.team_placements),
     };
   }
 
@@ -1351,15 +1523,23 @@ export class SupabaseDataStore implements DataStore {
       id: season.id,
       user_id: userId,
       name: season.name,
-      start_date: season.startDate ?? null,
-      end_date: season.endDate ?? null,
+      location: season.location ?? null,
+      period_count: normalizePeriodCount(season.periodCount),
+      period_duration: normalizePositiveNumber(season.periodDuration),
+      start_date: normalizeDateString(season.startDate),
+      end_date: normalizeDateString(season.endDate),
+      game_dates: normalizeDateArray(season.gameDates),
       club_season: season.clubSeason ?? null,
-      game_type: season.gameType ?? null,
-      gender: season.gender ?? null,
+      game_type: normalizeGameType(season.gameType),
+      gender: normalizeGender(season.gender),
       age_group: season.ageGroup ?? null,
       league_id: season.leagueId ?? null,
       custom_league_name: season.customLeagueName ?? null,
       archived: season.archived ?? false,
+      notes: season.notes ?? null,
+      color: season.color ?? null,
+      badge: season.badge ?? null,
+      team_placements: normalizeTeamPlacements(season.teamPlacements),
       created_at: now,
       updated_at: now,
     };
@@ -1380,12 +1560,30 @@ export class SupabaseDataStore implements DataStore {
     if (!trimmedName) {
       throw new ValidationError('Season name cannot be empty', 'name', season.name);
     }
+    if (trimmedName.length > VALIDATION_LIMITS.SEASON_NAME_MAX) {
+      throw new ValidationError(
+        `Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters (got ${trimmedName.length})`,
+        'name',
+        season.name
+      );
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(season.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', season.ageGroup);
+    }
+
+    const { start, end } = await this.getSeasonDates();
+    const clubSeason = calculateClubSeason(season.startDate, start, end);
 
     const now = new Date().toISOString();
     const userId = await this.getUserId();
     const seasonToUpsert: Season = {
       ...season,
       name: trimmedName,
+      ageGroup: normalizedAgeGroup ?? undefined,
+      notes: normalizeOptionalString(season.notes) ?? undefined,
+      clubSeason,
       archived: season.archived ?? false,
     };
 
@@ -1587,24 +1785,32 @@ export class SupabaseDataStore implements DataStore {
       clubSeason: newClubSeason,
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = this.getClient() as any;
-    const { error: updateError } = await client
+    const updatePayload: TournamentUpdate = {
+      name: updatedTournament.name,
+      location: updatedTournament.location ?? null,
+      period_count: normalizePeriodCount(updatedTournament.periodCount),
+      period_duration: normalizePositiveNumber(updatedTournament.periodDuration),
+      start_date: normalizeDateString(updatedTournament.startDate),
+      end_date: normalizeDateString(updatedTournament.endDate),
+      game_dates: normalizeDateArray(updatedTournament.gameDates),
+      club_season: updatedTournament.clubSeason ?? null,
+      game_type: normalizeGameType(updatedTournament.gameType),
+      gender: normalizeGender(updatedTournament.gender),
+      age_group: updatedTournament.ageGroup ?? null,
+      level: updatedTournament.level ?? null,
+      notes: updatedTournament.notes ?? null,
+      color: updatedTournament.color ?? null,
+      badge: updatedTournament.badge ?? null,
+      awarded_player_id: updatedTournament.awardedPlayerId ?? null,
+      team_placements: normalizeTeamPlacements(updatedTournament.teamPlacements),
+      series: (updatedTournament.series as unknown as Json) ?? null,
+      archived: updatedTournament.archived ?? false,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: updateError } = await this.getClient()
       .from('tournaments')
-      .update({
-        name: updatedTournament.name,
-        start_date: updatedTournament.startDate ?? null,
-        end_date: updatedTournament.endDate ?? null,
-        location: updatedTournament.location ?? null,
-        club_season: updatedTournament.clubSeason ?? null,
-        game_type: updatedTournament.gameType ?? null,
-        gender: updatedTournament.gender ?? null,
-        age_group: updatedTournament.ageGroup ?? null,
-        level: updatedTournament.level ?? null,
-        series: updatedTournament.series ?? null,
-        archived: updatedTournament.archived ?? false,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', tournament.id);
 
     if (updateError) {
@@ -1638,13 +1844,21 @@ export class SupabaseDataStore implements DataStore {
       startDate: row.start_date ?? undefined,
       endDate: row.end_date ?? undefined,
       location: row.location ?? undefined,
+      periodCount: normalizePeriodCount(row.period_count) ?? undefined,
+      periodDuration: normalizePositiveNumber(row.period_duration) ?? undefined,
+      gameDates: row.game_dates ?? undefined,
       clubSeason: row.club_season ?? undefined,
-      gameType: row.game_type as 'soccer' | 'futsal' | undefined,
-      gender: row.gender as 'boys' | 'girls' | undefined,
+      gameType: normalizeGameType(row.game_type) ?? undefined,
+      gender: normalizeGender(row.gender) ?? undefined,
       ageGroup: row.age_group ?? undefined,
       level: row.level ?? undefined,
       series: Array.isArray(row.series) ? (row.series as unknown as TournamentSeries[]) : undefined,
       archived: row.archived ?? false,
+      notes: row.notes ?? undefined,
+      color: row.color ?? undefined,
+      badge: row.badge ?? undefined,
+      awardedPlayerId: row.awarded_player_id ?? undefined,
+      teamPlacements: parseTeamPlacements(row.team_placements),
     };
   }
 
@@ -1653,14 +1867,22 @@ export class SupabaseDataStore implements DataStore {
       id: tournament.id,
       user_id: userId,
       name: tournament.name,
-      start_date: tournament.startDate ?? null,
-      end_date: tournament.endDate ?? null,
       location: tournament.location ?? null,
+      period_count: normalizePeriodCount(tournament.periodCount),
+      period_duration: normalizePositiveNumber(tournament.periodDuration),
+      start_date: normalizeDateString(tournament.startDate),
+      end_date: normalizeDateString(tournament.endDate),
+      game_dates: normalizeDateArray(tournament.gameDates),
       club_season: tournament.clubSeason ?? null,
-      game_type: tournament.gameType ?? null,
-      gender: tournament.gender ?? null,
+      game_type: normalizeGameType(tournament.gameType),
+      gender: normalizeGender(tournament.gender),
       age_group: tournament.ageGroup ?? null,
       level: tournament.level ?? null,
+      notes: tournament.notes ?? null,
+      color: tournament.color ?? null,
+      badge: tournament.badge ?? null,
+      awarded_player_id: tournament.awardedPlayerId ?? null,
+      team_placements: normalizeTeamPlacements(tournament.teamPlacements),
       series: (tournament.series as unknown as Json) ?? null,
       archived: tournament.archived ?? false,
       created_at: now,
@@ -1683,12 +1905,31 @@ export class SupabaseDataStore implements DataStore {
     if (!trimmedName) {
       throw new ValidationError('Tournament name cannot be empty', 'name', tournament.name);
     }
+    if (trimmedName.length > VALIDATION_LIMITS.TOURNAMENT_NAME_MAX) {
+      throw new ValidationError(
+        `Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters (got ${trimmedName.length})`,
+        'name',
+        tournament.name
+      );
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(tournament.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', tournament.ageGroup);
+    }
+
+    const { start, end } = await this.getSeasonDates();
+    const clubSeason = calculateClubSeason(tournament.startDate, start, end);
 
     const now = new Date().toISOString();
     const userId = await this.getUserId();
     const tournamentToUpsert: Tournament = {
       ...tournament,
       name: trimmedName,
+      ageGroup: normalizedAgeGroup ?? undefined,
+      level: normalizeOptionalString(tournament.level) ?? undefined,
+      notes: normalizeOptionalString(tournament.notes) ?? undefined,
+      clubSeason,
       archived: tournament.archived ?? false,
     };
 
@@ -1850,19 +2091,19 @@ export class SupabaseDataStore implements DataStore {
       updatedAt: new Date().toISOString(),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = this.getClient() as any;
-    const { error } = await client
+    const updatePayload: PersonnelUpdate = {
+      name: updated.name,
+      role: updated.role,
+      email: updated.email ?? null,
+      phone: updated.phone ?? null,
+      certifications: updated.certifications ?? [],
+      notes: updated.notes ?? null,
+      updated_at: updated.updatedAt,
+    };
+
+    const { error } = await this.getClient()
       .from('personnel')
-      .update({
-        name: updated.name,
-        role: updated.role,
-        email: updated.email ?? null,
-        phone: updated.phone ?? null,
-        certifications: updated.certifications ?? [],
-        notes: updated.notes ?? null,
-        updated_at: updated.updatedAt,
-      })
+      .update(updatePayload)
       .eq('id', id);
 
     if (error) {
@@ -2084,18 +2325,41 @@ export class SupabaseDataStore implements DataStore {
     const selectedIds = new Set(game.selectedPlayerIds ?? []);
     const onFieldMap = new Map((game.playersOnField ?? []).map((p) => [p.id, p]));
 
-    const playerRows: GamePlayerInsert[] = (game.availablePlayers ?? []).map((player) => {
-      const onFieldPlayer = onFieldMap.get(player.id);
-      const isOnField = !!onFieldPlayer;
-      const isSelected = selectedIds.has(player.id);
+    const rawPlayers = game.availablePlayers ?? [];
+    const playerRows: GamePlayerInsert[] = [];
+    const seenPlayerIds = new Set<string>();
+    let droppedPlayers = 0;
 
-      return {
-        id: `${gameId}_${player.id}`,
+    for (const player of rawPlayers) {
+      if (!player || typeof player.id !== 'string') {
+        droppedPlayers++;
+        continue;
+      }
+
+      const playerId = player.id;
+      if (!playerId.trim() || seenPlayerIds.has(playerId)) {
+        droppedPlayers++;
+        continue;
+      }
+
+      const onFieldPlayer = onFieldMap.get(playerId);
+      const displayName = onFieldPlayer?.name ?? player.name;
+      if (typeof displayName !== 'string' || displayName.trim() === '') {
+        droppedPlayers++;
+        continue;
+      }
+
+      seenPlayerIds.add(playerId);
+      const isOnField = !!onFieldPlayer;
+      const isSelected = selectedIds.has(playerId);
+
+      playerRows.push({
+        id: `${gameId}_${playerId}`,
         game_id: gameId,
-        player_id: player.id,
+        player_id: playerId,
         user_id: userId,
         // Snapshot fields - use onField version if available (more current state)
-        player_name: onFieldPlayer?.name ?? player.name,
+        player_name: displayName,
         nickname: onFieldPlayer?.nickname ?? player.nickname ?? '',
         jersey_number: onFieldPlayer?.jerseyNumber ?? player.jerseyNumber ?? '',
         is_goalie: onFieldPlayer?.isGoalie ?? player.isGoalie ?? false,
@@ -2109,11 +2373,32 @@ export class SupabaseDataStore implements DataStore {
         // Field position (only for on-field players)
         rel_x: isOnField ? onFieldPlayer!.relX : null,
         rel_y: isOnField ? onFieldPlayer!.relY : null,
-      };
-    });
+      });
+    }
+
+    if (droppedPlayers > 0) {
+      logger.warn('[SupabaseDataStore] Dropped invalid or duplicate game players during save', {
+        gameId,
+        dropped: droppedPlayers,
+      });
+    }
 
     // Build event rows with order_index for ordering
-    const eventRows: GameEventInsert[] = (game.gameEvents ?? []).map((e, index) => ({
+    // Filter invalid events to avoid DB constraint failures
+    const rawEvents = game.gameEvents ?? [];
+    const filteredEvents = rawEvents.filter((event) => {
+      const validType = VALID_GAME_EVENT_TYPES.has(event.type);
+      const validTime = typeof event.time === 'number' && Number.isFinite(event.time);
+      const validId = typeof event.id === 'string' && event.id.trim() !== '';
+      return validType && validTime && validId;
+    });
+    if (filteredEvents.length !== rawEvents.length) {
+      logger.warn('[SupabaseDataStore] Dropped invalid game events during save', {
+        gameId,
+        dropped: rawEvents.length - filteredEvents.length,
+      });
+    }
+    const eventRows: GameEventInsert[] = filteredEvents.map((e, index) => ({
       id: e.id,
       game_id: gameId,
       user_id: userId,
@@ -2127,28 +2412,33 @@ export class SupabaseDataStore implements DataStore {
     }));
 
     // Build assessment rows with flattened sliders
+    // Normalize values to avoid DB constraint violations (1-10 range)
     const assessmentRows: PlayerAssessmentInsert[] = Object.entries(game.assessments ?? {}).map(
       ([playerId, a]) => ({
         id: `assessment_${gameId}_${playerId}`,
         game_id: gameId,
         player_id: playerId,
         user_id: userId,
-        overall_rating: a.overall ?? null,
+        overall_rating: normalizeRating(a.overall),
         // CRITICAL: Flatten nested sliders object to individual columns
-        intensity: a.sliders?.intensity ?? null,
-        courage: a.sliders?.courage ?? null,
-        duels: a.sliders?.duels ?? null,
-        technique: a.sliders?.technique ?? null,
-        creativity: a.sliders?.creativity ?? null,
-        decisions: a.sliders?.decisions ?? null,
-        awareness: a.sliders?.awareness ?? null,
-        teamwork: a.sliders?.teamwork ?? null,
-        fair_play: a.sliders?.fair_play ?? null,
-        impact: a.sliders?.impact ?? null,
+        intensity: normalizeRating(a.sliders?.intensity ?? null),
+        courage: normalizeRating(a.sliders?.courage ?? null),
+        duels: normalizeRating(a.sliders?.duels ?? null),
+        technique: normalizeRating(a.sliders?.technique ?? null),
+        creativity: normalizeRating(a.sliders?.creativity ?? null),
+        decisions: normalizeRating(a.sliders?.decisions ?? null),
+        awareness: normalizeRating(a.sliders?.awareness ?? null),
+        teamwork: normalizeRating(a.sliders?.teamwork ?? null),
+        fair_play: normalizeRating(a.sliders?.fair_play ?? null),
+        impact: normalizeRating(a.sliders?.impact ?? null),
         notes: a.notes ?? null,
-        minutes_played: a.minutesPlayed ?? null,
+        minutes_played: typeof a.minutesPlayed === 'number' && Number.isFinite(a.minutesPlayed)
+          ? a.minutesPlayed
+          : null,
         created_by: a.createdBy ?? 'coach',
-        created_at: a.createdAt ?? Date.now(),
+        created_at: typeof a.createdAt === 'number' && Number.isFinite(a.createdAt)
+          ? a.createdAt
+          : Date.now(),
       })
     );
 
@@ -2168,6 +2458,15 @@ export class SupabaseDataStore implements DataStore {
       last_sub_confirmation_time_seconds: game.lastSubConfirmationTimeSeconds ?? null,
     };
 
+    const normalizedGameDate = normalizeDateString(game.gameDate);
+    const fallbackGameDate = new Date().toISOString().split('T')[0];
+    if (!normalizedGameDate) {
+      logger.warn('[SupabaseDataStore] Invalid gameDate detected, defaulting to today', {
+        gameId,
+        gameDate: game.gameDate,
+      });
+    }
+
     return {
       game: {
         id: gameId,
@@ -2186,13 +2485,13 @@ export class SupabaseDataStore implements DataStore {
         // === Required fields (direct mapping) ===
         team_name: game.teamName,
         opponent_name: game.opponentName,
-        game_date: game.gameDate,
-        // DEFENSIVE: Use || to catch both undefined AND empty string
-        home_or_away: game.homeOrAway || 'home',
-        number_of_periods: game.numberOfPeriods,
+        game_date: normalizedGameDate ?? fallbackGameDate,
+        // DEFENSIVE: Normalize to valid values; default to home
+        home_or_away: normalizeGameHomeOrAway(game.homeOrAway) ?? 'home',
+        number_of_periods: normalizePeriodCount(game.numberOfPeriods) ?? 2,
         period_duration_minutes: game.periodDurationMinutes,
-        current_period: game.currentPeriod,
-        game_status: game.gameStatus,
+        current_period: normalizePeriodCount(game.currentPeriod) ?? 1,
+        game_status: normalizeGameStatus(game.gameStatus) ?? 'notStarted',
         // CRITICAL: Local semantics treat undefined as true (legacy migration)
         is_played: game.isPlayed ?? true,
         home_score: game.homeScore,
@@ -2201,12 +2500,14 @@ export class SupabaseDataStore implements DataStore {
         show_player_names: game.showPlayerNames,
         // === Optional fields ===
         sub_interval_minutes: game.subIntervalMinutes ?? null,
-        // DEFENSIVE: Guard against NaN/Infinity which PostgreSQL rejects
-        demand_factor: (game.demandFactor != null && isFinite(game.demandFactor)) ? game.demandFactor : null,
-        game_type: game.gameType ?? null,
-        gender: game.gender ?? null,
+        // DEFENSIVE: Guard against invalid values which PostgreSQL rejects
+        demand_factor: normalizeDemandFactor(game.demandFactor),
+        game_type: normalizeGameType(game.gameType),
+        gender: normalizeGender(game.gender),
         // === Array/object fields ===
-        game_personnel: game.gamePersonnel ?? [],
+        game_personnel: Array.isArray(game.gamePersonnel)
+          ? game.gamePersonnel.filter((id): id is string => typeof id === 'string' && id.trim() !== '')
+          : [],
         formation_snap_points: (game.formationSnapPoints ?? null) as unknown as Json,
         // === Timer restoration ===
         time_elapsed_in_seconds: (game.timeElapsedInSeconds != null && isFinite(game.timeElapsedInSeconds))
@@ -2320,11 +2621,11 @@ export class SupabaseDataStore implements DataStore {
       teamName: game.team_name,
       opponentName: game.opponent_name,
       gameDate: game.game_date,
-      homeOrAway: game.home_or_away as 'home' | 'away',
-      numberOfPeriods: game.number_of_periods as 1 | 2,
+      homeOrAway: normalizeGameHomeOrAway(game.home_or_away) ?? 'home',
+      numberOfPeriods: (normalizePeriodCount(game.number_of_periods) ?? 2) as 1 | 2,
       periodDurationMinutes: game.period_duration_minutes,
-      currentPeriod: game.current_period,
-      gameStatus: game.game_status as AppState['gameStatus'],
+      currentPeriod: normalizePeriodCount(game.current_period) ?? 1,
+      gameStatus: normalizeGameStatus(game.game_status) ?? 'notStarted',
       isPlayed: game.is_played,
       homeScore: game.home_score,
       awayScore: game.away_score,
@@ -2333,8 +2634,8 @@ export class SupabaseDataStore implements DataStore {
       // === Optional fields (null → undefined for TypeScript semantics) ===
       subIntervalMinutes: game.sub_interval_minutes ?? undefined,
       demandFactor: game.demand_factor ?? undefined,
-      gameType: game.game_type as AppState['gameType'] ?? undefined,
-      gender: game.gender as AppState['gender'] ?? undefined,
+      gameType: normalizeGameType(game.game_type) ?? undefined,
+      gender: normalizeGender(game.gender) ?? undefined,
       // === Array/object fields ===
       gamePersonnel: game.game_personnel ?? [],
       formationSnapPoints: (game.formation_snap_points as Point[] | null) ?? undefined,
@@ -2578,7 +2879,7 @@ export class SupabaseDataStore implements DataStore {
     // Use RPC for atomic 5-table write within a single PostgreSQL transaction
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
     const client = this.getClient();
-    const { error } = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string } | null }>)(
+    const { error } = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string; code?: string } | null }>)(
       'save_game_with_relations',
       {
         p_game: tables.game,
@@ -2590,10 +2891,131 @@ export class SupabaseDataStore implements DataStore {
     );
 
     if (error) {
-      throw new NetworkError(`Failed to save game: ${error.message}`);
+      const errorMessage = error.message.toLowerCase();
+      const isMissingRpc =
+        error.code === 'PGRST202' ||
+        errorMessage.includes('does not exist') ||
+        errorMessage.includes('function save_game_with_relations');
+      const isPermissionIssue =
+        error.code === '42501' ||
+        errorMessage.includes('permission denied');
+
+      if (!isMissingRpc && !isPermissionIssue) {
+        throw new NetworkError(`Failed to save game: ${error.message}`);
+      }
+
+      logger.warn('[SupabaseDataStore] save_game_with_relations RPC failed, falling back to manual writes', {
+        code: error.code,
+        message: error.message,
+      });
+
+      await this.saveGameManually(id, tables, userId);
     }
 
+    await this.ensureGameCreatedAt(id);
+
     return game;
+  }
+
+  /**
+   * Manual (non-atomic) fallback for saving game data when RPC is unavailable.
+   */
+  private async saveGameManually(gameId: string, tables: GameTableSet, userId: string): Promise<void> {
+    const client = this.getClient();
+
+    const { error: gameError } = await client
+      .from('games')
+      .upsert(tables.game as unknown as never, { onConflict: 'id' });
+
+    if (gameError) {
+      throw new NetworkError(`Failed to save game (manual): ${gameError.message}`);
+    }
+
+    const { error: deletePlayersError } = await client
+      .from('game_players')
+      .delete()
+      .eq('game_id', gameId)
+      .eq('user_id', userId);
+
+    if (deletePlayersError) {
+      throw new NetworkError(`Failed to reset game players (manual): ${deletePlayersError.message}`);
+    }
+
+    if (tables.players.length > 0) {
+      const { error: insertPlayersError } = await client
+        .from('game_players')
+        .insert(tables.players as unknown as never);
+
+      if (insertPlayersError) {
+        throw new NetworkError(`Failed to save game players (manual): ${insertPlayersError.message}`);
+      }
+    }
+
+    const { error: deleteEventsError } = await client
+      .from('game_events')
+      .delete()
+      .eq('game_id', gameId)
+      .eq('user_id', userId);
+
+    if (deleteEventsError) {
+      throw new NetworkError(`Failed to reset game events (manual): ${deleteEventsError.message}`);
+    }
+
+    if (tables.events.length > 0) {
+      const { error: insertEventsError } = await client
+        .from('game_events')
+        .insert(tables.events as unknown as never);
+
+      if (insertEventsError) {
+        throw new NetworkError(`Failed to save game events (manual): ${insertEventsError.message}`);
+      }
+    }
+
+    const { error: deleteAssessmentsError } = await client
+      .from('player_assessments')
+      .delete()
+      .eq('game_id', gameId)
+      .eq('user_id', userId);
+
+    if (deleteAssessmentsError) {
+      throw new NetworkError(`Failed to reset player assessments (manual): ${deleteAssessmentsError.message}`);
+    }
+
+    if (tables.assessments.length > 0) {
+      const { error: insertAssessmentsError } = await client
+        .from('player_assessments')
+        .insert(tables.assessments as unknown as never);
+
+      if (insertAssessmentsError) {
+        throw new NetworkError(`Failed to save player assessments (manual): ${insertAssessmentsError.message}`);
+      }
+    }
+
+    const { error: tacticalError } = await client
+      .from('game_tactical_data')
+      .upsert(tables.tacticalData as unknown as never, { onConflict: 'game_id' });
+
+    if (tacticalError) {
+      throw new NetworkError(`Failed to save tactical data (manual): ${tacticalError.message}`);
+    }
+  }
+
+  /**
+   * Backfill created_at for legacy rows where it was left null.
+   */
+  private async ensureGameCreatedAt(gameId: string): Promise<void> {
+    const { error } = await this.getClient()
+      .from('games')
+      .update({ created_at: new Date().toISOString() })
+      .eq('id', gameId)
+      .is('created_at', null);
+
+    if (error) {
+      logger.warn('[SupabaseDataStore] Failed to backfill created_at for game', {
+        gameId,
+        message: error.message,
+      });
+    }
   }
 
   /**
@@ -2731,6 +3153,19 @@ export class SupabaseDataStore implements DataStore {
   // PLAYER ADJUSTMENTS
   // ==========================================================================
 
+  /**
+   * Validate adjustment note length (parity with LocalDataStore).
+   */
+  private validateAdjustmentNote(note: string | undefined): void {
+    if (note && note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
+      throw new ValidationError(
+        `Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${note.length})`,
+        'note',
+        note
+      );
+    }
+  }
+
   async getPlayerAdjustments(playerId: string): Promise<PlayerStatAdjustment[]> {
     this.ensureInitialized();
     checkOnline();
@@ -2753,6 +3188,7 @@ export class SupabaseDataStore implements DataStore {
   ): Promise<PlayerStatAdjustment> {
     this.ensureInitialized();
     checkOnline();
+    this.validateAdjustmentNote(adjustment.note);
 
     const userId = await this.getUserId();
     const id = adjustment.id || generateId('adjustment');
@@ -2784,6 +3220,7 @@ export class SupabaseDataStore implements DataStore {
   ): Promise<PlayerStatAdjustment> {
     this.ensureInitialized();
     checkOnline();
+    this.validateAdjustmentNote(adjustment.note);
 
     const userId = await this.getUserId();
     const id = adjustment.id || generateId('adjustment');
@@ -2812,6 +3249,9 @@ export class SupabaseDataStore implements DataStore {
   ): Promise<PlayerStatAdjustment | null> {
     this.ensureInitialized();
     checkOnline();
+    if (patch.note !== undefined) {
+      this.validateAdjustmentNote(patch.note);
+    }
 
     // Fetch existing adjustment
     const { data: existing, error: fetchError } = await this.getClient()
@@ -2882,8 +3322,8 @@ export class SupabaseDataStore implements DataStore {
       scoreFor: row.score_for ?? undefined,
       scoreAgainst: row.score_against ?? undefined,
       gameDate: row.game_date ?? undefined,
-      homeOrAway: (row.home_or_away as 'home' | 'away' | 'neutral') ?? undefined,
-      includeInSeasonTournament: row.include_in_season_tournament ?? true,
+      homeOrAway: normalizeAdjustmentHomeOrAway(row.home_or_away) ?? undefined,
+      includeInSeasonTournament: row.include_in_season_tournament ?? false,
       gamesPlayedDelta: row.games_played_delta ?? 0,
       goalsDelta: row.goals_delta ?? 0,
       assistsDelta: row.assists_delta ?? 0,
@@ -2898,20 +3338,27 @@ export class SupabaseDataStore implements DataStore {
     adjustment: PlayerStatAdjustment,
     userId: string
   ): PlayerAdjustmentInsert {
+    const normalizedSeasonId = normalizeOptionalString(adjustment.seasonId ?? undefined) ?? null;
+    const normalizedTeamId = normalizeOptionalString(adjustment.teamId ?? undefined) ?? null;
+    const normalizedTournamentId = normalizeOptionalString(adjustment.tournamentId ?? undefined) ?? null;
+    const normalizedExternalTeamName = normalizeOptionalString(adjustment.externalTeamName ?? undefined) ?? null;
+    const normalizedOpponentName = normalizeOptionalString(adjustment.opponentName ?? undefined) ?? null;
+    const normalizedGameDate = normalizeDateString(adjustment.gameDate);
+
     return {
       id: adjustment.id,
       user_id: userId,
       player_id: adjustment.playerId,
-      season_id: adjustment.seasonId,
-      team_id: adjustment.teamId,
-      tournament_id: adjustment.tournamentId,
-      external_team_name: adjustment.externalTeamName,
-      opponent_name: adjustment.opponentName,
+      season_id: normalizedSeasonId,
+      team_id: normalizedTeamId,
+      tournament_id: normalizedTournamentId,
+      external_team_name: normalizedExternalTeamName,
+      opponent_name: normalizedOpponentName,
       score_for: adjustment.scoreFor,
       score_against: adjustment.scoreAgainst,
-      game_date: adjustment.gameDate,
-      home_or_away: adjustment.homeOrAway,
-      include_in_season_tournament: adjustment.includeInSeasonTournament ?? true,
+      game_date: normalizedGameDate,
+      home_or_away: normalizeAdjustmentHomeOrAway(adjustment.homeOrAway),
+      include_in_season_tournament: adjustment.includeInSeasonTournament ?? false,
       games_played_delta: adjustment.gamesPlayedDelta,
       goals_delta: adjustment.goalsDelta,
       assists_delta: adjustment.assistsDelta,
@@ -3075,13 +3522,71 @@ export class SupabaseDataStore implements DataStore {
     // See: docs/02-technical/database/supabase-schema.md "Clear All User Data (Atomic)"
     const { error } = await client.rpc('clear_all_user_data');
 
-    if (error) {
+    if (!error) {
+      // Clear local caches
+      this.clearUserCaches();
+      logger.info('[SupabaseDataStore] All user data cleared from cloud (atomic RPC)');
+      return;
+    }
+
+    const errorMessage = error.message.toLowerCase();
+    const isNetworkLike =
+      errorMessage.includes('fetch') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('offline') ||
+      errorMessage.includes('connection');
+    const isMissingRpc =
+      error.code === 'PGRST202' ||
+      errorMessage.includes('does not exist') ||
+      errorMessage.includes('could not find') ||
+      errorMessage.includes('schema cache') ||
+      errorMessage.includes('clear_all_user_data');
+    const isPermissionIssue =
+      error.code === '42501' ||
+      errorMessage.includes('permission denied');
+
+    if (isNetworkLike || (!isMissingRpc && !isPermissionIssue)) {
       throw new NetworkError(`Failed to clear user data: ${error.message}`);
+    }
+
+    // Fallback: manual per-table deletion (non-atomic) if RPC missing/blocked
+    logger.warn('[SupabaseDataStore] clear_all_user_data RPC failed, falling back to manual deletes', {
+      code: error.code,
+      message: error.message,
+    });
+
+    const userId = await this.getUserId();
+    const tablesToClear = [
+      'game_events',
+      'game_players',
+      'game_tactical_data',
+      'player_assessments',
+      'games',
+      'player_adjustments',
+      'team_players',
+      'teams',
+      'tournaments',
+      'seasons',
+      'personnel',
+      'players',
+      'warmup_plans',
+      'user_settings',
+    ] as const;
+
+    for (const table of tablesToClear) {
+      const { error: deleteError } = await client
+        .from(table)
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteError) {
+        throw new NetworkError(`Failed to clear ${table}: ${deleteError.message}`);
+      }
     }
 
     // Clear local caches
     this.clearUserCaches();
 
-    logger.info('[SupabaseDataStore] All user data cleared from cloud (atomic RPC)');
+    logger.info('[SupabaseDataStore] All user data cleared from cloud (manual fallback)');
   }
 }

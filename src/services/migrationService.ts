@@ -17,6 +17,9 @@
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
+import { validateGame } from '@/datastore/validation';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { AGE_GROUPS } from '@/config/gameOptions';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import logger from '@/utils/logger';
@@ -125,6 +128,11 @@ interface ValidationError {
   message: string;
 }
 
+interface SkippedGame {
+  id: string;
+  reason: string;
+}
+
 /**
  * Tracks an individual entity that failed to upload during migration.
  * Mirrors the EntitySaveFailure type from reverseMigrationService for consistency.
@@ -146,6 +154,7 @@ export interface EntityUploadFailure {
 interface UploadToCloudResult {
   counts: MigrationCounts;
   failures: EntityUploadFailure[];
+  warnings: string[];
 }
 
 /**
@@ -328,7 +337,8 @@ export async function migrateLocalToCloud(
       localData.seasons.length > 0 ||
       localData.tournaments.length > 0 ||
       localData.personnel.length > 0 ||
-      Object.keys(localData.games).length > 0;
+      Object.keys(localData.games).length > 0 ||
+      Boolean(localData.warmupPlan);
 
     if (!hasData) {
       safeProgress({ stage: 'complete', progress: 100, message: 'No data to migrate.' });
@@ -358,8 +368,48 @@ export async function migrateLocalToCloud(
     if (sanitizeWarnings.length > 0) {
       warnings.push(...sanitizeWarnings);
     }
+    // Normalize game payloads to satisfy cloud validation/constraints
+    const { sanitizedGames: normalizedGames, warnings: normalizeWarnings, skippedGames } = sanitizeGamesForMigration(sanitizedGames);
+    if (normalizeWarnings.length > 0) {
+      warnings.push(...normalizeWarnings);
+    }
     // Update localData with sanitized games for upload
-    const sanitizedLocalData = { ...localData, games: sanitizedGames };
+    const sanitizedLocalData = { ...localData, games: normalizedGames };
+
+    if (skippedGames.length > 0) {
+      const MAX_SKIPPED_TO_REPORT = 5;
+      for (const skipped of skippedGames.slice(0, MAX_SKIPPED_TO_REPORT)) {
+        errors.push(`Game ${skipped.id}: ${skipped.reason}`);
+      }
+      if (skippedGames.length > MAX_SKIPPED_TO_REPORT) {
+        errors.push(`... and ${skippedGames.length - MAX_SKIPPED_TO_REPORT} more games skipped`);
+      }
+    }
+
+    const hasValidDataAfterSanitization =
+      sanitizedLocalData.players.length > 0 ||
+      sanitizedLocalData.teams.length > 0 ||
+      sanitizedLocalData.seasons.length > 0 ||
+      sanitizedLocalData.tournaments.length > 0 ||
+      sanitizedLocalData.personnel.length > 0 ||
+      Object.keys(sanitizedLocalData.games).length > 0 ||
+      Boolean(sanitizedLocalData.warmupPlan);
+
+    if (!hasValidDataAfterSanitization) {
+      return {
+        ...emptyResult,
+        errors: [...errors, 'No valid local data remained after validation. Migration aborted to protect cloud data.'],
+        warnings,
+      };
+    }
+
+    if (mode === 'replace' && skippedGames.length > 0) {
+      return {
+        ...emptyResult,
+        errors: [...errors, 'Replace migration aborted because some games were invalid. Please fix local data or use merge mode.'],
+        warnings,
+      };
+    }
 
     // Step 4: Clear cloud data if mode is 'replace'
     // This must succeed before upload - if clear fails, abort migration to prevent
@@ -389,7 +439,14 @@ export async function migrateLocalToCloud(
     const uploadStartProgress = PROGRESS_RANGES.UPLOADING.start + (mode === 'replace' ? CLEARING_STAGE_PROGRESS_OFFSET : 0);
     safeProgress({ stage: 'uploading', progress: uploadStartProgress, message: MIGRATION_MESSAGES.UPLOADING });
 
-    const { counts: uploadedCounts, failures: uploadFailures } = await uploadToCloud(sanitizedLocalData, cloudStore, safeProgress);
+    const { counts: uploadedCounts, failures: uploadFailures, warnings: uploadWarnings } = await uploadToCloud(
+      sanitizedLocalData,
+      cloudStore,
+      safeProgress
+    );
+    if (uploadWarnings.length > 0) {
+      warnings.push(...uploadWarnings);
+    }
 
     // Report upload failures (similar to reverseMigrationService pattern)
     const MAX_FAILURES_TO_REPORT = 5;
@@ -416,9 +473,10 @@ export async function migrateLocalToCloud(
     }
 
     // Check for critical upload failures
-    const hasCriticalUploadFailures = uploadFailures.some(f =>
-      ['player', 'team', 'game', 'season', 'tournament', 'personnel'].includes(f.entityType)
-    );
+    const hasCriticalUploadFailures =
+      uploadFailures.some(f =>
+        ['player', 'team', 'game', 'season', 'tournament', 'personnel'].includes(f.entityType)
+      ) || skippedGames.length > 0;
 
     // Step 7: Verify counts match (compares actual uploads vs expected)
     safeProgress({ stage: 'verifying', progress: PROGRESS_RANGES.VERIFYING.start, message: MIGRATION_MESSAGES.VERIFYING });
@@ -694,6 +752,29 @@ function validateLocalData(data: LocalDataSnapshot): ValidationError[] {
   return errors;
 }
 
+const normalizeDateString = (value: unknown): string | null => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().split('T')[0];
+  }
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().split('T')[0];
+};
+
+const deriveGameDateFromId = (gameId: string): string | null => {
+  const match = /^game_(\d+)_/.exec(gameId);
+  if (!match) return null;
+  const timestamp = Number(match[1]);
+  if (!Number.isFinite(timestamp)) return null;
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().split('T')[0];
+};
+
 /**
  * Sanitize game foreign key references to handle orphaned data.
  *
@@ -733,7 +814,12 @@ function sanitizeGameReferences(data: LocalDataSnapshot): {
     // Check tournamentId
     if (game.tournamentId && game.tournamentId !== '' && !tournamentIds.has(game.tournamentId)) {
       warnings.push(`Game ${gameId}: cleared orphaned tournament reference`);
-      gameCopy = { ...gameCopy, tournamentId: '' };
+      gameCopy = {
+        ...gameCopy,
+        tournamentId: '',
+        tournamentSeriesId: '',
+        tournamentLevel: '',
+      };
       modified = true;
     }
 
@@ -752,6 +838,166 @@ function sanitizeGameReferences(data: LocalDataSnapshot): {
   }
 
   return { sanitizedGames, warnings };
+}
+
+/**
+ * Sanitize game payloads to satisfy validation and DB constraints before migration.
+ *
+ * This fixes common legacy data issues (missing period duration, invalid status, overly long notes)
+ * and skips games that still fail validation after normalization.
+ */
+function sanitizeGamesForMigration(
+  games: SavedGamesCollection
+): { sanitizedGames: SavedGamesCollection; warnings: string[]; skippedGames: SkippedGame[] } {
+  const warnings: string[] = [];
+  const skippedGames: SkippedGame[] = [];
+  const sanitizedGames: SavedGamesCollection = {};
+
+  for (const [gameId, game] of Object.entries(games)) {
+    if (!game || typeof game !== 'object') {
+      skippedGames.push({ id: gameId, reason: 'skipped invalid game payload' });
+      continue;
+    }
+
+    let updated = { ...game };
+    let modified = false;
+
+    const normalizedTeamName = typeof updated.teamName === 'string' ? updated.teamName.trim() : '';
+    if (!normalizedTeamName) {
+      updated = { ...updated, teamName: 'My Team' };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted team name to "My Team"`);
+    } else if (normalizedTeamName !== updated.teamName) {
+      updated = { ...updated, teamName: normalizedTeamName };
+      modified = true;
+      warnings.push(`Game ${gameId}: trimmed team name`);
+    }
+
+    const normalizedOpponentName = typeof updated.opponentName === 'string' ? updated.opponentName.trim() : '';
+    if (!normalizedOpponentName) {
+      updated = { ...updated, opponentName: 'Opponent' };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted opponent name to "Opponent"`);
+    } else if (normalizedOpponentName !== updated.opponentName) {
+      updated = { ...updated, opponentName: normalizedOpponentName };
+      modified = true;
+      warnings.push(`Game ${gameId}: trimmed opponent name`);
+    }
+
+    const normalizedGameDate = normalizeDateString(updated.gameDate);
+    if (!normalizedGameDate) {
+      const fallbackDate = deriveGameDateFromId(gameId) ?? new Date().toISOString().split('T')[0];
+      updated = { ...updated, gameDate: fallbackDate };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted game date to ${fallbackDate}`);
+    } else if (normalizedGameDate !== updated.gameDate) {
+      updated = { ...updated, gameDate: normalizedGameDate };
+      modified = true;
+      warnings.push(`Game ${gameId}: normalized game date`);
+    }
+
+    // Normalize required scalar fields with safe defaults
+    if (typeof updated.homeScore !== 'number' || !Number.isFinite(updated.homeScore)) {
+      updated = { ...updated, homeScore: 0 };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted home score to 0`);
+    }
+    if (typeof updated.awayScore !== 'number' || !Number.isFinite(updated.awayScore)) {
+      updated = { ...updated, awayScore: 0 };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted away score to 0`);
+    }
+    if (typeof updated.showPlayerNames !== 'boolean') {
+      updated = { ...updated, showPlayerNames: true };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted showPlayerNames to true`);
+    }
+    if (typeof updated.gameNotes !== 'string') {
+      updated = { ...updated, gameNotes: '' };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted game notes to empty string`);
+    }
+
+    // Fix invalid period duration (required in cloud)
+    if (
+      typeof updated.periodDurationMinutes !== 'number' ||
+      !Number.isFinite(updated.periodDurationMinutes) ||
+      updated.periodDurationMinutes <= 0
+    ) {
+      updated = { ...updated, periodDurationMinutes: 10 };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted period duration to 10 minutes`);
+    }
+
+    // Normalize number of periods
+    if (updated.numberOfPeriods !== 1 && updated.numberOfPeriods !== 2) {
+      updated = { ...updated, numberOfPeriods: 2 };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted number of periods to 2`);
+    }
+
+    // Normalize current period to safe range
+    if (updated.currentPeriod !== 1 && updated.currentPeriod !== 2) {
+      updated = { ...updated, currentPeriod: 1 };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted current period to 1`);
+    }
+
+    // Normalize game status
+    const validStatuses = ['notStarted', 'inProgress', 'periodEnd', 'gameEnd'] as const;
+    if (!validStatuses.includes(updated.gameStatus)) {
+      updated = { ...updated, gameStatus: 'notStarted' };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted game status to notStarted`);
+    }
+
+    // Normalize home/away
+    if (updated.homeOrAway !== 'home' && updated.homeOrAway !== 'away') {
+      updated = { ...updated, homeOrAway: 'home' };
+      modified = true;
+      warnings.push(`Game ${gameId}: defaulted home/away to home`);
+    }
+
+    // Normalize age group
+    if (updated.ageGroup && !AGE_GROUPS.includes(updated.ageGroup)) {
+      updated = { ...updated, ageGroup: '' };
+      modified = true;
+      warnings.push(`Game ${gameId}: cleared invalid age group`);
+    }
+
+    // Trim overly long notes to avoid validation failure
+    if (updated.gameNotes && updated.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
+      updated = {
+        ...updated,
+        gameNotes: updated.gameNotes.slice(0, VALIDATION_LIMITS.GAME_NOTES_MAX),
+      };
+      modified = true;
+      warnings.push(`Game ${gameId}: truncated notes to ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters`);
+    }
+
+    // Normalize demand factor range
+    if (
+      updated.demandFactor != null &&
+      (!Number.isFinite(updated.demandFactor) || updated.demandFactor < 0.1 || updated.demandFactor > 10)
+    ) {
+      updated = { ...updated, demandFactor: undefined };
+      modified = true;
+      warnings.push(`Game ${gameId}: cleared invalid demand factor`);
+    }
+
+    // Final validation pass
+    try {
+      validateGame(updated, gameId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Validation failed';
+      skippedGames.push({ id: gameId, reason: `skipped after normalization (${message})` });
+      continue;
+    }
+
+    sanitizedGames[gameId] = modified ? updated : game;
+  }
+
+  return { sanitizedGames, warnings, skippedGames };
 }
 
 // =============================================================================
@@ -796,6 +1042,10 @@ async function uploadToCloud(
     settings: false,
   };
   const failures: EntityUploadFailure[] = [];
+  const warnings: string[] = [];
+  const uploadedSeasonIds = new Set<string>();
+  const uploadedTournamentIds = new Set<string>();
+  const uploadedTeamIds = new Set<string>();
 
   // Calculate progress within the uploading range
   const { start, end } = PROGRESS_RANGES.UPLOADING;
@@ -832,6 +1082,7 @@ async function uploadToCloud(
     try {
       await cloudStore.upsertSeason(season);
       counts.seasons++;
+      uploadedSeasonIds.add(season.id);
     } catch (err) {
       failures.push({
         entityType: 'season',
@@ -849,6 +1100,7 @@ async function uploadToCloud(
     try {
       await cloudStore.upsertTournament(tournament);
       counts.tournaments++;
+      uploadedTournamentIds.add(tournament.id);
     } catch (err) {
       failures.push({
         entityType: 'tournament',
@@ -866,6 +1118,7 @@ async function uploadToCloud(
     try {
       await cloudStore.upsertTeam(team);
       counts.teams++;
+      uploadedTeamIds.add(team.id);
     } catch (err) {
       failures.push({
         entityType: 'team',
@@ -880,6 +1133,10 @@ async function uploadToCloud(
   // 5. Team rosters (must come after players and teams)
   updateProgress('team rosters');
   for (const [teamId, roster] of data.teamRosters) {
+    if (!uploadedTeamIds.has(teamId)) {
+      warnings.push(`Team roster for ${teamId}: skipped because team failed to upload`);
+      continue;
+    }
     try {
       await cloudStore.setTeamRoster(teamId, roster);
       counts.teamRosters += roster.length;
@@ -917,6 +1174,25 @@ async function uploadToCloud(
   for (let i = 0; i < gameIds.length; i++) {
     const gameId = gameIds[i];
     const game = data.games[gameId];
+    let gameToUpload = game;
+
+    if (gameToUpload.seasonId && !uploadedSeasonIds.has(gameToUpload.seasonId)) {
+      gameToUpload = { ...gameToUpload, seasonId: '' };
+      warnings.push(`Game ${gameId}: cleared missing season reference (upload failed)`);
+    }
+    if (gameToUpload.tournamentId && !uploadedTournamentIds.has(gameToUpload.tournamentId)) {
+      gameToUpload = {
+        ...gameToUpload,
+        tournamentId: '',
+        tournamentSeriesId: '',
+        tournamentLevel: '',
+      };
+      warnings.push(`Game ${gameId}: cleared missing tournament reference (upload failed)`);
+    }
+    if (gameToUpload.teamId && !uploadedTeamIds.has(gameToUpload.teamId)) {
+      gameToUpload = { ...gameToUpload, teamId: '' };
+      warnings.push(`Game ${gameId}: cleared missing team reference (upload failed)`);
+    }
 
     // Update progress more frequently for games (step 7 of 10)
     // For small datasets (< 10 games), update on first and every game to show activity
@@ -933,7 +1209,7 @@ async function uploadToCloud(
     }
 
     try {
-      await cloudStore.saveGame(gameId, game);
+      await cloudStore.saveGame(gameId, gameToUpload);
       counts.games++;
     } catch (err) {
       failures.push({
@@ -950,8 +1226,21 @@ async function uploadToCloud(
   updateProgress('player adjustments');
   for (const [playerId, adjustments] of data.playerAdjustments) {
     for (const adjustment of adjustments) {
+      let adjustmentToUpload = adjustment;
+      let adjustmentModified = false;
+      if (adjustmentToUpload.seasonId && !uploadedSeasonIds.has(adjustmentToUpload.seasonId)) {
+        adjustmentToUpload = { ...adjustmentToUpload, seasonId: undefined };
+        adjustmentModified = true;
+        warnings.push(`Adjustment ${adjustment.id}: cleared missing season reference (upload failed)`);
+      }
+      if (adjustmentToUpload.tournamentId && !uploadedTournamentIds.has(adjustmentToUpload.tournamentId)) {
+        adjustmentToUpload = { ...adjustmentToUpload, tournamentId: undefined };
+        adjustmentModified = true;
+        warnings.push(`Adjustment ${adjustment.id}: cleared missing tournament reference (upload failed)`);
+      }
+
       try {
-        await cloudStore.upsertPlayerAdjustment(adjustment);
+        await cloudStore.upsertPlayerAdjustment(adjustmentModified ? adjustmentToUpload : adjustment);
         counts.playerAdjustments++;
       } catch (err) {
         failures.push({
@@ -997,7 +1286,7 @@ async function uploadToCloud(
     }
   }
 
-  return { counts, failures };
+  return { counts, failures, warnings };
 }
 
 // =============================================================================

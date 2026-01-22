@@ -1,8 +1,8 @@
 {
-  "version": "a206c791",
+  "version": "aff669d2",
   "date": "2026-01-21",
   "notes": {
-    "en": "Supabase cloud backend - robustness improvements",
-    "fi": "Supabase cloud backend - robustness improvements"
+    "en": "Merge: incorporate master changes (positions, marketing, rules)",
+    "fi": "Merge: incorporate master changes (positions, marketing, rules)"
   }
 }

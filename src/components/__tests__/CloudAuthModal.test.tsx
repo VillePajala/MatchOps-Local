@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CloudAuthModal from '../CloudAuthModal';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -475,10 +475,12 @@ describe('CloudAuthModal', () => {
 
   describe('edge cases', () => {
     it('should handle rapid button clicks without double submission', async () => {
-      // Make signIn take time so we can verify deduplication
-      mockSignIn.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 100))
-      );
+      // Make signIn pending so we can verify deduplication without timeouts
+      let resolveSignIn: () => void;
+      const signInPromise = new Promise<void>((resolve) => {
+        resolveSignIn = resolve;
+      });
+      mockSignIn.mockReturnValue(signInPromise);
 
       renderModal();
 
@@ -493,6 +495,11 @@ describe('CloudAuthModal', () => {
       // Button should be disabled now, additional clicks won't work
       expect(signInButton).toBeDisabled();
 
+      // Complete the sign-in to avoid pending promises
+      await act(async () => {
+        resolveSignIn!();
+      });
+
       // Wait for the mock to complete
       await waitFor(() => {
         expect(mockSignIn).toHaveBeenCalledTimes(1);
@@ -500,9 +507,11 @@ describe('CloudAuthModal', () => {
     });
 
     it('should handle Enter key during submission without duplicate calls', async () => {
-      mockSignIn.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 100))
-      );
+      let resolveSignIn: () => void;
+      const signInPromise = new Promise<void>((resolve) => {
+        resolveSignIn = resolve;
+      });
+      mockSignIn.mockReturnValue(signInPromise);
 
       renderModal();
 
@@ -513,6 +522,10 @@ describe('CloudAuthModal', () => {
       // isAuthenticating should be true now, preventing another submission
       await waitFor(() => {
         expect(mockSignIn).toHaveBeenCalledTimes(1);
+      });
+
+      await act(async () => {
+        resolveSignIn!();
       });
     });
 
@@ -526,10 +539,11 @@ describe('CloudAuthModal', () => {
     });
 
     it('should NOT close modal when Escape is pressed during authentication', async () => {
-      // Make signIn take time so we can test Escape during auth
-      mockSignIn.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 200))
-      );
+      let resolveSignIn: () => void;
+      const signInPromise = new Promise<void>((resolve) => {
+        resolveSignIn = resolve;
+      });
+      mockSignIn.mockReturnValue(signInPromise);
 
       renderModal();
 
@@ -549,13 +563,18 @@ describe('CloudAuthModal', () => {
 
       // onCancel should NOT have been called
       expect(mockOnCancel).not.toHaveBeenCalled();
+
+      await act(async () => {
+        resolveSignIn!();
+      });
     });
 
     it('should NOT close modal when Escape is pressed during deleting step', async () => {
-      // Make deletion take time
-      mockClearAllUserData.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 200))
-      );
+      let resolveDelete: () => void;
+      const deletePromise = new Promise<void>((resolve) => {
+        resolveDelete = resolve;
+      });
+      mockClearAllUserData.mockReturnValue(deletePromise);
 
       renderModal();
 
@@ -582,6 +601,10 @@ describe('CloudAuthModal', () => {
 
       // onCancel should NOT have been called
       expect(mockOnCancel).not.toHaveBeenCalled();
+
+      await act(async () => {
+        resolveDelete!();
+      });
     });
   });
 });
