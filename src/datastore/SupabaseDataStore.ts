@@ -2402,7 +2402,28 @@ export class SupabaseDataStore implements DataStore {
         dropped: rawEvents.length - filteredEvents.length,
       });
     }
-    const eventRows: GameEventInsert[] = filteredEvents.map((e, index) => ({
+
+    // Deduplicate events by ID to avoid primary key constraint violations
+    // Keep the last occurrence of each event ID (most recent state)
+    const seenEventIds = new Set<string>();
+    const deduplicatedEvents = [];
+    // Process in reverse to keep last occurrence, then reverse back to maintain order
+    for (let i = filteredEvents.length - 1; i >= 0; i--) {
+      const event = filteredEvents[i];
+      if (!seenEventIds.has(event.id)) {
+        seenEventIds.add(event.id);
+        deduplicatedEvents.unshift(event);
+      }
+    }
+    const droppedDuplicateEvents = filteredEvents.length - deduplicatedEvents.length;
+    if (droppedDuplicateEvents > 0) {
+      logger.warn('[SupabaseDataStore] Dropped duplicate game events during save', {
+        gameId,
+        dropped: droppedDuplicateEvents,
+      });
+    }
+
+    const eventRows: GameEventInsert[] = deduplicatedEvents.map((e, index) => ({
       id: e.id,
       game_id: gameId,
       user_id: userId,
