@@ -55,8 +55,9 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('MatchOps')).toBeInTheDocument();
-      // Default language is 'en' in test mock
-      expect(screen.getByText('Plan · Track · Assess')).toBeInTheDocument();
+      // Welcome message and instruction
+      expect(screen.getByText('Welcome!')).toBeInTheDocument();
+      expect(screen.getByText('Choose how you want to get started')).toBeInTheDocument();
     });
 
     it('renders language selector', () => {

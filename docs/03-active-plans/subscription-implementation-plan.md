@@ -419,6 +419,188 @@ async function validateSubscription(): Promise<SubscriptionStatus> {
 
 ---
 
+## 9. Legal & Compliance Requirements
+
+### 9.1 Terms of Service & Privacy Policy
+
+**Required before launch:**
+1. Update `/terms` page with subscription terms
+2. Update `/privacy-policy` with cloud data handling
+3. Add data processing agreement details
+4. Document subscription cancellation rights
+
+### 9.2 Consent Collection
+
+**During Account Creation:**
+- [ ] Terms of Service acceptance checkbox (required)
+- [ ] Privacy Policy acceptance checkbox (required)
+- [ ] Marketing email consent checkbox (optional, opt-in)
+
+**Implementation:**
+```typescript
+// During sign-up flow
+interface ConsentData {
+  termsAccepted: boolean;        // Required
+  privacyAccepted: boolean;      // Required
+  marketingConsent: boolean;     // Optional, default false
+  consentTimestamp: string;      // ISO timestamp
+  consentVersion: string;        // Version of T&C accepted
+}
+```
+
+**Storage:**
+- Store consent in Supabase `user_consents` table
+- Keep audit log of consent changes
+- Allow users to update marketing preferences in Settings
+
+### 9.3 GDPR Compliance
+
+**Required Features:**
+
+1. **Right to Access (Article 15)**
+   - Users can request all their data
+   - "Export All Data" button in Settings
+   - Provide data in machine-readable format (JSON)
+
+2. **Right to Erasure (Article 17)**
+   - "Delete All My Data" option in Settings
+   - Must delete ALL user data from Supabase
+   - Must delete auth account
+   - Confirm action with modal warning
+   - Email confirmation of deletion
+
+3. **Right to Data Portability (Article 20)**
+   - Export data in standard format
+   - Already implemented via backup export
+
+4. **Data Processing Records**
+   - Document what data is collected
+   - Document processing purposes
+   - Document retention periods
+
+**Delete Account Flow:**
+```
+User clicks "Delete Account"
+    → Show warning modal with consequences
+    → Require password/confirmation
+    → Delete all data from:
+        - games, game_events, game_players, game_assessments, etc.
+        - players, teams, seasons, tournaments, personnel
+        - user profile and settings
+        - auth.users entry
+    → Sign out user
+    → Show confirmation
+    → Redirect to welcome screen
+```
+
+### 9.4 Cookie/Tracking Consent
+
+**Current State:**
+- No third-party cookies used
+- Only essential cookies (session, preferences)
+- Sentry error tracking (opt-out available)
+
+**If adding analytics:**
+- Must add cookie consent banner
+- Must respect "Do Not Track" browser setting
+- Document in Privacy Policy
+
+---
+
+## 10. Desktop & Web Payment Considerations
+
+### Challenge
+
+Google Play Billing only works in **Android TWA/PWA installed from Play Store**. Users accessing the app via:
+- Desktop browser (Windows, Mac, Linux)
+- iOS Safari
+- Android browser (not installed)
+
+**Cannot use Play Billing** for these platforms.
+
+### Options
+
+#### Option A: Desktop-Only Mode (Recommended for MVP)
+
+Desktop users can only use **local mode**. Cloud sync requires Play Store installation.
+
+**Implementation:**
+- Detect platform on welcome screen
+- If not Android/TWA, hide "Sign in to cloud" option
+- Show message: "Cloud sync available on Android app"
+- Provide Play Store download link
+
+**Pros:**
+- Simplest implementation
+- Avoids payment complexity
+- Play Store handles all billing
+
+**Cons:**
+- Limits cloud feature to mobile users
+- May frustrate desktop users
+
+#### Option B: Web Payments (Stripe Integration)
+
+Add alternative payment method for non-Play Store users using Stripe.
+
+**Challenges:**
+- Different billing system to maintain
+- Google may require Play Billing for Android
+- Must handle dual subscription status
+- More complex subscription management
+
+**Implementation Cost:** High
+
+#### Option C: PWA Detection
+
+Only show cloud option when installed as PWA from Play Store.
+
+**Detection:**
+```typescript
+const isInstalledPWA = () => {
+  // Check if running in standalone mode
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  // Check if document referrer is Play Store
+  const fromPlayStore = document.referrer.includes('play.google.com');
+  // Check for TWA origin trial token
+  const isTWA = 'getDigitalGoodsService' in window;
+
+  return isStandalone && (fromPlayStore || isTWA);
+};
+```
+
+**Pros:**
+- Ensures Play Billing is available
+- No web payment complexity
+
+**Cons:**
+- Excludes desktop PWA users
+- May not detect all Play Store installs
+
+#### Option D: Hybrid Approach (Future)
+
+1. **MVP:** Desktop = local mode only
+2. **Phase 2:** Add Stripe for web users
+3. **Phase 3:** Unify subscription across platforms
+
+### Recommendation for MVP
+
+**Go with Option A: Desktop-Only Mode**
+
+Rationale:
+- Primary user base is coaches on mobile
+- Desktop is secondary use case
+- Simplifies billing implementation
+- Can add web payments later if demand exists
+
+**Implementation Tasks:**
+- [ ] Add platform detection utility
+- [ ] Conditionally show cloud option on WelcomeScreen
+- [ ] Add "Get Android App" prompt for desktop users
+- [ ] Document platform limitations
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Basic Subscription (MVP)

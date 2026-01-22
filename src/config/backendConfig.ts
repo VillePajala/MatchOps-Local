@@ -422,6 +422,70 @@ export function clearCloudAccountInfo(): void {
 }
 
 // ============================================================================
+// PENDING POST-LOGIN CHECK FLAG
+// ============================================================================
+
+/**
+ * Storage key for pending post-login premium check.
+ * Set when user initiates cloud sign-in from WelcomeScreen.
+ * Cleared after post-login premium check completes.
+ *
+ * This flag persists through the page reload that happens when enabling cloud mode,
+ * allowing us to gate cloud access AFTER authentication succeeds.
+ */
+const PENDING_POST_LOGIN_CHECK_KEY = 'matchops_pending_post_login_check';
+
+/**
+ * Check if there's a pending post-login premium check.
+ *
+ * This is set when user clicks "Sign in to cloud" on WelcomeScreen
+ * and cleared after the post-login premium check completes (or user cancels).
+ *
+ * @returns true if a post-login premium check is pending
+ */
+export function hasPendingPostLoginCheck(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return safeGetItem(PENDING_POST_LOGIN_CHECK_KEY) === 'true';
+}
+
+/**
+ * Set the pending post-login premium check flag.
+ *
+ * Called when user initiates cloud sign-in from WelcomeScreen,
+ * before enabling cloud mode and reloading.
+ *
+ * @returns true if flag was set successfully
+ */
+export function setPendingPostLoginCheck(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  const success = safeSetItem(PENDING_POST_LOGIN_CHECK_KEY, 'true');
+  if (success) {
+    log.info('[backendConfig] Pending post-login check flag set');
+  }
+  return success;
+}
+
+/**
+ * Clear the pending post-login premium check flag.
+ *
+ * Called after:
+ * - Post-login premium check completes (user has subscription)
+ * - User successfully subscribes via upgrade modal
+ * - User cancels and returns to local mode
+ */
+export function clearPendingPostLoginCheck(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  safeRemoveItem(PENDING_POST_LOGIN_CHECK_KEY);
+  log.info('[backendConfig] Pending post-login check flag cleared');
+}
+
+// ============================================================================
 // WELCOME SCREEN FLAG
 // ============================================================================
 

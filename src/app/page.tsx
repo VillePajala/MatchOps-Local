@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
 import { useCloudUpgradeGate } from '@/hooks/useCloudUpgradeGate';
+import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
@@ -28,6 +29,9 @@ import {
   enableCloudMode,
   disableCloudMode,
   isCloudAvailable,
+  hasPendingPostLoginCheck,
+  setPendingPostLoginCheck,
+  clearPendingPostLoginCheck,
 } from '@/config/backendConfig';
 import { hasLocalDataToMigrate, type MigrationCounts } from '@/services/migrationService';
 import { hasCloudData, getCloudDataSummary } from '@/services/reverseMigrationService';
@@ -52,10 +56,13 @@ export default function Home() {
   // Welcome screen state (first-install onboarding)
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
+  // Post-login upgrade modal state (shown when user signs in without premium subscription)
+  const [showPostLoginUpgradeModal, setShowPostLoginUpgradeModal] = useState(false);
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
   const { showToast } = useToast();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
+  const { isPremium, isLoading: isPremiumLoading } = usePremium();
   const queryClient = useQueryClient();
 
   // Cloud upgrade gate - shows upgrade modal when enabling cloud without premium
@@ -147,10 +154,34 @@ export default function Home() {
   const handleWelcomeStartLocal = useCallback(() => {
     logger.info('[page.tsx] Welcome: User chose local mode');
     setWelcomeSeen();
-    setShowWelcome(false);
-    // Mode is already 'local' by default, proceed to app state check
-    setRefreshTrigger(prev => prev + 1);
-  }, []);
+
+    // Explicitly ensure we're in local mode
+    // This handles edge cases where mode might be 'cloud' from previous sessions
+    const result = disableCloudMode();
+    if (!result.success) {
+      // Should rarely happen, log but continue
+      logger.warn('[page.tsx] Failed to ensure local mode:', result.message);
+    }
+
+    // If mode was cloud, reload to reinitialize in local mode
+    // Otherwise just hide welcome screen
+    if (mode === 'cloud') {
+      logger.info('[page.tsx] Mode was cloud, reloading to switch to local');
+      showToast('Starting in local mode...', 'info');
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch (error) {
+          logger.error('[page.tsx] Reload blocked', error);
+          showToast('Please refresh the page manually', 'error');
+        }
+      }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
+    } else {
+      setShowWelcome(false);
+      // Mode is already 'local', proceed to app state check
+      setRefreshTrigger(prev => prev + 1);
+    }
+  }, [mode, showToast]);
 
   // Actually enable cloud mode (called after premium check passes)
   const executeEnableCloudFromWelcome = useCallback(() => {
@@ -179,11 +210,15 @@ export default function Home() {
     }
   }, [showToast]);
 
-  // Handle "Sign In to Cloud" from welcome screen - gated behind premium
+  // Handle "Sign In to Cloud" from welcome screen
+  // Note: Premium check happens AFTER login, not before (see post-login check effect)
   const handleWelcomeSignInCloud = useCallback(() => {
-    logger.info('[page.tsx] Welcome: User chose cloud mode');
-    gateCloudAction(executeEnableCloudFromWelcome);
-  }, [gateCloudAction, executeEnableCloudFromWelcome]);
+    logger.info('[page.tsx] Welcome: User chose cloud mode - setting pending post-login check');
+    // Set flag so we know to check premium after authentication
+    setPendingPostLoginCheck();
+    // Proceed to enable cloud mode (this will reload and show LoginScreen)
+    executeEnableCloudFromWelcome();
+  }, [executeEnableCloudFromWelcome]);
 
   // Handle "Import Backup" from welcome screen
   const handleWelcomeImportBackup = useCallback(async () => {
@@ -310,6 +345,19 @@ export default function Home() {
       return;
     }
 
+    // Wait for premium status to load before checking migration
+    // This ensures the post-login premium check runs first
+    if (isPremiumLoading) {
+      return;
+    }
+
+    // Skip if there's a pending post-login check (premium check hasn't passed yet)
+    // This ensures we don't show migration wizard until user has verified subscription
+    if (hasPendingPostLoginCheck()) {
+      logger.info('[page.tsx] Migration check: waiting for post-login premium check to complete');
+      return;
+    }
+
     // Skip if check already initiated this session (ref prevents race conditions)
     if (migrationCheckInitiatedRef.current) return;
 
@@ -382,7 +430,84 @@ export default function Home() {
 
     checkMigrationNeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isAuthenticated, userId]);
+  }, [mode, isAuthenticated, userId, isPremiumLoading]);
+
+  // ============================================================================
+  // POST-LOGIN PREMIUM CHECK (Cloud Mode Only)
+  // ============================================================================
+  // When user signs in to cloud from WelcomeScreen, we need to verify they have
+  // a premium subscription AFTER authentication succeeds. This is because:
+  // 1. In local mode, isPremium is always true (no subscription check)
+  // 2. We can't verify subscription status before authentication
+  // 3. The gate must happen after login, not before
+  //
+  // This effect triggers when:
+  // - User is in cloud mode AND authenticated
+  // - Premium status is loaded (not loading)
+  // - There's a pending post-login check flag set
+  //
+  // If user doesn't have premium:
+  // - Show upgrade modal
+  // - User must subscribe OR cancel (returns to local mode)
+  useEffect(() => {
+    // Skip if not in cloud mode, not authenticated, or still loading
+    if (mode !== 'cloud' || !isAuthenticated || isAuthLoading || isPremiumLoading) {
+      return;
+    }
+
+    // Check if there's a pending post-login check
+    if (!hasPendingPostLoginCheck()) {
+      return; // No pending check - user is returning to the app, not newly signing in
+    }
+
+    logger.info('[page.tsx] Post-login check: verifying premium status');
+
+    // Check premium status
+    if (isPremium) {
+      // User has premium - clear flag and proceed
+      logger.info('[page.tsx] Post-login check: user has premium, proceeding');
+      clearPendingPostLoginCheck();
+      // Migration check will run (if needed) via the other effect
+    } else {
+      // User doesn't have premium - show upgrade modal
+      logger.info('[page.tsx] Post-login check: user needs premium subscription');
+      setShowPostLoginUpgradeModal(true);
+    }
+  }, [mode, isAuthenticated, isAuthLoading, isPremiumLoading, isPremium]);
+
+  // Handle post-login upgrade success - user subscribed
+  const handlePostLoginUpgradeSuccess = useCallback(() => {
+    logger.info('[page.tsx] Post-login upgrade success - proceeding to cloud mode');
+    setShowPostLoginUpgradeModal(false);
+    clearPendingPostLoginCheck();
+    // Migration check will run (if needed) via the other effect on next render
+    // Trigger a refresh to ensure proper state
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  // Handle post-login upgrade cancel - user chose not to subscribe
+  const handlePostLoginUpgradeCancel = useCallback(() => {
+    logger.info('[page.tsx] Post-login upgrade cancelled - returning to local mode');
+    setShowPostLoginUpgradeModal(false);
+    clearPendingPostLoginCheck();
+
+    // Disable cloud mode and reload to local mode
+    const result = disableCloudMode();
+    if (result.success) {
+      showToast('Returning to local mode...', 'info');
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch (error) {
+          logger.error('[page.tsx] Reload blocked', error);
+          showToast('Please refresh the page manually', 'error');
+        }
+      }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
+    } else {
+      logger.error('[page.tsx] Failed to switch to local mode:', result.message);
+      showToast('Failed to switch to local mode. Please try again.', 'error');
+    }
+  }, [showToast]);
 
   // Handle migration wizard completion
   const handleMigrationComplete = useCallback(async () => {
@@ -578,12 +703,20 @@ export default function Home() {
         {/* Migration status overlay */}
         <MigrationStatus />
 
-        {/* Cloud upgrade modal - shown when enabling cloud without premium */}
+        {/* Cloud upgrade modal - shown when enabling cloud from Settings without premium */}
         <UpgradePromptModal
           isOpen={showCloudUpgradeModal}
           onClose={handleCloudUpgradeCancel}
           variant="cloudUpgrade"
           onUpgradeSuccess={handleCloudUpgradeSuccess}
+        />
+
+        {/* Post-login upgrade modal - shown after signing in to cloud without premium subscription */}
+        <UpgradePromptModal
+          isOpen={showPostLoginUpgradeModal}
+          onClose={handlePostLoginUpgradeCancel}
+          variant="cloudUpgrade"
+          onUpgradeSuccess={handlePostLoginUpgradeSuccess}
         />
       </ModalProvider>
     </ErrorBoundary>

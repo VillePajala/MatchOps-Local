@@ -1,8 +1,8 @@
 {
-  "version": "f771969b",
+  "version": "c429bfb4",
   "date": "2026-01-22",
   "notes": {
-    "en": "Unify auth screens and add Sign Out to menu",
-    "fi": "Unify auth screens and add Sign Out to menu"
+    "en": "Gate cloud mode behind premium subscription",
+    "fi": "Gate cloud mode behind premium subscription"
   }
 }

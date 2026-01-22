@@ -102,8 +102,9 @@ describe('UpgradePromptModal', () => {
     it('displays price', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      expect(screen.getByText('9,99 €')).toBeInTheDocument();
-      expect(screen.getByText('one-time payment')).toBeInTheDocument();
+      expect(screen.getByText('€4.99/month')).toBeInTheDocument();
+      expect(screen.getByText('monthly subscription')).toBeInTheDocument();
+      expect(screen.getByText('Cancel anytime')).toBeInTheDocument();
     });
 
     it('displays upgrade and dismiss buttons', () => {

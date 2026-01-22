@@ -94,11 +94,11 @@ describe('premiumLimits', () => {
     });
 
     it('should have correct price string', () => {
-      expect(PREMIUM_PRICE).toBe('9,99 €');
+      expect(PREMIUM_PRICE).toBe('€4.99/month');
     });
 
     it('should have correct price amount', () => {
-      expect(PREMIUM_PRICE_AMOUNT).toBe(9.99);
+      expect(PREMIUM_PRICE_AMOUNT).toBe(4.99);
     });
   });
 });
