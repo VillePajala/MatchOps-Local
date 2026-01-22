@@ -9,8 +9,10 @@ import {
   isCloudAvailable,
   enableCloudMode,
   getCloudAccountInfo,
+  clearMigrationCompleted,
   type CloudAccountInfo,
 } from '@/config/backendConfig';
+import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { getDataStore } from '@/datastore/factory';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
@@ -49,6 +51,7 @@ export default function CloudSyncSection({
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // Use lazy initialization to load values only once on mount (avoids lint warning about setState in useEffect)
   const [currentMode] = useState<'local' | 'cloud'>(() => getBackendMode());
@@ -245,6 +248,12 @@ export default function CloudSyncSection({
   const handleSignOut = async () => {
     setIsSigningOut(true);
     try {
+      // Clear migration completed flag BEFORE signing out (while we still have user ID)
+      // This ensures that when user signs back in, the app will re-check for cloud data
+      if (user?.id) {
+        clearMigrationCompleted(user.id);
+      }
+
       // Dynamic import to avoid bundling Supabase in local mode builds
       const { getAuthService } = await import('@/datastore/factory');
       const authService = await getAuthService();
