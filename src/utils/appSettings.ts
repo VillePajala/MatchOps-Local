@@ -99,12 +99,22 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
   try {
     const dataStore = await getDataStore();
+    // Defensive null check - shouldn't happen but can during page reload edge cases
+    if (!dataStore) {
+      logger.warn('updateAppSettings: dataStore is null, returning defaults');
+      return DEFAULT_APP_SETTINGS;
+    }
     return await dataStore.updateSettings(settingsUpdate);
   } catch (error) {
     // Re-throw ValidationError - it's a programming error, caller should fix their code
     // Check by code property to avoid instanceof issues across module boundaries
     if (error && typeof error === 'object' && 'code' in error && error.code === 'VALIDATION_ERROR') {
       throw error;
+    }
+    // AuthError is expected during sign out - don't log as error (prevents Sentry noise)
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'AUTH_ERROR') {
+      logger.info('Settings update skipped - user signed out:', error);
+      return DEFAULT_APP_SETTINGS;
     }
     // Graceful degradation for unexpected errors (storage failures, etc.)
     logger.error('Error updating app settings:', error);
