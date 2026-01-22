@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
-import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
+import { ResourceType, PREMIUM_PRICE, PREMIUM_IS_SUBSCRIPTION, getLimit } from '@/config/premiumLimits';
 import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
@@ -175,7 +175,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         <div className="mb-5">
           <p className="text-slate-200 font-medium mb-2">
             {variant === 'cloudUpgrade'
-              ? t('premium.cloudBenefitsTitle', 'Cloud sync includes:')
+              ? t('premium.subscriptionIncludes', 'Your subscription includes:')
               : t('premium.fullVersionIncludes', 'The full version includes:')}
           </p>
           <ul className="space-y-1.5">
@@ -184,6 +184,9 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
                   t('premium.cloudBenefit.sync', 'Sync across all your devices'),
                   t('premium.cloudBenefit.backup', 'Automatic cloud backup'),
                   t('premium.cloudBenefit.security', 'Secure cloud storage'),
+                  t('premium.benefit.unlimitedTeams', 'Unlimited teams'),
+                  t('premium.benefit.unlimitedPlayers', 'Unlimited players'),
+                  t('premium.benefit.unlimitedContent', 'Unlimited seasons, tournaments & games'),
                 ]
               : [
                   t('premium.benefit.unlimitedTeams', 'Unlimited teams'),
@@ -204,8 +207,15 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         <div className="mb-5 text-center">
           <div className="text-2xl font-bold text-amber-400">{PREMIUM_PRICE}</div>
           <div className="text-slate-400 text-sm">
-            {t('premium.oneTimePayment', 'one-time payment')}
+            {PREMIUM_IS_SUBSCRIPTION
+              ? t('premium.monthlySubscription', 'monthly subscription')
+              : t('premium.oneTimePayment', 'one-time payment')}
           </div>
+          {PREMIUM_IS_SUBSCRIPTION && (
+            <div className="text-slate-500 text-xs mt-1">
+              {t('premium.cancelAnytime', 'Cancel anytime')}
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}

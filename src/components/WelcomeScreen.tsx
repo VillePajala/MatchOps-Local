@@ -111,9 +111,13 @@ export default function WelcomeScreen({
               </h1>
             </div>
 
-            {/* Tagline */}
-            <p className="text-lg text-slate-400">
-              {language === 'en' ? 'Plan · Track · Assess' : 'Suunnittele · Kirjaa · Arvioi'}
+            {/* Welcome message */}
+            <p className="text-xl text-white font-medium mb-2">
+              {t('welcome.title', 'Welcome!')}
+            </p>
+            {/* Instruction */}
+            <p className="text-base text-slate-400">
+              {t('welcome.instruction', 'Choose how you want to get started')}
             </p>
           </div>
 
