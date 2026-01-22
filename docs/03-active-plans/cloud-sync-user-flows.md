@@ -628,13 +628,452 @@ After successful login:
 
 ---
 
+## First Install Welcome Screen (PR #12)
+
+**Status**: Ready for Implementation
+**Priority**: High - Improves onboarding for all user types
+**Branch**: `supabase/pr12-welcome-screen`
+
+### Problem Statement
+
+Currently, the app always starts in local mode. Users who want cloud sync must:
+1. Navigate to Settings
+2. Find and enable Cloud Sync
+3. Sign in
+
+This creates friction for:
+- **New users who want cloud from the start** - they create local data, discover cloud later, have to migrate
+- **Returning users with cloud accounts** - they land in empty local mode, must dig through settings
+- **Users with backup files** - not immediately obvious how to import
+
+### Solution: One-Time Welcome Screen
+
+Show a welcome screen **only on first launch** that lets users choose their path.
+
+### Design
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│                    Welcome to MatchOps!                     │
+│                                                             │
+│         Track your team's games, players, and stats         │
+│                                                             │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │                                                     │   │
+│   │   🏠  Start Fresh                                   │   │
+│   │   Data stays on this device                         │   │
+│   │                                                     │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │                                                     │   │
+│   │   ☁️  Sign In to Cloud                              │   │
+│   │   Sync across all your devices                      │   │
+│   │                                                     │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │                                                     │   │
+│   │   📁  Import Backup                                 │   │
+│   │   Restore from exported file                        │   │
+│   │                                                     │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│           You can change this later in Settings             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Note**: "Sign In to Cloud" button only shows if `isCloudAvailable() === true`
+
+### User Flow Diagrams
+
+#### Flow A: Start Fresh (Local)
+```
+Welcome Screen
+    │ click "Start Fresh"
+    ▼
+Set hasSeenWelcome = true (localStorage)
+Mode stays 'local'
+    │
+    ▼
+StartScreen (first-time user view)
+    - "Get Started" button prominent
+    - No Resume/Load options
+    │ click "Get Started"
+    ▼
+HomePage with first-time guidance
+```
+
+#### Flow B: Sign In to Cloud (New Cloud User)
+```
+Welcome Screen
+    │ click "Sign In to Cloud"
+    ▼
+Set hasSeenWelcome = true
+enableCloudMode()
+    │
+    ▼
+LoginScreen
+    │ user signs in
+    ▼
+Cloud data check → empty
+    │
+    ▼
+StartScreen (first-time user view)
+    - Same view as local first-timer
+    - But data will sync to cloud as created
+```
+
+#### Flow C: Sign In to Cloud (Returning User)
+```
+Welcome Screen
+    │ click "Sign In to Cloud"
+    ▼
+Set hasSeenWelcome = true
+enableCloudMode()
+    │
+    ▼
+LoginScreen
+    │ user signs in
+    ▼
+Cloud data loads (games, roster, etc.)
+    │
+    ▼
+StartScreen (returning user view)
+    - "Resume" if has current game
+    - "Load Game" option available
+    - Ready to continue
+```
+
+#### Flow D: Import Backup
+```
+Welcome Screen
+    │ click "Import Backup"
+    ▼
+File picker opens
+    │ select file, import succeeds
+    ▼
+Set hasSeenWelcome = true
+Mode stays 'local'
+    │
+    ▼
+StartScreen (returning user view)
+    - Shows Resume/Load based on imported data
+```
+
+#### Flow E: Import Cancelled
+```
+Welcome Screen
+    │ click "Import Backup"
+    ▼
+File picker opens
+    │ user cancels or import fails
+    ▼
+Stay on Welcome Screen
+    - User can try again or choose different option
+```
+
+### Technical Implementation
+
+#### 1. New Component: `WelcomeScreen.tsx`
+
+```typescript
+// src/components/WelcomeScreen.tsx
+
+interface WelcomeScreenProps {
+  onStartLocal: () => void;
+  onSignInCloud: () => void;
+  onImportBackup: () => void;
+  isCloudAvailable: boolean;
+  isImporting: boolean;
+}
+
+export default function WelcomeScreen({
+  onStartLocal,
+  onSignInCloud,
+  onImportBackup,
+  isCloudAvailable,
+  isImporting,
+}: WelcomeScreenProps) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 p-6">
+      <div className="max-w-md w-full space-y-8">
+        {/* Logo/Title */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-white">Welcome to MatchOps!</h1>
+          <p className="mt-2 text-slate-400">
+            Track your team's games, players, and stats
+          </p>
+        </div>
+
+        {/* Option Buttons */}
+        <div className="space-y-4">
+          {/* Start Fresh (Local) */}
+          <button
+            onClick={onStartLocal}
+            className="w-full p-4 bg-slate-800 hover:bg-slate-700 rounded-lg text-left transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🏠</span>
+              <div>
+                <div className="text-white font-medium">Start Fresh</div>
+                <div className="text-slate-400 text-sm">Data stays on this device</div>
+              </div>
+            </div>
+          </button>
+
+          {/* Sign In to Cloud - only if available */}
+          {isCloudAvailable && (
+            <button
+              onClick={onSignInCloud}
+              className="w-full p-4 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-left transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">☁️</span>
+                <div>
+                  <div className="text-white font-medium">Sign In to Cloud</div>
+                  <div className="text-indigo-200 text-sm">Sync across all your devices</div>
+                </div>
+              </div>
+            </button>
+          )}
+
+          {/* Import Backup */}
+          <button
+            onClick={onImportBackup}
+            disabled={isImporting}
+            className="w-full p-4 bg-slate-800 hover:bg-slate-700 rounded-lg text-left transition-colors disabled:opacity-50"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📁</span>
+              <div>
+                <div className="text-white font-medium">
+                  {isImporting ? 'Importing...' : 'Import Backup'}
+                </div>
+                <div className="text-slate-400 text-sm">Restore from exported file</div>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Footer note */}
+        <p className="text-center text-slate-500 text-sm">
+          You can change this later in Settings
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+#### 2. Welcome Flag Management
+
+```typescript
+// src/config/backendConfig.ts (add to existing file)
+
+const WELCOME_SEEN_KEY = 'matchops_welcome_seen';
+
+/**
+ * Check if user has seen the welcome screen.
+ * @returns true if welcome screen has been completed
+ */
+export function hasSeenWelcome(): boolean {
+  if (typeof window === 'undefined') return true; // SSR: skip welcome
+  return safeGetItem(WELCOME_SEEN_KEY) === 'true';
+}
+
+/**
+ * Mark welcome screen as seen.
+ * Called after user makes a choice (any of the 3 options).
+ */
+export function setWelcomeSeen(): void {
+  if (typeof window === 'undefined') return;
+  safeSetItem(WELCOME_SEEN_KEY, 'true');
+}
+
+/**
+ * Reset welcome flag (for testing).
+ */
+export function clearWelcomeSeen(): void {
+  if (typeof window === 'undefined') return;
+  safeRemoveItem(WELCOME_SEEN_KEY);
+}
+```
+
+#### 3. Integration in `page.tsx`
+
+```typescript
+// src/app/page.tsx - modifications
+
+import WelcomeScreen from '@/components/WelcomeScreen';
+import { hasSeenWelcome, setWelcomeSeen } from '@/config/backendConfig';
+import { isCloudAvailable, enableCloudMode } from '@/config/backendConfig';
+
+export default function Home() {
+  // Existing state...
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+
+  // Check welcome flag on mount
+  useEffect(() => {
+    if (!hasSeenWelcome()) {
+      setShowWelcome(true);
+    }
+  }, []);
+
+  // Welcome screen handlers
+  const handleStartLocal = useCallback(() => {
+    setWelcomeSeen();
+    setShowWelcome(false);
+    // Mode is already 'local' by default
+  }, []);
+
+  const handleSignInCloud = useCallback(() => {
+    setWelcomeSeen();
+    enableCloudMode();
+    setShowWelcome(false);
+    // Now needsAuth will be true, LoginScreen will show
+  }, []);
+
+  const handleImportBackup = useCallback(async () => {
+    setIsImporting(true);
+    try {
+      // Trigger file picker and import
+      const success = await importFromFilePicker();
+      if (success) {
+        setWelcomeSeen();
+        setShowWelcome(false);
+        setRefreshTrigger(prev => prev + 1);
+      }
+      // If cancelled/failed, stay on welcome screen
+    } finally {
+      setIsImporting(false);
+    }
+  }, []);
+
+  // Render logic - add welcome screen check
+  return (
+    <ErrorBoundary>
+      <ModalProvider>
+        {isAuthLoading || isCheckingState ? (
+          // Loading spinner...
+        ) : showWelcome ? (
+          // Welcome screen (first install)
+          <WelcomeScreen
+            onStartLocal={handleStartLocal}
+            onSignInCloud={handleSignInCloud}
+            onImportBackup={handleImportBackup}
+            isCloudAvailable={isCloudAvailable()}
+            isImporting={isImporting}
+          />
+        ) : needsAuth ? (
+          // LoginScreen...
+        ) : showMigrationWizard ? (
+          // MigrationWizard...
+        ) : screen === 'start' ? (
+          // StartScreen...
+        ) : (
+          // HomePage...
+        )}
+      </ModalProvider>
+    </ErrorBoundary>
+  );
+}
+```
+
+#### 4. Import Helper Function
+
+```typescript
+// src/utils/importHelper.ts (new file or add to existing utils)
+
+/**
+ * Opens file picker and imports backup file.
+ * @returns true if import succeeded, false if cancelled or failed
+ */
+export async function importFromFilePicker(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) {
+        resolve(false);
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        // Use existing import logic from DataManagementModal
+        await importBackupData(data);
+        resolve(true);
+      } catch (error) {
+        console.error('Import failed:', error);
+        // Could show toast here
+        resolve(false);
+      }
+    };
+
+    input.oncancel = () => resolve(false);
+    input.click();
+  });
+}
+```
+
+### Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/components/WelcomeScreen.tsx` | **Create** | New welcome screen component |
+| `src/config/backendConfig.ts` | Modify | Add welcome flag functions |
+| `src/app/page.tsx` | Modify | Integrate welcome screen |
+| `src/utils/importHelper.ts` | Create | File picker import utility |
+| `src/components/__tests__/WelcomeScreen.test.tsx` | **Create** | Unit tests |
+
+### Testing Checklist
+
+- [ ] Fresh install shows welcome screen
+- [ ] "Start Fresh" → local mode → StartScreen (first-time)
+- [ ] "Sign In to Cloud" → cloud mode → LoginScreen → StartScreen
+- [ ] "Import Backup" → file picker → successful import → StartScreen with data
+- [ ] "Import Backup" → cancelled → stays on welcome screen
+- [ ] Returning visit (has flag) → skips welcome screen
+- [ ] Cloud button hidden when `!isCloudAvailable()`
+- [ ] Welcome screen styling matches app theme
+- [ ] Works on mobile viewport
+
+### Edge Cases
+
+| Case | Expected Behavior |
+|------|-------------------|
+| Browser has leftover IndexedDB data | Welcome still shows (flag-based, not data-based) |
+| User closes tab during import | Import cancelled, stays on welcome |
+| Import file is invalid JSON | Show error, stay on welcome |
+| Cloud sign-in fails | Stay on LoginScreen (existing behavior) |
+| localStorage blocked | Skip welcome, go to local mode |
+
+### Accessibility
+
+- All buttons have proper focus states
+- Screen reader friendly labels
+- Keyboard navigation works
+- Color contrast meets WCAG AA
+
+---
+
 ## Next Steps
 
-1. [ ] Review this document and finalize decisions
-2. [ ] **Phase 1**: Implement Flow 4 (auto-fetch on empty device) - highest priority
-3. [ ] **Phase 1**: Add Sign Out button (Flow 6)
-4. [ ] **Phase 2**: Enhance MigrationWizard with download option (Flow 3/5)
-5. [ ] **Phase 2**: Add cloud status to Start Screen header
-6. [ ] **Phase 2**: Add "Sign In" option for fresh installs on Start Screen
-7. [ ] **Phase 3**: Full Start Screen cloud integration
-8. [ ] Test multi-device scenario end-to-end
+1. [x] ~~Review this document and finalize decisions~~
+2. [x] ~~**Phase 1**: Implement Flow 4 (auto-fetch on empty device)~~ - Fixed in recent commits
+3. [x] ~~**Phase 1**: Add Sign Out button (Flow 6)~~ - Working
+4. [ ] **Phase 1.5**: Implement Welcome Screen (PR #12) - **NEXT**
+5. [ ] **Phase 2**: Enhance MigrationWizard with download option (Flow 3/5)
+6. [ ] **Phase 2**: Add cloud status to Start Screen header
+7. [ ] ~~**Phase 2**: Add "Sign In" option for fresh installs on Start Screen~~ - Replaced by Welcome Screen
+8. [ ] **Phase 3**: Full Start Screen cloud integration
+9. [ ] Test multi-device scenario end-to-end
