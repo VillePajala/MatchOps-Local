@@ -58,7 +58,10 @@ export function useGameDataQueries(): GameDataQueriesResult {
   const savedGames = useQuery<SavedGamesCollection | null, Error>({
     queryKey: queryKeys.savedGames,
     queryFn: getSavedGames,
-    initialData: {},
+    // Note: Removed initialData: {} - it was causing race conditions where
+    // isLoading would be false (because initialData counts as "data available")
+    // but the actual cloud data hadn't loaded yet. This caused the game ID
+    // from settings to not be found in the empty savedGames object.
   });
 
   const currentGameId = useQuery<string | null, Error>({
@@ -129,7 +132,7 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
   const savedGames = useQuery<SavedGamesCollection | null, Error>({
     queryKey: queryKeys.savedGames,
     queryFn: getSavedGames,
-    initialData: {},
+    // Note: No initialData - let the query properly load before rendering
   });
 
   const currentGameId = useQuery<string | null, Error>({
