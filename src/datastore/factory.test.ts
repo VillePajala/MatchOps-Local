@@ -23,6 +23,14 @@ jest.mock('@/utils/storage', () => ({
   clearAdapterCacheWithCleanup: jest.fn(),
 }));
 
+// Mock backend config for mode switching tests
+const mockGetBackendMode = jest.fn(() => 'local' as 'local' | 'cloud');
+const mockIsCloudAvailable = jest.fn(() => false);
+jest.mock('@/config/backendConfig', () => ({
+  getBackendMode: () => mockGetBackendMode(),
+  isCloudAvailable: () => mockIsCloudAvailable(),
+}));
+
 // Mock lock managers
 jest.mock('@/utils/storageKeyLock', () => ({
   withKeyLock: jest.fn((_key: string, fn: () => Promise<unknown>) => fn()),
@@ -123,6 +131,59 @@ describe('Factory', () => {
 
     it('should not throw when called without initialization', async () => {
       await expect(resetFactory()).resolves.not.toThrow();
+    });
+  });
+
+  // ==========================================================================
+  // MODE SWITCHING TESTS
+  // ==========================================================================
+  describe('Mode Switching', () => {
+    beforeEach(() => {
+      // Reset mocks to local mode
+      mockGetBackendMode.mockReturnValue('local');
+      mockIsCloudAvailable.mockReturnValue(false);
+    });
+
+    it('should auto-reset DataStore when mode changes', async () => {
+      // Start in local mode
+      const dataStore1 = await getDataStore();
+      expect(dataStore1).toBeInstanceOf(LocalDataStore);
+
+      // Simulate mode change to cloud (but cloud not available, so still returns LocalDataStore)
+      // This tests that the factory detects the mode change and creates a new instance
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(false); // Cloud not configured, falls back to local
+
+      const dataStore2 = await getDataStore();
+
+      // Should be a NEW instance (not the same object) because mode changed
+      expect(dataStore2).not.toBe(dataStore1);
+      // Still LocalDataStore because cloud isn't actually available
+      expect(dataStore2).toBeInstanceOf(LocalDataStore);
+    });
+
+    it('should auto-reset AuthService when mode changes', async () => {
+      // Start in local mode
+      const authService1 = await getAuthService();
+      expect(authService1).toBeInstanceOf(LocalAuthService);
+
+      // Simulate mode change
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(false);
+
+      const authService2 = await getAuthService();
+
+      // Should be a NEW instance because mode changed
+      expect(authService2).not.toBe(authService1);
+    });
+
+    it('should keep same instance when mode does not change', async () => {
+      const dataStore1 = await getDataStore();
+      const dataStore2 = await getDataStore();
+      const dataStore3 = await getDataStore();
+
+      expect(dataStore1).toBe(dataStore2);
+      expect(dataStore2).toBe(dataStore3);
     });
   });
 

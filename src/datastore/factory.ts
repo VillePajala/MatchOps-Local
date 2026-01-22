@@ -27,6 +27,11 @@ const log = {
 let dataStoreInstance: DataStore | null = null;
 let authServiceInstance: AuthService | null = null;
 
+// Track the mode each singleton was created for
+// Used to detect mode changes and auto-reset the factory
+let dataStoreCreatedForMode: 'local' | 'cloud' | null = null;
+let authServiceCreatedForMode: 'local' | 'cloud' | null = null;
+
 // Initialization promises to prevent race conditions during concurrent calls
 let dataStoreInitPromise: Promise<DataStore> | null = null;
 let authServiceInitPromise: Promise<AuthService> | null = null;
@@ -50,7 +55,23 @@ let authServiceInitPromise: Promise<AuthService> | null = null;
  * ```
  */
 export async function getDataStore(): Promise<DataStore> {
-  // Already initialized - return immediately
+  const currentMode = getBackendMode();
+
+  // Check if mode changed since the DataStore was created
+  // This handles the case where user enables/disables cloud sync
+  if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
+    log.info(`[factory] Mode changed from ${dataStoreCreatedForMode} to ${currentMode} - resetting DataStore`);
+    // Close the old instance
+    try {
+      await dataStoreInstance.close();
+    } catch (e) {
+      log.warn('[factory] Error closing old DataStore during mode change');
+    }
+    dataStoreInstance = null;
+    dataStoreCreatedForMode = null;
+  }
+
+  // Already initialized for current mode - return immediately
   if (dataStoreInstance) {
     // Defensive check: verify the cached instance is actually initialized
     // This should always be true, but catches edge cases after resetFactory()
@@ -94,6 +115,7 @@ export async function getDataStore(): Promise<DataStore> {
       await instance.initialize();
     }
     dataStoreInstance = instance;
+    dataStoreCreatedForMode = mode;
     return instance;
   })().finally(() => {
     // Allow retry on failure, and keep the steady state as `dataStoreInstance !== null`.
@@ -116,7 +138,17 @@ export async function getDataStore(): Promise<DataStore> {
  * @returns Initialized AuthService instance
  */
 export async function getAuthService(): Promise<AuthService> {
-  // Already initialized - return immediately
+  const currentMode = getBackendMode();
+
+  // Check if mode changed since the AuthService was created
+  // This handles the case where user enables/disables cloud sync
+  if (authServiceInstance && authServiceCreatedForMode !== currentMode) {
+    log.info(`[factory] Mode changed from ${authServiceCreatedForMode} to ${currentMode} - resetting AuthService`);
+    authServiceInstance = null;
+    authServiceCreatedForMode = null;
+  }
+
+  // Already initialized for current mode - return immediately
   if (authServiceInstance) {
     return authServiceInstance;
   }
@@ -149,6 +181,7 @@ export async function getAuthService(): Promise<AuthService> {
 
     await instance.initialize();
     authServiceInstance = instance;
+    authServiceCreatedForMode = mode;
     return instance;
   })().finally(() => {
     authServiceInitPromise = null;
@@ -192,6 +225,8 @@ export async function resetFactory(): Promise<void> {
   authServiceInstance = null;
   dataStoreInitPromise = null;
   authServiceInitPromise = null;
+  dataStoreCreatedForMode = null;
+  authServiceCreatedForMode = null;
 }
 
 /**
