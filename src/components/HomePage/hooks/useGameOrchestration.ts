@@ -30,6 +30,7 @@ import { useGameSessionCoordination } from './useGameSessionCoordination';
 import { useGamePersistence } from './useGamePersistence';
 import { useModalOrchestration } from './useModalOrchestration';
 import { useModalContext } from '@/contexts/ModalProvider';
+import { useAuth } from '@/contexts/AuthProvider';
 import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils/storage';
 import { queryKeys } from '@/config/queryKeys';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
@@ -142,6 +143,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // --- Get showToast early (needed by Field Coordination) ---
   const { showToast } = useToast();
+
+  // --- Auth (for cloud mode sign out) ---
+  const { signOut, mode: authMode } = useAuth();
 
   // --- Roster Management (Must come before Field Coordination) ---
   const {
@@ -2050,6 +2054,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
     onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
     onGoToStartScreen,
+    onSignOut: signOut,
+    isCloudMode: authMode === 'cloud',
   };
 
   const isLoading = gameDataManagement.isLoading;

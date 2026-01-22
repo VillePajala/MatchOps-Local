@@ -71,7 +71,8 @@
     "startNewMatchWarning": "Make sure you have saved your current game if you want to keep it.",
     "drawingMode": "Drawing Mode",
     "resetFieldNormalTitle": "Reset Field?",
-    "resetFieldTacticsTitle": "Reset Tactics Board?"
+    "resetFieldTacticsTitle": "Reset Tactics Board?",
+    "signOut": "Sign Out"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -2186,6 +2187,22 @@
       "startMigration": "Start Migration",
       "done": "Done"
     }
+  },
+  "welcome": {
+    "title": "Welcome!",
+    "subtitle": "Track your team's games, players, and stats",
+    "startFresh": "Start Fresh",
+    "startFreshDesc": "Data stays on this device",
+    "startFreshAria": "Start fresh in local mode",
+    "signInCloud": "Sign In to Cloud",
+    "signInCloudDesc": "Sync across all your devices",
+    "signInCloudAria": "Sign in to cloud sync",
+    "importBackup": "Import Backup",
+    "importBackupDesc": "Restore from exported file",
+    "importBackupAria": "Import backup file",
+    "importing": "Importing...",
+    "importingAria": "Importing backup file",
+    "changeInSettings": "You can change this later in Settings"
   },
   "positions": {
     "GK": "GK",

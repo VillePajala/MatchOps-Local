@@ -11,8 +11,16 @@
  * Only shown once on first launch. After user makes a choice,
  * the welcome flag is set and this screen won't show again.
  *
+ * Visual style matches StartScreen and LoginScreen for consistency.
+ *
  * @see docs/03-active-plans/cloud-sync-user-flows.md
  */
+
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
+import logger from '@/utils/logger';
 
 interface WelcomeScreenProps {
   /** Called when user chooses "Start Fresh" (local mode) */
@@ -34,69 +42,137 @@ export default function WelcomeScreen({
   isCloudAvailable,
   isImporting,
 }: WelcomeScreenProps) {
+  const { t } = useTranslation();
+  const [language, setLanguage] = useState<string>(i18n.language);
+
+  // Load saved language preference
+  useEffect(() => {
+    getAppSettings().then((settings) => {
+      if (settings.language) {
+        setLanguage(settings.language);
+      }
+    });
+  }, []);
+
+  // Save language preference when changed
+  useEffect(() => {
+    i18n.changeLanguage(language);
+    updateAppSettings({ language }).catch((error) => {
+      logger.warn('[WelcomeScreen] Failed to save language preference (non-critical)', { language, error });
+    });
+  }, [language]);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 p-6">
-      <div className="max-w-md w-full space-y-8">
-        {/* Logo/Title Section */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white">
-            Welcome to MatchOps!
-          </h1>
-          <p className="mt-3 text-slate-400">
-            Track your team&apos;s games, players, and stats
-          </p>
+    <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
+      {/* === AMBIENT BACKGROUND GLOWS === */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Blue glow - top right */}
+        <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+        {/* Blue glow - bottom left */}
+        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+      </div>
+
+      {/* === MAIN CONTENT === */}
+      <div className="relative z-10 flex-1 flex flex-col px-6 py-8 pb-safe">
+
+        {/* === TOP: Language Switcher === */}
+        <div className="flex justify-end mb-4">
+          <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-3 py-1.5 text-xs font-bold transition-all ${
+                language === 'en'
+                  ? 'bg-amber-500 text-slate-900'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+              }`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLanguage('fi')}
+              className={`px-3 py-1.5 text-xs font-bold transition-all ${
+                language === 'fi'
+                  ? 'bg-amber-500 text-slate-900'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+              }`}
+            >
+              FI
+            </button>
+          </div>
         </div>
 
-        {/* Option Buttons */}
-        <div className="space-y-4">
-          {/* Start Fresh (Local) */}
-          <button
-            onClick={onStartLocal}
-            className="w-full p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-            aria-label="Start fresh in local mode"
-          >
-            <div className="text-white font-medium text-lg">Start Fresh</div>
-            <div className="text-slate-400 text-sm">
-              Data stays on this device
+        {/* === HERO: App Name === */}
+        <div className="flex-1 flex flex-col justify-start pt-[10vh]">
+          <div className="text-center mb-8">
+            {/* App Name as Logo */}
+            <div className="relative inline-block mb-3">
+              <h1 className="relative text-5xl sm:text-6xl font-bold tracking-tight">
+                <span className="text-amber-400">MatchOps</span>
+              </h1>
             </div>
-          </button>
 
-          {/* Sign In to Cloud - only if Supabase is configured */}
-          {isCloudAvailable && (
+            {/* Welcome Message */}
+            <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">
+              {t('welcome.title', 'Welcome!')}
+            </h2>
+            <p className="text-slate-400">
+              {t('welcome.subtitle', 'Track your team\'s games, players, and stats')}
+            </p>
+          </div>
+
+          {/* === OPTION BUTTONS === */}
+          <div className="max-w-sm mx-auto w-full space-y-3">
+            {/* Start Fresh (Local) */}
             <button
-              onClick={onSignInCloud}
-              className="w-full p-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 rounded-xl text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-              aria-label="Sign in to cloud sync"
+              onClick={onStartLocal}
+              className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
+              aria-label={t('welcome.startFreshAria', 'Start fresh in local mode')}
             >
-              <div className="text-white font-medium text-lg">
-                Sign In to Cloud
+              <div className="text-white font-semibold text-lg">
+                {t('welcome.startFresh', 'Start Fresh')}
               </div>
-              <div className="text-indigo-200 text-sm">
-                Sync across all your devices
+              <div className="text-slate-400 text-sm">
+                {t('welcome.startFreshDesc', 'Data stays on this device')}
               </div>
             </button>
-          )}
 
-          {/* Import Backup */}
-          <button
-            onClick={onImportBackup}
-            disabled={isImporting}
-            className="w-full p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-800"
-            aria-label={isImporting ? 'Importing backup file' : 'Import backup file'}
-          >
-            <div className="text-white font-medium text-lg">
-              {isImporting ? 'Importing...' : 'Import Backup'}
-            </div>
-            <div className="text-slate-400 text-sm">
-              Restore from exported file
-            </div>
-          </button>
+            {/* Sign In to Cloud - only if Supabase is configured */}
+            {isCloudAvailable && (
+              <button
+                onClick={onSignInCloud}
+                className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all text-left shadow-lg shadow-amber-500/20"
+                aria-label={t('welcome.signInCloudAria', 'Sign in to cloud sync')}
+              >
+                <div className="font-bold text-lg">
+                  {t('welcome.signInCloud', 'Sign In to Cloud')}
+                </div>
+                <div className="text-slate-800 text-sm">
+                  {t('welcome.signInCloudDesc', 'Sync across all your devices')}
+                </div>
+              </button>
+            )}
+
+            {/* Import Backup */}
+            <button
+              onClick={onImportBackup}
+              disabled={isImporting}
+              className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-800/90 disabled:hover:border-sky-500/30"
+              aria-label={isImporting ? t('welcome.importingAria', 'Importing backup file') : t('welcome.importBackupAria', 'Import backup file')}
+            >
+              <div className="text-white font-semibold text-lg">
+                {isImporting ? t('welcome.importing', 'Importing...') : t('welcome.importBackup', 'Import Backup')}
+              </div>
+              <div className="text-slate-400 text-sm">
+                {t('welcome.importBackupDesc', 'Restore from exported file')}
+              </div>
+            </button>
+          </div>
+
+          {/* Footer Note */}
+          <p className="text-center text-slate-500 text-sm mt-8">
+            {t('welcome.changeInSettings', 'You can change this later in Settings')}
+          </p>
         </div>
-
-        {/* Footer Note */}
-        <p className="text-center text-slate-500 text-sm pt-4">
-          You can change this later in Settings
-        </p>
       </div>
     </div>
   );

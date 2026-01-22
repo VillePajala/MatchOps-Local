@@ -96,10 +96,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <div className="text-center mb-6">
             {/* App Name as Logo */}
             <div className="relative inline-block mb-3">
-              <h1 className="relative text-6xl sm:text-7xl font-bold tracking-tight">
+              <h1 className="relative text-5xl sm:text-6xl font-bold tracking-tight">
                 <span className="text-amber-400">MatchOps</span>
-                <br />
-                <span className="text-white">Local</span>
               </h1>
             </div>
 

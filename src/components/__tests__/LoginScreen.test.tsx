@@ -29,6 +29,29 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
+// Mock i18n
+jest.mock('@/i18n', () => ({
+  language: 'en',
+  changeLanguage: jest.fn(),
+}));
+
+// Mock appSettings
+jest.mock('@/utils/appSettings', () => ({
+  getAppSettings: jest.fn().mockResolvedValue({ language: 'en' }),
+  updateAppSettings: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock logger
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 // Mock next/image
 jest.mock('next/image', () => ({
   __esModule: true,
@@ -278,6 +301,31 @@ describe('LoginScreen', () => {
 
       // Email should be preserved
       expect(screen.getByPlaceholderText('Email')).toHaveValue('keep@example.com');
+    });
+  });
+
+  // ==========================================================================
+  // LANGUAGE SELECTOR
+  // ==========================================================================
+
+  describe('language selector', () => {
+    it('should render language selector buttons', () => {
+      render(<LoginScreen />);
+
+      expect(screen.getByText('EN')).toBeInTheDocument();
+      expect(screen.getByText('FI')).toBeInTheDocument();
+    });
+
+    it('should switch language when clicking language buttons', async () => {
+      const i18n = jest.requireMock('@/i18n');
+
+      render(<LoginScreen />);
+
+      fireEvent.click(screen.getByText('FI'));
+      expect(i18n.changeLanguage).toHaveBeenCalledWith('fi');
+
+      fireEvent.click(screen.getByText('EN'));
+      expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
     });
   });
 });

@@ -10,6 +10,29 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import WelcomeScreen from '../WelcomeScreen';
 
+// Mock i18n
+jest.mock('@/i18n', () => ({
+  language: 'en',
+  changeLanguage: jest.fn(),
+}));
+
+// Mock appSettings
+jest.mock('@/utils/appSettings', () => ({
+  getAppSettings: jest.fn().mockResolvedValue({ language: 'en' }),
+  updateAppSettings: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock logger
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 describe('WelcomeScreen', () => {
   const mockHandlers = {
     onStartLocal: jest.fn(),
@@ -22,7 +45,7 @@ describe('WelcomeScreen', () => {
   });
 
   describe('Rendering', () => {
-    it('renders welcome title and description', () => {
+    it('renders app name and welcome message', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -31,10 +54,24 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      expect(screen.getByText('Welcome to MatchOps!')).toBeInTheDocument();
+      expect(screen.getByText('MatchOps')).toBeInTheDocument();
+      expect(screen.getByText('Welcome!')).toBeInTheDocument();
       expect(
         screen.getByText("Track your team's games, players, and stats")
       ).toBeInTheDocument();
+    });
+
+    it('renders language selector', () => {
+      render(
+        <WelcomeScreen
+          {...mockHandlers}
+          isCloudAvailable={true}
+          isImporting={false}
+        />
+      );
+
+      expect(screen.getByText('EN')).toBeInTheDocument();
+      expect(screen.getByText('FI')).toBeInTheDocument();
     });
 
     it('renders all three options when cloud is available', () => {
@@ -218,7 +255,7 @@ describe('WelcomeScreen', () => {
   });
 
   describe('Keyboard Navigation', () => {
-    it('all buttons are native button elements (keyboard accessible by default)', () => {
+    it('all main option buttons are native button elements (keyboard accessible by default)', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -227,9 +264,9 @@ describe('WelcomeScreen', () => {
         />
       );
 
+      // 3 option buttons + 2 language buttons = 5 total
       const buttons = screen.getAllByRole('button');
-      // All 3 buttons should be present
-      expect(buttons).toHaveLength(3);
+      expect(buttons).toHaveLength(5);
       // Native <button> elements handle Enter/Space automatically
       buttons.forEach(button => {
         expect(button.tagName).toBe('BUTTON');
@@ -263,6 +300,26 @@ describe('WelcomeScreen', () => {
       const startButton = screen.getByRole('button', { name: /start fresh/i });
       startButton.focus();
       expect(document.activeElement).toBe(startButton);
+    });
+  });
+
+  describe('Language Selector', () => {
+    it('switches language when clicking language buttons', async () => {
+      const i18n = jest.requireMock('@/i18n');
+
+      render(
+        <WelcomeScreen
+          {...mockHandlers}
+          isCloudAvailable={true}
+          isImporting={false}
+        />
+      );
+
+      fireEvent.click(screen.getByText('FI'));
+      expect(i18n.changeLanguage).toHaveBeenCalledWith('fi');
+
+      fireEvent.click(screen.getByText('EN'));
+      expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
     });
   });
 });
