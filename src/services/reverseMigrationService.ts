@@ -868,15 +868,20 @@ async function verifyReverseMigration(
     warnings.push(`${gameContentMismatches} game(s) have content mismatches (events or players differ)`);
   }
 
-  // Verify team rosters
-  let rosterMismatches = 0;
+  // Verify team rosters by player ID, not just count
+  // This ensures all cloud roster entries exist locally, even if local has extra entries
+  let missingRosterEntries = 0;
   let rosterVerifyErrors = 0;
   for (const [teamId, cloudRoster] of cloudData.teamRosters) {
     if (localTeamIds.has(teamId)) {
       try {
         const localRoster = await localStore.getTeamRoster(teamId);
-        if (localRoster.length !== cloudRoster.length) {
-          rosterMismatches++;
+        const localRosterPlayerIds = new Set(localRoster.map(tp => tp.id));
+        // Check that all cloud roster entries exist locally
+        for (const cloudEntry of cloudRoster) {
+          if (!localRosterPlayerIds.has(cloudEntry.id)) {
+            missingRosterEntries++;
+          }
         }
       } catch (err) {
         // Individual roster verification failure shouldn't fail entire migration
@@ -885,22 +890,27 @@ async function verifyReverseMigration(
       }
     }
   }
-  if (rosterMismatches > 0) {
-    warnings.push(`${rosterMismatches} team(s) have roster count mismatches`);
+  if (missingRosterEntries > 0) {
+    warnings.push(`Missing ${missingRosterEntries} team roster entry(ies) from cloud`);
   }
   if (rosterVerifyErrors > 0) {
     warnings.push(`Could not verify ${rosterVerifyErrors} team roster(s)`);
   }
 
-  // Verify player adjustments
-  let adjustmentMismatches = 0;
+  // Verify player adjustments by ID, not just count
+  // This ensures all cloud adjustments exist locally, even if local has extra adjustments
+  let missingAdjustments = 0;
   let adjustmentVerifyErrors = 0;
   for (const [playerId, cloudAdjustments] of cloudData.playerAdjustments) {
     if (localPlayerIds.has(playerId)) {
       try {
         const localAdjustments = await localStore.getPlayerAdjustments(playerId);
-        if (localAdjustments.length !== cloudAdjustments.length) {
-          adjustmentMismatches++;
+        const localAdjustmentIds = new Set(localAdjustments.map(a => a.id));
+        // Check that all cloud adjustments exist locally
+        for (const cloudAdj of cloudAdjustments) {
+          if (!localAdjustmentIds.has(cloudAdj.id)) {
+            missingAdjustments++;
+          }
         }
       } catch (err) {
         // Individual adjustment verification failure shouldn't fail entire migration
@@ -909,8 +919,8 @@ async function verifyReverseMigration(
       }
     }
   }
-  if (adjustmentMismatches > 0) {
-    warnings.push(`${adjustmentMismatches} player(s) have adjustment count mismatches`);
+  if (missingAdjustments > 0) {
+    warnings.push(`Missing ${missingAdjustments} player adjustment(s) from cloud`);
   }
   if (adjustmentVerifyErrors > 0) {
     warnings.push(`Could not verify ${adjustmentVerifyErrors} player adjustment(s)`);

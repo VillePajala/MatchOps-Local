@@ -1,8 +1,8 @@
 {
-  "version": "aff669d2",
-  "date": "2026-01-21",
+  "version": "7fc81b53",
+  "date": "2026-01-22",
   "notes": {
-    "en": "Merge: incorporate master changes (positions, marketing, rules)",
-    "fi": "Merge: incorporate master changes (positions, marketing, rules)"
+    "en": "Defensive initialization, ID-based verification, deterministic ordering",
+    "fi": "Defensive initialization, ID-based verification, deterministic ordering"
   }
 }

@@ -66,6 +66,13 @@ export interface DataStore {
   isAvailable(): Promise<boolean>;
 
   /**
+   * Check if the data store has been initialized.
+   * Synchronous check for defensive programming - no network calls.
+   * @returns true if initialize() has completed successfully
+   */
+  isInitialized(): boolean;
+
+  /**
    * Clear user-specific caches.
    * Called when auth state changes (user sign out / sign in).
    * Optional - only implemented by cloud backends with user caches.

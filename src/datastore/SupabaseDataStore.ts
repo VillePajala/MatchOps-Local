@@ -444,6 +444,10 @@ export class SupabaseDataStore implements DataStore {
     }
   }
 
+  isInitialized(): boolean {
+    return this.initialized && this.supabase !== null;
+  }
+
   private ensureInitialized(): void {
     if (!this.initialized || !this.supabase) {
       throw new NotInitializedError();
@@ -2678,9 +2682,11 @@ export class SupabaseDataStore implements DataStore {
     type TacticalQueryResult = { data: GameTacticalDataRow | null; error: { message: string; code?: string } | null };
 
     // Fetch all 5 tables in parallel
+    // Note: game_players uses ORDER BY player_id for deterministic ordering
+    // (PostgreSQL doesn't guarantee row order without explicit ORDER BY)
     const [gameResult, playersResult, eventsResult, assessmentsResult, tacticalResult] = await Promise.all([
       client.from('games').select('*').eq('id', gameId).single() as unknown as Promise<GameQueryResult>,
-      client.from('game_players').select('*').eq('game_id', gameId) as unknown as Promise<PlayersQueryResult>,
+      client.from('game_players').select('*').eq('game_id', gameId).order('player_id') as unknown as Promise<PlayersQueryResult>,
       client.from('game_events').select('*').eq('game_id', gameId) as unknown as Promise<EventsQueryResult>,
       client.from('player_assessments').select('*').eq('game_id', gameId) as unknown as Promise<AssessmentsQueryResult>,
       client.from('game_tactical_data').select('*').eq('game_id', gameId).single() as unknown as Promise<TacticalQueryResult>,

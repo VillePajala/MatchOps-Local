@@ -64,6 +64,7 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     close: jest.fn(async () => {}),
     getBackendName: jest.fn(() => 'mock'),
     isAvailable: jest.fn(async () => true),
+    isInitialized: jest.fn(() => true),
     clearUserCaches: jest.fn(),
 
     // Players
