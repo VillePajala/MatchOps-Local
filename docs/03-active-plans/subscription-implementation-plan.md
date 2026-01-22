@@ -2,6 +2,28 @@
 
 This document outlines the future subscription system for MatchOps cloud sync feature. **This is a planning document for future work** — the actual implementation will come in a later phase.
 
+---
+
+## GitHub Issues
+
+The following issues track the implementation of this plan:
+
+| Issue | Title | Priority |
+|-------|-------|----------|
+| [#291](https://github.com/VillePajala/MatchOps-Local/issues/291) | Integrate Google Play Billing for subscriptions | High |
+| [#292](https://github.com/VillePajala/MatchOps-Local/issues/292) | Implement subscription state management | High |
+| [#293](https://github.com/VillePajala/MatchOps-Local/issues/293) | Implement grace period and expiration handling | Medium |
+| [#294](https://github.com/VillePajala/MatchOps-Local/issues/294) | Update Terms of Service and Privacy Policy | High |
+| [#295](https://github.com/VillePajala/MatchOps-Local/issues/295) | Implement consent collection during sign-up | High |
+| [#296](https://github.com/VillePajala/MatchOps-Local/issues/296) | GDPR: Implement 'Delete All My Data' feature | High |
+| [#297](https://github.com/VillePajala/MatchOps-Local/issues/297) | GDPR: Implement 'Export All Data' feature | Medium |
+| [#298](https://github.com/VillePajala/MatchOps-Local/issues/298) | Implement reverse migration (cloud to local) | Medium |
+| [#299](https://github.com/VillePajala/MatchOps-Local/issues/299) | Limit cloud sync to Play Store installs | Medium |
+| [#300](https://github.com/VillePajala/MatchOps-Local/issues/300) | Server-side subscription verification | High |
+| [#301](https://github.com/VillePajala/MatchOps-Local/issues/301) | Cross-device subscription sync | Medium |
+
+---
+
 ## Current State (As of January 2026)
 
 - Local mode is **completely free and unlimited**
