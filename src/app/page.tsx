@@ -141,9 +141,12 @@ export default function Home() {
 
     const checkMigrationNeeded = async () => {
       try {
-        // Skip if migration already completed for this user
+        // Migration already completed for this user - skip wizard but still refetch data
+        // This handles the sign out → sign in flow where React Query caches may be stale
         if (hasMigrationCompleted(userId)) {
-          logger.info('[page.tsx] Migration already completed for this user');
+          logger.info('[page.tsx] Migration already completed for this user, refetching queries');
+          await queryClient.refetchQueries();
+          setRefreshTrigger(prev => prev + 1);
           return;
         }
 
