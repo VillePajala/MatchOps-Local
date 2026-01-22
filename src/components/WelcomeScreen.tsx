@@ -55,16 +55,9 @@ export default function WelcomeScreen({
             className="w-full p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
             aria-label="Start fresh in local mode"
           >
-            <div className="flex items-center gap-4">
-              <span className="text-2xl" role="img" aria-hidden="true">
-                🏠
-              </span>
-              <div>
-                <div className="text-white font-medium text-lg">Start Fresh</div>
-                <div className="text-slate-400 text-sm">
-                  Data stays on this device
-                </div>
-              </div>
+            <div className="text-white font-medium text-lg">Start Fresh</div>
+            <div className="text-slate-400 text-sm">
+              Data stays on this device
             </div>
           </button>
 
@@ -75,18 +68,11 @@ export default function WelcomeScreen({
               className="w-full p-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 rounded-xl text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
               aria-label="Sign in to cloud sync"
             >
-              <div className="flex items-center gap-4">
-                <span className="text-2xl" role="img" aria-hidden="true">
-                  ☁️
-                </span>
-                <div>
-                  <div className="text-white font-medium text-lg">
-                    Sign In to Cloud
-                  </div>
-                  <div className="text-indigo-200 text-sm">
-                    Sync across all your devices
-                  </div>
-                </div>
+              <div className="text-white font-medium text-lg">
+                Sign In to Cloud
+              </div>
+              <div className="text-indigo-200 text-sm">
+                Sync across all your devices
               </div>
             </button>
           )}
@@ -98,18 +84,11 @@ export default function WelcomeScreen({
             className="w-full p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-800"
             aria-label={isImporting ? 'Importing backup file' : 'Import backup file'}
           >
-            <div className="flex items-center gap-4">
-              <span className="text-2xl" role="img" aria-hidden="true">
-                📁
-              </span>
-              <div>
-                <div className="text-white font-medium text-lg">
-                  {isImporting ? 'Importing...' : 'Import Backup'}
-                </div>
-                <div className="text-slate-400 text-sm">
-                  Restore from exported file
-                </div>
-              </div>
+            <div className="text-white font-medium text-lg">
+              {isImporting ? 'Importing...' : 'Import Backup'}
+            </div>
+            <div className="text-slate-400 text-sm">
+              Restore from exported file
             </div>
           </button>
         </div>
