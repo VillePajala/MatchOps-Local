@@ -10,7 +10,25 @@ import {
   HiOutlineTrash,
   HiOutlineXMark,
 } from 'react-icons/hi2';
-import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import {
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  dangerButtonStyle,
+  wizardBackdropStyle,
+  wizardModalStyle,
+  wizardHeaderStyle,
+  wizardTitleStyle,
+  wizardContentStyle,
+  wizardFooterStyle,
+  wizardCloseButtonStyle,
+  dataSummaryBoxStyle,
+  dataSummaryTitleStyle,
+  localDataDotStyle,
+  cloudDataDotStyle,
+  warningBoxStyle,
+  progressBarContainerStyle,
+  progressBarFillStyle,
+} from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import {
   migrateLocalToCloud,
@@ -294,8 +312,8 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     ];
 
     return (
-      <div className="bg-slate-900/50 rounded-lg p-4 space-y-2">
-        <h4 className="text-sm font-medium text-slate-300 mb-3">
+      <div className={`${dataSummaryBoxStyle} space-y-2`}>
+        <h4 className={dataSummaryTitleStyle}>
           {t('migration.summary.title', 'Data Summary')}
         </h4>
         <div className="space-y-1">
@@ -383,9 +401,9 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       <div className="space-y-4">
         {/* Progress bar */}
         <div className="relative">
-          <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+          <div className={progressBarContainerStyle}>
             <div
-              className={`h-full transition-all duration-300 ${
+              className={`${progressBarFillStyle} ${
                 isError ? 'bg-red-500' : 'bg-sky-500'
               }`}
               style={{ width: `${Math.max(percent, 5)}%` }}
@@ -443,9 +461,9 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
             {/* Data comparison */}
             <div className="space-y-3 mb-6">
               {/* Local data summary */}
-              <div className="bg-slate-900/50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+              <div className={dataSummaryBoxStyle}>
+                <h4 className={dataSummaryTitleStyle}>
+                  <span className={localDataDotStyle}></span>
                   {t('migration.localData', 'Local Data')}
                 </h4>
                 {dataSummary && (
@@ -457,9 +475,9 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
               {/* Cloud data summary (only if both have data) */}
               {scenario === 'both-have-data' && cloudCounts && (
-                <div className="bg-slate-900/50 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                <div className={dataSummaryBoxStyle}>
+                  <h4 className={dataSummaryTitleStyle}>
+                    <span className={cloudDataDotStyle}></span>
                     {t('migration.cloudData', 'Cloud Data')}
                   </h4>
                   <div className="text-sm text-slate-400">
@@ -603,7 +621,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
               <p className="text-slate-300 mb-4">
                 {t('migration.confirmMessage', 'Are you sure you want to migrate your data to the cloud?')}
               </p>
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 text-left">
+              <div className={`${warningBoxStyle} text-left`}>
                 <p className="text-sm text-amber-300">
                   {t('migration.confirmWarning', 'Your local data will remain unchanged. You can clear it after verifying the migration was successful.')}
                 </p>
@@ -669,7 +687,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
             {/* Warnings */}
             {migrationResult?.warnings && migrationResult.warnings.length > 0 && (
-              <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <div className={`mt-4 ${warningBoxStyle}`}>
                 <p className="text-sm font-medium text-amber-400 mb-2">
                   {t('common.warnings', 'Warnings')}:
                 </p>
@@ -685,7 +703,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
             )}
 
             {/* Clear local data option */}
-            <div className="mt-6 p-4 bg-slate-900/50 rounded-lg">
+            <div className={`mt-6 ${dataSummaryBoxStyle}`}>
               {clearLocalFailed ? (
                 <>
                   <div className="flex items-start gap-2 mb-3">
@@ -856,41 +874,29 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const descriptionId = 'migration-wizard-description';
 
   return (
-    <div
-      ref={modalRef}
-      className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-800 bg-noise-texture text-slate-100 overflow-y-auto font-display"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      aria-describedby={descriptionId}
-    >
-      {/* Background effects matching LoginScreen */}
-      <div className="absolute inset-0 bg-grid-squares opacity-[0.35] pointer-events-none" />
-      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-
-      <div className="relative z-10 w-full max-w-lg mx-auto px-6 py-8 pb-safe flex-1 flex flex-col">
+    <div className={wizardBackdropStyle}>
+      <div
+        ref={modalRef}
+        className={wizardModalStyle}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+      >
         {/* Screen reader description */}
         <p id={descriptionId} className="sr-only">
           {t('migration.description', 'Transfer your local data to your cloud account for backup and sync across devices.')}
         </p>
 
-        {/* App name */}
-        <div className="flex justify-center mb-6">
-          <h1 className="text-4xl font-bold text-yellow-400 tracking-tight">
-            MatchOps
-          </h1>
-        </div>
-
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 id={titleId} className="text-xl font-semibold text-slate-100">
+        <div className={wizardHeaderStyle}>
+          <h2 id={titleId} className={wizardTitleStyle}>
             {t('migration.title', 'Migrate to Cloud')}
           </h2>
           {step !== 'progress' && step !== 'loading' && (
             <button
               onClick={step === 'complete' ? onComplete : onCancel}
-              className="text-slate-400 hover:text-slate-200 transition-colors"
+              className={wizardCloseButtonStyle}
               aria-label={t('common.close', 'Close')}
             >
               <HiOutlineXMark className="h-6 w-6" />
@@ -899,16 +905,16 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1">
+        <div className={wizardContentStyle}>
           {renderContent()}
         </div>
 
-        {/* Actions - sticky at bottom with background */}
-        <div className="sticky bottom-0 pt-4 pb-6 mt-6 bg-gradient-to-t from-slate-800 via-slate-800 to-transparent -mx-6 px-6">
-          <div className="flex gap-3 justify-end">
+        {/* Actions */}
+        {renderActions() && (
+          <div className={wizardFooterStyle}>
             {renderActions()}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

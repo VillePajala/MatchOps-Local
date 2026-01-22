@@ -16,6 +16,15 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineCloudArrowUp, HiOutlineDevicePhoneMobile, HiOutlineXMark } from 'react-icons/hi2';
+import {
+  wizardBackdropStyle,
+  wizardModalStyle,
+  wizardHeaderStyle,
+  wizardTitleStyle,
+  wizardContentStyle,
+  wizardCloseButtonStyle,
+  secondaryButtonStyle,
+} from '@/styles/modalStyles';
 
 interface CloudModeImportModalProps {
   /** Whether the modal is open */
@@ -39,16 +48,16 @@ export default function CloudModeImportModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-slate-800 rounded-xl shadow-xl max-w-md w-full border border-slate-700">
+    <div className={wizardBackdropStyle}>
+      <div className={wizardModalStyle}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">
+        <div className={wizardHeaderStyle}>
+          <h2 className={wizardTitleStyle}>
             {t('cloudModeImport.title', 'Import Backup')}
           </h2>
           <button
             onClick={onCancel}
-            className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-700"
+            className={wizardCloseButtonStyle}
             aria-label={t('common.close', 'Close')}
           >
             <HiOutlineXMark className="w-5 h-5" />
@@ -56,7 +65,7 @@ export default function CloudModeImportModal({
         </div>
 
         {/* Content */}
-        <div className="px-5 py-4">
+        <div className={wizardContentStyle}>
           <p className="text-slate-300 text-sm mb-4">
             {t(
               'cloudModeImport.description',
@@ -122,10 +131,10 @@ export default function CloudModeImportModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-slate-700 flex justify-end">
+        <div className="px-6 py-4 border-t border-slate-700 flex justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+            className={secondaryButtonStyle}
           >
             {t('common.cancel', 'Cancel')}
           </button>
