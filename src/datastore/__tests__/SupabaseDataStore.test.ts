@@ -195,8 +195,9 @@ describe('SupabaseDataStore', () => {
 
   describe('Auth Failure', () => {
     it('should throw AuthError when user not authenticated on createPlayer', async () => {
-      (mockSupabaseClient.auth.getUser as jest.Mock).mockResolvedValueOnce({
-        data: { user: null },
+      // getUserId() now uses getSession() instead of getUser() for faster, more reliable auth
+      (mockSupabaseClient.auth.getSession as jest.Mock).mockResolvedValueOnce({
+        data: { session: null },
         error: { message: 'Not authenticated' },
       });
 
@@ -210,8 +211,8 @@ describe('SupabaseDataStore', () => {
     });
 
     it('should throw AuthError when user not authenticated on createTeam', async () => {
-      (mockSupabaseClient.auth.getUser as jest.Mock).mockResolvedValueOnce({
-        data: { user: null },
+      (mockSupabaseClient.auth.getSession as jest.Mock).mockResolvedValueOnce({
+        data: { session: null },
         error: null,
       });
 
@@ -223,9 +224,9 @@ describe('SupabaseDataStore', () => {
       ).rejects.toThrow(AuthError);
     });
 
-    it('should throw AuthError when auth.getUser returns error', async () => {
-      (mockSupabaseClient.auth.getUser as jest.Mock).mockResolvedValueOnce({
-        data: { user: null },
+    it('should throw AuthError when auth.getSession returns error', async () => {
+      (mockSupabaseClient.auth.getSession as jest.Mock).mockResolvedValueOnce({
+        data: { session: null },
         error: { message: 'Session expired' },
       });
 
@@ -240,9 +241,9 @@ describe('SupabaseDataStore', () => {
 
     it('should cache user ID and reuse it for multiple operations', async () => {
       // Reset the mock call count
-      (mockSupabaseClient.auth.getUser as jest.Mock).mockClear();
+      (mockSupabaseClient.auth.getSession as jest.Mock).mockClear();
 
-      // First operation - should call getUser
+      // First operation - should call getSession
       await dataStore.createPlayer({
         name: 'Player 1',
         isGoalie: false,
@@ -263,8 +264,8 @@ describe('SupabaseDataStore', () => {
         receivedFairPlayCard: false,
       });
 
-      // auth.getUser should only have been called once (cached after first call)
-      expect(mockSupabaseClient.auth.getUser).toHaveBeenCalledTimes(1);
+      // auth.getSession should only have been called once (cached after first call)
+      expect(mockSupabaseClient.auth.getSession).toHaveBeenCalledTimes(1);
     });
   });
 
