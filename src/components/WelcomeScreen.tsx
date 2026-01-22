@@ -63,7 +63,7 @@ export default function WelcomeScreen({
   }, [language]);
 
   return (
-    <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
+    <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-y-auto">
       {/* === AMBIENT BACKGROUND GLOWS === */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Blue glow - top right */}
@@ -73,10 +73,10 @@ export default function WelcomeScreen({
       </div>
 
       {/* === MAIN CONTENT === */}
-      <div className="relative z-10 flex-1 flex flex-col px-6 py-8 pb-safe">
+      <div className="relative z-10 flex-1 flex flex-col px-6 py-6 pb-safe">
 
         {/* === TOP: Language Switcher === */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-2">
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => setLanguage('en')}
@@ -102,8 +102,8 @@ export default function WelcomeScreen({
         </div>
 
         {/* === HERO: App Name === */}
-        <div className="flex-1 flex flex-col justify-start pt-[10vh]">
-          <div className="text-center mb-8">
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="text-center mb-6">
             {/* App Name as Logo */}
             <div className="relative inline-block mb-3">
               <h1 className="relative text-5xl sm:text-6xl font-bold tracking-tight">
@@ -179,7 +179,7 @@ export default function WelcomeScreen({
           </div>
 
           {/* Footer Note */}
-          <p className="text-center text-slate-500 text-sm mt-8">
+          <p className="text-center text-slate-500 text-sm mt-6">
             {t('welcome.changeInSettings', 'You can change this later in Settings')}
           </p>
         </div>
