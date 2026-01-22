@@ -41,6 +41,16 @@ jest.mock('@/config/backendConfig', () => ({
   disableCloudMode: jest.fn(),
   getCloudAccountInfo: jest.fn(() => null),
   clearCloudAccountInfo: jest.fn(),
+  clearMigrationCompleted: jest.fn(),
+}));
+
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id', email: 'test@example.com' },
+    isAuthenticated: true,
+    isLoading: false,
+    mode: 'cloud',
+  }),
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({
@@ -93,6 +103,7 @@ import {
   getBackendMode,
   isCloudAvailable,
   enableCloudMode,
+  clearMigrationCompleted,
 } from '@/config/backendConfig';
 import { getDataStore, getAuthService } from '@/datastore/factory';
 
@@ -205,6 +216,21 @@ describe('CloudSyncSection', () => {
 
       await waitFor(() => {
         expect(mockAuthService.signOut).toHaveBeenCalled();
+      });
+    });
+
+    it('clears migration completed flag before signing out', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const signOutButton = screen.getByRole('button', { name: /sign out/i });
+      fireEvent.click(signOutButton);
+
+      await waitFor(() => {
+        // clearMigrationCompleted should be called with the user ID from useAuth mock
+        expect(clearMigrationCompleted).toHaveBeenCalledWith('test-user-id');
       });
     });
 
