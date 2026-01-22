@@ -18,6 +18,7 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
 import { hasMigrationCompleted, setMigrationCompleted } from '@/config/backendConfig';
 import { hasLocalDataToMigrate } from '@/services/migrationService';
+import { hasCloudData } from '@/services/reverseMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import logger from '@/utils/logger';
 
@@ -156,9 +157,28 @@ export default function Home() {
           logger.info('[page.tsx] Local data found, showing migration wizard');
           setShowMigrationWizard(true);
         } else {
-          // No local data - mark migration as complete so we don't check again
-          logger.info('[page.tsx] No local data to migrate, marking as complete');
-          setMigrationCompleted(userId);
+          // No local data - check if cloud has data that needs to be loaded
+          logger.info('[page.tsx] No local data, checking if cloud has data...');
+
+          const cloudResult = await hasCloudData();
+          if (cloudResult.checkFailed) {
+            // Cloud check failed - log warning but don't block user
+            // They can use the app, data will load when queries run
+            logger.warn('[page.tsx] Failed to check cloud data:', cloudResult.error);
+            setMigrationCompleted(userId);
+          } else if (cloudResult.hasData) {
+            // Cloud has data - trigger refetch to load it into the app
+            // This handles the "new device login" scenario where user has
+            // cloud data but empty local device
+            logger.info('[page.tsx] Cloud has data, triggering refetch to load data');
+            await queryClient.refetchQueries();
+            setRefreshTrigger(prev => prev + 1);
+            setMigrationCompleted(userId);
+          } else {
+            // Both local and cloud are empty - mark migration complete
+            logger.info('[page.tsx] No local or cloud data to migrate, marking as complete');
+            setMigrationCompleted(userId);
+          }
         }
       } catch (error) {
         logger.warn('[page.tsx] Failed to check migration status', { error });

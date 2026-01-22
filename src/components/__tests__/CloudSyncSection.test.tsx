@@ -62,12 +62,17 @@ jest.mock('@/utils/logger', () => ({
   info: jest.fn(),
 }));
 
-// Mock getDataStore for cloud data clearing tests
+// Mock getDataStore and getAuthService for cloud data clearing and sign out tests
 jest.mock('@/datastore/factory', () => ({
   getDataStore: jest.fn().mockImplementation(() =>
     Promise.resolve({
       clearAllUserData: jest.fn(),
       getBackendName: jest.fn().mockReturnValue('supabase'),
+    })
+  ),
+  getAuthService: jest.fn().mockImplementation(() =>
+    Promise.resolve({
+      signOut: jest.fn().mockResolvedValue(undefined),
     })
   ),
 }));
@@ -89,7 +94,7 @@ import {
   isCloudAvailable,
   enableCloudMode,
 } from '@/config/backendConfig';
-import { getDataStore } from '@/datastore/factory';
+import { getDataStore, getAuthService } from '@/datastore/factory';
 
 const mockGetBackendMode = getBackendMode as jest.MockedFunction<typeof getBackendMode>;
 const mockIsCloudAvailable = isCloudAvailable as jest.MockedFunction<typeof isCloudAvailable>;
@@ -158,6 +163,65 @@ describe('CloudSyncSection', () => {
       renderWithQueryClient(<CloudSyncSection />);
 
       expect(screen.getByText(/syncs to the cloud/i)).toBeInTheDocument();
+    });
+
+    it('shows sign out button in cloud mode', () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
+    });
+
+    it('does not show sign out button in local mode', () => {
+      mockGetBackendMode.mockReturnValue('local');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.queryByRole('button', { name: /sign out/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('sign out', () => {
+    let mockAuthService: { signOut: jest.Mock };
+
+    beforeEach(() => {
+      mockAuthService = {
+        signOut: jest.fn().mockResolvedValue(undefined),
+      };
+      (getAuthService as jest.Mock).mockResolvedValue(mockAuthService);
+    });
+
+    it('calls signOut when sign out button is clicked', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const signOutButton = screen.getByRole('button', { name: /sign out/i });
+      fireEvent.click(signOutButton);
+
+      await waitFor(() => {
+        expect(mockAuthService.signOut).toHaveBeenCalled();
+      });
+    });
+
+    it('shows loading state while signing out', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      // Make signOut take some time
+      mockAuthService.signOut.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const signOutButton = screen.getByRole('button', { name: /sign out/i });
+      fireEvent.click(signOutButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/signing out/i)).toBeInTheDocument();
+      });
     });
   });
 
