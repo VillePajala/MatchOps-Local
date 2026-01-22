@@ -165,3 +165,63 @@ export const ScrollableContent: React.FC<{ children: React.ReactNode; className?
     {children}
   </div>
 );
+
+// ============================================================================
+// Wizard Modal Styles (Migration, Import dialogs)
+// ============================================================================
+
+export const wizardBackdropStyle =
+  "fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4";
+
+export const wizardModalStyle =
+  "relative w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl";
+
+export const wizardModalLargeStyle =
+  "relative w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-[85vh] flex flex-col";
+
+export const wizardHeaderStyle =
+  "flex items-center justify-between px-6 py-4 border-b border-slate-700";
+
+export const wizardTitleStyle =
+  "text-lg font-semibold text-slate-100";
+
+export const wizardContentStyle =
+  "px-6 py-5";
+
+export const wizardFooterStyle =
+  "px-6 py-4 border-t border-slate-700 flex gap-3 justify-end";
+
+// Data summary boxes
+export const dataSummaryBoxStyle =
+  "bg-slate-900/50 rounded-lg p-4";
+
+export const dataSummaryTitleStyle =
+  "text-sm font-medium text-slate-300 mb-2 flex items-center gap-2";
+
+// Status indicator dots
+export const localDataDotStyle = "w-2 h-2 rounded-full bg-amber-400";
+export const cloudDataDotStyle = "w-2 h-2 rounded-full bg-sky-400";
+
+// Alert boxes
+export const warningBoxStyle =
+  "bg-amber-900/30 border border-amber-700 rounded-lg p-4";
+
+export const errorBoxStyle =
+  "bg-red-900/30 border border-red-700 rounded-lg p-4";
+
+export const successBoxStyle =
+  "bg-green-900/30 border border-green-700 rounded-lg p-4";
+
+export const infoBoxStyle =
+  "bg-sky-900/30 border border-sky-700 rounded-lg p-4";
+
+// Progress bar
+export const progressBarContainerStyle =
+  "h-3 bg-slate-700 rounded-full overflow-hidden";
+
+export const progressBarFillStyle =
+  "h-full transition-all duration-300";
+
+// Close button (X)
+export const wizardCloseButtonStyle =
+  "text-slate-400 hover:text-slate-200 transition-colors";
