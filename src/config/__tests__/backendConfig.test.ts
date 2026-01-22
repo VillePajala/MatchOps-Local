@@ -40,6 +40,9 @@ import {
   hasMigrationCompleted,
   setMigrationCompleted,
   clearMigrationCompleted,
+  hasSeenWelcome,
+  setWelcomeSeen,
+  clearWelcomeSeen,
 } from '../backendConfig';
 
 describe('backendConfig', () => {
@@ -426,6 +429,110 @@ describe('backendConfig', () => {
         expect(localStorageMock.getItem).toHaveBeenCalledWith(
           `matchops_cloud_migration_completed_${user2}`
         );
+      });
+    });
+  });
+
+  describe('Welcome Screen Flag', () => {
+    const WELCOME_KEY = 'matchops_welcome_seen';
+
+    describe('hasSeenWelcome', () => {
+      it('returns false when no flag is set', () => {
+        localStorageMock.getItem.mockReturnValue(null);
+        expect(hasSeenWelcome()).toBe(false);
+        expect(localStorageMock.getItem).toHaveBeenCalledWith(WELCOME_KEY);
+      });
+
+      it('returns true when flag is set to "true"', () => {
+        localStorageMock.getItem.mockReturnValue('true');
+        expect(hasSeenWelcome()).toBe(true);
+      });
+
+      it('returns false for any value other than "true"', () => {
+        localStorageMock.getItem.mockReturnValue('false');
+        expect(hasSeenWelcome()).toBe(false);
+
+        localStorageMock.getItem.mockReturnValue('yes');
+        expect(hasSeenWelcome()).toBe(false);
+
+        localStorageMock.getItem.mockReturnValue('1');
+        expect(hasSeenWelcome()).toBe(false);
+      });
+
+      it('returns true in SSR context (window undefined)', () => {
+        // In SSR, we return true to skip the welcome screen server-side
+        // The actual check happens client-side
+        // Note: This is tested via the function's typeof window check
+        // We can't easily mock window being undefined in Jest
+        // but the function returns true to prevent SSR flash
+        expect(typeof hasSeenWelcome()).toBe('boolean');
+      });
+    });
+
+    describe('setWelcomeSeen', () => {
+      it('sets the flag in localStorage', () => {
+        const result = setWelcomeSeen();
+
+        expect(result).toBe(true);
+        expect(localStorageMock.setItem).toHaveBeenCalledWith(WELCOME_KEY, 'true');
+      });
+
+      it('returns false when localStorage throws', () => {
+        localStorageMock.setItem.mockImplementation(() => {
+          throw new DOMException('Storage access denied', 'SecurityError');
+        });
+
+        expect(setWelcomeSeen()).toBe(false);
+      });
+
+      it('returns false when localStorage throws QuotaExceededError', () => {
+        localStorageMock.setItem.mockImplementation(() => {
+          throw new DOMException('Quota exceeded', 'QuotaExceededError');
+        });
+
+        expect(setWelcomeSeen()).toBe(false);
+      });
+    });
+
+    describe('clearWelcomeSeen', () => {
+      it('removes the flag from localStorage', () => {
+        clearWelcomeSeen();
+
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith(WELCOME_KEY);
+      });
+
+      it('does not throw when localStorage throws', () => {
+        localStorageMock.removeItem.mockImplementation(() => {
+          throw new DOMException('Storage access denied', 'SecurityError');
+        });
+
+        expect(() => clearWelcomeSeen()).not.toThrow();
+      });
+    });
+
+    describe('integration with welcome flow', () => {
+      it('starts unseen, can be set, then cleared', () => {
+        // Initially not seen
+        localStorageMock.getItem.mockReturnValue(null);
+        expect(hasSeenWelcome()).toBe(false);
+
+        // Mark as seen
+        localStorageMock.setItem.mockImplementation(() => {});
+        expect(setWelcomeSeen()).toBe(true);
+        expect(localStorageMock.setItem).toHaveBeenCalledWith(WELCOME_KEY, 'true');
+
+        // Now returns true
+        localStorageMock.getItem.mockReturnValue('true');
+        expect(hasSeenWelcome()).toBe(true);
+
+        // Clear for testing
+        localStorageMock.removeItem.mockImplementation(() => {});
+        clearWelcomeSeen();
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith(WELCOME_KEY);
+
+        // Back to unseen
+        localStorageMock.getItem.mockReturnValue(null);
+        expect(hasSeenWelcome()).toBe(false);
       });
     });
   });

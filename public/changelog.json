@@ -1,8 +1,8 @@
 {
-  "version": "e2862b42",
+  "version": "b5faa048",
   "date": "2026-01-22",
   "notes": {
-    "en": "Defensive initialization, ID-based verification, deterministic ordering",
-    "fi": "Defensive initialization, ID-based verification, deterministic ordering"
+    "en": "Implement Welcome Screen for first-time users (PR #12)",
+    "fi": "Implement Welcome Screen for first-time users (PR #12)"
   }
 }
