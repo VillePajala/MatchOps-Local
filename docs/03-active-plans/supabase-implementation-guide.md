@@ -4960,6 +4960,12 @@ The following items are quality improvements identified during code review. None
 
 - [ ] **Defensive position fallback logging**: `saveGameManually()` uses `DEFAULT_FIELD_POSITION` when `rel_x`/`rel_y` are null for on-field players. Add logging to detect potential data corruption.
 
+- [ ] **Password validation comment**: Add comment to `validatePassword()` noting client-side validation can be bypassed and Supabase Auth is source of truth.
+
+- [ ] **RPC typed helper**: Create typed helper function to reduce complex type assertions in RPC calls (e.g., `typedRpc<T>(fn, params)`).
+
+- [ ] **Session expiry buffer**: Consider using 55 min fallback instead of 60 min for missing `expires_at` to ensure refresh happens before actual expiry.
+
 ### Testing Enhancements
 
 - [ ] **Transform Rules Test Suite**: Add dedicated test suite explicitly validating all 19 transform rules from CLAUDE.md. Serves as living documentation and catches regressions.
