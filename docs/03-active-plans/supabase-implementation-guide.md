@@ -4946,6 +4946,40 @@ The following items are deferred and can be implemented if/when needed:
 
 ---
 
+## Post-Implementation Polish (Non-Blocking)
+
+The following items are quality improvements identified during code review. None are blocking issues - the code works correctly. These can be addressed in a future cleanup PR.
+
+### Code Quality
+
+- [ ] **Extract migrateTournamentLevel to shared module**: Function exists in both `LocalDataStore.ts` and `SupabaseDataStore.ts`. Could extract to `src/datastore/migrations.ts` for DRY. However, current duplication is intentional per DataStore isolation pattern.
+
+- [ ] **Type assertions in RPC calls**: Regenerate Supabase types after RPC deployment to avoid `unknown` casts and achieve full type safety.
+
+- [ ] **Aggregate normalization warnings**: Current implementation logs individual warnings for each auto-fixed field. For users with 100+ games with missing data, this could generate 500+ warnings. Consider aggregating (e.g., "Auto-fixed 47 games with missing team names").
+
+- [ ] **Defensive position fallback logging**: `saveGameManually()` uses `DEFAULT_FIELD_POSITION` when `rel_x`/`rel_y` are null for on-field players. Add logging to detect potential data corruption.
+
+### Testing Enhancements
+
+- [ ] **Transform Rules Test Suite**: Add dedicated test suite explicitly validating all 19 transform rules from CLAUDE.md. Serves as living documentation and catches regressions.
+
+- [ ] **Data Scale Testing**: Add load test simulating 500+ game migration to verify memory usage, UI responsiveness, and error recovery at scale.
+
+### UX Improvements
+
+- [ ] **Migration Retry Failed button**: Current behavior shows partial success well. Consider adding a "Retry Failed" button in MigrationWizard to re-attempt only failed entities.
+
+- [ ] **Manual fallback telemetry**: The `saveGameManually()` fallback (lines 2956-3034) is excellent defensive programming. Consider adding telemetry to detect if it's ever triggered in production.
+
+### Performance (Rule #19)
+
+- [ ] **Pagination for 500+ games**: Current `getGames()` fetches all games. For users with 500+ games, implement pagination: prefetch recent 100 on initialize, load older on demand. Not needed for current user base (<100 games typical).
+
+*Added: January 22, 2026 during PR #12 (Welcome Screen) review*
+
+---
+
 ## Summary
 
 This implementation guide ensures:
