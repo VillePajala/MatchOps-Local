@@ -1,4 +1,3 @@
- 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,6 +6,7 @@ import '@testing-library/jest-dom';
 import SettingsModal from './SettingsModal';
 import { ToastProvider } from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
+import { AuthProvider } from '@/contexts/AuthProvider';
 
 // Create test query client
 const createTestQueryClient = () => new QueryClient({
@@ -21,11 +21,13 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = createTestQueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      <PremiumProvider>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
-      </PremiumProvider>
+      <AuthProvider>
+        <PremiumProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </PremiumProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

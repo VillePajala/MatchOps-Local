@@ -420,6 +420,68 @@ export function clearCloudAccountInfo(): void {
   safeRemoveItem(CLOUD_ACCOUNT_KEY);
   log.info('[backendConfig] Cloud account info cleared');
 }
+
+// ============================================================================
+// WELCOME SCREEN FLAG
+// ============================================================================
+
+/**
+ * Storage key for welcome screen completion flag.
+ * When true, user has completed the first-install welcome screen.
+ */
+const WELCOME_SEEN_KEY = 'matchops_welcome_seen';
+
+/**
+ * Check if user has seen/completed the welcome screen.
+ *
+ * The welcome screen shows on first install and lets user choose:
+ * - Start Fresh (local mode)
+ * - Sign In to Cloud
+ * - Import Backup
+ *
+ * @returns true if welcome screen has been completed
+ */
+export function hasSeenWelcome(): boolean {
+  if (typeof window === 'undefined') {
+    // SSR: skip welcome screen
+    return true;
+  }
+  return safeGetItem(WELCOME_SEEN_KEY) === 'true';
+}
+
+/**
+ * Mark welcome screen as seen/completed.
+ *
+ * Called after user makes any choice on the welcome screen:
+ * - Starts in local mode
+ * - Signs in to cloud
+ * - Successfully imports backup
+ *
+ * @returns true if flag was set successfully
+ */
+export function setWelcomeSeen(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  const success = safeSetItem(WELCOME_SEEN_KEY, 'true');
+  if (success) {
+    log.info('[backendConfig] Welcome screen marked as seen');
+  }
+  return success;
+}
+
+/**
+ * Reset welcome screen flag (for testing).
+ *
+ * After calling this, the welcome screen will show again on next app load.
+ */
+export function clearWelcomeSeen(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  safeRemoveItem(WELCOME_SEEN_KEY);
+  log.info('[backendConfig] Welcome screen flag cleared');
+}
 /* eslint-enable no-restricted-globals */
 
 // ============================================================================
