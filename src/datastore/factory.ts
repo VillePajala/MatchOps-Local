@@ -52,6 +52,12 @@ let authServiceInitPromise: Promise<AuthService> | null = null;
 export async function getDataStore(): Promise<DataStore> {
   // Already initialized - return immediately
   if (dataStoreInstance) {
+    // Defensive check: verify the cached instance is actually initialized
+    // This should always be true, but catches edge cases after resetFactory()
+    if (!dataStoreInstance.isInitialized()) {
+      log.warn('[factory] Cached DataStore not initialized - re-initializing');
+      await dataStoreInstance.initialize();
+    }
     return dataStoreInstance;
   }
 
@@ -82,6 +88,11 @@ export async function getDataStore(): Promise<DataStore> {
     }
 
     await instance.initialize();
+    // Defensive verification: ensure initialization actually completed
+    if (!instance.isInitialized()) {
+      log.warn('[factory] Instance not initialized after initialize() - retrying');
+      await instance.initialize();
+    }
     dataStoreInstance = instance;
     return instance;
   })().finally(() => {

@@ -429,6 +429,10 @@ export class LocalDataStore implements DataStore {
     return isIndexedDBAvailable();
   }
 
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+
   async getPlayers(): Promise<Player[]> {
     this.ensureInitialized();
     return this.loadPlayers();
