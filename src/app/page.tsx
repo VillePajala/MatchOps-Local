@@ -5,6 +5,7 @@ import HomePage from '@/components/HomePage';
 import StartScreen from '@/components/StartScreen';
 import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
+import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -16,10 +17,19 @@ import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGam
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
-import { hasMigrationCompleted, setMigrationCompleted } from '@/config/backendConfig';
+import {
+  hasMigrationCompleted,
+  setMigrationCompleted,
+  hasSeenWelcome,
+  setWelcomeSeen,
+  clearWelcomeSeen,
+  enableCloudMode,
+  isCloudAvailable,
+} from '@/config/backendConfig';
 import { hasLocalDataToMigrate } from '@/services/migrationService';
 import { hasCloudData } from '@/services/reverseMigrationService';
 import { resetFactory } from '@/datastore/factory';
+import { importFromFilePicker } from '@/utils/importHelper';
 import logger from '@/utils/logger';
 
 // Toast display duration before force reload - allows user to see the notification
@@ -35,6 +45,9 @@ export default function Home() {
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
   const [hasSkippedMigration, setHasSkippedMigration] = useState(false);
+  // Welcome screen state (first-install onboarding)
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [isImportingBackup, setIsImportingBackup] = useState(false);
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
   const { showToast } = useToast();
@@ -98,6 +111,101 @@ export default function Home() {
     setRefreshTrigger(prev => prev + 1);
     // Stay in current screen - modal will close naturally after user clicks Continue
   }, []);
+
+  // ============================================================================
+  // WELCOME SCREEN HANDLERS (First-Install Onboarding)
+  // ============================================================================
+
+  // Check if welcome screen should be shown on mount
+  // NOTE: This effect runs once on initial mount, before any auth/migration logic.
+  // The empty dependency array ensures it only checks the localStorage flag once.
+  // Other flows (auth, migration) run after this check completes.
+  useEffect(() => {
+    // Only check on client side
+    if (typeof window === 'undefined') return;
+
+    // Show welcome screen if user hasn't seen it yet
+    if (!hasSeenWelcome()) {
+      logger.info('[page.tsx] First install detected - showing welcome screen');
+      setShowWelcome(true);
+    }
+  }, []);
+
+  // Handle "Start Fresh" (local mode) from welcome screen
+  const handleWelcomeStartLocal = useCallback(() => {
+    logger.info('[page.tsx] Welcome: User chose local mode');
+    setWelcomeSeen();
+    setShowWelcome(false);
+    // Mode is already 'local' by default, proceed to app state check
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  // Handle "Sign In to Cloud" from welcome screen
+  const handleWelcomeSignInCloud = useCallback(() => {
+    logger.info('[page.tsx] Welcome: User chose cloud mode');
+    const success = enableCloudMode();
+    if (success) {
+      // Cloud mode enabled - reload to re-initialize AuthProvider in cloud mode
+      // (AuthProvider reads getBackendMode() once on mount, so we need a full reload)
+      showToast('Cloud mode enabled. Reloading...', 'info');
+      setTimeout(() => {
+        try {
+          // Set welcome flag just before reload - if reload fails, we'll clear it
+          setWelcomeSeen();
+          window.location.reload();
+        } catch (error) {
+          // Reload blocked (e.g., by browser extension or security policy)
+          // Clear welcome flag so user can retry after manual refresh
+          clearWelcomeSeen();
+          logger.error('[page.tsx] Reload blocked', error);
+          showToast('Please refresh the page manually to continue', 'error');
+        }
+      }, 500);
+    } else {
+      // Cloud not available (shouldn't happen since button is hidden)
+      showToast('Cloud sync is not available', 'error');
+    }
+  }, [showToast]);
+
+  // Handle "Import Backup" from welcome screen
+  const handleWelcomeImportBackup = useCallback(async () => {
+    logger.info('[page.tsx] Welcome: User chose to import backup');
+    setIsImportingBackup(true);
+
+    try {
+      const result = await importFromFilePicker(showToast);
+
+      if (result.success) {
+        logger.info('[page.tsx] Welcome: Backup import succeeded');
+        // Set welcome flag and hide screen before reload
+        setWelcomeSeen();
+        setShowWelcome(false);
+        // Trigger full page reload to ensure all caches are fresh
+        // This is the safest way to ensure imported data is properly loaded
+        try {
+          window.location.reload();
+        } catch (reloadError) {
+          // Reload blocked - clear flag so user can retry after manual refresh
+          clearWelcomeSeen();
+          setShowWelcome(true);
+          logger.error('[page.tsx] Reload blocked after import', reloadError);
+          showToast('Import succeeded. Please refresh the page manually.', 'info');
+        }
+      } else if (result.cancelled) {
+        logger.info('[page.tsx] Welcome: User cancelled import');
+        // Stay on welcome screen - user can try again or choose different option
+      } else {
+        logger.warn('[page.tsx] Welcome: Import failed:', result.error);
+        showToast(result.error || 'Failed to import backup', 'error');
+        // Stay on welcome screen
+      }
+    } catch (error) {
+      logger.error('[page.tsx] Welcome: Import error:', error);
+      showToast('Failed to import backup', 'error');
+    } finally {
+      setIsImportingBackup(false);
+    }
+  }, [showToast]);
 
   // Re-run checkAppState when:
   // - Component mounts (initial load)
@@ -327,6 +435,17 @@ export default function Home() {
               <p className="text-slate-400 text-sm">Loading...</p>
             </div>
           </div>
+        ) : showWelcome ? (
+          // First install: show welcome screen for onboarding choice
+          <ErrorBoundary>
+            <WelcomeScreen
+              onStartLocal={handleWelcomeStartLocal}
+              onSignInCloud={handleWelcomeSignInCloud}
+              onImportBackup={handleWelcomeImportBackup}
+              isCloudAvailable={isCloudAvailable()}
+              isImporting={isImportingBackup}
+            />
+          </ErrorBoundary>
         ) : needsAuth ? (
           // Cloud mode: show login screen when not authenticated
           <ErrorBoundary>
