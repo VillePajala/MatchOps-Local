@@ -72,7 +72,9 @@
     "drawingMode": "Drawing Mode",
     "resetFieldNormalTitle": "Reset Field?",
     "resetFieldTacticsTitle": "Reset Tactics Board?",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "startScreen": "Start Screen",
+    "userGuide": "User Guide"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -1560,6 +1562,17 @@
     "restoreError": "Error importing backup: {{error}}",
     "currentGameWarning": "Backup restored, but we could not update the current game selection automatically. Please select a game manually."
   },
+  "cloudModeImport": {
+    "title": "Import Backup",
+    "description": "You're currently using Cloud Sync. Backup files contain local data that needs to be uploaded to your cloud account.",
+    "chooseOption": "Choose how you want to proceed:",
+    "importAndMigrate": "Import & Migrate to Cloud",
+    "importAndMigrateDesc": "Import the backup, then upload all data to your cloud account.",
+    "recommended": "Recommended",
+    "switchToLocal": "Switch to Local Mode",
+    "switchToLocalDesc": "Switch to local mode first. Data will stay on this device only.",
+    "switchFailed": "Failed to switch to local mode. Please try again."
+  },
   "orphanedGame": {
     "noTeam": "No Team (Use Master Roster)",
     "banner": "Original team \"{{teamName}}\" no longer exists. Using master roster.",
@@ -2145,6 +2158,13 @@
   },
   "reverseMigration": {
     "title": "Switch to Local Mode",
+    "description": "Download your cloud data to this device and switch to local mode.",
+    "preparing": "Preparing download...",
+    "noData": "No cloud data found.",
+    "summaryError": "Failed to check cloud data",
+    "summary": {
+      "title": "Your Cloud Data"
+    },
     "steps": {
       "preview": "Preview",
       "choose": "Options",
@@ -2166,34 +2186,35 @@
       "loadError": "Failed to load cloud data preview."
     },
     "choose": {
-      "title": "What would you like to do?",
+      "title": "What should happen to your cloud data?",
       "description": "Choose what happens to your cloud data when you switch to local mode.",
-      "keepCloud": {
-        "title": "Keep Cloud Data",
-        "description": "Download your data to this device and keep a copy in the cloud. You can switch back to cloud mode later.",
-        "recommended": "(Recommended)"
-      },
-      "deleteCloud": {
-        "title": "Delete Cloud Data",
-        "description": "Download your data to this device and permanently delete it from the cloud. This cannot be undone."
-      }
+      "keepCloud": "Keep cloud copy",
+      "keepCloudDescription": "Your data stays in Supabase. You can re-enable cloud sync later without losing anything.",
+      "deleteCloud": "Delete cloud data",
+      "deleteCloudDescription": "After download, all your data will be removed from our servers. This cannot be undone."
     },
     "confirm": {
-      "title": "Confirm Your Choice",
+      "title": "Confirm Cloud Deletion",
       "keepCloudSummary": "Your data will be downloaded to this device. Your cloud data will remain intact.",
       "deleteCloudSummary": "Your data will be downloaded to this device, then permanently deleted from the cloud.",
-      "warning": "Make sure you have a stable internet connection before proceeding.",
+      "warning": "After downloading your data, ALL cloud data will be permanently deleted from our servers.",
+      "allData": "All associated data",
+      "cannotUndo": "This action cannot be undone.",
       "typeConfirm": "Type CONFIRM to proceed:",
-      "typeDelete": "Type DELETE to confirm permanent deletion:"
+      "typeDelete": "Type DELETE to confirm:",
+      "downloadAndDelete": "Download & Delete Cloud"
     },
     "progress": {
       "title": "Migrating Data",
       "preparing": "Preparing...",
-      "downloading": "Downloading from cloud...",
+      "downloading": "Downloading Your Data...",
+      "downloadingAndDeleting": "Downloading & Deleting...",
+      "downloadingFromCloud": "Downloading from cloud...",
       "saving": "Saving to local storage...",
       "verifying": "Verifying data...",
       "deleting": "Deleting cloud data...",
-      "switching": "Switching to local mode..."
+      "switching": "Switching to local mode...",
+      "entity": "Downloading {{entity}}..."
     },
     "complete": {
       "title": "Switch Complete!",
@@ -2222,10 +2243,19 @@
       "confirm": "Confirm",
       "startMigration": "Start Migration",
       "done": "Done"
+    },
+    "title": {
+      "preview": "Switch to Local Mode",
+      "choose": "Switch to Local Mode",
+      "confirm": "Confirm Cloud Deletion",
+      "progress": "Switching to Local Mode",
+      "complete": "Switch Complete",
+      "error": "Download Failed"
     }
   },
   "welcome": {
     "title": "Welcome!",
+    "instruction": "Choose how you want to get started",
     "subtitle": "Track your team's games, players, and stats",
     "startLocal": "Start without an account",
     "startLocalDesc": "Your data is saved on this device only.",

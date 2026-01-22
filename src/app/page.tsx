@@ -415,9 +415,10 @@ export default function Home() {
             setRefreshTrigger(prev => prev + 1);
             setMigrationCompleted(userId);
           } else {
-            // Both local and cloud are empty - mark migration complete
-            logger.info('[page.tsx] No local or cloud data to migrate, marking as complete');
-            setMigrationCompleted(userId);
+            // Both local and cloud are empty - nothing to migrate now
+            // Don't mark complete: if local data appears later (via backup import),
+            // migration check should run again and show the wizard
+            logger.info('[page.tsx] No local or cloud data to migrate currently');
           }
         }
       } catch (error) {

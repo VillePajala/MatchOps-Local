@@ -257,16 +257,15 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Premium cloud upgrade translations added: cloudUpgradeTitle, cloudUpgradeDescription,
-      // cloudBenefitsTitle, cloudBenefit.sync, cloudBenefit.backup, cloudBenefit.security
-      // Previous: 1883 + 6 new keys in premium.* (some nested) = 1932 (includes other changes in working directory)
-      expect(enKeys.length).toBe(1932);
+      // Added: cloudModeImport.* (9 keys), reverseMigration.* fixes, welcome.instruction, controlBar.* (2)
+      // Previous: 1932 → 1959
+      expect(enKeys.length).toBe(1959);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Premium cloud upgrade translations added
-      expect(fiKeys.length).toBe(1932);
+      // Added: cloudModeImport.* (9 keys), reverseMigration.* fixes, welcome.instruction, controlBar.* (2)
+      expect(fiKeys.length).toBe(1959);
     });
   });
 });

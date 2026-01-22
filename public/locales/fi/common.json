@@ -72,7 +72,9 @@
     "drawingMode": "Piirtotila",
     "resetFieldNormalTitle": "Nollataanko kenttä?",
     "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?",
-    "signOut": "Kirjaudu ulos"
+    "signOut": "Kirjaudu ulos",
+    "startScreen": "Aloitusnäyttö",
+    "userGuide": "Käyttöohje"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -1560,6 +1562,17 @@
     "restoreError": "Virhe varmuuskopion tuonnissa: {{error}}",
     "currentGameWarning": "Varmuuskopio palautettu, mutta nykyisen pelin valintaa ei voitu päivittää automaattisesti. Valitse peli manuaalisesti."
   },
+  "cloudModeImport": {
+    "title": "Tuo varmuuskopio",
+    "description": "Käytät tällä hetkellä pilvisynkronointia. Varmuuskopiotiedostot sisältävät paikallista dataa, joka täytyy ladata pilvipalveluun.",
+    "chooseOption": "Valitse miten haluat jatkaa:",
+    "importAndMigrate": "Tuo ja siirrä pilveen",
+    "importAndMigrateDesc": "Tuo varmuuskopio ja lataa kaikki tiedot pilvipalveluun.",
+    "recommended": "Suositeltu",
+    "switchToLocal": "Vaihda ensin paikalliseen tilaan",
+    "switchToLocalDesc": "Vaihda paikalliseen tilaan ensin. Tiedot tallentuvat vain tälle laitteelle.",
+    "switchFailed": "Paikalliseen tilaan vaihtaminen epäonnistui. Yritä uudelleen."
+  },
   "orphanedGame": {
     "noTeam": "Ei joukkuetta (Käytä pääkokoonpanoa)",
     "banner": "Alkuperäistä joukkuetta \"{{teamName}}\" ei enää ole. Käytetään pääkokoonpanoa.",
@@ -2145,6 +2158,13 @@
   },
   "reverseMigration": {
     "title": "Vaihda paikalliseen tilaan",
+    "description": "Lataa pilvitietosi tälle laitteelle ja vaihda paikalliseen tilaan.",
+    "preparing": "Valmistellaan latausta...",
+    "noData": "Pilvitietoja ei löytynyt.",
+    "summaryError": "Pilvitietojen tarkistus epäonnistui",
+    "summary": {
+      "title": "Pilvitietosi"
+    },
     "steps": {
       "preview": "Esikatselu",
       "choose": "Valinnat",
@@ -2166,34 +2186,35 @@
       "loadError": "Pilvitietojen lataus epäonnistui."
     },
     "choose": {
-      "title": "Mitä haluat tehdä?",
+      "title": "Mitä haluat tehdä pilvitiedoillesi?",
       "description": "Valitse mitä pilvitiedoillesi tapahtuu kun vaihdat paikalliseen tilaan.",
-      "keepCloud": {
-        "title": "Säilytä pilvitiedot",
-        "description": "Lataa tiedot tälle laitteelle ja säilytä kopio pilvessä. Voit vaihtaa takaisin pilvitilaan myöhemmin.",
-        "recommended": "(Suositeltu)"
-      },
-      "deleteCloud": {
-        "title": "Poista pilvitiedot",
-        "description": "Lataa tiedot tälle laitteelle ja poista ne pysyvästi pilvestä. Tätä ei voi kumota."
-      }
+      "keepCloud": "Säilytä pilvikopio",
+      "keepCloudDescription": "Tietosi säilyvät Supabasessa. Voit ottaa pilvisynkronoinnin uudelleen käyttöön myöhemmin menettämättä mitään.",
+      "deleteCloud": "Poista pilvitiedot",
+      "deleteCloudDescription": "Latauksen jälkeen kaikki tietosi poistetaan palvelimiltamme. Tätä ei voi kumota."
     },
     "confirm": {
-      "title": "Vahvista valintasi",
+      "title": "Vahvista pilven poisto",
       "keepCloudSummary": "Tietosi ladataan tälle laitteelle. Pilvitietosi säilyvät muuttumattomina.",
       "deleteCloudSummary": "Tietosi ladataan tälle laitteelle, sitten ne poistetaan pysyvästi pilvestä.",
-      "warning": "Varmista että sinulla on vakaa internetyhteys ennen jatkamista.",
+      "warning": "Latauksen jälkeen KAIKKI pilvitiedot poistetaan pysyvästi palvelimiltamme.",
+      "allData": "Kaikki liittyvät tiedot",
+      "cannotUndo": "Tätä toimintoa ei voi kumota.",
       "typeConfirm": "Kirjoita CONFIRM jatkaaksesi:",
-      "typeDelete": "Kirjoita DELETE vahvistaaksesi pysyvän poiston:"
+      "typeDelete": "Kirjoita DELETE vahvistaaksesi:",
+      "downloadAndDelete": "Lataa ja poista pilvi"
     },
     "progress": {
       "title": "Siirretään tietoja",
       "preparing": "Valmistellaan...",
-      "downloading": "Ladataan pilvestä...",
+      "downloading": "Ladataan tietojasi...",
+      "downloadingAndDeleting": "Ladataan ja poistetaan...",
+      "downloadingFromCloud": "Ladataan pilvestä...",
       "saving": "Tallennetaan paikalliseen tallennustilaan...",
       "verifying": "Varmistetaan tiedot...",
       "deleting": "Poistetaan pilvitiedot...",
-      "switching": "Vaihdetaan paikalliseen tilaan..."
+      "switching": "Vaihdetaan paikalliseen tilaan...",
+      "entity": "Ladataan {{entity}}..."
     },
     "complete": {
       "title": "Vaihto valmis!",
@@ -2222,10 +2243,19 @@
       "confirm": "Vahvista",
       "startMigration": "Aloita siirto",
       "done": "Valmis"
+    },
+    "title": {
+      "preview": "Vaihda paikalliseen tilaan",
+      "choose": "Vaihda paikalliseen tilaan",
+      "confirm": "Vahvista pilven poisto",
+      "progress": "Vaihdetaan paikalliseen tilaan",
+      "complete": "Vaihto valmis",
+      "error": "Lataus epäonnistui"
     }
   },
   "welcome": {
     "title": "Tervetuloa!",
+    "instruction": "Valitse miten haluat aloittaa",
     "subtitle": "Seuraa joukkueesi pelejä, pelaajia ja tilastoja",
     "startLocal": "Aloita ilman tiliä",
     "startLocalDesc": "Tietosi tallentuvat vain tälle laitteelle.",
