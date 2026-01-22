@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed } from 'react-icons/hi2';
+import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle } from 'react-icons/hi2';
 import {
   getBackendMode,
   isCloudAvailable,
@@ -66,6 +66,9 @@ export default function CloudSyncSection({
 
   // Reverse migration wizard state
   const [showReverseMigrationWizard, setShowReverseMigrationWizard] = useState(false);
+
+  // Sign out state
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Track mount state to prevent state updates after unmount
   const isMountedRef = useRef(true);
@@ -236,6 +239,39 @@ export default function CloudSyncSection({
   };
 
   /**
+   * Handle sign out from cloud mode.
+   * Signs out of the Supabase session and reloads the app.
+   */
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      // Dynamic import to avoid bundling Supabase in local mode builds
+      const { getAuthService } = await import('@/datastore/factory');
+      const authService = await getAuthService();
+      await authService.signOut();
+
+      showToast(
+        t('cloudSync.signedOut', 'Signed out successfully. Reloading...'),
+        'success'
+      );
+
+      // Reload after brief delay so user sees the toast
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      logger.error('[CloudSyncSection] Failed to sign out:', error);
+      showToast(
+        t('cloudSync.signOutError', 'Failed to sign out. Please try again.'),
+        'error'
+      );
+      if (isMountedRef.current) {
+        setIsSigningOut(false);
+      }
+    }
+  };
+
+  /**
    * Handle successful cloud data deletion from CloudAuthModal
    */
   const handleCloudAuthComplete = () => {
@@ -316,6 +352,29 @@ export default function CloudSyncSection({
           : t('cloudSync.localDescription', 'Your data is stored locally on this device. Works offline, but data is not synced.')
         }
       </p>
+
+      {/* Sign Out Button - Only shown in cloud mode */}
+      {currentMode === 'cloud' && (
+        <div className="pt-2">
+          <button
+            onClick={handleSignOut}
+            disabled={isSigningOut || isChangingMode}
+            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
+          >
+            {isSigningOut ? (
+              <>
+                <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                {t('cloudSync.signingOut', 'Signing out...')}
+              </>
+            ) : (
+              <>
+                <HiOutlineArrowRightOnRectangle className="h-4 w-4" />
+                {t('cloudSync.signOutButton', 'Sign Out')}
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Cloud Not Available Warning */}
       {!cloudAvailable && currentMode === 'local' && (
