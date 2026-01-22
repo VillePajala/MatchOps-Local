@@ -125,6 +125,7 @@
     "avgGoalsFor": "KA TM",
     "avgPointsShort": "KA",
     "away": "Vieras",
+    "back": "Takaisin",
     "cancel": "Peruuta",
     "cancelButton": "Peruuta",
     "clear": "Tyhjennä",
@@ -798,7 +799,11 @@
     "getStarted": "Aloita tästä",
     "manageTeams": "Joukkueet",
     "appSettings": "Asetukset",
-    "freeVersionLimits": "Ilmaisversio sisältää:"
+    "freeVersionLimits": "Ilmaisversio sisältää:",
+    "newGame": "Uusi ottelu",
+    "signedInAs": "Kirjautunut:",
+    "usingLocalStorage": "Paikallinen tallennus",
+    "enableCloudSync": "Ota pilvisynkronointi käyttöön →"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -1924,7 +1929,15 @@
     "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!",
     "grantSuccess": "Premium aktivoitu! Voit nollata Asetuksissa.",
     "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
-    "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!"
+    "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!",
+    "cloudUpgradeTitle": "Pilvisynkronointi vaatii Premiumin",
+    "cloudUpgradeDescription": "Pilvisynkronoinnin avulla voit varmuuskopioida tietosi ja käyttää niitä miltä tahansa laitteelta. Päivitä premiumiin ottaaksesi tämän ominaisuuden käyttöön.",
+    "cloudBenefitsTitle": "Pilvisynkronointi sisältää:",
+    "cloudBenefit": {
+      "sync": "Synkronointi kaikilla laitteillasi",
+      "backup": "Automaattinen pilvivarmuuskopiointi",
+      "security": "Turvallinen pilvitallennus"
+    }
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -1948,7 +1961,8 @@
     "hasAccount": "Onko sinulla jo tili?",
     "signInLink": "Kirjaudu sisään",
     "backToSignIn": "Takaisin kirjautumiseen",
-    "networkErrorHint": "Tarkista internetyhteytesi ja yritä uudelleen."
+    "networkErrorHint": "Tarkista internetyhteytesi ja yritä uudelleen.",
+    "useWithoutAccount": "Tai jatka ilman tiliä"
   },
   "migration": {
     "title": "Siirrä pilveen",
@@ -2016,10 +2030,32 @@
     "replaceWarningDesc": "Kaikki ottelusi, pelaajasi, joukkueesi, kautesi ja muut pilvessä olevat tietosi poistetaan pysyvästi ennen paikallisten tietojen lataamista.",
     "replaceNoRollback": "Varoitus: Jos siirto epäonnistuu tyhjennyksen jälkeen, pilvitietojasi ei voida palauttaa. Paikalliset tietosi pysyvät turvassa.",
     "replaceConfirmLabel": "Kirjoita REPLACE vahvistaaksesi:",
-    "startReplaceButton": "Korvaa ja lataa"
+    "startReplaceButton": "Korvaa ja lataa",
+    "loadingData": "Ladataan tietojen yhteenvetoa...",
+    "bothHaveDataTitle": "Tietoja löytyi molemmista paikoista",
+    "bothHaveDataDesc": "Sinulla on tietoja sekä paikallisesti että pilvessä. Valitse miten haluat jatkaa:",
+    "localOnlyTitle": "Paikallisia tietoja löytyi",
+    "localOnlyDesc": "Sinulla on paikallisesti tallennettuja tietoja, jotka voidaan siirtää pilveen.",
+    "localData": "Paikalliset tiedot",
+    "cloudData": "Pilvitiedot",
+    "action": {
+      "merge": "Yhdistä tiedot",
+      "mergeDesc": "Yhdistä paikalliset ja pilvitiedot. Vastaavat kohteet päivitetään paikallisista.",
+      "replaceCloud": "Korvaa pilvitiedot",
+      "replaceCloudDesc": "Poista kaikki pilvitiedot ja lataa paikalliset tiedot tilalle.",
+      "keepCloud": "Säilytä pilvitiedot",
+      "keepCloudDesc": "Hylkää paikalliset tiedot ja jatka vain pilvitiedoilla.",
+      "migrate": "Siirrä pilveen",
+      "migrateDesc": "Lataa paikalliset tietosi pilveen varmuuskopiointia ja synkronointia varten.",
+      "startFresh": "Aloita alusta",
+      "startFreshDesc": "Hylkää paikalliset tiedot ja aloita tyhjällä pilvitilillä.",
+      "startFreshWarning": "Tämä poistaa paikalliset tietosi pysyvästi!",
+      "cancel": "Peruuta",
+      "cancelDesc": "Palaa paikalliseen tilaan ja jatka paikallisten tietojen käyttöä."
+    }
   },
   "cloudSync": {
-    "title": "Pilvisynkronointi",
+    "title": "Tili ja synkronointi",
     "statusLabel": "Nykyinen tila",
     "cloudMode": "Pilvisynkronointi käytössä",
     "localMode": "Paikallinen tallennus",
@@ -2191,18 +2227,20 @@
   "welcome": {
     "title": "Tervetuloa!",
     "subtitle": "Seuraa joukkueesi pelejä, pelaajia ja tilastoja",
-    "startFresh": "Aloita alusta",
-    "startFreshDesc": "Tiedot pysyvät tällä laitteella",
-    "startFreshAria": "Aloita alusta paikallisessa tilassa",
-    "signInCloud": "Kirjaudu pilveen",
-    "signInCloudDesc": "Synkronoi kaikkien laitteidesi välillä",
-    "signInCloudAria": "Kirjaudu pilvisynkronointiin",
-    "importBackup": "Tuo varmuuskopio",
-    "importBackupDesc": "Palauta viedystä tiedostosta",
+    "startLocal": "Aloita ilman tiliä",
+    "startLocalDesc": "Tietosi tallentuvat vain tälle laitteelle.",
+    "startLocalAria": "Aloita ilman tiliä, ilmainen",
+    "signInCloud": "Kirjaudu tai luo tili",
+    "signInCloudDesc": "Tietosi synkronoituvat laitteiden välillä.",
+    "signInCloudAria": "Kirjaudu tai luo tili, maksullinen",
+    "importBackup": "Tuo varmuuskopiosta",
+    "importBackupDesc": "Palauta aiemmat tiedot tiedostosta ja jatka siitä mihin jäit.",
     "importBackupAria": "Tuo varmuuskopiotiedosto",
     "importing": "Tuodaan...",
     "importingAria": "Tuodaan varmuuskopiotiedostoa",
-    "changeInSettings": "Voit muuttaa tätä myöhemmin Asetuksissa"
+    "changeInSettings": "Voit muuttaa tätä myöhemmin Asetuksissa",
+    "badgeFree": "ILMAINEN",
+    "badgePaid": "MAKSULLINEN"
   },
   "positions": {
     "GK": "MV",

@@ -9,6 +9,7 @@ import {
 } from '@/utils/appSettings';
 import InstructionsModal from '@/components/InstructionsModal';
 import logger from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthProvider';
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -16,9 +17,11 @@ interface StartScreenProps {
   onGetStarted: () => void;
   onViewStats: () => void;
   onOpenSettings: () => void;
+  onEnableCloudSync?: () => void;
   canResume?: boolean;
   hasSavedGames?: boolean;
   isFirstTimeUser?: boolean;
+  isCloudAvailable?: boolean;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
@@ -27,13 +30,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onGetStarted,
   onViewStats,
   onOpenSettings,
+  onEnableCloudSync,
   canResume = false,
   hasSavedGames = false,
   isFirstTimeUser = false,
+  isCloudAvailable = false,
 }) => {
   const { t } = useTranslation();
+  const { user, mode, signOut } = useAuth();
   const [language, setLanguage] = useState<string>(i18n.language);
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
+
+  const isCloudMode = mode === 'cloud' && user;
 
   useEffect(() => {
     getAppSettings().then((settings) => {
@@ -181,6 +189,34 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </>
             )}
           </div>
+
+          {/* Mode footer */}
+          {isCloudMode ? (
+            <div className="mt-8 text-center text-sm text-slate-500">
+              <span>{t('startScreen.signedInAs', 'Signed in as')} </span>
+              <span className="text-slate-400">{user.email}</span>
+              <span className="mx-2">·</span>
+              <button
+                type="button"
+                onClick={signOut}
+                className="text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                {t('controlBar.signOut', 'Sign Out')}
+              </button>
+            </div>
+          ) : isCloudAvailable && onEnableCloudSync ? (
+            <div className="mt-8 text-center text-sm text-slate-500">
+              <span>{t('startScreen.usingLocalStorage', 'Using local storage')}</span>
+              <span className="mx-2">·</span>
+              <button
+                type="button"
+                onClick={onEnableCloudSync}
+                className="text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                {t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 

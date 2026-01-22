@@ -45,7 +45,7 @@ describe('WelcomeScreen', () => {
   });
 
   describe('Rendering', () => {
-    it('renders app name and welcome message', () => {
+    it('renders app name and tagline', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -55,10 +55,8 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('MatchOps')).toBeInTheDocument();
-      expect(screen.getByText('Welcome!')).toBeInTheDocument();
-      expect(
-        screen.getByText("Track your team's games, players, and stats")
-      ).toBeInTheDocument();
+      // Default language is 'en' in test mock
+      expect(screen.getByText('Plan · Track · Assess')).toBeInTheDocument();
     });
 
     it('renders language selector', () => {
@@ -83,9 +81,9 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      expect(screen.getByText('Start Fresh')).toBeInTheDocument();
-      expect(screen.getByText('Sign In to Cloud')).toBeInTheDocument();
-      expect(screen.getByText('Import Backup')).toBeInTheDocument();
+      expect(screen.getByText('Start without an account')).toBeInTheDocument();
+      expect(screen.getByText('Sign in or create an account')).toBeInTheDocument();
+      expect(screen.getByText('Import a backup')).toBeInTheDocument();
     });
 
     it('hides cloud option when cloud is not available', () => {
@@ -97,9 +95,9 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      expect(screen.getByText('Start Fresh')).toBeInTheDocument();
-      expect(screen.queryByText('Sign In to Cloud')).not.toBeInTheDocument();
-      expect(screen.getByText('Import Backup')).toBeInTheDocument();
+      expect(screen.getByText('Start without an account')).toBeInTheDocument();
+      expect(screen.queryByText('Sign in or create an account')).not.toBeInTheDocument();
+      expect(screen.getByText('Import a backup')).toBeInTheDocument();
     });
 
     it('renders descriptions for each option', () => {
@@ -111,9 +109,23 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      expect(screen.getByText('Data stays on this device')).toBeInTheDocument();
-      expect(screen.getByText('Sync across all your devices')).toBeInTheDocument();
-      expect(screen.getByText('Restore from exported file')).toBeInTheDocument();
+      expect(screen.getByText('Your data is saved on this device only.')).toBeInTheDocument();
+      expect(screen.getByText('Your data syncs across devices.')).toBeInTheDocument();
+      expect(screen.getByText('Restore your previous data from a file and continue where you left off.')).toBeInTheDocument();
+    });
+
+    it('renders Free and Paid badges', () => {
+      render(
+        <WelcomeScreen
+          {...mockHandlers}
+          isCloudAvailable={true}
+          isImporting={false}
+        />
+      );
+
+      // Two "FREE" badges (for local and import options)
+      expect(screen.getAllByText(/^FREE$/i)).toHaveLength(2);
+      expect(screen.getByText(/^PAID$/i)).toBeInTheDocument();
     });
 
     it('shows footer note about settings', () => {
@@ -132,7 +144,7 @@ describe('WelcomeScreen', () => {
   });
 
   describe('Button Interactions', () => {
-    it('calls onStartLocal when Start Fresh button is clicked', () => {
+    it('calls onStartLocal when Start without account button is clicked', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -141,11 +153,11 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Start Fresh'));
+      fireEvent.click(screen.getByText('Start without an account'));
       expect(mockHandlers.onStartLocal).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onSignInCloud when Sign In to Cloud button is clicked', () => {
+    it('calls onSignInCloud when Sign in or create account button is clicked', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -154,11 +166,11 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Sign In to Cloud'));
+      fireEvent.click(screen.getByText('Sign in or create an account'));
       expect(mockHandlers.onSignInCloud).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onImportBackup when Import Backup button is clicked', () => {
+    it('calls onImportBackup when Import a backup button is clicked', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -167,7 +179,7 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Import Backup'));
+      fireEvent.click(screen.getByText('Import a backup'));
       expect(mockHandlers.onImportBackup).toHaveBeenCalledTimes(1);
     });
   });
@@ -183,7 +195,7 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Importing...')).toBeInTheDocument();
-      expect(screen.queryByText('Import Backup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Import a backup')).not.toBeInTheDocument();
     });
 
     it('disables import button when importing', () => {
@@ -229,10 +241,10 @@ describe('WelcomeScreen', () => {
       );
 
       expect(
-        screen.getByRole('button', { name: /start fresh in local mode/i })
+        screen.getByRole('button', { name: /start without an account/i })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /sign in to cloud sync/i })
+        screen.getByRole('button', { name: /sign in or create an account/i })
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: /import backup file/i })
@@ -297,7 +309,7 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      const startButton = screen.getByRole('button', { name: /start fresh/i });
+      const startButton = screen.getByRole('button', { name: /start without an account/i });
       startButton.focus();
       expect(document.activeElement).toBe(startButton);
     });

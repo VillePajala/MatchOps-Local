@@ -4629,6 +4629,143 @@ This PR enables users to downgrade from cloud mode to local mode while keeping t
 
 ---
 
+### 10.2.10 PR #12: Migration Wizard Redesign (~4-6 hours)
+
+**Branch**: `supabase/pr12-migration-wizard-redesign`
+**Depends on**: PR #11 merged to `feature/supabase-cloud-backend`
+
+This PR redesigns the MigrationWizard to handle all data state scenarios clearly, eliminating the confusing "Skip" option that left users with orphaned data.
+
+#### Problem Statement
+
+The original wizard only handled one scenario (local has data, cloud is empty) and offered a "Skip" option that:
+- Left orphaned local data unused
+- Didn't inform users they'd be using empty cloud data
+- Created confusion about "where is my data?"
+- Had no clear path to migrate later
+
+#### Scenario Matrix
+
+The wizard must handle four possible states when enabling cloud mode:
+
+| Local Data | Cloud Data | Wizard Behavior |
+|------------|------------|-----------------|
+| Empty | Empty | No wizard - proceed to app |
+| **Has data** | Empty | Show wizard: Migrate / Start Fresh / Cancel |
+| Empty | **Has data** | No wizard - proceed to app (use cloud data) |
+| **Has data** | **Has data** | Show wizard: Merge / Replace Cloud / Keep Cloud / Cancel |
+
+#### Redesigned Options
+
+**Scenario: Local has data, Cloud is empty**
+```
+┌─────────────────────────────────────────────────────┐
+│  You have local data to migrate                     │
+│                                                     │
+│  Local: 12 games, 25 players, 3 teams               │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │ ★ Migrate to Cloud (Recommended)          │     │
+│  │   Upload your data to the cloud           │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Start Fresh                              │     │
+│  │   Begin with empty cloud account           │     │
+│  │   ⚠️ Local data will be deleted            │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Cancel                                   │     │
+│  │   Return to local mode                     │     │
+│  └───────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────┘
+```
+
+**Scenario: Both local and cloud have data**
+```
+┌─────────────────────────────────────────────────────┐
+│  You have data in both places                       │
+│                                                     │
+│  Local: 12 games, 25 players, 3 teams               │
+│  Cloud: 8 games, 20 players, 2 teams                │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │ ★ Merge (Recommended)                      │     │
+│  │   Combine both - keeps everything          │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Replace Cloud with Local                 │     │
+│  │   Upload local, overwrite cloud            │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Keep Cloud (Delete Local)                │     │
+│  │   Use cloud data, discard local            │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Cancel                                   │     │
+│  │   Return to local mode                     │     │
+│  └───────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────┘
+```
+
+#### Merge Logic
+
+When merging local and cloud data:
+1. Add all local items that don't exist in cloud (by ID)
+2. If same ID exists in both → keep cloud version (cloud wins conflicts)
+3. Result: Union of both datasets
+
+#### Key Principle
+
+**One source of truth, always.** Either you're using local OR cloud, and when you switch, you either bring your data or explicitly abandon it. No lingering orphan data.
+
+#### Implementation Changes
+
+**File Changes**: `src/components/MigrationWizard.tsx`
+- Add `cloudCounts` state (fetch from cloud on mount)
+- Determine scenario based on `localCounts` and `cloudCounts`
+- Show appropriate options per scenario
+- Remove "Skip" option entirely
+- "Start Fresh" and "Keep Cloud" options delete local data
+- "Cancel" returns to local mode (disable cloud)
+
+**File Changes**: `src/services/migrationService.ts`
+- Add `getCloudCounts()` function to fetch cloud data counts
+- Add `clearLocalData()` function for "Start Fresh" / "Keep Cloud" options
+- Update `migrateLocalToCloud()` to handle merge vs replace modes
+
+**File Changes**: `src/app/page.tsx`
+- Update migration check to also fetch cloud counts
+- Pass both counts to MigrationWizard
+- Handle "Cancel" by disabling cloud mode
+
+#### Deliverables Checklist
+
+**Core Implementation**:
+- [ ] Add `getCloudCounts()` to migrationService
+- [ ] Add `clearLocalData()` to migrationService
+- [ ] Update MigrationWizard to detect scenario
+- [ ] Implement "Local only" scenario UI
+- [ ] Implement "Both have data" scenario UI
+- [ ] Remove "Skip" option
+- [ ] "Cancel" returns to local mode
+
+**Translations**:
+- [ ] EN translations for new wizard text
+- [ ] FI translations
+
+**Tests**:
+- [ ] Unit tests for scenario detection
+- [ ] Unit tests for merge logic
+- [ ] Component tests for both wizard variants
+- [ ] Integration test for full flows
+
+---
+
 ### 10.3 Supabase Project Setup
 
 After PR #9 is merged, set up the actual Supabase infrastructure.
@@ -4977,6 +5114,13 @@ The following items are quality improvements identified during code review. None
 - [ ] **Migration Retry Failed button**: Current behavior shows partial success well. Consider adding a "Retry Failed" button in MigrationWizard to re-attempt only failed entities.
 
 - [ ] **Manual fallback telemetry**: The `saveGameManually()` fallback (lines 2956-3034) is excellent defensive programming. Consider adding telemetry to detect if it's ever triggered in production.
+
+- [ ] **Migration Data Comparison View**: When users have data in both local and cloud, they may want to compare before deciding merge/replace. Implementation levels:
+  - **Level 1 (Current)**: Show counts only ("Local: 12 games, Cloud: 8 games") - implemented in PR #12
+  - **Level 2**: Show item lists (game names/dates, player names, team names) so users can scan and recognize their data
+  - **Level 3**: Full diff view with side-by-side comparison, highlighting unique items, shared items, and conflicts; per-item selection (like git merge UI)
+
+  Level 2 provides good value with moderate effort. Level 3 is complex and likely overkill for most users. *Added: January 2026*
 
 ### Performance (Rule #19)
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle } from 'react-icons/hi2';
@@ -14,11 +14,13 @@ import {
 } from '@/config/backendConfig';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
+import { useCloudUpgradeGate } from '@/hooks/useCloudUpgradeGate';
 import { getDataStore } from '@/datastore/factory';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import CloudAuthModal from './CloudAuthModal';
 import ReverseMigrationWizard from './ReverseMigrationWizard';
+import UpgradePromptModal from './UpgradePromptModal';
 
 interface CloudSyncSectionProps {
   /** Callback when mode changes (app needs restart) */
@@ -53,6 +55,14 @@ export default function CloudSyncSection({
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  // Cloud upgrade gate - shows upgrade modal when enabling cloud without premium
+  const {
+    showModal: showCloudUpgradeModal,
+    gateCloudAction,
+    handleUpgradeSuccess: handleCloudUpgradeSuccess,
+    handleCancel: handleCloudUpgradeCancel,
+  } = useCloudUpgradeGate();
+
   // Use lazy initialization to load values only once on mount (avoids lint warning about setState in useEffect)
   const [currentMode] = useState<'local' | 'cloud'>(() => getBackendMode());
   const [cloudAvailable] = useState(() => isCloudAvailable());
@@ -81,7 +91,8 @@ export default function CloudSyncSection({
     };
   }, []);
 
-  const handleEnableCloud = () => {
+  // Actually enable cloud mode (called after premium check passes)
+  const executeEnableCloud = useCallback(() => {
     if (!cloudAvailable) {
       showToast(
         t('cloudSync.notConfigured', 'Cloud sync is not configured. Contact support for access.'),
@@ -122,7 +133,12 @@ export default function CloudSyncSection({
         setIsChangingMode(false);
       }
     }
-  };
+  }, [cloudAvailable, showToast, t, onModeChange]);
+
+  // Handle enable cloud - gated behind premium
+  const handleEnableCloud = useCallback(() => {
+    gateCloudAction(executeEnableCloud);
+  }, [gateCloudAction, executeEnableCloud]);
 
   const handleDisableCloud = () => {
     // If reverse migration wizard callback is provided, show it instead of directly disabling
@@ -326,7 +342,7 @@ export default function CloudSyncSection({
   return (
     <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
       <h3 className="text-lg font-semibold text-slate-200">
-        {t('cloudSync.title', 'Cloud Sync')}
+        {t('cloudSync.title', 'Account & Sync')}
       </h3>
 
       {/* Current Status */}
@@ -586,6 +602,14 @@ export default function CloudSyncSection({
           onCancel={handleReverseMigrationCancel}
         />
       )}
+
+      {/* Cloud upgrade modal - shown when enabling cloud without premium */}
+      <UpgradePromptModal
+        isOpen={showCloudUpgradeModal}
+        onClose={handleCloudUpgradeCancel}
+        variant="cloudUpgrade"
+        onUpgradeSuccess={handleCloudUpgradeSuccess}
+      />
     </div>
   );
 }

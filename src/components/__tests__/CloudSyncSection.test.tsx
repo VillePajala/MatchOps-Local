@@ -59,6 +59,17 @@ jest.mock('@/contexts/ToastProvider', () => ({
   }),
 }));
 
+jest.mock('@/hooks/usePremium', () => ({
+  usePremium: () => ({
+    isPremium: true,
+    isLoading: false,
+    canCreate: jest.fn().mockReturnValue(true),
+    showUpgradePrompt: jest.fn(),
+    grantPremiumAccess: jest.fn(),
+    revokePremiumAccess: jest.fn(),
+  }),
+}));
+
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, defaultValue?: string) => defaultValue || key,

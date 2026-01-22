@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineCloudArrowUp,
@@ -23,7 +23,7 @@ import { clearLocalIndexedDBData } from '@/utils/clearLocalData';
 import { disableCloudMode } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
-type WizardStep = 'preview' | 'confirm' | 'progress' | 'complete' | 'error';
+type WizardStep = 'loading' | 'select-action' | 'confirm' | 'progress' | 'complete' | 'error';
 
 /** Maximum warnings to display before truncating with "...and X more" */
 const MAX_DISPLAYED_WARNINGS = 5;
@@ -31,9 +31,20 @@ const MAX_DISPLAYED_WARNINGS = 5;
 export interface MigrationWizardProps {
   /** Called when migration completes successfully (with or without clearing local data) */
   onComplete: () => void;
-  /** Called when user skips migration */
-  onSkip: () => void;
+  /** Called when user cancels and wants to return to local mode */
+  onCancel: () => void;
+  /** Cloud data counts (if cloud has data) */
+  cloudCounts?: MigrationCounts | null;
+  /** Whether cloud counts are still loading */
+  isLoadingCloudCounts?: boolean;
 }
+
+/**
+ * Migration scenario based on data presence in local and cloud.
+ */
+type MigrationScenario =
+  | 'local-only'      // Local has data, cloud is empty
+  | 'both-have-data'; // Both local and cloud have data
 
 /**
  * Migration Wizard Component
@@ -54,13 +65,15 @@ export interface MigrationWizardProps {
  */
 const MigrationWizard: React.FC<MigrationWizardProps> = ({
   onComplete,
-  onSkip,
+  onCancel,
+  cloudCounts,
+  isLoadingCloudCounts = false,
 }) => {
   const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Wizard state
-  const [step, setStep] = useState<WizardStep>('preview');
+  const [step, setStep] = useState<WizardStep>('loading');
   const [dataSummary, setDataSummary] = useState<MigrationCounts | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
@@ -78,6 +91,28 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const [replaceConfirmText, setReplaceConfirmText] = useState(''); // Confirmation text for replace mode
   const [isSwitchingToLocal, setIsSwitchingToLocal] = useState(false);
   const [switchToLocalError, setSwitchToLocalError] = useState<string | null>(null);
+
+  // Determine scenario based on data presence
+  const scenario: MigrationScenario | null = useMemo(() => {
+    if (!dataSummary) return null;
+
+    const cloudHasData = cloudCounts && (
+      cloudCounts.players > 0 ||
+      cloudCounts.teams > 0 ||
+      cloudCounts.games > 0 ||
+      cloudCounts.seasons > 0 ||
+      cloudCounts.tournaments > 0
+    );
+
+    return cloudHasData ? 'both-have-data' : 'local-only';
+  }, [dataSummary, cloudCounts]);
+
+  // Move to select-action step when data is loaded
+  useEffect(() => {
+    if (!isLoadingSummary && !isLoadingCloudCounts && dataSummary && step === 'loading') {
+      setStep('select-action');
+    }
+  }, [isLoadingSummary, isLoadingCloudCounts, dataSummary, step]);
 
   // Focus trap
   useFocusTrap(modalRef, true);
@@ -189,11 +224,41 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const RETRY_COOLDOWN_SECONDS = 3;
   const handleRetry = useCallback(() => {
     if (retryCooldown > 0) return; // Ignore if in cooldown
-    setStep('preview');
+    setStep('select-action');
     setProgress(null);
     setMigrationResult(null);
     setRetryCooldown(RETRY_COOLDOWN_SECONDS);
   }, [retryCooldown]);
+
+  // Handle "Keep Cloud" option - clear local data and use cloud data
+  const handleKeepCloud = useCallback(async () => {
+    setIsClearingLocal(true);
+    try {
+      await clearLocalIndexedDBData();
+      logger.info('[MigrationWizard] Local data cleared (Keep Cloud option)');
+      onComplete();
+    } catch (error) {
+      logger.error('[MigrationWizard] Failed to clear local data:', error);
+      setIsClearingLocal(false);
+      // Show error but don't block - user can still proceed
+      setSwitchToLocalError(t('migration.clearLocalFailed', 'Failed to clear local data. You can clear it later in Settings.'));
+    }
+  }, [onComplete, t]);
+
+  // Handle "Start Fresh" option - clear local data and use empty cloud
+  const handleStartFresh = useCallback(async () => {
+    setIsClearingLocal(true);
+    try {
+      await clearLocalIndexedDBData();
+      logger.info('[MigrationWizard] Local data cleared (Start Fresh option)');
+      onComplete();
+    } catch (error) {
+      logger.error('[MigrationWizard] Failed to clear local data:', error);
+      setIsClearingLocal(false);
+      // Show error but don't block - user can still proceed
+      setSwitchToLocalError(t('migration.clearLocalFailed', 'Failed to clear local data. You can clear it later in Settings.'));
+    }
+  }, [onComplete, t]);
 
   const handleSwitchToLocal = useCallback(() => {
     if (isSwitchingToLocal) return;
@@ -352,84 +417,181 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   // Render step content
   const renderContent = () => {
     switch (step) {
-      case 'preview':
+      case 'loading':
+        return (
+          <div className="flex flex-col items-center justify-center py-12">
+            <HiOutlineArrowPath className="h-10 w-10 text-sky-400 animate-spin mb-4" />
+            <p className="text-slate-300">
+              {t('migration.loadingData', 'Loading data...')}
+            </p>
+          </div>
+        );
+
+      case 'select-action':
         return (
           <>
             {/* Icon and description */}
             <div className="text-center mb-6">
               <HiOutlineCloudArrowUp className="h-12 w-12 text-sky-400 mx-auto mb-3" />
               <p className="text-slate-300">
-                {t('migration.description', 'Transfer your local data to your cloud account for backup and sync across devices.')}
+                {scenario === 'both-have-data'
+                  ? t('migration.bothHaveDataDesc', 'You have data in both your local device and the cloud. Choose how to proceed.')
+                  : t('migration.localOnlyDesc', 'You have local data to migrate to the cloud.')}
               </p>
             </div>
 
-            {/* Data summary */}
-            {isLoadingSummary ? (
-              <div className="flex items-center justify-center py-8">
-                <HiOutlineArrowPath className="h-6 w-6 text-slate-400 animate-spin" />
-                <span className="ml-2 text-slate-400">
-                  {t('common.loading', 'Loading...')}
-                </span>
-              </div>
-            ) : dataSummary ? (
-              renderDataSummary(dataSummary)
-            ) : (
-              <p className="text-center text-slate-400 py-4">
-                {t('migration.noData', 'No data found to migrate.')}
-              </p>
-            )}
-
-            {/* Migration mode selection */}
-            {dataSummary && (
-              <div className="mt-6 bg-slate-900/50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-slate-300 mb-3">
-                  {t('migration.modeTitle', 'Migration Mode')}
+            {/* Data comparison */}
+            <div className="space-y-3 mb-6">
+              {/* Local data summary */}
+              <div className="bg-slate-900/50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                  {t('migration.localData', 'Local Data')}
                 </h4>
-                <div className="space-y-2">
-                  <label className="flex items-start gap-3 cursor-pointer p-2 rounded hover:bg-slate-700/50">
-                    <input
-                      type="radio"
-                      name="migrationMode"
-                      value="merge"
-                      checked={migrationMode === 'merge'}
-                      onChange={() => setMigrationMode('merge')}
-                      className="mt-1 accent-sky-500"
-                    />
-                    <div>
-                      <div className="text-slate-200 font-medium">
-                        {t('migration.modeMerge', 'Add to cloud')}
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {t('migration.modeMergeDesc', 'Merge with existing cloud data. Matching items will be updated.')}
-                      </div>
-                    </div>
-                  </label>
-                  <label className="flex items-start gap-3 cursor-pointer p-2 rounded hover:bg-slate-700/50">
-                    <input
-                      type="radio"
-                      name="migrationMode"
-                      value="replace"
-                      checked={migrationMode === 'replace'}
-                      onChange={() => setMigrationMode('replace')}
-                      className="mt-1 accent-sky-500"
-                    />
-                    <div>
-                      <div className="text-slate-200 font-medium">
-                        {t('migration.modeReplace', 'Replace cloud data')}
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {t('migration.modeReplaceDesc', 'Clear all existing cloud data first, then upload fresh.')}
-                      </div>
-                    </div>
-                  </label>
-                </div>
-                {migrationMode === 'replace' && (
-                  <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-300">
-                    {t('migration.modeReplaceWarning', '⚠️ Replace mode will delete all your existing cloud data before uploading.')}
+                {dataSummary && (
+                  <div className="text-sm text-slate-400">
+                    {dataSummary.games} {t('migration.summary.games', 'Games')}, {dataSummary.players} {t('migration.summary.players', 'Players')}, {dataSummary.teams} {t('migration.summary.teams', 'Teams')}
                   </div>
                 )}
               </div>
-            )}
+
+              {/* Cloud data summary (only if both have data) */}
+              {scenario === 'both-have-data' && cloudCounts && (
+                <div className="bg-slate-900/50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                    {t('migration.cloudData', 'Cloud Data')}
+                  </h4>
+                  <div className="text-sm text-slate-400">
+                    {cloudCounts.games} {t('migration.summary.games', 'Games')}, {cloudCounts.players} {t('migration.summary.players', 'Players')}, {cloudCounts.teams} {t('migration.summary.teams', 'Teams')}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action options - different based on scenario */}
+            <div className="space-y-3">
+              {scenario === 'both-have-data' ? (
+                <>
+                  {/* MERGE option */}
+                  <button
+                    onClick={() => { setMigrationMode('merge'); setStep('confirm'); }}
+                    className="w-full p-4 rounded-lg bg-sky-600/20 border border-sky-500/50 hover:bg-sky-600/30 transition-colors text-left"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-sky-400 flex items-center justify-center">
+                        <span className="text-sky-400 text-xs">★</span>
+                      </div>
+                      <div>
+                        <div className="text-slate-100 font-medium">
+                          {t('migration.action.merge', 'Merge (Recommended)')}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {t('migration.action.mergeDesc', 'Combine both - keeps all your data from local and cloud')}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* REPLACE CLOUD option */}
+                  <button
+                    onClick={() => { setMigrationMode('replace'); setStep('confirm'); }}
+                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-400"></div>
+                      <div>
+                        <div className="text-slate-100 font-medium">
+                          {t('migration.action.replaceCloud', 'Replace Cloud with Local')}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {t('migration.action.replaceCloudDesc', 'Upload local data, overwrite existing cloud data')}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* KEEP CLOUD option */}
+                  <button
+                    onClick={handleKeepCloud}
+                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-400"></div>
+                      <div>
+                        <div className="text-slate-100 font-medium">
+                          {t('migration.action.keepCloud', 'Keep Cloud (Delete Local)')}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {t('migration.action.keepCloudDesc', 'Use your cloud data, discard local data')}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* MIGRATE option (local-only scenario) */}
+                  <button
+                    onClick={() => { setMigrationMode('merge'); setStep('confirm'); }}
+                    className="w-full p-4 rounded-lg bg-sky-600/20 border border-sky-500/50 hover:bg-sky-600/30 transition-colors text-left"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-sky-400 flex items-center justify-center">
+                        <span className="text-sky-400 text-xs">★</span>
+                      </div>
+                      <div>
+                        <div className="text-slate-100 font-medium">
+                          {t('migration.action.migrate', 'Migrate to Cloud (Recommended)')}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {t('migration.action.migrateDesc', 'Upload your data to the cloud for backup and sync')}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* START FRESH option */}
+                  <button
+                    onClick={handleStartFresh}
+                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-400"></div>
+                      <div>
+                        <div className="text-slate-100 font-medium">
+                          {t('migration.action.startFresh', 'Start Fresh')}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {t('migration.action.startFreshDesc', 'Begin with empty cloud account')}
+                        </div>
+                        <div className="text-xs text-amber-400 mt-1">
+                          {t('migration.action.startFreshWarning', '⚠️ Local data will be deleted')}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                </>
+              )}
+
+              {/* CANCEL option - always available */}
+              <button
+                onClick={onCancel}
+                className="w-full p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800/70 transition-colors text-left"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-500"></div>
+                  <div>
+                    <div className="text-slate-300 font-medium">
+                      {t('migration.action.cancel', 'Cancel')}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      {t('migration.action.cancelDesc', 'Return to local mode')}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
           </>
         );
 
@@ -615,21 +777,12 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   // Render action buttons
   const renderActions = () => {
     switch (step) {
-      case 'preview':
-        return (
-          <>
-            <button onClick={onSkip} className={secondaryButtonStyle}>
-              {t('migration.skipButton', 'Skip for Now')}
-            </button>
-            <button
-              onClick={() => setStep('confirm')}
-              disabled={isLoadingSummary || !dataSummary}
-              className={primaryButtonStyle}
-            >
-              {t('migration.continueButton', 'Continue')}
-            </button>
-          </>
-        );
+      case 'loading':
+        return null; // No actions while loading
+
+      case 'select-action':
+        // Actions are embedded in the step content as buttons
+        return null;
 
       case 'confirm': {
         // For replace mode, require confirmation text
@@ -637,7 +790,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         const buttonStyle = migrationMode === 'replace' ? dangerButtonStyle : primaryButtonStyle;
         return (
           <>
-            <button onClick={() => { setStep('preview'); setReplaceConfirmText(''); }} className={secondaryButtonStyle}>
+            <button onClick={() => { setStep('select-action'); setReplaceConfirmText(''); }} className={secondaryButtonStyle}>
               {t('common.back', 'Back')}
             </button>
             <button
@@ -679,7 +832,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                 ? t('migration.switchingToLocal', 'Switching...')
                 : t('migration.switchToLocal', 'Switch to Local Mode')}
             </button>
-            <button onClick={onSkip} className={secondaryButtonStyle}>
+            <button onClick={onComplete} className={secondaryButtonStyle}>
               {t('migration.continueInCloud', 'Continue in Cloud')}
             </button>
             <button
@@ -734,9 +887,9 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           <h2 id={titleId} className="text-xl font-semibold text-slate-100">
             {t('migration.title', 'Migrate to Cloud')}
           </h2>
-          {step !== 'progress' && (
+          {step !== 'progress' && step !== 'loading' && (
             <button
-              onClick={step === 'complete' ? onComplete : onSkip}
+              onClick={step === 'complete' ? onComplete : onCancel}
               className="text-slate-400 hover:text-slate-200 transition-colors"
               aria-label={t('common.close', 'Close')}
             >

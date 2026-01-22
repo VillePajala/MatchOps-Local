@@ -1,7 +1,7 @@
 /**
  * Tests for MigrationWizard component
  *
- * Tests the migration wizard flow: preview, confirm, progress, complete, error
+ * Tests the migration wizard flow: loading, select-action, confirm, progress, complete, error
  * Part of PR #9: Infrastructure & Migration UI
  */
 
@@ -28,6 +28,11 @@ jest.mock('@/services/migrationService', () => ({
 // Mock the clear local data utility
 jest.mock('@/utils/clearLocalData', () => ({
   clearLocalIndexedDBData: jest.fn(),
+}));
+
+// Mock backendConfig
+jest.mock('@/config/backendConfig', () => ({
+  disableCloudMode: jest.fn(() => ({ success: true })),
 }));
 
 // Mock logger
@@ -69,7 +74,7 @@ const mockMigrationResult = {
 
 describe('MigrationWizard', () => {
   const mockOnComplete = jest.fn();
-  const mockOnSkip = jest.fn();
+  const mockOnCancel = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -78,22 +83,7 @@ describe('MigrationWizard', () => {
     (clearLocalIndexedDBData as jest.Mock).mockResolvedValue(undefined);
   });
 
-  it('renders the preview step with data summary', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
-
-    // Wait for data summary to load
-    await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
-    });
-
-    // Check that counts are displayed
-    expect(screen.getByText('Players')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
-    expect(screen.getByText('Games')).toBeInTheDocument();
-    expect(screen.getByText('50')).toBeInTheDocument();
-  });
-
-  it('shows loading state while fetching data summary', async () => {
+  it('renders loading state initially', async () => {
     // Create a manually resolvable promise to control when data loads
     let resolvePromise: (value: typeof mockDataSummary) => void;
     const delayedPromise = new Promise<typeof mockDataSummary>(resolve => {
@@ -101,44 +91,57 @@ describe('MigrationWizard', () => {
     });
     (getLocalDataSummary as jest.Mock).mockReturnValue(delayedPromise);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     // Should show loading initially
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('Loading data...')).toBeInTheDocument();
 
     // Resolve the promise
     await act(async () => {
       resolvePromise!(mockDataSummary);
     });
 
-    // Wait for data to load
+    // Wait for data to load and move to select-action step
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
     });
   });
 
-  it('calls onSkip when skip button is clicked', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+  it('renders the select-action step with local data summary after loading', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
+    // Wait for data summary to load and move to select-action step
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
-    const skipButton = screen.getByText('Skip for Now');
-    fireEvent.click(skipButton);
-
-    expect(mockOnSkip).toHaveBeenCalledTimes(1);
+    // Check that local data is displayed
+    expect(screen.getByText(/50.*Games.*10.*Players.*2.*Teams/i)).toBeInTheDocument();
   });
 
-  it('advances to confirm step when Continue is clicked', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+  it('calls onCancel when Cancel option is clicked', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
-    const continueButton = screen.getByText('Continue');
-    fireEvent.click(continueButton);
+    const cancelButton = screen.getByText('Cancel');
+    fireEvent.click(cancelButton);
+
+    expect(mockOnCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('advances to confirm step when Migrate option is clicked (local-only scenario)', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
+    });
+
+    // Click the "Migrate to Cloud (Recommended)" button
+    const migrateButton = screen.getByText('Migrate to Cloud (Recommended)');
+    fireEvent.click(migrateButton);
 
     // Should show confirm step
     expect(
@@ -146,15 +149,15 @@ describe('MigrationWizard', () => {
     ).toBeInTheDocument();
   });
 
-  it('can go back from confirm to preview', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+  it('can go back from confirm to select-action', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
     // Go to confirm
-    fireEvent.click(screen.getByText('Continue'));
+    fireEvent.click(screen.getByText('Migrate to Cloud (Recommended)'));
     expect(
       screen.getByText('Are you sure you want to migrate your data to the cloud?')
     ).toBeInTheDocument();
@@ -162,19 +165,19 @@ describe('MigrationWizard', () => {
     // Go back
     fireEvent.click(screen.getByText('Back'));
 
-    // Should be back at preview
-    expect(screen.getByText('Data Summary')).toBeInTheDocument();
+    // Should be back at select-action
+    expect(screen.getByText('Local Data')).toBeInTheDocument();
   });
 
   it('starts migration when Start Migration is clicked', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
     // Go to confirm
-    fireEvent.click(screen.getByText('Continue'));
+    fireEvent.click(screen.getByText('Migrate to Cloud (Recommended)'));
 
     // Start migration
     await act(async () => {
@@ -186,14 +189,14 @@ describe('MigrationWizard', () => {
   });
 
   it('shows complete step after successful migration', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
     // Go through wizard
-    fireEvent.click(screen.getByText('Continue'));
+    fireEvent.click(screen.getByText('Migrate to Cloud (Recommended)'));
 
     await act(async () => {
       fireEvent.click(screen.getByText('Start Migration'));
@@ -206,14 +209,14 @@ describe('MigrationWizard', () => {
   });
 
   it('calls onComplete when Done is clicked', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
     // Complete migration
-    fireEvent.click(screen.getByText('Continue'));
+    fireEvent.click(screen.getByText('Migrate to Cloud (Recommended)'));
 
     await act(async () => {
       fireEvent.click(screen.getByText('Start Migration'));
@@ -237,14 +240,14 @@ describe('MigrationWizard', () => {
       migrated: { ...mockDataSummary, games: 0 },
     });
 
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
     // Complete migration
-    fireEvent.click(screen.getByText('Continue'));
+    fireEvent.click(screen.getByText('Migrate to Cloud (Recommended)'));
 
     await act(async () => {
       fireEvent.click(screen.getByText('Start Migration'));
@@ -274,14 +277,14 @@ describe('MigrationWizard', () => {
       return Promise.resolve(mockMigrationResult);
     });
 
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
     // First attempt
-    fireEvent.click(screen.getByText('Continue'));
+    fireEvent.click(screen.getByText('Migrate to Cloud (Recommended)'));
 
     await act(async () => {
       fireEvent.click(screen.getByText('Start Migration'));
@@ -291,24 +294,26 @@ describe('MigrationWizard', () => {
       expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
-    // Retry
+    // Retry - clicking will start cooldown, but should reset to select-action
     await act(async () => {
       fireEvent.click(screen.getByText('Retry Migration'));
     });
 
-    // Should be back at preview (retry resets to preview)
-    expect(screen.getByText('Data Summary')).toBeInTheDocument();
+    // Should be back at select-action (retry resets to select-action)
+    await waitFor(() => {
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
+    });
   });
 
   it('clears local data when button is clicked', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Data Summary')).toBeInTheDocument();
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
     });
 
     // Complete migration
-    fireEvent.click(screen.getByText('Continue'));
+    fireEvent.click(screen.getByText('Migrate to Cloud (Recommended)'));
 
     await act(async () => {
       fireEvent.click(screen.getByText('Start Migration'));
@@ -323,6 +328,59 @@ describe('MigrationWizard', () => {
       fireEvent.click(screen.getByText('Clear Local Data'));
     });
 
+    expect(clearLocalIndexedDBData).toHaveBeenCalledTimes(1);
+    expect(mockOnComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows both-have-data scenario when cloud has data', async () => {
+    const cloudCounts = {
+      players: 5,
+      teams: 1,
+      teamRosters: 5,
+      seasons: 1,
+      tournaments: 2,
+      games: 20,
+      personnel: 2,
+      playerAdjustments: 3,
+      warmupPlan: false,
+      settings: true,
+    };
+
+    render(
+      <MigrationWizard
+        onComplete={mockOnComplete}
+        onCancel={mockOnCancel}
+        cloudCounts={cloudCounts}
+        isLoadingCloudCounts={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
+    });
+
+    // Should show both local and cloud data
+    expect(screen.getByText('Cloud Data')).toBeInTheDocument();
+
+    // Should show merge option (both-have-data scenario)
+    expect(screen.getByText('Merge (Recommended)')).toBeInTheDocument();
+    expect(screen.getByText('Replace Cloud with Local')).toBeInTheDocument();
+    expect(screen.getByText('Keep Cloud (Delete Local)')).toBeInTheDocument();
+  });
+
+  it('handles Start Fresh option in local-only scenario', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Local Data')).toBeInTheDocument();
+    });
+
+    // Click Start Fresh
+    await act(async () => {
+      fireEvent.click(screen.getByText('Start Fresh'));
+    });
+
+    // Should clear local data and complete
     expect(clearLocalIndexedDBData).toHaveBeenCalledTimes(1);
     expect(mockOnComplete).toHaveBeenCalledTimes(1);
   });

@@ -1,8 +1,8 @@
 {
-  "version": "f2533bb6",
+  "version": "f771969b",
   "date": "2026-01-22",
   "notes": {
-    "en": "Add Post-Implementation Polish section",
-    "fi": "Add Post-Implementation Polish section"
+    "en": "Unify auth screens and add Sign Out to menu",
+    "fi": "Unify auth screens and add Sign Out to menu"
   }
 }

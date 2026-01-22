@@ -509,6 +509,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               )}
             </div>
 
+            {/* Account & Sync - Moved to top for visibility */}
+            <CloudSyncSection />
+
             {/* General Settings */}
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 space-y-4">
               <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
@@ -695,8 +698,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </p>
             </div>
-            {/* Cloud Sync */}
-            <CloudSyncSection />
             {/* About */}
             <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
