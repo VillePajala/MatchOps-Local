@@ -23,6 +23,7 @@ import { getSupabaseClient } from '@/datastore/supabase/client';
 import type { SupabaseClient, AuthChangeEvent, Session as SupabaseSession } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * Password complexity requirements.
@@ -76,6 +77,8 @@ function transformSession(supabaseSession: SupabaseSession): Session {
   if (!expiresAtSeconds) {
     expiresAtSeconds = Math.floor(Date.now() / 1000) + 3600;
     logger.warn('[SupabaseAuthService] Session missing expires_at, using 1-hour fallback');
+    // Track this edge case to detect potential Supabase SDK issues
+    Sentry.captureMessage('Supabase session missing expires_at', 'warning');
   }
 
   return {
