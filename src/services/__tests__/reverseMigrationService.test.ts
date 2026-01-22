@@ -23,11 +23,6 @@ import type { AppState } from '@/types';
 jest.mock('@/datastore/LocalDataStore');
 jest.mock('@/datastore/SupabaseDataStore');
 
-// Mock the factory (for getCloudDataSummary which now uses getDataStore)
-jest.mock('@/datastore/factory', () => ({
-  getDataStore: jest.fn(),
-}));
-
 // Mock backendConfig
 jest.mock('@/config/backendConfig', () => ({
   disableCloudMode: jest.fn(() => ({ success: true })),
@@ -37,11 +32,9 @@ jest.mock('@/config/backendConfig', () => ({
 
 // Import the mocked functions to control them in tests
 import { disableCloudMode, clearCloudAccountInfo, updateCloudAccountInfo } from '@/config/backendConfig';
-import { getDataStore } from '@/datastore/factory';
 const mockDisableCloudMode = disableCloudMode as jest.Mock;
 const mockClearCloudAccountInfo = clearCloudAccountInfo as jest.Mock;
 const mockUpdateCloudAccountInfo = updateCloudAccountInfo as jest.Mock;
-const mockGetDataStore = getDataStore as jest.Mock;
 
 const MockedLocalDataStore = LocalDataStore as jest.MockedClass<typeof LocalDataStore>;
 const MockedSupabaseDataStore = SupabaseDataStore as jest.MockedClass<typeof SupabaseDataStore>;
@@ -191,9 +184,6 @@ describe('reverseMigrationService', () => {
     // Setup constructor mocks
     MockedSupabaseDataStore.mockImplementation(() => mockSupabaseDataStore);
     MockedLocalDataStore.mockImplementation(() => mockLocalDataStore);
-
-    // Setup factory mock to return SupabaseDataStore (for getCloudDataSummary/hasCloudData)
-    mockGetDataStore.mockResolvedValue(mockSupabaseDataStore);
   });
 
   afterEach(() => {
@@ -225,11 +215,10 @@ describe('reverseMigrationService', () => {
       });
     });
 
-    it('should use getDataStore from factory', async () => {
+    it('should initialize SupabaseDataStore', async () => {
       await getCloudDataSummary();
 
-      // Now uses factory instead of creating new instance
-      expect(mockGetDataStore).toHaveBeenCalled();
+      expect(mockSupabaseDataStore.initialize).toHaveBeenCalled();
     });
 
     it('should handle empty cloud data', async () => {
@@ -246,13 +235,6 @@ describe('reverseMigrationService', () => {
       expect(summary.players).toBe(0);
       expect(summary.teams).toBe(0);
       expect(summary.games).toBe(0);
-    });
-
-    it('should throw error when not in cloud mode', async () => {
-      // Mock factory to return a LocalDataStore (which has different backend name)
-      mockGetDataStore.mockResolvedValue(mockLocalDataStore);
-
-      await expect(getCloudDataSummary()).rejects.toThrow('getCloudDataSummary called but not in cloud mode');
     });
   });
 

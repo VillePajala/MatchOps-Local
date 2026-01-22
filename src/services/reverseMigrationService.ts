@@ -18,7 +18,6 @@
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
-import { getDataStore } from '@/datastore/factory';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -990,13 +989,8 @@ export async function hasCloudData(): Promise<CloudDataCheckResult> {
  * Get counts of all cloud data.
  * Used for preview in reverse migration wizard.
  *
- * Uses the factory singleton to ensure proper session handling after sign-in.
- * The factory returns SupabaseDataStore in cloud mode, which is the only mode
- * where this function should be called.
- *
  * @returns Counts of all entity types in cloud
  * @throws {NetworkError} If offline
- * @throws {Error} If not in cloud mode (factory returns wrong store type)
  */
 export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
   // Check network connectivity first for clear error message
@@ -1004,51 +998,50 @@ export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
     throw new NetworkError('Cannot check cloud data while offline. Please check your connection.');
   }
 
-  // Use factory singleton to get properly initialized store with correct session
-  // This is critical: creating new SupabaseDataStore() bypasses the factory and
-  // can have stale/missing auth session after sign-in
-  const cloudStore = await getDataStore();
+  const cloudStore = new SupabaseDataStore();
+  try {
+    await cloudStore.initialize();
 
-  // Verify we got a Supabase store (should always be true in cloud mode)
-  if (cloudStore.getBackendName() !== 'supabase') {
-    throw new Error('getCloudDataSummary called but not in cloud mode');
+    const players = await cloudStore.getPlayers();
+    const teams = await cloudStore.getTeams(true);
+    const seasons = await cloudStore.getSeasons(true);
+    const tournaments = await cloudStore.getTournaments(true);
+    const personnel = await cloudStore.getAllPersonnel();
+    const games = await cloudStore.getGames();
+    const warmupPlan = await cloudStore.getWarmupPlan();
+    const settings = await cloudStore.getSettings();
+
+    // Count team rosters
+    let teamRostersCount = 0;
+    for (const team of teams) {
+      const roster = await cloudStore.getTeamRoster(team.id);
+      teamRostersCount += roster.length;
+    }
+
+    // Count player adjustments
+    let adjustmentCount = 0;
+    for (const player of players) {
+      const adjustments = await cloudStore.getPlayerAdjustments(player.id);
+      adjustmentCount += adjustments.length;
+    }
+
+    return {
+      players: players.length,
+      teams: teams.length,
+      teamRosters: teamRostersCount,
+      seasons: seasons.length,
+      tournaments: tournaments.length,
+      games: Object.keys(games).length,
+      personnel: personnel.length,
+      playerAdjustments: adjustmentCount,
+      warmupPlan: warmupPlan !== null,
+      settings: settings !== null,
+    };
+  } finally {
+    try {
+      await cloudStore.close();
+    } catch (e) {
+      logger.warn('[ReverseMigrationService] Error closing cloudStore in getCloudDataSummary:', e);
+    }
   }
-
-  // Note: Don't close the store - it's the factory singleton that's shared across the app
-
-  const players = await cloudStore.getPlayers();
-  const teams = await cloudStore.getTeams(true);
-  const seasons = await cloudStore.getSeasons(true);
-  const tournaments = await cloudStore.getTournaments(true);
-  const personnel = await cloudStore.getAllPersonnel();
-  const games = await cloudStore.getGames();
-  const warmupPlan = await cloudStore.getWarmupPlan();
-  const settings = await cloudStore.getSettings();
-
-  // Count team rosters
-  let teamRostersCount = 0;
-  for (const team of teams) {
-    const roster = await cloudStore.getTeamRoster(team.id);
-    teamRostersCount += roster.length;
-  }
-
-  // Count player adjustments
-  let adjustmentCount = 0;
-  for (const player of players) {
-    const adjustments = await cloudStore.getPlayerAdjustments(player.id);
-    adjustmentCount += adjustments.length;
-  }
-
-  return {
-    players: players.length,
-    teams: teams.length,
-    teamRosters: teamRostersCount,
-    seasons: seasons.length,
-    tournaments: tournaments.length,
-    games: Object.keys(games).length,
-    personnel: personnel.length,
-    playerAdjustments: adjustmentCount,
-    warmupPlan: warmupPlan !== null,
-    settings: settings !== null,
-  };
 }
