@@ -3164,4 +3164,143 @@ describe('SupabaseDataStore', () => {
       expect(result).toBeNull();
     });
   });
+
+  // ==========================================================================
+  // CLEAR ALL USER DATA TESTS
+  // ==========================================================================
+
+  describe('clearAllUserData', () => {
+    /**
+     * Tests for the "Clear All Cloud Data" danger zone feature.
+     * Uses RPC for atomic deletion; falls back to manual deletion if RPC unavailable.
+     * @critical
+     */
+
+    it('should clear all user data via RPC successfully', async () => {
+      // Mock RPC success
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
+
+      await expect(dataStore.clearAllUserData()).resolves.not.toThrow();
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('clear_all_user_data');
+    });
+
+    it('should clear local caches after successful RPC', async () => {
+      // Mock RPC success
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
+
+      // Spy on clearUserCaches
+      const clearCachesSpy = jest.spyOn(dataStore, 'clearUserCaches');
+
+      await dataStore.clearAllUserData();
+
+      expect(clearCachesSpy).toHaveBeenCalled();
+      clearCachesSpy.mockRestore();
+    });
+
+    it('should throw NetworkError on network failure', async () => {
+      // Mock network error
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { message: 'Failed to fetch' },
+      });
+
+      await expect(dataStore.clearAllUserData()).rejects.toThrow(NetworkError);
+      await expect(dataStore.clearAllUserData()).rejects.toThrow('Failed to clear user data');
+    });
+
+    it('should throw NetworkError on connection error', async () => {
+      // Mock connection error
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { message: 'Network connection lost' },
+      });
+
+      await expect(dataStore.clearAllUserData()).rejects.toThrow(NetworkError);
+    });
+
+    it('should fall back to manual deletion when RPC function missing (PGRST202)', async () => {
+      // Mock RPC missing error
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: 'PGRST202', message: 'Could not find the function' },
+      });
+
+      // Mock successful manual deletes for all 14 tables
+      mockQueryBuilder.delete = jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      });
+
+      await expect(dataStore.clearAllUserData()).resolves.not.toThrow();
+
+      // Verify manual deletes were called for each table
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('game_events');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('games');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('players');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('teams');
+    });
+
+    it('should fall back to manual deletion when RPC permission denied', async () => {
+      // Mock permission denied error
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: '42501', message: 'permission denied for function clear_all_user_data' },
+      });
+
+      // Mock successful manual deletes
+      mockQueryBuilder.delete = jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      });
+
+      await expect(dataStore.clearAllUserData()).resolves.not.toThrow();
+    });
+
+    it('should throw NetworkError if manual fallback delete fails', async () => {
+      // Mock RPC missing (triggers fallback)
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: 'PGRST202', message: 'Function not found' },
+      });
+
+      // Mock delete failure on one of the tables
+      mockQueryBuilder.delete = jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({
+          error: { message: 'Delete failed' },
+        }),
+      });
+
+      await expect(dataStore.clearAllUserData()).rejects.toThrow(NetworkError);
+      await expect(dataStore.clearAllUserData()).rejects.toThrow('Failed to clear');
+    });
+
+    it('should throw NetworkError when offline', async () => {
+      // Mock offline
+      Object.defineProperty(global, 'navigator', {
+        value: { onLine: false },
+        writable: true,
+        configurable: true,
+      });
+
+      await expect(dataStore.clearAllUserData()).rejects.toThrow(NetworkError);
+    });
+
+    it('should clear caches after successful manual fallback', async () => {
+      // Mock RPC missing (triggers fallback)
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: 'PGRST202', message: 'Function not found' },
+      });
+
+      // Mock successful manual deletes
+      mockQueryBuilder.delete = jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      });
+
+      const clearCachesSpy = jest.spyOn(dataStore, 'clearUserCaches');
+
+      await dataStore.clearAllUserData();
+
+      expect(clearCachesSpy).toHaveBeenCalled();
+      clearCachesSpy.mockRestore();
+    });
+  });
 });

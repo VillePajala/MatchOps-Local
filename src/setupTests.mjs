@@ -232,6 +232,8 @@ const allowedConsolePatterns = [
   // Backend config warnings (expected in backendConfig tests)
   '[backendConfig]',
   '[factory]',
+  // SupabaseDataStore warnings (expected fallback behavior in tests)
+  '[SupabaseDataStore]',
 ];
 
 const shouldFailOnConsoleMessage = (message) => {
