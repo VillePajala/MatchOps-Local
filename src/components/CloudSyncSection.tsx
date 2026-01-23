@@ -14,7 +14,7 @@ import {
 } from '@/config/backendConfig';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
-import { useCloudUpgradeGate } from '@/hooks/useCloudUpgradeGate';
+import { useSubscriptionOptional } from '@/contexts/SubscriptionContext';
 import { getDataStore } from '@/datastore/factory';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
@@ -55,13 +55,12 @@ export default function CloudSyncSection({
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Cloud upgrade gate - shows upgrade modal when enabling cloud without premium
-  const {
-    showModal: showCloudUpgradeModal,
-    gateCloudAction,
-    handleUpgradeSuccess: handleCloudUpgradeSuccess,
-    handleCancel: handleCloudUpgradeCancel,
-  } = useCloudUpgradeGate();
+  // Subscription status for cloud mode (null in local mode)
+  const subscription = useSubscriptionOptional();
+  const hasSubscription = subscription?.isActive ?? false;
+
+  // State for showing upgrade modal when user wants to subscribe
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Use lazy initialization to load values only once on mount (avoids lint warning about setState in useEffect)
   const [currentMode] = useState<'local' | 'cloud'>(() => getBackendMode());
@@ -135,10 +134,10 @@ export default function CloudSyncSection({
     }
   }, [cloudAvailable, showToast, t, onModeChange]);
 
-  // Handle enable cloud - gated behind premium
+  // Handle enable cloud - no premium gate, subscription checked after login
   const handleEnableCloud = useCallback(() => {
-    gateCloudAction(executeEnableCloud);
-  }, [gateCloudAction, executeEnableCloud]);
+    executeEnableCloud();
+  }, [executeEnableCloud]);
 
   const handleDisableCloud = () => {
     // If reverse migration wizard callback is provided, show it instead of directly disabling
@@ -373,10 +372,33 @@ export default function CloudSyncSection({
       {/* Mode Description */}
       <p className="text-sm text-slate-400">
         {currentMode === 'cloud'
-          ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
+          ? (subscription?.isLoading || hasSubscription
+            ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
+            : t('cloudSync.cloudNoSubscription', 'You have a cloud account but sync is paused. Subscribe to enable cloud sync.'))
           : t('cloudSync.localDescription', 'Your data is stored locally on this device. Works offline, but data is not synced.')
         }
       </p>
+
+      {/* Subscription Warning - shown in cloud mode without active subscription */}
+      {currentMode === 'cloud' && !subscription?.isLoading && !hasSubscription && (
+        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
+          <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-amber-300 font-medium">
+              {t('cloudSync.subscriptionRequired', 'Subscription Required')}
+            </p>
+            <p className="text-sm text-amber-300/80 mt-1">
+              {t('cloudSync.subscriptionRequiredDescription', 'Your account is active but cloud sync is paused. Subscribe to sync your data across devices.')}
+            </p>
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="mt-2 px-3 py-1.5 text-sm font-medium bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-md transition-colors"
+            >
+              {t('cloudSync.subscribeButton', 'Subscribe Now')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sign Out Button - Only shown in cloud mode */}
       {currentMode === 'cloud' && (
@@ -603,12 +625,16 @@ export default function CloudSyncSection({
         />
       )}
 
-      {/* Cloud upgrade modal - shown when enabling cloud without premium */}
+      {/* Upgrade modal - shown when user wants to subscribe */}
       <UpgradePromptModal
-        isOpen={showCloudUpgradeModal}
-        onClose={handleCloudUpgradeCancel}
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
         variant="cloudUpgrade"
-        onUpgradeSuccess={handleCloudUpgradeSuccess}
+        onUpgradeSuccess={() => {
+          setShowUpgradeModal(false);
+          // Refresh subscription status after successful upgrade
+          subscription?.refresh();
+        }}
       />
     </div>
   );

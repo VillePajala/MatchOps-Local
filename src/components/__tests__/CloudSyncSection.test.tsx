@@ -70,6 +70,18 @@ jest.mock('@/hooks/usePremium', () => ({
   }),
 }));
 
+// Default subscription mock (can be overridden in individual tests)
+const mockSubscriptionContext = {
+  useSubscriptionOptional: jest.fn().mockReturnValue({
+    isActive: true,
+    isLoading: false,
+  }),
+};
+
+jest.mock('@/contexts/SubscriptionContext', () => ({
+  useSubscriptionOptional: () => mockSubscriptionContext.useSubscriptionOptional(),
+}));
+
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, defaultValue?: string) => defaultValue || key,
@@ -127,6 +139,11 @@ describe('CloudSyncSection', () => {
     jest.clearAllMocks();
     mockGetBackendMode.mockReturnValue('local');
     mockIsCloudAvailable.mockReturnValue(false);
+    // Reset subscription mock to default state (prevents test pollution)
+    mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
+      isActive: true,
+      isLoading: false,
+    });
   });
 
   describe('local mode display', () => {
@@ -495,6 +512,81 @@ describe('CloudSyncSection', () => {
       await waitFor(() => {
         expect(screen.queryByPlaceholderText('DELETE')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('subscription warning banner', () => {
+    it('shows subscription warning when in cloud mode without active subscription', () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
+        isActive: false,
+        isLoading: false,
+      });
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.getByText('Subscription Required')).toBeInTheDocument();
+      // "sync is paused" appears in both description and warning banner
+      expect(screen.getAllByText(/sync is paused/i)).toHaveLength(2);
+      expect(screen.getByRole('button', { name: /subscribe now/i })).toBeInTheDocument();
+    });
+
+    it('does not show subscription warning when user has active subscription', () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
+        isActive: true,
+        isLoading: false,
+      });
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.queryByText('Subscription Required')).not.toBeInTheDocument();
+      expect(screen.getByText(/syncs to the cloud/i)).toBeInTheDocument();
+    });
+
+    it('does not show subscription warning in local mode', () => {
+      mockGetBackendMode.mockReturnValue('local');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
+        isActive: false,
+        isLoading: false,
+      });
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.queryByText('Subscription Required')).not.toBeInTheDocument();
+    });
+
+    it('does not show subscription warning while loading', () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
+        isActive: false,
+        isLoading: true,
+      });
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.queryByText('Subscription Required')).not.toBeInTheDocument();
+    });
+
+    it('shows paused message instead of sync message when no subscription', () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
+        isActive: false,
+        isLoading: false,
+      });
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      // Should show "paused" messages (appears in description and warning banner)
+      // Verify warning banner with its specific text
+      expect(screen.getByText('Subscription Required')).toBeInTheDocument();
+      // Verify syncs to cloud message is NOT shown
+      expect(screen.queryByText(/syncs to the cloud.*access from any device/i)).not.toBeInTheDocument();
     });
   });
 });

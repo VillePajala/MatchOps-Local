@@ -2,18 +2,16 @@
  * WelcomeScreen Component Tests
  *
  * Tests the first-install welcome screen that lets users choose:
- * - Start Fresh (local mode)
- * - Sign In to Cloud (Android: create account, Desktop: sign in only)
- * - Import Backup
+ * - Start Fresh (local mode) - FREE
+ * - Sign In or Create Account - FREE ACCOUNT (subscription required for sync)
+ * - Import Backup - FREE
  *
- * Platform-specific behavior:
- * - Android: Shows "Sign in or create an account" with PAID badge
- * - Desktop/iOS: Shows "Sign in to cloud account" for existing subscribers
+ * All platforms show the same UI - account creation is free everywhere.
+ * Subscription is only required for active cloud sync.
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import WelcomeScreen from '../WelcomeScreen';
-import * as platformModule from '@/utils/platform';
 
 // Mock i18n
 jest.mock('@/i18n', () => ({
@@ -38,14 +36,6 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
-// Mock platform detection
-jest.mock('@/utils/platform', () => ({
-  isAndroid: jest.fn().mockReturnValue(false),
-  isTWA: jest.fn().mockReturnValue(false),
-}));
-
-const mockIsAndroid = platformModule.isAndroid as jest.MockedFunction<typeof platformModule.isAndroid>;
-
 describe('WelcomeScreen', () => {
   const mockHandlers = {
     onStartLocal: jest.fn(),
@@ -55,8 +45,6 @@ describe('WelcomeScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default to non-Android (desktop) behavior
-    mockIsAndroid.mockReturnValue(false);
   });
 
   describe('Rendering', () => {
@@ -88,9 +76,7 @@ describe('WelcomeScreen', () => {
       expect(screen.getByText('FI')).toBeInTheDocument();
     });
 
-    it('renders all options when cloud is available (desktop - sign in only)', () => {
-      mockIsAndroid.mockReturnValue(false);
-
+    it('renders all options when cloud is available', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -100,27 +86,9 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Start without an account')).toBeInTheDocument();
-      // Desktop shows sign-in only for existing subscribers
-      expect(screen.getByText('Sign in to cloud account')).toBeInTheDocument();
-      expect(screen.getByText('For existing subscribers')).toBeInTheDocument();
-      expect(screen.getByText('Import a backup')).toBeInTheDocument();
-    });
-
-    it('renders all options when cloud is available (Android - create account)', () => {
-      mockIsAndroid.mockReturnValue(true);
-
-      render(
-        <WelcomeScreen
-          {...mockHandlers}
-          isCloudAvailable={true}
-          isImporting={false}
-        />
-      );
-
-      expect(screen.getByText('Start without an account')).toBeInTheDocument();
-      // Android shows full create account option
+      // Unified button for all platforms - account creation is free
       expect(screen.getByText('Sign in or create an account')).toBeInTheDocument();
-      expect(screen.getByText('Your data syncs across devices.')).toBeInTheDocument();
+      expect(screen.getByText('Create a free account. Subscribe anytime to sync across devices.')).toBeInTheDocument();
       expect(screen.getByText('Import a backup')).toBeInTheDocument();
     });
 
@@ -135,13 +103,10 @@ describe('WelcomeScreen', () => {
 
       expect(screen.getByText('Start without an account')).toBeInTheDocument();
       expect(screen.queryByText('Sign in or create an account')).not.toBeInTheDocument();
-      expect(screen.queryByText('Sign in to cloud account')).not.toBeInTheDocument();
       expect(screen.getByText('Import a backup')).toBeInTheDocument();
     });
 
-    it('renders descriptions for each option (Android)', () => {
-      mockIsAndroid.mockReturnValue(true);
-
+    it('renders descriptions for each option', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -151,13 +116,11 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Your data is saved on this device only.')).toBeInTheDocument();
-      expect(screen.getByText('Your data syncs across devices.')).toBeInTheDocument();
+      expect(screen.getByText('Create a free account. Subscribe anytime to sync across devices.')).toBeInTheDocument();
       expect(screen.getByText('Restore your previous data from a file and continue where you left off.')).toBeInTheDocument();
     });
 
-    it('renders Free and Paid badges (Android)', () => {
-      mockIsAndroid.mockReturnValue(true);
-
+    it('renders Free badges for local and import options', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -166,14 +129,11 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      // Two "FREE" badges (for local and import options)
-      expect(screen.getAllByText(/^FREE$/i)).toHaveLength(2);
-      expect(screen.getByText(/^PAID$/i)).toBeInTheDocument();
+      // Two "Free" badges (for local and import options)
+      expect(screen.getAllByText(/^Free$/i)).toHaveLength(2);
     });
 
-    it('shows Get on Google Play link on non-Android', () => {
-      mockIsAndroid.mockReturnValue(false);
-
+    it('renders Free Account badge for cloud option', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -182,8 +142,8 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      expect(screen.getByText('New here? Subscribe via the Android app.')).toBeInTheDocument();
-      expect(screen.getByText('Get on Google Play')).toBeInTheDocument();
+      // One "Free Account" badge for cloud option
+      expect(screen.getByText(/^Free Account$/i)).toBeInTheDocument();
     });
 
     it('shows footer note about settings', () => {
@@ -215,24 +175,7 @@ describe('WelcomeScreen', () => {
       expect(mockHandlers.onStartLocal).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onSignInCloud when Sign in button is clicked (desktop)', () => {
-      mockIsAndroid.mockReturnValue(false);
-
-      render(
-        <WelcomeScreen
-          {...mockHandlers}
-          isCloudAvailable={true}
-          isImporting={false}
-        />
-      );
-
-      fireEvent.click(screen.getByText('Sign in to cloud account'));
-      expect(mockHandlers.onSignInCloud).toHaveBeenCalledTimes(1);
-    });
-
-    it('calls onSignInCloud when Sign in or create account button is clicked (Android)', () => {
-      mockIsAndroid.mockReturnValue(true);
-
+    it('calls onSignInCloud when Sign in or create account button is clicked', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -306,9 +249,7 @@ describe('WelcomeScreen', () => {
   });
 
   describe('Accessibility', () => {
-    it('has accessible button labels (desktop)', () => {
-      mockIsAndroid.mockReturnValue(false);
-
+    it('has accessible button labels', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -321,29 +262,7 @@ describe('WelcomeScreen', () => {
         screen.getByRole('button', { name: /start without an account/i })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /sign in to existing cloud account/i })
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: /import backup file/i })
-      ).toBeInTheDocument();
-    });
-
-    it('has accessible button labels (Android)', () => {
-      mockIsAndroid.mockReturnValue(true);
-
-      render(
-        <WelcomeScreen
-          {...mockHandlers}
-          isCloudAvailable={true}
-          isImporting={false}
-        />
-      );
-
-      expect(
-        screen.getByRole('button', { name: /start without an account/i })
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: /sign in or create an account/i })
+        screen.getByRole('button', { name: /sign in or create a free account/i })
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: /import backup file/i })

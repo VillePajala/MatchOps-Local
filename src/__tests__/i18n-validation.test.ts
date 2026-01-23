@@ -259,16 +259,18 @@ describe('Translation File Validation', () => {
       // Update this number when intentionally adding/removing keys
       // Billing Phases 5-6: Subscription context + warning banner + Play Billing keys
       // Desktop registration block: auth + premium + startScreen keys
-      // Previous: 2055 → 2069 → 2074 → 2077
-      expect(enKeys.length).toBe(2077);
+      // Account-Subscription Separation Model: subscription/welcome keys
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083
+      expect(enKeys.length).toBe(2083);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
       // Billing Phases 5-6: Subscription context + warning banner + Play Billing keys
       // Desktop registration block: auth + premium + startScreen keys
-      // Previous: 2055 → 2069 → 2074 → 2077
-      expect(fiKeys.length).toBe(2077);
+      // Account-Subscription Separation Model: subscription/welcome keys
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083
+      expect(fiKeys.length).toBe(2083);
     });
   });
 });

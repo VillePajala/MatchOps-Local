@@ -169,10 +169,10 @@ export interface ResourceCounts {
  *
  * Business Model (as of 2026-01):
  * - Local mode: FREE, unlimited
- * - Cloud mode: Subscription required for sync only, no resource limits
+ * - Account creation: FREE on all platforms
+ * - Cloud sync: Subscription required (checked via SubscriptionContext)
  *
  * Resource limits are NOT enforced - all users have unlimited access.
- * Cloud sync is gated separately via useCloudUpgradeGate.
  *
  * @param _resource - The type of resource to create (unused - no limits)
  * @param _currentCount - Current count of that resource (unused - no limits)
@@ -192,7 +192,7 @@ export function canCreateResource(
  * Get remaining count for a resource
  *
  * Business Model: No resource limits - always returns Infinity.
- * Cloud sync is gated separately via useCloudUpgradeGate.
+ * Cloud sync is gated via SubscriptionContext (subscription required).
  *
  * @param _resource - The type of resource (unused - no limits)
  * @param _currentCount - Current count (unused - no limits)

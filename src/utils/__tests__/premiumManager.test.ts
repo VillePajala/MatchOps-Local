@@ -145,7 +145,7 @@ describe('premiumManager', () => {
 
   describe('canCreateResource', () => {
     // Business model: No resource limits - all users have unlimited access
-    // Cloud sync is gated separately via useCloudUpgradeGate
+    // Cloud sync is gated via SubscriptionContext (subscription required)
 
     it('should always return true regardless of premium status', () => {
       // Premium users - unlimited
