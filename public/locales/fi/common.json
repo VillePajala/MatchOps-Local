@@ -2161,6 +2161,8 @@
     "description": "Lataa pilvitietosi tälle laitteelle ja vaihda paikalliseen tilaan.",
     "preparing": "Valmistellaan latausta...",
     "noData": "Pilvitietoja ei löytynyt.",
+    "noLocalData": "Ei paikallisia tietoja",
+    "localDataWarning": "Pilvitiedot yhdistetään olemassa oleviin paikallisiin tietoihin. Kaksoiskappaleita saattaa syntyä.",
     "summaryError": "Pilvitietojen tarkistus epäonnistui",
     "summary": {
       "title": "Pilvitietosi"

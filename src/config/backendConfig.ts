@@ -447,7 +447,10 @@ export function hasPendingPostLoginCheck(): boolean {
   if (typeof window === 'undefined') {
     return false;
   }
-  return safeGetItem(PENDING_POST_LOGIN_CHECK_KEY) === 'true';
+  const value = safeGetItem(PENDING_POST_LOGIN_CHECK_KEY);
+  const result = value === 'true';
+  log.debug('[backendConfig] hasPendingPostLoginCheck:', { value, result });
+  return result;
 }
 
 /**
