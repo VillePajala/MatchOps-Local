@@ -257,16 +257,18 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Simplified season settings: removed 7 old keys, added 6 new keys = -1
-      // Previous: 2049 → 2048
-      expect(enKeys.length).toBe(2048);
+      // Billing Phases 5-6: Subscription context + warning banner + Play Billing keys
+      // Desktop registration block: auth + premium + startScreen keys
+      // Previous: 2055 → 2069 → 2074 → 2077
+      expect(enKeys.length).toBe(2077);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Simplified season settings: removed 7 old keys, added 6 new keys = -1
-      // Previous: 2049 → 2048
-      expect(fiKeys.length).toBe(2048);
+      // Billing Phases 5-6: Subscription context + warning banner + Play Billing keys
+      // Desktop registration block: auth + premium + startScreen keys
+      // Previous: 2055 → 2069 → 2074 → 2077
+      expect(fiKeys.length).toBe(2077);
     });
   });
 });

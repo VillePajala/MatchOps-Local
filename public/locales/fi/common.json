@@ -805,7 +805,10 @@
     "newGame": "Uusi ottelu",
     "signedInAs": "Kirjautunut:",
     "usingLocalStorage": "Paikallinen tallennus",
-    "enableCloudSync": "Ota pilvisynkronointi käyttöön →"
+    "enableCloudSync": "Ota pilvisynkronointi käyttöön →",
+    "existingSubscriber": "Oletko jo tilaaja? Kirjaudu sisään →",
+    "newToCloud": "Uusi käyttäjä? Tilaa Android-sovelluksen kautta.",
+    "getAndroidApp": "Lataa Google Playsta"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -2033,7 +2036,12 @@
     "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!",
     "grantSuccess": "Premium aktivoitu! Voit nollata Asetuksissa.",
     "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
+    "processing": "Käsitellään...",
+    "billingNotAvailable": "Play Billing ei ole käytettävissä. Yritä uudelleen.",
+    "purchaseFailed": "Osto epäonnistui. Yritä uudelleen.",
     "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!",
+    "androidOnly": "Tilaukset ovat saatavilla Android-sovelluksessa.",
+    "getAndroidApp": "Lataa Google Playsta",
     "cloudUpgradeTitle": "Pilvisynkronointi vaatii Premiumin",
     "cloudUpgradeDescription": "Pilvisynkronoinnin avulla voit varmuuskopioida tietosi ja käyttää niitä miltä tahansa laitteelta. Päivitä premiumiin ottaaksesi tämän ominaisuuden käyttöön.",
     "cloudBenefitsTitle": "Pilvisynkronointi sisältää:",
@@ -2041,7 +2049,23 @@
       "sync": "Synkronointi kaikilla laitteillasi",
       "backup": "Automaattinen pilvivarmuuskopiointi",
       "security": "Turvallinen pilvitallennus"
-    }
+    },
+    "subscriptionIncludes": "Tilauksesi sisältää:",
+    "monthlySubscription": "kuukausitilaus",
+    "cancelAnytime": "Peruuta milloin tahansa"
+  },
+  "subscription": {
+    "graceWarning": "Tilauksesi on päättynyt. Uusi tilaus {{days}} päivän kuluessa säilyttääksesi pilvipalvelun käytön.",
+    "expiredWarning": "Tilauksesi on päättynyt. Uusi tilaus palauttaaksesi pilvipalvelun käytön.",
+    "renewNow": "Uusi tilaus",
+    "renewOnAndroid": "Uusi tilaus Android-sovelluksessa",
+    "statusActive": "Aktiivinen",
+    "statusCancelled": "Peruutettu",
+    "statusGrace": "Lisäaika",
+    "statusExpired": "Päättynyt",
+    "statusNone": "Ei tilausta",
+    "periodEnds": "Kausi päättyy: {{date}}",
+    "graceEnds": "Lisäaika päättyy: {{date}}"
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -2071,7 +2095,9 @@
     "termsLink": "käyttöehdot",
     "and": "ja",
     "privacyLink": "tietosuojakäytännön",
-    "consentRequired": "Sinun on hyväksyttävä käyttöehdot ja tietosuojakäytäntö"
+    "consentRequired": "Sinun on hyväksyttävä käyttöehdot ja tietosuojakäytäntö",
+    "androidOnlyRegistration": "Eikö sinulla ole tiliä? Tilaa Android-sovelluksen kautta.",
+    "getAndroidApp": "Lataa Google Playsta"
   },
   "reConsent": {
     "title": "Päivitetyt käyttöehdot ja tietosuojakäytäntö",
@@ -2379,7 +2405,12 @@
     "importingAria": "Tuodaan varmuuskopiotiedostoa",
     "changeInSettings": "Voit muuttaa tätä myöhemmin Asetuksissa",
     "badgeFree": "ILMAINEN",
-    "badgePaid": "MAKSULLINEN"
+    "badgePaid": "MAKSULLINEN",
+    "signInOnly": "Kirjaudu pilvitilille",
+    "signInOnlyAria": "Kirjaudu olemassa olevalle pilvitilille",
+    "signInOnlyDesc": "Olemassa oleville tilaajille",
+    "androidRequired": "Uusi käyttäjä? Tilaa Android-sovelluksessa.",
+    "getAndroidApp": "Lataa Google Playsta"
   },
   "positions": {
     "GK": "MV",

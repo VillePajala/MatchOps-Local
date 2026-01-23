@@ -1,7 +1,7 @@
 # Billing Implementation Plan
 
-**Status:** Planning
-**Last Updated:** January 2026
+**Status:** In Progress (Phase 7 Complete)
+**Last Updated:** January 23, 2026
 **Consolidates Issues:** #171, #258, #291, #292, #293, #299, #300, #301
 
 ---
@@ -77,9 +77,11 @@ This document consolidates all billing-related work into a single implementation
 
 ## Implementation Phases
 
-### Phase 1: Database Foundation
+### Phase 1: Database Foundation ✅ COMPLETE
 
 **Goal:** Create subscription storage in Supabase with proper security.
+
+**Completed:** January 23, 2026 - Migration `010_subscriptions.sql` applied to Supabase.
 
 #### 1.1 Subscriptions Table Migration
 
@@ -195,9 +197,11 @@ $$;
 
 ---
 
-### Phase 2: Platform Detection & UI Gating
+### Phase 2: Platform Detection & UI Gating ✅ COMPLETE
 
 **Goal:** Different UI for Android vs Desktop/iOS.
+
+**Completed:** January 23, 2026 - Platform detection utility, comprehensive tests, and platform-aware UI in WelcomeScreen and UpgradePromptModal.
 
 #### 2.1 Platform Detection Utility
 
@@ -347,9 +351,15 @@ describe('platform utils', () => {
 
 ---
 
-### Phase 3: Verification Edge Function
+### Phase 3: Verification Edge Function ✅ COMPLETE
 
 **Goal:** Server-side purchase verification with Google Play API.
+
+**Completed:** January 23, 2026 - Edge Function `verify-subscription` deployed to Supabase.
+
+**Environment Variables Required:**
+- `MOCK_BILLING=true` - Enable for testing with test tokens (prefix: `test-`)
+- `GOOGLE_SERVICE_ACCOUNT_JSON` - Google Cloud service account for production
 
 #### 3.1 Edge Function Setup
 
@@ -545,9 +555,11 @@ if (MOCK_MODE && purchaseToken.startsWith('test-')) {
 
 ---
 
-### Phase 4: Play Billing Integration (Client)
+### Phase 4: Play Billing Integration (Client) ✅ COMPLETE
 
 **Goal:** Integrate Digital Goods API for purchases.
+
+**Completed:** January 23, 2026 - Play Billing utilities and React hook created with 18 tests.
 
 #### 4.1 Play Billing Service
 
@@ -847,9 +859,11 @@ export async function purchaseSubscription(): Promise<PurchaseResult> {
 
 ---
 
-### Phase 5: Subscription State Management
+### Phase 5: Subscription State Management ✅ COMPLETE
 
 **Goal:** Track subscription state across the app.
+
+**Completed:** January 23, 2026 - SubscriptionContext.tsx created with caching, useSubscription hook, and useSubscriptionOptional for conditional access.
 
 #### 5.1 Subscription Context
 
@@ -1010,9 +1024,11 @@ async function clearSubscriptionCache(): Promise<void> {
 
 ---
 
-### Phase 6: Grace Period & Expiration UI
+### Phase 6: Grace Period & Expiration UI ✅ COMPLETE
 
 **Goal:** Handle expired/grace states gracefully.
+
+**Completed:** January 23, 2026 - SubscriptionWarningBanner.tsx created with grace period countdown and expired state handling. Translation keys added for EN/FI.
 
 #### 6.1 Subscription Warning Banner
 
@@ -1077,9 +1093,11 @@ async function saveGame(game: AppState) {
 
 ---
 
-### Phase 7: Cross-Device Sync
+### Phase 7: Cross-Device Sync ✅ COMPLETE
 
 **Goal:** Subscription works on any device after sign-in.
+
+**Completed:** January 23, 2026 - usePlayBilling hook updated to return purchaseToken in BillingResult. UpgradePromptModal integrated with Play Billing for real purchases. Purchase token stored locally via grantPremiumAccess for cross-device sync.
 
 #### 7.1 Post-Login Subscription Check
 

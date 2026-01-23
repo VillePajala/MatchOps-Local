@@ -949,6 +949,15 @@ export type Database = {
         Args: { p_personnel_id: string }
         Returns: boolean
       }
+      get_subscription_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          status: Database['public']['Enums']['subscription_status']
+          period_end: string | null
+          grace_end: string | null
+          is_active: boolean
+        }[]
+      }
       get_user_consent: {
         Args: { p_consent_type: string }
         Returns: Json | null
@@ -978,7 +987,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      subscription_status: 'none' | 'active' | 'cancelled' | 'grace' | 'expired'
     }
     CompositeTypes: {
       [_ in never]: never

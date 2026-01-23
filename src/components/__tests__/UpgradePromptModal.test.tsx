@@ -7,6 +7,7 @@
  * - Keyboard interactions (Escape to close)
  * - Dev vs prod mode behavior
  * - Resource-specific limit display
+ * - Platform-specific behavior (Android vs Desktop)
  *
  * @critical - Core monetization UI
  */
@@ -16,6 +17,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import UpgradePromptModal from '../UpgradePromptModal';
 import type { UpgradePromptModalProps } from '../UpgradePromptModal';
 import { ToastProvider } from '@/contexts/ToastProvider';
+import * as platformModule from '@/utils/platform';
 
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
@@ -41,6 +43,26 @@ jest.mock('@/hooks/usePremium', () => ({
     grantPremiumAccess: mockGrantPremiumAccess,
   }),
 }));
+
+// Mock usePlayBilling hook
+jest.mock('@/hooks/usePlayBilling', () => ({
+  usePlayBilling: () => ({
+    isAvailable: false,
+    isPurchasing: false,
+    details: null,
+    purchase: jest.fn(),
+    restore: jest.fn(),
+    refreshDetails: jest.fn(),
+  }),
+}));
+
+// Mock platform detection
+jest.mock('@/utils/platform', () => ({
+  isAndroid: jest.fn().mockReturnValue(false),
+  isTWA: jest.fn().mockReturnValue(false),
+}));
+
+const mockIsAndroid = platformModule.isAndroid as jest.MockedFunction<typeof platformModule.isAndroid>;
 
 // Wrapper component with ToastProvider
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -68,6 +90,8 @@ describe('UpgradePromptModal', () => {
       value: 'test',
       writable: true,
     });
+    // Default to Android to test upgrade button (most tests expect it)
+    mockIsAndroid.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -90,13 +114,14 @@ describe('UpgradePromptModal', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    it('displays premium benefits list', () => {
+    it('displays cloud sync benefits list', () => {
+      // Note: No resource limits in the app (local is free unlimited)
+      // Modal shows cloud-specific benefits only
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      expect(screen.getByText('Unlimited teams')).toBeInTheDocument();
-      expect(screen.getByText('Unlimited players')).toBeInTheDocument();
-      expect(screen.getByText('Unlimited seasons & tournaments')).toBeInTheDocument();
-      expect(screen.getByText('Unlimited games per competition')).toBeInTheDocument();
+      expect(screen.getByText('Sync across all your devices')).toBeInTheDocument();
+      expect(screen.getByText('Automatic cloud backup')).toBeInTheDocument();
+      expect(screen.getByText('Secure cloud storage')).toBeInTheDocument();
     });
 
     it('displays price', () => {
@@ -107,11 +132,24 @@ describe('UpgradePromptModal', () => {
       expect(screen.getByText('Cancel anytime')).toBeInTheDocument();
     });
 
-    it('displays upgrade and dismiss buttons', () => {
+    it('displays upgrade and dismiss buttons on Android', () => {
+      mockIsAndroid.mockReturnValue(true);
+
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /upgrade to premium/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /maybe later/i })).toBeInTheDocument();
+    });
+
+    it('displays Android-only message and OK button on desktop', () => {
+      mockIsAndroid.mockReturnValue(false);
+
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
+
+      expect(screen.getByText('Subscriptions are available on the Android app.')).toBeInTheDocument();
+      expect(screen.getByText('Get on Google Play')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /ok/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /upgrade to premium/i })).not.toBeInTheDocument();
     });
   });
 
@@ -151,7 +189,9 @@ describe('UpgradePromptModal', () => {
   });
 
   describe('focus management', () => {
-    it('focuses the Maybe Later button on open', async () => {
+    it('focuses the dismiss button on open (Maybe Later on Android)', async () => {
+      mockIsAndroid.mockReturnValue(true);
+
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       await waitFor(() => {
@@ -160,7 +200,20 @@ describe('UpgradePromptModal', () => {
       });
     });
 
+    it('focuses the dismiss button on open (OK on desktop)', async () => {
+      mockIsAndroid.mockReturnValue(false);
+
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
+
+      await waitFor(() => {
+        const okButton = screen.getByRole('button', { name: /ok/i });
+        expect(document.activeElement).toBe(okButton);
+      });
+    });
+
     it('restores focus to previously focused element on close', async () => {
+      mockIsAndroid.mockReturnValue(true);
+
       const TestComponent = () => {
         const [isOpen, setIsOpen] = React.useState(false);
         return (
@@ -214,13 +267,29 @@ describe('UpgradePromptModal', () => {
   });
 
   describe('button interactions', () => {
-    it('calls onClose when Maybe Later is clicked', async () => {
+    it('calls onClose when Maybe Later is clicked (Android)', async () => {
+      mockIsAndroid.mockReturnValue(true);
+
       const onClose = jest.fn();
       renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
 
       const maybeLaterButton = screen.getByRole('button', { name: /maybe later/i });
       await act(async () => {
         fireEvent.click(maybeLaterButton);
+      });
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls onClose when OK is clicked (desktop)', async () => {
+      mockIsAndroid.mockReturnValue(false);
+
+      const onClose = jest.fn();
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+
+      const okButton = screen.getByRole('button', { name: /ok/i });
+      await act(async () => {
+        fireEvent.click(okButton);
       });
 
       expect(onClose).toHaveBeenCalledTimes(1);
@@ -233,9 +302,10 @@ describe('UpgradePromptModal', () => {
         value: 'development',
         writable: true,
       });
+      mockIsAndroid.mockReturnValue(true);
     });
 
-    it('grants premium access directly when upgrade is clicked in dev mode', async () => {
+    it('grants premium access directly when upgrade is clicked in dev mode (Android)', async () => {
       const onClose = jest.fn();
       mockGrantPremiumAccess.mockResolvedValue(undefined);
 
@@ -259,13 +329,23 @@ describe('UpgradePromptModal', () => {
       });
     });
 
-    it('shows upgrade button when PREMIUM_ENFORCEMENT_ENABLED is false', () => {
-      // Currently PREMIUM_ENFORCEMENT_ENABLED = false, so upgrade is available everywhere
-      // This test documents current behavior - update when enabling enforcement
+    it('shows upgrade button on Android when PREMIUM_ENFORCEMENT_ENABLED is false', () => {
+      mockIsAndroid.mockReturnValue(true);
+
+      // Currently PREMIUM_ENFORCEMENT_ENABLED = false, so upgrade is available on Android
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      // With enforcement disabled, upgrade button should be visible even in production
       expect(screen.getByRole('button', { name: /upgrade to premium/i })).toBeInTheDocument();
+    });
+
+    it('shows Android-only message on desktop in production', () => {
+      mockIsAndroid.mockReturnValue(false);
+
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
+
+      // Desktop users see message to get Android app
+      expect(screen.getByText('Subscriptions are available on the Android app.')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /upgrade to premium/i })).not.toBeInTheDocument();
     });
 
     // TODO: Add test for when PREMIUM_ENFORCEMENT_ENABLED = true:

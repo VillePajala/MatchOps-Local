@@ -906,7 +906,10 @@
     "newGame": "New Game",
     "signedInAs": "Signed in as",
     "usingLocalStorage": "Using local storage",
-    "enableCloudSync": "Enable Cloud Sync →"
+    "enableCloudSync": "Enable Cloud Sync →",
+    "existingSubscriber": "Already a subscriber? Sign in →",
+    "newToCloud": "New here? Subscribe via the Android app.",
+    "getAndroidApp": "Get on Google Play"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -2033,7 +2036,12 @@
     "purchaseComingSoon": "In-app purchase coming soon!",
     "grantSuccess": "Premium activated! You can reset in Settings.",
     "grantError": "Failed to activate premium. Please try again.",
+    "processing": "Processing...",
+    "billingNotAvailable": "Play Billing not available. Please try again.",
+    "purchaseFailed": "Purchase failed. Please try again.",
     "availableSoon": "Premium upgrade will be available soon via Google Play!",
+    "androidOnly": "Subscriptions are available on the Android app.",
+    "getAndroidApp": "Get on Google Play",
     "cloudUpgradeTitle": "Cloud Sync Requires Premium",
     "cloudUpgradeDescription": "Cloud sync lets you backup and access your data from any device. Upgrade to premium to unlock this feature.",
     "cloudBenefitsTitle": "Cloud sync includes:",
@@ -2041,7 +2049,23 @@
       "sync": "Sync across all your devices",
       "backup": "Automatic cloud backup",
       "security": "Secure cloud storage"
-    }
+    },
+    "subscriptionIncludes": "Your subscription includes:",
+    "monthlySubscription": "monthly subscription",
+    "cancelAnytime": "Cancel anytime"
+  },
+  "subscription": {
+    "graceWarning": "Your subscription has expired. Renew within {{days}} days to keep cloud access.",
+    "expiredWarning": "Your subscription has expired. Renew to restore cloud access.",
+    "renewNow": "Renew Now",
+    "renewOnAndroid": "Renew via Android app",
+    "statusActive": "Active",
+    "statusCancelled": "Cancelled",
+    "statusGrace": "Grace Period",
+    "statusExpired": "Expired",
+    "statusNone": "No Subscription",
+    "periodEnds": "Period ends: {{date}}",
+    "graceEnds": "Grace period ends: {{date}}"
   },
   "auth": {
     "signIn": "Sign In",
@@ -2071,7 +2095,9 @@
     "termsLink": "Terms of Service",
     "and": "and",
     "privacyLink": "Privacy Policy",
-    "consentRequired": "You must accept the Terms of Service and Privacy Policy"
+    "consentRequired": "You must accept the Terms of Service and Privacy Policy",
+    "androidOnlyRegistration": "Don't have an account? Subscribe via the Android app.",
+    "getAndroidApp": "Get on Google Play"
   },
   "reConsent": {
     "title": "Updated Terms & Privacy Policy",
@@ -2379,7 +2405,12 @@
     "importingAria": "Importing backup file",
     "changeInSettings": "You can change this later in Settings",
     "badgeFree": "FREE",
-    "badgePaid": "PAID"
+    "badgePaid": "PAID",
+    "signInOnly": "Sign in to cloud account",
+    "signInOnlyAria": "Sign in to existing cloud account",
+    "signInOnlyDesc": "For existing subscribers",
+    "androidRequired": "New here? Subscribe via the Android app.",
+    "getAndroidApp": "Get on Google Play"
   },
   "positions": {
     "GK": "GK",

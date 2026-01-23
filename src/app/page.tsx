@@ -8,6 +8,7 @@ import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
+import { isAndroid } from '@/utils/platform';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -313,6 +314,13 @@ export default function Home() {
     logger.info('[page.tsx] StartScreen: User chose to enable cloud sync');
     gateCloudAction(executeEnableCloudSync);
   }, [gateCloudAction, executeEnableCloudSync]);
+
+  // Handle "Sign in as existing subscriber" from StartScreen (desktop only)
+  // Enables cloud mode and reloads to show LoginScreen (subscription verified after login)
+  const handleSignInExistingSubscriber = useCallback(() => {
+    logger.info('[page.tsx] StartScreen: Existing subscriber signing in (desktop)');
+    executeEnableCloudSync();
+  }, [executeEnableCloudSync]);
 
   // Re-run checkAppState when:
   // - Component mounts (initial load)
@@ -678,6 +686,7 @@ export default function Home() {
             <LoginScreen
               onBack={handleLoginBack}
               onUseLocalMode={handleLoginUseLocalMode}
+              allowRegistration={isAndroid()}
             />
           </ErrorBoundary>
         ) : showMigrationWizard ? (
@@ -702,6 +711,7 @@ export default function Home() {
               hasSavedGames={hasSavedGames}
               isFirstTimeUser={isFirstTimeUser}
               onEnableCloudSync={handleEnableCloudSync}
+              onSignInExistingSubscriber={handleSignInExistingSubscriber}
               isCloudAvailable={isCloudAvailable()}
             />
           </ErrorBoundary>

@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import logger from '@/utils/logger';
+import { isAndroid } from '@/utils/platform';
 
 interface WelcomeScreenProps {
   /** Called when user chooses "Start Fresh" (local mode) */
@@ -142,21 +143,54 @@ export default function WelcomeScreen({
 
             {/* Sign in or create account - only if Supabase is configured */}
             {isCloudAvailable && (
-              <button
-                onClick={onSignInCloud}
-                className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all text-left shadow-lg shadow-amber-500/20"
-                aria-label={t('welcome.signInCloudAria', 'Sign in or create an account, paid')}
-              >
-                <div className="font-bold text-lg">
-                  {t('welcome.signInCloud', 'Sign in or create an account')}
+              isAndroid() ? (
+                // Android: Can subscribe and create account
+                <button
+                  onClick={onSignInCloud}
+                  className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all text-left shadow-lg shadow-amber-500/20"
+                  aria-label={t('welcome.signInCloudAria', 'Sign in or create an account, paid')}
+                >
+                  <div className="font-bold text-lg">
+                    {t('welcome.signInCloud', 'Sign in or create an account')}
+                  </div>
+                  <div className="text-slate-700 text-xs font-medium uppercase tracking-wide mb-1">
+                    {t('welcome.badgePaid', 'Paid')}
+                  </div>
+                  <div className="text-slate-800 text-sm">
+                    {t('welcome.signInCloudDesc', 'Your data syncs across devices.')}
+                  </div>
+                </button>
+              ) : (
+                // Desktop/iOS: Sign in only (for existing subscribers)
+                <div className="space-y-3">
+                  <button
+                    onClick={onSignInCloud}
+                    className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-amber-500/30 hover:bg-slate-700/90 hover:border-amber-400/50 transition-all text-left"
+                    aria-label={t('welcome.signInOnlyAria', 'Sign in to existing cloud account')}
+                  >
+                    <div className="text-white font-semibold text-lg">
+                      {t('welcome.signInOnly', 'Sign in to cloud account')}
+                    </div>
+                    <div className="text-slate-400 text-sm">
+                      {t('welcome.signInOnlyDesc', 'For existing subscribers')}
+                    </div>
+                  </button>
+                  <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                    <p className="text-slate-400 text-sm">
+                      {t('welcome.androidRequired', 'New here? Subscribe via the Android app.')}
+                    </p>
+                    <a
+                      href="https://play.google.com/store/apps/details?id=com.matchops"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-amber-400 text-sm hover:text-amber-300 inline-flex items-center gap-1 mt-1"
+                    >
+                      {t('welcome.getAndroidApp', 'Get on Google Play')}
+                      <span aria-hidden="true">→</span>
+                    </a>
+                  </div>
                 </div>
-                <div className="text-slate-700 text-xs font-medium uppercase tracking-wide mb-1">
-                  {t('welcome.badgePaid', 'Paid')}
-                </div>
-                <div className="text-slate-800 text-sm">
-                  {t('welcome.signInCloudDesc', 'Your data syncs across devices.')}
-                </div>
-              </button>
+              )
             )}
 
             {/* Import Backup */}

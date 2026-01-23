@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
@@ -9,8 +9,10 @@ import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { usePlayBilling } from '@/hooks/usePlayBilling';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
+import { isAndroid } from '@/utils/platform';
 
 export type UpgradePromptVariant = 'resourceLimit' | 'cloudUpgrade';
 
@@ -47,6 +49,8 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const { t } = useTranslation();
   const { grantPremiumAccess } = usePremium();
   const { showToast } = useToast();
+  const { isAvailable: playBillingAvailable, isPurchasing, details, purchase } = usePlayBilling();
+  const [isProcessing, setIsProcessing] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
@@ -86,31 +90,64 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const resourceName = resource ? t(resourceKey, resource) : '';
 
   // Check if purchase is available
-  // When PREMIUM_ENFORCEMENT_ENABLED is false, everyone can "purchase" (bypass)
-  // When true, we'll require Play Billing in production
+  // Conditions:
+  // 1. Must be on Android (Play Billing only works there)
+  // 2. When PREMIUM_ENFORCEMENT_ENABLED is false, allow "purchase" bypass for testing
+  // 3. In dev/internal testing, allow purchase for testing
   const isDev = process.env.NODE_ENV === 'development';
   const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
   const isProduction = process.env.NODE_ENV === 'production';
-  // TODO P4C: Add isPlayBillingAvailable check when Play Billing is integrated
-  // For now, PREMIUM_ENFORCEMENT_ENABLED controls whether we block purchases in production
-  const canPurchase = !isProduction || !PREMIUM_ENFORCEMENT_ENABLED || isDev || isInternalTesting;
+  const onAndroid = isAndroid();
+  // For production: must be on Android AND enforcement enabled (or testing mode)
+  // For dev/testing: always allow (for easier testing)
+  const canPurchase = onAndroid && (!isProduction || !PREMIUM_ENFORCEMENT_ENABLED || isDev || isInternalTesting);
 
-  // For development/internal testing - will be replaced by Play Billing in P4C
+  // Handle upgrade click - uses Play Billing in production, test tokens in dev
   const handleUpgradeClick = async () => {
-    // TODO: P4C will replace this with actual Play Billing flow
-    // For now, grant premium directly in dev/test/preview environments
-    if (canPurchase) {
-      try {
-        const token = isInternalTesting ? 'internal-test-token' : isDev ? 'dev-test-token' : 'preview-test-token';
+    if (!canPurchase) return;
+
+    setIsProcessing(true);
+
+    try {
+      // In dev/testing, use test tokens for easier development
+      if (isDev || isInternalTesting) {
+        const token = isInternalTesting ? 'internal-test-token' : 'dev-test-token';
         await grantPremiumAccess(token);
         showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
         onClose();
-        // Call success callback (e.g., to continue enabling cloud mode)
         onUpgradeSuccess?.();
-      } catch (error) {
-        logger.error('Failed to grant premium access:', error);
-        showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
+        return;
       }
+
+      // Production: Use real Play Billing
+      if (!playBillingAvailable) {
+        showToast(t('premium.billingNotAvailable', 'Play Billing not available. Please try again.'), 'error');
+        return;
+      }
+
+      const result = await purchase();
+
+      if (!result.success) {
+        if (result.error === 'cancelled') {
+          // User cancelled - no error message needed
+          logger.info('[UpgradePromptModal] Purchase cancelled by user');
+          return;
+        }
+        showToast(t('premium.purchaseFailed', 'Purchase failed. Please try again.'), 'error');
+        logger.error('[UpgradePromptModal] Purchase failed:', result.error);
+        return;
+      }
+
+      // Grant local premium with the purchase token
+      await grantPremiumAccess(result.purchaseToken);
+      showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
+      onClose();
+      onUpgradeSuccess?.();
+    } catch (error) {
+      logger.error('[UpgradePromptModal] Failed to complete upgrade:', error);
+      showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -171,30 +208,17 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           </div>
         )}
 
-        {/* What premium offers - different benefits based on variant */}
+        {/* What subscription offers - cloud benefits only (no resource limits in app) */}
         <div className="mb-5">
           <p className="text-slate-200 font-medium mb-2">
-            {variant === 'cloudUpgrade'
-              ? t('premium.subscriptionIncludes', 'Your subscription includes:')
-              : t('premium.fullVersionIncludes', 'The full version includes:')}
+            {t('premium.subscriptionIncludes', 'Your subscription includes:')}
           </p>
           <ul className="space-y-1.5">
-            {(variant === 'cloudUpgrade'
-              ? [
-                  t('premium.cloudBenefit.sync', 'Sync across all your devices'),
-                  t('premium.cloudBenefit.backup', 'Automatic cloud backup'),
-                  t('premium.cloudBenefit.security', 'Secure cloud storage'),
-                  t('premium.benefit.unlimitedTeams', 'Unlimited teams'),
-                  t('premium.benefit.unlimitedPlayers', 'Unlimited players'),
-                  t('premium.benefit.unlimitedContent', 'Unlimited seasons, tournaments & games'),
-                ]
-              : [
-                  t('premium.benefit.unlimitedTeams', 'Unlimited teams'),
-                  t('premium.benefit.unlimitedPlayers', 'Unlimited players'),
-                  t('premium.benefit.unlimitedSeasons', 'Unlimited seasons & tournaments'),
-                  t('premium.benefit.unlimitedGames', 'Unlimited games per competition'),
-                ]
-            ).map((benefit, index) => (
+            {[
+              t('premium.cloudBenefit.sync', 'Sync across all your devices'),
+              t('premium.cloudBenefit.backup', 'Automatic cloud backup'),
+              t('premium.cloudBenefit.security', 'Secure cloud storage'),
+            ].map((benefit, index) => (
               <li key={index} className="flex items-center gap-2 text-sm text-slate-300">
                 <HiCheck className="w-4 h-4 text-green-400 flex-shrink-0" aria-hidden="true" />
                 {benefit}
@@ -203,9 +227,11 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           </ul>
         </div>
 
-        {/* Price */}
+        {/* Price - use Play Billing price if available, otherwise fallback */}
         <div className="mb-5 text-center">
-          <div className="text-2xl font-bold text-amber-400">{PREMIUM_PRICE}</div>
+          <div className="text-2xl font-bold text-amber-400">
+            {details?.price ? `${details.currencyCode} ${details.price}` : PREMIUM_PRICE}
+          </div>
           <div className="text-slate-400 text-sm">
             {PREMIUM_IS_SUBSCRIPTION
               ? t('premium.monthlySubscription', 'monthly subscription')
@@ -222,13 +248,15 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         <div className="flex flex-col gap-2">
           {canPurchase ? (
             <>
-              {/* TODO P4C: Add disabled={isPurchasing}, aria-busy={isPurchasing},
-                  and loading text when Play Billing integration is added */}
               <button
                 onClick={handleUpgradeClick}
-                className={`${primaryButtonStyle} w-full bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700`}
+                disabled={isPurchasing || isProcessing}
+                aria-busy={isPurchasing || isProcessing}
+                className={`${primaryButtonStyle} w-full bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {t('premium.upgradeButton', 'Upgrade to Premium')}
+                {isPurchasing || isProcessing
+                  ? t('premium.processing', 'Processing...')
+                  : t('premium.upgradeButton', 'Upgrade to Premium')}
               </button>
               <button
                 ref={closeButtonRef}
@@ -238,9 +266,34 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
                 {t('premium.maybeLater', 'Maybe Later')}
               </button>
             </>
+          ) : !onAndroid ? (
+            <>
+              {/* Not on Android - subscriptions require Android app */}
+              <div className="text-center py-3 px-4 bg-slate-700/50 rounded-md border border-slate-600">
+                <p className="text-slate-300 text-sm mb-2">
+                  {t('premium.androidOnly', 'Subscriptions are available on the Android app.')}
+                </p>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.matchops"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-400 text-sm hover:text-amber-300 inline-flex items-center gap-1"
+                >
+                  {t('premium.getAndroidApp', 'Get on Google Play')}
+                  <span aria-hidden="true">→</span>
+                </a>
+              </div>
+              <button
+                ref={closeButtonRef}
+                onClick={onClose}
+                className={`${primaryButtonStyle} w-full`}
+              >
+                {t('common.ok', 'OK')}
+              </button>
+            </>
           ) : (
             <>
-              {/* Production without Play Billing - show coming soon message */}
+              {/* On Android but Play Billing not yet available */}
               <div className="text-center py-3 px-4 bg-slate-700/50 rounded-md border border-slate-600">
                 <p className="text-slate-300 text-sm">
                   {t('premium.availableSoon', 'Premium upgrade will be available soon via Google Play!')}
