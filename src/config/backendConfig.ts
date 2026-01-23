@@ -11,6 +11,7 @@ import logger from '@/utils/logger';
 
 // Safe logger wrapper for test environments
 const log = {
+  debug: (msg: string, ...data: unknown[]) => logger?.debug?.(msg, ...data),
   info: (msg: string) => logger?.info?.(msg),
   warn: (msg: string) => logger?.warn?.(msg),
 };

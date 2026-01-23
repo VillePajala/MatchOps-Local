@@ -1356,6 +1356,13 @@
   },
   "settingsModal": {
     "title": "Sovelluksen asetukset",
+    "tabs": {
+      "general": "Yleiset",
+      "season": "Kausi",
+      "data": "Tiedot",
+      "premium": "Premium",
+      "about": "Tietoja"
+    },
     "languageLabel": "Kieli",
     "defaultTeamNameLabel": "Oletusjoukkueen nimi",
     "resetGuideButton": "Näytä opastus uudelleen",
