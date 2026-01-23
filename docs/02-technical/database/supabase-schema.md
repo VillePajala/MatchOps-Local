@@ -18,6 +18,44 @@ This document defines the **target PostgreSQL schema** for MatchOps-Local's clou
 - **Soft Deletes**: `archived` flags instead of hard deletes for seasons/tournaments
 - **Timestamps**: Track creation and modification times
 
+## Scale Limits & Capacity
+
+### Supabase Plan Limits
+
+| Resource | Free Plan | Pro Plan ($25/mo) |
+|----------|-----------|-------------------|
+| Database size | 500 MB | 8 GB (auto-scales to 60 TB) |
+| Bandwidth | 10 GB/mo | 250 GB/mo |
+| File storage | 1 GB | 100 GB |
+
+### Estimated Data Sizes (Single User)
+
+| Entity | Size Each | Typical Count | Total |
+|--------|-----------|---------------|-------|
+| Game (with events, players, assessments) | ~10 KB | 100/season | ~1 MB |
+| Player | ~0.5 KB | 50 | ~25 KB |
+| Team | ~1 KB | 10 | ~10 KB |
+| Season | ~1 KB | 5 | ~5 KB |
+| Tournament | ~2 KB | 10 | ~20 KB |
+
+**Realistic maximum for power user**: 500 games × 10 KB = **~5-10 MB**
+
+### Practical Limits
+
+| Resource | Limit | Bottleneck |
+|----------|-------|------------|
+| Games per user | **50,000+** | Free tier (500 MB) can store this easily |
+| Players | **1,000+** | No practical limit |
+| Events per game | **500+** | UI list rendering, not database |
+| Concurrent tabs | **1 recommended** | App doesn't support multi-tab sync |
+
+### Implications
+
+1. **Free tier is sufficient** for any individual coach - database will never exceed 500 MB
+2. **UI is the bottleneck**, not Supabase - loading 500+ games in a list is a rendering issue
+3. **Multi-user/team accounts** would require Pro Plan and pagination strategies
+4. **Bandwidth is generous** - 10 GB/mo covers thousands of sync operations
+
 ## Critical: ID Strategy
 
 **App uses prefixed string IDs**, not UUIDs:
