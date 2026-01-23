@@ -259,20 +259,23 @@ describe('<SettingsModal />', () => {
 
     navigateToTab('Season');
 
-    // Check for period start label
-    const startLabel = screen.getByText(/Period Start/i);
+    // Check for season start label
+    const startLabel = screen.getByText(/New season starts/i);
     expect(startLabel).toBeInTheDocument();
 
-    // Check for period end label
-    const endLabel = screen.getByText(/Period End/i);
+    // Check for season ends label (read-only display)
+    const endLabel = screen.getByText(/Season ends/i);
     expect(endLabel).toBeInTheDocument();
 
-    // Verify month and day dropdowns exist
+    // Verify month and day dropdowns exist for start date only (end date is auto-calculated, read-only)
     const monthSelects = screen.getAllByLabelText(/Month/i);
-    expect(monthSelects.length).toBeGreaterThanOrEqual(2); // At least 2 month selects (start and end)
+    expect(monthSelects.length).toBe(1); // Only 1 month select (start)
 
     const daySelects = screen.getAllByLabelText(/Day/i);
-    expect(daySelects.length).toBeGreaterThanOrEqual(2); // At least 2 day selects (start and end)
+    expect(daySelects.length).toBe(1); // Only 1 day select (start)
+
+    // Verify auto-calculated text is shown
+    expect(screen.getByText(/auto-calculated/i)).toBeInTheDocument();
   });
 
   /**
@@ -290,16 +293,17 @@ describe('<SettingsModal />', () => {
 
     // Wait for component to render
     await waitFor(() => {
-      expect(screen.getByText(/Period Start/i)).toBeInTheDocument();
+      expect(screen.getByText(/New season starts/i)).toBeInTheDocument();
     });
 
-    // Find the month and day select elements
+    // Find the month and day select elements (only for start date)
     const monthSelects = screen.getAllByLabelText(/Month/i);
     const daySelects = screen.getAllByLabelText(/Day/i);
 
     // Verify the dropdown elements are rendered and can be interacted with
-    expect(monthSelects.length).toBeGreaterThanOrEqual(2);
-    expect(daySelects.length).toBeGreaterThanOrEqual(2);
+    // Only 1 month and 1 day select (end date is auto-calculated, read-only)
+    expect(monthSelects.length).toBe(1);
+    expect(daySelects.length).toBe(1);
 
     // Note: We're not testing the actual save functionality here as that's
     // tested at the unit level in appSettings.test.ts and requires complex mocking

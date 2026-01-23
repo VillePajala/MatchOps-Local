@@ -20,7 +20,6 @@ import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { usePremium } from '@/hooks/usePremium';
 import { HiSparkles } from 'react-icons/hi2';
-import { validateSeasonDates } from '@/utils/clubSeason';
 import { queryKeys } from '@/config/queryKeys';
 import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import CloudSyncSection from './CloudSyncSection';
@@ -109,6 +108,45 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const monthStr = month.toString().padStart(2, '0');
     const dayStr = day.toString().padStart(2, '0');
     return `2000-${monthStr}-${dayStr}`;
+  };
+
+  // Helper to calculate end date (day before start date)
+  // E.g., if season starts Aug 1, it ends Jul 31
+  const calculateEndDate = (startDateStr: string): string => {
+    const { month, day } = parseMonthDay(startDateStr);
+
+    // Subtract one day
+    if (day > 1) {
+      // Simple case: just go back one day in same month
+      return constructDateString(month, day - 1);
+    }
+
+    // Day is 1, need to go to previous month's last day
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const lastDayOfPrevMonth = getMaxDayForMonth(prevMonth);
+    // For February, use 28 as default (29 would be for leap years but we're using template year 2000)
+    const actualLastDay = prevMonth === 2 ? 28 : lastDayOfPrevMonth;
+    return constructDateString(prevMonth, actualLastDay);
+  };
+
+  // Helper to format date for display (e.g., "July 31")
+  const formatDateForDisplay = (dateStr: string): string => {
+    const { month, day } = parseMonthDay(dateStr);
+    const monthNames = [
+      t('months.january', 'January'),
+      t('months.february', 'February'),
+      t('months.march', 'March'),
+      t('months.april', 'April'),
+      t('months.may', 'May'),
+      t('months.june', 'June'),
+      t('months.july', 'July'),
+      t('months.august', 'August'),
+      t('months.september', 'September'),
+      t('months.october', 'October'),
+      t('months.november', 'November'),
+      t('months.december', 'December'),
+    ];
+    return `${monthNames[month - 1]} ${day}`;
   };
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
@@ -336,48 +374,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleClubSeasonStartMonthChange = async (month: number) => {
-    let { day } = parseMonthDay(clubSeasonStartDate);
-
+  // Handler for season start date changes (auto-calculates end date)
+  const handleClubSeasonStartChange = async (month: number, day: number) => {
     // Auto-correct day if it exceeds max for the new month
     const maxDay = getMaxDayForMonth(month);
     if (day > maxDay) {
       day = maxDay;
-      logger.log(`[handleClubSeasonStartMonthChange] Auto-corrected day from ${day} to ${maxDay} for month ${month}`);
+      logger.log(`[handleClubSeasonStartChange] Auto-corrected day to ${maxDay} for month ${month}`);
     }
 
-    const date = constructDateString(month, day);
+    const startDate = constructDateString(month, day);
+    const endDate = calculateEndDate(startDate);
 
-    // Validate date before saving
-    if (!validateSeasonDates(date, clubSeasonEndDate)) {
-      // Check if it's a zero-length season (start = end)
-      const { month: endMonth, day: endDay } = parseMonthDay(clubSeasonEndDate);
-      if (month === endMonth && day === endDay) {
-        logger.warn('Cannot set season start same as end:', { start: date, end: clubSeasonEndDate });
-        showToast(
-          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the end date first.'),
-          'error'
-        );
-      } else {
-        logger.error('Invalid season start date:', date);
-        showToast(
-          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-          'error'
-        );
-      }
-      return;
-    }
+    setClubSeasonStartDate(startDate);
+    setClubSeasonEndDate(endDate);
 
-    setClubSeasonStartDate(date);
     try {
       await updateAppSettings({
-        clubSeasonStartDate: date,
+        clubSeasonStartDate: startDate,
+        clubSeasonEndDate: endDate,
         hasConfiguredSeasonDates: true
       });
       // Invalidate React Query cache so GameStatsModal sees the update
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
     } catch (error) {
-      logger.error('Failed to save club season start date:', error);
+      logger.error('Failed to save club season dates:', error);
       showToast(
         t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
         'error'
@@ -385,135 +406,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleClubSeasonStartDayChange = async (day: number) => {
+  const handleClubSeasonStartMonthChange = (month: number) => {
+    const { day } = parseMonthDay(clubSeasonStartDate);
+    handleClubSeasonStartChange(month, day);
+  };
+
+  const handleClubSeasonStartDayChange = (day: number) => {
     const { month } = parseMonthDay(clubSeasonStartDate);
-    const date = constructDateString(month, day);
-
-    // Validate date before saving
-    if (!validateSeasonDates(date, clubSeasonEndDate)) {
-      // Check if it's a zero-length season (start = end)
-      const { month: endMonth, day: endDay } = parseMonthDay(clubSeasonEndDate);
-      if (month === endMonth && day === endDay) {
-        logger.warn('Cannot set season start same as end:', { start: date, end: clubSeasonEndDate });
-        showToast(
-          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the end date first.'),
-          'error'
-        );
-      } else {
-        logger.error('Invalid season start date:', date);
-        showToast(
-          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-          'error'
-        );
-      }
-      return;
-    }
-
-    setClubSeasonStartDate(date);
-    try {
-      await updateAppSettings({
-        clubSeasonStartDate: date,
-        hasConfiguredSeasonDates: true
-      });
-      // Invalidate React Query cache so GameStatsModal sees the update
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
-    } catch (error) {
-      logger.error('Failed to save club season start date:', error);
-      showToast(
-        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
-        'error'
-      );
-    }
-  };
-
-  const handleClubSeasonEndMonthChange = async (month: number) => {
-    let { day } = parseMonthDay(clubSeasonEndDate);
-
-    // Auto-correct day if it exceeds max for the new month
-    const maxDay = getMaxDayForMonth(month);
-    if (day > maxDay) {
-      day = maxDay;
-      logger.log(`[handleClubSeasonEndMonthChange] Auto-corrected day from ${day} to ${maxDay} for month ${month}`);
-    }
-
-    const date = constructDateString(month, day);
-
-    // Validate date before saving
-    if (!validateSeasonDates(clubSeasonStartDate, date)) {
-      // Check if it's a zero-length season (start = end)
-      const { month: startMonth, day: startDay } = parseMonthDay(clubSeasonStartDate);
-      if (month === startMonth && day === startDay) {
-        logger.warn('Cannot set season end same as start:', { start: clubSeasonStartDate, end: date });
-        showToast(
-          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the start date first.'),
-          'error'
-        );
-      } else {
-        logger.error('Invalid season end date:', date);
-        showToast(
-          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-          'error'
-        );
-      }
-      return;
-    }
-
-    setClubSeasonEndDate(date);
-    try {
-      await updateAppSettings({
-        clubSeasonEndDate: date,
-        hasConfiguredSeasonDates: true
-      });
-      // Invalidate React Query cache so GameStatsModal sees the update
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
-    } catch (error) {
-      logger.error('Failed to save club season end date:', error);
-      showToast(
-        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
-        'error'
-      );
-    }
-  };
-
-  const handleClubSeasonEndDayChange = async (day: number) => {
-    const { month } = parseMonthDay(clubSeasonEndDate);
-    const date = constructDateString(month, day);
-
-    // Validate date before saving
-    if (!validateSeasonDates(clubSeasonStartDate, date)) {
-      // Check if it's a zero-length season (start = end)
-      const { month: startMonth, day: startDay } = parseMonthDay(clubSeasonStartDate);
-      if (month === startMonth && day === startDay) {
-        logger.warn('Cannot set season end same as start:', { start: clubSeasonStartDate, end: date });
-        showToast(
-          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the start date first.'),
-          'error'
-        );
-      } else {
-        logger.error('Invalid season end date:', date);
-        showToast(
-          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-          'error'
-        );
-      }
-      return;
-    }
-
-    setClubSeasonEndDate(date);
-    try {
-      await updateAppSettings({
-        clubSeasonEndDate: date,
-        hasConfiguredSeasonDates: true
-      });
-      // Invalidate React Query cache so GameStatsModal sees the update
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
-    } catch (error) {
-      logger.error('Failed to save club season end date:', error);
-      showToast(
-        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
-        'error'
-      );
-    }
+    handleClubSeasonStartChange(month, day);
   };
 
   if (!isOpen) return null;
@@ -669,19 +569,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             {activeTab === 'season' && (
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
-                {t('settingsModal.seasonPeriodTitle', 'Season Period')}
+                {t('settingsModal.seasonStartTitle', 'Season Start Date')}
               </h3>
               <p id="club-season-description" className="text-sm text-slate-300">
-                {t('settingsModal.seasonPeriodDescription', 'Define when your season runs (for filtering statistics). Month and day only - the year is just a template (e.g., October to May).')}
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                {t('settingsModal.seasonDatesNote', 'Note: Changing dates affects new seasons only. Existing seasons retain their original club season labels.')}
+                {t('settingsModal.seasonStartDescription', 'When does your club\'s new season begin? This is typically when players move to new age groups. The previous season automatically ends the day before.')}
               </p>
               <div className="space-y-3">
-                {/* Period Start */}
+                {/* Season Start Date */}
                 <div>
                   <label className={labelStyle}>
-                    {t('settingsModal.periodStartLabel', 'Period Start')}
+                    {t('settingsModal.newSeasonStartsLabel', 'New season starts')}
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
@@ -722,50 +619,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </select>
                   </div>
                 </div>
-                {/* Period End */}
+                {/* Season End Date (auto-calculated, read-only) */}
                 <div>
                   <label className={labelStyle}>
-                    {t('settingsModal.periodEndLabel', 'Period End')}
+                    {t('settingsModal.seasonEndsLabel', 'Season ends')}
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      id="season-end-month"
-                      value={parseMonthDay(clubSeasonEndDate).month}
-                      onChange={(e) => handleClubSeasonEndMonthChange(parseInt(e.target.value, 10))}
-                      className={inputStyle}
-                      aria-describedby="club-season-description"
-                      aria-label={t('settingsModal.monthLabel', 'Month')}
-                    >
-                      <option value={1}>{t('months.january', 'January')}</option>
-                      <option value={2}>{t('months.february', 'February')}</option>
-                      <option value={3}>{t('months.march', 'March')}</option>
-                      <option value={4}>{t('months.april', 'April')}</option>
-                      <option value={5}>{t('months.may', 'May')}</option>
-                      <option value={6}>{t('months.june', 'June')}</option>
-                      <option value={7}>{t('months.july', 'July')}</option>
-                      <option value={8}>{t('months.august', 'August')}</option>
-                      <option value={9}>{t('months.september', 'September')}</option>
-                      <option value={10}>{t('months.october', 'October')}</option>
-                      <option value={11}>{t('months.november', 'November')}</option>
-                      <option value={12}>{t('months.december', 'December')}</option>
-                    </select>
-                    <select
-                      id="season-end-day"
-                      value={parseMonthDay(clubSeasonEndDate).day}
-                      onChange={(e) => handleClubSeasonEndDayChange(parseInt(e.target.value, 10))}
-                      className={inputStyle}
-                      aria-describedby="club-season-description"
-                      aria-label={t('settingsModal.dayLabel', 'Day')}
-                    >
-                      {Array.from(
-                        { length: getMaxDayForMonth(parseMonthDay(clubSeasonEndDate).month) },
-                        (_, i) => i + 1
-                      ).map(day => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
+                  <div className="px-3 py-2 bg-slate-800/50 rounded-md border border-slate-600 text-slate-300">
+                    {formatDateForDisplay(clubSeasonEndDate)}
+                    <span className="text-slate-500 text-xs ml-2">
+                      ({t('settingsModal.autoCalculated', 'auto-calculated')})
+                    </span>
                   </div>
                 </div>
+                {/* Example */}
+                <p className="text-xs text-slate-400 mt-2">
+                  {t('settingsModal.seasonExample', 'Example: If your season starts {{startDate}}, the 2024-25 season runs {{startDate}}, 2024 → {{endDate}}, 2025.', {
+                    startDate: formatDateForDisplay(clubSeasonStartDate),
+                    endDate: formatDateForDisplay(clubSeasonEndDate)
+                  })}
+                </p>
               </div>
             </div>
             )}
