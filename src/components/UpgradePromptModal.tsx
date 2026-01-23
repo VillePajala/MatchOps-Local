@@ -13,6 +13,7 @@ import { usePlayBilling } from '@/hooks/usePlayBilling';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 import { isAndroid } from '@/utils/platform';
+import { isMockBillingEnabled } from '@/utils/playBilling';
 
 export type UpgradePromptVariant = 'resourceLimit' | 'cloudUpgrade';
 
@@ -98,9 +99,10 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
   const isProduction = process.env.NODE_ENV === 'production';
   const onAndroid = isAndroid();
+  const mockBillingEnabled = isMockBillingEnabled();
   // For production: must be on Android AND enforcement enabled (or testing mode)
   // For dev/testing: always allow (for easier testing)
-  const canPurchase = onAndroid && (!isProduction || !PREMIUM_ENFORCEMENT_ENABLED || isDev || isInternalTesting);
+  const canPurchase = mockBillingEnabled || (onAndroid && (!isProduction || !PREMIUM_ENFORCEMENT_ENABLED || isDev || isInternalTesting));
 
   // Handle restore click - restores existing Play Store purchases
   const handleRestoreClick = async () => {
@@ -141,7 +143,28 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
     setIsProcessing(true);
 
     try {
-      // In dev/testing, use test tokens for easier development
+      // In mock billing mode, use the Play Billing flow which returns test tokens.
+      if (mockBillingEnabled) {
+        const result = await purchase();
+
+        if (!result.success) {
+          if (result.error === 'cancelled') {
+            logger.info('[UpgradePromptModal] Purchase cancelled by user');
+            return;
+          }
+          showToast(t('premium.purchaseFailed', 'Purchase failed. Please try again.'), 'error');
+          logger.error('[UpgradePromptModal] Purchase failed:', result.error);
+          return;
+        }
+
+        await grantPremiumAccess(result.purchaseToken);
+        showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
+        onClose();
+        onUpgradeSuccess?.();
+        return;
+      }
+
+      // In dev/testing without mock billing, use local tokens for easier development.
       if (isDev || isInternalTesting) {
         const token = isInternalTesting ? 'internal-test-token' : 'dev-test-token';
         await grantPremiumAccess(token);
