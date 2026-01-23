@@ -27,6 +27,7 @@ import {
   SUBSCRIPTION_PRODUCT_ID,
 } from '@/utils/playBilling';
 import { getSupabaseClient } from '@/datastore/supabase/client';
+import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import logger from '@/utils/logger';
 
 /**
@@ -177,6 +178,14 @@ export function usePlayBilling(): UsePlayBillingResult {
     setIsPurchasing(true);
 
     try {
+      // Verify auth state before purchase - session could have expired
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        logger.error('[usePlayBilling] No active session - user must be logged in to purchase');
+        return { success: false, error: 'Please sign in to purchase' };
+      }
+
       // Step 1: Launch Play Billing purchase flow
       logger.info('[usePlayBilling] Starting purchase flow');
       const purchaseResult = await purchaseSubscription();
@@ -187,8 +196,13 @@ export function usePlayBilling(): UsePlayBillingResult {
       }
 
       // Step 2: Verify purchase with server
+      if (!purchaseResult.purchaseToken) {
+        logger.error('[usePlayBilling] Purchase succeeded but no token received');
+        return { success: false, error: 'No purchase token received' };
+      }
+
       logger.info('[usePlayBilling] Verifying purchase with server');
-      const verifyResult = await verifyPurchaseWithServer(purchaseResult.purchaseToken!);
+      const verifyResult = await verifyPurchaseWithServer(purchaseResult.purchaseToken);
 
       if (!verifyResult.success) {
         logger.error('[usePlayBilling] Server verification failed');
@@ -243,6 +257,10 @@ export function usePlayBilling(): UsePlayBillingResult {
         logger.error('[usePlayBilling] Restore verification failed');
         return verifyResult;
       }
+
+      // Step 3: Clear subscription cache to force fresh fetch
+      // This ensures UI updates immediately after restore
+      await clearSubscriptionCache();
 
       logger.info('[usePlayBilling] Restore complete');
       return { success: true, purchaseToken: purchases[0] };

@@ -20,7 +20,15 @@ jest.mock('@/datastore/supabase/client', () => ({
         error: null,
       }),
     },
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: { session: { user: { id: 'test-user-id' } } } }),
+    },
   })),
+}));
+
+// Mock SubscriptionContext
+jest.mock('@/contexts/SubscriptionContext', () => ({
+  clearSubscriptionCache: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Mock logger

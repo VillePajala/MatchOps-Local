@@ -42,7 +42,12 @@ const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
 
 // In-memory rate limit store (cleared when function instance restarts)
-// Note: This provides per-instance limiting. For distributed limiting, use KV storage.
+// KNOWN LIMITATION: This is per-instance only, not distributed across Edge Function instances.
+// For high-traffic scenarios, consider:
+// - Supabase Edge Function KV storage (when available)
+// - Redis/Upstash for distributed rate limiting
+// - Cloudflare Rate Limiting rules at the CDN level
+// Current implementation provides basic protection against single-source abuse.
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 /**
@@ -413,13 +418,21 @@ async function verifyWithGoogle(
     const accessToken = await getGoogleAccessToken(credentials);
 
     // Call Google Play Developer API
-    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE}/purchases/subscriptions/${productId}/tokens/${purchaseToken}`;
+    // URL-encode the purchase token to handle any special characters safely
+    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
+
+    // Use AbortController for timeout (15 seconds) to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -2067,6 +2067,12 @@
     "periodEnds": "Kausi päättyy: {{date}}",
     "graceEnds": "Lisäaika päättyy: {{date}}"
   },
+  "playBilling": {
+    "restorePurchases": "Palauta ostokset",
+    "restoreSuccess": "Ostokset palautettu onnistuneesti!",
+    "restoreFailed": "Ostosten palautus epäonnistui. Yritä uudelleen.",
+    "noPurchases": "Ei palautettavia ostoksia."
+  },
   "auth": {
     "signIn": "Kirjaudu sisään",
     "signUp": "Rekisteröidy",

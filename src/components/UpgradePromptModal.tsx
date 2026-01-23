@@ -49,7 +49,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const { t } = useTranslation();
   const { grantPremiumAccess } = usePremium();
   const { showToast } = useToast();
-  const { isAvailable: playBillingAvailable, isPurchasing, details, purchase } = usePlayBilling();
+  const { isAvailable: playBillingAvailable, isPurchasing, details, purchase, restore } = usePlayBilling();
   const [isProcessing, setIsProcessing] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -101,6 +101,38 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   // For production: must be on Android AND enforcement enabled (or testing mode)
   // For dev/testing: always allow (for easier testing)
   const canPurchase = onAndroid && (!isProduction || !PREMIUM_ENFORCEMENT_ENABLED || isDev || isInternalTesting);
+
+  // Handle restore click - restores existing Play Store purchases
+  const handleRestoreClick = async () => {
+    if (!playBillingAvailable) return;
+
+    setIsProcessing(true);
+
+    try {
+      const result = await restore();
+
+      if (!result.success) {
+        if (result.error === 'No purchases to restore') {
+          showToast(t('playBilling.noPurchases', 'No purchases found to restore.'), 'info');
+        } else {
+          showToast(t('playBilling.restoreFailed', 'Failed to restore purchases. Please try again.'), 'error');
+          logger.error('[UpgradePromptModal] Restore failed:', result.error);
+        }
+        return;
+      }
+
+      // Grant local premium with the restored purchase token
+      await grantPremiumAccess(result.purchaseToken);
+      showToast(t('playBilling.restoreSuccess', 'Purchases restored successfully!'), 'success');
+      onClose();
+      onUpgradeSuccess?.();
+    } catch (error) {
+      logger.error('[UpgradePromptModal] Restore error:', error);
+      showToast(t('playBilling.restoreFailed', 'Failed to restore purchases. Please try again.'), 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Handle upgrade click - uses Play Billing in production, test tokens in dev
   const handleUpgradeClick = async () => {
@@ -258,6 +290,16 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
                   ? t('premium.processing', 'Processing...')
                   : t('premium.upgradeButton', 'Upgrade to Premium')}
               </button>
+              {/* Restore button - for users who already purchased on another device */}
+              {playBillingAvailable && (
+                <button
+                  onClick={handleRestoreClick}
+                  disabled={isPurchasing || isProcessing}
+                  className={`${secondaryButtonStyle} w-full text-sm`}
+                >
+                  {t('playBilling.restorePurchases', 'Restore Purchases')}
+                </button>
+              )}
               <button
                 ref={closeButtonRef}
                 onClick={onClose}

@@ -2067,6 +2067,12 @@
     "periodEnds": "Period ends: {{date}}",
     "graceEnds": "Grace period ends: {{date}}"
   },
+  "playBilling": {
+    "restorePurchases": "Restore Purchases",
+    "restoreSuccess": "Purchases restored successfully!",
+    "restoreFailed": "Failed to restore purchases. Please try again.",
+    "noPurchases": "No purchases found to restore."
+  },
   "auth": {
     "signIn": "Sign In",
     "signUp": "Sign Up",

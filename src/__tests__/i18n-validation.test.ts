@@ -261,8 +261,9 @@ describe('Translation File Validation', () => {
       // Desktop registration block: auth + premium + startScreen keys
       // Account-Subscription Separation Model: subscription/welcome keys
       // Security fixes: signOut, manageSubscription, switchedToLocal keys
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089
-      expect(enKeys.length).toBe(2089);
+      // Robustness fixes: playBilling restore functionality keys
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093
+      expect(enKeys.length).toBe(2093);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -271,8 +272,9 @@ describe('Translation File Validation', () => {
       // Desktop registration block: auth + premium + startScreen keys
       // Account-Subscription Separation Model: subscription/welcome keys
       // Security fixes: signOut, manageSubscription, switchedToLocal keys
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089
-      expect(fiKeys.length).toBe(2089);
+      // Robustness fixes: playBilling restore functionality keys
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093
+      expect(fiKeys.length).toBe(2093);
     });
   });
 });
