@@ -870,6 +870,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_consents: {
+        Row: {
+          id: string
+          user_id: string
+          consent_type: string
+          policy_version: string
+          consented_at: string
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id: string
+          user_id: string
+          consent_type: string
+          policy_version: string
+          consented_at?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          consent_type?: string
+          policy_version?: string
+          consented_at?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       warmup_plans: {
         Row: {
           created_at: string | null
@@ -915,6 +948,19 @@ export type Database = {
       delete_personnel_cascade: {
         Args: { p_personnel_id: string }
         Returns: boolean
+      }
+      get_user_consent: {
+        Args: { p_consent_type: string }
+        Returns: Json | null
+      }
+      record_user_consent: {
+        Args: {
+          p_consent_type: string
+          p_policy_version: string
+          p_ip_address?: string | null
+          p_user_agent?: string | null
+        }
+        Returns: Json
       }
       save_game_with_relations: {
         Args: {

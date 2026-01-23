@@ -132,8 +132,8 @@ describe('TermsOfServiceClient', () => {
   it('should render contact links with appropriate attributes', () => {
     render(<TermsOfServiceClient />);
 
-    const emailLink = screen.getByRole('link', { name: 'valoraami@gmail.com' });
-    expect(emailLink).toHaveAttribute('href', 'mailto:valoraami@gmail.com');
+    const emailLink = screen.getByRole('link', { name: 'support@match-ops.com' });
+    expect(emailLink).toHaveAttribute('href', 'mailto:support@match-ops.com');
     // mailto links don't need target/rel
 
     const githubLink = screen.getByRole('link', {

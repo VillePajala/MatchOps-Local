@@ -10,7 +10,8 @@ export function PrivacyPolicyClient() {
     <div className="min-h-screen bg-slate-900 text-slate-100 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">{t('privacyPolicy.title')}</h1>
-        <p className="text-slate-400 mb-8">{t('privacyPolicy.lastUpdated')}</p>
+        <p className="text-slate-400 mb-1">{t('privacyPolicy.lastUpdated')}</p>
+        <p className="text-slate-500 text-sm mb-8">{t('privacyPolicy.version')}</p>
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.overview.title')}</h2>
@@ -29,7 +30,20 @@ export function PrivacyPolicyClient() {
           </ul>
           <p className="text-slate-300 font-medium mb-4">{t('privacyPolicy.dataStorage.localDataNote')}</p>
           <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataStorage.noAccountTitle')}</h3>
-          <p className="text-slate-300">{t('privacyPolicy.dataStorage.noAccountContent')}</p>
+          <p className="text-slate-300 mb-4">{t('privacyPolicy.dataStorage.noAccountContent')}</p>
+
+          <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataStorage.cloudDataTitle')}</h3>
+          <p className="text-slate-300 mb-3">{t('privacyPolicy.dataStorage.cloudDataIntro')}</p>
+          <ul className="list-disc list-inside text-slate-300 mb-4 space-y-1">
+            <li>{t('privacyPolicy.dataStorage.cloudDataItems.syncedData')}</li>
+            <li>{t('privacyPolicy.dataStorage.cloudDataItems.encryption')}</li>
+            <li>{t('privacyPolicy.dataStorage.cloudDataItems.multiDevice')}</li>
+            <li>{t('privacyPolicy.dataStorage.cloudDataItems.dataOwnership')}</li>
+          </ul>
+          <p className="text-slate-300 font-medium mb-4">{t('privacyPolicy.dataStorage.cloudDataNote')}</p>
+
+          <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataStorage.dataRetentionTitle')}</h3>
+          <p className="text-slate-300">{t('privacyPolicy.dataStorage.dataRetentionContent')}</p>
         </section>
 
         <section className="mb-8">
@@ -80,16 +94,29 @@ export function PrivacyPolicyClient() {
                 Vercel&apos;s Privacy Policy
               </a>
             </p>
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.supabase')}</strong> - {t('privacyPolicy.thirdPartyServices.supabaseDesc')}{' '}
+              <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                Supabase&apos;s Privacy Policy
+              </a>
+            </p>
           </div>
         </section>
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.yourRights.title')}</h2>
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
-            <li><strong>{t('privacyPolicy.yourRights.export')}</strong></li>
-            <li><strong>{t('privacyPolicy.yourRights.delete')}</strong></li>
-            <li><strong>{t('privacyPolicy.yourRights.contactUs')}</strong></li>
+          <p className="text-slate-300 mb-3">{t('privacyPolicy.yourRights.intro')}</p>
+          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-4">
+            <li><strong>{t('privacyPolicy.yourRights.access')}</strong></li>
+            <li><strong>{t('privacyPolicy.yourRights.rectification')}</strong></li>
+            <li><strong>{t('privacyPolicy.yourRights.erasure')}</strong></li>
+            <li><strong>{t('privacyPolicy.yourRights.portability')}</strong></li>
+            <li><strong>{t('privacyPolicy.yourRights.restriction')}</strong></li>
+            <li><strong>{t('privacyPolicy.yourRights.objection')}</strong></li>
           </ul>
+          <p className="text-slate-300 mb-2">{t('privacyPolicy.yourRights.deleteLocal')}</p>
+          <p className="text-slate-300 mb-2">{t('privacyPolicy.yourRights.deleteCloud')}</p>
+          <p className="text-slate-300">{t('privacyPolicy.yourRights.contactUs')}</p>
         </section>
 
         <section className="mb-8">
@@ -99,11 +126,18 @@ export function PrivacyPolicyClient() {
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.dataSecurity.title')}</h2>
-          <p className="text-slate-300 mb-2">{t('privacyPolicy.dataSecurity.intro')}</p>
+          <p className="text-slate-300 mb-2">{t('privacyPolicy.dataSecurity.localIntro')}</p>
+          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-4">
+            <li>{t('privacyPolicy.dataSecurity.localItems.encryption')}</li>
+            <li>{t('privacyPolicy.dataSecurity.localItems.localStorage')}</li>
+            <li>{t('privacyPolicy.dataSecurity.localItems.noTransmission')}</li>
+          </ul>
+          <p className="text-slate-300 mb-2">{t('privacyPolicy.dataSecurity.cloudIntro')}</p>
           <ul className="list-disc list-inside text-slate-300 space-y-1">
-            <li>{t('privacyPolicy.dataSecurity.items.encryption')}</li>
-            <li>{t('privacyPolicy.dataSecurity.items.localStorage')}</li>
-            <li>{t('privacyPolicy.dataSecurity.items.noTransmission')}</li>
+            <li>{t('privacyPolicy.dataSecurity.cloudItems.tlsEncryption')}</li>
+            <li>{t('privacyPolicy.dataSecurity.cloudItems.atRestEncryption')}</li>
+            <li>{t('privacyPolicy.dataSecurity.cloudItems.rowLevelSecurity')}</li>
+            <li>{t('privacyPolicy.dataSecurity.cloudItems.secureAuth')}</li>
           </ul>
         </section>
 
@@ -118,8 +152,8 @@ export function PrivacyPolicyClient() {
           <ul className="list-disc list-inside text-slate-300 space-y-1">
             <li>
               {t('privacyPolicy.contact.email')}:{' '}
-              <a href="mailto:valoraami@gmail.com" className="text-indigo-400 hover:underline">
-                valoraami@gmail.com
+              <a href="mailto:support@match-ops.com" className="text-indigo-400 hover:underline">
+                support@match-ops.com
               </a>
             </li>
             <li>

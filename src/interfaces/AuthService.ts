@@ -172,6 +172,61 @@ export interface AuthService {
    * ```
    */
   onAuthStateChange(callback: AuthStateCallback): () => void;
+
+  // ==========================================================================
+  // CONSENT MANAGEMENT (GDPR Compliance)
+  // ==========================================================================
+
+  /**
+   * Record user consent for Terms of Service and Privacy Policy.
+   *
+   * @param policyVersion - The version of the policy being consented to (e.g., '2025-01')
+   * @param metadata - Optional metadata for audit trail (IP address, user agent)
+   * @returns Promise that resolves when consent is recorded
+   * @throws NotSupportedError in local mode (consent not needed for local-only usage)
+   * @throws AuthError if user is not authenticated
+   * @throws NetworkError if connection fails
+   *
+   * @remarks
+   * - Consent is stored server-side with timestamp for GDPR compliance
+   * - Should be called after successful sign-up
+   * - Consent records are retained even after account deletion (legal requirement)
+   * - Use POLICY_VERSION from src/config/constants.ts
+   */
+  recordConsent(
+    policyVersion: string,
+    metadata?: { ipAddress?: string; userAgent?: string }
+  ): Promise<void>;
+
+  /**
+   * Check if user has consented to the current policy version.
+   *
+   * @param policyVersion - The policy version to check consent for
+   * @returns Promise that resolves to true if user has consented to this version
+   * @throws NotSupportedError in local mode
+   * @throws AuthError if user is not authenticated
+   * @throws NetworkError if connection fails
+   *
+   * @remarks
+   * - Use this on login to check if re-consent is needed
+   * - Returns false if no consent record exists or if consented to older version
+   */
+  hasConsentedToVersion(policyVersion: string): Promise<boolean>;
+
+  /**
+   * Get the latest consent record for the user.
+   *
+   * @returns Promise that resolves to the latest consent record, or null if none exists
+   * @throws NotSupportedError in local mode
+   * @throws AuthError if user is not authenticated
+   * @throws NetworkError if connection fails
+   *
+   * @remarks
+   * - Used to determine if user needs re-consent (has old version) vs first consent
+   * - Returns null if user has never consented
+   * - Returns the most recent consent record if user has consented
+   */
+  getLatestConsent(): Promise<{ policyVersion: string; consentedAt: string } | null>;
 }
 
 // =============================================================================

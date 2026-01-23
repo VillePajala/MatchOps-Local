@@ -742,6 +742,64 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Data Tab */}
             {activeTab === 'data' && (
+            <>
+            {/* GDPR / Your Data Rights Section */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+              <h3 className="text-lg font-semibold text-slate-200">
+                {t('settingsModal.gdpr.title', 'Your Data Rights')}
+              </h3>
+              <p className="text-sm text-slate-300">
+                {t('settingsModal.gdpr.description', 'You have full control over your data. Use the options below to exercise your GDPR rights.')}
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.downloadTitle', 'Download Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.gdpr.downloadDescription', 'Export all your data (players, games, teams, etc.) to a backup file you can keep.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={onCreateBackup}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {t('settingsModal.gdpr.downloadButton', 'Download')}
+                  </button>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.deleteTitle', 'Delete Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {getBackendMode() === 'cloud'
+                        ? t('settingsModal.gdpr.deleteDescriptionCloud', 'To delete all cloud data, use the "Clear Cloud Data" option in the Premium tab.')
+                        : t('settingsModal.gdpr.deleteDescriptionLocal', 'To delete all local data, use the "Hard Reset App" option in the About tab.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab(getBackendMode() === 'cloud' ? 'premium' : 'about')}
+                    className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {t('settingsModal.gdpr.goToDelete', 'Go')}
+                  </button>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.correctTitle', 'Correct Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.gdpr.correctDescription', 'You can edit player names, game details, and all other data directly in the app at any time.')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Data Management Section */}
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.backupTitle', 'Data Management')}
@@ -801,6 +859,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </p>
             </div>
+            </>
             )}
 
             {/* About Tab */}

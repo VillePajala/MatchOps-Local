@@ -91,6 +91,26 @@ export class LocalAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // CONSENT MANAGEMENT (Not applicable in local mode)
+  // Local mode stores data only on user's device - no GDPR consent needed
+  // ==========================================================================
+
+  async recordConsent(
+    _policyVersion: string,
+    _metadata?: { ipAddress?: string; userAgent?: string }
+  ): Promise<void> {
+    throw new NotSupportedError('recordConsent', 'local');
+  }
+
+  async hasConsentedToVersion(_policyVersion: string): Promise<boolean> {
+    throw new NotSupportedError('hasConsentedToVersion', 'local');
+  }
+
+  async getLatestConsent(): Promise<{ policyVersion: string; consentedAt: string } | null> {
+    throw new NotSupportedError('getLatestConsent', 'local');
+  }
+
+  // ==========================================================================
   // INTERNAL
   // ==========================================================================
 

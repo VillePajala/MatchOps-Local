@@ -1739,12 +1739,17 @@ describe('SupabaseDataStore', () => {
       });
 
       it('should throw NetworkError on fetch failure', async () => {
+        // Suppress expected retry exhaustion warning
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
         mockQueryBuilder.order = jest.fn().mockResolvedValue({
           data: null,
           error: { message: 'Network error' },
         });
 
         await expect(dataStore.getGames()).rejects.toThrow(NetworkError);
+
+        warnSpy.mockRestore();
       });
     });
 

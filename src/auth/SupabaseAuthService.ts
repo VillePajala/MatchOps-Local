@@ -20,6 +20,7 @@ import type {
 } from '@/interfaces/AuthTypes';
 import { AuthError, NetworkError, NotInitializedError } from '@/interfaces/DataStoreErrors';
 import { getSupabaseClient } from '@/datastore/supabase/client';
+import { withRetry, throwIfTransient, TransientSupabaseError } from '@/datastore/supabase/retry';
 import type { SupabaseClient, AuthChangeEvent, Session as SupabaseSession } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import logger from '@/utils/logger';
@@ -515,6 +516,126 @@ export class SupabaseAuthService implements AuthService {
     return () => {
       subscription.unsubscribe();
     };
+  }
+
+  // ==========================================================================
+  // CONSENT MANAGEMENT (GDPR Compliance)
+  // ==========================================================================
+
+  async recordConsent(
+    policyVersion: string,
+    metadata?: { ipAddress?: string; userAgent?: string }
+  ): Promise<void> {
+    this.ensureInitialized();
+
+    // Must be authenticated to record consent
+    if (!this.currentUser) {
+      throw new AuthError('Must be authenticated to record consent');
+    }
+
+    // Retry transient errors for consent recording (critical operation)
+    try {
+      const { error } = await withRetry(async () => {
+        const result = await this.client!.rpc('record_user_consent', {
+          p_consent_type: 'terms_and_privacy',
+          p_policy_version: policyVersion,
+          p_ip_address: metadata?.ipAddress ?? null,
+          p_user_agent: metadata?.userAgent ?? null,
+        });
+        return throwIfTransient(result as { data: unknown; error: { message: string } | null });
+      }, { operationName: 'recordConsent' });
+
+      if (error) {
+        logger.error('[SupabaseAuthService] Failed to record consent:', error.message);
+        throw new AuthError(`Failed to record consent: ${error.message}`);
+      }
+    } catch (error) {
+      if (error instanceof TransientSupabaseError) {
+        throw new NetworkError('Failed to record consent: network error after retries');
+      }
+      throw error;
+    }
+
+    logger.info('[SupabaseAuthService] Consent recorded for version:', policyVersion);
+  }
+
+  async hasConsentedToVersion(policyVersion: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    // Must be authenticated to check consent
+    if (!this.currentUser) {
+      throw new AuthError('Must be authenticated to check consent');
+    }
+
+    // Retry transient errors for consent check
+    try {
+      const { data, error } = await withRetry(async () => {
+        const result = await this.client!.rpc('get_user_consent', {
+          p_consent_type: 'terms_and_privacy',
+        });
+        return throwIfTransient(result as { data: unknown; error: { message: string } | null });
+      }, { operationName: 'hasConsentedToVersion' });
+
+      if (error) {
+        logger.error('[SupabaseAuthService] Failed to get consent:', error.message);
+        throw new AuthError(`Failed to get consent: ${error.message}`);
+      }
+
+      // No consent record exists
+      if (!data) {
+        return false;
+      }
+
+      // Check if the consented version matches the required version
+      const consentedVersion = (data as { policy_version?: string })?.policy_version;
+      return consentedVersion === policyVersion;
+    } catch (error) {
+      if (error instanceof TransientSupabaseError) {
+        throw new NetworkError('Failed to get consent: network error after retries');
+      }
+      throw error;
+    }
+  }
+
+  async getLatestConsent(): Promise<{ policyVersion: string; consentedAt: string } | null> {
+    this.ensureInitialized();
+
+    // Must be authenticated to check consent
+    if (!this.currentUser) {
+      throw new AuthError('Must be authenticated to get consent');
+    }
+
+    // Retry transient errors for consent check
+    try {
+      const { data, error } = await withRetry(async () => {
+        const result = await this.client!.rpc('get_user_consent', {
+          p_consent_type: 'terms_and_privacy',
+        });
+        return throwIfTransient(result as { data: unknown; error: { message: string } | null });
+      }, { operationName: 'getLatestConsent' });
+
+      if (error) {
+        logger.error('[SupabaseAuthService] Failed to get consent:', error.message);
+        throw new AuthError(`Failed to get consent: ${error.message}`);
+      }
+
+      // No consent record exists
+      if (!data) {
+        return null;
+      }
+
+      // Return the consent record
+      const record = data as { policy_version?: string; consented_at?: string };
+      return {
+        policyVersion: record.policy_version ?? '',
+        consentedAt: record.consented_at ?? '',
+      };
+    } catch (error) {
+      if (error instanceof TransientSupabaseError) {
+        throw new NetworkError('Failed to get consent: network error after retries');
+      }
+      throw error;
+    }
   }
 
   // ==========================================================================
