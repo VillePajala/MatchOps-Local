@@ -37,6 +37,7 @@ describe('ReConsentModal', () => {
     resetPassword: jest.fn(),
     recordConsent: jest.fn(),
     acceptReConsent: jest.fn(),
+    deleteAccount: jest.fn(),
   };
 
   beforeEach(() => {
