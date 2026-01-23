@@ -1797,7 +1797,16 @@
       },
       "errorReportingNote": "Tämä auttaa meitä korjaamaan virheitä ja parantamaan sovellusta. Virheraportit eivät sisällä pelitietojasi tai pelaajatietoja, ja ne käsittelee Sentry.io.",
       "licenseValidationTitle": "Play Kaupan lisenssivahvistus",
-      "licenseValidationContent": "Kun ostat premium-ominaisuuksia, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi."
+      "licenseValidationContent": "Kun ostat premium-ominaisuuksia, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi.",
+      "consentTrackingTitle": "Suostumustiedot (Pilvisynkronointi)",
+      "consentTrackingIntro": "Kun hyväksyt käyttöehtomme ja tietosuojakäytäntömme pilvisynkronoinnissa, tallennamme:",
+      "consentTrackingItems": {
+        "timestamp": "Suostumuksen päivämäärä ja aika",
+        "policyVersion": "Hyväksytyn käytännön versio",
+        "ipAddress": "IP-osoitteesi (oikeudellista todentamista varten)",
+        "userAgent": "Selain- ja laitetietosi"
+      },
+      "consentTrackingNote": "Nämä tiedot vaaditaan GDPR-vaatimustenmukaisuuteen todisteeksi suostumuksen antamisesta. Suostumustiedot säilytetään tilin poistamisen jälkeenkin oikeudellisista syistä."
     },
     "dataWeDoNotCollect": {
       "title": "Tiedot, joita EMME kerää",

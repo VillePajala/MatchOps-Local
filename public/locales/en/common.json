@@ -1797,7 +1797,16 @@
       },
       "errorReportingNote": "This helps us fix bugs and improve the app. Error reports do not contain your game data or player information and are processed by Sentry.io.",
       "licenseValidationTitle": "Play Store License Validation",
-      "licenseValidationContent": "When you purchase premium features, Google Play handles all payment processing. We verify license status through Play Store API but do not receive your payment information."
+      "licenseValidationContent": "When you purchase premium features, Google Play handles all payment processing. We verify license status through Play Store API but do not receive your payment information.",
+      "consentTrackingTitle": "Consent Records (Cloud Mode)",
+      "consentTrackingIntro": "When you accept our Terms of Service and Privacy Policy in Cloud Mode, we record:",
+      "consentTrackingItems": {
+        "timestamp": "Date and time of consent",
+        "policyVersion": "Which policy version you accepted",
+        "ipAddress": "Your IP address (for legal verification)",
+        "userAgent": "Your browser/device information"
+      },
+      "consentTrackingNote": "This information is required for GDPR compliance to prove that consent was obtained. Consent records are retained even after account deletion for legal purposes."
     },
     "dataWeDoNotCollect": {
       "title": "Data We Do NOT Collect",
