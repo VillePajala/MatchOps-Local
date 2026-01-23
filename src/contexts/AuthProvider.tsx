@@ -46,6 +46,8 @@ interface AuthContextValue {
   recordConsent: () => Promise<{ error?: string }>;
   /** Accept the new Terms/Privacy Policy and record consent */
   acceptReConsent: () => Promise<{ error?: string }>;
+  /** Permanently delete the user's account (cloud mode only) */
+  deleteAccount: () => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -126,6 +128,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           logger.debug('[AuthProvider] Auth state changed:', state);
           setSession(newSession);
           setUser(newSession?.user ?? null);
+
+          // Re-verify consent on token refresh to catch policy version updates
+          // Without this, users with auto-refreshing tokens could avoid re-consent indefinitely
+          if (state === 'token_refreshed' && newSession && currentMode === 'cloud') {
+            try {
+              const latestConsent = await service.getLatestConsent();
+              if (latestConsent && latestConsent.policyVersion !== POLICY_VERSION) {
+                logger.info('[AuthProvider] Policy version changed during session, requiring re-consent');
+                setNeedsReConsent(true);
+              }
+            } catch (consentError) {
+              // Non-critical: don't break token refresh, consent will be checked on next sign-in
+              logger.warn('[AuthProvider] Failed to check consent on token refresh:', consentError);
+            }
+          }
 
           // Clear DataStore caches when user changes (prevents User B seeing User A's cached data)
           // Note: On initial load (INITIAL_SESSION), DataStore may not be initialized yet.
@@ -340,6 +357,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authService, mode]);
 
+  /**
+   * Permanently delete the user's account.
+   * Only available in cloud mode. Deletes all data and the auth user.
+   */
+  const deleteAccount = useCallback(async () => {
+    if (!authService) return { error: 'Auth not initialized' };
+    if (mode === 'local') return { error: 'Account deletion not available in local mode' };
+
+    try {
+      await authService.deleteAccount();
+
+      // Clear local state after successful deletion
+      setUser(null);
+      setSession(null);
+      setNeedsReConsent(false);
+
+      logger.info('[AuthProvider] Account deleted successfully');
+      return {};
+    } catch (error) {
+      logger.error('[AuthProvider] Account deletion failed:', error);
+      return { error: error instanceof Error ? error.message : 'Failed to delete account' };
+    }
+  }, [authService, mode]);
+
   // Memoize the context value to prevent unnecessary re-renders
   const value: AuthContextValue = useMemo(() => ({
     user,
@@ -355,7 +396,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPassword,
     recordConsent,
     acceptReConsent,
-  }), [user, session, mode, isLoading, needsReConsent, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent]);
+    deleteAccount,
+  }), [user, session, mode, isLoading, needsReConsent, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount]);
 
   return (
     <AuthContext.Provider value={value}>
