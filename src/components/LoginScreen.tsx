@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import Link from 'next/link';
 import i18n from '@/i18n';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
@@ -58,6 +59,8 @@ export default function LoginScreen({ onBack, onUseLocalMode }: LoginScreenProps
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState<string>(i18n.language);
+  // GDPR consent checkbox for sign up
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
 
   // Load saved language preference
   useEffect(() => {
@@ -87,6 +90,12 @@ export default function LoginScreen({ onBack, onUseLocalMode }: LoginScreenProps
 
     try {
       if (mode === 'signUp') {
+        // Validate consent checkbox
+        if (!hasAcceptedTerms) {
+          setError(t('auth.consentRequired', 'You must accept the Terms of Service and Privacy Policy'));
+          setIsLoading(false);
+          return;
+        }
         // Validate passwords match
         if (password !== confirmPassword) {
           setError(t('auth.passwordMismatch', 'Passwords do not match'));
@@ -129,9 +138,10 @@ export default function LoginScreen({ onBack, onUseLocalMode }: LoginScreenProps
     setMode(newMode);
     setError(null);
     setSuccess(null);
-    // Keep email but clear passwords
+    // Keep email but clear passwords and consent
     setPassword('');
     setConfirmPassword('');
+    setHasAcceptedTerms(false);
   };
 
   // Button styles - indigo for auth forms
@@ -288,6 +298,37 @@ export default function LoginScreen({ onBack, onUseLocalMode }: LoginScreenProps
                   <p className="text-slate-500 text-xs">
                     {t('auth.passwordRequirements', 'Password must be at least 12 characters and include 3 of: uppercase, lowercase, numbers, special characters.')}
                   </p>
+
+                  {/* GDPR Consent Checkbox */}
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={hasAcceptedTerms}
+                      onChange={(e) => setHasAcceptedTerms(e.target.checked)}
+                      disabled={isLoading}
+                      className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+                    />
+                    <span className="text-slate-400 text-xs leading-relaxed group-hover:text-slate-300 transition-colors">
+                      {t('auth.termsConsent', 'I have read and agree to the')}{' '}
+                      <Link
+                        href="/terms"
+                        target="_blank"
+                        className="text-indigo-400 hover:text-indigo-300 underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {t('auth.termsLink', 'Terms of Service')}
+                      </Link>{' '}
+                      {t('auth.and', 'and')}{' '}
+                      <Link
+                        href="/privacy-policy"
+                        target="_blank"
+                        className="text-indigo-400 hover:text-indigo-300 underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {t('auth.privacyLink', 'Privacy Policy')}
+                      </Link>
+                    </span>
+                  </label>
                 </>
               )}
 

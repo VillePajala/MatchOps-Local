@@ -150,7 +150,7 @@ describe('LoginScreen', () => {
       expect(screen.getByPlaceholderText('Confirm Password')).toBeInTheDocument();
     });
 
-    it('should call signUp with email and password', async () => {
+    it('should call signUp with email and password when terms accepted', async () => {
       render(<LoginScreen />);
       fireEvent.click(screen.getByText('Sign up'));
 
@@ -163,11 +163,37 @@ describe('LoginScreen', () => {
       fireEvent.change(screen.getByPlaceholderText('Confirm Password'), {
         target: { value: 'Password123!@#' },
       });
+      // Accept terms and privacy policy
+      fireEvent.click(screen.getByRole('checkbox'));
       fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
 
       await waitFor(() => {
         expect(mockSignUp).toHaveBeenCalledWith('new@example.com', 'Password123!@#');
       });
+    });
+
+    it('should show error when terms not accepted', async () => {
+      render(<LoginScreen />);
+      fireEvent.click(screen.getByText('Sign up'));
+
+      fireEvent.change(screen.getByPlaceholderText('Email'), {
+        target: { value: 'new@example.com' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Password'), {
+        target: { value: 'Password123!@#' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Confirm Password'), {
+        target: { value: 'Password123!@#' },
+      });
+      // Don't accept terms
+      fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('You must accept the Terms of Service and Privacy Policy')).toBeInTheDocument();
+      });
+
+      // Should not call signUp
+      expect(mockSignUp).not.toHaveBeenCalled();
     });
 
     it('should show error when passwords do not match', async () => {
@@ -183,6 +209,8 @@ describe('LoginScreen', () => {
       fireEvent.change(screen.getByPlaceholderText('Confirm Password'), {
         target: { value: 'DifferentPassword' },
       });
+      // Accept terms
+      fireEvent.click(screen.getByRole('checkbox'));
       fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
 
       await waitFor(() => {
@@ -208,6 +236,8 @@ describe('LoginScreen', () => {
       fireEvent.change(screen.getByPlaceholderText('Confirm Password'), {
         target: { value: 'Password123!@#' },
       });
+      // Accept terms
+      fireEvent.click(screen.getByRole('checkbox'));
       fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
 
       await waitFor(() => {

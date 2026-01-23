@@ -21,9 +21,11 @@ export interface RetryConfig {
   maxDelayMs?: number;
   /** Whether to log retry attempts (default: true) */
   logRetries?: boolean;
+  /** Optional operation name for clearer log messages */
+  operationName?: string;
 }
 
-const DEFAULT_CONFIG: Required<RetryConfig> = {
+const DEFAULT_CONFIG: Required<Omit<RetryConfig, 'operationName'>> = {
   maxRetries: 3,
   baseDelayMs: 1000,
   maxDelayMs: 10000,
@@ -173,11 +175,12 @@ export async function withRetry<T>(
   operation: () => Promise<T>,
   config: RetryConfig = {}
 ): Promise<T> {
-  const { maxRetries, baseDelayMs, maxDelayMs, logRetries } = {
+  const { maxRetries, baseDelayMs, maxDelayMs, logRetries, operationName } = {
     ...DEFAULT_CONFIG,
     ...config,
   };
 
+  const opLabel = operationName ? `[Retry:${operationName}]` : '[Retry]';
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -195,7 +198,7 @@ export async function withRetry<T>(
       if (attempt === maxRetries) {
         if (logRetries) {
           logger.warn(
-            `[Retry] All ${maxRetries + 1} attempts failed:`,
+            `${opLabel} All ${maxRetries + 1} attempts failed:`,
             getErrorMessage(error)
           );
         }
@@ -207,7 +210,7 @@ export async function withRetry<T>(
 
       if (logRetries) {
         logger.info(
-          `[Retry] Attempt ${attempt + 1}/${maxRetries + 1} failed, retrying in ${Math.round(delayMs)}ms:`,
+          `${opLabel} Attempt ${attempt + 1}/${maxRetries + 1} failed, retrying in ${Math.round(delayMs)}ms:`,
           getErrorMessage(error)
         );
       }
@@ -244,4 +247,52 @@ export function wrapWithRetry<TArgs extends unknown[], TResult>(
   config: RetryConfig = {}
 ): (...args: TArgs) => Promise<TResult> {
   return (...args: TArgs) => withRetry(() => fn(...args), config);
+}
+
+/**
+ * Error class for transient Supabase errors that should trigger retry.
+ */
+export class TransientSupabaseError extends Error {
+  constructor(
+    public readonly originalError: { message: string; code?: string; status?: number },
+    message?: string
+  ) {
+    super(message ?? originalError.message);
+    this.name = 'TransientSupabaseError';
+  }
+}
+
+/**
+ * Supabase result type with data and error.
+ */
+interface SupabaseResult<T> {
+  data: T | null;
+  error: { message: string; code?: string; status?: number } | null;
+}
+
+/**
+ * Throw if the Supabase result contains a transient error.
+ *
+ * Use inside withRetry callbacks to enable retry on transient errors.
+ * Supabase resolves with { data, error } instead of throwing, so this
+ * helper converts transient errors to thrown exceptions.
+ *
+ * @param result - Supabase query result
+ * @returns The same result if no transient error
+ * @throws TransientSupabaseError if error is transient (triggers retry)
+ *
+ * @example
+ * ```typescript
+ * const result = await withRetry(async () => {
+ *   const res = await client.from('players').select('*');
+ *   return throwIfTransient(res);
+ * });
+ * // Now check result.error for non-transient errors
+ * ```
+ */
+export function throwIfTransient<T>(result: SupabaseResult<T>): SupabaseResult<T> {
+  if (result.error && isTransientError(result.error)) {
+    throw new TransientSupabaseError(result.error);
+  }
+  return result;
 }

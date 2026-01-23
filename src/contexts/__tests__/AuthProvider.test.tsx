@@ -59,6 +59,10 @@ const createMockLocalAuthService = (): AuthService => ({
       authCallbacks = authCallbacks.filter(cb => cb !== callback);
     };
   }),
+  recordConsent: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  hasConsentedToVersion: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  getLatestConsent: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  deleteAccount: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
 });
 
 const createMockCloudAuthService = (authenticated = true): AuthService => ({
@@ -78,6 +82,10 @@ const createMockCloudAuthService = (authenticated = true): AuthService => ({
       authCallbacks = authCallbacks.filter(cb => cb !== callback);
     };
   }),
+  recordConsent: jest.fn().mockResolvedValue(undefined),
+  hasConsentedToVersion: jest.fn().mockResolvedValue(true),
+  getLatestConsent: jest.fn().mockResolvedValue({ policyVersion: '2025-01', consentedAt: new Date().toISOString() }),
+  deleteAccount: jest.fn().mockResolvedValue(undefined),
 });
 
 // Mock factory
@@ -272,6 +280,220 @@ describe('AuthProvider', () => {
 
       await waitFor(() => {
         expect(mockDataStore.clearUserCaches).toHaveBeenCalled();
+      });
+    });
+  });
+
+  // ==========================================================================
+  // CONSENT FLOW
+  // ==========================================================================
+
+  describe('consent flow', () => {
+    beforeEach(() => {
+      mockAuthService = createMockCloudAuthService(true);
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.getBackendMode.mockReturnValue('cloud');
+    });
+
+    it('should set needsReConsent when user has old policy version', async () => {
+      // Mock old policy version
+      mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({
+        policyVersion: '2024-01', // Old version
+        consentedAt: new Date().toISOString(),
+      });
+
+      // Create a component that shows needsReConsent state
+      function ConsentTestComponent() {
+        const { needsReConsent, isLoading, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <span data-testid="needs-reconsent">{needsReConsent ? 'yes' : 'no'}</span>
+            <button onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
+          </div>
+        );
+      }
+
+      render(
+        <AuthProvider>
+          <ConsentTestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Trigger sign-in
+      await act(async () => {
+        screen.getByText('Sign In').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes');
+      });
+    });
+
+    it('should not set needsReConsent when user has current policy version', async () => {
+      // Mock current policy version
+      mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({
+        policyVersion: '2025-01', // Current version (matches POLICY_VERSION)
+        consentedAt: new Date().toISOString(),
+      });
+
+      function ConsentTestComponent() {
+        const { needsReConsent, isLoading, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <span data-testid="needs-reconsent">{needsReConsent ? 'yes' : 'no'}</span>
+            <button onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
+          </div>
+        );
+      }
+
+      render(
+        <AuthProvider>
+          <ConsentTestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Trigger sign-in
+      await act(async () => {
+        screen.getByText('Sign In').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('no');
+      });
+    });
+
+    it('should record consent on sign-up when no confirmation required', async () => {
+      mockAuthService.signUp = jest.fn().mockResolvedValue({
+        user: mockCloudUser,
+        session: mockSession,
+        confirmationRequired: false,
+      });
+
+      function SignUpTestComponent() {
+        const { isLoading, signUp } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <button onClick={() => signUp('test@example.com', 'password')}>Sign Up</button>
+          </div>
+        );
+      }
+
+      render(
+        <AuthProvider>
+          <SignUpTestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Trigger sign-up
+      await act(async () => {
+        screen.getByText('Sign Up').click();
+      });
+
+      await waitFor(() => {
+        expect(mockAuthService.recordConsent).toHaveBeenCalledWith(
+          '2025-01',
+          expect.objectContaining({})
+        );
+      });
+    });
+
+    it('should auto-record consent on sign-in for users with no consent record', async () => {
+      // Mock no existing consent
+      mockAuthService.getLatestConsent = jest.fn().mockResolvedValue(null);
+
+      function ConsentTestComponent() {
+        const { isLoading, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <button onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
+          </div>
+        );
+      }
+
+      render(
+        <AuthProvider>
+          <ConsentTestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Trigger sign-in
+      await act(async () => {
+        screen.getByText('Sign In').click();
+      });
+
+      await waitFor(() => {
+        expect(mockAuthService.recordConsent).toHaveBeenCalledWith(
+          '2025-01',
+          expect.objectContaining({})
+        );
+      });
+    });
+
+    it('should clear needsReConsent on sign out', async () => {
+      // Set up with old policy version to trigger needsReConsent
+      mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({
+        policyVersion: '2024-01',
+        consentedAt: new Date().toISOString(),
+      });
+
+      function ConsentTestComponent() {
+        const { needsReConsent, isLoading, signIn, signOut } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <span data-testid="needs-reconsent">{needsReConsent ? 'yes' : 'no'}</span>
+            <button onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
+            <button onClick={() => signOut()}>Sign Out</button>
+          </div>
+        );
+      }
+
+      render(
+        <AuthProvider>
+          <ConsentTestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Sign in to trigger needsReConsent
+      await act(async () => {
+        screen.getByText('Sign In').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes');
+      });
+
+      // Sign out should clear needsReConsent
+      await act(async () => {
+        screen.getByText('Sign Out').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('no');
       });
     });
   });
