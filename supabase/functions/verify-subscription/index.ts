@@ -32,7 +32,51 @@ const ALLOWED_ORIGINS = [
 ];
 
 // Vercel preview deployment pattern: match-ops-local-*.vercel.app
+// Security note: This only matches our specific project prefix (match-ops-local).
+// Vercel generates unique subdomains per deployment (e.g., match-ops-local-abc123.vercel.app).
+// An attacker would need access to our Vercel project to create a matching deployment.
 const VERCEL_PREVIEW_PATTERN = /^https:\/\/match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/;
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
+
+// In-memory rate limit store (cleared when function instance restarts)
+// Note: This provides per-instance limiting. For distributed limiting, use KV storage.
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+/**
+ * Check if request is rate limited
+ * @returns true if request should be blocked
+ */
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitStore.get(ip);
+
+  // Clean up expired entries periodically
+  if (rateLimitStore.size > 1000) {
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (value.resetAt < now) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+
+  if (!record || record.resetAt < now) {
+    // First request or window expired - start new window
+    rateLimitStore.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+    // Over limit
+    return true;
+  }
+
+  // Increment counter
+  record.count++;
+  return false;
+}
 
 /**
  * Check if origin is allowed
@@ -111,6 +155,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Rate limiting - check before any expensive operations
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('cf-connecting-ip')
+      || 'unknown';
+
+    if (isRateLimited(clientIP)) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+      );
+    }
+
     // Get the JWT from Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -179,7 +236,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Validate purchaseToken format (alphanumeric with common delimiters)
+    // Validate purchaseToken format and length
+    // Max 500 chars to prevent abuse while accommodating real Google tokens (~170 chars)
+    if (purchaseToken.length > 500) {
+      return new Response(
+        JSON.stringify({ error: 'Purchase token too long' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!/^[a-zA-Z0-9._-]+$/.test(purchaseToken)) {
       return new Response(
         JSON.stringify({ error: 'Invalid purchase token format' }),
@@ -266,6 +331,23 @@ Deno.serve(async (req: Request) => {
     // Calculate grace period end (7 days after subscription expires)
     const graceEnd = new Date(periodEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
     const now = new Date().toISOString();
+
+    // Idempotency check: Verify this purchase token isn't already claimed by another user
+    // This prevents token reuse attacks where an attacker tries to use someone else's token
+    const { data: existingSubscription } = await supabaseAdmin
+      .from('subscriptions')
+      .select('user_id')
+      .eq('google_purchase_token', purchaseToken)
+      .neq('user_id', userId)
+      .maybeSingle();
+
+    if (existingSubscription) {
+      console.error(`Purchase token already claimed by another user`);
+      return new Response(
+        JSON.stringify({ error: 'This purchase is already associated with another account' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Build subscription record
     const subscriptionRecord: SubscriptionRecord = {

@@ -2240,6 +2240,12 @@
     "clearError": "Pilvitietojen tyhjentäminen epäonnistui. Yritä uudelleen.",
     "cloudUnavailable": "Pilvi ei ole käytettävissä. Pilvitietoja ei voida tyhjentää.",
     "wrongBackend": "Tyhjennys epäonnistui: ei yhteyttä pilvitallennustilaan.",
+    "signOutButton": "Kirjaudu ulos",
+    "signingOut": "Kirjaudutaan ulos...",
+    "signedOut": "Kirjauduttu ulos onnistuneesti. Ladataan uudelleen...",
+    "signOutError": "Uloskirjautuminen epäonnistui. Yritä uudelleen.",
+    "switchedToLocal": "Vaihdettu paikalliseen tilaan. Ladataan uudelleen...",
+    "manageSubscription": "Hallitse tilausta",
     "cloudAccount": {
       "title": "Pilvitili",
       "lastSynced": "Viimeksi synkronoitu: {{date}}",

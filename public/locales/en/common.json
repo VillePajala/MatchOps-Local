@@ -2240,6 +2240,12 @@
     "clearError": "Failed to clear cloud data. Please try again.",
     "cloudUnavailable": "Cloud is not available. Cannot clear cloud data.",
     "wrongBackend": "Cannot clear: not connected to cloud storage.",
+    "signOutButton": "Sign Out",
+    "signingOut": "Signing out...",
+    "signedOut": "Signed out successfully. Reloading...",
+    "signOutError": "Failed to sign out. Please try again.",
+    "switchedToLocal": "Switched to local mode. Reloading...",
+    "manageSubscription": "Manage Subscription",
     "cloudAccount": {
       "title": "Cloud Account",
       "lastSynced": "Last synced: {{date}}",

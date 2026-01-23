@@ -17,7 +17,7 @@
  * @see docs/03-active-plans/billing-implementation-plan.md
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   isPlayBillingAvailable,
   purchaseSubscription,
@@ -111,6 +111,10 @@ export function usePlayBilling(): UsePlayBillingResult {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [details, setDetails] = useState<SubscriptionDetails | null>(null);
 
+  // Ref-based lock to prevent race conditions (state updates are async)
+  // This provides synchronous check to ensure only one operation runs at a time
+  const operationLockRef = useRef(false);
+
   // Check availability and load details on mount
   useEffect(() => {
     let mounted = true;
@@ -162,10 +166,14 @@ export function usePlayBilling(): UsePlayBillingResult {
       return { success: false, error: 'Play Billing not available' };
     }
 
-    if (isPurchasing) {
+    // Synchronous lock check to prevent race conditions
+    // State updates are async, so isPurchasing alone isn't sufficient
+    if (operationLockRef.current) {
       return { success: false, error: 'Purchase already in progress' };
     }
 
+    // Acquire lock synchronously
+    operationLockRef.current = true;
     setIsPurchasing(true);
 
     try {
@@ -196,9 +204,11 @@ export function usePlayBilling(): UsePlayBillingResult {
         error: error instanceof Error ? error.message : 'Purchase failed',
       };
     } finally {
+      // Release lock
+      operationLockRef.current = false;
       setIsPurchasing(false);
     }
-  }, [isAvailable, isPurchasing]);
+  }, [isAvailable]);
 
   // Restore purchases
   const restore = useCallback(async (): Promise<BillingResult> => {
@@ -206,10 +216,13 @@ export function usePlayBilling(): UsePlayBillingResult {
       return { success: false, error: 'Play Billing not available' };
     }
 
-    if (isPurchasing) {
+    // Synchronous lock check to prevent race conditions
+    if (operationLockRef.current) {
       return { success: false, error: 'Operation already in progress' };
     }
 
+    // Acquire lock synchronously
+    operationLockRef.current = true;
     setIsPurchasing(true);
 
     try {
@@ -240,9 +253,11 @@ export function usePlayBilling(): UsePlayBillingResult {
         error: error instanceof Error ? error.message : 'Restore failed',
       };
     } finally {
+      // Release lock
+      operationLockRef.current = false;
       setIsPurchasing(false);
     }
-  }, [isAvailable, isPurchasing]);
+  }, [isAvailable]);
 
   return {
     isAvailable,

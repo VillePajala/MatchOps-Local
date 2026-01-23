@@ -117,10 +117,12 @@ async function cacheSubscription(state: Omit<SubscriptionState, 'isLoading'>): P
 
 /**
  * Clear subscription cache
+ * Exported for use by AuthProvider.signOut() to prevent data leakage between users
  */
-async function clearSubscriptionCache(): Promise<void> {
+export async function clearSubscriptionCache(): Promise<void> {
   try {
     await setStorageItem(CACHE_KEY, '');
+    logger.debug('[SubscriptionContext] Cache cleared');
   } catch (error) {
     logger.warn('[SubscriptionContext] Failed to clear cache:', error);
   }

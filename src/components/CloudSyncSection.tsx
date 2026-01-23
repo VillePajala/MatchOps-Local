@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle } from 'react-icons/hi2';
+import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard } from 'react-icons/hi2';
 import {
   getBackendMode,
   isCloudAvailable,
@@ -402,7 +402,7 @@ export default function CloudSyncSection({
 
       {/* Sign Out Button - Only shown in cloud mode */}
       {currentMode === 'cloud' && (
-        <div className="pt-2">
+        <div className="pt-2 space-y-2">
           <button
             onClick={handleSignOut}
             disabled={isSigningOut || isChangingMode}
@@ -420,6 +420,19 @@ export default function CloudSyncSection({
               </>
             )}
           </button>
+
+          {/* Manage Subscription Link - Only shown for users with active subscription */}
+          {hasSubscription && (
+            <a
+              href="https://play.google.com/store/account/subscriptions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm no-underline`}
+            >
+              <HiOutlineCreditCard className="h-4 w-4" />
+              {t('cloudSync.manageSubscription', 'Manage Subscription')}
+            </a>
+          )}
         </div>
       )}
 
