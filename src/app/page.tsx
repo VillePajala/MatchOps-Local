@@ -451,13 +451,29 @@ export default function Home() {
   // - Show upgrade modal
   // - User must subscribe OR cancel (returns to local mode)
   useEffect(() => {
+    // Debug: Log all relevant state for diagnosing post-login check issues
+    logger.debug('[page.tsx] Post-login check effect running', {
+      mode,
+      isAuthenticated,
+      isAuthLoading,
+      isPremiumLoading,
+      isPremium,
+      hasPendingCheck: hasPendingPostLoginCheck(),
+    });
+
     // Skip if not in cloud mode, not authenticated, or still loading
     if (mode !== 'cloud' || !isAuthenticated || isAuthLoading || isPremiumLoading) {
+      logger.debug('[page.tsx] Post-login check: skipping (conditions not met)', {
+        reason: mode !== 'cloud' ? 'not cloud mode' :
+                !isAuthenticated ? 'not authenticated' :
+                isAuthLoading ? 'auth still loading' : 'premium still loading',
+      });
       return;
     }
 
     // Check if there's a pending post-login check
     if (!hasPendingPostLoginCheck()) {
+      logger.debug('[page.tsx] Post-login check: skipping (no pending flag)');
       return; // No pending check - user is returning to the app, not newly signing in
     }
 
@@ -471,7 +487,7 @@ export default function Home() {
       // Migration check will run (if needed) via the other effect
     } else {
       // User doesn't have premium - show upgrade modal
-      logger.info('[page.tsx] Post-login check: user needs premium subscription');
+      logger.info('[page.tsx] Post-login check: user needs premium subscription - showing modal');
       setShowPostLoginUpgradeModal(true);
     }
   }, [mode, isAuthenticated, isAuthLoading, isPremiumLoading, isPremium]);

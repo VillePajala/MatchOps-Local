@@ -2161,6 +2161,8 @@
     "description": "Download your cloud data to this device and switch to local mode.",
     "preparing": "Preparing download...",
     "noData": "No cloud data found.",
+    "noLocalData": "No local data",
+    "localDataWarning": "Cloud data will be merged with existing local data. Duplicates may occur.",
     "summaryError": "Failed to check cloud data",
     "summary": {
       "title": "Your Cloud Data"
