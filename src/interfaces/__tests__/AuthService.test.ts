@@ -114,6 +114,7 @@ describe('AuthService Interface Exports', () => {
         recordConsent: async () => {},
         hasConsentedToVersion: async () => true,
         getLatestConsent: async () => null,
+        deleteAccount: async () => {},
       };
 
       expect(mockAuth).toBeDefined();

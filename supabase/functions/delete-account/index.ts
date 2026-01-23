@@ -16,6 +16,9 @@
  * @see docs/03-active-plans/supabase-implementation-guide.md
  */
 
+/* eslint-disable no-console */
+// Console logging is appropriate for Edge Functions (server-side Deno runtime)
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // CORS headers for browser requests

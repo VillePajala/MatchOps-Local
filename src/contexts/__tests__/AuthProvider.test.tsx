@@ -62,6 +62,7 @@ const createMockLocalAuthService = (): AuthService => ({
   recordConsent: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
   hasConsentedToVersion: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
   getLatestConsent: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  deleteAccount: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
 });
 
 const createMockCloudAuthService = (authenticated = true): AuthService => ({
@@ -84,6 +85,7 @@ const createMockCloudAuthService = (authenticated = true): AuthService => ({
   recordConsent: jest.fn().mockResolvedValue(undefined),
   hasConsentedToVersion: jest.fn().mockResolvedValue(true),
   getLatestConsent: jest.fn().mockResolvedValue({ policyVersion: '2025-01', consentedAt: new Date().toISOString() }),
+  deleteAccount: jest.fn().mockResolvedValue(undefined),
 });
 
 // Mock factory
