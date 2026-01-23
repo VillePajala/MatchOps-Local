@@ -42,6 +42,11 @@ jest.mock('react-i18next', () => ({
       // Return English translations for common keys
       const translations: Record<string, string> = {
         'settingsModal.title': 'App Settings',
+        'settingsModal.tabs.general': 'General',
+        'settingsModal.tabs.season': 'Season',
+        'settingsModal.tabs.data': 'Data',
+        'settingsModal.tabs.premium': 'Premium',
+        'settingsModal.tabs.about': 'About',
         'settingsModal.languageLabel': 'Language',
         'settingsModal.defaultTeamNameLabel': 'Default Team Name',
         'settingsModal.storageUsageLabel': 'Storage Usage',
@@ -78,6 +83,12 @@ const defaultProps = {
   onCreateBackup: jest.fn(),
 };
 
+// Helper to navigate to a specific tab
+const navigateToTab = (tabName: 'General' | 'Season' | 'Data' | 'Premium' | 'About') => {
+  const tab = screen.getByRole('button', { name: tabName });
+  fireEvent.click(tab);
+};
+
 describe('<SettingsModal />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -106,6 +117,8 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
+    navigateToTab('About');
+
     expect(screen.getByText('Storage Usage')).toBeInTheDocument();
     expect(screen.getByText('Storage usage information unavailable.')).toBeInTheDocument();
   });
@@ -124,6 +137,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    navigateToTab('About');
 
     // Wait for the storage section to appear
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
@@ -153,6 +168,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    navigateToTab('About');
 
     // Wait for the storage section to appear
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
@@ -185,6 +202,7 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+    navigateToTab('About');
     const resetBtn = screen.getByRole('button', { name: /Hard Reset App/i });
     expect(resetBtn).toBeDisabled();
     fireEvent.change(
@@ -201,6 +219,7 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+    navigateToTab('About');
     fireEvent.click(screen.getByRole('button', { name: /Reset App Guide/i }));
     expect(defaultProps.onResetGuide).toHaveBeenCalled();
   });
@@ -211,6 +230,7 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+    navigateToTab('Data');
     const backupButton = screen.getByRole('button', { name: /Backup All Data/i });
     fireEvent.click(backupButton);
     expect(defaultProps.onCreateBackup).toHaveBeenCalled();
@@ -236,6 +256,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    navigateToTab('Season');
 
     // Check for period start label
     const startLabel = screen.getByText(/Period Start/i);
@@ -263,6 +285,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    navigateToTab('Season');
 
     // Wait for component to render
     await waitFor(() => {
@@ -352,6 +376,8 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
+      navigateToTab('Data');
+
       // Find and click the "Check for Updates" button
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
@@ -376,6 +402,8 @@ describe('<SettingsModal />', () => {
           <SettingsModal {...defaultProps} />
         </TestWrapper>
       );
+
+      navigateToTab('Data');
 
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
 
@@ -413,6 +441,8 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
+      navigateToTab('Data');
+
       // Click "Check for Updates"
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
@@ -442,6 +472,8 @@ describe('<SettingsModal />', () => {
           <SettingsModal {...defaultProps} />
         </TestWrapper>
       );
+
+      navigateToTab('Data');
 
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);

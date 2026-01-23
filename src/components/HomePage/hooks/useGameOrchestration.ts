@@ -48,6 +48,7 @@ import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
+import { generateSubSlots } from '@/utils/formations';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -190,6 +191,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const setTacticalDrawings = fieldCoordination.setTacticalDrawings;
   const setTacticalBallPosition = fieldCoordination.setTacticalBallPosition;
   const setFormationSnapPoints = fieldCoordination.setFormationSnapPoints;
+  const setSubSlots = fieldCoordination.setSubSlots;
 
   // --- History Orchestration (Undo/Redo) ---
   /**
@@ -1008,6 +1010,26 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
     setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
     setFormationSnapPoints(gameData?.formationSnapPoints || []);
+
+    // Regenerate subSlots from persisted formationSnapPoints for sideline visuals
+    // subSlots are not persisted, but can be reconstructed from field positions
+    // Works for both soccer and futsal - generateSubSlots is sport-agnostic
+    const snapPoints = gameData?.formationSnapPoints || [];
+    if (snapPoints.length > 0) {
+      // Extract field positions only (exclude GK at relY > 0.9 and sideline at relX > 0.95)
+      const fieldPositions = snapPoints.filter(p =>
+        p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95
+      );
+      if (fieldPositions.length > 0) {
+        const newSubSlots = generateSubSlots(fieldPositions);
+        setSubSlots(newSubSlots);
+      } else {
+        setSubSlots([]);
+      }
+    } else {
+      setSubSlots([]);
+    }
+
     setIsPlayed(gameData?.isPlayed === false ? false : true);
 
     // Load per-game availablePlayers (with per-game goalie status)
@@ -1066,7 +1088,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setOrphanedGameInfo, dispatchGameSession, setIsPlayed, setAvailablePlayers, resetHistory,
     // Extracted stable setters from fieldCoordination
     setPlayersOnField, setOpponents, setDrawings, setTacticalDiscs,
-    setTacticalDrawings, setTacticalBallPosition, setFormationSnapPoints,
+    setTacticalDrawings, setTacticalBallPosition, setFormationSnapPoints, setSubSlots,
     // Stable data from hooks (initialGameSessionData from useGameSessionCoordination)
     initialGameSessionData,
     // Data dependencies (used as fallbacks - changes trigger callback recreation)

@@ -1356,6 +1356,13 @@
   },
   "settingsModal": {
     "title": "App Settings",
+    "tabs": {
+      "general": "General",
+      "season": "Season",
+      "data": "Data",
+      "premium": "Premium",
+      "about": "About"
+    },
     "languageLabel": "Language",
     "defaultTeamNameLabel": "Default Team Name",
     "resetGuideButton": "Reset App Guide",

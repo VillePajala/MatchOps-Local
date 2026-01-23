@@ -257,15 +257,15 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Added: reverseMigration.noLocalData, reverseMigration.localDataWarning
-      // Previous: 1959 → 1961
-      expect(enKeys.length).toBe(1961);
+      // Added: settingsModal.tabs.* (general, season, data, premium, about)
+      // Previous: 1961 → 1966
+      expect(enKeys.length).toBe(1966);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Added: reverseMigration.noLocalData, reverseMigration.localDataWarning
-      expect(fiKeys.length).toBe(1961);
+      // Added: settingsModal.tabs.* (general, season, data, premium, about)
+      expect(fiKeys.length).toBe(1966);
     });
   });
 });

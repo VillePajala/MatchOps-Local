@@ -25,6 +25,8 @@ import { queryKeys } from '@/config/queryKeys';
 import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import CloudSyncSection from './CloudSyncSection';
 
+type SettingsTab = 'general' | 'season' | 'data' | 'premium' | 'about';
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -67,6 +69,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(DEFAULT_CLUB_SEASON_END_DATE);
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
 
   // Helper to get maximum day for a given month
   const getMaxDayForMonth = (month: number): number => {
@@ -485,6 +488,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
+  const getTabStyle = (tab: SettingsTab) => {
+    const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors';
+    if (activeTab === tab) {
+      return `${baseStyle} bg-indigo-600 text-white`;
+    }
+    return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
+  };
+
   const modalContainerStyle =
     'bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden';
   const titleStyle =
@@ -505,9 +516,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
             <h2 className={titleStyle}>{t('settingsModal.title', 'App Settings')}</h2>
           </div>
+
+          {/* Tab Navigation */}
+          <div className="flex w-full gap-2 px-6 py-3 bg-slate-900/50 border-b border-slate-700/30 flex-shrink-0">
+            <button onClick={() => setActiveTab('general')} className={`${getTabStyle('general')} flex-1`} aria-pressed={activeTab === 'general'}>
+              {t('settingsModal.tabs.general', 'General')}
+            </button>
+            <button onClick={() => setActiveTab('season')} className={`${getTabStyle('season')} flex-1`} aria-pressed={activeTab === 'season'}>
+              {t('settingsModal.tabs.season', 'Season')}
+            </button>
+            <button onClick={() => setActiveTab('data')} className={`${getTabStyle('data')} flex-1`} aria-pressed={activeTab === 'data'}>
+              {t('settingsModal.tabs.data', 'Data')}
+            </button>
+            <button onClick={() => setActiveTab('premium')} className={`${getTabStyle('premium')} flex-1`} aria-pressed={activeTab === 'premium'}>
+              {t('settingsModal.tabs.premium', 'Premium')}
+            </button>
+            <button onClick={() => setActiveTab('about')} className={`${getTabStyle('about')} flex-1`} aria-pressed={activeTab === 'about'}>
+              {t('settingsModal.tabs.about', 'About')}
+            </button>
+          </div>
+
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            {/* Premium Status */}
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            {/* Premium Tab */}
+            {activeTab === 'premium' && (
+            <>
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <HiSparkles className={`w-5 h-5 ${isPremium ? 'text-amber-400' : 'text-slate-400'}`} aria-hidden="true" />
@@ -570,11 +603,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               )}
             </div>
 
-            {/* Account & Sync - Moved to top for visibility */}
+            {/* Account & Sync */}
             <CloudSyncSection />
+            </>
+            )}
 
-            {/* General Settings */}
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 space-y-4">
+            {/* General Tab */}
+            {activeTab === 'general' && (
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-4">
               <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
               <select
                 id="language-select"
@@ -597,8 +633,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               />
               </div>
             </div>
-            {/* Season Period */}
-            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            )}
+
+            {/* Season Tab */}
+            {activeTab === 'season' && (
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.seasonPeriodTitle', 'Season Period')}
               </h3>
@@ -699,8 +738,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </div>
-            {/* Data Management */}
-            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            )}
+
+            {/* Data Tab */}
+            {activeTab === 'data' && (
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.backupTitle', 'Data Management')}
               </h3>
@@ -759,8 +801,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </p>
             </div>
-            {/* About */}
-            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            )}
+
+            {/* About Tab */}
+            {activeTab === 'about' && (
+            <>
+            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.aboutTitle', 'About')}
               </h3>
@@ -828,7 +874,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
             {/* Danger Zone */}
-            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-red-300">
                 {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
               </h3>
@@ -871,6 +917,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 {t('settingsModal.hardResetButton', 'Hard Reset App')}
               </button>
             </div>
+            </>
+            )}
           </div>
           <ModalFooter>
             <button onClick={onClose} className={primaryButtonStyle}>
