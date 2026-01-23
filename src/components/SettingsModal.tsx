@@ -70,6 +70,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const { deleteAccount, mode: authMode } = useAuth();
 
   // Helper to get maximum day for a given month
   const getMaxDayForMonth = (month: number): number => {
@@ -303,6 +306,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       showToast(t('settingsModal.updateCheckFailed', 'Failed to check for updates'), 'error');
     } finally {
       setCheckingForUpdates(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteAccountConfirm.trim() !== 'DELETE') return;
+
+    setIsDeletingAccount(true);
+    logger.log('[SettingsModal] Delete account initiated');
+
+    try {
+      const result = await deleteAccount();
+
+      if (result.error) {
+        showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account: ') + result.error, 'error');
+        logger.error('[SettingsModal] Delete account failed:', result.error);
+      } else {
+        showToast(t('settingsModal.deleteAccountSuccess', 'Account deleted successfully'), 'success');
+        logger.info('[SettingsModal] Account deleted successfully');
+        // Close the modal - user will be redirected to login
+        onClose();
+      }
+    } catch (error) {
+      showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account'), 'error');
+      logger.error('[SettingsModal] Delete account error:', error);
+    } finally {
+      setIsDeletingAccount(false);
+      setDeleteAccountConfirm('');
     }
   };
 
@@ -742,6 +772,64 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Data Tab */}
             {activeTab === 'data' && (
+            <>
+            {/* GDPR / Your Data Rights Section */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+              <h3 className="text-lg font-semibold text-slate-200">
+                {t('settingsModal.gdpr.title', 'Your Data Rights')}
+              </h3>
+              <p className="text-sm text-slate-300">
+                {t('settingsModal.gdpr.description', 'You have full control over your data. Use the options below to exercise your GDPR rights.')}
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.downloadTitle', 'Download Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.gdpr.downloadDescription', 'Export all your data (players, games, teams, etc.) to a backup file you can keep.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={onCreateBackup}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {t('settingsModal.gdpr.downloadButton', 'Download')}
+                  </button>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.deleteTitle', 'Delete Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {getBackendMode() === 'cloud'
+                        ? t('settingsModal.gdpr.deleteDescriptionCloud', 'To delete all cloud data, use the "Clear Cloud Data" option in the Premium tab.')
+                        : t('settingsModal.gdpr.deleteDescriptionLocal', 'To delete all local data, use the "Hard Reset App" option in the About tab.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab(getBackendMode() === 'cloud' ? 'premium' : 'about')}
+                    className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {t('settingsModal.gdpr.goToDelete', 'Go')}
+                  </button>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.correctTitle', 'Correct Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.gdpr.correctDescription', 'You can edit player names, game details, and all other data directly in the app at any time.')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Data Management Section */}
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.backupTitle', 'Data Management')}
@@ -801,6 +889,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </p>
             </div>
+            </>
             )}
 
             {/* About Tab */}
@@ -916,6 +1005,46 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 {t('settingsModal.hardResetButton', 'Hard Reset App')}
               </button>
+
+              {/* Delete Account - Only visible in cloud mode */}
+              {authMode === 'cloud' && (
+                <div className="mt-6 pt-4 border-t border-red-700/30">
+                  <h4 className="text-md font-semibold text-red-300 mb-2">
+                    {t('settingsModal.deleteAccountTitle', 'Delete Account')}
+                  </h4>
+                  <p className="text-sm text-red-200 mb-3">
+                    {t(
+                      'settingsModal.deleteAccountDescription',
+                      'Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.'
+                    )}
+                  </p>
+                  <label htmlFor="delete-account-confirm" className={labelStyle}>
+                    {t('settingsModal.confirmDeleteLabel', 'Type DELETE to confirm')}
+                  </label>
+                  <input
+                    id="delete-account-confirm"
+                    type="text"
+                    value={deleteAccountConfirm}
+                    onChange={(e) => setDeleteAccountConfirm(e.target.value)}
+                    className={inputStyle}
+                    disabled={isDeletingAccount}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteAccount();
+                    }}
+                    className={dangerButtonStyle}
+                    disabled={deleteAccountConfirm.trim() !== 'DELETE' || isDeletingAccount}
+                  >
+                    {isDeletingAccount
+                      ? t('settingsModal.deletingAccount', 'Deleting...')
+                      : t('settingsModal.deleteAccountButton', 'Delete Account')}
+                  </button>
+                </div>
+              )}
             </div>
             </>
             )}

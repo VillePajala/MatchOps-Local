@@ -42,6 +42,15 @@ When you purchase premium features:
 - We verify license status through Play Store API
 - We do not receive your payment information
 
+### Consent Records (Cloud Mode)
+When you accept our Terms of Service and Privacy Policy in Cloud Mode, we record:
+- Date and time of consent
+- Which policy version you accepted
+- Your IP address (for legal verification)
+- Your browser/device information
+
+This information is required for GDPR compliance to prove that consent was obtained. Consent records are retained even after account deletion for legal purposes.
+
 ## Data We Do NOT Collect
 
 - Names or personal details of players in your roster

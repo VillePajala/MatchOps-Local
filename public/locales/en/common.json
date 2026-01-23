@@ -1394,6 +1394,19 @@
     "noServiceWorker": "Service worker not registered",
     "updateCheckFailed": "Failed to check for updates",
     "backupDescription": "Export your data to a backup file or restore from a previous backup. All data will be replaced when restoring.",
+    "gdpr": {
+      "title": "Your Data Rights",
+      "description": "You have full control over your data. Use the options below to exercise your GDPR rights.",
+      "downloadTitle": "Download Your Data",
+      "downloadDescription": "Export all your data (players, games, teams, etc.) to a backup file you can keep.",
+      "downloadButton": "Download",
+      "deleteTitle": "Delete Your Data",
+      "deleteDescriptionCloud": "To delete all cloud data, use the \"Clear Cloud Data\" option in the Premium tab.",
+      "deleteDescriptionLocal": "To delete all local data, use the \"Hard Reset App\" option in the About tab.",
+      "goToDelete": "Go",
+      "correctTitle": "Correct Your Data",
+      "correctDescription": "You can edit player names, game details, and all other data directly in the app at any time."
+    },
     "importReadError": "Error reading backup file content.",
     "importGamesButton": "Import Games",
     "importing": "Importing...",
@@ -1420,7 +1433,14 @@
     "limitGames": "10 games per competition",
     "resetToFree": "Reset",
     "resetToFreeConfirm": "Reset to free version? (For testing)",
-    "resetToFreeSuccess": "Reset to free version"
+    "resetToFreeSuccess": "Reset to free version",
+    "deleteAccountTitle": "Delete Account",
+    "deleteAccountDescription": "Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.",
+    "confirmDeleteLabel": "Type DELETE to confirm",
+    "deleteAccountButton": "Delete Account",
+    "deletingAccount": "Deleting...",
+    "deleteAccountSuccess": "Account deleted successfully",
+    "deleteAccountFailed": "Failed to delete account"
   },
   "playerAssessmentModal": {
     "title": "Assess Performance",
@@ -1734,24 +1754,36 @@
   },
   "privacyPolicy": {
     "title": "Privacy Policy for MatchOps",
-    "lastUpdated": "Last Updated: December 2025",
+    "version": "Policy Version: 2025-01",
+    "lastUpdated": "Last Updated: January 2025",
     "overview": {
       "title": "Overview",
       "content": "MatchOps (\"we\", \"our\", \"the app\") is a local-first soccer coaching application. This privacy policy explains how we handle your information."
     },
     "dataStorage": {
       "title": "Data Storage",
-      "localDataTitle": "Local Data",
-      "localDataIntro": "All your data is stored locally on your device:",
+      "localDataTitle": "Local Data (Default)",
+      "localDataIntro": "By default, all your data is stored locally on your device:",
       "localDataItems": {
         "playerRosters": "Player rosters and information",
         "gameRecords": "Game records and statistics",
         "settings": "Settings and preferences",
         "seasonData": "Season and tournament data"
       },
-      "localDataNote": "We do not have access to this data. It never leaves your device unless you explicitly export it.",
-      "noAccountTitle": "No Account Required",
-      "noAccountContent": "MatchOps works entirely offline. No account creation, login, or personal information is required to use the app."
+      "localDataNote": "In local mode, we do not have access to this data. It never leaves your device unless you explicitly export it.",
+      "noAccountTitle": "No Account Required (Local Mode)",
+      "noAccountContent": "MatchOps works entirely offline in local mode. No account creation, login, or personal information is required.",
+      "cloudDataTitle": "Cloud Sync (Optional)",
+      "cloudDataIntro": "If you enable Cloud Sync with a Premium subscription, your data is stored on secure cloud servers:",
+      "cloudDataItems": {
+        "syncedData": "Player rosters, games, seasons, tournaments, and teams are synced to the cloud",
+        "encryption": "Data is encrypted in transit (TLS) and at rest",
+        "multiDevice": "Access your data from multiple devices",
+        "dataOwnership": "You retain full ownership of your data"
+      },
+      "cloudDataNote": "Cloud data is stored in secure data centers. You can delete your cloud data at any time from Settings.",
+      "dataRetentionTitle": "Data Retention",
+      "dataRetentionContent": "Cloud data is retained while your account is active. When you delete your cloud data or cancel your subscription, data is permanently removed within 30 days. Local data remains on your device until you clear it."
     },
     "dataWeCollect": {
       "title": "Data We May Collect",
@@ -1765,7 +1797,16 @@
       },
       "errorReportingNote": "This helps us fix bugs and improve the app. Error reports do not contain your game data or player information and are processed by Sentry.io.",
       "licenseValidationTitle": "Play Store License Validation",
-      "licenseValidationContent": "When you purchase premium features, Google Play handles all payment processing. We verify license status through Play Store API but do not receive your payment information."
+      "licenseValidationContent": "When you purchase premium features, Google Play handles all payment processing. We verify license status through Play Store API but do not receive your payment information.",
+      "consentTrackingTitle": "Consent Records (Cloud Mode)",
+      "consentTrackingIntro": "When you accept our Terms of Service and Privacy Policy in Cloud Mode, we record:",
+      "consentTrackingItems": {
+        "timestamp": "Date and time of consent",
+        "policyVersion": "Which policy version you accepted",
+        "ipAddress": "Your IP address (for legal verification)",
+        "userAgent": "Your browser/device information"
+      },
+      "consentTrackingNote": "This information is required for GDPR compliance to prove that consent was obtained. Consent records are retained even after account deletion for legal purposes."
     },
     "dataWeDoNotCollect": {
       "title": "Data We Do NOT Collect",
@@ -1785,13 +1826,22 @@
       "sentry": "Sentry",
       "sentryDesc": "Processes crash reports and errors.",
       "vercel": "Vercel",
-      "vercelDesc": "Hosts the PWA version."
+      "vercelDesc": "Hosts the PWA version.",
+      "supabase": "Supabase",
+      "supabaseDesc": "Provides cloud database and authentication services for Cloud Sync (Premium feature only)."
     },
     "yourRights": {
-      "title": "Your Rights",
-      "export": "Export your data using the app's export feature",
-      "delete": "Delete your data by clearing app data or uninstalling",
-      "contactUs": "Contact us with privacy concerns"
+      "title": "Your Rights (GDPR)",
+      "intro": "Under GDPR and applicable data protection laws, you have the right to:",
+      "access": "Access: View and export all your data at any time",
+      "rectification": "Rectification: Correct any inaccurate data directly in the app",
+      "erasure": "Erasure: Delete your local data or cloud data at any time",
+      "portability": "Portability: Export your data in standard JSON format",
+      "restriction": "Restriction: Switch to local-only mode to stop cloud processing",
+      "objection": "Objection: Contact us to object to any data processing",
+      "deleteLocal": "For local data: Use Settings → Data → Your Data Rights",
+      "deleteCloud": "For cloud data: Use Settings → Data → Your Data Rights",
+      "contactUs": "All data management options are available in Settings → Data tab"
     },
     "childrensPrivacy": {
       "title": "Children's Privacy",
@@ -1799,11 +1849,18 @@
     },
     "dataSecurity": {
       "title": "Data Security",
-      "intro": "Your data is protected by:",
-      "items": {
-        "encryption": "Device-level encryption (provided by Android)",
-        "localStorage": "Local-only storage",
-        "noTransmission": "No network transmission of game data"
+      "localIntro": "Local data is protected by:",
+      "localItems": {
+        "encryption": "Device-level encryption (provided by your operating system)",
+        "localStorage": "Local-only storage in browser IndexedDB",
+        "noTransmission": "No network transmission unless you enable Cloud Sync"
+      },
+      "cloudIntro": "Cloud data (when Cloud Sync is enabled) is protected by:",
+      "cloudItems": {
+        "tlsEncryption": "TLS encryption for all data in transit",
+        "atRestEncryption": "Encryption at rest in secure data centers",
+        "rowLevelSecurity": "Row-level security ensuring you can only access your own data",
+        "secureAuth": "Secure authentication with email verification"
       }
     },
     "changes": {
@@ -1812,7 +1869,7 @@
     },
     "contact": {
       "title": "Contact",
-      "intro": "For privacy questions or concerns:",
+      "intro": "Most data requests can be handled directly in the app (Settings → Data tab). For other questions:",
       "email": "Email",
       "github": "GitHub Issues"
     },
@@ -1820,7 +1877,8 @@
   },
   "termsOfService": {
     "title": "Terms of Service for MatchOps",
-    "lastUpdated": "Last Updated: December 2025",
+    "version": "Terms Version: 2025-01",
+    "lastUpdated": "Last Updated: January 2025",
     "agreement": {
       "title": "Agreement to Terms",
       "content": "By downloading, installing, or using MatchOps (\"the app\"), you agree to these Terms of Service. If you do not agree, do not use the app."
@@ -1898,7 +1956,32 @@
       "googlePlayDesc": "For app distribution and payments",
       "sentry": "Sentry",
       "sentryDesc": "For error reporting (optional)",
+      "supabase": "Supabase",
+      "supabaseDesc": "For cloud sync and authentication (Premium feature)",
       "note": "Your use of these services is governed by their respective terms and policies."
+    },
+    "premiumSubscription": {
+      "title": "Premium Subscription",
+      "intro": "MatchOps Premium is an optional subscription that provides additional features:",
+      "features": {
+        "cloudSync": "Cloud Sync: Access your data across multiple devices",
+        "unlimitedEntities": "Unlimited players, teams, seasons, and tournaments",
+        "prioritySupport": "Priority support"
+      },
+      "billing": "Subscriptions are billed through Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.",
+      "cancellation": "You can cancel your subscription at any time through Google Play. After cancellation, you retain access until the end of your billing period.",
+      "dataAfterCancel": "If you cancel Premium, your cloud data remains accessible in read-only mode. You can export or delete it at any time. After 90 days of inactivity, cloud data may be deleted."
+    },
+    "cloudSync": {
+      "title": "Cloud Sync Terms",
+      "intro": "When you enable Cloud Sync:",
+      "items": {
+        "ownership": "You retain ownership of all your data",
+        "availability": "We strive for high availability but do not guarantee uninterrupted access",
+        "backups": "You are responsible for maintaining local backups of critical data",
+        "security": "We implement industry-standard security measures to protect your data"
+      },
+      "deletion": "You can delete all cloud data at any time from Settings. Deletion is permanent and cannot be undone."
     },
     "changes": {
       "title": "Changes to the App",
@@ -1906,7 +1989,9 @@
     },
     "termination": {
       "title": "Termination",
-      "content": "We may terminate or suspend your access to the app immediately, without notice, if you breach these terms. Upon termination, your license to use the app ends."
+      "content": "We may terminate or suspend your access to the app immediately, without notice, if you breach these terms. Upon termination, your license to use the app ends.",
+      "cloudTermination": "If your account is terminated, you will lose access to Cloud Sync features. Your local data will remain on your device. Cloud data will be deleted within 30 days of termination.",
+      "voluntaryDeletion": "You can voluntarily delete your cloud account and data at any time from the Settings menu."
     },
     "governingLaw": {
       "title": "Governing Law",
@@ -1982,7 +2067,23 @@
     "signInLink": "Sign in",
     "backToSignIn": "Back to sign in",
     "networkErrorHint": "Please check your internet connection and try again.",
-    "useWithoutAccount": "Or continue without an account"
+    "useWithoutAccount": "Or continue without an account",
+    "termsConsent": "I have read and agree to the",
+    "termsLink": "Terms of Service",
+    "and": "and",
+    "privacyLink": "Privacy Policy",
+    "consentRequired": "You must accept the Terms of Service and Privacy Policy"
+  },
+  "reConsent": {
+    "title": "Updated Terms & Privacy Policy",
+    "description": "We have updated our Terms of Service and Privacy Policy. Please review and accept the new terms to continue using MatchOps.",
+    "version": "Policy Version",
+    "termsLink": "Terms of Service",
+    "privacyLink": "Privacy Policy",
+    "acceptCheckbox": "I have read and agree to the updated Terms of Service and Privacy Policy",
+    "accept": "Accept & Continue",
+    "accepting": "Accepting...",
+    "decline": "Decline & Sign Out"
   },
   "migration": {
     "title": "Migrate to Cloud",

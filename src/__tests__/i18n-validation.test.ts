@@ -257,15 +257,16 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Added: settingsModal.tabs.* (general, season, data, premium, about)
-      // Previous: 1961 → 1966
-      expect(enKeys.length).toBe(1966);
+      // Added: consent tracking keys in privacy policy (7 keys)
+      // Previous: 2042 → 2049
+      expect(enKeys.length).toBe(2049);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Added: settingsModal.tabs.* (general, season, data, premium, about)
-      expect(fiKeys.length).toBe(1966);
+      // Added: consent tracking keys in privacy policy (7 keys)
+      // Previous: 2042 → 2049
+      expect(fiKeys.length).toBe(2049);
     });
   });
 });

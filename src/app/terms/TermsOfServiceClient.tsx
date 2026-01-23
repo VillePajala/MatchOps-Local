@@ -10,7 +10,8 @@ export function TermsOfServiceClient() {
     <div className="min-h-screen bg-slate-900 text-slate-100 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">{t('termsOfService.title')}</h1>
-        <p className="text-slate-400 mb-8">{t('termsOfService.lastUpdated')}</p>
+        <p className="text-slate-400 mb-1">{t('termsOfService.lastUpdated')}</p>
+        <p className="text-slate-500 text-sm mb-8">{t('termsOfService.version')}</p>
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.agreement.title')}</h2>
@@ -106,8 +107,36 @@ export function TermsOfServiceClient() {
             <li>
               <strong>{t('termsOfService.thirdPartyServices.sentry')}</strong> - {t('termsOfService.thirdPartyServices.sentryDesc')}
             </li>
+            <li>
+              <strong>{t('termsOfService.thirdPartyServices.supabase')}</strong> - {t('termsOfService.thirdPartyServices.supabaseDesc')}
+            </li>
           </ul>
           <p className="text-slate-300 mt-2">{t('termsOfService.thirdPartyServices.note')}</p>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.premiumSubscription.title')}</h2>
+          <p className="text-slate-300 mb-3">{t('termsOfService.premiumSubscription.intro')}</p>
+          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-3">
+            <li>{t('termsOfService.premiumSubscription.features.cloudSync')}</li>
+            <li>{t('termsOfService.premiumSubscription.features.unlimitedEntities')}</li>
+            <li>{t('termsOfService.premiumSubscription.features.prioritySupport')}</li>
+          </ul>
+          <p className="text-slate-300 mb-2">{t('termsOfService.premiumSubscription.billing')}</p>
+          <p className="text-slate-300 mb-2">{t('termsOfService.premiumSubscription.cancellation')}</p>
+          <p className="text-slate-300">{t('termsOfService.premiumSubscription.dataAfterCancel')}</p>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.cloudSync.title')}</h2>
+          <p className="text-slate-300 mb-3">{t('termsOfService.cloudSync.intro')}</p>
+          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-3">
+            <li>{t('termsOfService.cloudSync.items.ownership')}</li>
+            <li>{t('termsOfService.cloudSync.items.availability')}</li>
+            <li>{t('termsOfService.cloudSync.items.backups')}</li>
+            <li>{t('termsOfService.cloudSync.items.security')}</li>
+          </ul>
+          <p className="text-slate-300">{t('termsOfService.cloudSync.deletion')}</p>
         </section>
 
         <section className="mb-8">
@@ -117,7 +146,9 @@ export function TermsOfServiceClient() {
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.termination.title')}</h2>
-          <p className="text-slate-300">{t('termsOfService.termination.content')}</p>
+          <p className="text-slate-300 mb-2">{t('termsOfService.termination.content')}</p>
+          <p className="text-slate-300 mb-2">{t('termsOfService.termination.cloudTermination')}</p>
+          <p className="text-slate-300">{t('termsOfService.termination.voluntaryDeletion')}</p>
         </section>
 
         <section className="mb-8">
@@ -131,8 +162,8 @@ export function TermsOfServiceClient() {
           <ul className="list-disc list-inside text-slate-300 space-y-1">
             <li>
               {t('termsOfService.contact.email')}:{' '}
-              <a href="mailto:valoraami@gmail.com" className="text-indigo-400 hover:underline">
-                valoraami@gmail.com
+              <a href="mailto:support@match-ops.com" className="text-indigo-400 hover:underline">
+                support@match-ops.com
               </a>
             </li>
             <li>

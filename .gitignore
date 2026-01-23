@@ -95,3 +95,6 @@ local.properties
 .env.keystore
 .env.signing
 .env*.local
+
+# Supabase CLI local config
+supabase/.temp/

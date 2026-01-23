@@ -2,7 +2,7 @@
  * Tests for retry utility with exponential backoff.
  */
 
-import { withRetry, isTransientError, wrapWithRetry } from '../retry';
+import { withRetry, isTransientError, wrapWithRetry, throwIfTransient, TransientSupabaseError } from '../retry';
 
 // Mock logger to suppress output during tests
 jest.mock('@/utils/logger', () => ({
@@ -195,6 +195,46 @@ describe('retry utility', () => {
       expect(result).toBe('wrapped success');
       expect(originalFn).toHaveBeenCalledTimes(2);
       expect(originalFn).toHaveBeenCalledWith('arg1', 123);
+    });
+  });
+
+  describe('throwIfTransient', () => {
+    it('should return result when no error', () => {
+      const result = { data: [{ id: '1' }], error: null };
+      expect(throwIfTransient(result)).toBe(result);
+    });
+
+    it('should return result when error is not transient', () => {
+      const result = { data: null, error: { message: 'Invalid input' } };
+      expect(throwIfTransient(result)).toBe(result);
+    });
+
+    it('should throw TransientSupabaseError for transient errors', () => {
+      const result = { data: null, error: { message: 'Network error' } };
+      expect(() => throwIfTransient(result)).toThrow(TransientSupabaseError);
+    });
+
+    it('should throw TransientSupabaseError for connection timeout', () => {
+      const result = { data: null, error: { message: 'Connection timed out' } };
+      expect(() => throwIfTransient(result)).toThrow(TransientSupabaseError);
+    });
+
+    it('should throw TransientSupabaseError for 503 status', () => {
+      const result = { data: null, error: { message: 'Service unavailable', status: 503 } };
+      expect(() => throwIfTransient(result)).toThrow(TransientSupabaseError);
+    });
+
+    it('should preserve original error in TransientSupabaseError', () => {
+      const originalError = { message: 'Fetch failed', code: 'NETWORK_ERROR' };
+      const result = { data: null, error: originalError };
+
+      try {
+        throwIfTransient(result);
+        fail('Expected TransientSupabaseError to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransientSupabaseError);
+        expect((error as TransientSupabaseError).originalError).toBe(originalError);
+      }
     });
   });
 });
