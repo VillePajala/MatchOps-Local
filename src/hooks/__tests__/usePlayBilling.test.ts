@@ -5,7 +5,7 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { usePlayBilling } from '../usePlayBilling';
+import { usePlayBilling, grantMockSubscription } from '../usePlayBilling';
 import * as playBilling from '@/utils/playBilling';
 
 // Mock the playBilling utilities
@@ -257,5 +257,31 @@ describe('usePlayBilling', () => {
 
       expect(result.current.details?.price).toBe('5.99');
     });
+  });
+});
+
+describe('grantMockSubscription', () => {
+  it('calls verify-subscription Edge Function with test token', async () => {
+    const result = await grantMockSubscription('test-token-123');
+
+    expect(result.success).toBe(true);
+  });
+
+  it('returns error when Edge Function fails', async () => {
+    // Override the mock for this test
+    const { getSupabaseClient } = jest.requireMock('@/datastore/supabase/client');
+    getSupabaseClient.mockReturnValueOnce({
+      functions: {
+        invoke: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Server error' },
+        }),
+      },
+    });
+
+    const result = await grantMockSubscription('test-token-456');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Server error');
   });
 });

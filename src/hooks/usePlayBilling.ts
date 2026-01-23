@@ -256,3 +256,20 @@ export function usePlayBilling(): UsePlayBillingResult {
 }
 
 export default usePlayBilling;
+
+/**
+ * Grant mock subscription for a user
+ *
+ * Creates a subscription record in Supabase by calling the verify-subscription
+ * Edge Function with a test token. The Edge Function must have MOCK_BILLING=true
+ * for this to work.
+ *
+ * Used for testing purposes - automatically grants subscription on signup for Android users.
+ *
+ * @param testToken - A test token (must start with 'test-' prefix)
+ * @returns BillingResult indicating success or failure
+ */
+export async function grantMockSubscription(testToken: string): Promise<BillingResult> {
+  logger.info('[usePlayBilling] Granting mock subscription with test token');
+  return verifyPurchaseWithServer(testToken);
+}

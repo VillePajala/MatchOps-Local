@@ -114,6 +114,21 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
+// Mock platform detection (defaults to non-Android so subscription grant is skipped in most tests)
+jest.mock('@/utils/platform', () => ({
+  isAndroid: jest.fn(() => false),
+}));
+
+// Mock playBilling functions
+jest.mock('@/utils/playBilling', () => ({
+  generateTestPurchaseToken: jest.fn(() => 'test-mock-token-123'),
+}));
+
+// Mock usePlayBilling hook exports
+jest.mock('@/hooks/usePlayBilling', () => ({
+  grantMockSubscription: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 // Test component to access auth context
 function TestComponent() {
   const { isAuthenticated, isLoading, mode, user } = useAuth();

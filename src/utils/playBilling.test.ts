@@ -8,6 +8,7 @@ import {
   purchaseSubscription,
   getExistingPurchases,
   isMockBillingEnabled,
+  generateTestPurchaseToken,
   SUBSCRIPTION_PRODUCT_ID,
 } from './playBilling';
 
@@ -28,6 +29,25 @@ describe('playBilling utilities', () => {
     it('returns false when NEXT_PUBLIC_MOCK_BILLING is not set', () => {
       // Mock billing disabled by default in test environment
       expect(isMockBillingEnabled()).toBe(false);
+    });
+  });
+
+  describe('generateTestPurchaseToken', () => {
+    it('generates a token with test- prefix', () => {
+      const token = generateTestPurchaseToken();
+      expect(token.startsWith('test-')).toBe(true);
+    });
+
+    it('generates unique tokens', () => {
+      const token1 = generateTestPurchaseToken();
+      const token2 = generateTestPurchaseToken();
+      expect(token1).not.toBe(token2);
+    });
+
+    it('generates tokens in expected format', () => {
+      const token = generateTestPurchaseToken();
+      // Format: test-{timestamp}-{random}
+      expect(token).toMatch(/^test-\d+-[a-z0-9]+$/);
     });
   });
 

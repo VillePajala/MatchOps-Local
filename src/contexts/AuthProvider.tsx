@@ -24,6 +24,9 @@ import type { User, Session, AuthState } from '@/interfaces/AuthTypes';
 import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
+import { isAndroid } from '@/utils/platform';
+import { generateTestPurchaseToken } from '@/utils/playBilling';
+import { grantMockSubscription } from '@/hooks/usePlayBilling';
 
 /**
  * Auth context value interface.
@@ -273,6 +276,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 tags: { flow: 'sign-up-consent' },
                 level: 'warning',
               });
+            }
+          }
+
+          // Grant mock subscription on Android signup
+          // This creates a subscription record in Supabase so the user can use cloud features
+          // For testing: MOCK_BILLING must be enabled on the Edge Function
+          if (isAndroid()) {
+            try {
+              const testToken = generateTestPurchaseToken();
+              const subscriptionResult = await grantMockSubscription(testToken);
+              if (subscriptionResult.success) {
+                logger.info('[AuthProvider] Mock subscription granted on Android signup');
+              } else {
+                // Log but don't fail signup - user can still use the app
+                logger.warn('[AuthProvider] Failed to grant mock subscription:', subscriptionResult.error);
+              }
+            } catch (subscriptionError) {
+              // Non-critical: subscription will be checked on next login
+              logger.warn('[AuthProvider] Error granting mock subscription:', subscriptionError);
             }
           }
         }

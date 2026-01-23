@@ -305,3 +305,15 @@ export async function getExistingPurchases(): Promise<string[]> {
 export function isMockBillingEnabled(): boolean {
   return MOCK_BILLING;
 }
+
+/**
+ * Generate a test purchase token for mock subscription
+ *
+ * Used for testing purposes - generates a token that the Edge Function
+ * will accept when MOCK_BILLING=true is set in Supabase secrets.
+ *
+ * @returns A test token with 'test-' prefix
+ */
+export function generateTestPurchaseToken(): string {
+  return `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
