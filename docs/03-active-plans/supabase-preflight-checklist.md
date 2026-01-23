@@ -5,42 +5,18 @@
 
 ---
 
-## ⛔ CRITICAL: Branching Rules
-
-### NEVER merge to master until ALL 8 PRs are complete!
-
-```
-⛔ DO NOT: Create PRs to master for Supabase work
-⛔ DO NOT: Merge any supabase/* branch to master
-⛔ DO NOT: Push Supabase code directly to master
-
-✅ DO: Create PRs to feature/supabase-cloud-backend
-✅ DO: Wait until all 8 PRs are merged to feature branch
-✅ DO: Only then create final PR to master
-```
-
-**Why?** Master is production. Partial Supabase implementation = broken app. Local mode must stay perfect.
-
----
-
 ## Before Starting Any PR
 
 ```bash
-# 1. Run the automated verification script
-npx ts-node scripts/verify-supabase-plan.ts
-
-# 2. Ensure tests pass
-npm test
-
-# 3. Ensure build passes
-npm run build
-
-# 4. Create branch from correct base (NOT master!)
+# 1. Ensure on feature branch
 git checkout feature/supabase-cloud-backend
 git pull origin feature/supabase-cloud-backend
+
+# 2. Create PR branch
 git checkout -b supabase/prX-name
 
-# 5. When creating PR, target feature/supabase-cloud-backend (NOT master!)
+# 3. Run tests
+npm test && npm run build
 ```
 
 ---
@@ -360,6 +336,68 @@ All transforms implemented per CLAUDE.md Rules 1-19:
 - [x] RLS policies protect all user data
 - [x] Migration wizard appears for cloud users with local data
 - [x] Skip option doesn't permanently dismiss wizard
+
+---
+
+## PR #10: Cloud Data Management ✅ MERGED
+
+### Implementation Checklist
+- [x] Add migration mode selection (Replace/Merge) to MigrationWizard
+- [x] Add `clearAllCloudData()` to migrationService
+- [x] Add "Clear Cloud Data" option to SettingsModal CloudSyncSection
+- [x] Confirmation modal for destructive operations
+- [x] Add translation keys for new UI elements
+
+### Acceptance Criteria
+- [x] Users can choose migration strategy
+- [x] Cloud data can be cleared from settings
+- [x] Destructive actions require confirmation
+
+---
+
+## PR #11: Reverse Migration & Cloud Account ✅ MERGED
+
+### Implementation Checklist
+- [x] Add `migrateCloudToLocal()` to migrationService
+- [x] Add reverse migration option to CloudSyncSection
+- [x] Update WelcomeScreen for cloud mode sign-in flow
+- [x] Add `getCloudDataSummary()` for data counts
+- [x] Add translation keys for reverse migration UI
+
+### Acceptance Criteria
+- [x] Users can migrate cloud data back to local
+- [x] WelcomeScreen handles cloud mode properly
+- [x] Data counts shown before migration
+
+---
+
+## PR #12: Migration Wizard Redesign 🚧 IN PROGRESS
+
+### Problem Statement
+Original wizard only handled one scenario (local has data, cloud is empty). Need to handle all four scenarios in the matrix.
+
+### Scenario Matrix
+| Local | Cloud | Wizard Behavior |
+|-------|-------|-----------------|
+| Empty | Empty | No wizard - proceed to app |
+| Has data | Empty | Migrate / Start Fresh / Cancel |
+| Empty | Has data | No wizard - use cloud data |
+| Has data | Has data | Merge / Replace Cloud / Keep Cloud / Cancel |
+
+### Implementation Checklist
+- [ ] Add `getCloudCounts()` to migrationService
+- [ ] Update MigrationWizard to detect scenario
+- [ ] Implement "Local only" scenario UI
+- [ ] Implement "Both have data" scenario UI
+- [ ] Remove "Skip" option
+- [ ] "Cancel" returns to local mode
+- [ ] EN/FI translations for new wizard text
+- [ ] Unit tests for scenario detection and merge logic
+
+### Acceptance Criteria
+- [ ] Wizard handles all four data scenarios
+- [ ] No orphaned data after wizard completion
+- [ ] Clear user feedback for each option
 
 ---
 

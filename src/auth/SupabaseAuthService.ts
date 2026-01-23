@@ -193,15 +193,16 @@ export class SupabaseAuthService implements AuthService {
   // ==========================================================================
 
   async initialize(): Promise<void> {
+    // Promise deduplication FIRST: if initialization is already in progress, wait for it
+    // This check must come before the initialized check to prevent race conditions
+    // where two calls both pass the initialized check before either sets initPromise
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
     // Return immediately if already initialized
     if (this.initialized) {
       return;
-    }
-
-    // Promise deduplication: if initialization is already in progress, wait for it
-    // This prevents concurrent initialize() calls from racing
-    if (this.initPromise) {
-      return this.initPromise;
     }
 
     // Create and cache the initialization promise

@@ -12,6 +12,8 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 | `003_fix_composite_uniqueness.sql` | Removes overly restrictive unique constraints |
 | `004_add_series_gin_index.sql` | Adds GIN index for tournaments.series JSONB queries |
 | `005_clear_all_user_data.sql` | Adds RPC for atomic deletion of all user data |
+| `006_backfill_games_created_at.sql` | Backfills created_at for existing games |
+| `007_add_tactical_data_user_index.sql` | Adds missing user_id index on game_tactical_data |
 
 ## Deployment Order
 
@@ -23,6 +25,8 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 4. `003_fix_composite_uniqueness.sql` - Fixes unique constraints for composite keys
 5. `004_add_series_gin_index.sql` - Adds performance index for tournaments
 6. `005_clear_all_user_data.sql` - Adds RPC for "Clear All Cloud Data" feature
+7. `006_backfill_games_created_at.sql` - Backfills created_at for existing games
+8. `007_add_tactical_data_user_index.sql` - Adds missing user_id index for RLS performance
 
 ## Quick Deploy
 
@@ -42,7 +46,7 @@ supabase db push
 ### Option 2: Manual via SQL Editor
 
 1. Open Supabase Dashboard > SQL Editor
-2. Copy/paste each file in order (000 → 001 → 002 → 003 → 004 → 005)
+2. Copy/paste each file in order (000 → 007)
 3. Run each script and verify no errors
 
 ## Verification

@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Healthy
 
-**Last Updated**: January 5, 2026
+**Last Updated**: January 23, 2026
 
 ### Quick Stats
-- ✅ **3,203 tests** passing across 182 suites
+- ✅ **3,500+ tests** passing
 - ✅ **0 security vulnerabilities**
 - ✅ **Next.js 16.0.10 + React 19.2**
 - ✅ **HomePage**: 62 lines (was 3,725)
@@ -22,11 +22,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Next.js 16.0.10 + React 19.2 upgrade**
 - Layer 3 performance polish
 - Test coverage improvement (+694 tests)
-- **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory (PR #137 ready to merge)
+- **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory
+- **Supabase Cloud Backend PRs 1-11** ✅ - See PR Summary below
 
 ### What's Next
-- **Supabase Cloud Backend (Phase 4)** - IN PROGRESS
-- **Play Store Release**: See master-execution-guide.md
+- **Supabase PR #12: Migration Wizard Redesign** - IN PROGRESS
+- **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
 
 ### Essential Reading
 - **[supabase-implementation-guide.md](./docs/03-active-plans/supabase-implementation-guide.md)** ⭐ **Active implementation plan**
@@ -305,82 +306,15 @@ const seasons = await localDataStore.getSeasons(true);          // Computes club
 
 ---
 
-### 🚫 BRANCHING STRATEGY — READ CAREFULLY
+### Branching Strategy
 
-#### ⛔ NEVER MERGE TO MASTER UNTIL ALL 8 PRs ARE COMPLETE
+All Supabase work happens on `feature/supabase-cloud-backend`. Sub-PRs (e.g., `supabase/pr12-*`) target the feature branch, not master.
 
-```
-master (production) ← PROTECTED: NO SUPABASE CODE UNTIL 100% COMPLETE
-│
-│   ⛔ DO NOT CREATE PRs TO MASTER FOR SUPABASE WORK
-│   ⛔ DO NOT MERGE ANY SUPABASE BRANCH TO MASTER
-│   ⛔ DO NOT PUSH SUPABASE CODE DIRECTLY TO MASTER
-│
-└── feature/supabase-cloud-backend (MASTER FEATURE BRANCH)
-    │
-    │   ✅ ALL Supabase PRs target THIS branch
-    │   ✅ This branch accumulates all 8 PRs
-    │   ✅ Only merged to master when EVERYTHING works
-    │
-    ├── supabase/pr1-foundation        → PR to feature/supabase-cloud-backend
-    ├── supabase/pr2-supabase-client   → PR to feature/supabase-cloud-backend
-    ├── supabase/pr3-datastore-core    → PR to feature/supabase-cloud-backend
-    ├── supabase/pr4-datastore-games   → PR to feature/supabase-cloud-backend
-    ├── supabase/pr5-auth-service      → PR to feature/supabase-cloud-backend
-    ├── supabase/pr6-migration         → PR to feature/supabase-cloud-backend
-    ├── supabase/pr7-performance       → PR to feature/supabase-cloud-backend
-    └── supabase/pr8-integration       → PR to feature/supabase-cloud-backend
-                                       │
-                                       └── FINAL: PR to master (ONLY when ALL 8 complete + tested)
-```
-
-#### Why This Matters
-
-- **master is production** — users are running this code
-- **Partial Supabase = broken app** — cloud mode won't work until all pieces exist
-- **Local mode must stay perfect** — any regression breaks existing users
-- **Feature branch isolates risk** — we can test everything together before release
-
-#### Branch Commands
-
-```bash
-# Starting work on a new PR (e.g., PR #3)
-git checkout feature/supabase-cloud-backend
-git pull origin feature/supabase-cloud-backend
-git checkout -b supabase/pr3-datastore-core
-
-# When PR is ready (after review)
-# Create PR: supabase/pr3-datastore-core → feature/supabase-cloud-backend
-# ⛔ NOT: supabase/pr3-datastore-core → master
-
-# After PR is merged, start next PR
-git checkout feature/supabase-cloud-backend
-git pull origin feature/supabase-cloud-backend
-git checkout -b supabase/pr4-datastore-games
-```
-
-#### Final Merge Criteria (ALL must be true)
-
-Before creating the final PR from `feature/supabase-cloud-backend` → `master`:
-
-- [ ] All 8 sub-PRs merged to feature branch
-- [ ] `npm test` passes (3,200+ tests)
+**Final Merge Criteria** (before `feature/supabase-cloud-backend` → `master`):
+- [ ] All sub-PRs merged to feature branch
+- [ ] `npm test` passes
 - [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Manual test: Local mode full workflow works
-- [ ] Manual test: Cloud mode full workflow works
-- [ ] Manual test: Migration from local → cloud works
-- [ ] Manual test: Mode switching works
-- [ ] Code review completed by user
-
-### PR Workflow Rules
-
-1. **All sub-PRs target `feature/supabase-cloud-backend`** (NEVER master)
-2. **Each PR from its own branch**: `supabase/pr1-foundation`, `supabase/pr2-supabase-client`, etc.
-3. **Final merge to master only when all 8 PRs are complete and tested**
-4. **Before each PR**: Run `npx ts-node scripts/verify-supabase-plan.ts`
-5. **During each PR**: Follow the checklist in `supabase-preflight-checklist.md`
-6. **If asked to merge to master**: REFUSE and explain the branching strategy
+- [ ] Manual test: Local mode, cloud mode, migration, mode switching
 
 ### Review Process (IMPORTANT)
 
@@ -406,16 +340,20 @@ Before creating the final PR from `feature/supabase-cloud-backend` → `master`:
 
 ### PR Summary
 
-| PR | Branch | Description | Critical Rules |
-|----|--------|-------------|----------------|
-| 1 | `supabase/pr1-foundation` | backendConfig.ts, mode detection | — |
-| 2 | `supabase/pr2-supabase-client` | Supabase client singleton, lazy loading | — |
-| 3 | `supabase/pr3-datastore-core` | Core CRUD (players, teams, seasons, etc.) | Rules 6, 7, 9, **13, 16, 17** |
-| 4 | `supabase/pr4-datastore-games` | Game transforms, all DataStore methods | **Rules 1-5, 8, 10, 11, 14, 15** |
-| 5 | `supabase/pr5-auth-service` | SupabaseAuthService implementation | Rule 12 |
-| 6 | `supabase/pr6-migration` | Local → Cloud migration service | Rules 1-9, 13, **18** |
-| 7 | `supabase/pr7-performance` | QueryProvider optimization | Rule **19** |
-| 8 | `supabase/pr8-integration` | UI, integration tests, polish | Verify all **19 rules** |
+| PR | Status | Description |
+|----|--------|-------------|
+| 1 | ✅ | Foundation - backendConfig.ts, mode detection |
+| 2 | ✅ | Supabase client singleton, lazy loading |
+| 3 | ✅ | SupabaseDataStore core CRUD (players, teams, seasons, etc.) |
+| 4 | ✅ | SupabaseDataStore games - transforms, all DataStore methods |
+| 5 | ✅ | SupabaseAuthService + Auth UI |
+| 6 | ✅ | Migration service (local → cloud) |
+| 7 | ✅ | QueryProvider optimization |
+| 8 | ✅ | Integration & final polish |
+| 9 | ✅ | Infrastructure & Migration UI (SQL migrations, MigrationWizard) |
+| 10 | ✅ | Cloud Data Management (clear cloud data, migration modes) |
+| 11 | ✅ | Reverse Migration & Cloud Account (cloud → local, WelcomeScreen) |
+| **12** | 🚧 | **Migration Wizard Redesign** (scenario matrix, merge logic) |
 
 ---
 

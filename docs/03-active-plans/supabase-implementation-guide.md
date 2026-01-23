@@ -117,50 +117,22 @@ Or runtime detection:
 
 ### 2.1 Branching Strategy
 
-#### ⛔ CRITICAL: NOTHING GOES TO MASTER UNTIL ALL 8 PRs ARE COMPLETE
+All Supabase work happens on `feature/supabase-cloud-backend`. Sub-PRs target this branch, not master.
 
-```
-master (production) ← PROTECTED: NO SUPABASE CODE UNTIL 100% COMPLETE
-│
-│   ⛔ DO NOT CREATE PRs TO MASTER FOR SUPABASE WORK
-│   ⛔ DO NOT MERGE ANY SUPABASE BRANCH TO MASTER
-│   ⛔ DO NOT PUSH SUPABASE CODE DIRECTLY TO MASTER
-│
-└── feature/supabase-cloud-backend (MASTER FEATURE BRANCH)
-    │
-    │   ✅ ALL Supabase PRs target THIS branch
-    │   ✅ This branch accumulates all 8 PRs
-    │   ✅ Only merged to master when EVERYTHING works
-    │
-    ├── supabase/pr1-foundation        → PR to feature/supabase-cloud-backend
-    ├── supabase/pr2-supabase-client   → PR to feature/supabase-cloud-backend
-    ├── supabase/pr3-datastore-core    → PR to feature/supabase-cloud-backend
-    ├── supabase/pr4-datastore-games   → PR to feature/supabase-cloud-backend
-    ├── supabase/pr5-auth-service      → PR to feature/supabase-cloud-backend
-    ├── supabase/pr6-migration         → PR to feature/supabase-cloud-backend
-    ├── supabase/pr7-performance       → PR to feature/supabase-cloud-backend
-    └── supabase/pr8-integration       → PR to feature/supabase-cloud-backend
-                                       │
-                                       └── FINAL: PR to master (ONLY when ALL 8 complete + tested)
-```
+#### PR Progress
 
-#### Why This Strategy?
-
-| Reason | Explanation |
-|--------|-------------|
-| **master is production** | Real users are running code from master |
-| **Partial Supabase = broken app** | Cloud mode requires ALL pieces to work |
-| **Local mode must stay perfect** | Any regression breaks existing users |
-| **Feature branch isolates risk** | We can test everything together before release |
+| PR | Status | Description |
+|----|--------|-------------|
+| 1-11 | ✅ | Foundation through Reverse Migration |
+| **12** | 🚧 | Migration Wizard Redesign (in progress) |
 
 #### Final Merge Criteria
 
-Before creating the final PR `feature/supabase-cloud-backend` → `master`:
+Before creating `feature/supabase-cloud-backend` → `master`:
 
-- [ ] All 8 sub-PRs merged to feature branch
-- [ ] `npm test` passes (3,200+ tests)
+- [ ] All sub-PRs merged to feature branch
+- [ ] `npm test` passes
 - [ ] `npm run build` passes
-- [ ] `npm run lint` passes
 - [ ] Manual test: Local mode full workflow works
 - [ ] Manual test: Cloud mode full workflow works
 - [ ] Manual test: Migration local → cloud works
@@ -204,7 +176,7 @@ Before creating the final PR `feature/supabase-cloud-backend` → `master`:
 
 **⚠️ USER MUST REVIEW AND APPROVE EVERY PR - NO EXCEPTIONS**
 
-For **each** of the 8 PRs, the process is:
+For **each** PR, the process is:
 
 1. **Implementation complete** → Claude reports "Ready for review"
 2. **User says "review changes"** → Claude performs senior engineer code review
@@ -622,7 +594,7 @@ Before merging any PR to `feature/supabase-cloud-backend`:
 
 Before creating PR from `feature/supabase-cloud-backend` → `master`:
 
-- [ ] All 8 sub-PRs merged to feature branch
+- [ ] All sub-PRs merged to feature branch
 - [ ] Full integration test suite passes
 - [ ] Manual testing completed:
   - [ ] Fresh install → local mode works
@@ -4028,7 +4000,7 @@ coverageThreshold: {
 
 ### 10.1 Overview: What's Still Missing After PR #8
 
-After all 8 PRs are merged to the feature branch, you have:
+After all PRs are merged to the feature branch, you have:
 - ✅ All application code (DataStore, AuthService, UI components)
 - ✅ All unit tests passing
 - ✅ RPC functions SQL file (`supabase/migrations/001_rpc_functions.sql`)
