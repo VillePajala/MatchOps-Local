@@ -60,9 +60,13 @@ const mockAuth = {
   }),
 };
 
+// Mock RPC function
+const mockRpc = jest.fn();
+
 // Mock Supabase client
 const mockSupabaseClient = {
   auth: mockAuth,
+  rpc: mockRpc,
 } as unknown as SupabaseClient<Database>;
 
 // Mock getSupabaseClient
@@ -512,6 +516,182 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(authService.getCurrentUser()).rejects.toThrow(NetworkError);
+    });
+  });
+
+  // ==========================================================================
+  // CONSENT MANAGEMENT (GDPR)
+  // ==========================================================================
+
+  describe('consent management', () => {
+    beforeEach(async () => {
+      // Sign in to have a current user
+      mockAuth.getSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+      mockAuth.signInWithPassword.mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
+        error: null,
+      });
+      await authService.initialize();
+      await authService.signIn('test@example.com', 'Password123!@#');
+    });
+
+    describe('recordConsent', () => {
+      it('should call RPC with correct parameters', async () => {
+        mockRpc.mockResolvedValue({
+          data: {
+            id: 'consent_123',
+            user_id: mockUser.id,
+            consent_type: 'terms_and_privacy',
+            policy_version: '2025-01',
+            consented_at: new Date().toISOString(),
+          },
+          error: null,
+        });
+
+        await authService.recordConsent('2025-01', {
+          ipAddress: '192.168.1.1',
+          userAgent: 'Mozilla/5.0',
+        });
+
+        expect(mockRpc).toHaveBeenCalledWith('record_user_consent', {
+          p_consent_type: 'terms_and_privacy',
+          p_policy_version: '2025-01',
+          p_ip_address: '192.168.1.1',
+          p_user_agent: 'Mozilla/5.0',
+        });
+      });
+
+      it('should pass null for optional parameters', async () => {
+        mockRpc.mockResolvedValue({ data: {}, error: null });
+
+        await authService.recordConsent('2025-01');
+
+        expect(mockRpc).toHaveBeenCalledWith('record_user_consent', {
+          p_consent_type: 'terms_and_privacy',
+          p_policy_version: '2025-01',
+          p_ip_address: null,
+          p_user_agent: null,
+        });
+      });
+
+      it('should throw AuthError on RPC failure', async () => {
+        mockRpc.mockResolvedValue({
+          data: null,
+          error: { message: 'RPC error' },
+        });
+
+        await expect(authService.recordConsent('2025-01')).rejects.toThrow(AuthError);
+      });
+
+      it('should throw AuthError if not authenticated', async () => {
+        // Reset to unauthenticated state
+        authService = new SupabaseAuthService();
+        mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+        await authService.initialize();
+
+        await expect(authService.recordConsent('2025-01')).rejects.toThrow(AuthError);
+      });
+    });
+
+    describe('hasConsentedToVersion', () => {
+      it('should return true when user has consented to specified version', async () => {
+        mockRpc.mockResolvedValue({
+          data: {
+            policy_version: '2025-01',
+            consented_at: new Date().toISOString(),
+          },
+          error: null,
+        });
+
+        const result = await authService.hasConsentedToVersion('2025-01');
+
+        expect(result).toBe(true);
+        expect(mockRpc).toHaveBeenCalledWith('get_user_consent', {
+          p_consent_type: 'terms_and_privacy',
+        });
+      });
+
+      it('should return false when user has consented to different version', async () => {
+        mockRpc.mockResolvedValue({
+          data: {
+            policy_version: '2024-01', // Different version
+            consented_at: new Date().toISOString(),
+          },
+          error: null,
+        });
+
+        const result = await authService.hasConsentedToVersion('2025-01');
+
+        expect(result).toBe(false);
+      });
+
+      it('should return false when no consent record exists', async () => {
+        mockRpc.mockResolvedValue({
+          data: null,
+          error: null,
+        });
+
+        const result = await authService.hasConsentedToVersion('2025-01');
+
+        expect(result).toBe(false);
+      });
+
+      it('should throw AuthError if not authenticated', async () => {
+        authService = new SupabaseAuthService();
+        mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+        await authService.initialize();
+
+        await expect(authService.hasConsentedToVersion('2025-01')).rejects.toThrow(AuthError);
+      });
+    });
+
+    describe('getLatestConsent', () => {
+      it('should return consent record when exists', async () => {
+        const consentedAt = new Date().toISOString();
+        mockRpc.mockResolvedValue({
+          data: {
+            id: 'consent_123',
+            policy_version: '2025-01',
+            consented_at: consentedAt,
+          },
+          error: null,
+        });
+
+        const result = await authService.getLatestConsent();
+
+        expect(result).toEqual({
+          policyVersion: '2025-01',
+          consentedAt: consentedAt,
+        });
+      });
+
+      it('should return null when no consent record exists', async () => {
+        mockRpc.mockResolvedValue({
+          data: null,
+          error: null,
+        });
+
+        const result = await authService.getLatestConsent();
+
+        expect(result).toBeNull();
+      });
+
+      it('should throw AuthError on RPC failure', async () => {
+        mockRpc.mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
+        });
+
+        await expect(authService.getLatestConsent()).rejects.toThrow(AuthError);
+      });
+
+      it('should throw AuthError if not authenticated', async () => {
+        authService = new SupabaseAuthService();
+        mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+        await authService.initialize();
+
+        await expect(authService.getLatestConsent()).rejects.toThrow(AuthError);
+      });
     });
   });
 });

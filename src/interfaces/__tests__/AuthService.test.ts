@@ -111,6 +111,9 @@ describe('AuthService Interface Exports', () => {
         getSession: async () => null,
         refreshSession: async () => null,
         onAuthStateChange: () => () => {},
+        recordConsent: async () => {},
+        hasConsentedToVersion: async () => true,
+        getLatestConsent: async () => null,
       };
 
       expect(mockAuth).toBeDefined();
