@@ -234,6 +234,8 @@ const allowedConsolePatterns = [
   '[factory]',
   // SupabaseDataStore warnings (expected fallback behavior in tests)
   '[SupabaseDataStore]',
+  // MigrationService errors/warnings (expected in migration failure tests)
+  '[MigrationService]',
 ];
 
 const shouldFailOnConsoleMessage = (message) => {

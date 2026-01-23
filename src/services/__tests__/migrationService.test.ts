@@ -475,8 +475,8 @@ describe('migrationService', () => {
     });
   });
 
-  describe('concurrent migration prevention', () => {
-    it('should prevent starting a migration while one is in progress', async () => {
+  describe('concurrent migration prevention (Promise deduplication)', () => {
+    it('should return same promise for concurrent calls (deduplication)', async () => {
       createMockLocalStore();
       const mockCloud = createMockCloudStore();
 
@@ -490,22 +490,22 @@ describe('migrationService', () => {
       // Start first migration (it will hang on upsertPlayer)
       const migration1Promise = migrateLocalToCloud(() => {});
 
-      // Try to start second migration immediately
-      const migration2Result = await migrateLocalToCloud(() => {});
+      // Start second migration immediately - should wait for first
+      const migration2Promise = migrateLocalToCloud(() => {});
 
-      // Second migration should fail with concurrent error
-      expect(migration2Result.success).toBe(false);
-      expect(migration2Result.errors[0]).toContain('already in progress');
-
-      // Complete first migration
+      // Complete the migration
       resolveUpsertPlayer!();
-      const migration1Result = await migration1Promise;
 
-      // First migration should succeed
-      expect(migration1Result.success).toBe(true);
+      // Both promises should resolve to the same successful result
+      const [result1, result2] = await Promise.all([migration1Promise, migration2Promise]);
+
+      expect(result1.success).toBe(true);
+      expect(result2.success).toBe(true);
+      // Both should have same counts (same migration)
+      expect(result1.migrated.players).toBe(result2.migrated.players);
     });
 
-    it('should release lock even when migration fails', async () => {
+    it('should reset promise after migration completes (allows new migration)', async () => {
       createMockLocalStore();
       const mockCloud = createMockCloudStore();
 
@@ -518,14 +518,14 @@ describe('migrationService', () => {
       const result1 = await migrateLocalToCloud(() => {});
       expect(result1.success).toBe(false);
 
-      // Lock should be released - second migration should be able to start
+      // Promise should be reset - second migration should start fresh
       mockCloud.upsertPlayer.mockResolvedValue(mockPlayer);
       const result2 = await migrateLocalToCloud(() => {});
 
-      // Second migration should succeed (lock was released)
-      // If lock wasn't released, we'd get "already in progress" error
-      const hasLockError = result2.errors.some((e) => e.includes('already in progress'));
-      expect(hasLockError).toBe(false);
+      // Second migration should succeed (new migration, not waiting for old one)
+      expect(result2.success).toBe(true);
+      // Should have migrated players (proves it ran a new migration)
+      expect(result2.migrated.players).toBe(1);
 
       errorSpy.mockRestore();
     });
