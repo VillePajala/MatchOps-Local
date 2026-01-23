@@ -61,6 +61,18 @@ export async function getDataStore(): Promise<DataStore> {
   // This handles the case where user enables/disables cloud sync
   if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
     log.info(`[factory] Mode changed from ${dataStoreCreatedForMode} to ${currentMode} - resetting DataStore`);
+
+    // If switching FROM cloud mode, clean up Supabase resources
+    // This prevents stale auth subscriptions and memory leaks
+    if (dataStoreCreatedForMode === 'cloud') {
+      try {
+        const { cleanupSupabaseClient } = await import('./supabase/client');
+        await cleanupSupabaseClient();
+      } catch (e) {
+        log.warn('[factory] Error cleaning up Supabase client during mode change');
+      }
+    }
+
     // Close the old instance
     try {
       await dataStoreInstance.close();

@@ -78,6 +78,46 @@ export function resetSupabaseClient(): void {
 }
 
 /**
+ * Clean up the Supabase client for hot mode switching.
+ *
+ * This function properly cleans up the Supabase client when switching
+ * from cloud mode to local mode without a page reload:
+ * 1. Signs out the user (clears session from localStorage)
+ * 2. Removes all realtime subscriptions
+ * 3. Nulls the singleton reference
+ *
+ * Call this before switching to local mode to prevent:
+ * - Stale auth subscriptions firing
+ * - Memory leaks from realtime channels
+ * - Orphaned session data
+ *
+ * @returns Promise that resolves when cleanup is complete
+ */
+export async function cleanupSupabaseClient(): Promise<void> {
+  if (!supabaseClient) {
+    return;
+  }
+
+  try {
+    // Sign out to clear session and stop token refresh
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+      logger.warn('[Supabase] Error during sign out cleanup:', error.message);
+    }
+
+    // Remove all realtime subscriptions
+    await supabaseClient.removeAllChannels();
+
+    logger.info('[Supabase] Client cleaned up for mode switch');
+  } catch (err) {
+    // Log but don't throw - cleanup is best-effort
+    logger.warn('[Supabase] Error during client cleanup:', err);
+  } finally {
+    supabaseClient = null;
+  }
+}
+
+/**
  * Check if the Supabase client has been initialized.
  *
  * Useful for checking client state without triggering initialization.
