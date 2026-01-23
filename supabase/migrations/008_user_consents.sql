@@ -23,9 +23,12 @@
 
 CREATE TABLE IF NOT EXISTS user_consents (
   id text PRIMARY KEY,  -- Format: consent_{timestamp}_{random}
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  -- GDPR: user_id is nullable and uses SET NULL on delete
+  -- This retains consent records for legal compliance after account deletion
+  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   consent_type text NOT NULL CHECK (consent_type IN ('terms_and_privacy', 'marketing')),
-  policy_version text NOT NULL,  -- e.g., '2025-01' for January 2025 policy
+  -- Policy version format: YYYY-MM (e.g., '2025-01')
+  policy_version text NOT NULL CHECK (policy_version ~ '^\d{4}-\d{2}$'),
   consented_at timestamptz NOT NULL DEFAULT now(),
   ip_address text,  -- Optional: for audit trail
   user_agent text,  -- Optional: browser/device info
@@ -49,9 +52,11 @@ ALTER TABLE user_consents ENABLE ROW LEVEL SECURITY;
 -- Drop existing policy if it exists (for idempotency)
 DROP POLICY IF EXISTS "Users can only access their own consents" ON user_consents;
 
+-- Policy allows access only to own consents (user_id must match and not be NULL)
+-- After account deletion, user_id becomes NULL and records are inaccessible but retained
 CREATE POLICY "Users can only access their own consents"
   ON user_consents FOR ALL
-  USING (auth.uid() = user_id);
+  USING (user_id IS NOT NULL AND auth.uid() = user_id);
 
 -- ============================================================================
 -- RPC Function: record_user_consent
@@ -86,6 +91,11 @@ BEGIN
   -- Validate consent_type
   IF p_consent_type NOT IN ('terms_and_privacy', 'marketing') THEN
     RAISE EXCEPTION 'Invalid consent_type: %', p_consent_type;
+  END IF;
+
+  -- Validate policy_version format (YYYY-MM)
+  IF p_policy_version !~ '^\d{4}-\d{2}$' THEN
+    RAISE EXCEPTION 'Invalid policy_version format. Expected YYYY-MM, got: %', p_policy_version;
   END IF;
 
   -- Generate consent ID

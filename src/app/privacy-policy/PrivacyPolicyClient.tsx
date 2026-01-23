@@ -58,7 +58,16 @@ export function PrivacyPolicyClient() {
           </ul>
           <p className="text-slate-300 mb-4">{t('privacyPolicy.dataWeCollect.errorReportingNote')}</p>
           <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataWeCollect.licenseValidationTitle')}</h3>
-          <p className="text-slate-300">{t('privacyPolicy.dataWeCollect.licenseValidationContent')}</p>
+          <p className="text-slate-300 mb-4">{t('privacyPolicy.dataWeCollect.licenseValidationContent')}</p>
+          <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataWeCollect.consentTrackingTitle')}</h3>
+          <p className="text-slate-300 mb-2">{t('privacyPolicy.dataWeCollect.consentTrackingIntro')}</p>
+          <ul className="list-disc list-inside text-slate-300 mb-3 space-y-1">
+            <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.timestamp')}</li>
+            <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.policyVersion')}</li>
+            <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.ipAddress')}</li>
+            <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.userAgent')}</li>
+          </ul>
+          <p className="text-slate-300">{t('privacyPolicy.dataWeCollect.consentTrackingNote')}</p>
         </section>
 
         <section className="mb-8">
