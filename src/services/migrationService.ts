@@ -215,21 +215,29 @@ export const PROGRESS_RANGES = {
 export const CLEARING_STAGE_PROGRESS_OFFSET = 5;
 
 // =============================================================================
-// MIGRATION LOCK
+// MIGRATION LOCK (Promise Deduplication Pattern)
 // =============================================================================
 
 /**
- * Prevents concurrent migrations.
- * This is a module-level flag to prevent race conditions if user
- * triggers migration multiple times before previous one completes.
+ * Prevents concurrent migrations using Promise deduplication.
+ *
+ * Pattern: Store the in-flight Promise so concurrent callers wait for the
+ * same result instead of getting an error. This matches the pattern used
+ * in SupabaseDataStore.initialize() and SupabaseAuthService.initialize().
+ *
+ * Why Promise > boolean flag:
+ * - Boolean: Concurrent call #2 gets "already in progress" error, must retry
+ * - Promise: Concurrent call #2 waits and gets the same result as call #1
+ *
+ * The promise is reset to null in finally block, so next call starts fresh.
  */
-let isMigrationInProgress = false;
+let migrationPromise: Promise<MigrationResult> | null = null;
 
 /**
  * Check if a migration is currently in progress.
  */
 export function isMigrationRunning(): boolean {
-  return isMigrationInProgress;
+  return migrationPromise !== null;
 }
 
 // =============================================================================
@@ -262,6 +270,33 @@ export async function migrateLocalToCloud(
   onProgress: MigrationProgressCallback,
   mode: MigrationMode = 'merge'
 ): Promise<MigrationResult> {
+  // Promise deduplication: if migration is already in progress, wait for it
+  // This is safer than returning an error because concurrent callers get the
+  // actual result instead of having to implement retry logic
+  if (migrationPromise) {
+    logger.info('[MigrationService] Migration already in progress, waiting for completion');
+    return migrationPromise;
+  }
+
+  // Start new migration and store the promise
+  migrationPromise = performMigration(onProgress, mode);
+
+  try {
+    return await migrationPromise;
+  } finally {
+    // Reset promise so next call starts fresh
+    migrationPromise = null;
+  }
+}
+
+/**
+ * Internal migration implementation.
+ * Separated from migrateLocalToCloud to enable Promise deduplication pattern.
+ */
+async function performMigration(
+  onProgress: MigrationProgressCallback,
+  mode: MigrationMode
+): Promise<MigrationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -283,14 +318,6 @@ export async function migrateLocalToCloud(
     warnings,
   };
 
-  // Prevent concurrent migrations
-  if (isMigrationInProgress) {
-    return {
-      ...emptyResult,
-      errors: ['Migration already in progress. Please wait for it to complete.'],
-    };
-  }
-
   // Safe progress callback that won't crash migration if callback throws
   const safeProgress = (progress: MigrationProgress) => {
     try {
@@ -301,8 +328,6 @@ export async function migrateLocalToCloud(
     }
   };
 
-  // Acquire migration lock
-  isMigrationInProgress = true;
   let localStore: LocalDataStore | null = null;
   let cloudStore: SupabaseDataStore | null = null;
 
@@ -558,8 +583,7 @@ export async function migrateLocalToCloud(
         logger.warn('[MigrationService] Error closing localStore:', e);
       }
     }
-    // Always release migration lock
-    isMigrationInProgress = false;
+    // Note: Migration lock (migrationPromise) is reset in the wrapper function
   }
 }
 
@@ -820,6 +844,14 @@ function sanitizeGameReferences(data: LocalDataSnapshot): {
         tournamentSeriesId: '',
         tournamentLevel: '',
       };
+      modified = true;
+    }
+
+    // Check for orphaned series (tournamentSeriesId set without valid tournamentId)
+    if (gameCopy.tournamentSeriesId && gameCopy.tournamentSeriesId !== '' &&
+        (!gameCopy.tournamentId || gameCopy.tournamentId === '')) {
+      warnings.push(`Game ${gameId}: cleared orphaned series reference`);
+      gameCopy = { ...gameCopy, tournamentSeriesId: '', tournamentLevel: '' };
       modified = true;
     }
 
