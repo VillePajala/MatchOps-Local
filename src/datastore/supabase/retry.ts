@@ -1,0 +1,247 @@
+/**
+ * Retry Logic with Exponential Backoff
+ *
+ * Provides retry functionality for transient network errors in Supabase operations.
+ * Improves resilience on mobile devices with flaky connections.
+ *
+ * @module datastore/supabase/retry
+ */
+
+import logger from '@/utils/logger';
+
+/**
+ * Configuration for retry behavior.
+ */
+export interface RetryConfig {
+  /** Maximum number of retry attempts (default: 3) */
+  maxRetries?: number;
+  /** Base delay in milliseconds for exponential backoff (default: 1000) */
+  baseDelayMs?: number;
+  /** Maximum delay cap in milliseconds (default: 10000) */
+  maxDelayMs?: number;
+  /** Whether to log retry attempts (default: true) */
+  logRetries?: boolean;
+}
+
+const DEFAULT_CONFIG: Required<RetryConfig> = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+  logRetries: true,
+};
+
+/**
+ * Error codes/messages that indicate transient failures worth retrying.
+ *
+ * These are errors that may succeed on retry due to:
+ * - Network instability (mobile, wifi handoff)
+ * - Server overload (503, 429)
+ * - Temporary connection issues
+ */
+const TRANSIENT_ERROR_PATTERNS = [
+  // Network errors
+  'fetch failed',
+  'network error',
+  'network request failed',
+  'failed to fetch',
+  'load failed',
+  'networkerror',
+  // Connection errors
+  'connection refused',
+  'connection reset',
+  'connection timed out',
+  'econnrefused',
+  'econnreset',
+  'etimedout',
+  'socket hang up',
+  // Server overload
+  'service unavailable',
+  '503',
+  'too many requests',
+  '429',
+  // Timeout
+  'timeout',
+  'timed out',
+  'request timeout',
+  // Temporary failures
+  'temporary failure',
+  'try again',
+  'temporarily unavailable',
+] as const;
+
+/**
+ * HTTP status codes that indicate transient failures.
+ */
+const TRANSIENT_STATUS_CODES = new Set([
+  408, // Request Timeout
+  429, // Too Many Requests
+  500, // Internal Server Error (sometimes transient)
+  502, // Bad Gateway
+  503, // Service Unavailable
+  504, // Gateway Timeout
+]);
+
+/**
+ * Determine if an error is transient and worth retrying.
+ *
+ * @param error - The error to check
+ * @returns True if the error is likely transient
+ */
+export function isTransientError(error: unknown): boolean {
+  if (!error) return false;
+
+  // Check for explicit status code
+  if (typeof error === 'object' && error !== null) {
+    const errorObj = error as Record<string, unknown>;
+
+    // Supabase error format: { status, statusCode, code, message }
+    const status = errorObj.status ?? errorObj.statusCode;
+    if (typeof status === 'number' && TRANSIENT_STATUS_CODES.has(status)) {
+      return true;
+    }
+
+    // PostgrestError code
+    const code = errorObj.code;
+    if (code === 'PGRST301' || code === 'PGRST000') {
+      // Connection errors from PostgREST
+      return true;
+    }
+  }
+
+  // Check error message patterns
+  const message = getErrorMessage(error).toLowerCase();
+  return TRANSIENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+/**
+ * Extract error message from various error types.
+ */
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const errorObj = error as Record<string, unknown>;
+    if (typeof errorObj.message === 'string') return errorObj.message;
+    if (typeof errorObj.error === 'string') return errorObj.error;
+  }
+  return String(error);
+}
+
+/**
+ * Sleep for a specified duration.
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Calculate delay with exponential backoff and jitter.
+ *
+ * Formula: min(baseDelay * 2^attempt + jitter, maxDelay)
+ * Jitter adds randomness to prevent thundering herd.
+ */
+function calculateDelay(attempt: number, baseDelayMs: number, maxDelayMs: number): number {
+  const exponentialDelay = baseDelayMs * Math.pow(2, attempt);
+  const jitter = Math.random() * baseDelayMs * 0.5; // 0-50% of base delay
+  return Math.min(exponentialDelay + jitter, maxDelayMs);
+}
+
+/**
+ * Execute an operation with retry logic and exponential backoff.
+ *
+ * Only retries on transient errors (network issues, server overload).
+ * Non-transient errors (validation, auth, not found) are thrown immediately.
+ *
+ * @param operation - Async function to execute
+ * @param config - Retry configuration options
+ * @returns Result of the operation
+ * @throws The last error if all retries are exhausted
+ *
+ * @example
+ * ```typescript
+ * // Basic usage
+ * const result = await withRetry(() => client.from('players').select());
+ *
+ * // Custom config
+ * const result = await withRetry(
+ *   () => client.rpc('save_game_with_relations', params),
+ *   { maxRetries: 5, baseDelayMs: 500 }
+ * );
+ * ```
+ */
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  config: RetryConfig = {}
+): Promise<T> {
+  const { maxRetries, baseDelayMs, maxDelayMs, logRetries } = {
+    ...DEFAULT_CONFIG,
+    ...config,
+  };
+
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      // Don't retry non-transient errors
+      if (!isTransientError(error)) {
+        throw error;
+      }
+
+      // Don't retry if we've exhausted attempts
+      if (attempt === maxRetries) {
+        if (logRetries) {
+          logger.warn(
+            `[Retry] All ${maxRetries + 1} attempts failed:`,
+            getErrorMessage(error)
+          );
+        }
+        throw error;
+      }
+
+      // Calculate delay and wait
+      const delayMs = calculateDelay(attempt, baseDelayMs, maxDelayMs);
+
+      if (logRetries) {
+        logger.info(
+          `[Retry] Attempt ${attempt + 1}/${maxRetries + 1} failed, retrying in ${Math.round(delayMs)}ms:`,
+          getErrorMessage(error)
+        );
+      }
+
+      await delay(delayMs);
+    }
+  }
+
+  // This should never be reached, but TypeScript needs it
+  throw lastError;
+}
+
+/**
+ * Create a retry-wrapped version of an async function.
+ *
+ * Useful for wrapping multiple related operations with the same config.
+ *
+ * @param fn - Async function to wrap
+ * @param config - Retry configuration
+ * @returns Wrapped function with retry logic
+ *
+ * @example
+ * ```typescript
+ * const retryableRpc = wrapWithRetry(
+ *   (name: string, params: object) => client.rpc(name, params),
+ *   { maxRetries: 3 }
+ * );
+ *
+ * await retryableRpc('save_game', { p_game: gameData });
+ * ```
+ */
+export function wrapWithRetry<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => Promise<TResult>,
+  config: RetryConfig = {}
+): (...args: TArgs) => Promise<TResult> {
+  return (...args: TArgs) => withRetry(() => fn(...args), config);
+}

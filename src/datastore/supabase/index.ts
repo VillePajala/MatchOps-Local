@@ -12,4 +12,12 @@ export {
   getSupabaseClient,
   resetSupabaseClient,
   isSupabaseClientInitialized,
+  cleanupSupabaseClient,
 } from './client';
+
+export {
+  withRetry,
+  wrapWithRetry,
+  isTransientError,
+  type RetryConfig,
+} from './retry';

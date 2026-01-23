@@ -47,6 +47,7 @@ import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 import logger from '@/utils/logger';
+import { withRetry, isTransientError, type RetryConfig } from '@/datastore/supabase/retry';
 
 // Type-safe database types using the Database schema from supabase.ts
 // These types provide full type safety for all database operations.
@@ -371,6 +372,32 @@ export class SupabaseDataStore implements DataStore {
   // Promise deduplication for initialize() to prevent race conditions
   private initPromise: Promise<void> | null = null;
 
+  // Retry configuration for transient network errors
+  // Improves resilience on mobile devices with flaky connections
+  private static readonly RETRY_CONFIG: RetryConfig = {
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 10000,
+    logRetries: true,
+  };
+
+  // ==========================================================================
+  // RETRY HELPERS
+  // ==========================================================================
+
+  /**
+   * Execute a database operation with retry logic for transient errors.
+   *
+   * Use this for all network-sensitive operations (queries, inserts, updates).
+   * Non-transient errors (validation, auth, not found) are thrown immediately.
+   *
+   * @param operation - Async function to execute
+   * @returns Result of the operation
+   */
+  private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    return withRetry(operation, SupabaseDataStore.RETRY_CONFIG);
+  }
+
   // ==========================================================================
   // LIFECYCLE
   // ==========================================================================
@@ -544,16 +571,18 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('players')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const result = await this.withRetry(async () => {
+      return this.getClient()
+        .from('players')
+        .select('*')
+        .order('created_at', { ascending: false });
+    });
 
-    if (error) {
-      throw new NetworkError(`Failed to fetch players: ${error.message}`);
+    if (result.error) {
+      throw new NetworkError(`Failed to fetch players: ${result.error.message}`);
     }
 
-    return (data || []).map(this.transformPlayerFromDb);
+    return (result.data || []).map(this.transformPlayerFromDb);
   }
 
   async createPlayer(player: Omit<Player, 'id'>): Promise<Player> {
@@ -2710,16 +2739,18 @@ export class SupabaseDataStore implements DataStore {
     type AssessmentsQueryResult = { data: PlayerAssessmentRow[] | null; error: { message: string; code?: string } | null };
     type TacticalQueryResult = { data: GameTacticalDataRow | null; error: { message: string; code?: string } | null };
 
-    // Fetch all 5 tables in parallel
+    // Fetch all 5 tables in parallel with retry for transient network errors
     // Note: game_players uses ORDER BY player_id for deterministic ordering
     // (PostgreSQL doesn't guarantee row order without explicit ORDER BY)
-    const [gameResult, playersResult, eventsResult, assessmentsResult, tacticalResult] = await Promise.all([
-      client.from('games').select('*').eq('id', gameId).single() as unknown as Promise<GameQueryResult>,
-      client.from('game_players').select('*').eq('game_id', gameId).order('player_id') as unknown as Promise<PlayersQueryResult>,
-      client.from('game_events').select('*').eq('game_id', gameId) as unknown as Promise<EventsQueryResult>,
-      client.from('player_assessments').select('*').eq('game_id', gameId) as unknown as Promise<AssessmentsQueryResult>,
-      client.from('game_tactical_data').select('*').eq('game_id', gameId).single() as unknown as Promise<TacticalQueryResult>,
-    ]);
+    const [gameResult, playersResult, eventsResult, assessmentsResult, tacticalResult] = await this.withRetry(async () => {
+      return Promise.all([
+        client.from('games').select('*').eq('id', gameId).single() as unknown as Promise<GameQueryResult>,
+        client.from('game_players').select('*').eq('game_id', gameId).order('player_id') as unknown as Promise<PlayersQueryResult>,
+        client.from('game_events').select('*').eq('game_id', gameId) as unknown as Promise<EventsQueryResult>,
+        client.from('player_assessments').select('*').eq('game_id', gameId) as unknown as Promise<AssessmentsQueryResult>,
+        client.from('game_tactical_data').select('*').eq('game_id', gameId).single() as unknown as Promise<TacticalQueryResult>,
+      ]);
+    });
 
     // Handle game fetch error - distinguish "not found" from actual errors
     if (gameResult.error) {
@@ -2763,11 +2794,14 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    // Fetch all game IDs
-    const { data: games, error } = await this.getClient()
-      .from('games')
-      .select('id')
-      .order('created_at', { ascending: false });
+    // Fetch all game IDs with retry for transient network errors
+    const result = await this.withRetry(async () => {
+      return this.getClient()
+        .from('games')
+        .select('id')
+        .order('created_at', { ascending: false });
+    });
+    const { data: games, error } = result;
 
     if (error) {
       throw new NetworkError(`Failed to fetch games: ${error.message}`);
@@ -2913,17 +2947,21 @@ export class SupabaseDataStore implements DataStore {
 
     // Use RPC for atomic 5-table write within a single PostgreSQL transaction
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
+    // Wrapped with retry for transient network errors (critical for mobile reliability)
     const client = this.getClient();
-    const { error } = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string; code?: string } | null }>)(
-      'save_game_with_relations',
-      {
-        p_game: tables.game,
-        p_players: tables.players,
-        p_events: tables.events,
-        p_assessments: tables.assessments,
-        p_tactical_data: tables.tacticalData,
-      }
-    );
+    const rpcResult = await this.withRetry(async () => {
+      return (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string; code?: string } | null }>)(
+        'save_game_with_relations',
+        {
+          p_game: tables.game,
+          p_players: tables.players,
+          p_events: tables.events,
+          p_assessments: tables.assessments,
+          p_tactical_data: tables.tacticalData,
+        }
+      );
+    });
+    const { error } = rpcResult;
 
     if (error) {
       const errorMessage = error.message.toLowerCase();
