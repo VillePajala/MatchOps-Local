@@ -1433,7 +1433,14 @@
     "limitGames": "10 ottelua per kilpailu",
     "resetToFree": "Nollaa",
     "resetToFreeConfirm": "Palautetaanko ilmaisversioon? (Testausta varten)",
-    "resetToFreeSuccess": "Palautettu ilmaisversioon"
+    "resetToFreeSuccess": "Palautettu ilmaisversioon",
+    "deleteAccountTitle": "Poista tili",
+    "deleteAccountDescription": "Poista tilisi ja kaikki pilvitiedot pysyvästi. Tätä toimintoa ei voi peruuttaa. Sinun täytyy luoda uusi tili käyttääksesi pilviominaisuuksia uudelleen.",
+    "confirmDeleteLabel": "Kirjoita DELETE vahvistaaksesi",
+    "deleteAccountButton": "Poista tili",
+    "deletingAccount": "Poistetaan...",
+    "deleteAccountSuccess": "Tili poistettu onnistuneesti",
+    "deleteAccountFailed": "Tilin poistaminen epäonnistui"
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",

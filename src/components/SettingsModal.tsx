@@ -70,6 +70,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const { deleteAccount, mode: authMode } = useAuth();
 
   // Helper to get maximum day for a given month
   const getMaxDayForMonth = (month: number): number => {
@@ -303,6 +306,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       showToast(t('settingsModal.updateCheckFailed', 'Failed to check for updates'), 'error');
     } finally {
       setCheckingForUpdates(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteAccountConfirm.trim() !== 'DELETE') return;
+
+    setIsDeletingAccount(true);
+    logger.log('[SettingsModal] Delete account initiated');
+
+    try {
+      const result = await deleteAccount();
+
+      if (result.error) {
+        showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account: ') + result.error, 'error');
+        logger.error('[SettingsModal] Delete account failed:', result.error);
+      } else {
+        showToast(t('settingsModal.deleteAccountSuccess', 'Account deleted successfully'), 'success');
+        logger.info('[SettingsModal] Account deleted successfully');
+        // Close the modal - user will be redirected to login
+        onClose();
+      }
+    } catch (error) {
+      showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account'), 'error');
+      logger.error('[SettingsModal] Delete account error:', error);
+    } finally {
+      setIsDeletingAccount(false);
+      setDeleteAccountConfirm('');
     }
   };
 
@@ -975,6 +1005,46 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 {t('settingsModal.hardResetButton', 'Hard Reset App')}
               </button>
+
+              {/* Delete Account - Only visible in cloud mode */}
+              {authMode === 'cloud' && (
+                <div className="mt-6 pt-4 border-t border-red-700/30">
+                  <h4 className="text-md font-semibold text-red-300 mb-2">
+                    {t('settingsModal.deleteAccountTitle', 'Delete Account')}
+                  </h4>
+                  <p className="text-sm text-red-200 mb-3">
+                    {t(
+                      'settingsModal.deleteAccountDescription',
+                      'Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.'
+                    )}
+                  </p>
+                  <label htmlFor="delete-account-confirm" className={labelStyle}>
+                    {t('settingsModal.confirmDeleteLabel', 'Type DELETE to confirm')}
+                  </label>
+                  <input
+                    id="delete-account-confirm"
+                    type="text"
+                    value={deleteAccountConfirm}
+                    onChange={(e) => setDeleteAccountConfirm(e.target.value)}
+                    className={inputStyle}
+                    disabled={isDeletingAccount}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteAccount();
+                    }}
+                    className={dangerButtonStyle}
+                    disabled={deleteAccountConfirm.trim() !== 'DELETE' || isDeletingAccount}
+                  >
+                    {isDeletingAccount
+                      ? t('settingsModal.deletingAccount', 'Deleting...')
+                      : t('settingsModal.deleteAccountButton', 'Delete Account')}
+                  </button>
+                </div>
+              )}
             </div>
             </>
             )}

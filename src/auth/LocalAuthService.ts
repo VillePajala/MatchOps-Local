@@ -111,6 +111,15 @@ export class LocalAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // ACCOUNT MANAGEMENT (Not applicable in local mode)
+  // Local mode users should use "Hard Reset" to clear local data
+  // ==========================================================================
+
+  async deleteAccount(): Promise<void> {
+    throw new NotSupportedError('deleteAccount', 'local');
+  }
+
+  // ==========================================================================
   // INTERNAL
   // ==========================================================================
 

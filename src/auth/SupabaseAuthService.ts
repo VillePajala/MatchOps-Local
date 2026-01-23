@@ -639,6 +639,64 @@ export class SupabaseAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // ACCOUNT MANAGEMENT
+  // ==========================================================================
+
+  async deleteAccount(): Promise<void> {
+    this.ensureInitialized();
+
+    // Must be authenticated to delete account
+    if (!this.currentUser || !this.currentSession) {
+      throw new AuthError('Must be authenticated to delete account');
+    }
+
+    logger.info('[SupabaseAuthService] Initiating account deletion');
+
+    try {
+      // Call the Edge Function to delete the account
+      // The Edge Function uses the service role key to delete from auth.users
+      const { data, error } = await this.client!.functions.invoke('delete-account', {
+        method: 'POST',
+      });
+
+      if (error) {
+        logger.error('[SupabaseAuthService] Account deletion failed:', error.message);
+
+        if (isNetworkError(error)) {
+          throw new NetworkError('Account deletion failed: network error');
+        }
+
+        throw new AuthError(`Account deletion failed: ${error.message}`);
+      }
+
+      // Check if the response indicates success
+      if (!data?.success) {
+        const errorMessage = data?.error || 'Unknown error';
+        logger.error('[SupabaseAuthService] Account deletion failed:', errorMessage);
+        throw new AuthError(`Account deletion failed: ${errorMessage}`);
+      }
+
+      logger.info('[SupabaseAuthService] Account deleted successfully');
+
+      // Clear local state
+      this.currentSession = null;
+      this.currentUser = null;
+
+    } catch (error) {
+      // Re-throw AuthError and NetworkError as-is
+      if (error instanceof AuthError || error instanceof NetworkError) {
+        throw error;
+      }
+
+      // Wrap unexpected errors
+      logger.error('[SupabaseAuthService] Unexpected error during account deletion:', error);
+      throw new AuthError(
+        error instanceof Error ? error.message : 'Account deletion failed unexpectedly'
+      );
+    }
+  }
+
+  // ==========================================================================
   // INTERNAL
   // ==========================================================================
 

@@ -227,6 +227,30 @@ export interface AuthService {
    * - Returns the most recent consent record if user has consented
    */
   getLatestConsent(): Promise<{ policyVersion: string; consentedAt: string } | null>;
+
+  // ==========================================================================
+  // ACCOUNT MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Permanently delete the user's account.
+   *
+   * This action:
+   * 1. Deletes all user data from the database
+   * 2. Deletes the user from Supabase Auth
+   * 3. Signs out the user locally
+   *
+   * @throws NotSupportedError in local mode (use hard reset instead)
+   * @throws AuthError if user is not authenticated or deletion fails
+   * @throws NetworkError if connection fails
+   *
+   * @remarks
+   * - This action is IRREVERSIBLE
+   * - User will need to create a new account to use cloud features again
+   * - Consent records are retained for GDPR compliance (legal requirement)
+   * - In local mode, users should use "Hard Reset" to clear local data
+   */
+  deleteAccount(): Promise<void>;
 }
 
 // =============================================================================

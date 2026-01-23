@@ -1433,7 +1433,14 @@
     "limitGames": "10 games per competition",
     "resetToFree": "Reset",
     "resetToFreeConfirm": "Reset to free version? (For testing)",
-    "resetToFreeSuccess": "Reset to free version"
+    "resetToFreeSuccess": "Reset to free version",
+    "deleteAccountTitle": "Delete Account",
+    "deleteAccountDescription": "Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.",
+    "confirmDeleteLabel": "Type DELETE to confirm",
+    "deleteAccountButton": "Delete Account",
+    "deletingAccount": "Deleting...",
+    "deleteAccountSuccess": "Account deleted successfully",
+    "deleteAccountFailed": "Failed to delete account"
   },
   "playerAssessmentModal": {
     "title": "Assess Performance",
