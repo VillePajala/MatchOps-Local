@@ -17,6 +17,7 @@ import logger from '@/utils/logger';
 import {
   SyncOperation,
   SyncOperationInput,
+  SyncOperationType,
   SyncOperationStatus,
   SyncQueueStats,
   SyncError,
@@ -225,8 +226,9 @@ export class SyncQueue {
       const entityKey = IDBKeyRange.only([input.entityType, input.entityId]);
       const cursorRequest = entityIndex.openCursor(entityKey);
 
-      let existingId: string | null = null;
-      let existingCreatedAt: number | null = null;
+      let existingOp: SyncOperation | null = null;
+      let resultId: string | null = null;
+      const entityInfo = `${input.entityType}/${input.entityId}`;
 
       cursorRequest.onsuccess = () => {
         const cursor = cursorRequest.result;
@@ -236,85 +238,40 @@ export class SyncQueue {
 
           // Only deduplicate pending operations
           if (existing.status === 'pending') {
-            existingId = existing.id;
-            existingCreatedAt = existing.createdAt;
-            logger.debug('[SyncQueue] Found existing pending operation, will replace', {
+            existingOp = existing;
+            logger.debug('[SyncQueue] Found existing pending operation', {
               entityType: input.entityType,
               entityId: input.entityId,
-              existingId,
+              existingId: existing.id,
+              existingOperation: existing.operation,
+              newOperation: input.operation,
             });
           }
           cursor.continue();
+        } else {
+          // Cursor exhausted - perform write in SAME transaction (atomic)
+          resultId = this.performWriteInTransaction(store, input, existingOp);
         }
       };
 
+      cursorRequest.onerror = () => {
+        logger.error(`[SyncQueue] Cursor error for ${entityInfo}:`, cursorRequest.error);
+        reject(new SyncError(
+          SyncErrorCode.QUEUE_ERROR,
+          `Failed to check existing operations for ${entityInfo}: ${cursorRequest.error?.message || 'Unknown error'}`,
+          cursorRequest.error ?? undefined
+        ));
+      };
+
       transaction.oncomplete = () => {
-        // This fires after all cursor iteration, but we need to do the actual
-        // insert/update in a new transaction
-        this.performEnqueue(input, existingId, existingCreatedAt)
-          .then(resolve)
-          .catch(reject);
+        if (resultId !== null) {
+          resolve(resultId);
+        }
+        // If resultId is null, error handler will have rejected
       };
 
       transaction.onerror = () => {
-        const entityInfo = `${input.entityType}/${input.entityId}`;
-        logger.error(`[SyncQueue] Failed to check existing operations for ${entityInfo}:`, transaction.error);
-        reject(new SyncError(
-          SyncErrorCode.QUEUE_ERROR,
-          `Failed to check existing operations for ${entityInfo}: ${transaction.error?.message || 'Unknown error'}`,
-          transaction.error ?? undefined
-        ));
-      };
-    });
-  }
-
-  /**
-   * Perform the actual enqueue operation (insert or update).
-   */
-  private async performEnqueue(
-    input: SyncOperationInput,
-    existingId: string | null,
-    existingCreatedAt: number | null
-  ): Promise<string> {
-    const db = this.ensureInitialized();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
-      const store = transaction.objectStore(SYNC_STORE_NAME);
-
-      const id = existingId || generateId();
-      const now = Date.now();
-
-      const operation: SyncOperation = {
-        ...input,
-        id,
-        status: 'pending',
-        retryCount: 0,
-        maxRetries: this.maxRetries,
-        createdAt: existingCreatedAt ?? now, // Preserve original createdAt if replacing
-      };
-
-      // If replacing, delete the old one first
-      if (existingId) {
-        store.delete(existingId);
-      }
-
-      const request = store.put(operation);
-
-      request.onsuccess = () => {
-        logger.debug('[SyncQueue] Operation enqueued', {
-          id,
-          entityType: input.entityType,
-          entityId: input.entityId,
-          operation: input.operation,
-          replaced: !!existingId,
-        });
-        resolve(id);
-      };
-
-      request.onerror = () => {
-        const error = request.error;
-        const entityInfo = `${input.entityType}/${input.entityId}`;
+        const error = transaction.error;
 
         // Check for quota exceeded error
         if (error?.name === 'QuotaExceededError') {
@@ -327,18 +284,6 @@ export class SyncQueue {
           return;
         }
 
-        logger.error(`[SyncQueue] Failed to enqueue ${entityInfo}:`, error);
-        reject(new SyncError(
-          SyncErrorCode.QUEUE_ERROR,
-          `Failed to enqueue ${input.operation} for ${entityInfo}: ${error?.message || 'Unknown error'}`,
-          error ?? undefined
-        ));
-      };
-
-      transaction.onerror = () => {
-        // This catches errors not caught by request.onerror
-        const error = transaction.error;
-        const entityInfo = `${input.entityType}/${input.entityId}`;
         logger.error(`[SyncQueue] Transaction error for ${entityInfo}:`, error);
         reject(new SyncError(
           SyncErrorCode.QUEUE_ERROR,
@@ -347,6 +292,107 @@ export class SyncQueue {
         ));
       };
     });
+  }
+
+  /**
+   * Perform the write operation within an existing transaction.
+   * Must be called while transaction is still active (not after oncomplete).
+   *
+   * @returns The operation ID, or null if CREATE+DELETE cancelled both
+   */
+  private performWriteInTransaction(
+    store: IDBObjectStore,
+    input: SyncOperationInput,
+    existingOp: SyncOperation | null
+  ): string {
+    const now = Date.now();
+    const entityInfo = `${input.entityType}/${input.entityId}`;
+
+    // Determine merged operation type if replacing
+    let finalOperation = input.operation;
+    if (existingOp) {
+      const merged = this.getMergedOperation(existingOp.operation, input.operation);
+
+      if (merged === null) {
+        // CREATE + DELETE = remove existing, don't add new
+        store.delete(existingOp.id);
+        logger.debug('[SyncQueue] CREATE + DELETE merged: both removed', {
+          entityType: input.entityType,
+          entityId: input.entityId,
+          existingId: existingOp.id,
+        });
+        // Return the existing ID (operation is gone, but ID is valid for reference)
+        return existingOp.id;
+      }
+
+      finalOperation = merged;
+    }
+
+    const id = existingOp?.id || generateId();
+
+    const operation: SyncOperation = {
+      ...input,
+      id,
+      operation: finalOperation,
+      status: 'pending',
+      retryCount: 0,
+      maxRetries: this.maxRetries,
+      createdAt: existingOp?.createdAt ?? now,
+    };
+
+    // If replacing, delete the old one first
+    if (existingOp) {
+      store.delete(existingOp.id);
+    }
+
+    store.put(operation);
+
+    logger.debug('[SyncQueue] Operation enqueued', {
+      id,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      operation: finalOperation,
+      originalOperation: input.operation,
+      merged: existingOp ? `${existingOp.operation} + ${input.operation} → ${finalOperation}` : null,
+    });
+
+    return id;
+  }
+
+  /**
+   * Determine the merged operation type when combining existing + new operations.
+   *
+   * Merge rules:
+   * - CREATE + UPDATE → CREATE (with new data) - entity doesn't exist on server yet
+   * - CREATE + DELETE → null (remove both - entity never existed on server)
+   * - UPDATE + UPDATE → UPDATE (with new data)
+   * - UPDATE + DELETE → DELETE
+   * - DELETE + any → new operation (rare edge case, just use new)
+   */
+  private getMergedOperation(
+    existingOp: SyncOperationType,
+    newOp: SyncOperationType
+  ): SyncOperationType | null {
+    if (existingOp === 'create') {
+      if (newOp === 'delete') {
+        // CREATE + DELETE = nothing (entity never existed on server)
+        return null;
+      }
+      // CREATE + UPDATE = CREATE (keep create, use new data)
+      return 'create';
+    }
+
+    if (existingOp === 'update') {
+      if (newOp === 'delete') {
+        // UPDATE + DELETE = DELETE
+        return 'delete';
+      }
+      // UPDATE + UPDATE = UPDATE
+      return 'update';
+    }
+
+    // DELETE + any = use new operation (edge case)
+    return newOp;
   }
 
   /**

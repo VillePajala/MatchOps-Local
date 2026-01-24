@@ -166,6 +166,97 @@ describe('SyncQueue', () => {
       expect(op2?.createdAt).toBe(originalCreatedAt);
     });
 
+    it('should merge CREATE + UPDATE into CREATE with new data', async () => {
+      // First: create operation
+      const id1 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_merge_1',
+        operation: 'create',
+        data: { name: 'Original Name', jerseyNumber: '10' },
+        timestamp: Date.now(),
+      });
+
+      // Second: update operation for same entity
+      const id2 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_merge_1',
+        operation: 'update',
+        data: { name: 'Updated Name', jerseyNumber: '10' },
+        timestamp: Date.now() + 1000,
+      });
+
+      // Should keep same ID
+      expect(id2).toBe(id1);
+
+      // Should have only one operation
+      const stats = await queue.getStats();
+      expect(stats.total).toBe(1);
+
+      // Operation type should be CREATE (not UPDATE)
+      const op = await queue.getById(id2);
+      expect(op?.operation).toBe('create');
+      // Data should be from the update
+      expect(op?.data).toEqual({ name: 'Updated Name', jerseyNumber: '10' });
+    });
+
+    it('should merge CREATE + DELETE by removing both', async () => {
+      // First: create operation
+      await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_merge_2',
+        operation: 'create',
+        data: { name: 'Will Be Deleted' },
+        timestamp: Date.now(),
+      });
+
+      let stats = await queue.getStats();
+      expect(stats.total).toBe(1);
+
+      // Second: delete operation for same entity
+      await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_merge_2',
+        operation: 'delete',
+        data: null,
+        timestamp: Date.now() + 1000,
+      });
+
+      // Both should be removed - entity never existed on server
+      stats = await queue.getStats();
+      expect(stats.total).toBe(0);
+    });
+
+    it('should merge UPDATE + DELETE into DELETE', async () => {
+      // First: update operation
+      const id1 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_merge_3',
+        operation: 'update',
+        data: { name: 'Updated' },
+        timestamp: Date.now(),
+      });
+
+      // Second: delete operation
+      const id2 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_merge_3',
+        operation: 'delete',
+        data: null,
+        timestamp: Date.now() + 1000,
+      });
+
+      // Should keep same ID
+      expect(id2).toBe(id1);
+
+      // Should have only one operation
+      const stats = await queue.getStats();
+      expect(stats.total).toBe(1);
+
+      // Operation type should be DELETE
+      const op = await queue.getById(id2);
+      expect(op?.operation).toBe('delete');
+    });
+
     it('should not deduplicate operations for different entities', async () => {
       await queue.enqueue({
         entityType: 'player',

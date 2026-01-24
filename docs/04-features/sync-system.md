@@ -35,16 +35,27 @@ Persistent operation queue using IndexedDB.
 
 ### Entity Uniqueness (Deduplication)
 
-When multiple updates to the same entity occur before sync completes, only the latest is kept:
+When multiple operations on the same entity occur before sync completes, they are intelligently merged:
 
 ```typescript
-// User edits player name twice quickly
-await syncQueue.enqueue({ entityType: 'player', entityId: 'p1', data: { name: 'Alice' } });
-await syncQueue.enqueue({ entityType: 'player', entityId: 'p1', data: { name: 'Alicia' } });
-// Result: Only ONE operation queued (name: 'Alicia')
+// User creates then edits player before sync
+await syncQueue.enqueue({ entityType: 'player', entityId: 'p1', operation: 'create', data: { name: 'Alice' } });
+await syncQueue.enqueue({ entityType: 'player', entityId: 'p1', operation: 'update', data: { name: 'Alicia' } });
+// Result: ONE CREATE operation with latest data (name: 'Alicia')
 ```
 
 **Uniqueness key:** `entityType + entityId`
+
+**Operation Merge Rules:**
+
+| Existing | New | Result |
+|----------|-----|--------|
+| CREATE | UPDATE | CREATE with new data |
+| CREATE | DELETE | Both removed (entity never existed on server) |
+| UPDATE | UPDATE | UPDATE with new data |
+| UPDATE | DELETE | DELETE |
+
+This ensures that offline-created entities are properly synced even if edited before the first sync.
 
 Deduplication only affects `pending` operations. Once an operation is `syncing`, new changes create a separate queue entry.
 
