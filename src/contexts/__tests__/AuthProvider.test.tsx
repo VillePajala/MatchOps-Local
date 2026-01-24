@@ -114,6 +114,10 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
+jest.mock('@/contexts/SubscriptionContext', () => ({
+  clearSubscriptionCache: jest.fn().mockResolvedValue(undefined),
+}));
+
 // Note: Platform detection and Play Billing mocks removed.
 // Subscription is no longer granted on signup - it's a separate flow.
 // Account creation is free; subscription only gates sync features.
