@@ -109,8 +109,12 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 }
 
 // Google Play package and product configuration
-const GOOGLE_PLAY_PACKAGE = 'com.matchops.app';
+const GOOGLE_PLAY_PACKAGE = 'com.matchops.local';
 const VALID_PRODUCT_IDS = ['matchops_premium_monthly'];
+
+// Subscription timing constants
+const MOCK_SUBSCRIPTION_DAYS = 30;
+const GRACE_PERIOD_DAYS = 7;
 
 // Subscription status type (matches database enum)
 type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';
@@ -272,10 +276,19 @@ Deno.serve(async (req: Request) => {
     // Check if this is a mock/test token
     const isTestToken = purchaseToken.startsWith('test-');
 
+    // Test tokens should be short (e.g., "test-preview-1234567890")
+    // Reject overly long test tokens as potential abuse
+    if (isTestToken && purchaseToken.length > 100) {
+      return new Response(
+        JSON.stringify({ error: 'Test token too long' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (isTestToken && mockBilling) {
       // Mock mode: Accept test tokens
       console.log(`Mock mode: accepting test token for user ${userId}`);
-      periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      periodEnd = new Date(Date.now() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
       orderId = `mock-order-${Date.now()}`;
     } else if (isTestToken && !mockBilling) {
       // Test token in production mode - reject
@@ -333,8 +346,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Calculate grace period end (7 days after subscription expires)
-    const graceEnd = new Date(periodEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Calculate grace period end (after subscription expires)
+    const graceEnd = new Date(periodEnd.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
     const now = new Date().toISOString();
 
     // Idempotency check: Verify this purchase token isn't already claimed by another user
