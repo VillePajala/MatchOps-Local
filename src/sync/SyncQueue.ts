@@ -306,7 +306,6 @@ export class SyncQueue {
     existingOp: SyncOperation | null
   ): string {
     const now = Date.now();
-    const entityInfo = `${input.entityType}/${input.entityId}`;
 
     // Determine merged operation type if replacing
     let finalOperation = input.operation;

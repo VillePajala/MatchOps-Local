@@ -8,7 +8,7 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { usePlayBilling, grantMockSubscription } from './usePlayBilling';
+import { usePlayBilling, grantMockSubscription, BillingResult } from './usePlayBilling';
 
 // Mock playBilling utilities
 jest.mock('@/utils/playBilling', () => ({
@@ -174,7 +174,7 @@ describe('usePlayBilling', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let purchaseResult;
+      let purchaseResult: BillingResult | undefined;
       await act(async () => {
         purchaseResult = await result.current.purchase();
       });
@@ -230,7 +230,7 @@ describe('usePlayBilling', () => {
         error: null,
       });
 
-      let purchaseResult;
+      let purchaseResult: BillingResult | undefined;
       await act(async () => {
         purchaseResult = await result.current.purchase();
       });
@@ -264,7 +264,7 @@ describe('usePlayBilling', () => {
         error: 'cancelled',
       });
 
-      let purchaseResult;
+      let purchaseResult: BillingResult | undefined;
       await act(async () => {
         purchaseResult = await result.current.purchase();
       });
@@ -292,7 +292,7 @@ describe('usePlayBilling', () => {
         error: null,
       });
 
-      let purchaseResult;
+      let purchaseResult: BillingResult | undefined;
       await act(async () => {
         purchaseResult = await result.current.purchase();
       });
@@ -319,7 +319,7 @@ describe('usePlayBilling', () => {
         error: { message: 'Network error' },
       });
 
-      let purchaseResult;
+      let purchaseResult: BillingResult | undefined;
       await act(async () => {
         purchaseResult = await result.current.purchase();
       });
@@ -865,7 +865,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
       error: null,
     });
 
-    let purchaseResult;
+    let purchaseResult: BillingResult | undefined;
     await act(async () => {
       purchaseResult = await result.current.purchase();
     });
@@ -897,7 +897,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
       error: null,
     });
 
-    let purchaseResult;
+    let purchaseResult: BillingResult | undefined;
     await act(async () => {
       purchaseResult = await result.current.purchase();
     });
@@ -929,7 +929,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
       error: { message: 'Edge function returned non-2xx status code' },
     });
 
-    let purchaseResult;
+    let purchaseResult: BillingResult | undefined;
     await act(async () => {
       purchaseResult = await result.current.purchase();
     });
@@ -957,7 +957,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
       purchaseToken: undefined, // Missing token
     });
 
-    let purchaseResult;
+    let purchaseResult: BillingResult | undefined;
     await act(async () => {
       purchaseResult = await result.current.purchase();
     });
@@ -1035,7 +1035,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
       purchaseToken: 'purchase-token-123',
     });
 
-    let purchaseResult;
+    let purchaseResult: BillingResult | undefined;
     await act(async () => {
       purchaseResult = await result.current.purchase();
     });
@@ -1089,7 +1089,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
       purchaseToken: 'purchase-token-123',
     });
 
-    let purchaseResult;
+    let purchaseResult: BillingResult | undefined;
     await act(async () => {
       purchaseResult = await result.current.purchase();
     });
@@ -1122,7 +1122,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    let purchaseResult;
+    let purchaseResult: BillingResult | undefined;
     await act(async () => {
       purchaseResult = await result.current.purchase();
     });
@@ -1162,7 +1162,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
       purchaseToken: 'purchase-token-123',
     });
 
-    let purchaseResult;
+    let purchaseResult: BillingResult | undefined;
     await act(async () => {
       purchaseResult = await result.current.purchase();
     });

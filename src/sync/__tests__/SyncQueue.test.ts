@@ -15,7 +15,7 @@ if (typeof structuredClone === 'undefined') {
 import 'fake-indexeddb/auto';
 
 import { SyncQueue } from '../SyncQueue';
-import { SyncOperation, SyncOperationInput, SyncError, SyncErrorCode } from '../types';
+import { SyncOperationInput, SyncError } from '../types';
 
 // Mock logger
 jest.mock('@/utils/logger', () => ({
