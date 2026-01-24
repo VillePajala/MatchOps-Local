@@ -563,6 +563,71 @@ export class SyncQueue {
   }
 
   /**
+   * Reset stale syncing operations back to pending.
+   *
+   * If the app/tab closes while an operation is in 'syncing' status,
+   * it will be stuck forever since getPending() only returns 'pending' ops.
+   * Call this on startup to recover from such scenarios.
+   *
+   * @returns Number of operations reset
+   */
+  async resetStaleSyncing(): Promise<number> {
+    const db = this.ensureInitialized();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(SYNC_STORE_NAME);
+      const index = store.index(INDEX_STATUS);
+
+      let resetCount = 0;
+      const request = index.openCursor(IDBKeyRange.only('syncing'));
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+
+        if (cursor) {
+          const op = cursor.value as SyncOperation;
+
+          // Reset to pending for retry
+          const updated: SyncOperation = {
+            ...op,
+            status: 'pending',
+            lastError: op.lastError
+              ? `${op.lastError} (reset from stale syncing)`
+              : 'Reset from stale syncing state',
+          };
+
+          cursor.update(updated);
+          resetCount++;
+          logger.info('[SyncQueue] Reset stale syncing operation', {
+            id: op.id,
+            entityType: op.entityType,
+            entityId: op.entityId,
+          });
+
+          cursor.continue();
+        }
+      };
+
+      transaction.oncomplete = () => {
+        if (resetCount > 0) {
+          logger.info(`[SyncQueue] Reset ${resetCount} stale syncing operations`);
+        }
+        resolve(resetCount);
+      };
+
+      transaction.onerror = () => {
+        logger.error('[SyncQueue] resetStaleSyncing error:', transaction.error);
+        reject(new SyncError(
+          SyncErrorCode.QUEUE_ERROR,
+          `Failed to reset stale syncing operations: ${transaction.error?.message || 'Unknown error'}`,
+          transaction.error ?? undefined
+        ));
+      };
+    });
+  }
+
+  /**
    * Get an operation by ID.
    */
   async getById(id: string): Promise<SyncOperation | null> {

@@ -49,6 +49,13 @@ describe('SyncEngine', () => {
     // Reset singleton
     resetSyncEngine();
 
+    // Mock navigator.onLine BEFORE creating engine (engine reads it in constructor)
+    Object.defineProperty(navigator, 'onLine', {
+      value: true,
+      writable: true,
+      configurable: true,
+    });
+
     // Create fresh queue
     queue = new SyncQueue({
       maxRetries: 3,
@@ -66,13 +73,6 @@ describe('SyncEngine', () => {
     // Create mock executor
     mockExecutor = jest.fn().mockResolvedValue(undefined);
     engine.setExecutor(mockExecutor);
-
-    // Mock navigator.onLine
-    Object.defineProperty(navigator, 'onLine', {
-      value: true,
-      writable: true,
-      configurable: true,
-    });
   });
 
   afterEach(async () => {
@@ -207,6 +207,44 @@ describe('SyncEngine', () => {
   });
 
   describe('online/offline handling', () => {
+    it('should refresh online state on start', async () => {
+      // Simulate: engine constructed offline, then browser comes online before start()
+      Object.defineProperty(navigator, 'onLine', {
+        value: false,
+        configurable: true,
+      });
+
+      const lateOnlineEngine = new SyncEngine(queue, { syncIntervalMs: 1000 });
+      lateOnlineEngine.setExecutor(mockExecutor);
+
+      // Engine thinks it's offline
+      expect(lateOnlineEngine.isCurrentlyOnline()).toBe(false);
+
+      // Browser comes online (but no event because listeners aren't attached yet)
+      Object.defineProperty(navigator, 'onLine', {
+        value: true,
+        configurable: true,
+      });
+
+      await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_1',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      // start() should refresh online state and process queue
+      lateOnlineEngine.start();
+      await flushAllAsync();
+
+      // Engine should now know it's online and have processed the operation
+      expect(lateOnlineEngine.isCurrentlyOnline()).toBe(true);
+      expect(mockExecutor).toHaveBeenCalledTimes(1);
+
+      lateOnlineEngine.stop();
+    });
+
     it('should not process when offline', async () => {
       Object.defineProperty(navigator, 'onLine', {
         value: false,
@@ -249,11 +287,14 @@ describe('SyncEngine', () => {
     });
 
     it('should resume processing when coming online', async () => {
-      // Start offline
+      // Start offline - need new engine created with offline state
       Object.defineProperty(navigator, 'onLine', {
         value: false,
         configurable: true,
       });
+
+      const offlineEngine = new SyncEngine(queue, { syncIntervalMs: 1000 });
+      offlineEngine.setExecutor(mockExecutor);
 
       await queue.enqueue({
         entityType: 'player',
@@ -263,7 +304,7 @@ describe('SyncEngine', () => {
         timestamp: Date.now(),
       });
 
-      engine.start();
+      offlineEngine.start();
       await flushAllAsync();
 
       expect(mockExecutor).not.toHaveBeenCalled();
@@ -279,6 +320,8 @@ describe('SyncEngine', () => {
       await flushAllAsync();
 
       expect(mockExecutor).toHaveBeenCalledTimes(1);
+
+      offlineEngine.stop();
     });
   });
 
@@ -544,6 +587,60 @@ describe('SyncEngine', () => {
       window.dispatchEvent(new Event('offline'));
 
       expect(engine.isCurrentlyOnline()).toBe(false);
+    });
+  });
+
+  describe('stale syncing recovery', () => {
+    it('should reset stale syncing operations on start', async () => {
+      // Enqueue an operation and mark it as syncing (simulating crash during sync)
+      const id = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_stale',
+        operation: 'update',
+        data: { name: 'Stale' },
+        timestamp: Date.now(),
+      });
+
+      await queue.markSyncing(id);
+
+      // Verify it's stuck in syncing
+      const op = await queue.getById(id);
+      expect(op?.status).toBe('syncing');
+
+      // Start engine - should reset stale ops and process them automatically
+      engine.start();
+
+      // Flush to let resetStaleSyncing complete and initial processQueue run
+      await flushAllAsync(100);
+
+      // The operation should have been reset AND processed (removed from queue)
+      expect(mockExecutor).toHaveBeenCalledTimes(1);
+
+      // Verify the executor was called with the operation
+      expect(mockExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: 'player',
+          entityId: 'player_stale',
+        })
+      );
+
+      // Operation should be removed after successful processing
+      const processedOp = await queue.getById(id);
+      expect(processedOp).toBeNull();
+    });
+
+    it('should handle resetStaleSyncing error gracefully', async () => {
+      // Spy on resetStaleSyncing to make it reject
+      const resetSpy = jest.spyOn(queue, 'resetStaleSyncing').mockRejectedValueOnce(
+        new Error('DB error')
+      );
+
+      // Engine should still start and function
+      engine.start();
+      expect(engine.isEngineRunning()).toBe(true);
+
+      // Clean up spy
+      resetSpy.mockRestore();
     });
   });
 

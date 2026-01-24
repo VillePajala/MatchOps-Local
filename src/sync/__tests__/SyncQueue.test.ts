@@ -602,6 +602,126 @@ describe('SyncQueue', () => {
     });
   });
 
+  describe('resetStaleSyncing', () => {
+    it('should reset syncing operations back to pending', async () => {
+      const id = await queue.enqueue({
+        entityType: 'game',
+        entityId: 'game_1',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      // Mark as syncing (simulating app crash during sync)
+      await queue.markSyncing(id);
+
+      let op = await queue.getById(id);
+      expect(op?.status).toBe('syncing');
+
+      // Reset stale syncing operations
+      const resetCount = await queue.resetStaleSyncing();
+      expect(resetCount).toBe(1);
+
+      op = await queue.getById(id);
+      expect(op?.status).toBe('pending');
+      expect(op?.lastError).toContain('Reset from stale syncing');
+    });
+
+    it('should append to existing lastError when resetting', async () => {
+      const id = await queue.enqueue({
+        entityType: 'game',
+        entityId: 'game_1',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      // Fail once to set lastError
+      await queue.markFailed(id, 'Network error');
+      // Mark as syncing again
+      await queue.markSyncing(id);
+
+      // Reset stale syncing
+      await queue.resetStaleSyncing();
+
+      const op = await queue.getById(id);
+      expect(op?.lastError).toBe('Network error (reset from stale syncing)');
+    });
+
+    it('should return 0 when no syncing operations exist', async () => {
+      await queue.enqueue({
+        entityType: 'game',
+        entityId: 'game_1',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      const resetCount = await queue.resetStaleSyncing();
+      expect(resetCount).toBe(0);
+    });
+
+    it('should reset multiple syncing operations', async () => {
+      const id1 = await queue.enqueue({
+        entityType: 'game',
+        entityId: 'game_1',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      const id2 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_1',
+        operation: 'create',
+        data: {},
+        timestamp: Date.now() + 100,
+      });
+
+      await queue.markSyncing(id1);
+      await queue.markSyncing(id2);
+
+      const resetCount = await queue.resetStaleSyncing();
+      expect(resetCount).toBe(2);
+
+      const op1 = await queue.getById(id1);
+      const op2 = await queue.getById(id2);
+      expect(op1?.status).toBe('pending');
+      expect(op2?.status).toBe('pending');
+    });
+
+    it('should not affect pending or failed operations', async () => {
+      const pendingId = await queue.enqueue({
+        entityType: 'game',
+        entityId: 'game_pending',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      const failedId = await queue.enqueue({
+        entityType: 'game',
+        entityId: 'game_failed',
+        operation: 'create',
+        data: {},
+        timestamp: Date.now() + 100,
+      });
+
+      // Fail to max retries
+      for (let i = 0; i < 3; i++) {
+        await queue.markFailed(failedId, `Error ${i}`);
+      }
+
+      const resetCount = await queue.resetStaleSyncing();
+      expect(resetCount).toBe(0);
+
+      const pendingOp = await queue.getById(pendingId);
+      const failedOp = await queue.getById(failedId);
+      expect(pendingOp?.status).toBe('pending');
+      expect(failedOp?.status).toBe('failed');
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle marking non-existent operation as syncing', async () => {
       // Should not throw

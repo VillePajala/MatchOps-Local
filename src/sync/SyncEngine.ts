@@ -53,6 +53,10 @@ export class SyncEngine {
   private isOnline = true;
   private lastSyncedAt: number | null = null;
 
+  // Event listener references for cleanup
+  private boundOnlineHandler: (() => void) | null = null;
+  private boundOfflineHandler: (() => void) | null = null;
+
   // Event listeners
   private statusListeners: Set<StatusChangeListener> = new Set();
   private completeListeners: Set<OperationCompleteListener> = new Set();
@@ -89,10 +93,18 @@ export class SyncEngine {
     logger.info('[SyncEngine] Starting sync engine');
     this.isRunning = true;
 
-    // Set up online/offline listeners
+    // Refresh online state - may have changed between construction and start()
+    // (e.g., constructed offline, browser came online before start() was called)
+    if (typeof navigator !== 'undefined') {
+      this.isOnline = navigator.onLine;
+    }
+
+    // Set up online/offline listeners with stored references for cleanup
     if (typeof window !== 'undefined') {
-      window.addEventListener('online', this.handleOnline);
-      window.addEventListener('offline', this.handleOffline);
+      this.boundOnlineHandler = this.handleOnline;
+      this.boundOfflineHandler = this.handleOffline;
+      window.addEventListener('online', this.boundOnlineHandler);
+      window.addEventListener('offline', this.boundOfflineHandler);
     }
 
     // Start periodic sync
@@ -100,10 +112,19 @@ export class SyncEngine {
       this.processQueue();
     }, this.config.syncIntervalMs);
 
-    // Sync immediately if online
-    if (this.isOnline) {
-      this.processQueue();
-    }
+    // Reset any operations stuck in 'syncing' state from previous crash/close
+    // This must complete before the first processQueue() to recover lost operations
+    this.queue
+      .resetStaleSyncing()
+      .catch((e) => {
+        logger.error('[SyncEngine] Failed to reset stale syncing operations:', e);
+      })
+      .finally(() => {
+        // Sync immediately if online - only after reset completes
+        if (this.isOnline && this.isRunning) {
+          this.processQueue();
+        }
+      });
 
     this.emitStatusChange();
   }
@@ -126,10 +147,12 @@ export class SyncEngine {
       this.intervalId = null;
     }
 
-    // Remove listeners
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('online', this.handleOnline);
-      window.removeEventListener('offline', this.handleOffline);
+    // Remove listeners using stored references
+    if (this.boundOnlineHandler && this.boundOfflineHandler && typeof window !== 'undefined') {
+      window.removeEventListener('online', this.boundOnlineHandler);
+      window.removeEventListener('offline', this.boundOfflineHandler);
+      this.boundOnlineHandler = null;
+      this.boundOfflineHandler = null;
     }
 
     this.emitStatusChange();
@@ -208,20 +231,23 @@ export class SyncEngine {
 
   /**
    * Check if the engine is currently running.
+   * @returns true if start() has been called and stop() has not
    */
   isEngineRunning(): boolean {
     return this.isRunning;
   }
 
   /**
-   * Check if the engine is currently syncing.
+   * Check if the engine is currently processing operations.
+   * @returns true if actively syncing a batch of operations
    */
   isEngineSyncing(): boolean {
     return this.isSyncing;
   }
 
   /**
-   * Check if currently online.
+   * Check if the device is currently online.
+   * @returns true if navigator.onLine is true and no offline event received
    */
   isCurrentlyOnline(): boolean {
     return this.isOnline;
@@ -280,9 +306,10 @@ export class SyncEngine {
 
       logger.debug('[SyncEngine] Processing batch', { count: pending.length });
 
-      // Process each operation
+      // Process each operation - executor is guaranteed non-null by guard above
+      const executor = this.executor;
       for (const op of pending) {
-        await this.processOperation(op);
+        await this.processOperation(op, executor);
 
         // Emit status change after each operation
         this.emitStatusChange();
@@ -303,7 +330,10 @@ export class SyncEngine {
     }
   }
 
-  private async processOperation(op: SyncOperation): Promise<void> {
+  private async processOperation(
+    op: SyncOperation,
+    executor: SyncOperationExecutor
+  ): Promise<void> {
     const opInfo = `${op.operation} ${op.entityType}/${op.entityId}`;
 
     try {
@@ -312,7 +342,7 @@ export class SyncEngine {
 
       // Execute the sync
       logger.debug(`[SyncEngine] Syncing: ${opInfo}`);
-      await this.executor!(op);
+      await executor(op);
 
       // Mark as completed (removes from queue)
       await this.queue.markCompleted(op.id);
