@@ -5,11 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { ResourceType, PREMIUM_PRICE, PREMIUM_IS_SUBSCRIPTION, getLimit } from '@/config/premiumLimits';
-import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { usePlayBilling } from '@/hooks/usePlayBilling';
+import { usePlayBilling, grantMockSubscription } from '@/hooks/usePlayBilling';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 import { isAndroid } from '@/utils/platform';
@@ -90,17 +89,20 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const resourceName = resource ? t(resourceKey, resource) : '';
 
   // Check if purchase is available
-  // Conditions:
-  // 1. Must be on Android (Play Billing only works there)
-  // 2. When PREMIUM_ENFORCEMENT_ENABLED is false, allow "purchase" bypass for testing
-  // 3. In dev/internal testing, allow purchase for testing
-  const isDev = process.env.NODE_ENV === 'development';
+  // Production: must be on Android
+  // Vercel preview deployments: allow test mode for QA testing
   const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
-  const isProduction = process.env.NODE_ENV === 'production';
   const onAndroid = isAndroid();
-  // For production: must be on Android AND enforcement enabled (or testing mode)
-  // For dev/testing: always allow (for easier testing)
-  const canPurchase = onAndroid && (!isProduction || !PREMIUM_ENFORCEMENT_ENABLED || isDev || isInternalTesting);
+
+  // Detect Vercel preview deployment (match-ops-local-*.vercel.app)
+  const isVercelPreview = typeof window !== 'undefined' &&
+    /^match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/.test(window.location.hostname);
+
+  // Can purchase if:
+  // 1. On Android (real Play Billing), OR
+  // 2. On Vercel preview deployment (test mode for QA), OR
+  // 3. Internal testing flag is set
+  const canPurchase = onAndroid || isVercelPreview || isInternalTesting;
 
   // Handle restore click - restores existing Play Store purchases
   const handleRestoreClick = async () => {
@@ -141,9 +143,24 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
     setIsProcessing(true);
 
     try {
-      // In dev/testing, use test tokens for easier development
-      if (isDev || isInternalTesting) {
-        const token = isInternalTesting ? 'internal-test-token' : 'dev-test-token';
+      // On Vercel preview or internal testing, use test tokens (no real payment)
+      // Token must start with 'test-' prefix to be accepted by Edge Function in mock mode
+      if (isVercelPreview || isInternalTesting) {
+        const token = `test-${isInternalTesting ? 'internal' : 'preview'}-${Date.now()}`;
+
+        // For cloud sync, we need a database subscription record
+        // For resource limits, local premium is sufficient
+        if (variant === 'cloudUpgrade') {
+          // Call Edge Function to create subscription record in database
+          const result = await grantMockSubscription(token);
+          if (!result.success) {
+            logger.error('[UpgradePromptModal] Mock subscription failed:', result.error);
+            showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
+            return;
+          }
+        }
+
+        // Grant local premium status
         await grantPremiumAccess(token);
         showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
         onClose();

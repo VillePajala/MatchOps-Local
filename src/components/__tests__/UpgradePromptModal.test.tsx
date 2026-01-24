@@ -296,16 +296,18 @@ describe('UpgradePromptModal', () => {
     });
   });
 
-  describe('dev mode behavior', () => {
+  describe('internal testing behavior', () => {
     beforeEach(() => {
-      Object.defineProperty(process.env, 'NODE_ENV', {
-        value: 'development',
-        writable: true,
-      });
-      mockIsAndroid.mockReturnValue(true);
+      // Set internal testing flag
+      process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
+      mockIsAndroid.mockReturnValue(false); // Not on Android
     });
 
-    it('grants premium access directly when upgrade is clicked in dev mode (Android)', async () => {
+    afterEach(() => {
+      delete process.env.NEXT_PUBLIC_INTERNAL_TESTING;
+    });
+
+    it('grants premium access with test token when INTERNAL_TESTING is enabled', async () => {
       const onClose = jest.fn();
       mockGrantPremiumAccess.mockResolvedValue(undefined);
 
@@ -316,7 +318,8 @@ describe('UpgradePromptModal', () => {
         fireEvent.click(upgradeButton);
       });
 
-      expect(mockGrantPremiumAccess).toHaveBeenCalledWith('dev-test-token');
+      // Token format: test-internal-{timestamp}
+      expect(mockGrantPremiumAccess).toHaveBeenCalledWith(expect.stringMatching(/^test-internal-\d+$/));
       expect(onClose).toHaveBeenCalled();
     });
   });
