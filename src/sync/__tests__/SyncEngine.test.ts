@@ -114,6 +114,31 @@ describe('SyncEngine', () => {
 
       expect(mockExecutor).toHaveBeenCalledTimes(1);
     });
+
+    it('should dispose and clear all listeners', async () => {
+      const statusChanges: unknown[] = [];
+      engine.onStatusChange((info) => statusChanges.push(info));
+
+      engine.start();
+      await flushAllAsync();
+
+      const countBefore = statusChanges.length;
+      expect(countBefore).toBeGreaterThan(0);
+
+      // Dispose clears listeners
+      engine.dispose();
+      expect(engine.isEngineRunning()).toBe(false);
+
+      // Create new engine to trigger status changes on old listeners (should not fire)
+      const newEngine = new SyncEngine(queue, { syncIntervalMs: 1000 });
+      newEngine.setExecutor(mockExecutor);
+      newEngine.start();
+      await flushAllAsync();
+      newEngine.stop();
+
+      // Old listeners should not have received new events
+      expect(statusChanges.length).toBe(countBefore);
+    });
   });
 
   describe('processing', () => {

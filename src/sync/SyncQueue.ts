@@ -211,6 +211,10 @@ export class SyncQueue {
    * Deduplication: If an operation for the same entity+entityId exists with
    * status 'pending', it will be replaced with the new operation.
    *
+   * **Note:** Deduplication is not atomic in multi-tab scenarios. This is
+   * acceptable per the app's single-tab usage model. See CLAUDE.md
+   * "Known Limitation - Multi-Tab Usage".
+   *
    * @param input - Operation data (id, status, etc. are set automatically)
    * @returns Promise resolving to the operation ID
    */

@@ -50,6 +50,7 @@ export class SyncEngine {
   private isRunning = false;
   private isSyncing = false;
   private isResettingStale = false; // Blocks processing until stale reset completes
+  private pendingStatusEmit = false; // Coalesces rapid status change emissions
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = true;
   private lastSyncedAt: number | null = null;
@@ -150,15 +151,30 @@ export class SyncEngine {
       this.intervalId = null;
     }
 
-    // Remove listeners using stored references
-    if (this.boundOnlineHandler && this.boundOfflineHandler && typeof window !== 'undefined') {
-      window.removeEventListener('online', this.boundOnlineHandler);
-      window.removeEventListener('offline', this.boundOfflineHandler);
-      this.boundOnlineHandler = null;
-      this.boundOfflineHandler = null;
+    // Remove listeners - handle each independently in case one is null
+    if (typeof window !== 'undefined') {
+      if (this.boundOnlineHandler) {
+        window.removeEventListener('online', this.boundOnlineHandler);
+        this.boundOnlineHandler = null;
+      }
+      if (this.boundOfflineHandler) {
+        window.removeEventListener('offline', this.boundOfflineHandler);
+        this.boundOfflineHandler = null;
+      }
     }
 
     this.emitStatusChange();
+  }
+
+  /**
+   * Clean up all resources. Call this before discarding the engine instance.
+   * Stops the engine and clears all listeners.
+   */
+  dispose(): void {
+    this.stop();
+    this.statusListeners.clear();
+    this.completeListeners.clear();
+    this.failedListeners.clear();
   }
 
   /**
@@ -168,6 +184,11 @@ export class SyncEngine {
   nudge(): void {
     if (!this.isRunning) {
       logger.debug('[SyncEngine] Not running, nudge ignored');
+      return;
+    }
+
+    if (this.isResettingStale) {
+      logger.debug('[SyncEngine] Stale reset in progress, nudge ignored');
       return;
     }
 
@@ -388,6 +409,13 @@ export class SyncEngine {
   }
 
   private emitStatusChange(): void {
+    // Coalesce rapid calls - skip if already pending to prevent out-of-order updates
+    if (this.pendingStatusEmit) {
+      return;
+    }
+
+    this.pendingStatusEmit = true;
+
     // Fire and forget - don't block callers, handle errors gracefully
     this.getStatus()
       .then((status) => {
@@ -402,6 +430,9 @@ export class SyncEngine {
       .catch((e) => {
         // Unexpected - queue should be initialized when engine is running
         logger.warn('[SyncEngine] Could not emit status change:', e);
+      })
+      .finally(() => {
+        this.pendingStatusEmit = false;
       });
   }
 }
