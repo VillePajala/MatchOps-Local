@@ -2252,6 +2252,16 @@
     "signOutError": "Failed to sign out. Please try again.",
     "switchedToLocal": "Switched to local mode. Reloading...",
     "manageSubscription": "Manage Subscription",
+    "subscriptionSuccess": "Subscription activated! Reloading...",
+    "importLocalData": {
+      "button": "Import Local Data to Cloud",
+      "checking": "Checking...",
+      "starting": "Starting import... Reloading.",
+      "noData": "No local data found to import.",
+      "notSignedIn": "Please sign in first.",
+      "checkFailed": "Failed to check for local data. Please try again.",
+      "error": "An error occurred. Please try again."
+    },
     "cloudAccount": {
       "title": "Cloud Account",
       "lastSynced": "Last synced: {{date}}",

@@ -262,8 +262,9 @@ describe('Translation File Validation', () => {
       // Account-Subscription Separation Model: subscription/welcome keys
       // Security fixes: signOut, manageSubscription, switchedToLocal keys
       // Robustness fixes: playBilling restore functionality keys
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093
-      expect(enKeys.length).toBe(2093);
+      // Migration wizard trigger fix: importLocalData + subscriptionSuccess keys
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101
+      expect(enKeys.length).toBe(2101);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -273,8 +274,9 @@ describe('Translation File Validation', () => {
       // Account-Subscription Separation Model: subscription/welcome keys
       // Security fixes: signOut, manageSubscription, switchedToLocal keys
       // Robustness fixes: playBilling restore functionality keys
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093
-      expect(fiKeys.length).toBe(2093);
+      // Migration wizard trigger fix: importLocalData + subscriptionSuccess keys
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101
+      expect(fiKeys.length).toBe(2101);
     });
   });
 });

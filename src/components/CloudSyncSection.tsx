@@ -3,15 +3,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard } from 'react-icons/hi2';
+import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard, HiOutlineArrowUpTray } from 'react-icons/hi2';
 import {
   getBackendMode,
   isCloudAvailable,
   enableCloudMode,
   getCloudAccountInfo,
   clearMigrationCompleted,
+  hasMigrationCompleted,
   type CloudAccountInfo,
 } from '@/config/backendConfig';
+import { hasLocalDataToMigrate } from '@/services/migrationService';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { useSubscriptionOptional } from '@/contexts/SubscriptionContext';
@@ -81,6 +83,9 @@ export default function CloudSyncSection({
 
   // Sign out state
   const [isSigningOut, setIsSigningOut] = useState(false);
+
+  // Import local data state
+  const [isCheckingLocalData, setIsCheckingLocalData] = useState(false);
 
   // Track mount state to prevent state updates after unmount
   const isMountedRef = useRef(true);
@@ -312,6 +317,70 @@ export default function CloudSyncSection({
   };
 
   /**
+   * Handle import local data to cloud.
+   * Checks if there's local data to migrate, and if so, clears the migration
+   * completed flag and reloads the page to trigger the migration wizard.
+   */
+  const handleImportLocalData = async () => {
+    if (!user?.id) {
+      showToast(
+        t('cloudSync.importLocalData.notSignedIn', 'Please sign in first.'),
+        'error'
+      );
+      return;
+    }
+
+    setIsCheckingLocalData(true);
+    try {
+      const result = await hasLocalDataToMigrate();
+
+      if (result.checkFailed) {
+        logger.error('[CloudSyncSection] Failed to check local data:', result.error);
+        showToast(
+          t('cloudSync.importLocalData.checkFailed', 'Failed to check for local data. Please try again.'),
+          'error'
+        );
+        return;
+      }
+
+      if (!result.hasData) {
+        showToast(
+          t('cloudSync.importLocalData.noData', 'No local data found to import.'),
+          'info'
+        );
+        return;
+      }
+
+      // Local data exists - clear migration completed flag and reload to trigger wizard
+      // This allows the user to re-run migration even if they've migrated before
+      if (hasMigrationCompleted(user.id)) {
+        clearMigrationCompleted(user.id);
+        logger.info('[CloudSyncSection] Cleared migration completed flag to allow re-migration');
+      }
+
+      showToast(
+        t('cloudSync.importLocalData.starting', 'Starting import... Reloading.'),
+        'success'
+      );
+
+      // Reload page to trigger migration wizard in page.tsx
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      logger.error('[CloudSyncSection] Error checking local data:', error);
+      showToast(
+        t('cloudSync.importLocalData.error', 'An error occurred. Please try again.'),
+        'error'
+      );
+    } finally {
+      if (isMountedRef.current) {
+        setIsCheckingLocalData(false);
+      }
+    }
+  };
+
+  /**
    * Format date for display
    */
   const formatDate = (isoString: string | undefined): string => {
@@ -423,15 +492,36 @@ export default function CloudSyncSection({
 
           {/* Manage Subscription Link - Only shown for users with active subscription */}
           {hasSubscription && (
-            <a
-              href="https://play.google.com/store/account/subscriptions"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm no-underline`}
-            >
-              <HiOutlineCreditCard className="h-4 w-4" />
-              {t('cloudSync.manageSubscription', 'Manage Subscription')}
-            </a>
+            <>
+              <a
+                href="https://play.google.com/store/account/subscriptions"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm no-underline`}
+              >
+                <HiOutlineCreditCard className="h-4 w-4" />
+                {t('cloudSync.manageSubscription', 'Manage Subscription')}
+              </a>
+
+              {/* Import Local Data Button - for users who want to migrate local data to cloud */}
+              <button
+                onClick={handleImportLocalData}
+                disabled={isCheckingLocalData || isChangingMode}
+                className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
+              >
+                {isCheckingLocalData ? (
+                  <>
+                    <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                    {t('cloudSync.importLocalData.checking', 'Checking...')}
+                  </>
+                ) : (
+                  <>
+                    <HiOutlineArrowUpTray className="h-4 w-4" />
+                    {t('cloudSync.importLocalData.button', 'Import Local Data to Cloud')}
+                  </>
+                )}
+              </button>
+            </>
           )}
         </div>
       )}
@@ -645,8 +735,15 @@ export default function CloudSyncSection({
         variant="cloudUpgrade"
         onUpgradeSuccess={() => {
           setShowUpgradeModal(false);
-          // Refresh subscription status after successful upgrade
-          subscription?.refresh();
+          // After subscription, reload page to trigger fresh migration check
+          // This ensures migration wizard shows if there's local data to import
+          showToast(
+            t('cloudSync.subscriptionSuccess', 'Subscription activated! Reloading...'),
+            'success'
+          );
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
         }}
       />
     </div>

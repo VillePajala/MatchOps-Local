@@ -2252,6 +2252,16 @@
     "signOutError": "Uloskirjautuminen epäonnistui. Yritä uudelleen.",
     "switchedToLocal": "Vaihdettu paikalliseen tilaan. Ladataan uudelleen...",
     "manageSubscription": "Hallitse tilausta",
+    "subscriptionSuccess": "Tilaus aktivoitu! Ladataan uudelleen...",
+    "importLocalData": {
+      "button": "Tuo paikalliset tiedot pilveen",
+      "checking": "Tarkistetaan...",
+      "starting": "Aloitetaan tuonti... Ladataan uudelleen.",
+      "noData": "Ei paikallisia tietoja tuotavaksi.",
+      "notSignedIn": "Kirjaudu ensin sisään.",
+      "checkFailed": "Paikallisten tietojen tarkistus epäonnistui. Yritä uudelleen.",
+      "error": "Tapahtui virhe. Yritä uudelleen."
+    },
     "cloudAccount": {
       "title": "Pilvitili",
       "lastSynced": "Viimeksi synkronoitu: {{date}}",
