@@ -21,7 +21,34 @@ const PLAY_BILLING_SERVICE = 'https://play.google.com/billing';
 export const SUBSCRIPTION_PRODUCT_ID = 'matchops_premium_monthly';
 
 // Check if mock billing is enabled
-const MOCK_BILLING = process.env.NEXT_PUBLIC_MOCK_BILLING === 'true';
+// SECURITY: Mock billing bypasses real payments - NEVER enable in production
+const MOCK_BILLING_RAW = process.env.NEXT_PUBLIC_MOCK_BILLING === 'true';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// Runtime protection: refuse to enable mock billing in production
+// This is a defense-in-depth measure - the env var should never be set in production
+const MOCK_BILLING = (() => {
+  if (MOCK_BILLING_RAW && IS_PRODUCTION) {
+    // Log error and alert - this should NEVER happen in production
+    console.error(
+      '🚨 CRITICAL SECURITY: NEXT_PUBLIC_MOCK_BILLING=true detected in production! ' +
+      'Mock billing DISABLED for security. Please remove this environment variable.'
+    );
+    // Report to Sentry if available (dynamic import to avoid bundling issues)
+    if (typeof window !== 'undefined') {
+      import('@sentry/nextjs').then(Sentry => {
+        Sentry.captureMessage(
+          'CRITICAL: MOCK_BILLING enabled in production - blocked for security',
+          'error'
+        );
+      }).catch(() => {
+        // Sentry not available, error already logged to console
+      });
+    }
+    return false; // Force disable in production
+  }
+  return MOCK_BILLING_RAW;
+})();
 
 /**
  * Result of a purchase attempt

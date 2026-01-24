@@ -16,7 +16,7 @@ import {
 import { hasLocalDataToMigrate } from '@/services/migrationService';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
-import { useSubscriptionOptional } from '@/contexts/SubscriptionContext';
+import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import { getDataStore } from '@/datastore/factory';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
@@ -59,6 +59,9 @@ export default function CloudSyncSection({
 
   // Subscription status for cloud mode (null in local mode)
   const subscription = useSubscriptionOptional();
+  // Only consider user as having subscription when we've confirmed it
+  // If context is null or still loading, don't show subscribe button (safer default)
+  const subscriptionLoading = !subscription || subscription.isLoading;
   const hasSubscription = subscription?.isActive ?? false;
 
   // State for showing upgrade modal when user wants to subscribe
@@ -441,7 +444,7 @@ export default function CloudSyncSection({
       {/* Mode Description */}
       <p className="text-sm text-slate-400">
         {currentMode === 'cloud'
-          ? (subscription?.isLoading || hasSubscription
+          ? (subscriptionLoading || hasSubscription
             ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
             : t('cloudSync.cloudNoSubscription', 'You have a cloud account but sync is paused. Subscribe to enable cloud sync.'))
           : t('cloudSync.localDescription', 'Your data is stored locally on this device. Works offline, but data is not synced.')
@@ -449,7 +452,8 @@ export default function CloudSyncSection({
       </p>
 
       {/* Subscription Warning - shown in cloud mode without active subscription */}
-      {currentMode === 'cloud' && !subscription?.isLoading && !hasSubscription && (
+      {/* Only show when we've confirmed no subscription (not while loading) */}
+      {currentMode === 'cloud' && !subscriptionLoading && !hasSubscription && (
         <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
           <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -733,8 +737,11 @@ export default function CloudSyncSection({
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         variant="cloudUpgrade"
-        onUpgradeSuccess={() => {
+        onUpgradeSuccess={async () => {
           setShowUpgradeModal(false);
+          // CRITICAL: Clear subscription cache before reload
+          // Otherwise the stale "none" cached value will be used on reload
+          await clearSubscriptionCache();
           // After subscription, reload page to trigger fresh migration check
           // This ensures migration wizard shows if there's local data to import
           showToast(

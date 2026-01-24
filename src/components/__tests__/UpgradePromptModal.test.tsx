@@ -56,6 +56,11 @@ jest.mock('@/hooks/usePlayBilling', () => ({
   }),
 }));
 
+// Mock SubscriptionContext
+jest.mock('@/contexts/SubscriptionContext', () => ({
+  clearSubscriptionCache: jest.fn().mockResolvedValue(undefined),
+}));
+
 // Mock platform detection
 jest.mock('@/utils/platform', () => ({
   isAndroid: jest.fn().mockReturnValue(false),
@@ -318,9 +323,12 @@ describe('UpgradePromptModal', () => {
         fireEvent.click(upgradeButton);
       });
 
-      // Token format: test-internal-{timestamp}
-      expect(mockGrantPremiumAccess).toHaveBeenCalledWith(expect.stringMatching(/^test-internal-\d+$/));
-      expect(onClose).toHaveBeenCalled();
+      // Wait for all async operations (including clearSubscriptionCache)
+      await waitFor(() => {
+        // Token format: test-internal-{timestamp}
+        expect(mockGrantPremiumAccess).toHaveBeenCalledWith(expect.stringMatching(/^test-internal-\d+$/));
+        expect(onClose).toHaveBeenCalled();
+      });
     });
   });
 

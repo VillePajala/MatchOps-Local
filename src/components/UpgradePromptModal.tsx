@@ -9,6 +9,7 @@ import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { usePlayBilling, grantMockSubscription } from '@/hooks/usePlayBilling';
+import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 import { isAndroid } from '@/utils/platform';
@@ -135,6 +136,8 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
       // Grant local premium with the restored purchase token
       await grantPremiumAccess(result.purchaseToken);
+      // Clear subscription cache to ensure fresh data on next check
+      await clearSubscriptionCache();
       showToast(t('playBilling.restoreSuccess', 'Purchases restored successfully!'), 'success');
       onClose();
       onUpgradeSuccess?.();
@@ -174,6 +177,8 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
         // Grant local premium status
         await grantPremiumAccess(token);
+        // Clear subscription cache to ensure fresh data on next check
+        await clearSubscriptionCache();
         showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
         onClose();
         onUpgradeSuccess?.();
@@ -201,6 +206,8 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
       // Grant local premium with the purchase token
       await grantPremiumAccess(result.purchaseToken);
+      // Clear subscription cache to ensure fresh data on next check
+      await clearSubscriptionCache();
       showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
       onClose();
       onUpgradeSuccess?.();

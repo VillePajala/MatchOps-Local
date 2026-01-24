@@ -11,20 +11,28 @@ import * as playBilling from '@/utils/playBilling';
 // Mock the playBilling utilities
 jest.mock('@/utils/playBilling');
 
-// Mock the Supabase client
-jest.mock('@/datastore/supabase/client', () => ({
-  getSupabaseClient: jest.fn(() => ({
-    functions: {
-      invoke: jest.fn().mockResolvedValue({
-        data: { success: true, status: 'active', periodEnd: '2025-02-23T00:00:00Z' },
-        error: null,
-      }),
-    },
-    auth: {
-      getSession: jest.fn().mockResolvedValue({ data: { session: { user: { id: 'test-user-id' } } } }),
-    },
-  })),
-}));
+// Mock the Supabase client with valid session including access_token and expires_at
+jest.mock('@/datastore/supabase/client', () => {
+  const validSession = {
+    user: { id: 'test-user-id' },
+    access_token: 'valid-test-token',
+    expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+  };
+  return {
+    getSupabaseClient: jest.fn(() => ({
+      functions: {
+        invoke: jest.fn().mockResolvedValue({
+          data: { success: true, status: 'active', periodEnd: '2025-02-23T00:00:00Z' },
+          error: null,
+        }),
+      },
+      auth: {
+        getSession: jest.fn().mockResolvedValue({ data: { session: validSession } }),
+        refreshSession: jest.fn().mockResolvedValue({ data: { session: validSession }, error: null }),
+      },
+    })),
+  };
+});
 
 // Mock SubscriptionContext
 jest.mock('@/contexts/SubscriptionContext', () => ({
@@ -276,7 +284,12 @@ describe('grantMockSubscription', () => {
   });
 
   it('returns error when Edge Function fails', async () => {
-    // Override the mock for this test
+    // Override the mock for this test - must include auth for session check
+    const validSession = {
+      user: { id: 'test-user-id' },
+      access_token: 'valid-test-token',
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    };
     const { getSupabaseClient } = jest.requireMock('@/datastore/supabase/client');
     getSupabaseClient.mockReturnValueOnce({
       functions: {
@@ -284,6 +297,10 @@ describe('grantMockSubscription', () => {
           data: null,
           error: { message: 'Server error' },
         }),
+      },
+      auth: {
+        getSession: jest.fn().mockResolvedValue({ data: { session: validSession } }),
+        refreshSession: jest.fn().mockResolvedValue({ data: { session: validSession }, error: null }),
       },
     });
 
