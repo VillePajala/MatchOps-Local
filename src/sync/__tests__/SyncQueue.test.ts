@@ -132,6 +132,40 @@ describe('SyncQueue', () => {
       expect(op?.timestamp).toBe(timestamp2);
     });
 
+    it('should preserve original createdAt when deduplicating', async () => {
+      // First enqueue creates operation with createdAt = now
+      const id1 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_preserve',
+        operation: 'update',
+        data: { name: 'First' },
+        timestamp: Date.now(),
+      });
+
+      const op1 = await queue.getById(id1);
+      const originalCreatedAt = op1?.createdAt;
+      expect(originalCreatedAt).toBeDefined();
+
+      // Wait a bit to ensure different timestamps
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Second enqueue replaces but should keep original createdAt
+      const id2 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_preserve',
+        operation: 'update',
+        data: { name: 'Second' },
+        timestamp: Date.now() + 1000,
+      });
+
+      expect(id2).toBe(id1);
+
+      const op2 = await queue.getById(id2);
+      expect(op2?.data).toEqual({ name: 'Second' });
+      // createdAt should be preserved from original
+      expect(op2?.createdAt).toBe(originalCreatedAt);
+    });
+
     it('should not deduplicate operations for different entities', async () => {
       await queue.enqueue({
         entityType: 'player',

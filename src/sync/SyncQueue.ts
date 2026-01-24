@@ -226,6 +226,7 @@ export class SyncQueue {
       const cursorRequest = entityIndex.openCursor(entityKey);
 
       let existingId: string | null = null;
+      let existingCreatedAt: number | null = null;
 
       cursorRequest.onsuccess = () => {
         const cursor = cursorRequest.result;
@@ -236,6 +237,7 @@ export class SyncQueue {
           // Only deduplicate pending operations
           if (existing.status === 'pending') {
             existingId = existing.id;
+            existingCreatedAt = existing.createdAt;
             logger.debug('[SyncQueue] Found existing pending operation, will replace', {
               entityType: input.entityType,
               entityId: input.entityId,
@@ -249,7 +251,7 @@ export class SyncQueue {
       transaction.oncomplete = () => {
         // This fires after all cursor iteration, but we need to do the actual
         // insert/update in a new transaction
-        this.performEnqueue(input, existingId)
+        this.performEnqueue(input, existingId, existingCreatedAt)
           .then(resolve)
           .catch(reject);
       };
@@ -268,7 +270,11 @@ export class SyncQueue {
   /**
    * Perform the actual enqueue operation (insert or update).
    */
-  private async performEnqueue(input: SyncOperationInput, existingId: string | null): Promise<string> {
+  private async performEnqueue(
+    input: SyncOperationInput,
+    existingId: string | null,
+    existingCreatedAt: number | null
+  ): Promise<string> {
     const db = this.ensureInitialized();
 
     return new Promise((resolve, reject) => {
@@ -284,7 +290,7 @@ export class SyncQueue {
         status: 'pending',
         retryCount: 0,
         maxRetries: this.maxRetries,
-        createdAt: existingId ? input.timestamp : now, // Keep original createdAt if replacing
+        createdAt: existingCreatedAt ?? now, // Preserve original createdAt if replacing
       };
 
       // If replacing, delete the old one first
