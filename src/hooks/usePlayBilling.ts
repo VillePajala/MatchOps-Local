@@ -61,6 +61,59 @@ export interface UsePlayBillingResult {
 }
 
 /**
+ * Ensure we have a fresh, valid session for Edge Function calls.
+ *
+ * The Edge Function has verify_jwt: true, so Supabase's API gateway validates
+ * the JWT before the function code runs. We must ensure the access token is
+ * fresh to avoid 401 errors.
+ *
+ * @returns Fresh session or null if not authenticated
+ */
+async function ensureFreshSession() {
+  const supabase = getSupabaseClient();
+
+  // First, get the current cached session
+  const { data: { session: cachedSession }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    logger.error('[usePlayBilling] Error getting session:', sessionError.message);
+    return null;
+  }
+
+  if (!cachedSession) {
+    logger.error('[usePlayBilling] No session found');
+    return null;
+  }
+
+  // Check if token is expired or about to expire (within 60 seconds)
+  const expiresAt = cachedSession.expires_at;
+  const now = Math.floor(Date.now() / 1000);
+  const bufferSeconds = 60;
+
+  if (expiresAt && expiresAt < now + bufferSeconds) {
+    logger.info('[usePlayBilling] Access token expired or expiring soon, refreshing...');
+
+    // Force refresh the session to get a fresh access token
+    const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+
+    if (refreshError) {
+      logger.error('[usePlayBilling] Failed to refresh session:', refreshError.message);
+      return null;
+    }
+
+    if (!refreshedSession) {
+      logger.error('[usePlayBilling] No session after refresh - user may need to re-login');
+      return null;
+    }
+
+    logger.info('[usePlayBilling] Session refreshed successfully');
+    return refreshedSession;
+  }
+
+  return cachedSession;
+}
+
+/**
  * Verify a purchase token with the server
  *
  * @param purchaseToken - Token from Play Billing
@@ -70,14 +123,14 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<BillingR
   try {
     const supabase = getSupabaseClient();
 
-    // Verify we have an active session before calling Edge Function
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      logger.error('[usePlayBilling] No active session for Edge Function call:', sessionError?.message);
+    // Ensure we have a fresh, valid session before calling Edge Function
+    // The Edge Function has verify_jwt: true, so expired tokens cause 401 at gateway level
+    const session = await ensureFreshSession();
+    if (!session) {
       return { success: false, error: 'Not logged in. Please sign in first.' };
     }
 
-    logger.debug('[usePlayBilling] Calling Edge Function with session:', {
+    logger.debug('[usePlayBilling] Calling Edge Function with fresh session:', {
       userId: session.user.id,
       expiresAt: session.expires_at,
     });

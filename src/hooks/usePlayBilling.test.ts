@@ -532,12 +532,32 @@ describe('usePlayBilling', () => {
 
 describe('grantMockSubscription', () => {
   let mockFunctionsInvoke: jest.Mock;
+  let mockGetSession: jest.Mock;
+
+  // Mock session with valid expiry (1 hour from now)
+  const mockSession = {
+    user: { id: 'user-123' },
+    access_token: 'valid-token',
+    expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     mockFunctionsInvoke = jest.fn();
+    mockGetSession = jest.fn().mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+
     mockGetSupabaseClient.mockReturnValue({
+      auth: {
+        getSession: mockGetSession,
+        refreshSession: jest.fn().mockResolvedValue({
+          data: { session: mockSession },
+          error: null,
+        }),
+      },
       functions: {
         invoke: mockFunctionsInvoke,
       },
@@ -587,5 +607,64 @@ describe('grantMockSubscription', () => {
       success: false,
       error: 'Network error',
     });
+  });
+
+  it('returns error when not logged in', async () => {
+    mockGetSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+
+    const result = await grantMockSubscription('test-12345-abc');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Not logged in. Please sign in first.',
+    });
+    expect(mockFunctionsInvoke).not.toHaveBeenCalled();
+  });
+
+  it('refreshes expired session before calling Edge Function', async () => {
+    // Mock an expired session (expired 10 minutes ago)
+    const expiredSession = {
+      ...mockSession,
+      expires_at: Math.floor(Date.now() / 1000) - 600, // 10 minutes ago
+    };
+
+    const refreshedSession = {
+      ...mockSession,
+      expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+    };
+
+    const mockRefreshSession = jest.fn().mockResolvedValue({
+      data: { session: refreshedSession },
+      error: null,
+    });
+
+    mockGetSession.mockResolvedValue({
+      data: { session: expiredSession },
+      error: null,
+    });
+
+    mockGetSupabaseClient.mockReturnValue({
+      auth: {
+        getSession: mockGetSession,
+        refreshSession: mockRefreshSession,
+      },
+      functions: {
+        invoke: mockFunctionsInvoke,
+      },
+    } as unknown as ReturnType<typeof getSupabaseClient>);
+
+    mockFunctionsInvoke.mockResolvedValue({
+      data: { success: true, status: 'active' },
+      error: null,
+    });
+
+    const result = await grantMockSubscription('test-12345-abc');
+
+    expect(result).toEqual({ success: true });
+    expect(mockRefreshSession).toHaveBeenCalled();
+    expect(mockFunctionsInvoke).toHaveBeenCalled();
   });
 });
