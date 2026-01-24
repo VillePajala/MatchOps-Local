@@ -78,8 +78,11 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<BillingR
     });
 
     if (error) {
-      logger.error('[usePlayBilling] Server verification failed:', error);
-      return { success: false, error: error.message };
+      // Supabase returns generic "Edge function returned non-2xx" error
+      // The actual error message from the Edge Function is in the data field
+      const actualError = data?.error || error.message;
+      logger.error('[usePlayBilling] Server verification failed:', { error: actualError, data });
+      return { success: false, error: actualError };
     }
 
     if (!data?.success) {
