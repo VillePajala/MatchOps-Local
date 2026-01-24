@@ -1,0 +1,400 @@
+/**
+ * SyncEngine - Background Sync Processor
+ *
+ * Processes the SyncQueue in the background, syncing operations to the cloud
+ * when online. Handles retry logic, online/offline detection, and status updates.
+ *
+ * @see docs/03-active-plans/local-first-sync-plan.md
+ */
+
+import logger from '@/utils/logger';
+import { SyncQueue } from './SyncQueue';
+import {
+  SyncOperation,
+  SyncStatusState,
+  SyncStatusInfo,
+  SyncEngineConfig,
+  DEFAULT_SYNC_CONFIG,
+  SyncError,
+  SyncErrorCode,
+} from './types';
+
+/**
+ * Callback type for sync operations.
+ * Executes the actual sync to the cloud store.
+ */
+export type SyncOperationExecutor = (op: SyncOperation) => Promise<void>;
+
+/**
+ * Event listener callback types.
+ */
+type StatusChangeListener = (info: SyncStatusInfo) => void;
+type OperationCompleteListener = (opId: string, entityType: string, entityId: string) => void;
+type OperationFailedListener = (opId: string, error: string, willRetry: boolean) => void;
+
+/**
+ * SyncEngine - Manages background synchronization of queued operations.
+ *
+ * Features:
+ * - Processes queue when online
+ * - Pauses automatically when offline
+ * - Emits status events for UI
+ * - Configurable sync interval
+ * - Nudge for immediate sync after local write
+ */
+export class SyncEngine {
+  private queue: SyncQueue;
+  private executor: SyncOperationExecutor | null = null;
+  private config: SyncEngineConfig;
+
+  private isRunning = false;
+  private isSyncing = false;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private isOnline = true;
+  private lastSyncedAt: number | null = null;
+
+  // Event listeners
+  private statusListeners: Set<StatusChangeListener> = new Set();
+  private completeListeners: Set<OperationCompleteListener> = new Set();
+  private failedListeners: Set<OperationFailedListener> = new Set();
+
+  constructor(queue: SyncQueue, config: Partial<SyncEngineConfig> = {}) {
+    this.queue = queue;
+    this.config = { ...DEFAULT_SYNC_CONFIG, ...config };
+
+    // Initialize online state
+    if (typeof navigator !== 'undefined') {
+      this.isOnline = navigator.onLine;
+    }
+  }
+
+  /**
+   * Set the executor function that performs actual cloud sync.
+   * Must be called before start().
+   */
+  setExecutor(executor: SyncOperationExecutor): void {
+    this.executor = executor;
+  }
+
+  /**
+   * Start the background sync engine.
+   * Begins periodic sync and listens for online/offline events.
+   */
+  start(): void {
+    if (this.isRunning) {
+      logger.debug('[SyncEngine] Already running');
+      return;
+    }
+
+    logger.info('[SyncEngine] Starting sync engine');
+    this.isRunning = true;
+
+    // Set up online/offline listeners
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', this.handleOnline);
+      window.addEventListener('offline', this.handleOffline);
+    }
+
+    // Start periodic sync
+    this.intervalId = setInterval(() => {
+      this.processQueue();
+    }, this.config.syncIntervalMs);
+
+    // Sync immediately if online
+    if (this.isOnline) {
+      this.processQueue();
+    }
+
+    this.emitStatusChange();
+  }
+
+  /**
+   * Stop the background sync engine.
+   */
+  stop(): void {
+    if (!this.isRunning) {
+      logger.debug('[SyncEngine] Not running');
+      return;
+    }
+
+    logger.info('[SyncEngine] Stopping sync engine');
+    this.isRunning = false;
+
+    // Clear interval
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+
+    // Remove listeners
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', this.handleOnline);
+      window.removeEventListener('offline', this.handleOffline);
+    }
+
+    this.emitStatusChange();
+  }
+
+  /**
+   * Trigger an immediate sync attempt.
+   * Use this after enqueuing an operation to sync sooner than the next interval.
+   */
+  nudge(): void {
+    if (!this.isRunning) {
+      logger.debug('[SyncEngine] Not running, nudge ignored');
+      return;
+    }
+
+    if (!this.isOnline) {
+      logger.debug('[SyncEngine] Offline, nudge ignored');
+      return;
+    }
+
+    logger.debug('[SyncEngine] Nudge received, processing queue');
+    this.processQueue();
+  }
+
+  /**
+   * Get the current sync status.
+   */
+  async getStatus(): Promise<SyncStatusInfo> {
+    const stats = await this.queue.getStats();
+
+    let state: SyncStatusState;
+    if (!this.isOnline) {
+      state = 'offline';
+    } else if (this.isSyncing) {
+      state = 'syncing';
+    } else if (stats.failed > 0) {
+      state = 'error';
+    } else if (stats.pending > 0 || stats.syncing > 0) {
+      state = 'pending';
+    } else {
+      state = 'synced';
+    }
+
+    return {
+      state,
+      pendingCount: stats.pending + stats.syncing,
+      failedCount: stats.failed,
+      lastSyncedAt: this.lastSyncedAt,
+      isOnline: this.isOnline,
+    };
+  }
+
+  /**
+   * Subscribe to status changes.
+   */
+  onStatusChange(listener: StatusChangeListener): () => void {
+    this.statusListeners.add(listener);
+    return () => this.statusListeners.delete(listener);
+  }
+
+  /**
+   * Subscribe to operation completion events.
+   */
+  onOperationComplete(listener: OperationCompleteListener): () => void {
+    this.completeListeners.add(listener);
+    return () => this.completeListeners.delete(listener);
+  }
+
+  /**
+   * Subscribe to operation failure events.
+   */
+  onOperationFailed(listener: OperationFailedListener): () => void {
+    this.failedListeners.add(listener);
+    return () => this.failedListeners.delete(listener);
+  }
+
+  /**
+   * Check if the engine is currently running.
+   */
+  isEngineRunning(): boolean {
+    return this.isRunning;
+  }
+
+  /**
+   * Check if the engine is currently syncing.
+   */
+  isEngineSyncing(): boolean {
+    return this.isSyncing;
+  }
+
+  /**
+   * Check if currently online.
+   */
+  isCurrentlyOnline(): boolean {
+    return this.isOnline;
+  }
+
+  // ---- Private Methods ----
+
+  private handleOnline = (): void => {
+    logger.info('[SyncEngine] Online');
+    this.isOnline = true;
+    this.emitStatusChange();
+
+    // Trigger sync when coming back online
+    if (this.isRunning) {
+      this.processQueue();
+    }
+  };
+
+  private handleOffline = (): void => {
+    logger.info('[SyncEngine] Offline');
+    this.isOnline = false;
+    this.emitStatusChange();
+  };
+
+  private async processQueue(): Promise<void> {
+    // Guard against concurrent processing
+    if (this.isSyncing) {
+      logger.debug('[SyncEngine] Already syncing, skipping');
+      return;
+    }
+
+    // Check online status
+    if (!this.isOnline) {
+      logger.debug('[SyncEngine] Offline, skipping sync');
+      return;
+    }
+
+    // Check executor
+    if (!this.executor) {
+      logger.warn('[SyncEngine] No executor set, skipping sync');
+      return;
+    }
+
+    this.isSyncing = true;
+    this.emitStatusChange();
+
+    try {
+      // Get batch of pending operations
+      const pending = await this.queue.getPending(this.config.batchSize);
+
+      if (pending.length === 0) {
+        logger.debug('[SyncEngine] No pending operations');
+        this.lastSyncedAt = Date.now();
+        return;
+      }
+
+      logger.debug('[SyncEngine] Processing batch', { count: pending.length });
+
+      // Process each operation
+      for (const op of pending) {
+        await this.processOperation(op);
+
+        // Emit status change after each operation
+        this.emitStatusChange();
+
+        // Check if we went offline during processing
+        if (!this.isOnline) {
+          logger.info('[SyncEngine] Went offline during sync, pausing');
+          break;
+        }
+      }
+
+      this.lastSyncedAt = Date.now();
+    } catch (error) {
+      logger.error('[SyncEngine] Error processing queue:', error);
+    } finally {
+      this.isSyncing = false;
+      this.emitStatusChange();
+    }
+  }
+
+  private async processOperation(op: SyncOperation): Promise<void> {
+    const opInfo = `${op.operation} ${op.entityType}/${op.entityId}`;
+
+    try {
+      // Mark as syncing
+      await this.queue.markSyncing(op.id);
+
+      // Execute the sync
+      logger.debug(`[SyncEngine] Syncing: ${opInfo}`);
+      await this.executor!(op);
+
+      // Mark as completed (removes from queue)
+      await this.queue.markCompleted(op.id);
+      logger.debug(`[SyncEngine] Completed: ${opInfo}`);
+
+      // Emit completion event
+      for (const listener of this.completeListeners) {
+        try {
+          listener(op.id, op.entityType, op.entityId);
+        } catch (e) {
+          logger.error('[SyncEngine] Error in complete listener:', e);
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
+
+      // Mark as failed
+      await this.queue.markFailed(op.id, errorMessage);
+
+      // Check if will retry
+      const updatedOp = await this.queue.getById(op.id);
+      const willRetry = updatedOp?.status === 'pending'; // Back to pending = will retry
+
+      // Emit failure event
+      for (const listener of this.failedListeners) {
+        try {
+          listener(op.id, errorMessage, willRetry);
+        } catch (e) {
+          logger.error('[SyncEngine] Error in failed listener:', e);
+        }
+      }
+    }
+  }
+
+  private emitStatusChange(): void {
+    // Fire and forget - don't block callers, handle errors gracefully
+    this.getStatus()
+      .then((status) => {
+        for (const listener of this.statusListeners) {
+          try {
+            listener(status);
+          } catch (e) {
+            logger.error('[SyncEngine] Error in status listener:', e);
+          }
+        }
+      })
+      .catch((e) => {
+        // Queue might not be initialized - this is fine, just skip
+        logger.debug('[SyncEngine] Could not emit status change:', e);
+      });
+  }
+}
+
+/**
+ * Singleton instance for the application.
+ * Initialize with queue before use.
+ */
+let syncEngineInstance: SyncEngine | null = null;
+
+/**
+ * Get or create the singleton SyncEngine instance.
+ */
+export function getSyncEngine(queue?: SyncQueue): SyncEngine {
+  if (!syncEngineInstance) {
+    if (!queue) {
+      throw new SyncError(
+        SyncErrorCode.QUEUE_ERROR,
+        'SyncEngine not initialized. Provide SyncQueue on first call.'
+      );
+    }
+    syncEngineInstance = new SyncEngine(queue);
+  }
+  return syncEngineInstance;
+}
+
+/**
+ * Reset the singleton (for testing).
+ */
+export function resetSyncEngine(): void {
+  if (syncEngineInstance) {
+    syncEngineInstance.stop();
+    syncEngineInstance = null;
+  }
+}
