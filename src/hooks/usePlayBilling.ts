@@ -70,6 +70,18 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<BillingR
   try {
     const supabase = getSupabaseClient();
 
+    // Verify we have an active session before calling Edge Function
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      logger.error('[usePlayBilling] No active session for Edge Function call:', sessionError?.message);
+      return { success: false, error: 'Not logged in. Please sign in first.' };
+    }
+
+    logger.debug('[usePlayBilling] Calling Edge Function with session:', {
+      userId: session.user.id,
+      expiresAt: session.expires_at,
+    });
+
     const { data, error } = await supabase.functions.invoke('verify-subscription', {
       body: {
         purchaseToken,
