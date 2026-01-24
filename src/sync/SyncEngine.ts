@@ -49,6 +49,7 @@ export class SyncEngine {
 
   private isRunning = false;
   private isSyncing = false;
+  private isResettingStale = false; // Blocks processing until stale reset completes
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = true;
   private lastSyncedAt: number | null = null;
@@ -93,8 +94,8 @@ export class SyncEngine {
     logger.info('[SyncEngine] Starting sync engine');
     this.isRunning = true;
 
-    // Refresh online state - may have changed between construction and start()
-    // (e.g., constructed offline, browser came online before start() was called)
+    // Refresh online state - browser may have come online after construction
+    // but before event listeners are attached. See test 'should refresh online state on start'
     if (typeof navigator !== 'undefined') {
       this.isOnline = navigator.onLine;
     }
@@ -113,13 +114,15 @@ export class SyncEngine {
     }, this.config.syncIntervalMs);
 
     // Reset any operations stuck in 'syncing' state from previous crash/close
-    // This must complete before the first processQueue() to recover lost operations
+    // Block processing until reset completes to avoid race with interval
+    this.isResettingStale = true;
     this.queue
       .resetStaleSyncing()
       .catch((e) => {
         logger.error('[SyncEngine] Failed to reset stale syncing operations:', e);
       })
       .finally(() => {
+        this.isResettingStale = false;
         // Sync immediately if online - only after reset completes
         if (this.isOnline && this.isRunning) {
           this.processQueue();
@@ -273,6 +276,12 @@ export class SyncEngine {
   };
 
   private async processQueue(): Promise<void> {
+    // Block processing until stale reset completes (prevents race with interval)
+    if (this.isResettingStale) {
+      logger.debug('[SyncEngine] Waiting for stale reset to complete, skipping');
+      return;
+    }
+
     // Guard against concurrent processing
     if (this.isSyncing) {
       logger.debug('[SyncEngine] Already syncing, skipping');
@@ -391,8 +400,8 @@ export class SyncEngine {
         }
       })
       .catch((e) => {
-        // Queue might not be initialized - this is fine, just skip
-        logger.debug('[SyncEngine] Could not emit status change:', e);
+        // Unexpected - queue should be initialized when engine is running
+        logger.warn('[SyncEngine] Could not emit status change:', e);
       });
   }
 }

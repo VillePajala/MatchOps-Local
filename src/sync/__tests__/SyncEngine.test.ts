@@ -553,6 +553,35 @@ describe('SyncEngine', () => {
       engineNoExecutor.stop();
     });
 
+    it('should handle executor set after start', async () => {
+      const lateExecutorEngine = new SyncEngine(queue, { syncIntervalMs: 1000 });
+
+      await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_late',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      // Start without executor
+      lateExecutorEngine.start();
+      await flushAllAsync();
+
+      // Should skip processing (no executor)
+      expect(mockExecutor).not.toHaveBeenCalled();
+
+      // Now set executor and nudge
+      lateExecutorEngine.setExecutor(mockExecutor);
+      lateExecutorEngine.nudge();
+      await flushAllAsync();
+
+      // Should now process
+      expect(mockExecutor).toHaveBeenCalledTimes(1);
+
+      lateExecutorEngine.stop();
+    });
+
     it('should update lastSyncedAt after successful sync', async () => {
       engine.start();
       await flushAllAsync();
@@ -611,7 +640,7 @@ describe('SyncEngine', () => {
       engine.start();
 
       // Flush to let resetStaleSyncing complete and initial processQueue run
-      await flushAllAsync(100);
+      await flushAllAsync();
 
       // The operation should have been reset AND processed (removed from queue)
       expect(mockExecutor).toHaveBeenCalledTimes(1);
