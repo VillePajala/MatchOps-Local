@@ -98,6 +98,16 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const isVercelPreview = typeof window !== 'undefined' &&
     /^match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/.test(window.location.hostname);
 
+  // Debug logging for purchase availability
+  if (typeof window !== 'undefined') {
+    logger.debug('[UpgradePromptModal] Purchase availability:', {
+      hostname: window.location.hostname,
+      isVercelPreview,
+      isInternalTesting,
+      onAndroid,
+    });
+  }
+
   // Can purchase if:
   // 1. On Android (real Play Billing), OR
   // 2. On Vercel preview deployment (test mode for QA), OR
@@ -155,7 +165,11 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           const result = await grantMockSubscription(token);
           if (!result.success) {
             logger.error('[UpgradePromptModal] Mock subscription failed:', result.error);
-            showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
+            // Show specific error for debugging
+            const errorMsg = result.error?.includes('not accepted')
+              ? t('premium.mockBillingNotEnabled', 'Test mode not enabled on server. Please enable MOCK_BILLING in Supabase secrets.')
+              : result.error || t('premium.grantError', 'Failed to activate premium. Please try again.');
+            showToast(errorMsg, 'error');
             return;
           }
         }
