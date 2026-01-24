@@ -30,6 +30,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const MOCK_BILLING = (() => {
   if (MOCK_BILLING_RAW && IS_PRODUCTION) {
     // Log error and alert - this should NEVER happen in production
+    // eslint-disable-next-line no-console -- Security alert must be visible in console
     console.error(
       '🚨 CRITICAL SECURITY: NEXT_PUBLIC_MOCK_BILLING=true detected in production! ' +
       'Mock billing DISABLED for security. Please remove this environment variable.'

@@ -1,8 +1,8 @@
 {
-  "version": "b0640d5c",
+  "version": "53008068",
   "date": "2026-01-24",
   "notes": {
-    "en": "Ensure fresh JWT before Edge Function calls",
-    "fi": "Ensure fresh JWT before Edge Function calls"
+    "en": "Atomic transaction, operation merge, and robustness",
+    "fi": "Atomic transaction, operation merge, and robustness"
   }
 }
