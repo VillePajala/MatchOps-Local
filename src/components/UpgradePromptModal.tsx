@@ -164,12 +164,10 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           // Call Edge Function to create subscription record in database
           const result = await grantMockSubscription(token);
           if (!result.success) {
-            logger.error('[UpgradePromptModal] Mock subscription failed:', result.error);
-            // Show specific error for debugging
-            const errorMsg = result.error?.includes('not accepted')
-              ? t('premium.mockBillingNotEnabled', 'Test mode not enabled on server. Please enable MOCK_BILLING in Supabase secrets.')
-              : result.error || t('premium.grantError', 'Failed to activate premium. Please try again.');
-            showToast(errorMsg, 'error');
+            // Always show the actual error message for debugging
+            const errorMsg = result.error || 'Unknown error';
+            logger.error('[UpgradePromptModal] Mock subscription failed:', errorMsg);
+            showToast(`Subscription failed: ${errorMsg}`, 'error');
             return;
           }
         }
