@@ -130,15 +130,30 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<BillingR
       return { success: false, error: 'Not logged in. Please sign in first.' };
     }
 
+    // Get the access token from the session
+    const accessToken = session.access_token;
+    if (!accessToken) {
+      logger.error('[usePlayBilling] Session exists but no access_token');
+      return { success: false, error: 'Session invalid. Please sign in again.' };
+    }
+
     logger.debug('[usePlayBilling] Calling Edge Function with fresh session:', {
       userId: session.user.id,
       expiresAt: session.expires_at,
+      hasAccessToken: !!accessToken,
+      tokenPrefix: accessToken.substring(0, 20) + '...',
     });
 
+    // Explicitly pass the Authorization header to ensure it's included
+    // functions.invoke() should do this automatically, but we're seeing 401s
+    // indicating the header might not be sent
     const { data, error } = await supabase.functions.invoke('verify-subscription', {
       body: {
         purchaseToken,
         productId: SUBSCRIPTION_PRODUCT_ID,
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
