@@ -257,10 +257,11 @@ export class SyncQueue {
       };
 
       transaction.onerror = () => {
-        logger.error('[SyncQueue] Enqueue transaction error:', transaction.error);
+        const entityInfo = `${input.entityType}/${input.entityId}`;
+        logger.error(`[SyncQueue] Failed to check existing operations for ${entityInfo}:`, transaction.error);
         reject(new SyncError(
           SyncErrorCode.QUEUE_ERROR,
-          `Failed to check existing operations: ${transaction.error?.message || 'Unknown error'}`,
+          `Failed to check existing operations for ${entityInfo}: ${transaction.error?.message || 'Unknown error'}`,
           transaction.error ?? undefined
         ));
       };
@@ -311,12 +312,38 @@ export class SyncQueue {
         resolve(id);
       };
 
-      transaction.onerror = () => {
-        logger.error('[SyncQueue] Enqueue error:', transaction.error);
+      request.onerror = () => {
+        const error = request.error;
+        const entityInfo = `${input.entityType}/${input.entityId}`;
+
+        // Check for quota exceeded error
+        if (error?.name === 'QuotaExceededError') {
+          logger.error(`[SyncQueue] Quota exceeded while enqueuing ${entityInfo}:`, error);
+          reject(new SyncError(
+            SyncErrorCode.QUOTA_EXCEEDED,
+            `Storage quota exceeded while saving ${entityInfo}. Please free up space.`,
+            error
+          ));
+          return;
+        }
+
+        logger.error(`[SyncQueue] Failed to enqueue ${entityInfo}:`, error);
         reject(new SyncError(
           SyncErrorCode.QUEUE_ERROR,
-          `Failed to enqueue operation: ${transaction.error?.message || 'Unknown error'}`,
-          transaction.error ?? undefined
+          `Failed to enqueue ${input.operation} for ${entityInfo}: ${error?.message || 'Unknown error'}`,
+          error ?? undefined
+        ));
+      };
+
+      transaction.onerror = () => {
+        // This catches errors not caught by request.onerror
+        const error = transaction.error;
+        const entityInfo = `${input.entityType}/${input.entityId}`;
+        logger.error(`[SyncQueue] Transaction error for ${entityInfo}:`, error);
+        reject(new SyncError(
+          SyncErrorCode.QUEUE_ERROR,
+          `Failed to enqueue ${input.operation} for ${entityInfo}: ${error?.message || 'Unknown error'}`,
+          error ?? undefined
         ));
       };
     });

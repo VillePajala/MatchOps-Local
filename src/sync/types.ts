@@ -231,6 +231,9 @@ export enum SyncErrorCode {
 
   /** Max retries exceeded */
   MAX_RETRIES = 'SYNC_MAX_RETRIES',
+
+  /** IndexedDB quota exceeded */
+  QUOTA_EXCEEDED = 'SYNC_QUOTA_EXCEEDED',
 }
 
 /**
