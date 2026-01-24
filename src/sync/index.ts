@@ -30,3 +30,11 @@ export {
 
 // SyncQueue
 export { SyncQueue, syncQueue } from './SyncQueue';
+
+// SyncEngine
+export {
+  SyncEngine,
+  getSyncEngine,
+  resetSyncEngine,
+  type SyncOperationExecutor,
+} from './SyncEngine';
