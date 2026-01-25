@@ -52,3 +52,6 @@ export {
   type ConflictResolverOptions,
   type ResolutionResult,
 } from './conflictResolution';
+
+// Sync Executor
+export { createSyncExecutor } from './createSyncExecutor';
