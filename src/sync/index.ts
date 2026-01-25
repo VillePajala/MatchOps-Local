@@ -38,3 +38,17 @@ export {
   resetSyncEngine,
   type SyncOperationExecutor,
 } from './SyncEngine';
+
+// Conflict Resolution
+export {
+  ConflictResolver,
+  isConflictError,
+  isNotFoundError,
+  type CloudRecord,
+  type CloudRecordFetcher,
+  type CloudRecordWriter,
+  type CloudRecordDeleter,
+  type LocalRecordWriter,
+  type ConflictResolverOptions,
+  type ResolutionResult,
+} from './conflictResolution';
