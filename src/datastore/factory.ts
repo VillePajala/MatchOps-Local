@@ -4,9 +4,12 @@
  * Provides singleton instances of DataStore and AuthService.
  * Supports both local (IndexedDB) and cloud (Supabase) modes.
  *
- * Phase 3: Backend abstraction (PR #137) - LocalDataStore
- * Phase 4: Supabase cloud backend - SupabaseDataStore (in progress)
+ * Cloud mode uses SyncedDataStore (local-first with background sync):
+ * - Writes go to IndexedDB immediately (instant)
+ * - Operations queue for background sync to Supabase
+ * - Works offline, syncs when online
  *
+ * @see docs/03-active-plans/local-first-sync-plan.md
  * @see docs/03-active-plans/supabase-implementation-guide.md
  */
 
@@ -62,9 +65,18 @@ export async function getDataStore(): Promise<DataStore> {
   if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
     log.info(`[factory] Mode changed from ${dataStoreCreatedForMode} to ${currentMode} - resetting DataStore`);
 
-    // If switching FROM cloud mode, clean up Supabase resources
+    // If switching FROM cloud mode, clean up sync engine and Supabase resources
     // This prevents stale auth subscriptions and memory leaks
     if (dataStoreCreatedForMode === 'cloud') {
+      // Stop the sync engine singleton
+      try {
+        const { resetSyncEngine } = await import('@/sync');
+        resetSyncEngine();
+      } catch (e) {
+        log.warn('[factory] Error resetting sync engine during mode change');
+      }
+
+      // Clean up Supabase client
       try {
         const { cleanupSupabaseClient } = await import('./supabase/client');
         await cleanupSupabaseClient();
@@ -107,20 +119,36 @@ export async function getDataStore(): Promise<DataStore> {
     let instance: DataStore;
 
     if (mode === 'cloud' && isCloudAvailable()) {
-      // Lazy load SupabaseDataStore to avoid bundling Supabase in local mode
+      // Cloud mode uses SyncedDataStore (local-first with background sync)
+      // - SyncedDataStore wraps LocalDataStore for instant local writes
+      // - Operations queue and sync to SupabaseDataStore in background
+      const { SyncedDataStore } = await import('./SyncedDataStore');
+      const syncedStore = new SyncedDataStore();
+      await syncedStore.initialize();
+
+      // Set up the sync executor to sync to Supabase
       const { SupabaseDataStore } = await import('./SupabaseDataStore');
-      instance = new SupabaseDataStore();
-      log.info('[factory] Using SupabaseDataStore (cloud mode)');
+      const cloudStore = new SupabaseDataStore();
+      await cloudStore.initialize();
+
+      const { createSyncExecutor } = await import('@/sync');
+      const executor = createSyncExecutor(cloudStore);
+      syncedStore.setExecutor(executor);
+      syncedStore.startSync();
+
+      instance = syncedStore;
+      log.info('[factory] Using SyncedDataStore (local-first cloud mode)');
     } else if (mode === 'cloud') {
       log.warn(
         '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'
       );
       instance = new LocalDataStore();
+      await instance.initialize();
     } else {
       instance = new LocalDataStore();
+      await instance.initialize();
     }
 
-    await instance.initialize();
     // Defensive verification: ensure initialization actually completed
     if (!instance.isInitialized()) {
       log.warn('[factory] Instance not initialized after initialize() - retrying');

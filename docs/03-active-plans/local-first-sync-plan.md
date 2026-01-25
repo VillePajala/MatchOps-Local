@@ -602,18 +602,19 @@ export function SyncStatusIndicator() {
 
 ---
 
-### Phase 5: Factory Integration ⬜
+### Phase 5: Factory Integration ✅
 **Branch**: `local-first-sync/pr5-factory`
 
-- [ ] Update `src/datastore/factory.ts`
-- [ ] Cloud mode returns SyncedDataStore
-- [ ] Handle initialization order
-- [ ] Update existing tests
+- [x] Create `src/sync/createSyncExecutor.ts` - Maps SyncOperation to DataStore methods
+- [x] Update `src/datastore/factory.ts` - Cloud mode uses SyncedDataStore
+- [x] Handle initialization order (SyncedDataStore → SupabaseDataStore → executor → startSync)
+- [x] Clean up sync engine on mode switch
+- [x] Add 23 tests for sync executor
 
 **Acceptance Criteria**:
-- Cloud mode uses SyncedDataStore
-- Local mode unchanged
-- Factory handles mode switching
+- ✅ Cloud mode uses SyncedDataStore (local-first)
+- ✅ Local mode unchanged (LocalDataStore)
+- ✅ Factory handles mode switching with proper cleanup
 
 ---
 
@@ -741,3 +742,4 @@ After implementation:
 | 2026-01-24 | Phase 2 complete: SyncEngine with 64 tests passing (PR #316) |
 | 2026-01-24 | Phase 3 complete: SyncedDataStore with 59 tests passing |
 | 2026-01-25 | Phase 4 complete: ConflictResolver with 39 tests passing |
+| 2026-01-25 | Phase 5 complete: Factory integration with 23 tests passing |
