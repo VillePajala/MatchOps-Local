@@ -502,6 +502,17 @@ describe('createSyncExecutor', () => {
       await expect(executor(op)).rejects.toThrow('data must be an object');
     });
 
+    it('should throw when data is an array for non-teamRoster entity', async () => {
+      const op = createOperation({
+        entityType: 'player',
+        entityId: 'player-1',
+        operation: 'update',
+        data: [{ id: 'player-1', name: 'Test' }], // Array not valid for player
+      });
+
+      await expect(executor(op)).rejects.toThrow('data must be an object, not an array');
+    });
+
     it('should throw when teamRoster data is not an array', async () => {
       const op = createOperation({
         entityType: 'teamRoster',

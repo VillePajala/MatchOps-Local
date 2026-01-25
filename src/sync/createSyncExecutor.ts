@@ -60,6 +60,13 @@ function validateObjectData(
       `Cannot ${operation} ${entityType}${idContext}: data must be an object, got ${typeof data}`
     );
   }
+  // Arrays are objects in JS but not valid entity data (except for teamRoster which uses validateArrayData)
+  if (Array.isArray(data)) {
+    throw new SyncError(
+      SyncErrorCode.INVALID_DATA,
+      `Cannot ${operation} ${entityType}${idContext}: data must be an object, not an array`
+    );
+  }
 
   // Validate id field exists and matches entityId (catches schema drift or data corruption)
   const dataObj = data as Record<string, unknown>;

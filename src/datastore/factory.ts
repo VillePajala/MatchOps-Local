@@ -83,7 +83,10 @@ export async function getDataStore(): Promise<DataStore> {
           log.error(`[factory] DATA LOSS: Mode switch with ${status.pendingCount} pending sync operations that will be lost. UI layer should have blocked this.`);
         }
       } catch (e) {
-        // Engine may not be initialized - that's OK
+        // Expected: engine not initialized. Unexpected errors logged for debugging.
+        if (e instanceof Error && !e.message.includes('not initialized')) {
+          log.warn(`[factory] Unexpected error checking pending operations: ${e.message}`);
+        }
       }
 
       // Stop the sync engine singleton
