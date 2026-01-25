@@ -68,6 +68,18 @@ export async function getDataStore(): Promise<DataStore> {
     // If switching FROM cloud mode, clean up sync engine and Supabase resources
     // This prevents stale auth subscriptions and memory leaks
     if (dataStoreCreatedForMode === 'cloud') {
+      // Check for pending sync operations before cleanup
+      try {
+        const { getSyncEngine } = await import('@/sync');
+        const engine = getSyncEngine();
+        const status = await engine.getStatus();
+        if (status.pendingCount > 0) {
+          log.warn(`[factory] Mode switch with ${status.pendingCount} pending sync operations - these will be lost`);
+        }
+      } catch (e) {
+        // Engine may not be initialized - that's OK
+      }
+
       // Stop the sync engine singleton
       try {
         const { resetSyncEngine } = await import('@/sync');

@@ -137,6 +137,7 @@ describe('createSyncExecutor', () => {
     it('should upsert player on create', async () => {
       const op = createOperation({
         entityType: 'player',
+        entityId: 'player-1',
         operation: 'create',
         data: { id: 'player-1', name: 'Test Player' },
       });
@@ -152,6 +153,7 @@ describe('createSyncExecutor', () => {
     it('should upsert player on update', async () => {
       const op = createOperation({
         entityType: 'player',
+        entityId: 'player-1',
         operation: 'update',
         data: { id: 'player-1', name: 'Updated Player' },
       });
@@ -182,6 +184,7 @@ describe('createSyncExecutor', () => {
     it('should upsert team on create/update', async () => {
       const op = createOperation({
         entityType: 'team',
+        entityId: 'team-1',
         operation: 'update',
         data: { id: 'team-1', name: 'Test Team' },
       });
@@ -239,6 +242,7 @@ describe('createSyncExecutor', () => {
     it('should upsert season on create/update', async () => {
       const op = createOperation({
         entityType: 'season',
+        entityId: 'season-1',
         operation: 'update',
         data: { id: 'season-1', name: 'Test Season' },
       });
@@ -268,6 +272,7 @@ describe('createSyncExecutor', () => {
     it('should upsert tournament on create/update', async () => {
       const op = createOperation({
         entityType: 'tournament',
+        entityId: 'tournament-1',
         operation: 'update',
         data: { id: 'tournament-1', name: 'Test Tournament' },
       });
@@ -297,6 +302,7 @@ describe('createSyncExecutor', () => {
     it('should upsert personnel on create/update', async () => {
       const op = createOperation({
         entityType: 'personnel',
+        entityId: 'personnel-1',
         operation: 'update',
         data: { id: 'personnel-1', name: 'Test Personnel' },
       });
@@ -456,6 +462,7 @@ describe('createSyncExecutor', () => {
 
       const op = createOperation({
         entityType: 'player',
+        entityId: 'player-1',
         operation: 'update',
         data: { id: 'player-1', name: 'Test' },
       });
@@ -504,6 +511,32 @@ describe('createSyncExecutor', () => {
       });
 
       await expect(executor(op)).rejects.toThrow('data must be an array');
+    });
+
+    it('should throw when data.id does not match entityId', async () => {
+      const op = createOperation({
+        entityType: 'player',
+        entityId: 'player-1',
+        operation: 'update',
+        data: { id: 'different-player', name: 'Test' },
+      });
+
+      await expect(executor(op)).rejects.toThrow(
+        'data.id "different-player" does not match entityId "player-1"'
+      );
+    });
+
+    it('should allow data without id field (id validation is optional)', async () => {
+      const op = createOperation({
+        entityType: 'player',
+        entityId: 'player-1',
+        operation: 'update',
+        data: { name: 'Test Player' }, // No id field - should still work
+      });
+
+      await executor(op);
+
+      expect(mockStore.upsertPlayer).toHaveBeenCalledWith({ name: 'Test Player' });
     });
 
     it('should allow delete operations without data validation', async () => {

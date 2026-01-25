@@ -60,6 +60,15 @@ function validateObjectData(
       `Cannot ${operation} ${entityType}${idContext}: data must be an object, got ${typeof data}`
     );
   }
+
+  // Validate id field exists and matches entityId (catches schema drift or data corruption)
+  const dataObj = data as Record<string, unknown>;
+  if (entityId && dataObj.id !== undefined && dataObj.id !== entityId) {
+    throw new SyncError(
+      SyncErrorCode.INVALID_DATA,
+      `Cannot ${operation} ${entityType}${idContext}: data.id "${dataObj.id}" does not match entityId "${entityId}"`
+    );
+  }
 }
 
 /**
