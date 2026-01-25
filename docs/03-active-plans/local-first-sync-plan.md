@@ -550,36 +550,39 @@ export function SyncStatusIndicator() {
 
 ---
 
-### Phase 2: Sync Engine ⬜
+### Phase 2: Sync Engine ✅
 **Branch**: `local-first-sync/pr2-engine`
+**PR**: #316 (merged)
 
-- [ ] Create `src/sync/SyncEngine.ts` - Background processor
-- [ ] Create `src/sync/SyncEngine.test.ts` - Unit tests
-- [ ] Implement retry with exponential backoff
-- [ ] Implement online/offline detection
-- [ ] Create `src/sync/SyncStatus.ts` - Observable state
+- [x] Create `src/sync/SyncEngine.ts` - Background processor
+- [x] Create `src/sync/SyncEngine.test.ts` - Unit tests (64 tests)
+- [x] Implement retry with exponential backoff
+- [x] Implement online/offline detection
+- [x] Add stale operation reset on startup
+- [x] Add dispose() for complete cleanup
 
 **Acceptance Criteria**:
-- Engine processes queue when online
-- Pauses when offline, resumes when online
-- Emits status events (synced/syncing/pending/error)
-- Respects retry backoff timing
+- ✅ Engine processes queue when online
+- ✅ Pauses when offline, resumes when online
+- ✅ Emits status events (synced/syncing/pending/error)
+- ✅ Respects retry backoff timing
 
 ---
 
-### Phase 3: SyncedDataStore ⬜
-**Branch**: `local-first-sync/pr3-datastore`
+### Phase 3: SyncedDataStore ✅
+**Branch**: `local-first-sync/pr3-executor`
 
-- [ ] Create `src/datastore/SyncedDataStore.ts`
-- [ ] Implement all DataStore methods (local + queue)
-- [ ] Create `src/datastore/SyncedDataStore.test.ts`
-- [ ] Verify interface compatibility
+- [x] Create `src/datastore/SyncedDataStore.ts`
+- [x] Implement all DataStore methods (local + queue)
+- [x] Create `src/datastore/__tests__/SyncedDataStore.test.ts` - 59 tests
+- [x] Verify interface compatibility
 
 **Acceptance Criteria**:
-- All DataStore methods work
-- Writes go to local immediately
-- Operations queued for sync
-- Reads come from local store
+- ✅ All DataStore methods work
+- ✅ Writes go to local immediately
+- ✅ Operations queued for sync
+- ✅ Reads come from local store
+- ✅ Timer state is local-only (no sync)
 
 ---
 
@@ -734,3 +737,5 @@ After implementation:
 |------|--------|
 | 2026-01-24 | Initial plan created |
 | 2026-01-24 | Phase 1 complete: SyncQueue with 24 tests passing |
+| 2026-01-24 | Phase 2 complete: SyncEngine with 64 tests passing (PR #316) |
+| 2026-01-24 | Phase 3 complete: SyncedDataStore with 59 tests passing |
