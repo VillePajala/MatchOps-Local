@@ -20,6 +20,8 @@ import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/Subs
 import { getDataStore } from '@/datastore/factory';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
+import { useSyncStatus } from '@/hooks/useSyncStatus';
+import SyncStatusIndicator from './SyncStatusIndicator';
 import CloudAuthModal from './CloudAuthModal';
 import ReverseMigrationWizard from './ReverseMigrationWizard';
 import UpgradePromptModal from './UpgradePromptModal';
@@ -63,6 +65,9 @@ export default function CloudSyncSection({
   // If context is null or still loading, don't show subscribe button (safer default)
   const subscriptionLoading = !subscription || subscription.isLoading;
   const hasSubscription = subscription?.isActive ?? false;
+
+  // Sync status for cloud mode (shows sync details)
+  const syncStatus = useSyncStatus();
 
   // State for showing upgrade modal when user wants to subscribe
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -408,6 +413,31 @@ export default function CloudSyncSection({
     }
   };
 
+  /**
+   * Format timestamp as relative time (e.g., "2 minutes ago")
+   */
+  const formatRelativeTime = (timestamp: number | null): string => {
+    if (!timestamp) {
+      return t('cloudSync.cloudAccount.neverSynced', 'Never');
+    }
+    const now = Date.now();
+    const diffMs = now - timestamp;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSeconds < 60) {
+      return t('cloudSync.syncDetails.justNow', 'Just now');
+    } else if (diffMinutes < 60) {
+      return t('cloudSync.syncDetails.minutesAgo', '{{count}} min ago', { count: diffMinutes });
+    } else if (diffHours < 24) {
+      return t('cloudSync.syncDetails.hoursAgo', '{{count}} hr ago', { count: diffHours });
+    } else {
+      return t('cloudSync.syncDetails.daysAgo', '{{count}} days ago', { count: diffDays });
+    }
+  };
+
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
 
   return (
@@ -450,6 +480,80 @@ export default function CloudSyncSection({
           : t('cloudSync.localDescription', 'Your data is stored locally on this device. Works offline, but data is not synced.')
         }
       </p>
+
+      {/* Sync Details - shown in cloud mode with active subscription */}
+      {currentMode === 'cloud' && hasSubscription && (
+        <div className="p-3 rounded-md bg-slate-800/50 space-y-3">
+          {/* Sync Status Row */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-300">{t('cloudSync.syncDetails.status', 'Sync Status')}</span>
+            <SyncStatusIndicator />
+          </div>
+
+          {/* Last Synced Row */}
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">{t('cloudSync.syncDetails.lastSynced', 'Last synced')}</span>
+            <span className="text-slate-300">
+              {syncStatus.lastSyncedAt
+                ? formatRelativeTime(syncStatus.lastSyncedAt)
+                : t('cloudSync.cloudAccount.neverSynced', 'Never')}
+            </span>
+          </div>
+
+          {/* Pending Changes Row */}
+          {syncStatus.pendingCount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">{t('cloudSync.syncDetails.pendingChanges', 'Pending changes')}</span>
+              <span className="text-amber-400 font-medium">{syncStatus.pendingCount}</span>
+            </div>
+          )}
+
+          {/* Sync Now Button */}
+          <button
+            onClick={syncStatus.syncNow}
+            disabled={!syncStatus.isOnline || syncStatus.pendingCount === 0 || syncStatus.isSyncing}
+            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
+          >
+            {syncStatus.isSyncing ? (
+              <>
+                <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                {t('cloudSync.syncDetails.syncing', 'Syncing...')}
+              </>
+            ) : (
+              <>
+                <HiOutlineArrowPath className="h-4 w-4" />
+                {t('cloudSync.syncDetails.syncNow', 'Sync Now')}
+              </>
+            )}
+          </button>
+
+          {/* Failed Operations Warning */}
+          {syncStatus.failedCount > 0 && (
+            <div className="p-3 rounded-md bg-red-900/20 border border-red-700">
+              <div className="flex items-center gap-2 mb-2">
+                <HiOutlineExclamationTriangle className="h-4 w-4 text-red-400" />
+                <p className="text-sm text-red-300">
+                  {t('cloudSync.syncDetails.failedCount', '{{count}} operations failed to sync.', { count: syncStatus.failedCount })}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={syncStatus.retryFailed}
+                  className={`${secondaryButtonStyle} flex-1 py-1.5 text-xs`}
+                >
+                  {t('cloudSync.syncDetails.retry', 'Retry')}
+                </button>
+                <button
+                  onClick={syncStatus.clearFailed}
+                  className={`${dangerButtonStyle} flex-1 py-1.5 text-xs !bg-red-600/20 hover:!bg-red-600/30 !text-red-400`}
+                >
+                  {t('cloudSync.syncDetails.discard', 'Discard')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Subscription Warning - shown in cloud mode without active subscription */}
       {/* Only show when we've confirmed no subscription (not while loading) */}

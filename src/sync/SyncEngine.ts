@@ -111,7 +111,7 @@ export class SyncEngine {
 
     // Start periodic sync
     this.intervalId = setInterval(() => {
-      this.processQueue();
+      this.doProcessQueue();
     }, this.config.syncIntervalMs);
 
     // Reset any operations stuck in 'syncing' state from previous crash/close
@@ -126,7 +126,7 @@ export class SyncEngine {
         this.isResettingStale = false;
         // Sync immediately if online - only after reset completes
         if (this.isOnline && this.isRunning) {
-          this.processQueue();
+          this.doProcessQueue();
         }
       });
 
@@ -198,7 +198,7 @@ export class SyncEngine {
     }
 
     logger.debug('[SyncEngine] Nudge received, processing queue');
-    this.processQueue();
+    this.doProcessQueue();
   }
 
   /**
@@ -277,6 +277,37 @@ export class SyncEngine {
     return this.isOnline;
   }
 
+  /**
+   * Manually trigger a sync.
+   * Processes pending operations in the queue.
+   */
+  async processQueue(): Promise<void> {
+    return this.doProcessQueue();
+  }
+
+  /**
+   * Retry all failed operations.
+   * Resets failed operations to pending status and triggers sync.
+   */
+  async retryFailed(): Promise<void> {
+    const count = await this.queue.retryFailed();
+    logger.info('[SyncEngine] Retrying failed operations', { count });
+    this.emitStatusChange();
+    if (count > 0 && this.isRunning) {
+      // Fire-and-forget: don't await to avoid blocking the UI
+      this.doProcessQueue();
+    }
+  }
+
+  /**
+   * Clear all failed operations from the queue.
+   */
+  async clearFailed(): Promise<void> {
+    await this.queue.discardFailed();
+    logger.info('[SyncEngine] Cleared failed operations');
+    this.emitStatusChange();
+  }
+
   // ---- Private Methods ----
 
   private handleOnline = (): void => {
@@ -286,7 +317,7 @@ export class SyncEngine {
 
     // Trigger sync when coming back online
     if (this.isRunning) {
-      this.processQueue();
+      this.doProcessQueue();
     }
   };
 
@@ -296,7 +327,7 @@ export class SyncEngine {
     this.emitStatusChange();
   };
 
-  private async processQueue(): Promise<void> {
+  private async doProcessQueue(): Promise<void> {
     // Block processing until stale reset completes (prevents race with interval)
     if (this.isResettingStale) {
       logger.debug('[SyncEngine] Waiting for stale reset to complete, skipping');
