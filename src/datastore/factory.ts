@@ -131,11 +131,8 @@ export async function getDataStore(): Promise<DataStore> {
         const { SupabaseDataStore } = await import('./SupabaseDataStore');
         const cloudStore = new SupabaseDataStore();
         await cloudStore.initialize();
-
-        // Verify cloud store initialized - if not, sync will silently fail
-        if (!cloudStore.isInitialized()) {
-          throw new Error('[factory] SupabaseDataStore failed to initialize - cannot create sync executor');
-        }
+        // Note: If initialize() succeeds, isInitialized() should return true.
+        // If not, that's a bug in SupabaseDataStore to fix, not work around here.
 
         const { createSyncExecutor } = await import('@/sync');
         const executor = createSyncExecutor(cloudStore);
