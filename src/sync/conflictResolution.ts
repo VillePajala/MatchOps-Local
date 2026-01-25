@@ -63,16 +63,11 @@ export type LocalRecordWriter = (
 ) => Promise<void>;
 
 /**
- * Local store deleter function type for removing local records.
- * Used when cloud has deleted and cloud wins.
- */
-export type LocalRecordDeleter = (
-  entityType: SyncEntityType,
-  entityId: string
-) => Promise<void>;
-
-/**
  * Options for the conflict resolver.
+ *
+ * Note: No `deleteFromLocal` - per sync semantics, local updates always
+ * win over cloud deletions (resurrection). If cloud deletes and local
+ * has an update, the update is pushed to cloud, resurrecting the record.
  */
 export interface ConflictResolverOptions {
   /** Fetch a record from cloud storage */
@@ -81,10 +76,8 @@ export interface ConflictResolverOptions {
   writeToCloud: CloudRecordWriter;
   /** Delete a record from cloud storage */
   deleteFromCloud: CloudRecordDeleter;
-  /** Write a record to local storage */
+  /** Write a record to local storage (used when cloud wins) */
   writeToLocal: LocalRecordWriter;
-  /** Delete a record from local storage */
-  deleteFromLocal: LocalRecordDeleter;
 }
 
 /**
@@ -110,20 +103,23 @@ export interface ResolutionResult {
  * - Record deleted locally: Push delete to cloud if local is newer
  * - Both deleted: No conflict (both agree on deletion)
  * - Same timestamp: Local wins (user's most recent action takes priority)
+ *
+ * Concurrency Note:
+ * There is a race window between fetch and write/delete where another client
+ * could update cloud. For local-first PWA with single device per user, this
+ * is acceptable. Multi-device scenarios may see last-write-wins behavior.
  */
 export class ConflictResolver {
   private fetchFromCloud: CloudRecordFetcher;
   private writeToCloud: CloudRecordWriter;
   private deleteFromCloud: CloudRecordDeleter;
   private writeToLocal: LocalRecordWriter;
-  private deleteFromLocal: LocalRecordDeleter;
 
   constructor(options: ConflictResolverOptions) {
     this.fetchFromCloud = options.fetchFromCloud;
     this.writeToCloud = options.writeToCloud;
     this.deleteFromCloud = options.deleteFromCloud;
     this.writeToLocal = options.writeToLocal;
-    this.deleteFromLocal = options.deleteFromLocal;
   }
 
   /**

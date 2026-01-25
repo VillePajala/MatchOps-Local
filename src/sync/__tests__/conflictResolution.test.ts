@@ -17,7 +17,6 @@ describe('ConflictResolver', () => {
   let mockWriteToCloud: jest.Mock;
   let mockDeleteFromCloud: jest.Mock;
   let mockWriteToLocal: jest.Mock;
-  let mockDeleteFromLocal: jest.Mock;
   let resolver: ConflictResolver;
 
   // Test timestamps
@@ -30,14 +29,12 @@ describe('ConflictResolver', () => {
     mockWriteToCloud = jest.fn().mockResolvedValue(undefined);
     mockDeleteFromCloud = jest.fn().mockResolvedValue(undefined);
     mockWriteToLocal = jest.fn().mockResolvedValue(undefined);
-    mockDeleteFromLocal = jest.fn().mockResolvedValue(undefined);
 
     const options: ConflictResolverOptions = {
       fetchFromCloud: mockFetchFromCloud,
       writeToCloud: mockWriteToCloud,
       deleteFromCloud: mockDeleteFromCloud,
       writeToLocal: mockWriteToLocal,
-      deleteFromLocal: mockDeleteFromLocal,
     };
 
     resolver = new ConflictResolver(options);

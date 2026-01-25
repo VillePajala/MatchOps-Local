@@ -49,7 +49,6 @@ export {
   type CloudRecordWriter,
   type CloudRecordDeleter,
   type LocalRecordWriter,
-  type LocalRecordDeleter,
   type ConflictResolverOptions,
   type ResolutionResult,
 } from './conflictResolution';
