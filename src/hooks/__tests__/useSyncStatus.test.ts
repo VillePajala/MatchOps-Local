@@ -154,7 +154,7 @@ describe('useSyncStatus', () => {
     });
 
     it('should subscribe to status changes', async () => {
-      const { result } = renderHook(() => useSyncStatus());
+      renderHook(() => useSyncStatus());
 
       await waitFor(() => {
         expect(mockOnStatusChange).toHaveBeenCalled();

@@ -95,6 +95,51 @@ jest.mock('@/utils/logger', () => ({
   info: jest.fn(),
 }));
 
+// Default useSyncStatus mock (can be overridden in individual tests)
+const mockSyncStatus = {
+  pendingCount: 0,
+  failedCount: 0,
+  isSyncing: false,
+  isOnline: true,
+  lastSyncedAt: null,
+  syncNow: jest.fn().mockResolvedValue(undefined),
+  retryFailed: jest.fn().mockResolvedValue(undefined),
+  clearFailed: jest.fn().mockResolvedValue(undefined),
+};
+
+jest.mock('@/hooks/useSyncStatus', () => ({
+  useSyncStatus: () => mockSyncStatus,
+}));
+
+// Mock PendingSyncWarningModal for testing pending sync flow
+jest.mock('../PendingSyncWarningModal', () => {
+  return function MockPendingSyncWarningModal({
+    pendingCount,
+    failedCount,
+    isSyncing,
+    isOnline,
+    onAction,
+  }: {
+    pendingCount: number;
+    failedCount: number;
+    isSyncing: boolean;
+    isOnline: boolean;
+    onAction: (action: 'sync' | 'discard' | 'cancel') => void;
+  }) {
+    return (
+      <div data-testid="pending-sync-warning-modal">
+        <span data-testid="pending-count">{pendingCount}</span>
+        <span data-testid="failed-count">{failedCount}</span>
+        <span data-testid="is-syncing">{isSyncing ? 'true' : 'false'}</span>
+        <span data-testid="is-online">{isOnline ? 'true' : 'false'}</span>
+        <button onClick={() => onAction('sync')}>Sync First</button>
+        <button onClick={() => onAction('discard')}>Discard & Continue</button>
+        <button onClick={() => onAction('cancel')}>Cancel</button>
+      </div>
+    );
+  };
+});
+
 // Mock getDataStore and getAuthService for cloud data clearing and sign out tests
 jest.mock('@/datastore/factory', () => ({
   getDataStore: jest.fn().mockImplementation(() =>
@@ -144,6 +189,15 @@ describe('CloudSyncSection', () => {
       isActive: true,
       isLoading: false,
     });
+    // Reset sync status mock to default state (no pending/failed syncs)
+    mockSyncStatus.pendingCount = 0;
+    mockSyncStatus.failedCount = 0;
+    mockSyncStatus.isSyncing = false;
+    mockSyncStatus.isOnline = true;
+    mockSyncStatus.lastSyncedAt = null;
+    mockSyncStatus.syncNow = jest.fn().mockResolvedValue(undefined);
+    mockSyncStatus.retryFailed = jest.fn().mockResolvedValue(undefined);
+    mockSyncStatus.clearFailed = jest.fn().mockResolvedValue(undefined);
   });
 
   describe('local mode display', () => {
@@ -587,6 +641,214 @@ describe('CloudSyncSection', () => {
       expect(screen.getByText('Subscription Required')).toBeInTheDocument();
       // Verify syncs to cloud message is NOT shown
       expect(screen.queryByText(/syncs to the cloud.*access from any device/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pending sync warning modal', () => {
+    it('shows warning modal when switching to local with pending syncs', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      });
+
+      // Verify correct counts are passed
+      expect(screen.getByTestId('pending-count').textContent).toBe('3');
+    });
+
+    it('shows warning modal when switching to local with failed syncs', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.failedCount = 2;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('failed-count').textContent).toBe('2');
+    });
+
+    it('shows wizard directly when no pending or failed syncs', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 0;
+      mockSyncStatus.failedCount = 0;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      // Should show wizard directly, not warning modal
+      await waitFor(() => {
+        expect(screen.getByTestId('reverse-migration-wizard')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('pending-sync-warning-modal')).not.toBeInTheDocument();
+    });
+
+    it('triggers sync when Sync First is clicked', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      // Click switch to local to show warning modal
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      });
+
+      // Click Sync First
+      fireEvent.click(screen.getByRole('button', { name: 'Sync First' }));
+
+      await waitFor(() => {
+        expect(mockSyncStatus.syncNow).toHaveBeenCalled();
+      });
+    });
+
+    it('shows wizard after successful sync', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      // Click switch to local to show warning modal
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      });
+
+      // Click Sync First
+      fireEvent.click(screen.getByRole('button', { name: 'Sync First' }));
+
+      // After sync completes, wizard should appear
+      await waitFor(() => {
+        expect(screen.getByTestId('reverse-migration-wizard')).toBeInTheDocument();
+      });
+    });
+
+    it('clears failed items when Discard & Continue is clicked', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.failedCount = 2;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Discard & Continue' }));
+
+      await waitFor(() => {
+        expect(mockSyncStatus.clearFailed).toHaveBeenCalled();
+      });
+    });
+
+    it('shows wizard after discard', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+      mockSyncStatus.failedCount = 0;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Discard & Continue' }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('reverse-migration-wizard')).toBeInTheDocument();
+      });
+    });
+
+    it('closes modal without action when Cancel is clicked', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('pending-sync-warning-modal')).not.toBeInTheDocument();
+      });
+
+      // Should not show wizard or trigger any sync actions
+      expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
+      expect(mockSyncStatus.syncNow).not.toHaveBeenCalled();
+      expect(mockSyncStatus.clearFailed).not.toHaveBeenCalled();
+    });
+
+    it('passes isOnline and isSyncing props to modal', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+      mockSyncStatus.isOnline = false;
+      mockSyncStatus.isSyncing = true;
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('is-online').textContent).toBe('false');
+      expect(screen.getByTestId('is-syncing').textContent).toBe('true');
+    });
+
+    it('calls onShowReverseMigration callback if provided', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+
+      const onShowReverseMigration = jest.fn();
+      renderWithQueryClient(<CloudSyncSection onShowReverseMigration={onShowReverseMigration} />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      // Should call callback directly, not show pending sync modal
+      expect(onShowReverseMigration).toHaveBeenCalled();
+      expect(screen.queryByTestId('pending-sync-warning-modal')).not.toBeInTheDocument();
     });
   });
 });

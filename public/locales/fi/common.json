@@ -2307,6 +2307,18 @@
       "minutesAgo": "{{count}} min sitten",
       "hoursAgo": "{{count}} t sitten",
       "daysAgo": "{{count}} pv sitten"
+    },
+    "pendingSync": {
+      "title": "Synkronoimattomat muutokset",
+      "warning": "Sinulla on {{count}} muutosta, joita ei ole vielä synkronoitu pilveen.",
+      "pendingCount": "{{count}} odottavaa muutosta",
+      "failedCount": "{{count}} epäonnistui synkronoinnissa",
+      "consequence": "Siirtyminen paikalliseen tilaan hylkää nämä muutokset.",
+      "syncFirst": "Synkronoi ensin",
+      "syncing": "Synkronoidaan...",
+      "discardAndContinue": "Hylkää ja jatka",
+      "offlineNotice": "Synkronointi ei ole mahdollista offline-tilassa",
+      "syncFailed": "Synkronointi epäonnistui. Yritä uudelleen tai hylkää muutokset."
     }
   },
   "cloudAuth": {
