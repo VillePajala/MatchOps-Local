@@ -68,8 +68,10 @@ export async function getDataStore(): Promise<DataStore> {
 
     // If switching FROM cloud mode, clean up sync engine and Supabase resources
     // This prevents stale auth subscriptions and memory leaks
+    // Cleanup order: check pending → stop engine → cleanup Supabase → close DataStore
+    // (check first to capture what will be lost before engine stops processing)
     if (dataStoreCreatedForMode === 'cloud') {
-      // Check for pending sync operations before cleanup
+      // Step 1: Check for pending sync operations (before stopping engine)
       // WARNING: This is a safety net - proper protection should happen in the UI layer
       // BEFORE calling setBackendMode(). The UI should call getPendingSyncCount() and
       // either block the switch, wait for sync, or show a confirmation dialog.
@@ -89,7 +91,7 @@ export async function getDataStore(): Promise<DataStore> {
         }
       }
 
-      // Stop the sync engine singleton
+      // Step 2: Stop the sync engine singleton
       try {
         const { resetSyncEngine } = await import('@/sync');
         resetSyncEngine();
@@ -97,7 +99,7 @@ export async function getDataStore(): Promise<DataStore> {
         log.warn('[factory] Error resetting sync engine during mode change');
       }
 
-      // Clean up Supabase client
+      // Step 3: Clean up Supabase client
       try {
         const { cleanupSupabaseClient } = await import('./supabase/client');
         await cleanupSupabaseClient();
