@@ -44,18 +44,20 @@ import logger from '@/utils/logger';
 function validateObjectData(
   data: unknown,
   entityType: string,
-  operation: string
+  operation: string,
+  entityId?: string
 ): void {
+  const idContext = entityId ? ` (id: ${entityId})` : '';
   if (data === null || data === undefined) {
     throw new SyncError(
       SyncErrorCode.INVALID_DATA,
-      `Cannot ${operation} ${entityType}: data is ${data === null ? 'null' : 'undefined'}`
+      `Cannot ${operation} ${entityType}${idContext}: data is ${data === null ? 'null' : 'undefined'}`
     );
   }
   if (typeof data !== 'object') {
     throw new SyncError(
       SyncErrorCode.INVALID_DATA,
-      `Cannot ${operation} ${entityType}: data must be an object, got ${typeof data}`
+      `Cannot ${operation} ${entityType}${idContext}: data must be an object, got ${typeof data}`
     );
   }
 }
@@ -68,12 +70,14 @@ function validateObjectData(
 function validateArrayData(
   data: unknown,
   entityType: string,
-  operation: string
+  operation: string,
+  entityId?: string
 ): void {
+  const idContext = entityId ? ` (id: ${entityId})` : '';
   if (!Array.isArray(data)) {
     throw new SyncError(
       SyncErrorCode.INVALID_DATA,
-      `Cannot ${operation} ${entityType}: data must be an array, got ${typeof data}`
+      `Cannot ${operation} ${entityType}${idContext}: data must be an array, got ${typeof data}`
     );
   }
 }
@@ -181,7 +185,7 @@ async function syncPlayer(
     await store.deletePlayer(entityId);
   } else {
     // create/update both use upsert
-    validateObjectData(data, 'player', operation);
+    validateObjectData(data, 'player', operation, entityId);
     await store.upsertPlayer(data as Player);
   }
 }
@@ -195,7 +199,7 @@ async function syncTeam(
   if (operation === 'delete') {
     await store.deleteTeam(entityId);
   } else {
-    validateObjectData(data, 'team', operation);
+    validateObjectData(data, 'team', operation, entityId);
     await store.upsertTeam(data as Team);
   }
 }
@@ -216,7 +220,7 @@ async function syncTeamRoster(
   if (operation === 'delete') {
     await store.setTeamRoster(entityId, []);
   } else {
-    validateArrayData(data, 'teamRoster', operation);
+    validateArrayData(data, 'teamRoster', operation, entityId);
     await store.setTeamRoster(entityId, data as TeamPlayer[]);
   }
 }
@@ -230,7 +234,7 @@ async function syncSeason(
   if (operation === 'delete') {
     await store.deleteSeason(entityId);
   } else {
-    validateObjectData(data, 'season', operation);
+    validateObjectData(data, 'season', operation, entityId);
     await store.upsertSeason(data as Season);
   }
 }
@@ -244,7 +248,7 @@ async function syncTournament(
   if (operation === 'delete') {
     await store.deleteTournament(entityId);
   } else {
-    validateObjectData(data, 'tournament', operation);
+    validateObjectData(data, 'tournament', operation, entityId);
     await store.upsertTournament(data as Tournament);
   }
 }
@@ -258,7 +262,7 @@ async function syncPersonnel(
   if (operation === 'delete') {
     await store.removePersonnelMember(entityId);
   } else {
-    validateObjectData(data, 'personnel', operation);
+    validateObjectData(data, 'personnel', operation, entityId);
     await store.upsertPersonnelMember(data as Personnel);
   }
 }
@@ -273,7 +277,7 @@ async function syncGame(
     await store.deleteGame(entityId);
   } else {
     // create/update both use saveGame with the full game data
-    validateObjectData(data, 'game', operation);
+    validateObjectData(data, 'game', operation, entityId);
     await store.saveGame(entityId, data as AppState);
   }
 }
@@ -323,7 +327,7 @@ async function syncPlayerAdjustment(
     }
     await store.deletePlayerAdjustment(playerId, entityId);
   } else {
-    validateObjectData(data, 'playerAdjustment', operation);
+    validateObjectData(data, 'playerAdjustment', operation, entityId);
     await store.upsertPlayerAdjustment(data as PlayerStatAdjustment);
   }
 }
