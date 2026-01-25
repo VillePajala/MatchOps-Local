@@ -60,9 +60,9 @@ Cloud Mode:  User → SyncedDataStore ─┬→ IndexedDB (instant)
 | Component | File | Purpose |
 |-----------|------|---------|
 | **SyncQueue** | `src/sync/SyncQueue.ts` | Persists pending operations in IndexedDB |
-| **SyncEngine** | `src/sync/SyncEngine.ts` | Background processor, retries, online detection |
+| **SyncEngine** | `src/sync/SyncEngine.ts` | Background processor, retries, online detection, status events |
 | **SyncedDataStore** | `src/datastore/SyncedDataStore.ts` | Implements DataStore, writes local + queues sync |
-| **SyncStatus** | `src/sync/SyncStatus.ts` | Observable state for UI |
+| **useSyncStatus** | `src/hooks/useSyncStatus.ts` | React hook for sync state in UI |
 | **SyncStatusIndicator** | `src/components/SyncStatusIndicator.tsx` | UI component showing sync state |
 
 ---
@@ -126,8 +126,8 @@ export interface SyncStatusInfo {
 ```typescript
 // src/sync/SyncQueue.ts
 
-const SYNC_QUEUE_STORE = 'syncQueue';
-const SYNC_QUEUE_DB = 'matchops_sync';
+const SYNC_DB_NAME = 'matchops_sync_queue';
+const SYNC_STORE_NAME = 'operations';
 
 export class SyncQueue {
   private db: IDBDatabase | null = null;
@@ -175,21 +175,16 @@ export class SyncQueue {
 ```typescript
 // src/sync/SyncEngine.ts
 
-export class SyncEngine extends EventEmitter {
+export class SyncEngine {
   private queue: SyncQueue;
-  private cloudStore: SupabaseDataStore;
+  private executor: SyncOperationExecutor | null = null;
   private isRunning = false;
-  private intervalId: number | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private statusListeners: Set<StatusChangeListener> = new Set();
 
-  constructor(queue: SyncQueue, cloudStore: SupabaseDataStore) {
+  constructor(queue: SyncQueue, config: Partial<SyncEngineConfig> = {}) {
     this.queue = queue;
-    this.cloudStore = cloudStore;
-
-    // Listen for online/offline
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => this.onOnline());
-      window.addEventListener('offline', () => this.onOffline());
-    }
+    // Executor is set later via setExecutor() to avoid circular deps
   }
 
   start(): void {
@@ -692,8 +687,7 @@ export function SyncStatusIndicator() {
 |------|---------|
 | `src/sync/types.ts` | Type definitions |
 | `src/sync/SyncQueue.ts` | Persistent operation queue |
-| `src/sync/SyncEngine.ts` | Background sync processor |
-| `src/sync/SyncStatus.ts` | Observable sync state |
+| `src/sync/SyncEngine.ts` | Background sync processor with status events |
 | `src/sync/conflictResolution.ts` | Conflict handling logic |
 | `src/sync/createSyncExecutor.ts` | Supabase sync operations |
 | `src/datastore/SyncedDataStore.ts` | Local-first DataStore wrapper |

@@ -146,7 +146,11 @@ describe('SyncQueue', () => {
       const originalCreatedAt = op1?.createdAt;
       expect(originalCreatedAt).toBeDefined();
 
-      // Wait a bit to ensure different timestamps
+      // Wait to ensure different createdAt timestamps between enqueue operations.
+      // This is necessary because the test verifies that the original createdAt is
+      // preserved when a pending operation is deduplicated (updated with new data).
+      // Without this delay, both enqueue operations could have identical timestamps,
+      // making it impossible to verify that createdAt was actually preserved.
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Second enqueue replaces but should keep original createdAt

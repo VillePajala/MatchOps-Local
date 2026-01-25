@@ -65,7 +65,7 @@ export interface SyncOperation {
   /** Full entity data for create/update operations */
   data: unknown;
 
-  /** Timestamp when the operation was created (ms since epoch) */
+  /** Timestamp when the user action occurred (ms since epoch). Used for conflict resolution (last-write-wins). */
   timestamp: number;
 
   /** Current status of the operation */
@@ -83,7 +83,7 @@ export interface SyncOperation {
   /** Timestamp of last sync attempt (ms since epoch) */
   lastAttempt?: number;
 
-  /** Timestamp when operation was created (ms since epoch) */
+  /** Timestamp when the queue entry was created (ms since epoch). Preserved during deduplication. */
   createdAt: number;
 }
 
