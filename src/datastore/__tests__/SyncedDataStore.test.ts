@@ -102,7 +102,7 @@ describe('SyncedDataStore', () => {
     await store.initialize();
 
     // Get references to internal components via private access
-    const storeAny = store as Record<string, unknown>;
+    const storeAny = store as unknown as Record<string, unknown>;
     const localStore = storeAny.localStore as LocalDataStore;
     const syncQueue = storeAny.syncQueue as SyncQueue;
 
@@ -979,7 +979,7 @@ describe('SyncedDataStore', () => {
       expect(result).toEqual(mockPlan);
     });
 
-    it('should save warmup plan and queue sync', async () => {
+    it('should save warmup plan and queue sync with normalized data', async () => {
       localStoreSpy.saveWarmupPlan.mockResolvedValue(true);
 
       const result = await store.saveWarmupPlan(mockPlan);
@@ -990,9 +990,14 @@ describe('SyncedDataStore', () => {
           entityType: 'warmupPlan',
           entityId: 'default',
           operation: 'update',
-          data: mockPlan,
         })
       );
+      // Verify normalized data is synced (isDefault forced to false, lastModified updated)
+      const syncedData = queueEnqueueSpy.mock.calls[0][0].data as WarmupPlan;
+      expect(syncedData.id).toBe(mockPlan.id);
+      expect(syncedData.sections).toEqual(mockPlan.sections);
+      expect(syncedData.isDefault).toBe(false);
+      expect(syncedData.lastModified).not.toBe(mockPlan.lastModified);
       expect(result).toBe(true);
     });
 
@@ -1061,7 +1066,7 @@ describe('SyncedDataStore', () => {
     it('should clear all user data, stop engine, and clear queue', async () => {
       localStoreSpy.clearAllUserData.mockResolvedValue(undefined);
 
-      const storeAny = store as Record<string, unknown>;
+      const storeAny = store as unknown as Record<string, unknown>;
       const syncQueue = storeAny.syncQueue as SyncQueue;
       const clearQueueSpy = jest.spyOn(syncQueue, 'clear');
 
@@ -1073,6 +1078,27 @@ describe('SyncedDataStore', () => {
   });
 
   // ==========================================================================
+  // ERROR HANDLING TESTS
+  // ==========================================================================
+
+  describe('Error Handling', () => {
+    it('should not throw when queue.enqueue fails (local write still succeeds)', async () => {
+      const mockPlayer = { id: 'player-1', name: 'Test Player' };
+      localStoreSpy.createPlayer.mockResolvedValue(mockPlayer);
+
+      // Make enqueue throw an error
+      queueEnqueueSpy.mockRejectedValue(new Error('IndexedDB quota exceeded'));
+
+      // Should not throw - local write succeeds, queue failure is logged
+      const result = await store.createPlayer({ name: 'Test Player' });
+
+      // Local operation should still succeed
+      expect(result).toEqual(mockPlayer);
+      expect(localStoreSpy.createPlayer).toHaveBeenCalled();
+    });
+  });
+
+  // ==========================================================================
   // SYNC ENGINE CONTROL TESTS
   // ==========================================================================
 
@@ -1080,7 +1106,7 @@ describe('SyncedDataStore', () => {
     it('should set executor on sync engine', () => {
       const mockExecutor = jest.fn();
 
-      const storeAny = store as Record<string, unknown>;
+      const storeAny = store as unknown as Record<string, unknown>;
       const engine = storeAny.syncEngine as SyncEngine;
       const setExecutorSpy = jest.spyOn(engine, 'setExecutor');
 
@@ -1090,7 +1116,7 @@ describe('SyncedDataStore', () => {
     });
 
     it('should start sync engine', () => {
-      const storeAny = store as Record<string, unknown>;
+      const storeAny = store as unknown as Record<string, unknown>;
       const engine = storeAny.syncEngine as SyncEngine;
       const startSpy = jest.spyOn(engine, 'start');
 
@@ -1100,7 +1126,7 @@ describe('SyncedDataStore', () => {
     });
 
     it('should stop sync engine', () => {
-      const storeAny = store as Record<string, unknown>;
+      const storeAny = store as unknown as Record<string, unknown>;
       const engine = storeAny.syncEngine as SyncEngine;
       const stopSpy = jest.spyOn(engine, 'stop');
 

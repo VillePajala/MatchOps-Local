@@ -112,8 +112,10 @@ export class SyncedDataStore implements DataStore {
   }
 
   clearUserCaches(): void {
-    // SyncedDataStore doesn't have user-specific caches
-    // The local store is the source of truth
+    // SyncedDataStore doesn't maintain its own caches.
+    // LocalDataStore is called directly for all operations.
+    // SyncQueue and SyncEngine manage their own state independently
+    // and don't have user-specific caches to clear.
   }
 
   // ==========================================================================
@@ -192,17 +194,30 @@ export class SyncedDataStore implements DataStore {
     operation: SyncOperationType,
     data: unknown
   ): Promise<void> {
-    await this.syncQueue.enqueue({
-      entityType,
-      entityId,
-      operation,
-      data,
-      timestamp: Date.now(),
-    });
+    try {
+      await this.syncQueue.enqueue({
+        entityType,
+        entityId,
+        operation,
+        data,
+        timestamp: Date.now(),
+      });
 
-    // Nudge the engine to process soon
-    if (this.syncEngine) {
-      this.syncEngine.nudge();
+      // Nudge the engine to process soon
+      if (this.syncEngine) {
+        this.syncEngine.nudge();
+      }
+    } catch (error) {
+      // Local write succeeded, but failed to queue sync operation.
+      // This is not fatal - log and continue. The operation will be
+      // missing from sync, but local data is safe. User can trigger
+      // a full sync later if needed.
+      logger.error('[SyncedDataStore] Failed to queue sync operation', {
+        entityType,
+        entityId,
+        operation,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -450,10 +465,13 @@ export class SyncedDataStore implements DataStore {
 
   async saveAllGames(games: SavedGamesCollection): Promise<void> {
     await this.localStore.saveAllGames(games);
-    // Queue each game for sync
-    for (const [gameId, gameData] of Object.entries(games)) {
-      await this.queueSync('game', gameId, 'update', gameData);
-    }
+    // Queue all games in parallel - use allSettled so one failure doesn't
+    // prevent other queue attempts. queueSync already logs errors internally.
+    await Promise.allSettled(
+      Object.entries(games).map(([gameId, gameData]) =>
+        this.queueSync('game', gameId, 'update', gameData)
+      )
+    );
   }
 
   async deleteGame(id: string): Promise<boolean> {
@@ -589,7 +607,14 @@ export class SyncedDataStore implements DataStore {
   async saveWarmupPlan(plan: WarmupPlan): Promise<boolean> {
     const result = await this.localStore.saveWarmupPlan(plan);
     if (result) {
-      await this.queueSync('warmupPlan', 'default', 'update', plan);
+      // Mirror LocalDataStore normalization: lastModified is set to now,
+      // isDefault is forced to false. Sync the normalized version, not the input.
+      const normalizedPlan: WarmupPlan = {
+        ...plan,
+        lastModified: new Date().toISOString(),
+        isDefault: false,
+      };
+      await this.queueSync('warmupPlan', 'default', 'update', normalizedPlan);
     }
     return result;
   }
