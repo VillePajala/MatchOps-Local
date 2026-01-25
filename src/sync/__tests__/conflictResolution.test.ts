@@ -304,6 +304,54 @@ describe('ConflictResolver', () => {
       await expect(resolver.resolve(op)).rejects.toThrow('Delete failed');
     });
   });
+
+  describe('Input Validation', () => {
+    it('should throw when entityId is empty', async () => {
+      const op = createOperation({ entityId: '' });
+
+      await expect(resolver.resolve(op)).rejects.toThrow('entityId is required');
+    });
+
+    it('should throw when entityId is whitespace only', async () => {
+      const op = createOperation({ entityId: '   ' });
+
+      await expect(resolver.resolve(op)).rejects.toThrow('entityId is required');
+    });
+
+    it('should throw when timestamp is NaN', async () => {
+      const op = createOperation({ timestamp: NaN });
+
+      await expect(resolver.resolve(op)).rejects.toThrow('timestamp must be a positive number');
+    });
+
+    it('should throw when timestamp is negative', async () => {
+      const op = createOperation({ timestamp: -1 });
+
+      await expect(resolver.resolve(op)).rejects.toThrow('timestamp must be a positive number');
+    });
+
+    it('should throw when timestamp is Infinity', async () => {
+      const op = createOperation({ timestamp: Infinity });
+
+      await expect(resolver.resolve(op)).rejects.toThrow('timestamp must be a positive number');
+    });
+
+    it('should throw when cloud record has invalid updatedAt', async () => {
+      const op = createOperation({ timestamp: NOW });
+      mockFetchFromCloud.mockResolvedValue(
+        createCloudRecord({ updatedAt: 'not-a-date' })
+      );
+
+      await expect(resolver.resolve(op)).rejects.toThrow('is not a valid date');
+    });
+
+    it('should throw when cloud record has empty updatedAt', async () => {
+      const op = createOperation({ timestamp: NOW });
+      mockFetchFromCloud.mockResolvedValue(createCloudRecord({ updatedAt: '' }));
+
+      await expect(resolver.resolve(op)).rejects.toThrow('is not a valid date');
+    });
+  });
 });
 
 describe('isConflictError', () => {

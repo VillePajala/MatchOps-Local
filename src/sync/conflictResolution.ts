@@ -127,9 +127,18 @@ export class ConflictResolver {
    *
    * @param op - The sync operation that encountered a conflict
    * @returns Resolution result with winner and action taken
+   * @throws Error if operation has invalid timestamp or entityId
    */
   async resolve(op: SyncOperation): Promise<ResolutionResult> {
     const { entityType, entityId, operation, data, timestamp } = op;
+
+    // Validate inputs
+    if (!entityId || entityId.trim() === '') {
+      throw new Error('[ConflictResolver] Invalid operation: entityId is required');
+    }
+    if (typeof timestamp !== 'number' || !Number.isFinite(timestamp) || timestamp < 0) {
+      throw new Error('[ConflictResolver] Invalid operation: timestamp must be a positive number');
+    }
 
     logger.debug('[ConflictResolver] Resolving conflict', {
       entityType,
@@ -147,8 +156,13 @@ export class ConflictResolver {
       return this.handleMissingCloudRecord(op);
     }
 
-    // Compare timestamps
+    // Compare timestamps - validate cloud timestamp format
     const cloudTimestamp = new Date(cloudRecord.updatedAt).getTime();
+    if (!Number.isFinite(cloudTimestamp)) {
+      throw new Error(
+        `[ConflictResolver] Invalid cloud record: updatedAt "${cloudRecord.updatedAt}" is not a valid date`
+      );
+    }
 
     if (operation === 'delete') {
       // Local wants to delete, cloud has the record
