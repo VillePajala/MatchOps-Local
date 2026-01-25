@@ -28,6 +28,7 @@ import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore } from '@/interfaces/DataStore';
 import { LocalDataStore } from './LocalDataStore';
+import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, type SyncOperationExecutor } from '@/sync';
 import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
 import logger from '@/utils/logger';
@@ -465,13 +466,23 @@ export class SyncedDataStore implements DataStore {
 
   async saveAllGames(games: SavedGamesCollection): Promise<void> {
     await this.localStore.saveAllGames(games);
+
     // Queue all games in parallel - use allSettled so one failure doesn't
-    // prevent other queue attempts. queueSync already logs errors internally.
-    await Promise.allSettled(
+    // prevent other queue attempts. queueSync already logs individual errors.
+    const results = await Promise.allSettled(
       Object.entries(games).map(([gameId, gameData]) =>
         this.queueSync('game', gameId, 'update', gameData)
       )
     );
+
+    // Log summary if any failed to queue
+    const failures = results.filter((r) => r.status === 'rejected');
+    if (failures.length > 0) {
+      logger.warn('[SyncedDataStore] Some games failed to queue for sync', {
+        failed: failures.length,
+        total: Object.keys(games).length,
+      });
+    }
   }
 
   async deleteGame(id: string): Promise<boolean> {
@@ -607,13 +618,8 @@ export class SyncedDataStore implements DataStore {
   async saveWarmupPlan(plan: WarmupPlan): Promise<boolean> {
     const result = await this.localStore.saveWarmupPlan(plan);
     if (result) {
-      // Mirror LocalDataStore normalization: lastModified is set to now,
-      // isDefault is forced to false. Sync the normalized version, not the input.
-      const normalizedPlan: WarmupPlan = {
-        ...plan,
-        lastModified: new Date().toISOString(),
-        isDefault: false,
-      };
+      // Sync the normalized version (same normalization as LocalDataStore)
+      const normalizedPlan = normalizeWarmupPlanForSave(plan);
       await this.queueSync('warmupPlan', 'default', 'update', normalizedPlan);
     }
     return result;
@@ -650,12 +656,14 @@ export class SyncedDataStore implements DataStore {
   // ==========================================================================
 
   async clearAllUserData(): Promise<void> {
-    // Stop sync engine first
+    // Stop sync engine first. Note: This immediately stops processing,
+    // so any in-flight sync operations will be interrupted. This is
+    // acceptable for a "clear all data" operation - we're wiping everything.
     if (this.syncEngine) {
       this.syncEngine.stop();
     }
 
-    // Clear the sync queue
+    // Clear the sync queue (pending operations will be discarded)
     await this.syncQueue.clear();
 
     // Clear local data
