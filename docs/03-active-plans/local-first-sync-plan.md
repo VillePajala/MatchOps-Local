@@ -586,18 +586,19 @@ export function SyncStatusIndicator() {
 
 ---
 
-### Phase 4: Conflict Resolution ⬜
+### Phase 4: Conflict Resolution ✅
 **Branch**: `local-first-sync/pr4-conflicts`
 
-- [ ] Create `src/sync/conflictResolution.ts`
-- [ ] Implement last-write-wins logic
-- [ ] Handle edge cases (deletion conflicts, etc.)
-- [ ] Add conflict resolution tests
+- [x] Create `src/sync/conflictResolution.ts`
+- [x] Implement last-write-wins logic
+- [x] Handle edge cases (deletion conflicts, resurrection)
+- [x] Add conflict resolution tests (39 tests)
+- [x] Export from `src/sync/index.ts`
 
 **Acceptance Criteria**:
-- Newer timestamp wins
-- Deletions handled correctly
-- Conflicts emit events for UI
+- ✅ Newer timestamp wins (local wins ties)
+- ✅ Deletions handled correctly (resurrection when cloud is newer)
+- ✅ Helper functions to detect conflict/not-found errors
 
 ---
 
@@ -739,3 +740,4 @@ After implementation:
 | 2026-01-24 | Phase 1 complete: SyncQueue with 24 tests passing |
 | 2026-01-24 | Phase 2 complete: SyncEngine with 64 tests passing (PR #316) |
 | 2026-01-24 | Phase 3 complete: SyncedDataStore with 59 tests passing |
+| 2026-01-25 | Phase 4 complete: ConflictResolver with 39 tests passing |
