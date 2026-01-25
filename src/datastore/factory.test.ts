@@ -250,17 +250,28 @@ describe('Factory', () => {
   // CLOUD MODE TESTS
   // ==========================================================================
   /**
-   * Note: Full cloud mode integration tests (factory → SyncedDataStore → executor → SupabaseDataStore)
-   * require complex module mocking that doesn't work reliably with Jest's ES module handling.
+   * KNOWN LIMITATION: Full cloud mode integration tests are deferred to Phase 8.
    *
-   * The cloud mode wiring is tested through:
-   * 1. createSyncExecutor unit tests (28 tests) - executor logic
-   * 2. SyncedDataStore unit tests - local-first wrapper
-   * 3. Manual integration testing during development
-   * 4. Phase 8 integration tests with real Supabase connection
+   * What's NOT tested here (Jest ES module mocking issues):
+   * - SyncedDataStore initialization in cloud mode
+   * - createSyncExecutor attachment to SyncedDataStore
+   * - startSync() call after initialization
+   * - Error handling during SupabaseDataStore setup
+   * - Mode switch cleanup with pending operations
    *
-   * The factory code for cloud mode is straightforward wiring that's better verified
-   * through integration testing rather than complex mock setups.
+   * What IS tested:
+   * - createSyncExecutor unit tests (30 tests) - executor logic, validation, error handling
+   * - SyncedDataStore unit tests - local-first wrapper, queueSync behavior
+   * - factory.test.ts - singleton behavior, concurrent access, mode detection
+   * - Fallback to LocalDataStore when cloud unavailable (below)
+   *
+   * Phase 8 Integration Test Plan:
+   * - Real Supabase connection (not mocks)
+   * - Full data flow: LocalDataStore → SyncedDataStore → SyncQueue → SyncExecutor → SupabaseDataStore
+   * - Mode switching with data verification
+   * - Offline/online transitions
+   *
+   * @see docs/03-active-plans/local-first-sync-plan.md - Phase 8
    */
   describe('Cloud Mode Behavior', () => {
     it('should fall back to LocalDataStore when cloud unavailable', async () => {

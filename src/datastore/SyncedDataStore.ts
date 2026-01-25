@@ -602,7 +602,8 @@ export class SyncedDataStore implements DataStore {
       adjustmentId
     );
     if (deleted) {
-      await this.queueSync('playerAdjustment', adjustmentId, 'delete', null);
+      // playerAdjustment delete requires playerId in data (composite key in cloud)
+      await this.queueSync('playerAdjustment', adjustmentId, 'delete', { playerId });
     }
     return deleted;
   }

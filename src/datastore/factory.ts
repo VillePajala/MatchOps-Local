@@ -24,6 +24,7 @@ import logger from '@/utils/logger';
 const log = {
   info: (msg: string) => logger?.info?.(msg),
   warn: (msg: string) => logger?.warn?.(msg),
+  error: (msg: string) => logger?.error?.(msg),
 };
 
 // Singleton instances
@@ -69,12 +70,17 @@ export async function getDataStore(): Promise<DataStore> {
     // This prevents stale auth subscriptions and memory leaks
     if (dataStoreCreatedForMode === 'cloud') {
       // Check for pending sync operations before cleanup
+      // WARNING: This is a safety net - proper protection should happen in the UI layer
+      // BEFORE calling setBackendMode(). The UI should call getPendingSyncCount() and
+      // either block the switch, wait for sync, or show a confirmation dialog.
+      // See: CloudSyncSection toggle handler
       try {
         const { getSyncEngine } = await import('@/sync');
         const engine = getSyncEngine();
         const status = await engine.getStatus();
         if (status.pendingCount > 0) {
-          log.warn(`[factory] Mode switch with ${status.pendingCount} pending sync operations - these will be lost`);
+          // Use error level because this indicates data loss
+          log.error(`[factory] DATA LOSS: Mode switch with ${status.pendingCount} pending sync operations that will be lost. UI layer should have blocked this.`);
         }
       } catch (e) {
         // Engine may not be initialized - that's OK
@@ -308,4 +314,31 @@ export function isDataStoreInitialized(): boolean {
  */
 export function isAuthServiceInitialized(): boolean {
   return authServiceInstance !== null;
+}
+
+/**
+ * Get the count of pending sync operations.
+ *
+ * IMPORTANT: Call this BEFORE changing backend mode (cloud → local) to check
+ * if it's safe to switch. If count > 0, either:
+ * 1. Block the switch until queue is empty
+ * 2. Wait for sync to complete
+ * 3. Show user confirmation dialog explaining data will be lost
+ *
+ * @returns Number of pending operations, or 0 if not in cloud mode or engine not initialized
+ */
+export async function getPendingSyncCount(): Promise<number> {
+  if (dataStoreCreatedForMode !== 'cloud') {
+    return 0;
+  }
+
+  try {
+    const { getSyncEngine } = await import('@/sync');
+    const engine = getSyncEngine();
+    const status = await engine.getStatus();
+    return status.pendingCount;
+  } catch {
+    // Engine may not be initialized
+    return 0;
+  }
 }
