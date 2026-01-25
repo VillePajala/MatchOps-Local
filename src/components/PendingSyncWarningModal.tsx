@@ -10,7 +10,7 @@
  * @see docs/03-active-plans/local-first-sync-plan.md
  */
 
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineExclamationTriangle,
@@ -62,21 +62,18 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
   // Focus trap for accessibility
   useFocusTrap(modalRef, true);
 
-  // Use ref to avoid useEffect re-runs when onAction changes (parent may not memoize it)
-  const onActionRef = useRef(onAction);
-  onActionRef.current = onAction;
-
-  // Handle Escape key - memoize to avoid effect re-runs
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !isSyncing) {
-      onActionRef.current('cancel');
-    }
-  }, [isSyncing]);
-
+  // Handle Escape key
   useEffect(() => {
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [handleEscape]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSyncing) {
+        onAction('cancel');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onAction is stable from useCallback in parent
+  }, [isSyncing]);
 
   const totalUnsyncedCount = pendingCount + failedCount;
   const hasPending = pendingCount > 0;

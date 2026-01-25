@@ -644,8 +644,8 @@ export function SyncStatusIndicator() {
 - [x] Update CloudSyncSection to check pending syncs before mode switch
 - [x] Handle pending syncs on mode switch (sync first, discard, cancel)
 - [x] Add translations (en/fi) for pending sync warning
-- [ ] Add tests for PendingSyncWarningModal
-- [ ] Update MigrationWizard if needed
+- [x] Add tests for PendingSyncWarningModal (29 unit + 10 integration)
+- [x] MigrationWizard - no changes needed (existing flow handles merge scenarios)
 
 **Acceptance Criteria**:
 - Cloud → Local warns about pending syncs
