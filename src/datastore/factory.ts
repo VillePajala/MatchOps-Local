@@ -126,18 +126,30 @@ export async function getDataStore(): Promise<DataStore> {
       const syncedStore = new SyncedDataStore();
       await syncedStore.initialize();
 
-      // Set up the sync executor to sync to Supabase
-      const { SupabaseDataStore } = await import('./SupabaseDataStore');
-      const cloudStore = new SupabaseDataStore();
-      await cloudStore.initialize();
+      try {
+        // Set up the sync executor to sync to Supabase
+        const { SupabaseDataStore } = await import('./SupabaseDataStore');
+        const cloudStore = new SupabaseDataStore();
+        await cloudStore.initialize();
 
-      const { createSyncExecutor } = await import('@/sync');
-      const executor = createSyncExecutor(cloudStore);
-      syncedStore.setExecutor(executor);
-      syncedStore.startSync();
+        // Verify cloud store initialized - if not, sync will silently fail
+        if (!cloudStore.isInitialized()) {
+          throw new Error('[factory] SupabaseDataStore failed to initialize - cannot create sync executor');
+        }
 
-      instance = syncedStore;
-      log.info('[factory] Using SyncedDataStore (local-first cloud mode)');
+        const { createSyncExecutor } = await import('@/sync');
+        const executor = createSyncExecutor(cloudStore);
+        syncedStore.setExecutor(executor);
+        syncedStore.startSync();
+
+        instance = syncedStore;
+        log.info('[factory] Using SyncedDataStore (local-first cloud mode)');
+      } catch (error) {
+        // Clean up syncedStore if cloud setup fails
+        log.warn('[factory] Cloud setup failed, cleaning up SyncedDataStore');
+        await syncedStore.close();
+        throw error;
+      }
     } else if (mode === 'cloud') {
       log.warn(
         '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'

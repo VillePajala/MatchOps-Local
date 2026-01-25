@@ -365,15 +365,16 @@ describe('createSyncExecutor', () => {
       expect(mockStore.saveSettings).toHaveBeenCalledWith(settings);
     });
 
-    it('should ignore delete operation for settings', async () => {
+    it('should throw on delete operation for settings', async () => {
       const op = createOperation({
         entityType: 'settings',
         entityId: 'app',
         operation: 'delete',
       });
 
-      await executor(op);
-
+      await expect(executor(op)).rejects.toThrow(
+        'Cannot delete settings: delete operation is not supported'
+      );
       expect(mockStore.saveSettings).not.toHaveBeenCalled();
     });
   });
@@ -460,6 +461,62 @@ describe('createSyncExecutor', () => {
       });
 
       await expect(executor(op)).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('Data validation', () => {
+    it('should throw when data is null for create operation', async () => {
+      const op = createOperation({
+        entityType: 'player',
+        operation: 'create',
+        data: null,
+      });
+
+      await expect(executor(op)).rejects.toThrow('data is null');
+    });
+
+    it('should throw when data is undefined for update operation', async () => {
+      const op = createOperation({
+        entityType: 'team',
+        operation: 'update',
+        data: undefined,
+      });
+
+      await expect(executor(op)).rejects.toThrow('data is undefined');
+    });
+
+    it('should throw when data is not an object', async () => {
+      const op = createOperation({
+        entityType: 'season',
+        operation: 'update',
+        data: 'invalid string data',
+      });
+
+      await expect(executor(op)).rejects.toThrow('data must be an object');
+    });
+
+    it('should throw when teamRoster data is not an array', async () => {
+      const op = createOperation({
+        entityType: 'teamRoster',
+        entityId: 'team-1',
+        operation: 'update',
+        data: { notAnArray: true },
+      });
+
+      await expect(executor(op)).rejects.toThrow('data must be an array');
+    });
+
+    it('should allow delete operations without data validation', async () => {
+      const op = createOperation({
+        entityType: 'player',
+        entityId: 'player-1',
+        operation: 'delete',
+        data: null,
+      });
+
+      await executor(op);
+
+      expect(mockStore.deletePlayer).toHaveBeenCalledWith('player-1');
     });
   });
 });

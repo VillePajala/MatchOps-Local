@@ -10,6 +10,16 @@
 /**
  * Entity types that can be synced to cloud.
  * Maps to DataStore method categories.
+ *
+ * NOTE: `timerState` is intentionally excluded - it's ephemeral UI recovery state
+ * that is updated every second while a game timer runs. It's device-specific and
+ * would cause sync conflicts if the same game is open on multiple devices.
+ *
+ * Game duration data IS synced via the 'game' entity - the game object contains:
+ * - completedIntervalDurations: actual time played per period
+ * - gameEvents with timestamps: detailed timing of all events
+ * - totalGameTimeSeconds: computed total time
+ * This covers post-game analysis needs without syncing ephemeral timer state.
  */
 export type SyncEntityType =
   | 'player'
