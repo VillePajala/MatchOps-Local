@@ -655,14 +655,15 @@ export function SyncStatusIndicator() {
 ---
 
 ### Phase 8: Testing & Polish 🚧
-**Branch**: `local-first-sync/pr8-polish`
+**Branch**: `local-first-sync/pr8-polish` (current)
 
-- [x] Verify existing test coverage (315+ sync-related tests)
+- [x] Verify existing test coverage (315 sync-related tests)
 - [x] Update plan documentation status
+- [x] Lint passes (0 errors)
 - [ ] Final review and cleanup
 - [ ] Update CLAUDE.md if needed
 
-**Test Coverage Summary**:
+**Test Coverage Summary** (315 tests total):
 | Component | Tests |
 |-----------|-------|
 | SyncQueue | 33 |
@@ -670,15 +671,17 @@ export function SyncStatusIndicator() {
 | SyncedDataStore | 60 |
 | createSyncExecutor | 31 |
 | conflictResolution | 36 |
-| useSyncStatus | 46 |
-| SyncStatusIndicator | 25 |
+| useSyncStatus | 14 |
+| SyncStatusIndicator | 27 |
 | CloudSyncSection | 39 |
 | PendingSyncWarningModal | 29 |
+
+*Note: Test runner reports 315 total due to parameterized tests expanding at runtime.*
 
 **Acceptance Criteria**:
 - All tests pass ✅
 - Documentation updated ✅
-- No lint errors
+- No lint errors ✅
 
 ---
 
@@ -706,8 +709,8 @@ export function SyncStatusIndicator() {
 | `src/sync/__tests__/conflictResolution.test.ts` | 36 |
 | `src/sync/__tests__/createSyncExecutor.test.ts` | 31 |
 | `src/datastore/__tests__/SyncedDataStore.test.ts` | 60 |
-| `src/hooks/__tests__/useSyncStatus.test.ts` | 46 |
-| `src/components/__tests__/SyncStatusIndicator.test.tsx` | 25 |
+| `src/hooks/__tests__/useSyncStatus.test.ts` | 14 |
+| `src/components/__tests__/SyncStatusIndicator.test.tsx` | 27 |
 | `src/components/__tests__/PendingSyncWarningModal.test.tsx` | 29 |
 
 ### Modified Files
