@@ -618,35 +618,39 @@ export function SyncStatusIndicator() {
 
 ---
 
-### Phase 6: UI Integration ⬜
+### Phase 6: UI Integration ✅
 **Branch**: `local-first-sync/pr6-ui`
+**PR**: #321 (merged)
 
-- [ ] Create `src/components/SyncStatusIndicator.tsx`
-- [ ] Create `src/hooks/useSyncStatus.ts`
-- [ ] Add indicator to PlayerBar
-- [ ] Add sync section to SettingsModal
-- [ ] Add translations (en/fi)
+- [x] Create `src/components/SyncStatusIndicator.tsx`
+- [x] Create `src/hooks/useSyncStatus.ts`
+- [x] Add indicator to PlayerBar
+- [x] Add sync section to SettingsModal (CloudSyncSection)
+- [x] Add translations (en/fi)
+- [x] Add 46 tests for hook and component
 
 **Acceptance Criteria**:
-- Status indicator shows correct state
-- Settings shows sync details
-- Sync Now button works
-- Failed operations can be retried/discarded
+- ✅ Status indicator shows correct state
+- ✅ Settings shows sync details
+- ✅ Sync Now button works
+- ✅ Failed operations can be retried/discarded
 
 ---
 
-### Phase 7: Mode Switching ⬜
+### Phase 7: Mode Switching 🚧
 **Branch**: `local-first-sync/pr7-mode-switch`
 
-- [ ] Update CloudSyncSection for new flow
-- [ ] Handle pending syncs on mode switch
-- [ ] Implement merge decision UI
+- [x] Create `src/components/PendingSyncWarningModal.tsx`
+- [x] Update CloudSyncSection to check pending syncs before mode switch
+- [x] Handle pending syncs on mode switch (sync first, discard, cancel)
+- [x] Add translations (en/fi) for pending sync warning
+- [ ] Add tests for PendingSyncWarningModal
 - [ ] Update MigrationWizard if needed
 
 **Acceptance Criteria**:
 - Cloud → Local warns about pending syncs
-- Local → Cloud handles merge scenarios
-- Re-enabling cloud offers merge options
+- Local → Cloud handles merge scenarios (existing via MigrationWizard)
+- Re-enabling cloud offers merge options (existing via MigrationWizard)
 
 ---
 

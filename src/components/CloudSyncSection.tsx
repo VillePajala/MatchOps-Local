@@ -25,6 +25,7 @@ import SyncStatusIndicator from './SyncStatusIndicator';
 import CloudAuthModal from './CloudAuthModal';
 import ReverseMigrationWizard from './ReverseMigrationWizard';
 import UpgradePromptModal from './UpgradePromptModal';
+import PendingSyncWarningModal from './PendingSyncWarningModal';
 
 interface CloudSyncSectionProps {
   /** Callback when mode changes (app needs restart) */
@@ -88,6 +89,9 @@ export default function CloudSyncSection({
 
   // Reverse migration wizard state
   const [showReverseMigrationWizard, setShowReverseMigrationWizard] = useState(false);
+
+  // Pending sync warning modal state (shown before reverse migration if pending syncs exist)
+  const [showPendingSyncWarning, setShowPendingSyncWarning] = useState(false);
 
   // Sign out state
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -160,9 +164,55 @@ export default function CloudSyncSection({
       return;
     }
 
-    // Show reverse migration wizard to let user choose what to do with their data
+    // Check if there are pending/failed syncs before proceeding
+    // This prevents data loss from unsynced local changes
+    if (syncStatus.pendingCount > 0 || syncStatus.failedCount > 0) {
+      setShowPendingSyncWarning(true);
+      return;
+    }
+
+    // No pending syncs - show reverse migration wizard directly
     setShowReverseMigrationWizard(true);
   };
+
+  /**
+   * Handle user choice from pending sync warning modal
+   */
+  const handlePendingSyncWarningAction = useCallback(async (action: 'sync' | 'discard' | 'cancel') => {
+    switch (action) {
+      case 'sync':
+        // Keep modal open during sync to show isSyncing state via syncStatus prop
+        // This gives user visual feedback that sync is in progress
+        try {
+          await syncStatus.syncNow();
+          // Sync completed - close modal and proceed to wizard
+          setShowPendingSyncWarning(false);
+          setShowReverseMigrationWizard(true);
+        } catch (error) {
+          // On error, keep modal open so user can try again or choose to discard
+          logger.error('[CloudSyncSection] Sync before mode switch failed:', error);
+          showToast(
+            t('cloudSync.pendingSync.syncFailed', 'Sync failed. Please try again or discard changes.'),
+            'error'
+          );
+        }
+        break;
+
+      case 'discard':
+        setShowPendingSyncWarning(false);
+        // Clear the failed items and proceed
+        if (syncStatus.failedCount > 0) {
+          await syncStatus.clearFailed();
+        }
+        // Proceed to reverse migration wizard
+        setShowReverseMigrationWizard(true);
+        break;
+
+      case 'cancel':
+        setShowPendingSyncWarning(false);
+        break;
+    }
+  }, [syncStatus, showToast, t]);
 
   /**
    * Handle reverse migration wizard completion.
@@ -857,6 +907,17 @@ export default function CloudSyncSection({
           }, 1000);
         }}
       />
+
+      {/* Pending sync warning modal - shown when trying to switch to local with unsynced changes */}
+      {showPendingSyncWarning && (
+        <PendingSyncWarningModal
+          pendingCount={syncStatus.pendingCount}
+          failedCount={syncStatus.failedCount}
+          isSyncing={syncStatus.isSyncing}
+          isOnline={syncStatus.isOnline}
+          onAction={handlePendingSyncWarningAction}
+        />
+      )}
     </div>
   );
 }

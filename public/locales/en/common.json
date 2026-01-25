@@ -2307,6 +2307,18 @@
       "minutesAgo": "{{count}} min ago",
       "hoursAgo": "{{count}} hr ago",
       "daysAgo": "{{count}} days ago"
+    },
+    "pendingSync": {
+      "title": "Unsynced Changes",
+      "warning": "You have {{count}} changes that haven't been synced to the cloud yet.",
+      "pendingCount": "{{count}} pending changes",
+      "failedCount": "{{count}} failed to sync",
+      "consequence": "Switching to local mode now will abandon these changes.",
+      "syncFirst": "Sync First",
+      "syncing": "Syncing...",
+      "discardAndContinue": "Discard & Continue",
+      "offlineNotice": "Cannot sync while offline",
+      "syncFailed": "Sync failed. Please try again or discard changes."
     }
   },
   "cloudAuth": {
