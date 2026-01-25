@@ -5,8 +5,7 @@ import PlayerDisk from './PlayerDisk'; // Import the PlayerDisk component
 import type { Player } from '@/types'; // Import the Player type from central types
 // import { Audiowide } from 'next/font/google'; // Commented out - was used for animated text
 import type { GameEvent } from '@/types'; // Correctly import GameEvent type
-import { HiOutlineCloud, HiOutlineDevicePhoneMobile } from 'react-icons/hi2';
-import { getBackendMode } from '@/config/backendConfig';
+import SyncStatusIndicator from './SyncStatusIndicator';
 
 // Title font matching StartScreen
 // const titleFont = Audiowide({ subsets: ['latin'], weight: '400' }); // Commented out - was used for animated text 
@@ -38,9 +37,6 @@ interface PlayerBarProps {
 // ];
 
 const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie }) => {
-  // Get current backend mode for visual indicator
-  const mode = getBackendMode();
-  const isCloudMode = mode === 'cloud';
   /* Commented out - was used for animated text
   // Exact same gradient colors as StartScreen
   const logoGradientPrimary = `conic-gradient(from calc(var(--holo-angle, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
@@ -96,24 +92,8 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
           }
         }}
       >
-        {/* Data Mode Indicator - shows where data is stored */}
-        <div
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md ${
-            isCloudMode
-              ? 'bg-sky-500/20 border border-sky-500/40'
-              : 'bg-slate-600/30 border border-slate-500/40'
-          }`}
-          title={isCloudMode ? 'Data syncs to cloud' : 'Data stored locally on device'}
-        >
-          {isCloudMode ? (
-            <HiOutlineCloud className="w-5 h-5 text-sky-400" />
-          ) : (
-            <HiOutlineDevicePhoneMobile className="w-5 h-5 text-slate-400" />
-          )}
-          <span className={`text-xs font-medium ${isCloudMode ? 'text-sky-300' : 'text-slate-300'}`}>
-            {isCloudMode ? 'Cloud' : 'Local'}
-          </span>
-        </div>
+        {/* Sync Status Indicator - shows data mode and sync status */}
+        <SyncStatusIndicator />
 
         {/* OLD ANIMATED TEXT - Commented out for easy restoration
         <h1
