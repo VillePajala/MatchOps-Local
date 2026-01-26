@@ -22,16 +22,29 @@ import { SyncEngine, SyncOperationExecutor, resetSyncEngine } from '../SyncEngin
 import { SyncQueue } from '../SyncQueue';
 import { SyncStatusInfo } from '../types';
 
-// Mock logger
-jest.mock('@/utils/logger', () => ({
-  __esModule: true,
-  default: {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
-}));
+// Import logger for spying (we'll spy on its methods in tests)
+import logger from '@/utils/logger';
+import { SyncEntityType, SyncOperationType } from '../types';
+
+/**
+ * Helper to create a sync operation input for testing.
+ * Reduces boilerplate in tests that need to enqueue operations.
+ */
+function createTestOperation(overrides: {
+  entityType?: SyncEntityType;
+  entityId?: string;
+  operation?: SyncOperationType;
+  data?: unknown;
+  timestamp?: number;
+} = {}) {
+  return {
+    entityType: overrides.entityType ?? 'player',
+    entityId: overrides.entityId ?? 'player_1',
+    operation: overrides.operation ?? 'update',
+    data: overrides.data ?? {},
+    timestamp: overrides.timestamp ?? Date.now(),
+  };
+}
 
 // Helper to flush all pending promises and timers
 // fake-indexeddb needs multiple event loop cycles to resolve all its internal promises
@@ -105,13 +118,7 @@ describe('SyncEngine', () => {
     });
 
     it('should process queue on start when online', async () => {
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: { name: 'Test' },
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation({ data: { name: 'Test' } }));
 
       engine.start();
       await flushAllAsync();
@@ -147,21 +154,16 @@ describe('SyncEngine', () => {
 
   describe('processing', () => {
     it('should process pending operations', async () => {
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
+      await queue.enqueue(createTestOperation({
         operation: 'create',
         data: { name: 'Player 1' },
-        timestamp: Date.now(),
-      });
-
-      await queue.enqueue({
-        entityType: 'player',
+      }));
+      await queue.enqueue(createTestOperation({
         entityId: 'player_2',
         operation: 'create',
         data: { name: 'Player 2' },
         timestamp: Date.now() + 100,
-      });
+      }));
 
       engine.start();
       await flushAllAsync();
@@ -173,13 +175,10 @@ describe('SyncEngine', () => {
     });
 
     it('should remove completed operations from queue', async () => {
-      const id = await queue.enqueue({
+      const id = await queue.enqueue(createTestOperation({
         entityType: 'game',
         entityId: 'game_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      }));
 
       engine.start();
       await flushAllAsync();
@@ -191,13 +190,7 @@ describe('SyncEngine', () => {
     it('should mark failed operations', async () => {
       mockExecutor.mockRejectedValue(new Error('Network error'));
 
-      const id = await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      const id = await queue.enqueue(createTestOperation());
 
       engine.start();
       await flushAllAsync();
@@ -212,13 +205,11 @@ describe('SyncEngine', () => {
     it('should respect batch size', async () => {
       // Add 10 operations, batch size is 5
       for (let i = 0; i < 10; i++) {
-        await queue.enqueue({
-          entityType: 'player',
+        await queue.enqueue(createTestOperation({
           entityId: `player_${i}`,
           operation: 'create',
-          data: {},
           timestamp: Date.now() + i,
-        });
+        }));
       }
 
       engine.start();
@@ -255,13 +246,7 @@ describe('SyncEngine', () => {
         configurable: true,
       });
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       // start() should refresh online state and process queue
       lateOnlineEngine.start();
@@ -284,13 +269,7 @@ describe('SyncEngine', () => {
       const offlineEngine = new SyncEngine(queue, { syncIntervalMs: 1000 });
       offlineEngine.setExecutor(mockExecutor);
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       offlineEngine.start();
       await flushAllAsync();
@@ -325,13 +304,7 @@ describe('SyncEngine', () => {
       const offlineEngine = new SyncEngine(queue, { syncIntervalMs: 1000 });
       offlineEngine.setExecutor(mockExecutor);
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       offlineEngine.start();
       await flushAllAsync();
@@ -361,13 +334,7 @@ describe('SyncEngine', () => {
       mockExecutor.mockClear();
 
       // Add operation after initial sync
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       // Nudge instead of waiting for interval
       engine.nudge();
@@ -388,13 +355,7 @@ describe('SyncEngine', () => {
       // Simulate offline event
       window.dispatchEvent(new Event('offline'));
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       mockExecutor.mockClear();
       engine.nudge();
@@ -404,13 +365,7 @@ describe('SyncEngine', () => {
     });
 
     it('should not nudge when not running', async () => {
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       engine.nudge();
       await flushAllAsync();
@@ -431,13 +386,7 @@ describe('SyncEngine', () => {
     });
 
     it('should report pending when operations are queued', async () => {
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       // Don't start engine - operations stay pending
       const status = await engine.getStatus();
@@ -446,13 +395,7 @@ describe('SyncEngine', () => {
     });
 
     it('should report error when operations have failed', async () => {
-      const id = await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      const id = await queue.enqueue(createTestOperation());
 
       // Fail to max retries
       for (let i = 0; i < 3; i++) {
@@ -470,13 +413,7 @@ describe('SyncEngine', () => {
       const statusChanges: SyncStatusInfo[] = [];
       engine.onStatusChange((info) => statusChanges.push({ ...info }));
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       engine.start();
       await flushAllAsync();
@@ -491,13 +428,7 @@ describe('SyncEngine', () => {
         completed.push({ id, entityType, entityId });
       });
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       engine.start();
       await flushAllAsync();
@@ -515,13 +446,7 @@ describe('SyncEngine', () => {
         failed.push({ id, error, willRetry });
       });
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       engine.start();
       await flushAllAsync();
@@ -544,13 +469,7 @@ describe('SyncEngine', () => {
       unsubscribe();
 
       // Trigger more changes
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       engine.nudge();
       await flushAllAsync();
@@ -564,13 +483,7 @@ describe('SyncEngine', () => {
     it('should handle executor not set', async () => {
       const engineNoExecutor = new SyncEngine(queue, { syncIntervalMs: 1000 });
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_1',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation());
 
       engineNoExecutor.start();
       await flushAllAsync();
@@ -585,13 +498,7 @@ describe('SyncEngine', () => {
     it('should handle executor set after start', async () => {
       const lateExecutorEngine = new SyncEngine(queue, { syncIntervalMs: 1000 });
 
-      await queue.enqueue({
-        entityType: 'player',
-        entityId: 'player_late',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+      await queue.enqueue(createTestOperation({ entityId: 'player_late' }));
 
       // Start without executor
       lateExecutorEngine.start();
@@ -654,13 +561,10 @@ describe('SyncEngine', () => {
   describe('stale syncing recovery', () => {
     it('should reset stale syncing operations on start', async () => {
       // Enqueue an operation and mark it as syncing (simulating crash during sync)
-      const id = await queue.enqueue({
-        entityType: 'player',
+      const id = await queue.enqueue(createTestOperation({
         entityId: 'player_stale',
-        operation: 'update',
         data: { name: 'Stale' },
-        timestamp: Date.now(),
-      });
+      }));
 
       await queue.markSyncing(id);
 
@@ -672,6 +576,14 @@ describe('SyncEngine', () => {
       engine.start();
 
       // Flush to let resetStaleSyncing complete and initial processQueue run
+      // The initial processQueue won't find the operation ready (backoff not elapsed)
+      await flushAllAsync();
+
+      // Advance time past the backoff delay (100ms in test config) so the reset
+      // operation is ready for retry. resetStaleSyncing sets lastAttempt=now and
+      // retryCount=1, requiring backoffBaseMs to pass before isReadyForRetry returns true.
+      // Then advance to the next sync interval (1000ms) to trigger processing.
+      await jest.advanceTimersByTimeAsync(1100);
       await flushAllAsync();
 
       // The operation should have been reset AND processed (removed from queue)
@@ -691,6 +603,9 @@ describe('SyncEngine', () => {
     });
 
     it('should handle resetStaleSyncing error gracefully', async () => {
+      // Spy on logger.error to verify error logging
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+
       // Spy on resetStaleSyncing to make it reject
       const resetSpy = jest.spyOn(queue, 'resetStaleSyncing').mockRejectedValueOnce(
         new Error('DB error')
@@ -700,8 +615,65 @@ describe('SyncEngine', () => {
       engine.start();
       expect(engine.isEngineRunning()).toBe(true);
 
-      // Clean up spy
+      // Wait for the async stale reset to complete (and fail)
+      await flushAllAsync();
+
+      // CRITICAL: Verify the error was logged
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        '[SyncEngine] Failed to reset stale syncing operations:',
+        expect.any(Error)
+      );
+
+      // Verify stale reset failure is tracked in status
+      const status = await engine.getStatus();
+      expect(status.hasStaleResetFailure).toBe(true);
+
+      // Clean up spies
+      loggerErrorSpy.mockRestore();
       resetSpy.mockRestore();
+    });
+
+    /**
+     * @critical Verifies that queue processing is blocked when stale reset fails.
+     * This prevents silent data loss from operations stuck in 'syncing' status.
+     */
+    it('should block queue processing after stale reset failure until recovery', async () => {
+      // Make stale reset fail persistently
+      const resetSpy = jest.spyOn(queue, 'resetStaleSyncing').mockRejectedValue(
+        new Error('DB error')
+      );
+
+      // Enqueue an operation (will be in 'pending' status, not 'syncing')
+      await queue.enqueue(createTestOperation({ entityId: 'player_blocked' }));
+
+      engine.start();
+      await flushAllAsync();
+
+      // Operation should NOT be processed - queue processing is blocked after stale reset failure
+      // This is critical: if stale reset fails, operations may be stuck in 'syncing' state
+      // and processing would skip them (getPending only returns 'pending' ops)
+      expect(mockExecutor).not.toHaveBeenCalled();
+
+      // Verify status indicates stale reset failure
+      let status = await engine.getStatus();
+      expect(status.hasStaleResetFailure).toBe(true);
+
+      // Allow stale reset to succeed on next attempt
+      resetSpy.mockRestore();
+
+      // Advance through 10 sync intervals to trigger recovery attempt
+      // (SyncEngine retries stale reset every 10 processing attempts)
+      for (let i = 0; i < 10; i++) {
+        await jest.advanceTimersByTimeAsync(1000);
+        await flushAllAsync();
+      }
+
+      // Now the operation should be processed after recovery
+      expect(mockExecutor).toHaveBeenCalledTimes(1);
+
+      // Status should indicate recovery succeeded
+      status = await engine.getStatus();
+      expect(status.hasStaleResetFailure).toBe(false);
     });
   });
 
