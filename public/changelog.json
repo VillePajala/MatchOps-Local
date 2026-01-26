@@ -1,8 +1,8 @@
 {
-  "version": "c429bfb4",
-  "date": "2026-01-22",
+  "version": "53008068",
+  "date": "2026-01-24",
   "notes": {
-    "en": "Gate cloud mode behind premium subscription",
-    "fi": "Gate cloud mode behind premium subscription"
+    "en": "Atomic transaction, operation merge, and robustness",
+    "fi": "Atomic transaction, operation merge, and robustness"
   }
 }

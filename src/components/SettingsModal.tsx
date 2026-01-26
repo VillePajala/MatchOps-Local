@@ -18,10 +18,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { ModalFooter, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
-import { usePremium } from '@/hooks/usePremium';
-import { HiSparkles } from 'react-icons/hi2';
 import { queryKeys } from '@/config/queryKeys';
-import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import CloudSyncSection from './CloudSyncSection';
 
 type SettingsTab = 'general' | 'season' | 'data' | 'premium' | 'about';
@@ -56,7 +53,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const { isPremium, isLoading: isPremiumLoading, showUpgradePrompt, price, revokePremiumAccess } = usePremium();
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
@@ -467,75 +463,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            {/* Premium Tab */}
+            {/* Premium Tab - Cloud Subscription */}
             {activeTab === 'premium' && (
-            <>
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <HiSparkles className={`w-5 h-5 ${isPremium ? 'text-amber-400' : 'text-slate-400'}`} aria-hidden="true" />
-                  <span className="text-slate-200 font-medium">
-                    {t('settingsModal.premiumStatusLabel', 'Premium Status')}
-                  </span>
-                </div>
-                {isPremiumLoading ? (
-                  <span className="text-slate-400 text-sm">{t('common.loading', 'Loading...')}</span>
-                ) : isPremium ? (
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
-                      {t('settingsModal.premiumActive', 'Premium')}
-                    </span>
-                    {/* Reset button when enforcement is disabled or in development (for testing) */}
-                    {(!PREMIUM_ENFORCEMENT_ENABLED || process.env.NODE_ENV === 'development') && (
-                      <button
-                        onClick={async () => {
-                          await revokePremiumAccess();
-                          showToast(t('settingsModal.resetToFreeSuccess', 'Reset to free version'), 'success');
-                        }}
-                        className="text-xs text-slate-500 hover:text-slate-300 underline"
-                      >
-                        {t('settingsModal.resetToFree', 'Reset')}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-600/50 text-slate-300">
-                    {t('settingsModal.freeVersion', 'Free')}
-                  </span>
-                )}
-              </div>
-              {!isPremium && !isPremiumLoading && (
-                <>
-                  <p className="text-slate-400 text-xs mt-2 mb-2">
-                    {t('settingsModal.freeLimitsLabel', 'Free version limits:')}
-                  </p>
-                  <ul className="text-slate-400 text-xs space-y-0.5 mb-3">
-                    <li>• {t('settingsModal.limitTeams', '1 team')}</li>
-                    <li>• {t('settingsModal.limitPlayers', '18 players')}</li>
-                    <li>• {t('settingsModal.limitSeasons', '1 season / 1 tournament')}</li>
-                    <li>• {t('settingsModal.limitGames', '10 games per competition')}</li>
-                  </ul>
-                  <p className="text-slate-300 text-xs mb-3">
-                    {t('settingsModal.premiumDescription', 'The full version includes unlimited teams, players, seasons, tournaments, and games.')}
-                  </p>
-                  <button
-                    onClick={() => showUpgradePrompt()}
-                    className="inline-flex items-center justify-center gap-1 w-full px-3 py-2 rounded-md text-sm font-medium bg-gradient-to-b from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-sm transition-colors"
-                  >
-                    <HiSparkles className="w-4 h-4" aria-hidden="true" />
-                    {t('settingsModal.upgradeToPremium', 'Upgrade')} - {price}
-                  </button>
-                  {/* TODO P4C: Add "Restore Purchase" button for edge case where:
-                      - User has valid Play Billing purchase but local verification failed
-                      - User reinstalled app and needs to restore their purchase
-                      Button should call Play Billing's queryPurchases() to re-verify */}
-                </>
-              )}
-            </div>
-
-            {/* Account & Sync */}
-            <CloudSyncSection />
-            </>
+              <CloudSyncSection />
             )}
 
             {/* General Tab */}

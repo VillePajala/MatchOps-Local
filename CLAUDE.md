@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Healthy
 
-**Last Updated**: January 23, 2026
+**Last Updated**: January 26, 2026
 
 ### Quick Stats
 - ✅ **3,500+ tests** passing
@@ -24,10 +24,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Test coverage improvement (+694 tests)
 - **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory
 - **Supabase Cloud Backend PRs 1-11** ✅ - See PR Summary below
+- **Local-First Cloud Sync** ✅ - SyncQueue, SyncEngine, SyncedDataStore (PR #324)
 
 ### What's Next
 - **Supabase PR #12: Migration Wizard Redesign** - IN PROGRESS
 - **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
+
+### ⚠️ Quality Bar: Production-Ready (Not MVP)
+
+**This project is past MVP stage.** We are preparing for Play Store release with paid subscriptions.
+
+**What this means for development:**
+- **Billing/Auth/Security**: Production-grade quality required. No shortcuts, no "good enough for MVP".
+- **Error Messages**: Must be sanitized - never leak implementation details (mock modes, config state, stack traces).
+- **Edge Functions**: Must have tests and proper error handling.
+- **Feature Code**: Can be "launch-ready" (not perfect, but solid for initial user scale).
+
+**Do NOT defer issues with these justifications:**
+- ❌ "Acceptable for MVP"
+- ❌ "Can fix later before launch"
+- ❌ "Good enough for now"
+
+**Instead, use these criteria:**
+- ✅ "Safe for production with paying users"
+- ✅ "Handles edge cases gracefully"
+- ✅ "Follows security best practices"
 
 ### Essential Reading
 - **[supabase-implementation-guide.md](./docs/03-active-plans/supabase-implementation-guide.md)** ⭐ **Active implementation plan**

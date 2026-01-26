@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: January 5, 2026
+**Last Updated**: January 26, 2026
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
 
@@ -10,12 +10,14 @@
 
 | Category | Status |
 |----------|--------|
-| Codebase Health | ✅ Excellent (3,203 tests, 62-line HomePage, 9 extracted hooks) |
+| Codebase Health | ✅ Excellent (3,500+ tests, 62-line HomePage, 9 extracted hooks) |
 | Security | ✅ All vulnerabilities fixed |
 | Performance | ✅ React.memo optimization complete |
 | Framework | ✅ Next.js 16.0.10 + React 19.2 |
 | Communication Infrastructure | ✅ Complete (domains, email, Sentry, websites, social) |
-| Next Major Work | 🎯 **Play Store Release - Waiting for Business Setup (Jan 2, 2026)** |
+| Supabase Cloud Backend | ✅ PRs 1-11 Complete, Local-First Sync Complete |
+| Billing Infrastructure | ✅ Phases 1-7 Complete (Edge Function, Play Billing, Subscription Management) |
+| Next Major Work | 🎯 **Play Store Release - Enable PREMIUM_ENFORCEMENT_ENABLED + Business Setup** |
 
 ---
 
@@ -113,18 +115,20 @@
   - [x] Integrate `canCreate()` checks into SeasonTournamentManagementModal
   - [x] Premium Status section in SettingsModal (with limits breakdown)
   - [x] Translations (EN/FI)
-- [ ] **P4C: Play Billing API integration** (PR #10) - NOT DONE
-  - **See**: [`docs/04-features/play-billing-implementation.md`](../04-features/play-billing-implementation.md) for detailed implementation guide
-  - **Requires**: Business setup complete (see P4D below)
-  - [ ] Google Play Console setup (product SKU, merchant account)
-  - [ ] Create `src/utils/playBilling.ts` (Digital Goods API + Payment Request API)
-  - [ ] Create `src/hooks/usePlayBilling.ts` (React hook)
-  - [ ] Create `pages/api/billing/verify.ts` (backend verification)
-  - [ ] Update `UpgradePromptModal.tsx` to use real billing
-  - [ ] Update `twa-manifest.json` with `playBilling: true`
-  - [ ] Rebuild TWA with billing enabled
-  - [ ] Test with license testers
-  - [ ] Restore purchase functionality on app startup
+- [x] **P4C: Play Billing API integration** ✅ COMPLETE (January 2026)
+  - **See**: [`docs/03-active-plans/billing-implementation-plan.md`](./billing-implementation-plan.md) for detailed implementation
+  - **See**: [`docs/04-features/play-billing-implementation.md`](../04-features/play-billing-implementation.md) for feature guide
+  - [x] Create `src/utils/playBilling.ts` (Digital Goods API + Payment Request API)
+  - [x] Create `src/hooks/usePlayBilling.ts` (React hook with 18 tests)
+  - [x] Create `supabase/functions/verify-subscription/index.ts` (Edge Function for server-side verification)
+  - [x] Create `supabase/migrations/010_subscriptions.sql` (subscription storage)
+  - [x] Platform detection utilities (`src/utils/platform.ts`)
+  - [x] Subscription context and state management
+  - [x] Grace period and expiration UI
+  - [x] Cross-device subscription sync
+  - [ ] **Pending**: Update `twa-manifest.json` with `playBilling: true`
+  - [ ] **Pending**: Rebuild TWA with billing enabled
+  - [ ] **Pending**: Set `PREMIUM_ENFORCEMENT_ENABLED = true` after business setup
 - [ ] **P4D: Business & Legal Setup** - REQUIRED BEFORE BILLING
   - **Timeline**: Do this NOW while P4B testing continues
   - [ ] Register Toiminimi at ytj.fi (~60 €, 1-3 days)
@@ -170,44 +174,53 @@
 
 ---
 
-## 🔧 PRIORITY 2: Backend Architecture Refactoring
+## 🔧 PRIORITY 2: Backend Architecture & Supabase Cloud
 
-**Status**: ✅ **Phase 1-3 COMPLETE** (PR #137 ready to merge to master)
-**Primary Doc**: `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` ⭐ **START HERE**
-**Effort**: ~4 weeks (50-72 hours)
+**Status**: ✅ **MOSTLY COMPLETE** (PRs 1-11 merged, Local-First Sync complete)
+**Primary Doc**: `supabase-implementation-guide.md` ⭐ **MAIN REFERENCE**
+**Branch**: `supabase/billing-implementation` (feature branch)
 
-### What This Enables
-- Backend switching capability (IndexedDB ↔ Supabase)
-- Foundation for cloud features (multi-device sync, cloud backup)
-- Premium tier monetization path
-- **Cleaner architecture before adding more features**
+### What's Complete
 
-### PR Breakdown
+| Component | Status | Description |
+|-----------|--------|-------------|
+| DataStore Interface | ✅ | `src/interfaces/DataStore.ts` - 60+ method interface |
+| LocalDataStore | ✅ | `src/datastore/LocalDataStore.ts` - IndexedDB implementation |
+| SupabaseDataStore | ✅ | `src/datastore/SupabaseDataStore.ts` - Cloud implementation |
+| SyncedDataStore | ✅ | Local-first with background sync (PR #324) |
+| AuthService | ✅ | `src/auth/SupabaseAuthService.ts` + `LocalAuthService.ts` |
+| Auth UI | ✅ | `LoginScreen.tsx`, `AuthProvider.tsx` |
+| Migration Wizard | ✅ | Local → Cloud data migration |
+| Reverse Migration | ✅ | Cloud → Local data export |
+| Subscription System | ✅ | Edge Function + subscription table + contexts |
+| Local-First Sync | ✅ | SyncQueue, SyncEngine, conflict resolution |
 
-| Phase | PRs | Hours | Risk | Status |
-|-------|-----|-------|------|--------|
-| 1. Foundation (centralize storage calls) | #1-3 | 12-16h | LOW | ✅ DONE |
-| 2. DataStore Interface | #4-5 | 8-12h | LOW | ✅ DONE |
-| 3. LocalDataStore Implementation | #6-8 | 10-14h | MEDIUM | ✅ DONE |
-| **Total (Phases 1-3)** | 8 PRs | ~4 weeks | | ✅ COMPLETE |
+### What's Pending
 
-**Implementation Complete**:
-- `src/interfaces/DataStore.ts` - Backend-agnostic data access interface
-- `src/interfaces/AuthService.ts` - Authentication abstraction
-- `src/datastore/LocalDataStore.ts` - Full IndexedDB implementation with 2,700+ tests
-- `src/auth/LocalAuthService.ts` - No-op auth for local mode
-- `src/datastore/factory.ts` - Singleton factory pattern
+| Task | Status | Notes |
+|------|--------|-------|
+| Enable `PREMIUM_ENFORCEMENT_ENABLED` | 🔲 | Flip when business setup complete |
+| Merge to master | 🔲 | After final testing |
+| TWA rebuild with billing | 🔲 | After Play Console setup |
 
-**Next Steps** (after merging PR #137):
-1. **Fix Warmup Plan backup gap** - Add `WARMUP_PLAN_KEY` to `fullBackup.ts` (10-minute fix)
-2. **Optionally**: Add Supabase backend (Phase 4)
+### Key Implementation Files
 
-**Key Insight**: Phases 1-3 provide backend switching capability WITHOUT requiring Supabase. Phase 4 (Supabase) is optional and can be done later.
+```
+src/datastore/
+├── factory.ts              # Singleton pattern, mode switching
+├── LocalDataStore.ts       # IndexedDB (2,010 lines)
+├── SupabaseDataStore.ts    # Supabase (1,800+ lines)
+└── SyncedDataStore.ts      # Local-first wrapper
 
-**Why Second**:
-- LOW risk (pure refactoring, same IndexedDB behavior)
-- "Now or never" problem - harder to refactor after adding more features
-- Enables future flexibility for cloud features
+src/sync/
+├── SyncQueue.ts            # Persists pending operations
+├── SyncEngine.ts           # Background processor
+├── conflictResolution.ts   # Last-write-wins strategy
+└── types.ts                # Sync types and interfaces
+
+supabase/functions/
+└── verify-subscription/    # Edge Function for billing
+```
 
 ---
 

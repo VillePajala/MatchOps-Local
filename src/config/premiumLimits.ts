@@ -1,6 +1,18 @@
 /**
  * Premium tier limits configuration
- * Free users have quantity limits, premium users have unlimited access
+ *
+ * ENFORCEMENT:
+ * - Cloud mode (Supabase): Limits ARE enforced for free-tier users.
+ *   Premium subscribers get unlimited access.
+ * - Local mode (IndexedDB): No limits enforced - always treated as premium.
+ *   This allows full offline functionality without subscription.
+ *
+ * EXISTING DATA:
+ * - Data exceeding limits is never deleted automatically.
+ * - Users who downgrade from premium retain access to existing data.
+ * - They just can't create NEW resources beyond the limit.
+ *
+ * @see PremiumContext.tsx - where enforcement logic lives
  */
 
 export const FREE_LIMITS = {

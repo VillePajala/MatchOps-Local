@@ -3,24 +3,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle } from 'react-icons/hi2';
+import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard, HiOutlineArrowUpTray } from 'react-icons/hi2';
 import {
   getBackendMode,
   isCloudAvailable,
   enableCloudMode,
   getCloudAccountInfo,
   clearMigrationCompleted,
+  hasMigrationCompleted,
   type CloudAccountInfo,
 } from '@/config/backendConfig';
+import { hasLocalDataToMigrate } from '@/services/migrationService';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
-import { useCloudUpgradeGate } from '@/hooks/useCloudUpgradeGate';
+import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import { getDataStore } from '@/datastore/factory';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
+import { useSyncStatus } from '@/hooks/useSyncStatus';
+import SyncStatusIndicator from './SyncStatusIndicator';
 import CloudAuthModal from './CloudAuthModal';
 import ReverseMigrationWizard from './ReverseMigrationWizard';
 import UpgradePromptModal from './UpgradePromptModal';
+import PendingSyncWarningModal from './PendingSyncWarningModal';
 
 interface CloudSyncSectionProps {
   /** Callback when mode changes (app needs restart) */
@@ -55,13 +60,18 @@ export default function CloudSyncSection({
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Cloud upgrade gate - shows upgrade modal when enabling cloud without premium
-  const {
-    showModal: showCloudUpgradeModal,
-    gateCloudAction,
-    handleUpgradeSuccess: handleCloudUpgradeSuccess,
-    handleCancel: handleCloudUpgradeCancel,
-  } = useCloudUpgradeGate();
+  // Subscription status for cloud mode (null in local mode)
+  const subscription = useSubscriptionOptional();
+  // Only consider user as having subscription when we've confirmed it
+  // If context is null or still loading, don't show subscribe button (safer default)
+  const subscriptionLoading = !subscription || subscription.isLoading;
+  const hasSubscription = subscription?.isActive ?? false;
+
+  // Sync status for cloud mode (shows sync details)
+  const syncStatus = useSyncStatus();
+
+  // State for showing upgrade modal when user wants to subscribe
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Use lazy initialization to load values only once on mount (avoids lint warning about setState in useEffect)
   const [currentMode] = useState<'local' | 'cloud'>(() => getBackendMode());
@@ -80,8 +90,14 @@ export default function CloudSyncSection({
   // Reverse migration wizard state
   const [showReverseMigrationWizard, setShowReverseMigrationWizard] = useState(false);
 
+  // Pending sync warning modal state (shown before reverse migration if pending syncs exist)
+  const [showPendingSyncWarning, setShowPendingSyncWarning] = useState(false);
+
   // Sign out state
   const [isSigningOut, setIsSigningOut] = useState(false);
+
+  // Import local data state
+  const [isCheckingLocalData, setIsCheckingLocalData] = useState(false);
 
   // Track mount state to prevent state updates after unmount
   const isMountedRef = useRef(true);
@@ -135,10 +151,10 @@ export default function CloudSyncSection({
     }
   }, [cloudAvailable, showToast, t, onModeChange]);
 
-  // Handle enable cloud - gated behind premium
+  // Handle enable cloud - no premium gate, subscription checked after login
   const handleEnableCloud = useCallback(() => {
-    gateCloudAction(executeEnableCloud);
-  }, [gateCloudAction, executeEnableCloud]);
+    executeEnableCloud();
+  }, [executeEnableCloud]);
 
   const handleDisableCloud = () => {
     // If reverse migration wizard callback is provided, show it instead of directly disabling
@@ -148,9 +164,55 @@ export default function CloudSyncSection({
       return;
     }
 
-    // Show reverse migration wizard to let user choose what to do with their data
+    // Check if there are pending/failed syncs before proceeding
+    // This prevents data loss from unsynced local changes
+    if (syncStatus.pendingCount > 0 || syncStatus.failedCount > 0) {
+      setShowPendingSyncWarning(true);
+      return;
+    }
+
+    // No pending syncs - show reverse migration wizard directly
     setShowReverseMigrationWizard(true);
   };
+
+  /**
+   * Handle user choice from pending sync warning modal
+   */
+  const handlePendingSyncWarningAction = useCallback(async (action: 'sync' | 'discard' | 'cancel') => {
+    switch (action) {
+      case 'sync':
+        // Keep modal open during sync to show isSyncing state via syncStatus prop
+        // This gives user visual feedback that sync is in progress
+        try {
+          await syncStatus.syncNow();
+          // Sync completed - close modal and proceed to wizard
+          setShowPendingSyncWarning(false);
+          setShowReverseMigrationWizard(true);
+        } catch (error) {
+          // On error, keep modal open so user can try again or choose to discard
+          logger.error('[CloudSyncSection] Sync before mode switch failed:', error);
+          showToast(
+            t('cloudSync.pendingSync.syncFailed', 'Sync failed. Please try again or discard changes.'),
+            'error'
+          );
+        }
+        break;
+
+      case 'discard':
+        setShowPendingSyncWarning(false);
+        // Clear the failed items and proceed
+        if (syncStatus.failedCount > 0) {
+          await syncStatus.clearFailed();
+        }
+        // Proceed to reverse migration wizard
+        setShowReverseMigrationWizard(true);
+        break;
+
+      case 'cancel':
+        setShowPendingSyncWarning(false);
+        break;
+    }
+  }, [syncStatus, showToast, t]);
 
   /**
    * Handle reverse migration wizard completion.
@@ -313,6 +375,70 @@ export default function CloudSyncSection({
   };
 
   /**
+   * Handle import local data to cloud.
+   * Checks if there's local data to migrate, and if so, clears the migration
+   * completed flag and reloads the page to trigger the migration wizard.
+   */
+  const handleImportLocalData = async () => {
+    if (!user?.id) {
+      showToast(
+        t('cloudSync.importLocalData.notSignedIn', 'Please sign in first.'),
+        'error'
+      );
+      return;
+    }
+
+    setIsCheckingLocalData(true);
+    try {
+      const result = await hasLocalDataToMigrate();
+
+      if (result.checkFailed) {
+        logger.error('[CloudSyncSection] Failed to check local data:', result.error);
+        showToast(
+          t('cloudSync.importLocalData.checkFailed', 'Failed to check for local data. Please try again.'),
+          'error'
+        );
+        return;
+      }
+
+      if (!result.hasData) {
+        showToast(
+          t('cloudSync.importLocalData.noData', 'No local data found to import.'),
+          'info'
+        );
+        return;
+      }
+
+      // Local data exists - clear migration completed flag and reload to trigger wizard
+      // This allows the user to re-run migration even if they've migrated before
+      if (hasMigrationCompleted(user.id)) {
+        clearMigrationCompleted(user.id);
+        logger.info('[CloudSyncSection] Cleared migration completed flag to allow re-migration');
+      }
+
+      showToast(
+        t('cloudSync.importLocalData.starting', 'Starting import... Reloading.'),
+        'success'
+      );
+
+      // Reload page to trigger migration wizard in page.tsx
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      logger.error('[CloudSyncSection] Error checking local data:', error);
+      showToast(
+        t('cloudSync.importLocalData.error', 'An error occurred. Please try again.'),
+        'error'
+      );
+    } finally {
+      if (isMountedRef.current) {
+        setIsCheckingLocalData(false);
+      }
+    }
+  };
+
+  /**
    * Format date for display
    */
   const formatDate = (isoString: string | undefined): string => {
@@ -334,6 +460,31 @@ export default function CloudSyncSection({
     } catch (error) {
       logger.debug('[CloudSyncSection] Failed to format date, using raw string:', { isoString, error });
       return isoString;
+    }
+  };
+
+  /**
+   * Format timestamp as relative time (e.g., "2 minutes ago")
+   */
+  const formatRelativeTime = (timestamp: number | null): string => {
+    if (!timestamp) {
+      return t('cloudSync.cloudAccount.neverSynced', 'Never');
+    }
+    const now = Date.now();
+    const diffMs = now - timestamp;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSeconds < 60) {
+      return t('cloudSync.syncDetails.justNow', 'Just now');
+    } else if (diffMinutes < 60) {
+      return t('cloudSync.syncDetails.minutesAgo', '{{count}} min ago', { count: diffMinutes });
+    } else if (diffHours < 24) {
+      return t('cloudSync.syncDetails.hoursAgo', '{{count}} hr ago', { count: diffHours });
+    } else {
+      return t('cloudSync.syncDetails.daysAgo', '{{count}} days ago', { count: diffDays });
     }
   };
 
@@ -373,14 +524,112 @@ export default function CloudSyncSection({
       {/* Mode Description */}
       <p className="text-sm text-slate-400">
         {currentMode === 'cloud'
-          ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
+          ? (subscriptionLoading || hasSubscription
+            ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
+            : t('cloudSync.cloudNoSubscription', 'You have a cloud account but sync is paused. Subscribe to enable cloud sync.'))
           : t('cloudSync.localDescription', 'Your data is stored locally on this device. Works offline, but data is not synced.')
         }
       </p>
 
+      {/* Sync Details - shown in cloud mode with active subscription */}
+      {currentMode === 'cloud' && hasSubscription && (
+        <div className="p-3 rounded-md bg-slate-800/50 space-y-3">
+          {/* Sync Status Row */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-300">{t('cloudSync.syncDetails.status', 'Sync Status')}</span>
+            <SyncStatusIndicator />
+          </div>
+
+          {/* Last Synced Row */}
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">{t('cloudSync.syncDetails.lastSynced', 'Last synced')}</span>
+            <span className="text-slate-300">
+              {syncStatus.lastSyncedAt
+                ? formatRelativeTime(syncStatus.lastSyncedAt)
+                : t('cloudSync.cloudAccount.neverSynced', 'Never')}
+            </span>
+          </div>
+
+          {/* Pending Changes Row */}
+          {syncStatus.pendingCount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">{t('cloudSync.syncDetails.pendingChanges', 'Pending changes')}</span>
+              <span className="text-amber-400 font-medium">{syncStatus.pendingCount}</span>
+            </div>
+          )}
+
+          {/* Sync Now Button */}
+          <button
+            onClick={syncStatus.syncNow}
+            disabled={!syncStatus.isOnline || syncStatus.pendingCount === 0 || syncStatus.isSyncing}
+            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
+          >
+            {syncStatus.isSyncing ? (
+              <>
+                <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                {t('cloudSync.syncDetails.syncing', 'Syncing...')}
+              </>
+            ) : (
+              <>
+                <HiOutlineArrowPath className="h-4 w-4" />
+                {t('cloudSync.syncDetails.syncNow', 'Sync Now')}
+              </>
+            )}
+          </button>
+
+          {/* Failed Operations Warning */}
+          {syncStatus.failedCount > 0 && (
+            <div className="p-3 rounded-md bg-red-900/20 border border-red-700">
+              <div className="flex items-center gap-2 mb-2">
+                <HiOutlineExclamationTriangle className="h-4 w-4 text-red-400" />
+                <p className="text-sm text-red-300">
+                  {t('cloudSync.syncDetails.failedCount', '{{count}} operations failed to sync.', { count: syncStatus.failedCount })}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={syncStatus.retryFailed}
+                  className={`${secondaryButtonStyle} flex-1 py-1.5 text-xs`}
+                >
+                  {t('cloudSync.syncDetails.retry', 'Retry')}
+                </button>
+                <button
+                  onClick={syncStatus.clearFailed}
+                  className={`${dangerButtonStyle} flex-1 py-1.5 text-xs !bg-red-600/20 hover:!bg-red-600/30 !text-red-400`}
+                >
+                  {t('cloudSync.syncDetails.discard', 'Discard')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Subscription Warning - shown in cloud mode without active subscription */}
+      {/* Only show when we've confirmed no subscription (not while loading) */}
+      {currentMode === 'cloud' && !subscriptionLoading && !hasSubscription && (
+        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
+          <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-amber-300 font-medium">
+              {t('cloudSync.subscriptionRequired', 'Subscription Required')}
+            </p>
+            <p className="text-sm text-amber-300/80 mt-1">
+              {t('cloudSync.subscriptionRequiredDescription', 'Your account is active but cloud sync is paused. Subscribe to sync your data across devices.')}
+            </p>
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="mt-2 px-3 py-1.5 text-sm font-medium bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-md transition-colors"
+            >
+              {t('cloudSync.subscribeButton', 'Subscribe Now')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sign Out Button - Only shown in cloud mode */}
       {currentMode === 'cloud' && (
-        <div className="pt-2">
+        <div className="pt-2 space-y-2">
           <button
             onClick={handleSignOut}
             disabled={isSigningOut || isChangingMode}
@@ -398,6 +647,40 @@ export default function CloudSyncSection({
               </>
             )}
           </button>
+
+          {/* Manage Subscription Link - Only shown for users with active subscription */}
+          {hasSubscription && (
+            <>
+              <a
+                href="https://play.google.com/store/account/subscriptions"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm no-underline`}
+              >
+                <HiOutlineCreditCard className="h-4 w-4" />
+                {t('cloudSync.manageSubscription', 'Manage Subscription')}
+              </a>
+
+              {/* Import Local Data Button - for users who want to migrate local data to cloud */}
+              <button
+                onClick={handleImportLocalData}
+                disabled={isCheckingLocalData || isChangingMode}
+                className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
+              >
+                {isCheckingLocalData ? (
+                  <>
+                    <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                    {t('cloudSync.importLocalData.checking', 'Checking...')}
+                  </>
+                ) : (
+                  <>
+                    <HiOutlineArrowUpTray className="h-4 w-4" />
+                    {t('cloudSync.importLocalData.button', 'Import Local Data to Cloud')}
+                  </>
+                )}
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -603,13 +886,40 @@ export default function CloudSyncSection({
         />
       )}
 
-      {/* Cloud upgrade modal - shown when enabling cloud without premium */}
+      {/* Upgrade modal - shown when user wants to subscribe */}
       <UpgradePromptModal
-        isOpen={showCloudUpgradeModal}
-        onClose={handleCloudUpgradeCancel}
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
         variant="cloudUpgrade"
-        onUpgradeSuccess={handleCloudUpgradeSuccess}
+        onUpgradeSuccess={async () => {
+          setShowUpgradeModal(false);
+          // CRITICAL: Clear subscription cache before reload
+          // Otherwise the stale "none" cached value will be used on reload
+          if (user) {
+            await clearSubscriptionCache(user.id);
+          }
+          // After subscription, reload page to trigger fresh migration check
+          // This ensures migration wizard shows if there's local data to import
+          showToast(
+            t('cloudSync.subscriptionSuccess', 'Subscription activated! Reloading...'),
+            'success'
+          );
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }}
       />
+
+      {/* Pending sync warning modal - shown when trying to switch to local with unsynced changes */}
+      {showPendingSyncWarning && (
+        <PendingSyncWarningModal
+          pendingCount={syncStatus.pendingCount}
+          failedCount={syncStatus.failedCount}
+          isSyncing={syncStatus.isSyncing}
+          isOnline={syncStatus.isOnline}
+          onAction={handlePendingSyncWarningAction}
+        />
+      )}
     </div>
   );
 }

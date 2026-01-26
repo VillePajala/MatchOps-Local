@@ -1,7 +1,7 @@
 # Billing Implementation Plan
 
-**Status:** Planning
-**Last Updated:** January 2026
+**Status:** In Progress (Phases 1-7 Complete, Local-First Sync Complete)
+**Last Updated:** January 26, 2026
 **Consolidates Issues:** #171, #258, #291, #292, #293, #299, #300, #301
 
 ---
@@ -77,9 +77,11 @@ This document consolidates all billing-related work into a single implementation
 
 ## Implementation Phases
 
-### Phase 1: Database Foundation
+### Phase 1: Database Foundation ✅ COMPLETE
 
 **Goal:** Create subscription storage in Supabase with proper security.
+
+**Completed:** January 23, 2026 - Migration `010_subscriptions.sql` applied to Supabase.
 
 #### 1.1 Subscriptions Table Migration
 
@@ -195,9 +197,11 @@ $$;
 
 ---
 
-### Phase 2: Platform Detection & UI Gating
+### Phase 2: Platform Detection & UI Gating ✅ COMPLETE
 
 **Goal:** Different UI for Android vs Desktop/iOS.
+
+**Completed:** January 23, 2026 - Platform detection utility, comprehensive tests, and platform-aware UI in WelcomeScreen and UpgradePromptModal.
 
 #### 2.1 Platform Detection Utility
 
@@ -347,9 +351,15 @@ describe('platform utils', () => {
 
 ---
 
-### Phase 3: Verification Edge Function
+### Phase 3: Verification Edge Function ✅ COMPLETE
 
 **Goal:** Server-side purchase verification with Google Play API.
+
+**Completed:** January 23, 2026 - Edge Function `verify-subscription` deployed to Supabase.
+
+**Environment Variables Required:**
+- `MOCK_BILLING=true` - Enable for testing with test tokens (prefix: `test-`)
+- `GOOGLE_SERVICE_ACCOUNT_JSON` - Google Cloud service account for production
 
 #### 3.1 Edge Function Setup
 
@@ -545,9 +555,11 @@ if (MOCK_MODE && purchaseToken.startsWith('test-')) {
 
 ---
 
-### Phase 4: Play Billing Integration (Client)
+### Phase 4: Play Billing Integration (Client) ✅ COMPLETE
 
 **Goal:** Integrate Digital Goods API for purchases.
+
+**Completed:** January 23, 2026 - Play Billing utilities and React hook created with 18 tests.
 
 #### 4.1 Play Billing Service
 
@@ -847,9 +859,11 @@ export async function purchaseSubscription(): Promise<PurchaseResult> {
 
 ---
 
-### Phase 5: Subscription State Management
+### Phase 5: Subscription State Management ✅ COMPLETE
 
 **Goal:** Track subscription state across the app.
+
+**Completed:** January 23, 2026 - SubscriptionContext.tsx created with caching, useSubscription hook, and useSubscriptionOptional for conditional access.
 
 #### 5.1 Subscription Context
 
@@ -1010,9 +1024,11 @@ async function clearSubscriptionCache(): Promise<void> {
 
 ---
 
-### Phase 6: Grace Period & Expiration UI
+### Phase 6: Grace Period & Expiration UI ✅ COMPLETE
 
 **Goal:** Handle expired/grace states gracefully.
+
+**Completed:** January 23, 2026 - SubscriptionWarningBanner.tsx created with grace period countdown and expired state handling. Translation keys added for EN/FI.
 
 #### 6.1 Subscription Warning Banner
 
@@ -1077,9 +1093,11 @@ async function saveGame(game: AppState) {
 
 ---
 
-### Phase 7: Cross-Device Sync
+### Phase 7: Cross-Device Sync ✅ COMPLETE
 
 **Goal:** Subscription works on any device after sign-in.
+
+**Completed:** January 23, 2026 - usePlayBilling hook updated to return purchaseToken in BillingResult. UpgradePromptModal integrated with Play Billing for real purchases. Purchase token stored locally via grantPremiumAccess for cross-device sync.
 
 #### 7.1 Post-Login Subscription Check
 
@@ -1180,6 +1198,185 @@ expect(PREMIUM_ENFORCEMENT_ENABLED).toBe(true);
 
 ---
 
+## Staging vs Production Architecture
+
+**Last Updated:** January 26, 2026
+
+### Overview
+
+Two separate Supabase projects are used to enable realistic billing testing on preview deployments while keeping production secure:
+
+| Environment | Supabase Project | Billing Mode | Purpose |
+|-------------|------------------|--------------|---------|
+| **Production** | `matchops-cloud` | Real Google Play | Live users with real payments |
+| **Staging** | `matchops-staging` | Mock billing enabled | Preview deployments & testing |
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              VERCEL                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐ │
+│  │     PREVIEW DEPLOYMENTS          │  │     PRODUCTION DEPLOYMENT        │ │
+│  │  (PR branches, feature branches) │  │     (master/main branch)         │ │
+│  │                                  │  │                                  │ │
+│  │  Environment:                    │  │  Environment:                    │ │
+│  │  NEXT_PUBLIC_SUPABASE_URL=       │  │  NEXT_PUBLIC_SUPABASE_URL=       │ │
+│  │    staging-project.supabase.co   │  │    prod-project.supabase.co      │ │
+│  │  NEXT_PUBLIC_SUPABASE_ANON_KEY=  │  │  NEXT_PUBLIC_SUPABASE_ANON_KEY=  │ │
+│  │    (staging key)                 │  │    (production key)              │ │
+│  └──────────────┬───────────────────┘  └──────────────┬───────────────────┘ │
+│                 │                                      │                     │
+└─────────────────┼──────────────────────────────────────┼─────────────────────┘
+                  │                                      │
+                  ▼                                      ▼
+┌─────────────────────────────────────┐  ┌─────────────────────────────────────┐
+│         MATCHOPS-STAGING            │  │         MATCHOPS-CLOUD              │
+│      (Supabase Project)             │  │      (Supabase Project)             │
+├─────────────────────────────────────┤  ├─────────────────────────────────────┤
+│                                     │  │                                     │
+│  Database:                          │  │  Database:                          │
+│  - Same schema as production        │  │  - Production data                  │
+│  - Test data only                   │  │  - Real user subscriptions          │
+│                                     │  │                                     │
+│  Edge Function:                     │  │  Edge Function:                     │
+│  verify-subscription                │  │  verify-subscription                │
+│  - MOCK_BILLING=true                │  │  - MOCK_BILLING=false               │
+│  - Accepts test- prefix tokens      │  │  - Calls Google Play API            │
+│  - No Google Play credentials       │  │  - Real verification only           │
+│                                     │  │                                     │
+│  Purpose:                           │  │  Purpose:                           │
+│  ✓ PR review testing               │  │  ✓ Real users                       │
+│  ✓ Feature development             │  │  ✓ Real payments                    │
+│  ✓ CI/CD integration tests         │  │  ✓ Real subscriptions               │
+│  ✓ Demo environments               │  │                                     │
+└─────────────────────────────────────┘  └─────────────────────────────────────┘
+```
+
+### Supabase Project Details
+
+#### Production: `matchops-cloud`
+- **Project ID:** `aybjmnxxtgspqesdiqxd`
+- **URL:** `https://aybjmnxxtgspqesdiqxd.supabase.co`
+- **Edge Function Secrets:**
+  - `MOCK_BILLING=false` (or not set)
+  - `GOOGLE_PLAY_SERVICE_ACCOUNT` — Real service account JSON
+  - `SUPABASE_SERVICE_ROLE_KEY` — Production service role key
+
+#### Staging: `matchops-staging`
+- **Project ID:** `hwcqpvvqnmetjrwvzlfr`
+- **URL:** `https://hwcqpvvqnmetjrwvzlfr.supabase.co`
+- **Edge Function Secrets:**
+  - `MOCK_BILLING=true` — Enables test token acceptance
+  - `SUPABASE_SERVICE_ROLE_KEY` — Staging service role key
+  - (No Google Play credentials needed)
+
+### Vercel Environment Configuration
+
+Configure environment variables in Vercel Dashboard → Settings → Environment Variables:
+
+| Variable | Production | Preview | Development |
+|----------|------------|---------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://aybjmnxxtgspqesdiqxd.supabase.co` | `https://hwcqpvvqnmetjrwvzlfr.supabase.co` | `.env.local` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (production anon key) | (staging anon key) | `.env.local` |
+
+**Important:** Vercel allows different values for Production vs Preview environments. Set:
+1. Production environment → production Supabase credentials
+2. Preview environment → staging Supabase credentials
+
+### Edge Function Deployment
+
+The `verify-subscription` Edge Function must be deployed to **both** Supabase projects with different configuration:
+
+**Deploy to Staging:**
+```bash
+# From project root
+cd supabase/functions
+supabase link --project-ref hwcqpvvqnmetjrwvzlfr
+supabase functions deploy verify-subscription
+supabase secrets set MOCK_BILLING=true
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="<staging-service-role-key>"
+```
+
+**Deploy to Production:**
+```bash
+cd supabase/functions
+supabase link --project-ref aybjmnxxtgspqesdiqxd
+supabase functions deploy verify-subscription
+supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT='<service-account-json>'
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="<prod-service-role-key>"
+# Note: Do NOT set MOCK_BILLING in production (or set to false)
+```
+
+### Testing on Preview Deployments
+
+With staging configured, preview deployments can test the full billing flow:
+
+1. **Create preview deployment** (push to feature branch)
+2. **Open preview URL** — Uses staging Supabase automatically
+3. **Test mock purchase:**
+   ```typescript
+   // In browser console or test
+   const result = await purchase();  // Triggers mock flow
+   ```
+4. **Verify subscription created** in staging Supabase dashboard
+
+### Mock Token Format
+
+When `MOCK_BILLING=true`, the Edge Function accepts tokens with `test-` prefix:
+
+```typescript
+// Valid test tokens (accepted by staging)
+'test-preview-123'
+'test-ci-integration'
+'test-demo-user'
+
+// Invalid (rejected even in staging)
+'real-token-xyz'      // No test- prefix
+'test-' + 'a'.repeat(100)  // Too long (max 100 chars)
+```
+
+### Schema Synchronization
+
+Keep staging schema in sync with production by applying migrations to both:
+
+```bash
+# Apply new migration to staging
+supabase link --project-ref hwcqpvvqnmetjrwvzlfr
+supabase db push
+
+# Apply same migration to production
+supabase link --project-ref aybjmnxxtgspqesdiqxd
+supabase db push
+```
+
+### Security Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| Staging data leaks | Staging has no real user data, only test accounts |
+| Mock billing in production | `MOCK_BILLING` secret never set to `true` in production |
+| Cross-environment tokens | Token validation rejects test- prefix in production |
+| Accidental production write | Vercel env vars ensure preview → staging only |
+
+### Local Development
+
+For local development, create `.env.local`:
+
+```bash
+# Use staging for local development
+NEXT_PUBLIC_SUPABASE_URL=https://hwcqpvvqnmetjrwvzlfr.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<staging-anon-key>
+
+# Or use local Supabase (supabase start)
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<local-anon-key>
+```
+
+---
+
 ## Related Issues (Consolidated)
 
 This plan consolidates and supersedes:
@@ -1207,3 +1404,702 @@ This plan consolidates and supersedes:
 8. **Phase 8:** Enable enforcement (final step)
 
 Each phase can be tested independently before moving to the next.
+
+---
+
+# PART 2: Account-Subscription Separation Model
+
+**Added:** January 23, 2026
+**Status:** Implementation In Progress
+
+This section documents the **revised billing model** that separates account creation from subscription. This supersedes the original model where "account creation is tied to subscription."
+
+---
+
+## Model Overview
+
+### Core Principle
+
+**Account and Subscription are SEPARATE concepts.**
+
+| Concept | Cost | What It Provides |
+|---------|------|------------------|
+| **Account** | FREE | Identity, sign-in, future recovery, support |
+| **Subscription** | PAID | Active cloud sync across devices |
+
+### The Three User States
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         USER STATES                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  STATE 1: Anonymous Local                                                │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │ • No account                                                     │    │
+│  │ • Data in local IndexedDB only                                   │    │
+│  │ • Works offline                                                  │    │
+│  │ • Single device                                                  │    │
+│  │ • FREE                                                           │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                              │                                           │
+│                              ▼ (Create free account)                     │
+│  STATE 2: Account without Subscription                                   │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │ • Has account (email + password)                                 │    │
+│  │ • Data in local IndexedDB (NOT synced)                           │    │
+│  │ • Can sign in on any device (but data doesn't sync)              │    │
+│  │ • Cloud sync PAUSED                                              │    │
+│  │ • FREE                                                           │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                              │                                           │
+│                              ▼ (Subscribe)                               │
+│  STATE 3: Account with Active Subscription                               │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │ • Has account                                                    │    │
+│  │ • Data in Supabase cloud (actively syncing)                      │    │
+│  │ • Works across all devices                                       │    │
+│  │ • Cloud sync ACTIVE                                              │    │
+│  │ • PAID (subscription required)                                   │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                              │                                           │
+│                              ▼ (Cancel subscription)                     │
+│  STATE 4: Account with Expired Subscription                              │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │ • Has account                                                    │    │
+│  │ • Cloud data FROZEN (preserved, not deleted)                     │    │
+│  │ • New data goes to local storage                                 │    │
+│  │ • Cloud sync PAUSED                                              │    │
+│  │ • FREE (until resubscribe)                                       │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                              │                                           │
+│                              ▼ (Resubscribe)                             │
+│                       Back to STATE 3                                    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Detailed State Definitions
+
+### State 1: Anonymous Local
+
+**Entry:** User selects "Start without account" on Welcome Screen
+
+| Aspect | Value |
+|--------|-------|
+| Account | None |
+| Data location | Local IndexedDB |
+| Sync status | N/A (no account) |
+| Cost | Free |
+| Devices | Single device only |
+| Data recovery | Not possible (no account) |
+
+**Available actions:**
+- Use app fully (unlimited local features)
+- Create account anytime (→ State 2)
+- Export/import backups manually
+
+---
+
+### State 2: Account without Subscription
+
+**Entry:** User creates free account OR subscription expires
+
+| Aspect | Value |
+|--------|-------|
+| Account | Active (email + password) |
+| Data location | Local IndexedDB |
+| Sync status | PAUSED |
+| Cost | Free |
+| Devices | Can sign in anywhere, but data is local to each device |
+| Data recovery | Account recovery via password reset |
+
+**Available actions:**
+- Use app fully (unlimited local features)
+- Sign in/out on any device
+- Subscribe to enable sync (→ State 3)
+- Delete account
+
+**UI indicators:**
+- CloudSyncSection: "Account: Active ✓ | Sync: Paused ⚠"
+- Banner: "Subscribe to sync your data across devices"
+
+---
+
+### State 3: Account with Active Subscription
+
+**Entry:** User subscribes via Google Play Billing
+
+| Aspect | Value |
+|--------|-------|
+| Account | Active |
+| Data location | Supabase cloud |
+| Sync status | ACTIVE |
+| Cost | Paid (monthly subscription) |
+| Devices | All devices sync automatically |
+| Data recovery | Cloud backup + account recovery |
+
+**Available actions:**
+- Use app fully with cloud sync
+- Sign in on any device (data syncs)
+- Cancel subscription (→ State 4)
+- Delete account
+
+**UI indicators:**
+- CloudSyncSection: "Account: Active ✓ | Sync: Active ✓"
+- No warning banners
+
+---
+
+### State 4: Account with Expired Subscription
+
+**Entry:** User cancels subscription OR payment fails after grace period
+
+| Aspect | Value |
+|--------|-------|
+| Account | Active |
+| Cloud data | FROZEN (preserved, read-only) |
+| New data location | Local IndexedDB |
+| Sync status | PAUSED |
+| Cost | Free |
+| Devices | Can sign in, but data doesn't sync |
+
+**Available actions:**
+- Use app with local data
+- View frozen cloud data (read-only)
+- Resubscribe to resume sync (→ State 3)
+- Delete account
+
+**UI indicators:**
+- CloudSyncSection: "Account: Active ✓ | Sync: Paused (subscription expired)"
+- Banner: "Resubscribe to sync your data"
+
+---
+
+## Data Flow Diagrams
+
+### Creating Account and Subscribing
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Welcome      │     │ Create       │     │ App (Local)  │
+│ Screen       │────▶│ Account      │────▶│ with Account │
+│              │     │ (FREE)       │     │ No Sync      │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │
+                                                  │ User subscribes
+                                                  ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ App (Cloud)  │     │ Verify       │     │ Play Billing │
+│ Syncing      │◀────│ Subscription │◀────│ Purchase     │
+│              │     │ (Edge Func)  │     │              │
+└──────────────┘     └──────────────┘     └──────────────┘
+```
+
+### Subscription Expiration Flow
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Active       │     │ User         │     │ Grace        │
+│ Subscription │────▶│ Cancels      │────▶│ Period       │
+│              │     │              │     │ (7 days)     │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │
+                                                  │ Grace expires
+                                                  ▼
+┌──────────────┐                          ┌──────────────┐
+│ Local Mode   │                          │ Subscription │
+│ Cloud Frozen │◀─────────────────────────│ Expired      │
+│ Account OK   │                          │              │
+└──────────────┘                          └──────────────┘
+```
+
+### Resubscription Flow
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Expired Sub  │     │ User         │     │ Merge        │
+│ Local Data   │────▶│ Resubscribes │────▶│ Wizard       │
+│ Cloud Frozen │     │              │     │              │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │
+                                                  │ User chooses merge strategy
+                                                  ▼
+                     ┌──────────────┐     ┌──────────────┐
+                     │ Sync         │     │ Active       │
+                     │ Resumed      │◀────│ Subscription │
+                     │              │     │              │
+                     └──────────────┘     └──────────────┘
+```
+
+---
+
+## User Experience Specifications
+
+### Welcome Screen
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│                         MatchOps                                 │
+│                                                                  │
+│                        Welcome!                                  │
+│                Choose how to get started                         │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Start without an account                                 │    │
+│  │ FREE                                                     │    │
+│  │ Your data is saved on this device only.                  │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Sign in or create an account                             │    │
+│  │ FREE ACCOUNT                                             │    │
+│  │ Create a free account. Subscribe anytime to sync         │    │
+│  │ across devices.                                          │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Import a backup                                          │    │
+│  │ FREE                                                     │    │
+│  │ Restore your previous data from a file.                  │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│              You can change this later in Settings               │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Settings - Cloud Sync Section (No Subscription)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Account & Sync                                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ 👤 Account: user@email.com                              ✓   │ │
+│ │ [Sign Out]                                                  │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ ⚠ Sync Status: Paused                                       │ │
+│ │                                                             │ │
+│ │ Your account is active but cloud sync is paused.            │ │
+│ │ Subscribe to sync your data across devices.                 │ │
+│ │                                                             │ │
+│ │ [Subscribe Now]                                             │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│ Your data is stored locally on this device.                      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Settings - Cloud Sync Section (With Subscription)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Account & Sync                                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ ☁ Cloud Mode: Active                                    ✓   │ │
+│ │ Your data syncs to the cloud.                               │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│ [Sign Out]                                                       │
+│ [Switch to Local Mode]                                           │
+│                                                                  │
+│ ─────────────────────────────────────────────────────────────── │
+│ Danger Zone                                                      │
+│ [Clear All Cloud Data]                                           │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## What This Model Does NOT Change
+
+The following remain exactly the same:
+
+| Component | Behavior |
+|-----------|----------|
+| Local mode features | Unlimited, free, works offline |
+| Play Billing integration | Same - verifies via Edge Function |
+| Subscription storage | Same - Supabase `subscriptions` table |
+| SubscriptionContext | Same - fetches status from RPC |
+| Migration wizard | Same - used when switching modes |
+| Reverse migration | Same - downloads cloud data to local |
+| Grace period handling | Same - 7 days after payment failure |
+
+---
+
+## What This Model DOES Change
+
+| Component | Old Behavior | New Behavior |
+|-----------|--------------|--------------|
+| Account creation | Gated behind subscription | Free on all platforms |
+| WelcomeScreen | "PAID" badge for cloud | "FREE ACCOUNT" badge |
+| WelcomeScreen (Desktop) | Sign-in only, no registration | Full registration allowed |
+| Post-login check | No subscription → kick to local | No subscription → stay logged in, show banner |
+| CloudSyncSection | "Enable Cloud" gated | "Enable Cloud" free, sync status shown |
+| useCloudUpgradeGate | Gates cloud enabling | Removed or gates sync-only operations |
+| AuthProvider.signUp | Granted mock subscription (Android) | No subscription granted |
+
+---
+
+## Business Rationale
+
+### Why Separate Account from Subscription?
+
+1. **Lower barrier to entry**
+   - Users can try cloud account without commitment
+   - More users create accounts → larger potential customer base
+
+2. **Reduced churn friction**
+   - Canceling subscription ≠ losing everything
+   - Users feel safe to try, cancel, and return
+
+3. **Higher return rate**
+   - Account remains active after cancellation
+   - One-click resubscribe vs. starting from scratch
+
+4. **Standard SaaS pattern**
+   - Netflix, Spotify, etc. don't delete accounts on cancellation
+   - Users expect this behavior
+
+### Revenue Impact
+
+| Metric | Old Model | New Model | Impact |
+|--------|-----------|-----------|--------|
+| Account creation rate | Lower (payment barrier) | Higher (free) | ↑ Funnel size |
+| Conversion to paid | Higher % of smaller base | Lower % of larger base | ≈ Net neutral |
+| Churn anxiety | High | Low | ↓ Cancellation fear |
+| Return rate | Low | High | ↑ Resubscriptions |
+
+---
+
+## Edge Cases and Handling
+
+### Edge Case 1: User Signs In on New Device (No Subscription)
+
+**Scenario:** User has account but no subscription. Signs in on Device B.
+
+**Behavior:**
+- Sign-in succeeds (account exists)
+- App loads in "cloud mode" but sync is paused
+- Local data on Device B is empty (or whatever was there before)
+- Banner: "Subscribe to sync your data"
+
+**NOT expected:** User's data from Device A magically appears (that requires subscription).
+
+---
+
+### Edge Case 2: Subscription Expires Mid-Session
+
+**Scenario:** User is actively using app when subscription expires.
+
+**Behavior:**
+- Current session continues normally
+- On next app launch or subscription check:
+  - Cloud data is frozen
+  - New changes go to local storage
+  - Banner appears: "Subscription expired. Your data is stored locally."
+
+---
+
+### Edge Case 3: User Resubscribes After Using Local for a While
+
+**Scenario:** User had subscription, cancelled, made local changes, now resubscribes.
+
+**Behavior:**
+1. Subscription verified
+2. Migration wizard appears with options:
+   - **Merge:** Combine local and cloud data
+   - **Cloud wins:** Discard local changes, use cloud
+   - **Local wins:** Replace cloud with local data
+3. User chooses, sync resumes
+
+---
+
+### Edge Case 4: User Deletes Account
+
+**Scenario:** User wants to completely remove their account.
+
+**Behavior:**
+- Account deletion available in Settings (GDPR compliance)
+- Deletes: auth user, all cloud data, subscription record
+- User returns to State 1 (Anonymous Local)
+- Local data on current device remains (user's choice to keep or delete)
+
+---
+
+## Security Considerations
+
+### What's Protected
+
+| Resource | Protection |
+|----------|------------|
+| Cloud data | Only accessible with valid session + subscription |
+| Subscription status | Read-only for users, write via Edge Function only |
+| Account | Standard Supabase auth security |
+
+### Attack Vectors Addressed
+
+| Attack | Mitigation |
+|--------|------------|
+| Create account, never pay, use cloud | Sync is paused without subscription - no cloud storage used |
+| Spoof subscription status | Server-side verification via Edge Function |
+| Access other users' data | RLS policies restrict to own user_id |
+
+---
+
+# PART 3: Implementation Plan for Model Migration
+
+**Goal:** Migrate from "Account tied to Subscription" to "Account-Subscription Separation"
+
+---
+
+## Pre-Implementation State
+
+### Files Modified (Partially Complete)
+
+| File | Status | Changes Made |
+|------|--------|--------------|
+| `AuthProvider.tsx` | ✅ Done | Removed mock subscription grant from signUp |
+| `AuthProvider.test.tsx` | ✅ Done | Removed platform/billing mocks |
+| `CloudSyncSection.tsx` | ✅ Done | Removed useCloudUpgradeGate, added subscription banner |
+| `WelcomeScreen.tsx` | ✅ Done | Unified "FREE ACCOUNT" for all platforms |
+
+### Files Still Need Changes
+
+| File | Status | Changes Needed |
+|------|--------|----------------|
+| `page.tsx` | 🔲 Todo | Remove useCloudUpgradeGate, update post-login flow |
+| `useCloudUpgradeGate.ts` | 🔲 Todo | Delete or repurpose for sync-only gating |
+| `LoginScreen.tsx` | 🔲 Todo | Ensure registration allowed on all platforms |
+| Translation files | 🔲 Todo | Add new translation keys |
+| Tests | 🔲 Todo | Update tests for new behavior |
+
+---
+
+## Implementation Steps
+
+### Step 1: Update page.tsx - Remove Cloud Upgrade Gate
+
+**File:** `src/app/page.tsx`
+
+**Changes:**
+1. Remove `useCloudUpgradeGate` import
+2. Remove gate-related state and handlers
+3. Simplify `handleEnableCloudSync` to call `executeEnableCloudSync` directly
+4. Remove the gate-based `UpgradePromptModal`
+
+**Before:**
+```typescript
+import { useCloudUpgradeGate } from '@/hooks/useCloudUpgradeGate';
+
+const {
+  showModal: showCloudUpgradeModal,
+  gateCloudAction,
+  handleUpgradeSuccess: handleCloudUpgradeSuccess,
+  handleCancel: handleCloudUpgradeCancel,
+} = useCloudUpgradeGate();
+
+const handleEnableCloudSync = useCallback(() => {
+  gateCloudAction(executeEnableCloudSync);
+}, [gateCloudAction, executeEnableCloudSync]);
+```
+
+**After:**
+```typescript
+// No useCloudUpgradeGate import
+
+const handleEnableCloudSync = useCallback(() => {
+  executeEnableCloudSync();
+}, [executeEnableCloudSync]);
+```
+
+---
+
+### Step 2: Update page.tsx - Fix Post-Login Flow
+
+**File:** `src/app/page.tsx`
+
+**Current behavior:** If user signs in without subscription, they're kicked back to local mode.
+
+**New behavior:** User stays logged in, sync is paused, banner shown.
+
+**Changes:**
+1. Remove the effect that checks premium after login and kicks to local
+2. Let user stay in cloud mode (logged in but sync paused)
+3. SubscriptionContext + CloudSyncSection handle the "no subscription" UI
+
+**Find and remove/modify:**
+```typescript
+// Current: kicks user to local if no premium
+if (!isPremium) {
+  setShowPostLoginUpgradeModal(true);
+}
+
+// handlePostLoginUpgradeCancel: disables cloud mode
+```
+
+**Replace with:**
+```typescript
+// New: let user stay logged in, sync is paused
+// No modal, no kick to local
+// CloudSyncSection shows subscription banner
+```
+
+---
+
+### Step 3: Update LoginScreen.tsx - Allow Registration Everywhere
+
+**File:** `src/components/LoginScreen.tsx`
+
+**Current:** `allowRegistration` prop controls whether signup is shown.
+
+**New:** Registration always allowed (prop removed or always true).
+
+**Changes:**
+1. Remove `allowRegistration` prop or default to `true`
+2. Show signup form on all platforms
+3. Update messaging: "Create a free account"
+
+---
+
+### Step 4: Clean Up useCloudUpgradeGate
+
+**File:** `src/hooks/useCloudUpgradeGate.ts`
+
+**Options:**
+1. **Delete entirely** - if no longer used
+2. **Repurpose** - rename to `useSyncGate` for gating sync-only operations
+
+**Recommendation:** Delete if CloudSyncSection no longer uses it.
+
+Also update/delete the test file: `src/hooks/__tests__/useCloudUpgradeGate.test.ts`
+
+---
+
+### Step 5: Add Translation Keys
+
+**Files:**
+- `public/locales/en/common.json`
+- `public/locales/fi/common.json`
+
+**New keys needed:**
+```json
+{
+  "welcome": {
+    "badgeFreeAccount": "Free Account",
+    "signInCloudDescFree": "Create a free account. Subscribe anytime to sync across devices."
+  },
+  "cloudSync": {
+    "subscriptionRequired": "Subscription Required",
+    "subscriptionRequiredDescription": "Your account is active but cloud sync is paused. Subscribe to sync your data across devices.",
+    "subscribeButton": "Subscribe Now",
+    "cloudNoSubscription": "You have a cloud account but sync is paused. Subscribe to enable cloud sync."
+  }
+}
+```
+
+---
+
+### Step 6: Update Migration Wizard Trigger
+
+**File:** Where migration wizard is triggered (likely `page.tsx`)
+
+**Current:** Migration wizard shown when entering cloud mode with local data.
+
+**New:** Migration wizard shown when:
+- Entering cloud mode with local data AND
+- User has active subscription
+
+**Changes:**
+1. Add subscription check before showing migration wizard
+2. If no subscription: show "Subscribe to migrate your data" message
+
+---
+
+### Step 7: Update Tests
+
+**Files to update:**
+- `src/contexts/__tests__/AuthProvider.test.tsx` - already updated
+- `src/app/__tests__/page.test.tsx` - remove gate expectations
+- `src/components/__tests__/CloudSyncSection.test.tsx` - update for new behavior
+- `src/components/__tests__/WelcomeScreen.test.tsx` - update for unified button
+- `src/hooks/__tests__/useCloudUpgradeGate.test.ts` - delete or update
+
+---
+
+### Step 8: Manual Testing Checklist
+
+**Test each user state:**
+
+| Test | Steps | Expected Result |
+|------|-------|-----------------|
+| Anonymous local | Choose "Start without account" | App works, data local |
+| Create free account | Click "Create account", sign up | Account created, sync paused, banner shown |
+| Subscribe | Click "Subscribe Now" on Android | Play Billing flow, subscription verified, sync enabled |
+| Sign out | Click "Sign Out" | Returns to login screen |
+| Sign in (with subscription) | Sign in | Cloud mode, syncing |
+| Sign in (no subscription) | Sign in | Cloud mode, sync paused, banner shown |
+| Cancel subscription | Cancel in Play Store | After grace period: sync paused, banner shown |
+| Resubscribe | Subscribe again | Merge wizard if needed, sync resumes |
+| Desktop account creation | On desktop, create account | Works (no platform restriction) |
+
+---
+
+## Implementation Order Summary
+
+```
+Step 1: page.tsx - Remove useCloudUpgradeGate usage
+         ↓
+Step 2: page.tsx - Fix post-login flow (no kick to local)
+         ↓
+Step 3: LoginScreen.tsx - Allow registration everywhere
+         ↓
+Step 4: useCloudUpgradeGate.ts - Delete or repurpose
+         ↓
+Step 5: Translation files - Add new keys
+         ↓
+Step 6: Migration wizard - Add subscription check
+         ↓
+Step 7: Tests - Update all affected tests
+         ↓
+Step 8: Manual testing - Verify all states
+```
+
+---
+
+## Rollback Plan
+
+If issues arise, revert to previous model:
+
+1. Restore `useCloudUpgradeGate` usage in `CloudSyncSection` and `page.tsx`
+2. Restore post-login premium check that kicks to local
+3. Restore platform-specific WelcomeScreen buttons
+4. Restore mock subscription grant in `AuthProvider.signUp`
+
+All changes are in application code (no database migrations needed for rollback).
+
+---
+
+## Success Criteria
+
+The implementation is complete when:
+
+1. ✅ Users can create accounts for free on all platforms
+2. ✅ Users with accounts but no subscription see "sync paused" UI
+3. ✅ Users are NOT kicked to local mode after signing in without subscription
+4. ✅ Subscribe button works and enables sync
+5. ✅ Canceling subscription pauses sync but preserves account
+6. ✅ Resubscribing prompts merge wizard and resumes sync
+7. ✅ All tests pass
+8. ✅ Manual testing of all user states passes

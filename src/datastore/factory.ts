@@ -4,9 +4,12 @@
  * Provides singleton instances of DataStore and AuthService.
  * Supports both local (IndexedDB) and cloud (Supabase) modes.
  *
- * Phase 3: Backend abstraction (PR #137) - LocalDataStore
- * Phase 4: Supabase cloud backend - SupabaseDataStore (in progress)
+ * Cloud mode uses SyncedDataStore (local-first with background sync):
+ * - Writes go to IndexedDB immediately (instant)
+ * - Operations queue for background sync to Supabase
+ * - Works offline, syncs when online
  *
+ * @see docs/03-active-plans/local-first-sync-plan.md
  * @see docs/03-active-plans/supabase-implementation-guide.md
  */
 
@@ -21,6 +24,7 @@ import logger from '@/utils/logger';
 const log = {
   info: (msg: string) => logger?.info?.(msg),
   warn: (msg: string) => logger?.warn?.(msg),
+  error: (msg: string) => logger?.error?.(msg),
 };
 
 // Singleton instances
@@ -62,9 +66,40 @@ export async function getDataStore(): Promise<DataStore> {
   if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
     log.info(`[factory] Mode changed from ${dataStoreCreatedForMode} to ${currentMode} - resetting DataStore`);
 
-    // If switching FROM cloud mode, clean up Supabase resources
+    // If switching FROM cloud mode, clean up sync engine and Supabase resources
     // This prevents stale auth subscriptions and memory leaks
+    // Cleanup order: check pending → stop engine → cleanup Supabase → close DataStore
+    // (check first to capture what will be lost before engine stops processing)
     if (dataStoreCreatedForMode === 'cloud') {
+      // Step 1: Check for pending sync operations (before stopping engine)
+      // WARNING: This is a safety net - proper protection should happen in the UI layer
+      // BEFORE calling setBackendMode(). The UI should call getPendingSyncCount() and
+      // either block the switch, wait for sync, or show a confirmation dialog.
+      // See: CloudSyncSection toggle handler
+      try {
+        const { getSyncEngine } = await import('@/sync');
+        const engine = getSyncEngine();
+        const status = await engine.getStatus();
+        if (status.pendingCount > 0) {
+          // Use error level because this indicates data loss
+          log.error(`[factory] DATA LOSS: Mode switch with ${status.pendingCount} pending sync operations that will be lost. UI layer should have blocked this.`);
+        }
+      } catch (e) {
+        // Expected: engine not initialized. Unexpected errors logged for debugging.
+        if (e instanceof Error && !e.message.includes('not initialized')) {
+          log.warn(`[factory] Unexpected error checking pending operations: ${e.message}`);
+        }
+      }
+
+      // Step 2: Stop the sync engine singleton
+      try {
+        const { resetSyncEngine } = await import('@/sync');
+        resetSyncEngine();
+      } catch (e) {
+        log.warn('[factory] Error resetting sync engine during mode change');
+      }
+
+      // Step 3: Clean up Supabase client
       try {
         const { cleanupSupabaseClient } = await import('./supabase/client');
         await cleanupSupabaseClient();
@@ -107,20 +142,47 @@ export async function getDataStore(): Promise<DataStore> {
     let instance: DataStore;
 
     if (mode === 'cloud' && isCloudAvailable()) {
-      // Lazy load SupabaseDataStore to avoid bundling Supabase in local mode
-      const { SupabaseDataStore } = await import('./SupabaseDataStore');
-      instance = new SupabaseDataStore();
-      log.info('[factory] Using SupabaseDataStore (cloud mode)');
+      // Cloud mode uses SyncedDataStore (local-first with background sync)
+      // - SyncedDataStore wraps LocalDataStore for instant local writes
+      // - Operations queue and sync to SupabaseDataStore in background
+      const { SyncedDataStore } = await import('./SyncedDataStore');
+      const syncedStore = new SyncedDataStore();
+      await syncedStore.initialize();
+
+      try {
+        // Set up the sync executor to sync to Supabase
+        const { SupabaseDataStore } = await import('./SupabaseDataStore');
+        const cloudStore = new SupabaseDataStore();
+        await cloudStore.initialize();
+        // Note: If initialize() succeeds, isInitialized() should return true.
+        // If not, that's a bug in SupabaseDataStore to fix, not work around here.
+
+        const { createSyncExecutor } = await import('@/sync');
+        const executor = createSyncExecutor(cloudStore);
+        syncedStore.setExecutor(executor);
+        syncedStore.startSync();
+
+        instance = syncedStore;
+        log.info('[factory] Using SyncedDataStore (local-first cloud mode)');
+      } catch (error) {
+        // Clean up syncedStore if cloud setup fails
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log.warn(`[factory] Cloud setup failed: ${errorMessage}, cleaning up SyncedDataStore`);
+        await syncedStore.close();
+        // Re-throw with context for better debugging
+        throw new Error(`[factory] Cloud mode initialization failed: ${errorMessage}`);
+      }
     } else if (mode === 'cloud') {
       log.warn(
         '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'
       );
       instance = new LocalDataStore();
+      await instance.initialize();
     } else {
       instance = new LocalDataStore();
+      await instance.initialize();
     }
 
-    await instance.initialize();
     // Defensive verification: ensure initialization actually completed
     if (!instance.isInitialized()) {
       log.warn('[factory] Instance not initialized after initialize() - retrying');
@@ -257,4 +319,31 @@ export function isDataStoreInitialized(): boolean {
  */
 export function isAuthServiceInitialized(): boolean {
   return authServiceInstance !== null;
+}
+
+/**
+ * Get the count of pending sync operations.
+ *
+ * IMPORTANT: Call this BEFORE changing backend mode (cloud → local) to check
+ * if it's safe to switch. If count > 0, either:
+ * 1. Block the switch until queue is empty
+ * 2. Wait for sync to complete
+ * 3. Show user confirmation dialog explaining data will be lost
+ *
+ * @returns Number of pending operations, or 0 if not in cloud mode or engine not initialized
+ */
+export async function getPendingSyncCount(): Promise<number> {
+  if (dataStoreCreatedForMode !== 'cloud') {
+    return 0;
+  }
+
+  try {
+    const { getSyncEngine } = await import('@/sync');
+    const engine = getSyncEngine();
+    const status = await engine.getStatus();
+    return status.pendingCount;
+  } catch {
+    // Engine may not be initialized
+    return 0;
+  }
 }
