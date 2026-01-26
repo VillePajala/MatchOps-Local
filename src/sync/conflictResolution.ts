@@ -160,7 +160,7 @@ export class ConflictResolver {
     const cloudTimestamp = new Date(cloudRecord.updatedAt).getTime();
     if (!Number.isFinite(cloudTimestamp)) {
       throw new Error(
-        `[ConflictResolver] Invalid cloud record: updatedAt "${cloudRecord.updatedAt}" is not a valid date`
+        `[ConflictResolver] Invalid cloud record for ${entityType}/${entityId}: updatedAt "${cloudRecord.updatedAt}" is not a valid date`
       );
     }
 
