@@ -2206,6 +2206,25 @@
       "cancelDesc": "Palaa paikalliseen tilaan ja jatka paikallisten tietojen käyttöä."
     }
   },
+  "syncStatus": {
+    "local": "Paikallinen",
+    "localTitle": "Tiedot tallennettu paikallisesti laitteelle",
+    "synced": "Synkronoitu",
+    "syncedTitle": "Kaikki tiedot synkronoitu pilveen",
+    "syncing": "Synkronoidaan",
+    "syncingTitle": "Synkronoidaan tietoja pilveen...",
+    "pending": "Odottaa",
+    "pendingCount": "{{count}} odottaa",
+    "pendingTitle": "{{count}} muutosta odottaa synkronointia",
+    "error": "Virhe",
+    "errorCount": "{{count}} epäonnistui",
+    "errorTitle": "{{count}} toimintoa epäonnistui - napauta yrittääksesi uudelleen",
+    "offline": "Offline",
+    "offlineTitle": "Ei internet-yhteyttä - muutokset synkronoidaan kun olet online",
+    "cloud": "Pilvi",
+    "cloudTitle": "Tiedot synkronoidaan pilveen",
+    "online": "Online"
+  },
   "cloudSync": {
     "title": "Tili ja synkronointi",
     "statusLabel": "Nykyinen tila",
@@ -2274,6 +2293,32 @@
       "signInToDelete": "Kirjaudu poistaaksesi",
       "deleteNote": "Tämä poistaa pysyvästi kaikki tietosi palvelimiltamme.",
       "deleteSuccess": "Pilvitiedot poistettu onnistuneesti."
+    },
+    "syncDetails": {
+      "status": "Synkronointitila",
+      "lastSynced": "Viimeksi synkronoitu",
+      "pendingChanges": "Odottavat muutokset",
+      "syncNow": "Synkronoi nyt",
+      "syncing": "Synkronoidaan...",
+      "failedCount": "{{count}} toimintoa epäonnistui synkronoinnissa.",
+      "retry": "Yritä uudelleen",
+      "discard": "Hylkää",
+      "justNow": "Juuri nyt",
+      "minutesAgo": "{{count}} min sitten",
+      "hoursAgo": "{{count}} t sitten",
+      "daysAgo": "{{count}} pv sitten"
+    },
+    "pendingSync": {
+      "title": "Synkronoimattomat muutokset",
+      "warning": "Sinulla on {{count}} muutosta, joita ei ole vielä synkronoitu pilveen.",
+      "pendingCount": "{{count}} odottavaa muutosta",
+      "failedCount": "{{count}} epäonnistui synkronoinnissa",
+      "consequence": "Siirtyminen paikalliseen tilaan hylkää nämä muutokset.",
+      "syncFirst": "Synkronoi ensin",
+      "syncing": "Synkronoidaan...",
+      "discardAndContinue": "Hylkää ja jatka",
+      "offlineNotice": "Synkronointi ei ole mahdollista offline-tilassa",
+      "syncFailed": "Synkronointi epäonnistui. Yritä uudelleen tai hylkää muutokset."
     }
   },
   "cloudAuth": {

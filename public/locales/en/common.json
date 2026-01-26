@@ -2206,6 +2206,25 @@
       "cancelDesc": "Return to local mode and keep using local data."
     }
   },
+  "syncStatus": {
+    "local": "Local",
+    "localTitle": "Data stored locally on device",
+    "synced": "Synced",
+    "syncedTitle": "All data synced to cloud",
+    "syncing": "Syncing",
+    "syncingTitle": "Syncing data to cloud...",
+    "pending": "Pending",
+    "pendingCount": "{{count}} pending",
+    "pendingTitle": "{{count}} changes waiting to sync",
+    "error": "Error",
+    "errorCount": "{{count}} failed",
+    "errorTitle": "{{count}} operations failed - tap to retry",
+    "offline": "Offline",
+    "offlineTitle": "No internet connection - changes will sync when online",
+    "cloud": "Cloud",
+    "cloudTitle": "Data syncs to cloud",
+    "online": "Online"
+  },
   "cloudSync": {
     "title": "Account & Sync",
     "statusLabel": "Current Mode",
@@ -2274,6 +2293,32 @@
       "signInToDelete": "Sign In to Delete",
       "deleteNote": "This will permanently delete all your data from our servers.",
       "deleteSuccess": "Cloud data deleted successfully."
+    },
+    "syncDetails": {
+      "status": "Sync Status",
+      "lastSynced": "Last synced",
+      "pendingChanges": "Pending changes",
+      "syncNow": "Sync Now",
+      "syncing": "Syncing...",
+      "failedCount": "{{count}} operations failed to sync.",
+      "retry": "Retry",
+      "discard": "Discard",
+      "justNow": "Just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} hr ago",
+      "daysAgo": "{{count}} days ago"
+    },
+    "pendingSync": {
+      "title": "Unsynced Changes",
+      "warning": "You have {{count}} changes that haven't been synced to the cloud yet.",
+      "pendingCount": "{{count}} pending changes",
+      "failedCount": "{{count}} failed to sync",
+      "consequence": "Switching to local mode now will abandon these changes.",
+      "syncFirst": "Sync First",
+      "syncing": "Syncing...",
+      "discardAndContinue": "Discard & Continue",
+      "offlineNotice": "Cannot sync while offline",
+      "syncFailed": "Sync failed. Please try again or discard changes."
     }
   },
   "cloudAuth": {
