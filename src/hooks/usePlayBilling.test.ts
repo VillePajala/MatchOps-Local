@@ -587,7 +587,7 @@ describe('grantMockSubscription', () => {
 
     const result = await grantMockSubscription('test-12345-abc');
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, purchaseToken: 'test-12345-abc' });
     expect(mockFunctionsInvoke).toHaveBeenCalledWith('verify-subscription', {
       body: {
         purchaseToken: 'test-12345-abc',
@@ -681,7 +681,7 @@ describe('grantMockSubscription', () => {
 
     const result = await grantMockSubscription('test-12345-abc');
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, purchaseToken: 'test-12345-abc' });
     expect(mockRefreshSession).toHaveBeenCalled();
     expect(mockFunctionsInvoke).toHaveBeenCalled();
   });
