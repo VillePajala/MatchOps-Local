@@ -17,6 +17,7 @@
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import { getAuthService } from '@/datastore/factory';
+import type { AuthService } from '@/interfaces/AuthService';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import { validateGame } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
@@ -505,6 +506,7 @@ async function performMigration(
     const { counts: uploadedCounts, failures: uploadFailures, warnings: uploadWarnings, uploadedIds } = await uploadToCloud(
       sanitizedLocalData,
       cloudStore,
+      authService,
       safeProgress
     );
     if (uploadWarnings.length > 0) {
@@ -1110,6 +1112,7 @@ function sanitizeGamesForMigration(
 async function uploadToCloud(
   data: LocalDataSnapshot,
   cloudStore: SupabaseDataStore,
+  authService: AuthService,
   onProgress: MigrationProgressCallback
 ): Promise<UploadToCloudResult> {
   const counts: MigrationCounts = {
@@ -1262,7 +1265,34 @@ async function uploadToCloud(
   // 7. Games (the big one - uses RPC for atomic 5-table writes)
   updateProgress('games');
   const gameIds = Object.keys(data.games);
+  const SESSION_REFRESH_INTERVAL = 50; // Refresh session every 50 games to prevent expiry
+
   for (let i = 0; i < gameIds.length; i++) {
+    // Periodic session refresh for large migrations (>50 games)
+    // Prevents session expiry during long uploads
+    if (i > 0 && i % SESSION_REFRESH_INTERVAL === 0) {
+      try {
+        const session = await authService.refreshSession();
+        if (!session) {
+          // Session expired and couldn't be refreshed - abort to prevent partial migration
+          const errorMsg = `Session expired at game ${i + 1}/${gameIds.length}. Migration paused - please retry.`;
+          logger.error(`[MigrationService] ${errorMsg}`);
+          failures.push({
+            entityType: 'game',
+            entityId: 'session-refresh',
+            entityName: 'Session Management',
+            error: errorMsg,
+          });
+          // Return partial results - games already uploaded are safe
+          return { counts, failures, warnings, uploadedIds };
+        }
+        logger.debug(`[MigrationService] Session refreshed at game ${i + 1}/${gameIds.length}`);
+      } catch (refreshError) {
+        logger.warn(`[MigrationService] Session refresh failed at game ${i + 1}, continuing:`, refreshError);
+        // Continue - the individual game upload will fail if session is truly expired
+      }
+    }
+
     const gameId = gameIds[i];
     const game = data.games[gameId];
     let gameToUpload = game;

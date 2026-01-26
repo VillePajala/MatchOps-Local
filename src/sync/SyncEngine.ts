@@ -52,11 +52,13 @@ export class SyncEngine {
   private isSyncing = false;
   private isResettingStale = false; // Blocks processing until stale reset completes
   private staleResetFailed = false; // True if stale reset failed - operations may be stuck
+  private staleResetRetryCount = 0; // Counter for periodic retry attempts
   private pendingStatusEmit = false; // Coalesces rapid status change emissions
   private statusEmitRequested = false; // Tracks if another status change occurred during emission
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = true;
   private lastSyncedAt: number | null = null;
+  private isDisposing = false; // True when dispose() is in progress
 
   // Event listener references for cleanup
   private boundOnlineHandler: (() => void) | null = null;
@@ -180,13 +182,36 @@ export class SyncEngine {
 
   /**
    * Clean up all resources. Call this before discarding the engine instance.
-   * Stops the engine and clears all listeners.
+   * Stops the engine, waits for in-flight operations, and clears all listeners.
    */
-  dispose(): void {
+  async dispose(): Promise<void> {
+    if (this.isDisposing) {
+      logger.debug('[SyncEngine] Already disposing');
+      return;
+    }
+    this.isDisposing = true;
+
+    // Stop accepting new work
     this.stop();
+
+    // Wait for any in-flight sync operations to complete (max 5 seconds)
+    const MAX_WAIT_MS = 5000;
+    const POLL_INTERVAL_MS = 100;
+    let waited = 0;
+    while (this.isSyncing && waited < MAX_WAIT_MS) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      waited += POLL_INTERVAL_MS;
+    }
+
+    if (this.isSyncing) {
+      logger.warn('[SyncEngine] Dispose timeout - sync operation still in progress');
+    }
+
+    // Clear all listeners
     this.statusListeners.clear();
     this.completeListeners.clear();
     this.failedListeners.clear();
+    this.isDisposing = false;
   }
 
   /**
@@ -307,8 +332,10 @@ export class SyncEngine {
     logger.info('[SyncEngine] Retrying failed operations', { count });
     this.emitStatusChange();
     if (count > 0 && this.isRunning) {
-      // Fire-and-forget: don't await to avoid blocking the UI
-      this.doProcessQueue();
+      // Fire-and-forget: don't await to avoid blocking the UI, but catch errors
+      this.doProcessQueue().catch((e) => {
+        logger.error('[SyncEngine] Error processing queue after retry:', e);
+      });
     }
   }
 
@@ -347,12 +374,29 @@ export class SyncEngine {
       return;
     }
 
-    // CRITICAL: Block processing if stale reset failed
+    // CRITICAL: Block processing if stale reset failed, but periodically retry recovery
     // Operations stuck in 'syncing' status will never be picked up by getPending()
     // which only returns 'pending' operations. This would cause silent data loss.
     if (this.staleResetFailed) {
-      logger.warn('[SyncEngine] Stale reset failed, blocking queue processing to prevent data loss');
-      return;
+      this.staleResetRetryCount++;
+      // Retry stale reset every 10 processing attempts (roughly every 10 * syncIntervalMs)
+      if (this.staleResetRetryCount % 10 === 0) {
+        logger.info('[SyncEngine] Attempting stale reset recovery...');
+        try {
+          await this.queue.resetStaleSyncing();
+          this.staleResetFailed = false;
+          this.staleResetRetryCount = 0;
+          logger.info('[SyncEngine] Stale reset recovery succeeded');
+          this.emitStatusChange();
+          // Continue with processing below
+        } catch (e) {
+          logger.warn('[SyncEngine] Stale reset recovery failed:', e);
+          return;
+        }
+      } else {
+        logger.debug('[SyncEngine] Stale reset failed, blocking queue processing');
+        return;
+      }
     }
 
     // Guard against concurrent processing
@@ -417,10 +461,12 @@ export class SyncEngine {
     executor: SyncOperationExecutor
   ): Promise<void> {
     const opInfo = `${op.operation} ${op.entityType}/${op.entityId}`;
+    let markedSyncing = false;
 
     try {
       // Mark as syncing
       await this.queue.markSyncing(op.id);
+      markedSyncing = true;
 
       // Execute the sync with timeout to prevent hung operations blocking all syncing
       const SYNC_TIMEOUT_MS = 30000; // 30 seconds per operation
@@ -448,8 +494,28 @@ export class SyncEngine {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
 
-      // Mark as failed
-      await this.queue.markFailed(op.id, errorMessage);
+      // Only try to mark as failed if we successfully marked as syncing
+      if (markedSyncing) {
+        try {
+          // Mark as failed
+          await this.queue.markFailed(op.id, errorMessage);
+        } catch (markError) {
+          // CRITICAL: markFailed itself failed - operation is stuck in 'syncing' state
+          // Attempt emergency reset to 'pending' to prevent data loss
+          logger.error(`[SyncEngine] markFailed threw for ${opInfo}, attempting emergency reset:`, markError);
+          try {
+            const reset = await this.queue.resetOperationToPending(op.id);
+            if (reset) {
+              logger.info(`[SyncEngine] Emergency reset succeeded for ${opInfo}`);
+            } else {
+              logger.error(`[SyncEngine] Emergency reset failed - operation ${op.id} may be stuck`);
+            }
+          } catch (resetError) {
+            // At this point, the operation is likely stuck. Log prominently.
+            logger.error(`[SyncEngine] CRITICAL: Operation ${op.id} stuck in syncing state - manual intervention may be required:`, resetError);
+          }
+        }
+      }
 
       // Check if will retry
       const updatedOp = await this.queue.getById(op.id);
@@ -500,8 +566,9 @@ export class SyncEngine {
       .finally(() => {
         this.pendingStatusEmit = false;
         // If another status change occurred during emission, re-emit with latest status
+        // Use queueMicrotask to break potential recursion and prevent stack overflow
         if (this.statusEmitRequested) {
-          this.doEmitStatus();
+          queueMicrotask(() => this.doEmitStatus());
         }
       });
   }
@@ -533,9 +600,9 @@ export function getSyncEngine(queue?: SyncQueue): SyncEngine {
  * Reset the singleton (for testing).
  * Calls dispose() to stop engine AND clear all listeners, preventing memory leaks.
  */
-export function resetSyncEngine(): void {
+export async function resetSyncEngine(): Promise<void> {
   if (syncEngineInstance) {
-    syncEngineInstance.dispose();
+    await syncEngineInstance.dispose();
     syncEngineInstance = null;
   }
 }

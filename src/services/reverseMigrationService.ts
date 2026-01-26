@@ -986,6 +986,7 @@ async function verifyReverseMigration(
 
   // Determine success using structured counts (avoid fragile string matching)
   // Critical entities: players, teams, games, seasons, tournaments, personnel
+  // Also critical: game content mismatches (events/players differ between cloud and local)
   // Non-critical: roster entries, adjustments (can be re-synced)
   const hasMissingCriticalEntities =
     missingCounts.players > 0 ||
@@ -993,7 +994,8 @@ async function verifyReverseMigration(
     missingCounts.games > 0 ||
     missingCounts.seasons > 0 ||
     missingCounts.tournaments > 0 ||
-    missingCounts.personnel > 0;
+    missingCounts.personnel > 0 ||
+    gameContentMismatches > 0; // Game content corruption is critical - data loss
 
   // Roster entries and adjustments are non-critical - warn but don't fail
   const hasMissingNonCriticalEntities =

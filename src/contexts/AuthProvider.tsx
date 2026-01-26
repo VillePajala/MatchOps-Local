@@ -235,8 +235,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Set state atomically: user/session and re-consent flag together
-      // This prevents flash of "logged in" state before modal appears
+      // Set state in correct order: needsReConsent BEFORE user/session
+      // React 18+ batches these updates, so they appear atomic to renders.
+      // Order matters: if needsReConsent is true, it must be set before user
+      // to prevent brief "logged in but no consent modal" state.
       setNeedsReConsent(requiresReConsent);
       setUser(result.user);
       setSession(result.session);
