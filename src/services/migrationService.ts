@@ -16,6 +16,7 @@
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
+import { getAuthService } from '@/datastore/factory';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import { validateGame } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
@@ -199,9 +200,13 @@ export const MIGRATION_MESSAGES = {
   VERIFYING: 'Verifying migration...',
   SUCCESS: 'Migration complete! Your data is now synced to the cloud.',
   PARTIAL_FAILURE: 'Migration was interrupted. Your local data is safe. Please try again.',
-  VERIFICATION_FAILED: 'Migration completed but verification failed. Please retry.',
-  NETWORK_ERROR: 'Network error during migration. Your local data is unchanged.',
+  VERIFICATION_FAILED: 'Migration completed but verification failed. Your local data is unchanged. ' +
+    'You can safely retry - the migration uses upserts so duplicate data is handled correctly. ' +
+    'If the issue persists, try using "Replace" mode which clears cloud data first.',
+  NETWORK_ERROR: 'Network error during migration. Your local data is unchanged. ' +
+    'Please check your connection and try again.',
   CLEAR_LOCAL_PROMPT: 'Would you like to clear local data? (Your cloud data is safe)',
+  SESSION_EXPIRED: 'Your session expired during migration. Please sign in again and retry.',
 } as const;
 
 /**
@@ -359,6 +364,29 @@ async function performMigration(
 
     await localStore.initialize();
     await cloudStore.initialize();
+
+    // Refresh session before long operation to ensure we have a valid token.
+    // Migrations can take minutes for large datasets - session might expire mid-operation.
+    const authService = await getAuthService();
+    try {
+      const session = await authService.refreshSession();
+      if (!session) {
+        logger.warn('[MigrationService] Session refresh returned null - user may need to sign in again');
+        return {
+          ...emptyResult,
+          errors: ['Session expired. Please sign in again and retry the migration.'],
+        };
+      }
+      logger.debug('[MigrationService] Session refreshed successfully before migration');
+    } catch (refreshError) {
+      // AuthError or NetworkError from refreshSession
+      const errorMsg = refreshError instanceof Error ? refreshError.message : 'Unknown error';
+      logger.warn('[MigrationService] Failed to refresh session before migration:', errorMsg);
+      return {
+        ...emptyResult,
+        errors: [`Session refresh failed: ${errorMsg}. Please sign in again and retry.`],
+      };
+    }
 
     // Step 1: Export local data (read-only)
     safeProgress({ stage: 'exporting', progress: PROGRESS_RANGES.EXPORTING.start, message: MIGRATION_MESSAGES.EXPORTING });

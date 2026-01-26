@@ -18,6 +18,7 @@
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
+import { getAuthService } from '@/datastore/factory';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -283,6 +284,23 @@ export async function migrateCloudToLocal(
 
     cloudStore = new SupabaseDataStore();
     await cloudStore.initialize();
+
+    // Refresh session before long operation to ensure we have a valid token.
+    // Reverse migrations can take minutes for large datasets.
+    const authService = await getAuthService();
+    try {
+      const session = await authService.refreshSession();
+      if (!session) {
+        logger.warn('[ReverseMigrationService] Session refresh returned null');
+        throw new NetworkError('Session expired. Please sign in again and retry.');
+      }
+      logger.debug('[ReverseMigrationService] Session refreshed successfully before migration');
+    } catch (refreshError) {
+      if (refreshError instanceof NetworkError) throw refreshError;
+      const errorMsg = refreshError instanceof Error ? refreshError.message : 'Unknown error';
+      logger.warn('[ReverseMigrationService] Failed to refresh session:', errorMsg);
+      throw new NetworkError(`Session refresh failed: ${errorMsg}. Please sign in again.`);
+    }
 
     localStore = new LocalDataStore();
     await localStore.initialize();

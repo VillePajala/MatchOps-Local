@@ -53,6 +53,7 @@ export class SyncEngine {
   private isResettingStale = false; // Blocks processing until stale reset completes
   private staleResetFailed = false; // True if stale reset failed - operations may be stuck
   private pendingStatusEmit = false; // Coalesces rapid status change emissions
+  private statusEmitRequested = false; // Tracks if another status change occurred during emission
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = true;
   private lastSyncedAt: number | null = null;
@@ -421,9 +422,15 @@ export class SyncEngine {
       // Mark as syncing
       await this.queue.markSyncing(op.id);
 
-      // Execute the sync
+      // Execute the sync with timeout to prevent hung operations blocking all syncing
+      const SYNC_TIMEOUT_MS = 30000; // 30 seconds per operation
       logger.debug(`[SyncEngine] Syncing: ${opInfo}`);
-      await executor(op);
+
+      const timeoutPromise = new Promise<never>((_resolve, reject) => {
+        setTimeout(() => reject(new Error(`Sync operation timed out after ${SYNC_TIMEOUT_MS}ms`)), SYNC_TIMEOUT_MS);
+      });
+
+      await Promise.race([executor(op), timeoutPromise]);
 
       // Mark as completed (removes from queue)
       await this.queue.markCompleted(op.id);
@@ -460,12 +467,20 @@ export class SyncEngine {
   }
 
   private emitStatusChange(): void {
-    // Coalesce rapid calls - skip if already pending to prevent out-of-order updates
+    // Track that a status change was requested
+    this.statusEmitRequested = true;
+
+    // If already emitting, the current emission will check statusEmitRequested and re-emit
     if (this.pendingStatusEmit) {
       return;
     }
 
+    this.doEmitStatus();
+  }
+
+  private doEmitStatus(): void {
     this.pendingStatusEmit = true;
+    this.statusEmitRequested = false;
 
     // Fire and forget - don't block callers, handle errors gracefully
     this.getStatus()
@@ -484,6 +499,10 @@ export class SyncEngine {
       })
       .finally(() => {
         this.pendingStatusEmit = false;
+        // If another status change occurred during emission, re-emit with latest status
+        if (this.statusEmitRequested) {
+          this.doEmitStatus();
+        }
       });
   }
 }

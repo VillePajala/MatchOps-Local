@@ -321,7 +321,9 @@ export class SyncedDataStore implements DataStore {
 
   async upsertPlayer(player: Player): Promise<Player> {
     const result = await this.localStore.upsertPlayer(player);
-    await this.queueSync('player', player.id, 'update', result);
+    // Queue as 'create' - the cloud store uses upsert which handles both create and update.
+    // Using 'create' ensures correct deduplication: CREATE + DELETE = nothing (entity never synced)
+    await this.queueSync('player', player.id, 'create', result);
     return result;
   }
 
@@ -361,7 +363,8 @@ export class SyncedDataStore implements DataStore {
 
   async upsertTeam(team: Team): Promise<Team> {
     const result = await this.localStore.upsertTeam(team);
-    await this.queueSync('team', team.id, 'update', result);
+    // Queue as 'create' - cloud uses upsert, ensures correct deduplication
+    await this.queueSync('team', team.id, 'create', result);
     return result;
   }
 
@@ -417,7 +420,8 @@ export class SyncedDataStore implements DataStore {
 
   async upsertSeason(season: Season): Promise<Season> {
     const result = await this.localStore.upsertSeason(season);
-    await this.queueSync('season', season.id, 'update', result);
+    // Queue as 'create' - cloud uses upsert, ensures correct deduplication
+    await this.queueSync('season', season.id, 'create', result);
     return result;
   }
 
@@ -456,7 +460,8 @@ export class SyncedDataStore implements DataStore {
 
   async upsertTournament(tournament: Tournament): Promise<Tournament> {
     const result = await this.localStore.upsertTournament(tournament);
-    await this.queueSync('tournament', tournament.id, 'update', result);
+    // Queue as 'create' - cloud uses upsert, ensures correct deduplication
+    await this.queueSync('tournament', tournament.id, 'create', result);
     return result;
   }
 
@@ -501,7 +506,8 @@ export class SyncedDataStore implements DataStore {
 
   async upsertPersonnelMember(personnel: Personnel): Promise<Personnel> {
     const result = await this.localStore.upsertPersonnelMember(personnel);
-    await this.queueSync('personnel', personnel.id, 'update', result);
+    // Queue as 'create' - cloud uses upsert, ensures correct deduplication
+    await this.queueSync('personnel', personnel.id, 'create', result);
     return result;
   }
 
