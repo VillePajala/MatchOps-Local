@@ -1198,6 +1198,185 @@ expect(PREMIUM_ENFORCEMENT_ENABLED).toBe(true);
 
 ---
 
+## Staging vs Production Architecture
+
+**Last Updated:** January 26, 2026
+
+### Overview
+
+Two separate Supabase projects are used to enable realistic billing testing on preview deployments while keeping production secure:
+
+| Environment | Supabase Project | Billing Mode | Purpose |
+|-------------|------------------|--------------|---------|
+| **Production** | `matchops-cloud` | Real Google Play | Live users with real payments |
+| **Staging** | `matchops-staging` | Mock billing enabled | Preview deployments & testing |
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              VERCEL                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐ │
+│  │     PREVIEW DEPLOYMENTS          │  │     PRODUCTION DEPLOYMENT        │ │
+│  │  (PR branches, feature branches) │  │     (master/main branch)         │ │
+│  │                                  │  │                                  │ │
+│  │  Environment:                    │  │  Environment:                    │ │
+│  │  NEXT_PUBLIC_SUPABASE_URL=       │  │  NEXT_PUBLIC_SUPABASE_URL=       │ │
+│  │    staging-project.supabase.co   │  │    prod-project.supabase.co      │ │
+│  │  NEXT_PUBLIC_SUPABASE_ANON_KEY=  │  │  NEXT_PUBLIC_SUPABASE_ANON_KEY=  │ │
+│  │    (staging key)                 │  │    (production key)              │ │
+│  └──────────────┬───────────────────┘  └──────────────┬───────────────────┘ │
+│                 │                                      │                     │
+└─────────────────┼──────────────────────────────────────┼─────────────────────┘
+                  │                                      │
+                  ▼                                      ▼
+┌─────────────────────────────────────┐  ┌─────────────────────────────────────┐
+│         MATCHOPS-STAGING            │  │         MATCHOPS-CLOUD              │
+│      (Supabase Project)             │  │      (Supabase Project)             │
+├─────────────────────────────────────┤  ├─────────────────────────────────────┤
+│                                     │  │                                     │
+│  Database:                          │  │  Database:                          │
+│  - Same schema as production        │  │  - Production data                  │
+│  - Test data only                   │  │  - Real user subscriptions          │
+│                                     │  │                                     │
+│  Edge Function:                     │  │  Edge Function:                     │
+│  verify-subscription                │  │  verify-subscription                │
+│  - MOCK_BILLING=true                │  │  - MOCK_BILLING=false               │
+│  - Accepts test- prefix tokens      │  │  - Calls Google Play API            │
+│  - No Google Play credentials       │  │  - Real verification only           │
+│                                     │  │                                     │
+│  Purpose:                           │  │  Purpose:                           │
+│  ✓ PR review testing               │  │  ✓ Real users                       │
+│  ✓ Feature development             │  │  ✓ Real payments                    │
+│  ✓ CI/CD integration tests         │  │  ✓ Real subscriptions               │
+│  ✓ Demo environments               │  │                                     │
+└─────────────────────────────────────┘  └─────────────────────────────────────┘
+```
+
+### Supabase Project Details
+
+#### Production: `matchops-cloud`
+- **Project ID:** `aybjmnxxtgspqesdiqxd`
+- **URL:** `https://aybjmnxxtgspqesdiqxd.supabase.co`
+- **Edge Function Secrets:**
+  - `MOCK_BILLING=false` (or not set)
+  - `GOOGLE_PLAY_SERVICE_ACCOUNT` — Real service account JSON
+  - `SUPABASE_SERVICE_ROLE_KEY` — Production service role key
+
+#### Staging: `matchops-staging`
+- **Project ID:** `hwcqpvvqnmetjrwvzlfr`
+- **URL:** `https://hwcqpvvqnmetjrwvzlfr.supabase.co`
+- **Edge Function Secrets:**
+  - `MOCK_BILLING=true` — Enables test token acceptance
+  - `SUPABASE_SERVICE_ROLE_KEY` — Staging service role key
+  - (No Google Play credentials needed)
+
+### Vercel Environment Configuration
+
+Configure environment variables in Vercel Dashboard → Settings → Environment Variables:
+
+| Variable | Production | Preview | Development |
+|----------|------------|---------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://aybjmnxxtgspqesdiqxd.supabase.co` | `https://hwcqpvvqnmetjrwvzlfr.supabase.co` | `.env.local` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (production anon key) | (staging anon key) | `.env.local` |
+
+**Important:** Vercel allows different values for Production vs Preview environments. Set:
+1. Production environment → production Supabase credentials
+2. Preview environment → staging Supabase credentials
+
+### Edge Function Deployment
+
+The `verify-subscription` Edge Function must be deployed to **both** Supabase projects with different configuration:
+
+**Deploy to Staging:**
+```bash
+# From project root
+cd supabase/functions
+supabase link --project-ref hwcqpvvqnmetjrwvzlfr
+supabase functions deploy verify-subscription
+supabase secrets set MOCK_BILLING=true
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="<staging-service-role-key>"
+```
+
+**Deploy to Production:**
+```bash
+cd supabase/functions
+supabase link --project-ref aybjmnxxtgspqesdiqxd
+supabase functions deploy verify-subscription
+supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT='<service-account-json>'
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="<prod-service-role-key>"
+# Note: Do NOT set MOCK_BILLING in production (or set to false)
+```
+
+### Testing on Preview Deployments
+
+With staging configured, preview deployments can test the full billing flow:
+
+1. **Create preview deployment** (push to feature branch)
+2. **Open preview URL** — Uses staging Supabase automatically
+3. **Test mock purchase:**
+   ```typescript
+   // In browser console or test
+   const result = await purchase();  // Triggers mock flow
+   ```
+4. **Verify subscription created** in staging Supabase dashboard
+
+### Mock Token Format
+
+When `MOCK_BILLING=true`, the Edge Function accepts tokens with `test-` prefix:
+
+```typescript
+// Valid test tokens (accepted by staging)
+'test-preview-123'
+'test-ci-integration'
+'test-demo-user'
+
+// Invalid (rejected even in staging)
+'real-token-xyz'      // No test- prefix
+'test-' + 'a'.repeat(100)  // Too long (max 100 chars)
+```
+
+### Schema Synchronization
+
+Keep staging schema in sync with production by applying migrations to both:
+
+```bash
+# Apply new migration to staging
+supabase link --project-ref hwcqpvvqnmetjrwvzlfr
+supabase db push
+
+# Apply same migration to production
+supabase link --project-ref aybjmnxxtgspqesdiqxd
+supabase db push
+```
+
+### Security Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| Staging data leaks | Staging has no real user data, only test accounts |
+| Mock billing in production | `MOCK_BILLING` secret never set to `true` in production |
+| Cross-environment tokens | Token validation rejects test- prefix in production |
+| Accidental production write | Vercel env vars ensure preview → staging only |
+
+### Local Development
+
+For local development, create `.env.local`:
+
+```bash
+# Use staging for local development
+NEXT_PUBLIC_SUPABASE_URL=https://hwcqpvvqnmetjrwvzlfr.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<staging-anon-key>
+
+# Or use local Supabase (supabase start)
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<local-anon-key>
+```
+
+---
+
 ## Related Issues (Consolidated)
 
 This plan consolidates and supersedes:

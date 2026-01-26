@@ -28,6 +28,7 @@
 ✅ **Supabase Cloud Backend** — PRs 1-11 Complete
 ✅ **Local-First Sync** — PR #324 Merged
 ✅ **Billing Infrastructure** — Phases 1-7 Complete
+✅ **Staging Environment** — Configured for preview testing
 
 | Metric | Value |
 |--------|-------|
@@ -35,6 +36,15 @@
 | Vulnerabilities | 0 |
 | Framework | Next.js 16.0.10 + React 19.2 |
 | Branch | `supabase/billing-implementation` |
+
+### Supabase Projects
+
+| Project | ID | Purpose |
+|---------|-------------|---------|
+| `matchops-cloud` | `aybjmnxxtgspqesdiqxd` | Production (real billing) |
+| `matchops-staging` | `hwcqpvvqnmetjrwvzlfr` | Preview/testing (mock billing) |
+
+See [billing-implementation-plan.md](./billing-implementation-plan.md#staging-vs-production-architecture) for setup details.
 
 **Next**:
 1. Business setup (Toiminimi, bank account, Google Payments)
