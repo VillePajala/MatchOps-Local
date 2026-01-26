@@ -92,7 +92,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] font-display"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] font-display"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}

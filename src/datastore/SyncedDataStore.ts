@@ -103,9 +103,9 @@ export class SyncedDataStore implements DataStore {
   async close(): Promise<void> {
     logger.info('[SyncedDataStore] Closing');
 
-    // Stop the sync engine
+    // Dispose the sync engine (waits for in-flight ops, clears listeners)
     if (this.syncEngine) {
-      this.syncEngine.stop();
+      await this.syncEngine.dispose();
     }
 
     // Clear queue error listeners to prevent memory leaks on mode switch
@@ -649,7 +649,8 @@ export class SyncedDataStore implements DataStore {
     }
   ): Promise<PlayerStatAdjustment> {
     const result = await this.localStore.upsertPlayerAdjustment(adjustment);
-    await this.queueSync('playerAdjustment', result.id, 'update', result);
+    // Queue as 'create' - cloud uses upsert, ensures correct deduplication (CREATE + DELETE = nothing)
+    await this.queueSync('playerAdjustment', result.id, 'create', result);
     return result;
   }
 

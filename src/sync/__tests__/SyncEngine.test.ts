@@ -46,8 +46,8 @@ describe('SyncEngine', () => {
     // Use fake timers
     jest.useFakeTimers();
 
-    // Reset singleton
-    resetSyncEngine();
+    // Reset singleton (async - waits for dispose to complete)
+    await resetSyncEngine();
 
     // Mock navigator.onLine BEFORE creating engine (engine reads it in constructor)
     Object.defineProperty(navigator, 'onLine', {
@@ -706,8 +706,8 @@ describe('SyncEngine', () => {
       // Import getSyncEngine for this test
       const { getSyncEngine, resetSyncEngine: reset } = await import('../SyncEngine');
 
-      // Reset to ensure no instance exists
-      reset();
+      // Reset to ensure no instance exists (async)
+      await reset();
 
       expect(() => getSyncEngine()).toThrow('SyncEngine not initialized');
     });
@@ -715,14 +715,14 @@ describe('SyncEngine', () => {
     it('should return same instance on subsequent calls', async () => {
       const { getSyncEngine, resetSyncEngine: reset } = await import('../SyncEngine');
 
-      reset();
+      await reset();
 
       const instance1 = getSyncEngine(queue);
       const instance2 = getSyncEngine(); // No queue needed after first call
 
       expect(instance1).toBe(instance2);
 
-      reset();
+      await reset();
     });
   });
 });

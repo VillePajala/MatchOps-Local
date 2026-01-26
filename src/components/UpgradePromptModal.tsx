@@ -233,7 +233,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
     <ModalPortal>
       <div
         ref={modalRef}
-        className="fixed inset-0 bg-black/60 flex items-center justify-center z-[80] font-display"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[80] font-display"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

@@ -8,6 +8,7 @@
  */
 
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 import { SyncQueue } from './SyncQueue';
 import {
   SyncOperation,
@@ -123,6 +124,11 @@ export class SyncEngine {
       .resetStaleSyncing()
       .catch((e) => {
         logger.error('[SyncEngine] Failed to reset stale syncing operations:', e);
+        // Report to Sentry - stale reset failure may leave operations stuck
+        Sentry.captureException(e, {
+          tags: { component: 'SyncEngine', action: 'resetStaleSyncing' },
+          level: 'error',
+        });
         // Track that reset failed - operations may be stuck in 'syncing' state
         this.staleResetFailed = true;
         // Emit status change so UI can show warning about potential sync issues
@@ -130,6 +136,13 @@ export class SyncEngine {
       })
       .finally(() => {
         this.isResettingStale = false;
+
+        // Check if stop() was called while stale reset was pending
+        // If so, don't create interval - prevents interval leak
+        if (!this.isRunning) {
+          logger.debug('[SyncEngine] stop() called during stale reset, skipping interval setup');
+          return;
+        }
 
         // Start periodic sync AFTER stale reset completes (or fails)
         // This prevents race conditions between reset and interval processing
@@ -139,7 +152,7 @@ export class SyncEngine {
 
         // Sync immediately if online AND reset succeeded
         // If stale reset failed, don't process - operations may be stuck
-        if (this.isOnline && this.isRunning && !this.staleResetFailed) {
+        if (this.isOnline && !this.staleResetFailed) {
           this.doProcessQueue();
         }
       });
@@ -472,11 +485,20 @@ export class SyncEngine {
       const SYNC_TIMEOUT_MS = 30000; // 30 seconds per operation
       logger.debug(`[SyncEngine] Syncing: ${opInfo}`);
 
+      // Use a timer ID to clear the timeout after executor completes (prevents memory leak)
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
       const timeoutPromise = new Promise<never>((_resolve, reject) => {
-        setTimeout(() => reject(new Error(`Sync operation timed out after ${SYNC_TIMEOUT_MS}ms`)), SYNC_TIMEOUT_MS);
+        timeoutId = setTimeout(() => reject(new Error(`Sync operation timed out after ${SYNC_TIMEOUT_MS}ms`)), SYNC_TIMEOUT_MS);
       });
 
-      await Promise.race([executor(op), timeoutPromise]);
+      try {
+        await Promise.race([executor(op), timeoutPromise]);
+      } finally {
+        // Clear timeout to prevent memory leak when executor completes before timeout
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+      }
 
       // Mark as completed (removes from queue)
       await this.queue.markCompleted(op.id);
@@ -492,28 +514,44 @@ export class SyncEngine {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // If we never marked as syncing, the operation wasn't ours to process
+      // This can happen if another tab/process completed it, or it was deleted
+      if (!markedSyncing) {
+        logger.debug(`[SyncEngine] Skipping ${opInfo} - could not mark as syncing (may be processed elsewhere): ${errorMessage}`);
+        return; // Don't emit failure events for operations we never owned
+      }
+
       logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
 
-      // Only try to mark as failed if we successfully marked as syncing
-      if (markedSyncing) {
+      try {
+        // Mark as failed
+        await this.queue.markFailed(op.id, errorMessage);
+      } catch (markError) {
+        // CRITICAL: markFailed itself failed - operation is stuck in 'syncing' state
+        // Attempt emergency reset to 'pending' to prevent data loss
+        logger.error(`[SyncEngine] markFailed threw for ${opInfo}, attempting emergency reset:`, markError);
         try {
-          // Mark as failed
-          await this.queue.markFailed(op.id, errorMessage);
-        } catch (markError) {
-          // CRITICAL: markFailed itself failed - operation is stuck in 'syncing' state
-          // Attempt emergency reset to 'pending' to prevent data loss
-          logger.error(`[SyncEngine] markFailed threw for ${opInfo}, attempting emergency reset:`, markError);
-          try {
-            const reset = await this.queue.resetOperationToPending(op.id);
-            if (reset) {
-              logger.info(`[SyncEngine] Emergency reset succeeded for ${opInfo}`);
-            } else {
-              logger.error(`[SyncEngine] Emergency reset failed - operation ${op.id} may be stuck`);
-            }
-          } catch (resetError) {
-            // At this point, the operation is likely stuck. Log prominently.
-            logger.error(`[SyncEngine] CRITICAL: Operation ${op.id} stuck in syncing state - manual intervention may be required:`, resetError);
+          const reset = await this.queue.resetOperationToPending(op.id);
+          if (reset) {
+            logger.info(`[SyncEngine] Emergency reset succeeded for ${opInfo}`);
+          } else {
+            logger.error(`[SyncEngine] Emergency reset failed - operation ${op.id} may be stuck`);
           }
+        } catch (resetError) {
+          // At this point, the operation is likely stuck. Log prominently.
+          logger.error(`[SyncEngine] CRITICAL: Operation ${op.id} stuck in syncing state - manual intervention may be required:`, resetError);
+          // Report to Sentry - stuck operation is critical and requires attention
+          Sentry.captureException(resetError, {
+            tags: { component: 'SyncEngine', action: 'emergencyReset', severity: 'critical' },
+            extra: {
+              operationId: op.id,
+              entityType: op.entityType,
+              entityId: op.entityId,
+              operation: op.operation,
+            },
+            level: 'fatal',
+          });
         }
       }
 

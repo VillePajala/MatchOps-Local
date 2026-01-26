@@ -91,32 +91,35 @@ const { data: players, isLoading, error } = useQuery({
 - **Optimistic Updates**: Immediate UI feedback with rollback on failure
 - **Invalidation**: Intelligent cache updates after mutations
 
-**Why localStorage over alternatives?**
+**Why IndexedDB for storage?**
 
 | Storage Option | Capacity | Persistence | Sync API | Complexity | Privacy |
 |----------------|----------|-------------|----------|------------|---------|
-| **localStorage** | ~10MB | ✅ Permanent | ✅ Simple | ✅ Minimal | ✅ Local only |
-| **IndexedDB** | ~GB+ | ✅ Permanent | ❌ Async only | ❌ Complex | ✅ Local only |
+| **IndexedDB** | ~GB+ | ✅ Permanent | ❌ Async only | ⚠️ Moderate | ✅ Local only |
+| **localStorage** | ~5-10MB | ✅ Permanent | ✅ Simple | ✅ Minimal | ✅ Local only |
 | **WebSQL** | ~5MB | ✅ Permanent | ✅ SQL | ❌ Deprecated | ✅ Local only |
 | **Memory** | RAM limited | ❌ Session only | ✅ Instant | ✅ Simple | ✅ Local only |
 | **Cloud DB** | Unlimited | ✅ Permanent | ❌ Async | ❌ Complex | ❌ External |
 
-**localStorage Advantages:**
-- **Simplicity**: Synchronous API perfect for React Query integration
-- **Capacity**: 10MB+ sufficient for years of coaching data
+**IndexedDB Advantages (Current Implementation):**
+- **Capacity**: 50MB+ quota vs localStorage's 5-10MB limit - essential for 100+ games with events
+- **Async Operations**: Non-blocking storage operations don't freeze the UI
+- **Structured Data**: Native support for complex objects without JSON serialization overhead
 - **Browser Support**: Universal support across all modern browsers
-- **No Dependencies**: Zero external libraries or configuration required
 - **Local-First Perfect**: Data never leaves the device
+- **Transaction Support**: Atomic operations for data integrity
+
+**Note**: The app originally used localStorage but migrated to IndexedDB exclusively (no localStorage fallback) due to capacity constraints. See `src/utils/storage.ts` for the adapter implementation and `src/utils/migration.ts` for the localStorage → IndexedDB migration.
 
 #### **Trade-offs Accepted**
-- **Capacity Limits**: 10MB storage limit (acceptable for coaching data)
-- **Synchronous Only**: Can block main thread for large operations (mitigated by data size)
-- **No Complex Queries**: No SQL-like querying (acceptable for simple data structures)
+- **Async API**: All operations are asynchronous (well-suited for React Query integration)
+- **More Complex**: Requires adapter layer (handled by `LocalDataStore`)
+- **No Private Mode**: IndexedDB is restricted in private browsing (PWA requires persistent storage anyway)
 
 #### **Alternatives Considered**
 - **Redux Toolkit**: Excellent for complex state but adds complexity for simple data operations
 - **Zustand**: Lightweight but requires custom persistence implementation
-- **IndexedDB**: More capacity and features but significantly more complex for our needs
+- **localStorage**: Simpler API but insufficient capacity (5-10MB) for production data volumes
 - **Custom Context**: Simple but requires reimplementing caching and error handling
 
 ---

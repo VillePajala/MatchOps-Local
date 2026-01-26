@@ -724,21 +724,122 @@ describe('SyncQueue', () => {
       expect(pendingOp?.status).toBe('pending');
       expect(failedOp?.status).toBe('failed');
     });
+
+    it('should increment retryCount when resetting stale operations', async () => {
+      // Create a queue with low maxRetries for testing
+      const testQueue = new SyncQueue({ maxRetries: 2 });
+      await testQueue.initialize();
+
+      const id = await testQueue.enqueue({
+        entityType: 'game',
+        entityId: 'game_retry',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      // Mark as syncing
+      await testQueue.markSyncing(id);
+      let op = await testQueue.getById(id);
+      expect(op?.retryCount).toBe(0);
+
+      // Reset stale - should increment retryCount
+      await testQueue.resetStaleSyncing();
+      op = await testQueue.getById(id);
+      expect(op?.retryCount).toBe(1);
+      expect(op?.status).toBe('pending');
+
+      // Mark as syncing again and reset - should reach failed
+      await testQueue.markSyncing(id);
+      await testQueue.resetStaleSyncing();
+      op = await testQueue.getById(id);
+      expect(op?.retryCount).toBe(2);
+      expect(op?.status).toBe('failed'); // maxRetries reached
+
+      await testQueue.close();
+    });
+  });
+
+  describe('resetOperationToPending', () => {
+    it('should reset a syncing operation back to pending', async () => {
+      const id = await queue.enqueue({
+        entityType: 'game',
+        entityId: 'game_1',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      await queue.markSyncing(id);
+      let op = await queue.getById(id);
+      expect(op?.status).toBe('syncing');
+
+      const result = await queue.resetOperationToPending(id);
+      expect(result).toBe(true);
+
+      op = await queue.getById(id);
+      expect(op?.status).toBe('pending');
+      expect(op?.lastError).toContain('emergency reset');
+    });
+
+    it('should increment retryCount to prevent infinite loops', async () => {
+      // Create a queue with low maxRetries for testing
+      const testQueue = new SyncQueue({ maxRetries: 2 });
+      await testQueue.initialize();
+
+      const id = await testQueue.enqueue({
+        entityType: 'game',
+        entityId: 'game_retry',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
+
+      await testQueue.markSyncing(id);
+      let op = await testQueue.getById(id);
+      expect(op?.retryCount).toBe(0);
+
+      // Reset - should increment
+      await testQueue.resetOperationToPending(id);
+      op = await testQueue.getById(id);
+      expect(op?.retryCount).toBe(1);
+      expect(op?.status).toBe('pending');
+
+      // Mark syncing and reset again
+      await testQueue.markSyncing(id);
+      await testQueue.resetOperationToPending(id);
+      op = await testQueue.getById(id);
+      expect(op?.retryCount).toBe(2);
+      expect(op?.status).toBe('failed'); // maxRetries reached
+
+      await testQueue.close();
+    });
+
+    it('should return false for non-existent operation', async () => {
+      const result = await queue.resetOperationToPending('non_existent_id');
+      expect(result).toBe(false);
+    });
   });
 
   describe('edge cases', () => {
-    it('should handle marking non-existent operation as syncing', async () => {
-      // Should not throw
-      await queue.markSyncing('non_existent_id');
+    it('should throw SyncError when marking non-existent operation as syncing', async () => {
+      // Should throw SyncError for consistency with markFailed
+      await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(SyncError);
+      await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(
+        'Operation non_existent_id not found in queue'
+      );
     });
 
-    it('should handle marking non-existent operation as failed', async () => {
-      // Should not throw
-      await queue.markFailed('non_existent_id', 'Error');
+    it('should throw SyncError when marking non-existent operation as failed', async () => {
+      // Should throw SyncError to catch bugs where operation IDs become mismatched
+      await expect(queue.markFailed('non_existent_id', 'Error')).rejects.toThrow(SyncError);
+      await expect(queue.markFailed('non_existent_id', 'Error')).rejects.toThrow(
+        'Operation non_existent_id not found in queue'
+      );
     });
 
     it('should handle marking non-existent operation as completed', async () => {
-      // Should not throw
+      // Should not throw - delete is idempotent (already gone = success)
       await queue.markCompleted('non_existent_id');
     });
 

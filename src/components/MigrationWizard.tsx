@@ -9,6 +9,11 @@ import {
   HiOutlineArrowPath,
   HiOutlineTrash,
   HiOutlineXMark,
+  HiOutlineChevronRight,
+  HiOutlineStar,
+  HiOutlineArrowsRightLeft,
+  HiOutlineArrowDownTray,
+  HiOutlineSparkles,
 } from 'react-icons/hi2';
 import {
   primaryButtonStyle,
@@ -494,31 +499,37 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                   {/* MERGE option */}
                   <button
                     onClick={() => { setMigrationMode('merge'); setStep('confirm'); }}
-                    className="w-full p-4 rounded-lg bg-sky-600/20 border border-sky-500/50 hover:bg-sky-600/30 transition-colors text-left"
+                    className="w-full p-4 rounded-lg bg-sky-600/20 border border-sky-500/50 hover:bg-sky-600/30 transition-colors text-left group"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-sky-400 flex items-center justify-center">
-                        <span className="text-sky-400 text-xs">★</span>
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 bg-sky-500/20 rounded-lg">
+                        <HiOutlineArrowsRightLeft className="w-5 h-5 text-sky-400" aria-hidden="true" />
                       </div>
-                      <div>
-                        <div className="text-slate-100 font-medium">
-                          {t('migration.action.merge', 'Merge (Recommended)')}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-100 font-medium">
+                            {t('migration.action.merge', 'Merge (Recommended)')}
+                          </span>
+                          <HiOutlineStar className="w-4 h-4 text-amber-400" aria-hidden="true" />
                         </div>
                         <div className="text-xs text-slate-400 mt-1">
                           {t('migration.action.mergeDesc', 'Combine both - keeps all your data from local and cloud')}
                         </div>
                       </div>
+                      <HiOutlineChevronRight className="w-5 h-5 text-slate-400 group-hover:text-sky-400 transition-colors" aria-hidden="true" />
                     </div>
                   </button>
 
                   {/* REPLACE CLOUD option */}
                   <button
                     onClick={() => { setMigrationMode('replace'); setStep('confirm'); }}
-                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left"
+                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left group"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-400"></div>
-                      <div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 bg-slate-600/50 rounded-lg">
+                        <HiOutlineCloudArrowUp className="w-5 h-5 text-slate-400" aria-hidden="true" />
+                      </div>
+                      <div className="flex-1">
                         <div className="text-slate-100 font-medium">
                           {t('migration.action.replaceCloud', 'Replace Cloud with Local')}
                         </div>
@@ -526,17 +537,20 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                           {t('migration.action.replaceCloudDesc', 'Upload local data, overwrite existing cloud data')}
                         </div>
                       </div>
+                      <HiOutlineChevronRight className="w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" aria-hidden="true" />
                     </div>
                   </button>
 
                   {/* KEEP CLOUD option */}
                   <button
                     onClick={handleKeepCloud}
-                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left"
+                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left group"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-400"></div>
-                      <div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 bg-slate-600/50 rounded-lg">
+                        <HiOutlineArrowDownTray className="w-5 h-5 text-slate-400" aria-hidden="true" />
+                      </div>
+                      <div className="flex-1">
                         <div className="text-slate-100 font-medium">
                           {t('migration.action.keepCloud', 'Keep Cloud (Delete Local)')}
                         </div>
@@ -544,6 +558,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                           {t('migration.action.keepCloudDesc', 'Use your cloud data, discard local data')}
                         </div>
                       </div>
+                      <HiOutlineChevronRight className="w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" aria-hidden="true" />
                     </div>
                   </button>
                 </>
@@ -552,31 +567,37 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                   {/* MIGRATE option (local-only scenario) */}
                   <button
                     onClick={() => { setMigrationMode('merge'); setStep('confirm'); }}
-                    className="w-full p-4 rounded-lg bg-sky-600/20 border border-sky-500/50 hover:bg-sky-600/30 transition-colors text-left"
+                    className="w-full p-4 rounded-lg bg-sky-600/20 border border-sky-500/50 hover:bg-sky-600/30 transition-colors text-left group"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-sky-400 flex items-center justify-center">
-                        <span className="text-sky-400 text-xs">★</span>
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 bg-sky-500/20 rounded-lg">
+                        <HiOutlineCloudArrowUp className="w-5 h-5 text-sky-400" aria-hidden="true" />
                       </div>
-                      <div>
-                        <div className="text-slate-100 font-medium">
-                          {t('migration.action.migrate', 'Migrate to Cloud (Recommended)')}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-100 font-medium">
+                            {t('migration.action.migrate', 'Migrate to Cloud (Recommended)')}
+                          </span>
+                          <HiOutlineStar className="w-4 h-4 text-amber-400" aria-hidden="true" />
                         </div>
                         <div className="text-xs text-slate-400 mt-1">
                           {t('migration.action.migrateDesc', 'Upload your data to the cloud for backup and sync')}
                         </div>
                       </div>
+                      <HiOutlineChevronRight className="w-5 h-5 text-slate-400 group-hover:text-sky-400 transition-colors" aria-hidden="true" />
                     </div>
                   </button>
 
                   {/* START FRESH option */}
                   <button
                     onClick={handleStartFresh}
-                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left"
+                    className="w-full p-4 rounded-lg bg-slate-700/50 border border-slate-600/50 hover:bg-slate-700/70 transition-colors text-left group"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-400"></div>
-                      <div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 bg-slate-600/50 rounded-lg">
+                        <HiOutlineSparkles className="w-5 h-5 text-slate-400" aria-hidden="true" />
+                      </div>
+                      <div className="flex-1">
                         <div className="text-slate-100 font-medium">
                           {t('migration.action.startFresh', 'Start Fresh')}
                         </div>
@@ -587,6 +608,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
                           {t('migration.action.startFreshWarning', '⚠️ Local data will be deleted')}
                         </div>
                       </div>
+                      <HiOutlineChevronRight className="w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" aria-hidden="true" />
                     </div>
                   </button>
                 </>
@@ -595,11 +617,13 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
               {/* CANCEL option - always available */}
               <button
                 onClick={onCancel}
-                className="w-full p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800/70 transition-colors text-left"
+                className="w-full p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800/70 transition-colors text-left group"
               >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-500"></div>
-                  <div>
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-slate-700/50 rounded-lg">
+                    <HiOutlineXMark className="w-5 h-5 text-slate-500" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1">
                     <div className="text-slate-300 font-medium">
                       {t('migration.action.cancel', 'Cancel')}
                     </div>

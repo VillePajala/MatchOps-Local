@@ -1,7 +1,7 @@
 # Backup & Restore
 
 **Status**: ✅ Implemented
-**Last Updated**: January 5, 2026
+**Last Updated**: January 26, 2026
 
 ## Overview
 
@@ -22,6 +22,8 @@ A full backup includes:
 - **Seasons** - Season configurations
 - **Tournaments** - Tournament configurations
 - **Personnel** - Staff members
+- **Player Adjustments** - External game statistics
+- **Warmup Plans** - Saved training routines
 - **App Settings** - User preferences
 
 ## Data Format
@@ -37,6 +39,8 @@ A full backup includes:
     "seasons": {...},
     "tournaments": {...},
     "personnel": {...},
+    "playerAdjustments": {...},
+    "warmupPlan": {...},
     "appSettings": {...}
   }
 }
@@ -61,10 +65,6 @@ A full backup includes:
 - **Confirmation Required** - Warns before overwriting data
 - **Version Check** - Validates backup format
 - **Error Handling** - Graceful failure with error messages
-
-## Known Limitation
-
-**Warm-up Plan**: Currently not included in backups. Planned fix in backlog.
 
 ## Use Cases
 

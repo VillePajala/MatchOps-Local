@@ -94,9 +94,10 @@ export async function getDataStore(): Promise<DataStore> {
       // Step 2: Stop the sync engine singleton
       try {
         const { resetSyncEngine } = await import('@/sync');
-        resetSyncEngine();
+        await resetSyncEngine();
       } catch (e) {
-        log.warn('[factory] Error resetting sync engine during mode change');
+        const msg = e instanceof Error ? e.message : String(e);
+        log.warn(`[factory] Error resetting sync engine during mode change: ${msg}`);
       }
 
       // Step 3: Clean up Supabase client
@@ -104,7 +105,8 @@ export async function getDataStore(): Promise<DataStore> {
         const { cleanupSupabaseClient } = await import('./supabase/client');
         await cleanupSupabaseClient();
       } catch (e) {
-        log.warn('[factory] Error cleaning up Supabase client during mode change');
+        const msg = e instanceof Error ? e.message : String(e);
+        log.warn(`[factory] Error cleaning up Supabase client during mode change: ${msg}`);
       }
     }
 
@@ -112,7 +114,8 @@ export async function getDataStore(): Promise<DataStore> {
     try {
       await dataStoreInstance.close();
     } catch (e) {
-      log.warn('[factory] Error closing old DataStore during mode change');
+      const msg = e instanceof Error ? e.message : String(e);
+      log.warn(`[factory] Error closing old DataStore during mode change: ${msg}`);
     }
     dataStoreInstance = null;
     dataStoreCreatedForMode = null;
