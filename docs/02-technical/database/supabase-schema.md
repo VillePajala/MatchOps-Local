@@ -1,7 +1,7 @@
 # Supabase PostgreSQL Schema
 
-**Status**: Proposed Design (Revised v17)
-**Last Updated**: 2026-01-23 (v17: Added Edge Functions documentation)
+**Status**: ✅ Implemented (Revised v17)
+**Last Updated**: 2026-01-26 (v17: Schema deployed, Edge Function complete, Local-First Sync merged)
 **Target**: Premium/Cloud Backend
 **Related**: [Current Storage Schema](./current-storage-schema.md) | [Dual-Backend Architecture](../architecture/dual-backend-architecture.md) | [Migration Strategy](../../03-active-plans/backend-evolution/migration-strategy.md)
 

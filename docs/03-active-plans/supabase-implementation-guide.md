@@ -1,8 +1,8 @@
 # MatchOps Cloud Implementation Guide
 
-**Version**: 1.11.0
-**Status**: Implementation Ready (Verified + Eight Adversarial Reviews)
-**Last Updated**: January 19, 2026 (v1.11.0: migration uses SupabaseDataStore upsert methods for DRY, ID-preserving uploads)
+**Version**: 1.12.0
+**Status**: PRs 1-11 Complete, Local-First Sync Complete
+**Last Updated**: January 26, 2026 (v1.12.0: Local-first sync merged via PR #324, all core cloud infrastructure complete)
 
 ---
 

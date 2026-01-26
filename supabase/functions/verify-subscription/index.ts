@@ -291,17 +291,18 @@ Deno.serve(async (req: Request) => {
       periodEnd = new Date(Date.now() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
       orderId = `mock-order-${Date.now()}`;
     } else if (isTestToken && !mockBilling) {
-      // Test token in production mode - reject
+      // Test token in production mode - reject with generic error to avoid leaking test mode existence
       return new Response(
-        JSON.stringify({ error: 'Test tokens not accepted in production' }),
+        JSON.stringify({ error: 'Invalid purchase token' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
       // Real token - verify with Google Play API
       if (!googleServiceAccount) {
         console.error('Google service account not configured');
+        // Generic error to avoid leaking configuration details
         return new Response(
-          JSON.stringify({ error: 'Google Play verification not configured' }),
+          JSON.stringify({ error: 'Server configuration error' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

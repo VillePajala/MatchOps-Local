@@ -1,21 +1,23 @@
 # Master Execution Guide: Play Store Readiness and Monetization
 
 Status: Authoritative (execution sequence)
-Last Updated: December 7, 2025
+Last Updated: January 26, 2026
 
 Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Local from today's state to a production‑grade release on the Play Store with a sustainable monetization path. This master guide links to the canonical sub‑plans and relevant documentation.
 
 ---
 
-## 🎯 Priority Order (December 2025)
+## 🎯 Current Status (January 2026)
 
-| # | Task | Effort | Status |
-|---|------|--------|--------|
-| **1** | **Play Store Release** | 2-3 weeks (11 PRs) | 🚧 IN PROGRESS |
-| **2** | Backend Architecture Refactoring | ~4 weeks (8 PRs) | 📋 Plan ready |
-| **3** | Gender Handling | 1-2 weeks | 📋 Needs design |
-| **4** | Season League UX Improvements | 1 week | 📋 Idea documented |
-| **5** | Other features & fixes | Ongoing | As needed |
+| # | Task | Status |
+|---|------|--------|
+| **1** | Supabase Cloud Backend (PRs 1-11) | ✅ COMPLETE |
+| **2** | Local-First Sync (PR #324) | ✅ COMPLETE |
+| **3** | Billing Infrastructure (Phases 1-7) | ✅ COMPLETE |
+| **4** | Business Setup (Toiminimi, Bank, Google Payments) | 🔲 PENDING |
+| **5** | Enable `PREMIUM_ENFORCEMENT_ENABLED` | 🔲 AFTER Business Setup |
+| **6** | TWA Rebuild with Play Billing | 🔲 PENDING |
+| **7** | Production Release | 🔲 PENDING |
 
 **See**: [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md) for full priority breakdown
 

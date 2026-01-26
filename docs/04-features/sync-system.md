@@ -1,5 +1,9 @@
 # Sync System
 
+**Status**: ✅ Implemented (January 2026)
+**Last Updated**: January 26, 2026
+**Implementation**: PR #324 (Local-First Cloud Sync)
+
 Local-first sync infrastructure for cloud mode. Operations are queued locally and synced to cloud in the background.
 
 ## Overview
