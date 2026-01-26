@@ -2479,6 +2479,7 @@
     "badgeFreeAccount": "ILMAINEN TILI",
     "badgePaid": "MAKSULLINEN",
     "signInCloudDescFree": "Luo ilmainen tili. Tilaa milloin tahansa synkronoidaksesi laitteiden välillä.",
+    "signInCloudDescWithPrice": "Luo ilmainen tili. Pilvisynkronointi 4,99 €/kk.",
     "signInOnly": "Kirjaudu pilvitilille",
     "signInOnlyAria": "Kirjaudu olemassa olevalle pilvitilille",
     "signInOnlyDesc": "Olemassa oleville tilaajille",

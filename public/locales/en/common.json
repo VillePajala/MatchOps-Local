@@ -2479,6 +2479,7 @@
     "badgeFreeAccount": "FREE ACCOUNT",
     "badgePaid": "PAID",
     "signInCloudDescFree": "Create a free account. Subscribe anytime to sync across devices.",
+    "signInCloudDescWithPrice": "Create a free account. Cloud sync available for €4.99/month.",
     "signInOnly": "Sign in to cloud account",
     "signInOnlyAria": "Sign in to existing cloud account",
     "signInOnlyDesc": "For existing subscribers",
