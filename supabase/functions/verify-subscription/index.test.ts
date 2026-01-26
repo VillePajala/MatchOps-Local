@@ -17,9 +17,9 @@ import {
 // =============================================================================
 
 /**
- * Helper to create a mock request
+ * Helper to create a mock request (for future integration tests)
  */
-function createMockRequest(
+function _createMockRequest(
   options: {
     method?: string;
     origin?: string;
@@ -171,7 +171,7 @@ Deno.test('Rate limiting: logic accepts first request', () => {
   const ip = 'test-ip-1';
   const now = Date.now();
   const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-  const RATE_LIMIT_MAX_REQUESTS = 10;
+  // RATE_LIMIT_MAX_REQUESTS = 10 (documented for context, not used in this test)
 
   // Simulate first request
   const record = store.get(ip);
