@@ -111,13 +111,9 @@ export class SyncEngine {
       window.addEventListener('offline', this.boundOfflineHandler);
     }
 
-    // Start periodic sync
-    this.intervalId = setInterval(() => {
-      this.doProcessQueue();
-    }, this.config.syncIntervalMs);
-
     // Reset any operations stuck in 'syncing' state from previous crash/close
-    // Block processing until reset completes to avoid race with interval
+    // CRITICAL: Block processing AND interval setup until reset completes
+    // This prevents race conditions between reset and queue processing
     this.isResettingStale = true;
     this.staleResetFailed = false;
     this.queue
@@ -131,8 +127,16 @@ export class SyncEngine {
       })
       .finally(() => {
         this.isResettingStale = false;
-        // Sync immediately if online - only after reset completes
-        if (this.isOnline && this.isRunning) {
+
+        // Start periodic sync AFTER stale reset completes (or fails)
+        // This prevents race conditions between reset and interval processing
+        this.intervalId = setInterval(() => {
+          this.doProcessQueue();
+        }, this.config.syncIntervalMs);
+
+        // Sync immediately if online AND reset succeeded
+        // If stale reset failed, don't process - operations may be stuck
+        if (this.isOnline && this.isRunning && !this.staleResetFailed) {
           this.doProcessQueue();
         }
       });
@@ -339,6 +343,14 @@ export class SyncEngine {
     // Block processing until stale reset completes (prevents race with interval)
     if (this.isResettingStale) {
       logger.debug('[SyncEngine] Waiting for stale reset to complete, skipping');
+      return;
+    }
+
+    // CRITICAL: Block processing if stale reset failed
+    // Operations stuck in 'syncing' status will never be picked up by getPending()
+    // which only returns 'pending' operations. This would cause silent data loss.
+    if (this.staleResetFailed) {
+      logger.warn('[SyncEngine] Stale reset failed, blocking queue processing to prevent data loss');
       return;
     }
 

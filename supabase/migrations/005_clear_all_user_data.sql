@@ -76,6 +76,9 @@ BEGIN
   DELETE FROM warmup_plans WHERE user_id = v_user_id;
   DELETE FROM user_settings WHERE user_id = v_user_id;
 
+  -- User consent records (GDPR: must be deleted when user clears all data)
+  DELETE FROM user_consents WHERE user_id = v_user_id;
+
 END;
 $$;
 
