@@ -2,8 +2,11 @@
  * SyncQueue Tests
  *
  * Tests for the persistent sync operation queue.
+ * These tests verify the core functionality of the local-first sync system.
  *
+ * @critical Core sync system - these tests protect against data loss
  * @see src/sync/SyncQueue.ts
+ * @see docs/03-active-plans/local-first-sync-plan.md
  */
 
 // Polyfill structuredClone for Node.js < 17 (required by fake-indexeddb)

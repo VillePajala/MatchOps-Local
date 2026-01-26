@@ -38,6 +38,41 @@ import {
 } from '@/services/reverseMigrationService';
 import logger from '@/utils/logger';
 
+/**
+ * Sanitize error messages to prevent information leakage.
+ * Maps internal error details to user-friendly messages.
+ */
+function sanitizeErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  const message = error.message.toLowerCase();
+
+  // Network/connectivity errors
+  if (message.includes('network') || message.includes('fetch') || message.includes('offline')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+
+  // Authentication/session errors
+  if (message.includes('not authenticated') || message.includes('session') || message.includes('unauthorized')) {
+    return 'Session expired. Please sign in again.';
+  }
+
+  // Rate limiting
+  if (message.includes('too many requests') || message.includes('rate limit')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+
+  // Database/storage errors
+  if (message.includes('database') || message.includes('storage') || message.includes('quota')) {
+    return 'Storage error. Please try again or contact support.';
+  }
+
+  // Generic fallback - don't expose internal details
+  return 'Download failed. Please try again.';
+}
+
 type WizardStep = 'preview' | 'choose' | 'confirm' | 'progress' | 'complete' | 'error';
 
 /** Maximum warnings to display before truncating with "...and X more" */
@@ -122,8 +157,8 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
       } catch (error) {
         logger.error('[ReverseMigrationWizard] Failed to load cloud data summary:', error);
         if (isMounted) {
-          const errorMsg = error instanceof Error ? error.message : 'Failed to load cloud data summary';
-          setSummaryError(errorMsg);
+          // SECURITY: Sanitize error message to prevent information leakage
+          setSummaryError(sanitizeErrorMessage(error));
           setIsLoadingSummary(false);
         }
       }
@@ -174,9 +209,10 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
       }
     } catch (error) {
       logger.error('[ReverseMigrationWizard] Reverse migration failed:', error);
+      // SECURITY: Sanitize error message to prevent information leakage
       setMigrationResult({
         success: false,
-        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        errors: [sanitizeErrorMessage(error)],
         warnings: [],
         downloaded: {
           players: 0,
@@ -239,8 +275,8 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
       setDataSummary(summary);
     } catch (error) {
       logger.error('[ReverseMigrationWizard] Failed to load cloud data summary:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Failed to load cloud data summary';
-      setSummaryError(errorMsg);
+      // SECURITY: Sanitize error message to prevent information leakage
+      setSummaryError(sanitizeErrorMessage(error));
     } finally {
       setIsLoadingSummary(false);
     }

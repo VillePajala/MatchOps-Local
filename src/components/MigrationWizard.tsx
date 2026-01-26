@@ -46,6 +46,41 @@ import { clearLocalIndexedDBData } from '@/utils/clearLocalData';
 import { disableCloudMode } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
+/**
+ * Sanitize error messages to prevent information leakage.
+ * Maps internal error details to user-friendly messages.
+ */
+function sanitizeErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  const message = error.message.toLowerCase();
+
+  // Network/connectivity errors
+  if (message.includes('network') || message.includes('fetch') || message.includes('offline')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+
+  // Authentication/session errors
+  if (message.includes('not authenticated') || message.includes('session') || message.includes('unauthorized')) {
+    return 'Session expired. Please sign in again.';
+  }
+
+  // Rate limiting
+  if (message.includes('too many requests') || message.includes('rate limit')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+
+  // Database/storage errors
+  if (message.includes('database') || message.includes('storage') || message.includes('quota')) {
+    return 'Storage error. Please try again or contact support.';
+  }
+
+  // Generic fallback - don't expose internal details
+  return 'Migration failed. Please try again.';
+}
+
 type WizardStep = 'loading' | 'select-action' | 'confirm' | 'progress' | 'complete' | 'error';
 
 /** Maximum warnings to display before truncating with "...and X more" */
@@ -200,9 +235,10 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       }
     } catch (error) {
       logger.error('[MigrationWizard] Migration failed:', error);
+      // SECURITY: Sanitize error message to prevent information leakage
       setMigrationResult({
         success: false,
-        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        errors: [sanitizeErrorMessage(error)],
         warnings: [],
         migrated: {
           players: 0,
