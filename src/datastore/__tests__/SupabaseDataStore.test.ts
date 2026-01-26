@@ -1443,6 +1443,123 @@ describe('SupabaseDataStore', () => {
         expect(tournament.name).toBe('Summer Cup');
         expect(tournament.ageGroup).toBe('U14');
       });
+
+      /**
+       * @edge-case Rule 6 - gameType composite uniqueness for tournaments
+       * Tournaments with same name/clubSeason/gender/ageGroup but different gameType should be allowed.
+       */
+      it('should allow same tournament name with different gameType (composite uniqueness)', async () => {
+        // Existing soccer tournament
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [{
+            id: 'tournament_existing',
+            name: 'City Championship',
+            club_season: '24/25',
+            game_type: 'soccer',
+            gender: 'boys',
+            age_group: 'U12',
+            level: null,
+            series: null,
+            location: null,
+            archived: false,
+            start_date: null,
+            end_date: null,
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            user_id: 'user_123',
+          }],
+          error: null,
+        });
+
+        // Creating same name for futsal should succeed (different gameType = different composite key)
+        const tournament = await dataStore.createTournament('City Championship', {
+          gameType: 'futsal',
+          gender: 'boys',
+          ageGroup: 'U12',
+        });
+
+        expect(tournament.name).toBe('City Championship');
+        expect(tournament.gameType).toBe('futsal');
+      });
+
+      /**
+       * @edge-case Rule 6 - gender composite uniqueness for tournaments
+       * Tournaments with same name/clubSeason/gameType/ageGroup but different gender should be allowed.
+       */
+      it('should allow same tournament name with different gender (composite uniqueness)', async () => {
+        // Existing boys tournament
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [{
+            id: 'tournament_existing',
+            name: 'Regional Cup',
+            club_season: '24/25',
+            game_type: 'soccer',
+            gender: 'boys',
+            age_group: 'U12',
+            level: null,
+            series: null,
+            location: null,
+            archived: false,
+            start_date: null,
+            end_date: null,
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            user_id: 'user_123',
+          }],
+          error: null,
+        });
+
+        // Creating same name for girls should succeed (different gender = different composite key)
+        const tournament = await dataStore.createTournament('Regional Cup', {
+          gameType: 'soccer',
+          gender: 'girls',
+          ageGroup: 'U12',
+        });
+
+        expect(tournament.name).toBe('Regional Cup');
+        expect(tournament.gender).toBe('girls');
+      });
+
+      /**
+       * @edge-case Rule 6 - clubSeason composite uniqueness for tournaments
+       * Tournaments with same name/gameType/gender/ageGroup but different clubSeason should be allowed.
+       */
+      it('should allow same tournament name with different clubSeason (composite uniqueness)', async () => {
+        // Existing tournament for 24/25 season
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [{
+            id: 'tournament_existing',
+            name: 'Spring Cup',
+            club_season: '24/25',
+            game_type: 'soccer',
+            gender: 'boys',
+            age_group: 'U12',
+            level: null,
+            series: null,
+            location: null,
+            archived: false,
+            start_date: null,
+            end_date: null,
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            user_id: 'user_123',
+          }],
+          error: null,
+        });
+
+        // Creating same name for 25/26 season should succeed
+        // Note: clubSeason is computed from startDate. Default season is Nov 15 - Oct 20.
+        // Nov 20, 2025 falls in the 25/26 season (after Nov 15, 2025 start).
+        const tournament = await dataStore.createTournament('Spring Cup', {
+          gameType: 'soccer',
+          gender: 'boys',
+          ageGroup: 'U12',
+          startDate: '2025-11-20', // Falls in 25/26 season (different from existing 24/25)
+        });
+
+        expect(tournament.name).toBe('Spring Cup');
+        // The clubSeason will be computed from startDate as '25/26'
+      });
     });
 
     describe('updateTournament', () => {

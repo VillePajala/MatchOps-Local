@@ -21,10 +21,11 @@ import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
 // Safe logger wrapper for test environments
+// Accepts optional Error object as second parameter to preserve stack traces for Sentry
 const log = {
   info: (msg: string) => logger?.info?.(msg),
-  warn: (msg: string) => logger?.warn?.(msg),
-  error: (msg: string) => logger?.error?.(msg),
+  warn: (msg: string, error?: Error) => error ? logger?.warn?.(msg, error) : logger?.warn?.(msg),
+  error: (msg: string, error?: Error) => error ? logger?.error?.(msg, error) : logger?.error?.(msg),
 };
 
 // Singleton instances
@@ -66,11 +67,18 @@ export async function getDataStore(): Promise<DataStore> {
   if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
     log.info(`[factory] Mode changed from ${dataStoreCreatedForMode} to ${currentMode} - resetting DataStore`);
 
+    // Save reference for cleanup, then immediately null to prevent race conditions
+    // (other callers see null and wait for re-initialization via the init promise)
+    const oldDataStore = dataStoreInstance;
+    const oldMode = dataStoreCreatedForMode;
+    dataStoreInstance = null;
+    dataStoreCreatedForMode = null;
+
     // If switching FROM cloud mode, clean up sync engine and Supabase resources
     // This prevents stale auth subscriptions and memory leaks
     // Cleanup order: check pending → stop engine → cleanup Supabase → close DataStore
     // (check first to capture what will be lost before engine stops processing)
-    if (dataStoreCreatedForMode === 'cloud') {
+    if (oldMode === 'cloud') {
       // Step 1: Check for pending sync operations (before stopping engine)
       // WARNING: This is a safety net - proper protection should happen in the UI layer
       // BEFORE calling setBackendMode(). The UI should call getPendingSyncCount() and
@@ -86,8 +94,10 @@ export async function getDataStore(): Promise<DataStore> {
         }
       } catch (e) {
         // Expected: engine not initialized. Unexpected errors logged for debugging.
-        if (e instanceof Error && !e.message.includes('not initialized')) {
-          log.warn(`[factory] Unexpected error checking pending operations: ${e.message}`);
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes('not initialized')) {
+          const err = e instanceof Error ? e : new Error(msg);
+          log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
         }
       }
 
@@ -97,7 +107,8 @@ export async function getDataStore(): Promise<DataStore> {
         await resetSyncEngine();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        log.warn(`[factory] Error resetting sync engine during mode change: ${msg}`);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error resetting sync engine during mode change: ${msg}`, err);
       }
 
       // Step 3: Clean up Supabase client
@@ -106,19 +117,19 @@ export async function getDataStore(): Promise<DataStore> {
         await cleanupSupabaseClient();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        log.warn(`[factory] Error cleaning up Supabase client during mode change: ${msg}`);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error cleaning up Supabase client during mode change: ${msg}`, err);
       }
     }
 
-    // Close the old instance
+    // Close the old instance (reference saved before nulling)
     try {
-      await dataStoreInstance.close();
+      await oldDataStore.close();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      log.warn(`[factory] Error closing old DataStore during mode change: ${msg}`);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error closing old DataStore during mode change: ${msg}`, err);
     }
-    dataStoreInstance = null;
-    dataStoreCreatedForMode = null;
   }
 
   // Already initialized for current mode - return immediately
@@ -170,7 +181,8 @@ export async function getDataStore(): Promise<DataStore> {
       } catch (error) {
         // Clean up syncedStore if cloud setup fails
         const errorMessage = error instanceof Error ? error.message : String(error);
-        log.warn(`[factory] Cloud setup failed: ${errorMessage}, cleaning up SyncedDataStore`);
+        const err = error instanceof Error ? error : new Error(errorMessage);
+        log.warn(`[factory] Cloud setup failed: ${errorMessage}, cleaning up SyncedDataStore`, err);
         await syncedStore.close();
         // Re-throw with context for better debugging
         throw new Error(`[factory] Cloud mode initialization failed: ${errorMessage}`);
@@ -221,8 +233,25 @@ export async function getAuthService(): Promise<AuthService> {
   // This handles the case where user enables/disables cloud sync
   if (authServiceInstance && authServiceCreatedForMode !== currentMode) {
     log.info(`[factory] Mode changed from ${authServiceCreatedForMode} to ${currentMode} - resetting AuthService`);
+
+    // Save reference for cleanup, then immediately null to prevent race conditions
+    // (other callers see null and wait for re-initialization)
+    const oldAuthService = authServiceInstance;
+    const oldMode = authServiceCreatedForMode;
     authServiceInstance = null;
     authServiceCreatedForMode = null;
+
+    // If switching FROM cloud mode, clean up auth subscriptions
+    // signOut() clears Supabase auth state and unsubscribes listeners
+    if (oldMode === 'cloud') {
+      try {
+        await oldAuthService.signOut();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error signing out during mode change: ${msg}`, err);
+      }
+    }
   }
 
   // Already initialized for current mode - return immediately
@@ -281,21 +310,47 @@ export async function resetFactory(): Promise<void> {
   if (dataStoreInitPromise) {
     try {
       await dataStoreInitPromise;
-    } catch {
-      // Best-effort cleanup: ignore init errors.
+    } catch (e) {
+      // Best-effort cleanup: log but don't throw
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error awaiting dataStoreInitPromise during reset: ${msg}`, err);
+    }
+  }
+
+  // Reset sync engine if cloud mode was active (prevents memory leaks in tests)
+  if (dataStoreCreatedForMode === 'cloud') {
+    try {
+      const { resetSyncEngine } = await import('@/sync');
+      await resetSyncEngine();
+    } catch (e) {
+      // Best-effort cleanup: log but don't throw (engine may not be initialized)
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error resetting sync engine during factory reset: ${msg}`, err);
     }
   }
 
   if (dataStoreInstance) {
-    await dataStoreInstance.close();
+    try {
+      await dataStoreInstance.close();
+    } catch (e) {
+      // Best-effort cleanup: log but don't throw
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error closing DataStore during reset: ${msg}`, err);
+    }
     dataStoreInstance = null;
   }
 
   if (authServiceInitPromise) {
     try {
       await authServiceInitPromise;
-    } catch {
-      // Best-effort cleanup: ignore init errors.
+    } catch (e) {
+      // Best-effort cleanup: log but don't throw
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error awaiting authServiceInitPromise during reset: ${msg}`, err);
     }
   }
 
@@ -334,6 +389,7 @@ export function isAuthServiceInitialized(): boolean {
  * 3. Show user confirmation dialog explaining data will be lost
  *
  * @returns Number of pending operations, or 0 if not in cloud mode or engine not initialized
+ * @throws Error if an unexpected error occurs (to prevent masking potential data loss)
  */
 export async function getPendingSyncCount(): Promise<number> {
   if (dataStoreCreatedForMode !== 'cloud') {
@@ -345,8 +401,16 @@ export async function getPendingSyncCount(): Promise<number> {
     const engine = getSyncEngine();
     const status = await engine.getStatus();
     return status.pendingCount;
-  } catch {
-    // Engine may not be initialized
-    return 0;
+  } catch (e) {
+    // Engine not initialized is expected - return 0 (no pending operations if engine not running)
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('not initialized')) {
+      return 0;
+    }
+    // Unexpected errors: throw to prevent UI from assuming it's safe to switch modes
+    // Returning 0 here could mask data loss if there are actually pending operations
+    const err = e instanceof Error ? e : new Error(msg);
+    log.error(`[factory] Unexpected error getting pending sync count: ${msg}`, err);
+    throw err;
   }
 }
