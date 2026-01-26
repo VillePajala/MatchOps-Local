@@ -69,6 +69,12 @@ export interface UsePlayBillingResult {
 let sessionRefreshPromise: Promise<Session | null> | null = null;
 
 /**
+ * Timeout for session refresh operations (10 seconds).
+ * Prevents deadlock if Supabase auth hangs.
+ */
+const SESSION_REFRESH_TIMEOUT_MS = 10000;
+
+/**
  * Ensure we have a fresh, valid session for Edge Function calls.
  *
  * The Edge Function has verify_jwt: true, so Supabase's API gateway validates
@@ -78,64 +84,79 @@ let sessionRefreshPromise: Promise<Session | null> | null = null;
  * Uses a module-level lock to prevent concurrent refresh calls from causing
  * auth state conflicts (e.g., multiple simultaneous purchases).
  *
+ * Includes timeout protection to prevent deadlock if auth service hangs.
+ *
  * @returns Fresh session or null if not authenticated
  */
-async function ensureFreshSession() {
+async function ensureFreshSession(): Promise<Session | null> {
   // If a refresh is already in progress, wait for it instead of starting another
   if (sessionRefreshPromise) {
     logger.debug('[usePlayBilling] Session refresh already in progress, waiting...');
     return sessionRefreshPromise;
   }
 
-  // Create the refresh promise and store it
-  sessionRefreshPromise = (async () => {
-    try {
-      const supabase = getSupabaseClient();
+  // The actual refresh logic
+  const doRefresh = async (): Promise<Session | null> => {
+    const supabase = getSupabaseClient();
 
-      // First, get the current cached session
-      const { data: { session: cachedSession }, error: sessionError } = await supabase.auth.getSession();
+    // First, get the current cached session
+    const { data: { session: cachedSession }, error: sessionError } = await supabase.auth.getSession();
 
-      if (sessionError) {
-        logger.error('[usePlayBilling] Error getting session:', sessionError.message);
-        return null;
-      }
-
-      if (!cachedSession) {
-        logger.error('[usePlayBilling] No session found');
-        return null;
-      }
-
-      // Check if token is expired or about to expire (within 60 seconds)
-      const expiresAt = cachedSession.expires_at;
-      const now = Math.floor(Date.now() / 1000);
-      const bufferSeconds = 60;
-
-      if (expiresAt && expiresAt < now + bufferSeconds) {
-        logger.info('[usePlayBilling] Access token expired or expiring soon, refreshing...');
-
-        // Force refresh the session to get a fresh access token
-        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-
-        if (refreshError) {
-          logger.error('[usePlayBilling] Failed to refresh session:', refreshError.message);
-          return null;
-        }
-
-        if (!refreshedSession) {
-          logger.error('[usePlayBilling] No session after refresh - user may need to re-login');
-          return null;
-        }
-
-        logger.info('[usePlayBilling] Session refreshed successfully');
-        return refreshedSession;
-      }
-
-      return cachedSession;
-    } finally {
-      // Clear the lock after completion (success or failure)
-      sessionRefreshPromise = null;
+    if (sessionError) {
+      logger.error('[usePlayBilling] Error getting session:', sessionError.message);
+      return null;
     }
-  })();
+
+    if (!cachedSession) {
+      logger.error('[usePlayBilling] No session found');
+      return null;
+    }
+
+    // Check if token is expired or about to expire (within 60 seconds)
+    const expiresAt = cachedSession.expires_at;
+    const now = Math.floor(Date.now() / 1000);
+    const bufferSeconds = 60;
+
+    if (expiresAt && expiresAt < now + bufferSeconds) {
+      logger.info('[usePlayBilling] Access token expired or expiring soon, refreshing...');
+
+      // Force refresh the session to get a fresh access token
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (refreshError) {
+        logger.error('[usePlayBilling] Failed to refresh session:', refreshError.message);
+        return null;
+      }
+
+      if (!refreshedSession) {
+        logger.error('[usePlayBilling] No session after refresh - user may need to re-login');
+        return null;
+      }
+
+      logger.info('[usePlayBilling] Session refreshed successfully');
+      return refreshedSession;
+    }
+
+    return cachedSession;
+  };
+
+  // Create timeout promise to prevent deadlock
+  const timeoutPromise = new Promise<Session | null>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('Session refresh timeout - auth service may be unavailable'));
+    }, SESSION_REFRESH_TIMEOUT_MS);
+  });
+
+  // Create the refresh promise with timeout protection
+  sessionRefreshPromise = Promise.race([doRefresh(), timeoutPromise])
+    .catch((error) => {
+      logger.error('[usePlayBilling] Session refresh failed:', error);
+      return null;
+    })
+    .finally(() => {
+      // Always clear the lock, even on timeout/error
+      sessionRefreshPromise = null;
+    });
 
   return sessionRefreshPromise;
 }
