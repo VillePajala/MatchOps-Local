@@ -51,6 +51,7 @@ export class SyncEngine {
   private isRunning = false;
   private isSyncing = false;
   private isResettingStale = false; // Blocks processing until stale reset completes
+  private staleResetFailed = false; // True if stale reset failed - operations may be stuck
   private pendingStatusEmit = false; // Coalesces rapid status change emissions
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = true;
@@ -118,10 +119,15 @@ export class SyncEngine {
     // Reset any operations stuck in 'syncing' state from previous crash/close
     // Block processing until reset completes to avoid race with interval
     this.isResettingStale = true;
+    this.staleResetFailed = false;
     this.queue
       .resetStaleSyncing()
       .catch((e) => {
         logger.error('[SyncEngine] Failed to reset stale syncing operations:', e);
+        // Track that reset failed - operations may be stuck in 'syncing' state
+        this.staleResetFailed = true;
+        // Emit status change so UI can show warning about potential sync issues
+        this.emitStatusChange();
       })
       .finally(() => {
         this.isResettingStale = false;
@@ -227,6 +233,7 @@ export class SyncEngine {
       failedCount: stats.failed,
       lastSyncedAt: this.lastSyncedAt,
       isOnline: this.isOnline,
+      hasStaleResetFailure: this.staleResetFailed,
     };
   }
 

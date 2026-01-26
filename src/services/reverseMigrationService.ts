@@ -386,10 +386,22 @@ export async function migrateCloudToLocal(
     }
 
     // Step 6: Switch to local mode
-    // For delete-cloud mode: only switch if deletion succeeded (prevents confusing state)
-    // For keep-cloud mode: always attempt to switch
+    // ONLY switch if:
+    // - Verification passed (local data matches cloud data)
+    // - No critical save failures (all important entities saved locally)
+    // - For delete-cloud mode: deletion succeeded
+    // This prevents leaving user in local mode with incomplete data
     let modeSwitch = false;
-    if (mode === 'delete-cloud' && deleteFailed) {
+    const canSwitchMode = verificationResult.success && !hasCriticalSaveFailures;
+
+    if (!canSwitchMode) {
+      // Don't switch to local mode - local data is incomplete
+      logger.warn('[ReverseMigrationService] Not switching to local mode: verification failed or critical save failures occurred');
+      warnings.push(
+        'Mode switch skipped: Local data may be incomplete. Your data remains in cloud mode. ' +
+        'Please retry the migration to ensure all data is saved locally before switching.'
+      );
+    } else if (mode === 'delete-cloud' && deleteFailed) {
       // Don't switch to local mode if deletion failed - user can retry from cloud mode
       logger.warn('[ReverseMigrationService] Not switching to local mode because cloud deletion failed');
     } else {

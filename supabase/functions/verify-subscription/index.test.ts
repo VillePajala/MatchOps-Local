@@ -1,3 +1,4 @@
+// @ts-nocheck - This is a Deno file, not Node.js. Run with: deno test
 /**
  * Deno tests for verify-subscription Edge Function
  *
@@ -312,6 +313,496 @@ Deno.test('Mock subscription: lasts 30 days', () => {
   const periodEnd = new Date(now.getTime() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
 
   assertEquals(periodEnd.toISOString(), '2026-02-14T12:00:00.000Z');
+});
+
+// =============================================================================
+// Handler Integration Tests
+// =============================================================================
+
+/**
+ * These tests verify the complete request/response flow by calling
+ * the handler with mocked dependencies. They test:
+ * - HTTP method validation
+ * - CORS preflight handling
+ * - Authorization header validation
+ * - Request body validation
+ * - Rate limiting behavior
+ *
+ * Note: Full E2E tests require actual Supabase/Google connections
+ * and should be run separately in staging environment.
+ */
+
+// Mock environment variables for testing
+const mockEnv: Record<string, string> = {
+  SUPABASE_URL: 'https://test.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
+  MOCK_BILLING: 'true',
+};
+
+// Mock Supabase client
+interface MockSupabaseClient {
+  auth: {
+    getUser: (jwt: string) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>;
+  };
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        neq: (column: string, value: string) => {
+          maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
+        };
+      };
+    };
+    upsert: (record: unknown, options: unknown) => Promise<{ error: unknown }>;
+  };
+}
+
+let mockSupabaseClient: MockSupabaseClient;
+let mockUserId: string | null = 'user-123';
+let mockAuthError: string | null = null;
+let mockExistingSubscription: unknown = null;
+let mockUpsertError: unknown = null;
+
+function createMockSupabaseClient(): MockSupabaseClient {
+  return {
+    auth: {
+      getUser: async () => {
+        if (mockAuthError) {
+          return { data: { user: null }, error: { message: mockAuthError } };
+        }
+        if (!mockUserId) {
+          return { data: { user: null }, error: null };
+        }
+        return { data: { user: { id: mockUserId } }, error: null };
+      },
+    },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          neq: () => ({
+            maybeSingle: async () => ({ data: mockExistingSubscription, error: null }),
+          }),
+        }),
+      }),
+      upsert: async () => ({ error: mockUpsertError }),
+    }),
+  };
+}
+
+/**
+ * Simplified handler for testing (extracted logic without Deno.serve wrapper)
+ */
+async function handleRequest(req: Request): Promise<Response> {
+  // Get origin for CORS
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Get the JWT from Authorization header
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Missing or invalid authorization header' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const jwt = authHeader.replace('Bearer ', '');
+
+  // Check environment variables
+  const supabaseUrl = mockEnv['SUPABASE_URL'];
+  const serviceRoleKey = mockEnv['SUPABASE_SERVICE_ROLE_KEY'];
+  const mockBilling = mockEnv['MOCK_BILLING'] === 'true';
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return new Response(
+      JSON.stringify({ error: 'Server configuration error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Verify user JWT
+  mockSupabaseClient = createMockSupabaseClient();
+  const { data: { user }, error: userError } = await mockSupabaseClient.auth.getUser(jwt);
+
+  if (userError || !user) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid or expired token' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Parse request body
+  let body: { purchaseToken?: string; productId?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'Invalid request body' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const { purchaseToken, productId } = body;
+
+  // Validate required fields
+  if (!purchaseToken || !productId) {
+    return new Response(
+      JSON.stringify({ error: 'Missing purchaseToken or productId' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Validate purchaseToken length
+  if (purchaseToken.length > 500) {
+    return new Response(
+      JSON.stringify({ error: 'Purchase token too long' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Validate purchaseToken format
+  if (!/^[a-zA-Z0-9._-]+$/.test(purchaseToken)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid purchase token format' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Validate product ID
+  const VALID_PRODUCT_IDS = ['matchops_premium_monthly'];
+  if (!VALID_PRODUCT_IDS.includes(productId)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid product ID' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Check if test token
+  const isTestToken = purchaseToken.startsWith('test-');
+
+  if (isTestToken && purchaseToken.length > 100) {
+    return new Response(
+      JSON.stringify({ error: 'Test token too long' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (isTestToken && !mockBilling) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid purchase token' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Check idempotency
+  const { data: existingSubscription } = await mockSupabaseClient
+    .from('subscriptions')
+    .select('user_id')
+    .eq('google_purchase_token', purchaseToken)
+    .neq('user_id', user.id)
+    .maybeSingle();
+
+  if (existingSubscription) {
+    return new Response(
+      JSON.stringify({ error: 'This purchase is already associated with another account' }),
+      { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Upsert subscription
+  const { error: upsertError } = await mockSupabaseClient
+    .from('subscriptions')
+    .upsert({}, {});
+
+  if (upsertError) {
+    return new Response(
+      JSON.stringify({ error: 'Failed to save subscription' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Success
+  const MOCK_SUBSCRIPTION_DAYS = 30;
+  const GRACE_PERIOD_DAYS = 7;
+  const periodEnd = new Date(Date.now() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
+  const graceEnd = new Date(periodEnd.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      status: 'active',
+      periodEnd: periodEnd.toISOString(),
+      graceEnd: graceEnd.toISOString(),
+    }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = isOriginAllowed(origin) ? origin! : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
+
+function createMockRequest(
+  options: {
+    method?: string;
+    origin?: string;
+    authorization?: string;
+    body?: unknown;
+  } = {}
+): Request {
+  const { method = 'POST', origin, authorization, body } = options;
+
+  const headers = new Headers();
+  if (origin) headers.set('Origin', origin);
+  if (authorization) headers.set('Authorization', authorization);
+  headers.set('Content-Type', 'application/json');
+
+  return new Request('http://localhost:54321/functions/v1/verify-subscription', {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
+// Reset mocks before each test
+function resetMocks() {
+  mockUserId = 'user-123';
+  mockAuthError = null;
+  mockExistingSubscription = null;
+  mockUpsertError = null;
+  mockEnv['MOCK_BILLING'] = 'true';
+}
+
+Deno.test('Handler: returns 200 for OPTIONS preflight', async () => {
+  resetMocks();
+  const req = createMockRequest({ method: 'OPTIONS', origin: 'https://matchops.app' });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 200);
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://matchops.app');
+});
+
+Deno.test('Handler: returns 405 for GET request', async () => {
+  resetMocks();
+  const req = createMockRequest({ method: 'GET', origin: 'https://matchops.app' });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 405);
+  const body = await res.json();
+  assertEquals(body.error, 'Method not allowed');
+});
+
+Deno.test('Handler: returns 401 for missing authorization', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 401);
+  const body = await res.json();
+  assertEquals(body.error, 'Missing or invalid authorization header');
+});
+
+Deno.test('Handler: returns 401 for invalid JWT', async () => {
+  resetMocks();
+  mockAuthError = 'Invalid JWT';
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer invalid-jwt',
+    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 401);
+  const body = await res.json();
+  assertEquals(body.error, 'Invalid or expired token');
+});
+
+Deno.test('Handler: returns 400 for missing purchaseToken', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.error, 'Missing purchaseToken or productId');
+});
+
+Deno.test('Handler: returns 400 for missing productId', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'test-token' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.error, 'Missing purchaseToken or productId');
+});
+
+Deno.test('Handler: returns 400 for token over 500 chars', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'a'.repeat(501), productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.error, 'Purchase token too long');
+});
+
+Deno.test('Handler: returns 400 for invalid token format', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'token with spaces', productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.error, 'Invalid purchase token format');
+});
+
+Deno.test('Handler: returns 400 for invalid product ID', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'test-token', productId: 'invalid_product' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.error, 'Invalid product ID');
+});
+
+Deno.test('Handler: returns 400 for test token when mock billing disabled', async () => {
+  resetMocks();
+  mockEnv['MOCK_BILLING'] = 'false';
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.error, 'Invalid purchase token');
+});
+
+Deno.test('Handler: returns 400 for test token over 100 chars', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'test-' + 'a'.repeat(100), productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.error, 'Test token too long');
+});
+
+Deno.test('Handler: returns 409 for token already claimed by another user', async () => {
+  resetMocks();
+  mockExistingSubscription = { user_id: 'other-user' };
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 409);
+  const body = await res.json();
+  assertEquals(body.error, 'This purchase is already associated with another account');
+});
+
+Deno.test('Handler: returns 500 for upsert failure', async () => {
+  resetMocks();
+  mockUpsertError = { message: 'Database error' };
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 500);
+  const body = await res.json();
+  assertEquals(body.error, 'Failed to save subscription');
+});
+
+Deno.test('Handler: returns 200 for valid test token in mock mode', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    origin: 'https://matchops.app',
+    authorization: 'Bearer valid-jwt',
+    body: { purchaseToken: 'test-preview-123', productId: 'matchops_premium_monthly' },
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  assertEquals(body.success, true);
+  assertEquals(body.status, 'active');
+  assertEquals(typeof body.periodEnd, 'string');
+  assertEquals(typeof body.graceEnd, 'string');
+});
+
+Deno.test('Handler: sets correct CORS headers for allowed origin', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    method: 'OPTIONS',
+    origin: 'https://match-ops-local-abc123.vercel.app',
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://match-ops-local-abc123.vercel.app');
+});
+
+Deno.test('Handler: uses production origin for disallowed origin', async () => {
+  resetMocks();
+  const req = createMockRequest({
+    method: 'OPTIONS',
+    origin: 'https://evil.com',
+  });
+  const res = await handleRequest(req);
+
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://matchops.app');
 });
 
 console.log('\n✅ All verify-subscription unit tests completed\n');

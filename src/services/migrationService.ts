@@ -151,10 +151,20 @@ export interface EntityUploadFailure {
 /**
  * Result of uploading data to cloud storage.
  */
+interface UploadedEntityIds {
+  players: Set<string>;
+  teams: Set<string>;
+  seasons: Set<string>;
+  tournaments: Set<string>;
+  games: Set<string>;
+  personnel: Set<string>;
+}
+
 interface UploadToCloudResult {
   counts: MigrationCounts;
   failures: EntityUploadFailure[];
   warnings: string[];
+  uploadedIds: UploadedEntityIds;
 }
 
 /**
@@ -464,7 +474,7 @@ async function performMigration(
     const uploadStartProgress = PROGRESS_RANGES.UPLOADING.start + (mode === 'replace' ? CLEARING_STAGE_PROGRESS_OFFSET : 0);
     safeProgress({ stage: 'uploading', progress: uploadStartProgress, message: MIGRATION_MESSAGES.UPLOADING });
 
-    const { counts: uploadedCounts, failures: uploadFailures, warnings: uploadWarnings } = await uploadToCloud(
+    const { counts: uploadedCounts, failures: uploadFailures, warnings: uploadWarnings, uploadedIds } = await uploadToCloud(
       sanitizedLocalData,
       cloudStore,
       safeProgress
@@ -503,10 +513,23 @@ async function performMigration(
         ['player', 'team', 'game', 'season', 'tournament', 'personnel'].includes(f.entityType)
       ) || skippedGames.length > 0;
 
+    // CRITICAL: In replace mode, cloud data was already cleared. If upload had critical failures,
+    // some data may be permanently lost. Add explicit error so user knows to restore from backup.
+    if (mode === 'replace' && hasCriticalUploadFailures) {
+      const totalGames = Object.keys(sanitizedLocalData.games).length;
+      const failedGames = uploadFailures.filter(f => f.entityType === 'game').length + skippedGames.length;
+      errors.push(
+        `CRITICAL DATA LOSS WARNING: Cloud data was cleared but upload failed for some entities. ` +
+        `${uploadedCounts.games} of ${totalGames} games were uploaded successfully. ` +
+        `The remaining ${failedGames} games may be lost unless you have a local backup. ` +
+        `Do NOT clear local data until you verify all your data is in the cloud.`
+      );
+    }
+
     // Step 7: Verify counts match (compares actual uploads vs expected)
     safeProgress({ stage: 'verifying', progress: PROGRESS_RANGES.VERIFYING.start, message: MIGRATION_MESSAGES.VERIFYING });
 
-    const verified = await verifyMigration(sanitizedLocalData, cloudStore, preCounts);
+    const verified = await verifyMigration(sanitizedLocalData, cloudStore, preCounts, uploadedIds);
 
     // Add verification warnings (e.g., pre-existing cloud data)
     if (verified.warnings.length > 0) {
@@ -1075,9 +1098,15 @@ async function uploadToCloud(
   };
   const failures: EntityUploadFailure[] = [];
   const warnings: string[] = [];
-  const uploadedSeasonIds = new Set<string>();
-  const uploadedTournamentIds = new Set<string>();
-  const uploadedTeamIds = new Set<string>();
+  // Track all successfully uploaded entity IDs for verification
+  const uploadedIds: UploadedEntityIds = {
+    players: new Set<string>(),
+    teams: new Set<string>(),
+    seasons: new Set<string>(),
+    tournaments: new Set<string>(),
+    games: new Set<string>(),
+    personnel: new Set<string>(),
+  };
 
   // Calculate progress within the uploading range
   const { start, end } = PROGRESS_RANGES.UPLOADING;
@@ -1097,6 +1126,7 @@ async function uploadToCloud(
     try {
       await cloudStore.upsertPlayer(player);
       counts.players++;
+      uploadedIds.players.add(player.id);
     } catch (err) {
       failures.push({
         entityType: 'player',
@@ -1114,7 +1144,7 @@ async function uploadToCloud(
     try {
       await cloudStore.upsertSeason(season);
       counts.seasons++;
-      uploadedSeasonIds.add(season.id);
+      uploadedIds.seasons.add(season.id);
     } catch (err) {
       failures.push({
         entityType: 'season',
@@ -1132,7 +1162,7 @@ async function uploadToCloud(
     try {
       await cloudStore.upsertTournament(tournament);
       counts.tournaments++;
-      uploadedTournamentIds.add(tournament.id);
+      uploadedIds.tournaments.add(tournament.id);
     } catch (err) {
       failures.push({
         entityType: 'tournament',
@@ -1150,7 +1180,7 @@ async function uploadToCloud(
     try {
       await cloudStore.upsertTeam(team);
       counts.teams++;
-      uploadedTeamIds.add(team.id);
+      uploadedIds.teams.add(team.id);
     } catch (err) {
       failures.push({
         entityType: 'team',
@@ -1165,7 +1195,7 @@ async function uploadToCloud(
   // 5. Team rosters (must come after players and teams)
   updateProgress('team rosters');
   for (const [teamId, roster] of data.teamRosters) {
-    if (!uploadedTeamIds.has(teamId)) {
+    if (!uploadedIds.teams.has(teamId)) {
       warnings.push(`Team roster for ${teamId}: skipped because team failed to upload`);
       continue;
     }
@@ -1189,6 +1219,7 @@ async function uploadToCloud(
     try {
       await cloudStore.upsertPersonnelMember(member);
       counts.personnel++;
+      uploadedIds.personnel.add(member.id);
     } catch (err) {
       failures.push({
         entityType: 'personnel',
@@ -1208,11 +1239,11 @@ async function uploadToCloud(
     const game = data.games[gameId];
     let gameToUpload = game;
 
-    if (gameToUpload.seasonId && !uploadedSeasonIds.has(gameToUpload.seasonId)) {
+    if (gameToUpload.seasonId && !uploadedIds.seasons.has(gameToUpload.seasonId)) {
       gameToUpload = { ...gameToUpload, seasonId: '' };
       warnings.push(`Game ${gameId}: cleared missing season reference (upload failed)`);
     }
-    if (gameToUpload.tournamentId && !uploadedTournamentIds.has(gameToUpload.tournamentId)) {
+    if (gameToUpload.tournamentId && !uploadedIds.tournaments.has(gameToUpload.tournamentId)) {
       gameToUpload = {
         ...gameToUpload,
         tournamentId: '',
@@ -1221,7 +1252,7 @@ async function uploadToCloud(
       };
       warnings.push(`Game ${gameId}: cleared missing tournament reference (upload failed)`);
     }
-    if (gameToUpload.teamId && !uploadedTeamIds.has(gameToUpload.teamId)) {
+    if (gameToUpload.teamId && !uploadedIds.teams.has(gameToUpload.teamId)) {
       gameToUpload = { ...gameToUpload, teamId: '' };
       warnings.push(`Game ${gameId}: cleared missing team reference (upload failed)`);
     }
@@ -1243,6 +1274,7 @@ async function uploadToCloud(
     try {
       await cloudStore.saveGame(gameId, gameToUpload);
       counts.games++;
+      uploadedIds.games.add(gameId);
     } catch (err) {
       failures.push({
         entityType: 'game',
@@ -1260,12 +1292,12 @@ async function uploadToCloud(
     for (const adjustment of adjustments) {
       let adjustmentToUpload = adjustment;
       let adjustmentModified = false;
-      if (adjustmentToUpload.seasonId && !uploadedSeasonIds.has(adjustmentToUpload.seasonId)) {
+      if (adjustmentToUpload.seasonId && !uploadedIds.seasons.has(adjustmentToUpload.seasonId)) {
         adjustmentToUpload = { ...adjustmentToUpload, seasonId: undefined };
         adjustmentModified = true;
         warnings.push(`Adjustment ${adjustment.id}: cleared missing season reference (upload failed)`);
       }
-      if (adjustmentToUpload.tournamentId && !uploadedTournamentIds.has(adjustmentToUpload.tournamentId)) {
+      if (adjustmentToUpload.tournamentId && !uploadedIds.tournaments.has(adjustmentToUpload.tournamentId)) {
         adjustmentToUpload = { ...adjustmentToUpload, tournamentId: undefined };
         adjustmentModified = true;
         warnings.push(`Adjustment ${adjustment.id}: cleared missing tournament reference (upload failed)`);
@@ -1318,7 +1350,7 @@ async function uploadToCloud(
     }
   }
 
-  return { counts, failures, warnings };
+  return { counts, failures, warnings, uploadedIds };
 }
 
 // =============================================================================
@@ -1352,27 +1384,22 @@ async function getCloudCounts(cloudStore: SupabaseDataStore): Promise<CloudCount
 /**
  * Verify migration by comparing actual uploads against expected.
  *
- * Uses pre/post snapshot comparison to detect partial upload failures:
- * - Fresh migration (pre=0): postCount should equal localCount
- * - Merge migration (pre>0): postCount should be >= max(pre, local) due to upserts
+ * Uses both count-based comparison AND ID-based verification for reliability:
+ * - Count comparison catches bulk failures quickly
+ * - ID verification catches individual entities that failed but counts might miss
  *
- * Why this is complex:
- * - Upserts UPDATE existing entities (count unchanged) or INSERT new ones (count +1)
- * - If local and cloud have overlapping IDs, upserts update, not insert
- * - We can't distinguish "updated existing" from "failed to upload" by count alone
- *
- * Strategy:
- * - If pre=0 (fresh): post should equal local (simple case)
- * - If pre>0 (merge): post should be >= pre (no data lost) AND post >= local (all local exists)
- *   The second check catches the edge case where pre=50, local=100, only 30 new uploaded → post=80
- *   80 >= 50 (ok) but 80 < 100 (fail)
+ * Why ID verification is important (merge mode edge case):
+ * - Pre=10, Local=10 (different IDs), only 5 new uploaded → Post=15
+ * - Count check passes (15 >= 10) but 5 local entities never made it to cloud
+ * - ID check catches this: "These local IDs are missing from cloud: [...]"
  *
  * Returns warnings when cloud had pre-existing data (pre > 0).
  */
 async function verifyMigration(
   localData: LocalDataSnapshot,
   cloudStore: SupabaseDataStore,
-  preCounts: CloudCounts
+  preCounts: CloudCounts,
+  uploadedIds: UploadedEntityIds
 ): Promise<{ success: boolean; errors: string[]; warnings: string[] }> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -1380,7 +1407,7 @@ async function verifyMigration(
   // Get post-migration counts
   const postCounts = await getCloudCounts(cloudStore);
 
-  // Helper to verify counts
+  // Helper to verify counts (quick sanity check)
   const compareCount = (
     entity: string,
     localCount: number,
@@ -1399,11 +1426,6 @@ async function verifyMigration(
       // Merge migration: cloud had pre-existing data
       warnings.push(`${entity}: cloud had ${preCount} pre-existing (now ${postCount} total)`);
 
-      // Post should be at least as many as local (all local data should exist)
-      if (postCount < localCount) {
-        errors.push(`${entity}: cloud has ${postCount} but local had ${localCount} (some failed to upload)`);
-      }
-
       // Post should be >= pre (no data was lost during migration)
       if (postCount < preCount) {
         errors.push(`${entity}: cloud lost data during migration (was ${preCount}, now ${postCount})`);
@@ -1411,13 +1433,41 @@ async function verifyMigration(
     }
   };
 
-  // Compare all entity counts
+  // Compare all entity counts (quick sanity check)
   compareCount('Players', localData.players.length, preCounts.players, postCounts.players);
   compareCount('Teams', localData.teams.length, preCounts.teams, postCounts.teams);
   compareCount('Seasons', localData.seasons.length, preCounts.seasons, postCounts.seasons);
   compareCount('Tournaments', localData.tournaments.length, preCounts.tournaments, postCounts.tournaments);
   compareCount('Games', Object.keys(localData.games).length, preCounts.games, postCounts.games);
   compareCount('Personnel', localData.personnel.length, preCounts.personnel, postCounts.personnel);
+
+  // ID-based verification: Check that each local entity was successfully uploaded
+  // This catches the edge case where counts match but specific entities are missing
+  const verifyIds = (
+    entityName: string,
+    localIds: string[],
+    uploadedIdSet: Set<string>
+  ) => {
+    const missingIds = localIds.filter(id => !uploadedIdSet.has(id));
+    if (missingIds.length > 0) {
+      // Limit error message to first 5 missing IDs to avoid overwhelming messages
+      const displayIds = missingIds.slice(0, 5);
+      const moreCount = missingIds.length - displayIds.length;
+      const moreText = moreCount > 0 ? ` and ${moreCount} more` : '';
+      errors.push(
+        `${entityName}: ${missingIds.length} entities failed to upload ` +
+        `(IDs: ${displayIds.join(', ')}${moreText})`
+      );
+    }
+  };
+
+  // Verify all entity types by ID
+  verifyIds('Players', localData.players.map(p => p.id), uploadedIds.players);
+  verifyIds('Teams', localData.teams.map(t => t.id), uploadedIds.teams);
+  verifyIds('Seasons', localData.seasons.map(s => s.id), uploadedIds.seasons);
+  verifyIds('Tournaments', localData.tournaments.map(t => t.id), uploadedIds.tournaments);
+  verifyIds('Games', Object.keys(localData.games), uploadedIds.games);
+  verifyIds('Personnel', localData.personnel.map(p => p.id), uploadedIds.personnel);
 
   return {
     success: errors.length === 0,

@@ -316,7 +316,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setNeedsReConsent(false);  // Clear re-consent flag so modal doesn't persist
-  }, [authService]);
+  }, [authService, user]);
 
   const resetPassword = useCallback(async (email: string) => {
     if (!authService) return { error: 'Auth not initialized' };

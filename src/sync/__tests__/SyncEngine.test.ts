@@ -640,6 +640,9 @@ describe('SyncEngine', () => {
       });
       window.dispatchEvent(new Event('offline'));
 
+      // Allow pending promises to resolve
+      await flushAllAsync();
+
       expect(engine.isCurrentlyOnline()).toBe(false);
     });
   });

@@ -35,6 +35,22 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 
 /**
+ * Error info passed to queue error listeners
+ */
+export interface SyncQueueErrorInfo {
+  entityType: SyncEntityType;
+  entityId: string;
+  operation: SyncOperationType;
+  error: string;
+}
+
+/**
+ * Listener for queue errors - called when an operation fails to queue for sync.
+ * This allows the app layer to notify users that their change may not sync.
+ */
+export type SyncQueueErrorListener = (error: SyncQueueErrorInfo) => void;
+
+/**
  * SyncedDataStore - Local-first DataStore with background cloud sync.
  *
  * All operations:
@@ -49,6 +65,7 @@ export class SyncedDataStore implements DataStore {
   private syncQueue: SyncQueue;
   private syncEngine: SyncEngine | null = null;
   private initialized = false;
+  private queueErrorListeners: SyncQueueErrorListener[] = [];
 
   constructor() {
     this.localStore = new LocalDataStore();
@@ -183,9 +200,39 @@ export class SyncedDataStore implements DataStore {
     return this.syncEngine.onStatusChange(listener);
   }
 
+  /**
+   * Subscribe to queue error events.
+   * Called when an operation fails to queue for sync (local write succeeds but sync won't happen).
+   * This allows the app to notify users that their change may not sync to cloud.
+   *
+   * @returns Unsubscribe function
+   */
+  onQueueError(listener: SyncQueueErrorListener): () => void {
+    this.queueErrorListeners.push(listener);
+    return () => {
+      const index = this.queueErrorListeners.indexOf(listener);
+      if (index !== -1) {
+        this.queueErrorListeners.splice(index, 1);
+      }
+    };
+  }
+
   // ==========================================================================
   // PRIVATE HELPERS
   // ==========================================================================
+
+  /**
+   * Notify all queue error listeners.
+   */
+  private notifyQueueError(info: SyncQueueErrorInfo): void {
+    for (const listener of this.queueErrorListeners) {
+      try {
+        listener(info);
+      } catch (listenerError) {
+        logger.error('[SyncedDataStore] Queue error listener threw:', listenerError);
+      }
+    }
+  }
 
   /**
    * Queue a sync operation and nudge the engine.
@@ -216,12 +263,13 @@ export class SyncedDataStore implements DataStore {
       // a full sync later if needed.
       //
       // IMPORTANT: This is a data loss scenario - the change won't sync to cloud.
-      // We log to Sentry for production monitoring so we can track frequency.
+      // We log to Sentry and notify listeners so the app can alert the user.
+      const errorMessage = error instanceof Error ? error.message : String(error);
       const context = {
         entityType,
         entityId,
         operation,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
       };
       logger.error('[SyncedDataStore] Failed to queue sync operation', context);
 
@@ -229,6 +277,14 @@ export class SyncedDataStore implements DataStore {
       Sentry.captureException(error, {
         tags: { component: 'SyncedDataStore', action: 'queueSync' },
         extra: context,
+      });
+
+      // Notify listeners so the app can alert the user
+      this.notifyQueueError({
+        entityType,
+        entityId,
+        operation,
+        error: errorMessage,
       });
     }
   }

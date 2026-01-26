@@ -236,6 +236,10 @@ const allowedConsolePatterns = [
   '[SupabaseDataStore]',
   // MigrationService errors/warnings (expected in migration failure tests)
   '[MigrationService]',
+  // SyncEngine warnings/errors (expected in sync failure tests)
+  '[SyncEngine]',
+  // SyncExecutor warnings/errors (expected in sync failure tests)
+  '[SyncExecutor]',
 ];
 
 const shouldFailOnConsoleMessage = (message) => {
