@@ -10,6 +10,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { usePlayBilling, grantMockSubscription } from '@/hooks/usePlayBilling';
 import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/contexts/AuthProvider';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 import { isAndroid } from '@/utils/platform';
@@ -47,6 +48,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   onUpgradeSuccess,
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { grantPremiumAccess } = usePremium();
   const { showToast } = useToast();
   const { isAvailable: playBillingAvailable, isPurchasing, details, purchase, restore } = usePlayBilling();
@@ -137,7 +139,9 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
       // Grant local premium with the restored purchase token
       await grantPremiumAccess(result.purchaseToken);
       // Clear subscription cache to ensure fresh data on next check
-      await clearSubscriptionCache();
+      if (user) {
+        await clearSubscriptionCache(user.id);
+      }
       showToast(t('playBilling.restoreSuccess', 'Purchases restored successfully!'), 'success');
       onClose();
       onUpgradeSuccess?.();
@@ -178,7 +182,9 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         // Grant local premium status
         await grantPremiumAccess(token);
         // Clear subscription cache to ensure fresh data on next check
-        await clearSubscriptionCache();
+        if (user) {
+          await clearSubscriptionCache(user.id);
+        }
         showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
         onClose();
         onUpgradeSuccess?.();
@@ -207,7 +213,9 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
       // Grant local premium with the purchase token
       await grantPremiumAccess(result.purchaseToken);
       // Clear subscription cache to ensure fresh data on next check
-      await clearSubscriptionCache();
+      if (user) {
+        await clearSubscriptionCache(user.id);
+      }
       showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
       onClose();
       onUpgradeSuccess?.();

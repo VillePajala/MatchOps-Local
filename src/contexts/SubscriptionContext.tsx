@@ -71,8 +71,16 @@ export interface SubscriptionContextValue extends SubscriptionState {
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
 
 // Cache configuration
-const CACHE_KEY = 'matchops_subscription_cache';
+const CACHE_KEY_PREFIX = 'matchops_subscription_cache';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get cache key for a specific user
+ * Including user ID prevents cache collision between users on same device
+ */
+function getCacheKey(userId: string): string {
+  return `${CACHE_KEY_PREFIX}_${userId}`;
+}
 
 /**
  * Default state for non-subscribed users
@@ -87,10 +95,11 @@ const DEFAULT_STATE: SubscriptionState = {
 
 /**
  * Get cached subscription from storage
+ * @param userId - User ID to scope the cache
  */
-async function getCachedSubscription(): Promise<Omit<SubscriptionState, 'isLoading'> | null> {
+async function getCachedSubscription(userId: string): Promise<Omit<SubscriptionState, 'isLoading'> | null> {
   try {
-    const cached = await getStorageItem(CACHE_KEY);
+    const cached = await getStorageItem(getCacheKey(userId));
     if (!cached) return null;
 
     const { data, timestamp } = JSON.parse(cached);
@@ -113,10 +122,12 @@ async function getCachedSubscription(): Promise<Omit<SubscriptionState, 'isLoadi
 
 /**
  * Cache subscription to storage
+ * @param userId - User ID to scope the cache
+ * @param state - Subscription state to cache
  */
-async function cacheSubscription(state: Omit<SubscriptionState, 'isLoading'>): Promise<void> {
+async function cacheSubscription(userId: string, state: Omit<SubscriptionState, 'isLoading'>): Promise<void> {
   try {
-    await setStorageItem(CACHE_KEY, JSON.stringify({
+    await setStorageItem(getCacheKey(userId), JSON.stringify({
       data: {
         status: state.status,
         periodEnd: state.periodEnd?.toISOString() ?? null,
@@ -131,12 +142,13 @@ async function cacheSubscription(state: Omit<SubscriptionState, 'isLoading'>): P
 }
 
 /**
- * Clear subscription cache
+ * Clear subscription cache for a specific user
  * Exported for use by AuthProvider.signOut() to prevent data leakage between users
+ * @param userId - User ID whose cache should be cleared
  */
-export async function clearSubscriptionCache(): Promise<void> {
+export async function clearSubscriptionCache(userId: string): Promise<void> {
   try {
-    await setStorageItem(CACHE_KEY, '');
+    await setStorageItem(getCacheKey(userId), '');
     logger.debug('[SubscriptionContext] Cache cleared');
   } catch (error) {
     logger.warn('[SubscriptionContext] Failed to clear cache:', error);
@@ -164,7 +176,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     try {
       // Check cache first (unless skipping)
       if (!skipCache) {
-        const cached = await getCachedSubscription();
+        const cached = await getCachedSubscription(user.id);
         if (cached) {
           setState({
             ...cached,
@@ -199,7 +211,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       };
 
       // Cache the result
-      await cacheSubscription(newState);
+      await cacheSubscription(user.id, newState);
 
       setState(newState);
       logger.debug('[SubscriptionContext] Fetched subscription:', newState.status);
@@ -207,7 +219,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       logger.error('[SubscriptionContext] Failed to fetch subscription:', error);
 
       // Fall back to cached or default state
-      const cached = await getCachedSubscription();
+      const cached = await getCachedSubscription(user.id);
       if (cached) {
         setState({
           ...cached,
@@ -233,10 +245,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   // Refresh function (clears cache and refetches)
   const refresh = useCallback(async () => {
+    if (!user) return;
     logger.debug('[SubscriptionContext] Refreshing subscription');
-    await clearSubscriptionCache();
+    await clearSubscriptionCache(user.id);
     await fetchSubscription(true);
-  }, [fetchSubscription]);
+  }, [user, fetchSubscription]);
 
   // Memoize context value
   const value = useMemo<SubscriptionContextValue>(() => ({

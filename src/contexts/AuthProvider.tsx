@@ -302,11 +302,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Clear subscription cache to prevent data leakage to next user (privacy)
-    try {
-      await clearSubscriptionCache();
-    } catch (error) {
-      // Non-critical: cache will expire naturally, log but don't block sign-out
-      logger.warn('[AuthProvider] Failed to clear subscription cache:', error);
+    // Note: user is still available here (setUser(null) hasn't been called yet)
+    if (user) {
+      try {
+        await clearSubscriptionCache(user.id);
+      } catch (error) {
+        // Non-critical: cache will expire naturally, log but don't block sign-out
+        logger.warn('[AuthProvider] Failed to clear subscription cache:', error);
+      }
     }
 
     // Always clear local state, even if API call failed

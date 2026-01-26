@@ -358,6 +358,13 @@ export function usePlayBilling(): UsePlayBillingResult {
     setIsPurchasing(true);
 
     try {
+      // Get session for user ID (needed for cache key)
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        return { success: false, error: 'Please sign in to restore purchases' };
+      }
+
       // Step 1: Get existing purchases from Play Store
       logger.info('[usePlayBilling] Checking for existing purchases');
       const purchases = await getExistingPurchases();
@@ -378,7 +385,7 @@ export function usePlayBilling(): UsePlayBillingResult {
 
       // Step 3: Clear subscription cache to force fresh fetch
       // This ensures UI updates immediately after restore
-      await clearSubscriptionCache();
+      await clearSubscriptionCache(session.user.id);
 
       logger.info('[usePlayBilling] Restore complete');
       return { success: true, purchaseToken: purchases[0] };

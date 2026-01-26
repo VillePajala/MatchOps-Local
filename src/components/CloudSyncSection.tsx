@@ -895,7 +895,9 @@ export default function CloudSyncSection({
           setShowUpgradeModal(false);
           // CRITICAL: Clear subscription cache before reload
           // Otherwise the stale "none" cached value will be used on reload
-          await clearSubscriptionCache();
+          if (user) {
+            await clearSubscriptionCache(user.id);
+          }
           // After subscription, reload page to trigger fresh migration check
           // This ensures migration wizard shows if there's local data to import
           showToast(

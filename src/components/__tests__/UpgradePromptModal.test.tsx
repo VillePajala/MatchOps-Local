@@ -61,6 +61,14 @@ jest.mock('@/contexts/SubscriptionContext', () => ({
   clearSubscriptionCache: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock AuthProvider
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id', email: 'test@example.com' },
+    mode: 'cloud',
+  }),
+}));
+
 // Mock platform detection
 jest.mock('@/utils/platform', () => ({
   isAndroid: jest.fn().mockReturnValue(false),

@@ -440,22 +440,24 @@ async function verifyWithGoogle(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      signal: controller.signal,
-    });
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        signal: controller.signal,
+      });
 
-    clearTimeout(timeoutId);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Google API error:', response.status, errorText);
+        return null;
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Google API error:', response.status, errorText);
-      return null;
+      return await response.json();
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    return await response.json();
   } catch (error) {
     console.error('Error verifying with Google:', error);
     throw error;
