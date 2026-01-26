@@ -10,6 +10,7 @@ import {
 import InstructionsModal from '@/components/InstructionsModal';
 import logger from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthProvider';
+import { isAndroid } from '@/utils/platform';
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -17,7 +18,10 @@ interface StartScreenProps {
   onGetStarted: () => void;
   onViewStats: () => void;
   onOpenSettings: () => void;
+  /** Called on Android to enable cloud sync (shows upgrade modal if not premium) */
   onEnableCloudSync?: () => void;
+  /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
+  onSignInExistingSubscriber?: () => void;
   canResume?: boolean;
   hasSavedGames?: boolean;
   isFirstTimeUser?: boolean;
@@ -31,6 +35,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onViewStats,
   onOpenSettings,
   onEnableCloudSync,
+  onSignInExistingSubscriber,
   canResume = false,
   hasSavedGames = false,
   isFirstTimeUser = false,
@@ -204,18 +209,48 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {t('controlBar.signOut', 'Sign Out')}
               </button>
             </div>
-          ) : isCloudAvailable && onEnableCloudSync ? (
-            <div className="mt-8 text-center text-sm text-slate-500">
-              <span>{t('startScreen.usingLocalStorage', 'Using local storage')}</span>
-              <span className="mx-2">·</span>
-              <button
-                type="button"
-                onClick={onEnableCloudSync}
-                className="text-amber-400 hover:text-amber-300 transition-colors"
-              >
-                {t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}
-              </button>
-            </div>
+          ) : isCloudAvailable && (onEnableCloudSync || onSignInExistingSubscriber) ? (
+            isAndroid() ? (
+              // Android: Show enable cloud sync (triggers upgrade modal → purchase)
+              <div className="mt-8 text-center text-sm text-slate-500">
+                <span>{t('startScreen.usingLocalStorage', 'Using local storage')}</span>
+                <span className="mx-2">·</span>
+                <button
+                  type="button"
+                  onClick={onEnableCloudSync}
+                  className="text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  {t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}
+                </button>
+              </div>
+            ) : (
+              // Desktop: Show sign in for existing subscribers + Play Store link for new users
+              <div className="mt-8 text-center text-sm">
+                <div className="text-slate-500 mb-2">
+                  {t('startScreen.usingLocalStorage', 'Using local storage')}
+                </div>
+                {onSignInExistingSubscriber && (
+                  <button
+                    type="button"
+                    onClick={onSignInExistingSubscriber}
+                    className="text-amber-400 hover:text-amber-300 transition-colors"
+                  >
+                    {t('startScreen.existingSubscriber', 'Already a subscriber? Sign in →')}
+                  </button>
+                )}
+                <div className="mt-3 text-slate-500 text-xs">
+                  <span>{t('startScreen.newToCloud', 'New here? Subscribe via the Android app.')}</span>
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.matchops.local"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-400/80 hover:text-amber-300 ml-1"
+                  >
+                    {t('startScreen.getAndroidApp', 'Get on Google Play')}
+                  </a>
+                </div>
+              </div>
+            )
           ) : null}
         </div>
       </div>

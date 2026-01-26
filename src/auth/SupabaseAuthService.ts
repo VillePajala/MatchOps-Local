@@ -29,6 +29,14 @@ import * as Sentry from '@sentry/nextjs';
 /**
  * Password complexity requirements.
  * Enforced client-side before calling Supabase Auth.
+ *
+ * IMPORTANT: These rules are client-side only! The Supabase project's
+ * password policy (in Dashboard > Authentication > Policies) MUST match
+ * these requirements to prevent bypass via direct API calls.
+ *
+ * Ensure Supabase settings include:
+ * - Minimum password length: 12
+ * - Required character types: 3 of 4 (upper, lower, digit, special)
  */
 const PASSWORD_MIN_LENGTH = 12;
 

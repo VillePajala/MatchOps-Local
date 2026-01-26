@@ -2,9 +2,12 @@
  * WelcomeScreen Component Tests
  *
  * Tests the first-install welcome screen that lets users choose:
- * - Start Fresh (local mode)
- * - Sign In to Cloud
- * - Import Backup
+ * - Start Fresh (local mode) - FREE
+ * - Sign In or Create Account - FREE ACCOUNT (subscription required for sync)
+ * - Import Backup - FREE
+ *
+ * All platforms show the same UI - account creation is free everywhere.
+ * Subscription is only required for active cloud sync.
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -73,7 +76,7 @@ describe('WelcomeScreen', () => {
       expect(screen.getByText('FI')).toBeInTheDocument();
     });
 
-    it('renders all three options when cloud is available', () => {
+    it('renders all options when cloud is available', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -83,7 +86,9 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Start without an account')).toBeInTheDocument();
+      // Unified button for all platforms - account creation is free
       expect(screen.getByText('Sign in or create an account')).toBeInTheDocument();
+      expect(screen.getByText('Create a free account. Subscribe anytime to sync across devices.')).toBeInTheDocument();
       expect(screen.getByText('Import a backup')).toBeInTheDocument();
     });
 
@@ -111,11 +116,11 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Your data is saved on this device only.')).toBeInTheDocument();
-      expect(screen.getByText('Your data syncs across devices.')).toBeInTheDocument();
+      expect(screen.getByText('Create a free account. Subscribe anytime to sync across devices.')).toBeInTheDocument();
       expect(screen.getByText('Restore your previous data from a file and continue where you left off.')).toBeInTheDocument();
     });
 
-    it('renders Free and Paid badges', () => {
+    it('renders Free badges for local and import options', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -124,9 +129,21 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      // Two "FREE" badges (for local and import options)
-      expect(screen.getAllByText(/^FREE$/i)).toHaveLength(2);
-      expect(screen.getByText(/^PAID$/i)).toBeInTheDocument();
+      // Two "Free" badges (for local and import options)
+      expect(screen.getAllByText(/^Free$/i)).toHaveLength(2);
+    });
+
+    it('renders Free Account badge for cloud option', () => {
+      render(
+        <WelcomeScreen
+          {...mockHandlers}
+          isCloudAvailable={true}
+          isImporting={false}
+        />
+      );
+
+      // One "Free Account" badge for cloud option
+      expect(screen.getByText(/^Free Account$/i)).toBeInTheDocument();
     });
 
     it('shows footer note about settings', () => {
@@ -245,7 +262,7 @@ describe('WelcomeScreen', () => {
         screen.getByRole('button', { name: /start without an account/i })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /sign in or create an account/i })
+        screen.getByRole('button', { name: /sign in or create a free account/i })
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: /import backup file/i })

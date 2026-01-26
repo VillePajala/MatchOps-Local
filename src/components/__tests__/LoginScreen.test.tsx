@@ -358,4 +358,44 @@ describe('LoginScreen', () => {
       expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
     });
   });
+
+  // ==========================================================================
+  // REGISTRATION RESTRICTION (Desktop)
+  // ==========================================================================
+
+  describe('allowRegistration prop', () => {
+    it('should show sign up link when allowRegistration is true', () => {
+      render(<LoginScreen allowRegistration={true} />);
+
+      expect(screen.getByText('Sign up')).toBeInTheDocument();
+    });
+
+    it('should hide sign up link when allowRegistration is false', () => {
+      render(<LoginScreen allowRegistration={false} />);
+
+      expect(screen.queryByText('Sign up')).not.toBeInTheDocument();
+    });
+
+    it('should show Play Store link when allowRegistration is false', () => {
+      render(<LoginScreen allowRegistration={false} />);
+
+      expect(screen.getByText("Don't have an account? Subscribe via the Android app.")).toBeInTheDocument();
+      expect(screen.getByText('Get on Google Play')).toBeInTheDocument();
+    });
+
+    it('should not switch to sign up mode when allowRegistration is false', () => {
+      render(<LoginScreen allowRegistration={false} />);
+
+      // Verify we're still in sign in mode (there's no sign up button to click)
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Create Account' })).not.toBeInTheDocument();
+    });
+
+    it('should default to allowRegistration=true', () => {
+      render(<LoginScreen />);
+
+      // Without prop, sign up should be available
+      expect(screen.getByText('Sign up')).toBeInTheDocument();
+    });
+  });
 });

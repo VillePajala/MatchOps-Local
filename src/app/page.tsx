@@ -7,12 +7,10 @@ import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
-import { useCloudUpgradeGate } from '@/hooks/useCloudUpgradeGate';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -56,8 +54,7 @@ export default function Home() {
   // Welcome screen state (first-install onboarding)
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
-  // Post-login upgrade modal state (shown when user signs in without premium subscription)
-  const [showPostLoginUpgradeModal, setShowPostLoginUpgradeModal] = useState(false);
+  // Note: Post-login upgrade modal removed - subscription status shown in CloudSyncSection instead
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
   const { showToast } = useToast();
@@ -65,13 +62,9 @@ export default function Home() {
   const { isPremium, isLoading: isPremiumLoading } = usePremium();
   const queryClient = useQueryClient();
 
-  // Cloud upgrade gate - shows upgrade modal when enabling cloud without premium
-  const {
-    showModal: showCloudUpgradeModal,
-    gateCloudAction,
-    handleUpgradeSuccess: handleCloudUpgradeSuccess,
-    handleCancel: handleCloudUpgradeCancel,
-  } = useCloudUpgradeGate();
+  // Note: Cloud upgrade gate removed - account creation is free
+  // Subscription status is checked after login via SubscriptionContext
+  // CloudSyncSection shows subscription banner if user has no active subscription
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
@@ -308,11 +301,19 @@ export default function Home() {
     }
   }, [showToast]);
 
-  // Handle "Enable Cloud Sync" from StartScreen (local mode users) - gated behind premium
+  // Handle "Enable Cloud Sync" from StartScreen (local mode users)
+  // No premium gate - account creation is free, subscription only required for active sync
   const handleEnableCloudSync = useCallback(() => {
     logger.info('[page.tsx] StartScreen: User chose to enable cloud sync');
-    gateCloudAction(executeEnableCloudSync);
-  }, [gateCloudAction, executeEnableCloudSync]);
+    executeEnableCloudSync();
+  }, [executeEnableCloudSync]);
+
+  // Handle "Sign in as existing subscriber" from StartScreen (desktop only)
+  // Enables cloud mode and reloads to show LoginScreen (subscription verified after login)
+  const handleSignInExistingSubscriber = useCallback(() => {
+    logger.info('[page.tsx] StartScreen: Existing subscriber signing in (desktop)');
+    executeEnableCloudSync();
+  }, [executeEnableCloudSync]);
 
   // Re-run checkAppState when:
   // - Component mounts (initial load)
@@ -355,6 +356,16 @@ export default function Home() {
     // This ensures we don't show migration wizard until user has verified subscription
     if (hasPendingPostLoginCheck()) {
       logger.info('[page.tsx] Migration check: waiting for post-login premium check to complete');
+      return;
+    }
+
+    // Skip migration wizard if user has no active subscription
+    // Account is free, but sync requires subscription. Without subscription:
+    // - Sync is paused (CloudSyncSection shows subscription banner)
+    // - Migration is pointless (data won't sync until they subscribe)
+    // - User can subscribe anytime and migration will be offered then
+    if (!isPremium) {
+      logger.info('[page.tsx] Migration check: skipping - user has no active subscription');
       return;
     }
 
@@ -431,25 +442,22 @@ export default function Home() {
 
     checkMigrationNeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isAuthenticated, userId, isPremiumLoading]);
+  }, [mode, isAuthenticated, userId, isPremiumLoading, isPremium]);
 
   // ============================================================================
-  // POST-LOGIN PREMIUM CHECK (Cloud Mode Only)
+  // POST-LOGIN CHECK (Cloud Mode Only)
   // ============================================================================
-  // When user signs in to cloud from WelcomeScreen, we need to verify they have
-  // a premium subscription AFTER authentication succeeds. This is because:
-  // 1. In local mode, isPremium is always true (no subscription check)
-  // 2. We can't verify subscription status before authentication
-  // 3. The gate must happen after login, not before
+  // When user signs in to cloud from WelcomeScreen, we clear the pending flag
+  // and log subscription status. Account is FREE - no gating here.
   //
   // This effect triggers when:
   // - User is in cloud mode AND authenticated
-  // - Premium status is loaded (not loading)
+  // - Auth and Premium status are loaded
   // - There's a pending post-login check flag set
   //
-  // If user doesn't have premium:
-  // - Show upgrade modal
-  // - User must subscribe OR cancel (returns to local mode)
+  // User flow:
+  // - With subscription: sync works immediately
+  // - Without subscription: sync paused, banner shown in CloudSyncSection
   useEffect(() => {
     // Debug: Log all relevant state for diagnosing post-login check issues
     logger.debug('[page.tsx] Post-login check effect running', {
@@ -477,54 +485,25 @@ export default function Home() {
       return; // No pending check - user is returning to the app, not newly signing in
     }
 
-    logger.info('[page.tsx] Post-login check: verifying premium status');
+    logger.info('[page.tsx] Post-login check: verifying subscription status');
 
-    // Check premium status
+    // Clear the pending flag - user is now logged in
+    clearPendingPostLoginCheck();
+
+    // Log subscription status for debugging
     if (isPremium) {
-      // User has premium - clear flag and proceed
-      logger.info('[page.tsx] Post-login check: user has premium, proceeding');
-      clearPendingPostLoginCheck();
-      // Migration check will run (if needed) via the other effect
+      logger.info('[page.tsx] Post-login check: user has active subscription, sync enabled');
     } else {
-      // User doesn't have premium - show upgrade modal
-      logger.info('[page.tsx] Post-login check: user needs premium subscription - showing modal');
-      setShowPostLoginUpgradeModal(true);
+      // User has account but no subscription - sync is paused
+      // CloudSyncSection will show subscription banner, no modal needed
+      logger.info('[page.tsx] Post-login check: user has no subscription, sync paused (account active)');
     }
+    // Migration check will run (if needed) via the other effect
   }, [mode, isAuthenticated, isAuthLoading, isPremiumLoading, isPremium]);
 
-  // Handle post-login upgrade success - user subscribed
-  const handlePostLoginUpgradeSuccess = useCallback(() => {
-    logger.info('[page.tsx] Post-login upgrade success - proceeding to cloud mode');
-    setShowPostLoginUpgradeModal(false);
-    clearPendingPostLoginCheck();
-    // Migration check will run (if needed) via the other effect on next render
-    // Trigger a refresh to ensure proper state
-    setRefreshTrigger(prev => prev + 1);
-  }, []);
-
-  // Handle post-login upgrade cancel - user chose not to subscribe
-  const handlePostLoginUpgradeCancel = useCallback(() => {
-    logger.info('[page.tsx] Post-login upgrade cancelled - returning to local mode');
-    setShowPostLoginUpgradeModal(false);
-    clearPendingPostLoginCheck();
-
-    // Disable cloud mode and reload to local mode
-    const result = disableCloudMode();
-    if (result.success) {
-      showToast('Returning to local mode...', 'info');
-      setTimeout(() => {
-        try {
-          window.location.reload();
-        } catch (error) {
-          logger.error('[page.tsx] Reload blocked', error);
-          showToast('Please refresh the page manually', 'error');
-        }
-      }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
-    } else {
-      logger.error('[page.tsx] Failed to switch to local mode:', result.message);
-      showToast('Failed to switch to local mode. Please try again.', 'error');
-    }
-  }, [showToast]);
+  // Note: Post-login upgrade handlers removed
+  // Users with accounts but no subscription can still use the app (sync paused)
+  // CloudSyncSection shows subscription status and upgrade prompt
 
   // Handle migration wizard completion
   const handleMigrationComplete = useCallback(async () => {
@@ -678,6 +657,7 @@ export default function Home() {
             <LoginScreen
               onBack={handleLoginBack}
               onUseLocalMode={handleLoginUseLocalMode}
+              allowRegistration={true}  // Account creation is free on all platforms
             />
           </ErrorBoundary>
         ) : showMigrationWizard ? (
@@ -702,6 +682,7 @@ export default function Home() {
               hasSavedGames={hasSavedGames}
               isFirstTimeUser={isFirstTimeUser}
               onEnableCloudSync={handleEnableCloudSync}
+              onSignInExistingSubscriber={handleSignInExistingSubscriber}
               isCloudAvailable={isCloudAvailable()}
             />
           </ErrorBoundary>
@@ -720,21 +701,7 @@ export default function Home() {
         {/* Migration status overlay */}
         <MigrationStatus />
 
-        {/* Cloud upgrade modal - shown when enabling cloud from Settings without premium */}
-        <UpgradePromptModal
-          isOpen={showCloudUpgradeModal}
-          onClose={handleCloudUpgradeCancel}
-          variant="cloudUpgrade"
-          onUpgradeSuccess={handleCloudUpgradeSuccess}
-        />
-
-        {/* Post-login upgrade modal - shown after signing in to cloud without premium subscription */}
-        <UpgradePromptModal
-          isOpen={showPostLoginUpgradeModal}
-          onClose={handlePostLoginUpgradeCancel}
-          variant="cloudUpgrade"
-          onUpgradeSuccess={handlePostLoginUpgradeSuccess}
-        />
+        {/* Note: Upgrade modals removed - subscription handled in CloudSyncSection */}
       </ModalProvider>
     </ErrorBoundary>
   );

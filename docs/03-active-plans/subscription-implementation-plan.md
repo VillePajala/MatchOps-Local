@@ -1,6 +1,18 @@
 # Subscription Implementation Plan
 
-This document outlines the future subscription system for MatchOps cloud sync feature. **This is a planning document for future work** — the actual implementation will come in a later phase.
+**Status**: ✅ Infrastructure Complete (January 2026)
+**Last Updated**: January 26, 2026
+
+> **Note**: This document originally outlined future plans. The core subscription infrastructure has been implemented:
+> - ✅ Supabase Edge Function for verification
+> - ✅ Subscription storage table and RLS policies
+> - ✅ Play Billing client integration
+> - ✅ Grace period and expiration handling
+> - ✅ Cross-device subscription sync
+>
+> **Remaining**: Enable `PREMIUM_ENFORCEMENT_ENABLED = true` after business setup complete.
+
+This document outlines the subscription system for MatchOps cloud sync feature.
 
 ---
 

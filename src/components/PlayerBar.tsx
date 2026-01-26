@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import PlayerDisk from './PlayerDisk'; // Import the PlayerDisk component
 import type { Player } from '@/types'; // Import the Player type from central types
 // import { Audiowide } from 'next/font/google'; // Commented out - was used for animated text
 import type { GameEvent } from '@/types'; // Correctly import GameEvent type
+import SyncStatusIndicator from './SyncStatusIndicator';
 
 // Title font matching StartScreen
 // const titleFont = Audiowide({ subsets: ['latin'], weight: '400' }); // Commented out - was used for animated text 
@@ -92,14 +92,8 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
           }
         }}
       >
-        <Image
-          src="/logos/app-logo-yellow.png"
-          alt="MatchOps Local"
-          width={80}
-          height={27}
-          priority={true}
-          className="h-auto w-[70px] sm:w-[84px] drop-shadow-lg"
-        />
+        {/* Sync Status Indicator - shows data mode and sync status */}
+        <SyncStatusIndicator />
 
         {/* OLD ANIMATED TEXT - Commented out for easy restoration
         <h1

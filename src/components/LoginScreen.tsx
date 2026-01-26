@@ -35,6 +35,8 @@ interface LoginScreenProps {
   onBack?: () => void;
   /** Called when user wants to use local mode instead */
   onUseLocalMode?: () => void;
+  /** Whether to allow registration (false on desktop - must subscribe via Android app) */
+  allowRegistration?: boolean;
 }
 
 /**
@@ -47,7 +49,7 @@ interface LoginScreenProps {
  * - Sign up with email/password (with password requirements)
  * - Password reset via email
  */
-export default function LoginScreen({ onBack, onUseLocalMode }: LoginScreenProps) {
+export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration = true }: LoginScreenProps) {
   const { t } = useTranslation();
   const { signIn, signUp, resetPassword } = useAuth();
 
@@ -135,6 +137,11 @@ export default function LoginScreen({ onBack, onUseLocalMode }: LoginScreenProps
   };
 
   const switchMode = (newMode: AuthMode) => {
+    // Prevent switching to signUp if registration is not allowed (desktop)
+    if (newMode === 'signUp' && !allowRegistration) {
+      logger.warn('[LoginScreen] Attempted to switch to signUp mode but registration is disabled (desktop)');
+      return;
+    }
     setMode(newMode);
     setError(null);
     setSuccess(null);
@@ -358,15 +365,33 @@ export default function LoginScreen({ onBack, onUseLocalMode }: LoginScreenProps
                   <button type="button" onClick={() => switchMode('resetPassword')} className={linkButtonStyle}>
                     {t('auth.forgotPassword', 'Forgot password?')}
                   </button>
-                  <div className="text-slate-500 text-sm">
-                    {t('auth.noAccount', "Don't have an account?")}{' '}
-                    <button type="button" onClick={() => switchMode('signUp')} className={linkButtonStyle}>
-                      {t('auth.signUpLink', 'Sign up')}
-                    </button>
-                  </div>
+                  {allowRegistration ? (
+                    <div className="text-slate-500 text-sm">
+                      {t('auth.noAccount', "Don't have an account?")}{' '}
+                      <button type="button" onClick={() => switchMode('signUp')} className={linkButtonStyle}>
+                        {t('auth.signUpLink', 'Sign up')}
+                      </button>
+                    </div>
+                  ) : (
+                    // Desktop: No registration - must subscribe via Android app
+                    <div className="mt-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 text-center">
+                      <p className="text-slate-400 text-sm">
+                        {t('auth.androidOnlyRegistration', "Don't have an account? Subscribe via the Android app.")}
+                      </p>
+                      <a
+                        href="https://play.google.com/store/apps/details?id=com.matchops.local"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-400 text-sm hover:text-amber-300 inline-flex items-center gap-1 mt-1"
+                      >
+                        {t('auth.getAndroidApp', 'Get on Google Play')}
+                        <span aria-hidden="true">→</span>
+                      </a>
+                    </div>
+                  )}
                 </>
               )}
-              {mode === 'signUp' && (
+              {mode === 'signUp' && allowRegistration && (
                 <div className="text-slate-500 text-sm">
                   {t('auth.hasAccount', 'Already have an account?')}{' '}
                   <button type="button" onClick={() => switchMode('signIn')} className={linkButtonStyle}>

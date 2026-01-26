@@ -21,6 +21,7 @@ import { getBackendMode } from '@/config/backendConfig';
 import { POLICY_VERSION } from '@/config/constants';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { User, Session, AuthState } from '@/interfaces/AuthTypes';
+import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
@@ -275,6 +276,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               });
             }
           }
+          // Note: Subscription is NOT granted on signup. Account creation is free.
+          // User can subscribe later via Play Billing (Android) or web payment (future).
+          // This separates account (free) from subscription (paid sync feature).
         }
 
         // Set user/session after consent attempt
@@ -296,6 +300,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Log but don't throw - user should be signed out locally regardless
       logger.warn('[AuthProvider] Sign out error:', error);
     }
+
+    // Clear subscription cache to prevent data leakage to next user (privacy)
+    // Note: user is still available here (setUser(null) hasn't been called yet)
+    if (user) {
+      try {
+        await clearSubscriptionCache(user.id);
+      } catch (error) {
+        // Non-critical: cache will expire naturally, log but don't block sign-out
+        logger.warn('[AuthProvider] Failed to clear subscription cache:', error);
+      }
+    }
+
     // Always clear local state, even if API call failed
     setUser(null);
     setSession(null);

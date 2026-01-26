@@ -141,20 +141,21 @@ export default function WelcomeScreen({
             </button>
 
             {/* Sign in or create account - only if Supabase is configured */}
+            {/* Account creation is FREE on all platforms. Subscription only required for sync. */}
             {isCloudAvailable && (
               <button
                 onClick={onSignInCloud}
-                className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all text-left shadow-lg shadow-amber-500/20"
-                aria-label={t('welcome.signInCloudAria', 'Sign in or create an account, paid')}
+                className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
+                aria-label={t('welcome.signInCloudAria', 'Sign in or create a free account')}
               >
-                <div className="font-bold text-lg">
+                <div className="text-white font-semibold text-lg">
                   {t('welcome.signInCloud', 'Sign in or create an account')}
                 </div>
-                <div className="text-slate-700 text-xs font-medium uppercase tracking-wide mb-1">
-                  {t('welcome.badgePaid', 'Paid')}
+                <div className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">
+                  {t('welcome.badgeFreeAccount', 'Free Account')}
                 </div>
-                <div className="text-slate-800 text-sm">
-                  {t('welcome.signInCloudDesc', 'Your data syncs across devices.')}
+                <div className="text-slate-400 text-sm">
+                  {t('welcome.signInCloudDescFree', 'Create a free account. Subscribe anytime to sync across devices.')}
                 </div>
               </button>
             )}

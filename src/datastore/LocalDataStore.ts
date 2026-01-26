@@ -26,6 +26,7 @@ import {
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
 import { validateGame } from '@/datastore/validation';
+import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import {
   APP_SETTINGS_KEY,
   LAST_HOME_TEAM_NAME_KEY,
@@ -2038,11 +2039,7 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(WARMUP_PLAN_KEY, async () => {
       try {
-        const planToSave: WarmupPlan = {
-          ...plan,
-          lastModified: new Date().toISOString(),
-          isDefault: false,
-        };
+        const planToSave = normalizeWarmupPlanForSave(plan);
         await setStorageItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
         return true;
       } catch (error) {

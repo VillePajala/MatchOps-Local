@@ -1,5 +1,10 @@
 # Google Play Billing Implementation Guide (P4C)
 
+**Status**: ✅ Implementation Complete (January 2026)
+**Last Updated**: January 26, 2026
+
+> **Note**: This guide has been updated to reflect the implemented architecture. The actual implementation uses Supabase Edge Functions for verification and monthly subscriptions (not one-time purchases).
+
 ## Overview
 
 This document details the implementation of Google Play Billing for the MatchOps TWA (Trusted Web Activity) app. The billing system uses two Web APIs:
@@ -9,7 +14,21 @@ This document details the implementation of Google Play Billing for the MatchOps
 
 **Requirements:** Chrome 101+, Android 9+, app installed via Google Play
 
-### Purchase Flow
+## Actual Implementation (What Was Built)
+
+| Component | File | Status |
+|-----------|------|--------|
+| Play Billing Utility | `src/utils/playBilling.ts` | ✅ Complete |
+| React Hook | `src/hooks/usePlayBilling.ts` | ✅ Complete (18 tests) |
+| Platform Detection | `src/utils/platform.ts` | ✅ Complete |
+| Edge Function | `supabase/functions/verify-subscription/index.ts` | ✅ Complete |
+| Subscription Table | `supabase/migrations/010_subscriptions.sql` | ✅ Complete |
+| Subscription Context | `src/contexts/SubscriptionContext.tsx` | ✅ Complete |
+| Premium Manager | `src/utils/premiumManager.ts` | ✅ Complete |
+
+**Product ID**: `matchops_premium_monthly` (subscription, not one-time purchase)
+
+### Purchase Flow (Implemented Architecture)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -17,7 +36,7 @@ This document details the implementation of Google Play Billing for the MatchOps
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  User clicks          Digital Goods API       Payment Request API       │
-│  "Upgrade"            checks product          shows Play dialog         │
+│  "Subscribe"          checks product          shows Play dialog         │
 │      │                     │                        │                   │
 │      ▼                     ▼                        ▼                   │
 │  ┌────────┐          ┌──────────┐            ┌──────────┐              │
@@ -29,21 +48,25 @@ This document details the implementation of Google Play Billing for the MatchOps
 │                                           payment in Play               │
 │                                                   │                     │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    BACKEND VERIFICATION                          │   │
+│  │                SUPABASE EDGE FUNCTION VERIFICATION               │   │
 │  ├─────────────────────────────────────────────────────────────────┤   │
 │  │                              │                                   │   │
 │  │   ┌──────────────┐     ┌─────▼─────┐     ┌──────────────┐       │   │
-│  │   │ /api/billing │ ◄── │ Purchase  │ ──► │ Google Play  │       │   │
-│  │   │   /verify    │     │  Token    │     │ Developer API│       │   │
-│  │   └──────┬───────┘     └───────────┘     └──────────────┘       │   │
+│  │   │   verify-    │ ◄── │ Purchase  │ ──► │ Google Play  │       │   │
+│  │   │ subscription │     │  Token    │     │ Developer API│       │   │
+│  │   │ (Edge Func)  │     └───────────┘     └──────────────┘       │   │
+│  │   └──────┬───────┘                                               │   │
 │  │          │                                                       │   │
 │  │          ▼                                                       │   │
-│  │   Verify + Acknowledge                                           │   │
-│  │          │                                                       │   │
-│  └──────────┼───────────────────────────────────────────────────────┘   │
+│  │   ┌──────────────┐                                               │   │
+│  │   │ subscriptions│  (Upsert with status, period_end, grace_end) │   │
+│  │   │    table     │                                               │   │
+│  │   └──────────────┘                                               │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+│             │                                                           │
 │             ▼                                                           │
 │      ┌─────────────┐          ┌─────────────┐                          │
-│      │Grant Premium│ ───────► │  IndexedDB  │                          │
+│      │Grant Premium│ ───────► │  IndexedDB  │ (local cache)            │
 │      │   Access    │          │   Storage   │                          │
 │      └─────────────┘          └─────────────┘                          │
 │                                                                         │
