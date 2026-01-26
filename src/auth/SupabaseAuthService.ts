@@ -412,8 +412,17 @@ export class SupabaseAuthService implements AuthService {
     this.currentUser = null;
 
     if (error) {
-      logger.warn('[SupabaseAuthService] Sign out error:', error.message);
-      // Don't throw - user is signed out locally
+      logger.warn('[SupabaseAuthService] Sign out API error:', error.message);
+      // API call failed (network error), but we still need to clear local session.
+      // Supabase client should clear local storage on signOut(), but to be safe,
+      // explicitly try local-scope signout which doesn't require network.
+      try {
+        await this.client!.auth.signOut({ scope: 'local' });
+        logger.info('[SupabaseAuthService] Local session cleared after API failure');
+      } catch (localError) {
+        // Even local signout failed - this is unusual but session state is already cleared
+        logger.warn('[SupabaseAuthService] Local signout also failed:', localError);
+      }
     }
 
     logger.info('[SupabaseAuthService] Signed out');

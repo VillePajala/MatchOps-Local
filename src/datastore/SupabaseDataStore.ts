@@ -367,6 +367,9 @@ export class SupabaseDataStore implements DataStore {
   private initialized = false;
   private seasonDatesCache: { start: string; end: string } | null = null;
   private cachedUserId: string | null = null;
+  private cachedUserIdTimestamp: number = 0;
+  // Cache TTL: 5 minutes - after this, re-validate session with server
+  private static readonly USER_ID_CACHE_TTL_MS = 5 * 60 * 1000;
   // Promise deduplication for getUserId() to prevent race conditions
   private userIdPromise: Promise<string> | null = null;
   // Promise deduplication for initialize() to prevent race conditions
@@ -453,6 +456,7 @@ export class SupabaseDataStore implements DataStore {
     this.initialized = false;
     this.seasonDatesCache = null;
     this.cachedUserId = null;
+    this.cachedUserIdTimestamp = 0;
     // Note: Supabase client is a singleton, don't close it
     logger.info('[SupabaseDataStore] Closed');
   }
@@ -503,8 +507,10 @@ export class SupabaseDataStore implements DataStore {
    * concurrent operations call getUserId() simultaneously.
    */
   private async getUserId(): Promise<string> {
-    // Return cached value if available
-    if (this.cachedUserId) {
+    const now = Date.now();
+
+    // Return cached value if available AND not expired
+    if (this.cachedUserId && (now - this.cachedUserIdTimestamp) < SupabaseDataStore.USER_ID_CACHE_TTL_MS) {
       return this.cachedUserId;
     }
 
@@ -516,7 +522,25 @@ export class SupabaseDataStore implements DataStore {
     // Create and cache the promise
     this.userIdPromise = (async () => {
       try {
-        // Use getSession() instead of getUser() to avoid network request.
+        // If cache is expired, use getUser() to validate with server
+        // This catches revoked sessions (admin sign-out, password change, etc.)
+        const cacheExpired = this.cachedUserId && (now - this.cachedUserIdTimestamp) >= SupabaseDataStore.USER_ID_CACHE_TTL_MS;
+
+        if (cacheExpired) {
+          // Re-validate with server using getUser() - this makes a network call
+          const { data: { user }, error } = await this.getClient().auth.getUser();
+          if (error || !user) {
+            // Session was revoked - clear cache and throw
+            this.cachedUserId = null;
+            this.cachedUserIdTimestamp = 0;
+            throw new AuthError('Session expired. Please sign in again.');
+          }
+          this.cachedUserId = user.id;
+          this.cachedUserIdTimestamp = Date.now();
+          return user.id;
+        }
+
+        // Fresh login or first call: use getSession() to avoid network request.
         // getSession() reads from local storage/memory, which is much faster
         // and more reliable immediately after sign-in. The session was already
         // verified during signIn(), so we can trust it for immediate operations.
@@ -528,6 +552,7 @@ export class SupabaseDataStore implements DataStore {
         }
 
         this.cachedUserId = session.user.id;
+        this.cachedUserIdTimestamp = Date.now();
         return session.user.id;
       } finally {
         // Clear the promise when done (success or failure)
@@ -568,6 +593,7 @@ export class SupabaseDataStore implements DataStore {
   public clearUserCaches(): void {
     this.seasonDatesCache = null;
     this.cachedUserId = null;
+    this.cachedUserIdTimestamp = 0;
     logger.debug('[SupabaseDataStore] User caches cleared');
   }
 
@@ -1215,7 +1241,10 @@ export class SupabaseDataStore implements DataStore {
         throw new NetworkError(`Failed to set team roster: ${error.message}`);
       }
 
-      logger.warn('[SupabaseDataStore] set_team_roster RPC failed, falling back to manual writes', {
+      // WARNING: Manual fallback is NON-ATOMIC. Deletes existing roster before inserting new.
+      // If network fails after delete but before insert, team roster will be empty.
+      logger.warn('[SupabaseDataStore] set_team_roster RPC failed, falling back to NON-ATOMIC manual writes. ' +
+        'Team roster may be left empty if operation is interrupted.', {
         code: error.code,
         message: error.message,
       });
@@ -2995,7 +3024,11 @@ export class SupabaseDataStore implements DataStore {
         throw new NetworkError(`Failed to save game: ${error.message}`);
       }
 
-      logger.warn('[SupabaseDataStore] save_game_with_relations RPC failed, falling back to manual writes', {
+      // WARNING: Manual fallback is NON-ATOMIC. If network fails mid-operation,
+      // game may be left in inconsistent state with partial child data.
+      // This is a last resort when RPC is unavailable (e.g., migration needed).
+      logger.warn('[SupabaseDataStore] save_game_with_relations RPC failed, falling back to NON-ATOMIC manual writes. ' +
+        'Data consistency may be at risk if operation is interrupted.', {
         code: error.code,
         message: error.message,
       });

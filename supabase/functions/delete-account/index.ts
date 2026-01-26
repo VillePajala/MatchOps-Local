@@ -7,8 +7,10 @@
  *
  * Security Model:
  * 1. Client sends their JWT in Authorization header
- * 2. Function verifies JWT to confirm user identity
- * 3. Function deletes all user data using RPC (runs as authenticated user)
+ * 2. Function verifies JWT using admin client to confirm user identity
+ * 3. Function calls clear_all_user_data RPC using user-scoped client (JWT)
+ *    - CRITICAL: RPC uses auth.uid() which requires user JWT context
+ *    - Service role client would make auth.uid() return NULL
  * 4. Function deletes auth user using admin API (requires service role)
  *
  * The service role key never leaves Supabase's infrastructure.
@@ -36,6 +38,48 @@ const ALLOWED_ORIGINS = [
 // Vercel generates unique subdomains per deployment (e.g., match-ops-local-abc123.vercel.app).
 // An attacker would need access to our Vercel project to create a matching deployment.
 const VERCEL_PREVIEW_PATTERN = /^https:\/\/match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/;
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 requests per minute per IP (stricter for destructive operation)
+
+// In-memory rate limit store (cleared when function instance restarts)
+// KNOWN LIMITATION: This is per-instance only, not distributed across Edge Function instances.
+// Current implementation provides basic protection against single-source abuse.
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+/**
+ * Check if request is rate limited
+ * @returns true if request should be blocked
+ */
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitStore.get(ip);
+
+  // Clean up expired entries periodically
+  if (rateLimitStore.size > 1000) {
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (value.resetAt < now) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+
+  if (!record || record.resetAt < now) {
+    // First request or window expired - start new window
+    rateLimitStore.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+    // Over limit
+    return true;
+  }
+
+  // Increment counter
+  record.count++;
+  return false;
+}
 
 /**
  * Check if origin is allowed
@@ -81,6 +125,18 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Rate limiting check
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                     req.headers.get('x-real-ip') ||
+                     'unknown';
+    if (isRateLimited(clientIp)) {
+      console.warn(`Rate limit exceeded for IP: ${clientIp}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get the JWT from Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -95,8 +151,9 @@ Deno.serve(async (req: Request) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       console.error('Missing required environment variables');
       return new Response(
         JSON.stringify({ error: 'Server configuration error' }),
@@ -104,8 +161,23 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Create admin client with service role key
+    // Create admin client with service role key (for auth.admin operations)
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Create user-scoped client with anon key + user's JWT
+    // CRITICAL: The clear_all_user_data RPC uses auth.uid() which returns NULL
+    // with service role. We need the user's JWT context for auth.uid() to work.
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+        },
+      },
       auth: {
         autoRefreshToken: false,
         persistSession: false,
@@ -127,10 +199,9 @@ Deno.serve(async (req: Request) => {
     console.log(`Deleting account for user: ${userId}`);
 
     // Step 1: Delete all user data using the existing RPC function
-    // This runs as the authenticated user and respects RLS
-    // Note: We use the service role here to ensure the delete completes
-    // even if there are any RLS edge cases
-    const { error: dataDeleteError } = await supabaseAdmin.rpc('clear_all_user_data');
+    // CRITICAL: Use user-scoped client so auth.uid() returns the correct user ID.
+    // The RPC uses auth.uid() internally - service role would return NULL.
+    const { error: dataDeleteError } = await supabaseUser.rpc('clear_all_user_data');
 
     if (dataDeleteError) {
       console.error('Failed to delete user data:', dataDeleteError.message);

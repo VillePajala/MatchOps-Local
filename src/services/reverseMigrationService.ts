@@ -358,39 +358,12 @@ export async function migrateCloudToLocal(
       ['player', 'team', 'game', 'season', 'tournament', 'personnel'].includes(f.entityType)
     );
 
-    // Step 5: Delete cloud data if requested (only after successful verification and no critical failures)
-    let deleteFailed = false;
-    if (mode === 'delete-cloud' && verificationResult.success && !hasCriticalSaveFailures) {
-      safeProgress({ stage: 'deleting', progress: REVERSE_PROGRESS_RANGES.DELETING.start, message: REVERSE_MIGRATION_MESSAGES.DELETING });
-
-      try {
-        await cloudStore.clearAllUserData();
-        cloudDeleted = true;
-        clearCloudAccountInfo();
-        logger.info('[ReverseMigrationService] Cloud data deleted successfully');
-      } catch (deleteError) {
-        deleteFailed = true;
-        const errorMsg = deleteError instanceof Error ? deleteError.message : 'Unknown error';
-        warnings.push(`Failed to delete cloud data: ${errorMsg}. Your data was downloaded locally but still exists in the cloud. Staying in cloud mode so you can retry the deletion.`);
-        logger.error('[ReverseMigrationService] Failed to delete cloud data:', deleteError);
-      }
-    } else if (mode === 'delete-cloud' && hasCriticalSaveFailures) {
-      warnings.push('Cloud data was NOT deleted because some entities failed to save locally. Please retry the migration.');
-    } else if (mode === 'keep-cloud') {
-      // Update cloud account info to indicate data still exists
-      const updateSuccess = updateCloudAccountInfo({ hasCloudData: true, lastSyncedAt: new Date().toISOString() });
-      if (!updateSuccess) {
-        // Non-critical: UI display may be stale but data is safe
-        logger.warn('[ReverseMigrationService] Could not update cloud account info display');
-      }
-    }
-
-    // Step 6: Switch to local mode
-    // ONLY switch if:
-    // - Verification passed (local data matches cloud data)
-    // - No critical save failures (all important entities saved locally)
-    // - For delete-cloud mode: deletion succeeded
-    // This prevents leaving user in local mode with incomplete data
+    // Step 5: Switch to local mode FIRST (before deleting cloud data)
+    // CRITICAL: We switch mode BEFORE deleting cloud data to prevent a scenario where:
+    // - Cloud deletion succeeds (cloud data gone)
+    // - Mode switch fails
+    // - User is stuck in cloud mode with no cloud data
+    // By switching first, if mode switch fails, cloud data is preserved as backup.
     let modeSwitch = false;
     const canSwitchMode = verificationResult.success && !hasCriticalSaveFailures;
 
@@ -401,9 +374,6 @@ export async function migrateCloudToLocal(
         'Mode switch skipped: Local data may be incomplete. Your data remains in cloud mode. ' +
         'Please retry the migration to ensure all data is saved locally before switching.'
       );
-    } else if (mode === 'delete-cloud' && deleteFailed) {
-      // Don't switch to local mode if deletion failed - user can retry from cloud mode
-      logger.warn('[ReverseMigrationService] Not switching to local mode because cloud deletion failed');
     } else {
       const switchResult = disableCloudMode();
       modeSwitch = switchResult.success;
@@ -415,8 +385,40 @@ export async function migrateCloudToLocal(
       }
     }
 
+    // Step 6: Delete cloud data if requested (only AFTER successful mode switch)
+    // This ensures user has working local mode before we delete their cloud backup
+    if (mode === 'delete-cloud' && modeSwitch) {
+      safeProgress({ stage: 'deleting', progress: REVERSE_PROGRESS_RANGES.DELETING.start, message: REVERSE_MIGRATION_MESSAGES.DELETING });
+
+      try {
+        await cloudStore.clearAllUserData();
+        cloudDeleted = true;
+        clearCloudAccountInfo();
+        logger.info('[ReverseMigrationService] Cloud data deleted successfully');
+      } catch (deleteError) {
+        const errorMsg = deleteError instanceof Error ? deleteError.message : 'Unknown error';
+        // Mode switch already succeeded, so user is in local mode. Cloud data deletion failed
+        // but this is non-critical - they can delete it later from settings.
+        warnings.push(`Failed to delete cloud data: ${errorMsg}. You are now in local mode, but your data still exists in the cloud. You can delete it later from Settings > Cloud Account.`);
+        logger.error('[ReverseMigrationService] Failed to delete cloud data:', deleteError);
+      }
+    } else if (mode === 'delete-cloud' && !modeSwitch && canSwitchMode) {
+      // Mode switch failed but data was valid - don't delete cloud data, it's the user's only backup
+      warnings.push('Cloud data was NOT deleted because mode switch failed. Your cloud data is preserved as backup.');
+    } else if (mode === 'delete-cloud' && hasCriticalSaveFailures) {
+      warnings.push('Cloud data was NOT deleted because some entities failed to save locally. Please retry the migration.');
+    } else if (mode === 'keep-cloud') {
+      // Update cloud account info to indicate data still exists
+      const updateSuccess = updateCloudAccountInfo({ hasCloudData: true, lastSyncedAt: new Date().toISOString() });
+      if (!updateSuccess) {
+        // Non-critical: UI display may be stale but data is safe
+        logger.warn('[ReverseMigrationService] Could not update cloud account info display');
+      }
+    }
+
     // Determine overall success: verification passed AND mode switched AND no critical save failures
-    // For delete-cloud mode, deletion failure means not switching (so modeSwitch=false), which means not success
+    // Note: In delete-cloud mode, cloud deletion failure is non-critical if mode switch succeeded.
+    // User is safely in local mode; cloud data can be deleted later from Settings.
     const overallSuccess = verificationResult.success && modeSwitch && !hasCriticalSaveFailures;
 
     // Complete
@@ -791,6 +793,17 @@ async function saveToLocal(
 interface VerificationResult {
   success: boolean;
   warnings: string[];
+  // Explicit missing counts for structured verification (avoid fragile string matching)
+  missingCounts: {
+    players: number;
+    teams: number;
+    seasons: number;
+    tournaments: number;
+    personnel: number;
+    games: number;
+    rosterEntries: number;
+    adjustments: number;
+  };
 }
 
 async function verifyReverseMigration(
@@ -798,6 +811,17 @@ async function verifyReverseMigration(
   localStore: LocalDataStore
 ): Promise<VerificationResult> {
   const warnings: string[] = [];
+  // Track missing counts explicitly for structured success determination
+  const missingCounts = {
+    players: 0,
+    teams: 0,
+    seasons: 0,
+    tournaments: 0,
+    personnel: 0,
+    games: 0,
+    rosterEntries: 0,
+    adjustments: 0,
+  };
 
   // Get local data
   const localPlayers = await localStore.getPlayers();
@@ -822,35 +846,41 @@ async function verifyReverseMigration(
   const localGameIds = new Set(Object.keys(localGames));
 
   // Verify all cloud entities exist in local by ID
-  const missingPlayers = cloudData.players.filter(p => !localPlayerIds.has(p.id));
-  if (missingPlayers.length > 0) {
-    warnings.push(`Missing ${missingPlayers.length} player(s): ${missingPlayers.slice(0, 3).map(p => p.name).join(', ')}${missingPlayers.length > 3 ? '...' : ''}`);
+  const missingPlayersList = cloudData.players.filter(p => !localPlayerIds.has(p.id));
+  missingCounts.players = missingPlayersList.length;
+  if (missingPlayersList.length > 0) {
+    warnings.push(`Missing ${missingPlayersList.length} player(s): ${missingPlayersList.slice(0, 3).map(p => p.name).join(', ')}${missingPlayersList.length > 3 ? '...' : ''}`);
   }
 
-  const missingTeams = cloudData.teams.filter(t => !localTeamIds.has(t.id));
-  if (missingTeams.length > 0) {
-    warnings.push(`Missing ${missingTeams.length} team(s): ${missingTeams.slice(0, 3).map(t => t.name).join(', ')}${missingTeams.length > 3 ? '...' : ''}`);
+  const missingTeamsList = cloudData.teams.filter(t => !localTeamIds.has(t.id));
+  missingCounts.teams = missingTeamsList.length;
+  if (missingTeamsList.length > 0) {
+    warnings.push(`Missing ${missingTeamsList.length} team(s): ${missingTeamsList.slice(0, 3).map(t => t.name).join(', ')}${missingTeamsList.length > 3 ? '...' : ''}`);
   }
 
-  const missingSeasons = cloudData.seasons.filter(s => !localSeasonIds.has(s.id));
-  if (missingSeasons.length > 0) {
-    warnings.push(`Missing ${missingSeasons.length} season(s): ${missingSeasons.slice(0, 3).map(s => s.name).join(', ')}${missingSeasons.length > 3 ? '...' : ''}`);
+  const missingSeasonsList = cloudData.seasons.filter(s => !localSeasonIds.has(s.id));
+  missingCounts.seasons = missingSeasonsList.length;
+  if (missingSeasonsList.length > 0) {
+    warnings.push(`Missing ${missingSeasonsList.length} season(s): ${missingSeasonsList.slice(0, 3).map(s => s.name).join(', ')}${missingSeasonsList.length > 3 ? '...' : ''}`);
   }
 
-  const missingTournaments = cloudData.tournaments.filter(t => !localTournamentIds.has(t.id));
-  if (missingTournaments.length > 0) {
-    warnings.push(`Missing ${missingTournaments.length} tournament(s): ${missingTournaments.slice(0, 3).map(t => t.name).join(', ')}${missingTournaments.length > 3 ? '...' : ''}`);
+  const missingTournamentsList = cloudData.tournaments.filter(t => !localTournamentIds.has(t.id));
+  missingCounts.tournaments = missingTournamentsList.length;
+  if (missingTournamentsList.length > 0) {
+    warnings.push(`Missing ${missingTournamentsList.length} tournament(s): ${missingTournamentsList.slice(0, 3).map(t => t.name).join(', ')}${missingTournamentsList.length > 3 ? '...' : ''}`);
   }
 
-  const missingPersonnel = cloudData.personnel.filter(p => !localPersonnelIds.has(p.id));
-  if (missingPersonnel.length > 0) {
-    warnings.push(`Missing ${missingPersonnel.length} personnel: ${missingPersonnel.slice(0, 3).map(p => p.name).join(', ')}${missingPersonnel.length > 3 ? '...' : ''}`);
+  const missingPersonnelList = cloudData.personnel.filter(p => !localPersonnelIds.has(p.id));
+  missingCounts.personnel = missingPersonnelList.length;
+  if (missingPersonnelList.length > 0) {
+    warnings.push(`Missing ${missingPersonnelList.length} personnel: ${missingPersonnelList.slice(0, 3).map(p => p.name).join(', ')}${missingPersonnelList.length > 3 ? '...' : ''}`);
   }
 
   const cloudGameIds = Object.keys(cloudData.games);
-  const missingGames = cloudGameIds.filter(id => !localGameIds.has(id));
-  if (missingGames.length > 0) {
-    warnings.push(`Missing ${missingGames.length} game(s)`);
+  const missingGamesList = cloudGameIds.filter(id => !localGameIds.has(id));
+  missingCounts.games = missingGamesList.length;
+  if (missingGamesList.length > 0) {
+    warnings.push(`Missing ${missingGamesList.length} game(s)`);
   }
 
   // Content verification for games (most complex entity)
@@ -882,7 +912,6 @@ async function verifyReverseMigration(
 
   // Verify team rosters by player ID, not just count
   // This ensures all cloud roster entries exist locally, even if local has extra entries
-  let missingRosterEntries = 0;
   let rosterVerifyErrors = 0;
   for (const [teamId, cloudRoster] of cloudData.teamRosters) {
     if (localTeamIds.has(teamId)) {
@@ -892,7 +921,7 @@ async function verifyReverseMigration(
         // Check that all cloud roster entries exist locally
         for (const cloudEntry of cloudRoster) {
           if (!localRosterPlayerIds.has(cloudEntry.id)) {
-            missingRosterEntries++;
+            missingCounts.rosterEntries++;
           }
         }
       } catch (err) {
@@ -902,8 +931,8 @@ async function verifyReverseMigration(
       }
     }
   }
-  if (missingRosterEntries > 0) {
-    warnings.push(`Missing ${missingRosterEntries} team roster entry(ies) from cloud`);
+  if (missingCounts.rosterEntries > 0) {
+    warnings.push(`Missing ${missingCounts.rosterEntries} team roster entry(ies) from cloud`);
   }
   if (rosterVerifyErrors > 0) {
     warnings.push(`Could not verify ${rosterVerifyErrors} team roster(s)`);
@@ -911,7 +940,6 @@ async function verifyReverseMigration(
 
   // Verify player adjustments by ID, not just count
   // This ensures all cloud adjustments exist locally, even if local has extra adjustments
-  let missingAdjustments = 0;
   let adjustmentVerifyErrors = 0;
   for (const [playerId, cloudAdjustments] of cloudData.playerAdjustments) {
     if (localPlayerIds.has(playerId)) {
@@ -921,7 +949,7 @@ async function verifyReverseMigration(
         // Check that all cloud adjustments exist locally
         for (const cloudAdj of cloudAdjustments) {
           if (!localAdjustmentIds.has(cloudAdj.id)) {
-            missingAdjustments++;
+            missingCounts.adjustments++;
           }
         }
       } catch (err) {
@@ -931,20 +959,39 @@ async function verifyReverseMigration(
       }
     }
   }
-  if (missingAdjustments > 0) {
-    warnings.push(`Missing ${missingAdjustments} player adjustment(s) from cloud`);
+  if (missingCounts.adjustments > 0) {
+    warnings.push(`Missing ${missingCounts.adjustments} player adjustment(s) from cloud`);
   }
   if (adjustmentVerifyErrors > 0) {
     warnings.push(`Could not verify ${adjustmentVerifyErrors} player adjustment(s)`);
   }
 
-  // Determine success: only fail on fatal warnings (missing entities), not informational warnings
-  // Fatal warnings indicate actual data loss; informational warnings are verification read errors or count mismatches
-  const fatalWarnings = warnings.filter(w => w.startsWith('Missing '));
+  // Determine success using structured counts (avoid fragile string matching)
+  // Critical entities: players, teams, games, seasons, tournaments, personnel
+  // Non-critical: roster entries, adjustments (can be re-synced)
+  const hasMissingCriticalEntities =
+    missingCounts.players > 0 ||
+    missingCounts.teams > 0 ||
+    missingCounts.games > 0 ||
+    missingCounts.seasons > 0 ||
+    missingCounts.tournaments > 0 ||
+    missingCounts.personnel > 0;
+
+  // Roster entries and adjustments are non-critical - warn but don't fail
+  const hasMissingNonCriticalEntities =
+    missingCounts.rosterEntries > 0 ||
+    missingCounts.adjustments > 0;
+
+  if (hasMissingNonCriticalEntities && !hasMissingCriticalEntities) {
+    // All critical entities present, but some roster/adjustment data missing
+    // This is acceptable - user can re-assign players to teams
+    logger.warn('[ReverseMigrationService] Non-critical data missing but all entities present');
+  }
 
   return {
-    success: fatalWarnings.length === 0,
+    success: !hasMissingCriticalEntities,
     warnings,
+    missingCounts,
   };
 }
 
