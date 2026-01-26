@@ -21,13 +21,52 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// CORS headers for browser requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed origins for CORS (exact match)
+const ALLOWED_ORIGINS = [
+  'https://matchops.app',
+  'https://www.matchops.app',
+  'https://match-ops-local.vercel.app',
+  // Allow localhost for development
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
+
+// Vercel preview deployment pattern: match-ops-local-*.vercel.app
+// Security note: This only matches our specific project prefix (match-ops-local).
+// Vercel generates unique subdomains per deployment (e.g., match-ops-local-abc123.vercel.app).
+// An attacker would need access to our Vercel project to create a matching deployment.
+const VERCEL_PREVIEW_PATTERN = /^https:\/\/match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/;
+
+/**
+ * Check if origin is allowed
+ */
+function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Allow Vercel preview deployments
+  if (VERCEL_PREVIEW_PATTERN.test(origin)) return true;
+  return false;
+}
+
+/**
+ * Get CORS headers with origin validation
+ */
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  // Use request origin if allowed, otherwise default to production
+  const allowedOrigin = isOriginAllowed(origin) ? origin! : ALLOWED_ORIGINS[0];
+
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
 
 Deno.serve(async (req: Request) => {
+  // Get origin for CORS
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -91,12 +130,16 @@ Deno.serve(async (req: Request) => {
     // This runs as the authenticated user and respects RLS
     // Note: We use the service role here to ensure the delete completes
     // even if there are any RLS edge cases
-    const { error: dataDeleteError } = await supabaseAdmin.rpc('delete_all_user_data');
+    const { error: dataDeleteError } = await supabaseAdmin.rpc('clear_all_user_data');
 
     if (dataDeleteError) {
       console.error('Failed to delete user data:', dataDeleteError.message);
-      // Continue with auth deletion even if data deletion fails
-      // The data will be orphaned but user won't be able to access it
+      // CRITICAL: Do NOT continue with auth deletion if data deletion fails
+      // This prevents GDPR violations (orphaned data) and allows user to retry
+      return new Response(
+        JSON.stringify({ error: 'Failed to delete account data. Please try again or contact support.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Step 2: Delete the user from auth.users

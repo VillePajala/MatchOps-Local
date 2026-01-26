@@ -2828,8 +2828,8 @@ export class SupabaseDataStore implements DataStore {
     }
 
     // Fetch full data for each game in parallel batches
-    // Batch size of 10 balances parallelism vs. connection pool limits
-    const BATCH_SIZE = 10;
+    // Batch size of 20 balances parallelism vs. Supabase connection pool limits
+    const BATCH_SIZE = 20;
     const collection: SavedGamesCollection = {};
 
     for (let i = 0; i < games.length; i += BATCH_SIZE) {

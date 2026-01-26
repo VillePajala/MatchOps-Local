@@ -1,6 +1,11 @@
 export { LocalDataStore } from './LocalDataStore';
 export { SupabaseDataStore } from './SupabaseDataStore';
 export {
+  SyncedDataStore,
+  type SyncQueueErrorInfo,
+  type SyncQueueErrorListener,
+} from './SyncedDataStore';
+export {
   getDataStore,
   getAuthService,
   resetFactory,

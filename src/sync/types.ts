@@ -124,6 +124,9 @@ export interface SyncStatusInfo {
 
   /** Whether the device is currently online */
   isOnline: boolean;
+
+  /** True if failed to reset stale operations on startup - some operations may be stuck */
+  hasStaleResetFailure?: boolean;
 }
 
 /**
