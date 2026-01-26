@@ -156,8 +156,7 @@ describe('playBilling utilities', () => {
     it('returns error when product not available', async () => {
       // No Digital Goods Service = no product details
       const result = await purchaseSubscription();
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Product not available');
+      expect(result).toEqual({ success: false, error: 'Product not available' });
     });
   });
 
@@ -254,7 +253,9 @@ describe('playBilling mock mode', () => {
       const { purchaseSubscription: mockPurchase } = await import('./playBilling');
       const result = await mockPurchase();
       expect(result.success).toBe(true);
-      expect(result.purchaseToken).toMatch(/^test-\d+-[a-z0-9]+$/);
+      if (result.success) {
+        expect(result.purchaseToken).toMatch(/^test-\d+-[a-z0-9]+$/);
+      }
     });
   });
 

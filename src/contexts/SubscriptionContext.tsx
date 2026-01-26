@@ -32,6 +32,19 @@ import logger from '@/utils/logger';
 export type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';
 
 /**
+ * Compute whether subscription grants active premium access.
+ * Derived from status to ensure consistency.
+ *
+ * Active statuses:
+ * - 'active': Paid and valid
+ * - 'cancelled': User cancelled but period not ended
+ * - 'grace': Payment failed, in grace period (still has access)
+ */
+export function isSubscriptionActive(status: SubscriptionStatus): boolean {
+  return status === 'active' || status === 'cancelled' || status === 'grace';
+}
+
+/**
  * Subscription state shape
  */
 export interface SubscriptionState {
@@ -85,13 +98,15 @@ async function getCachedSubscription(): Promise<Omit<SubscriptionState, 'isLoadi
       return null; // Expired
     }
 
+    const status = data.status as SubscriptionStatus;
     return {
-      status: data.status,
+      status,
       periodEnd: data.periodEnd ? new Date(data.periodEnd) : null,
       graceEnd: data.graceEnd ? new Date(data.graceEnd) : null,
-      isActive: data.isActive,
+      isActive: isSubscriptionActive(status),
     };
-  } catch {
+  } catch (error) {
+    logger.warn('[SubscriptionContext] Failed to read cached subscription:', error);
     return null;
   }
 }
@@ -172,14 +187,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         status: 'none' as SubscriptionStatus,
         period_end: null,
         grace_end: null,
-        is_active: false,
       };
 
+      const subscriptionStatus = subscription.status as SubscriptionStatus;
       const newState: SubscriptionState = {
-        status: subscription.status,
+        status: subscriptionStatus,
         periodEnd: subscription.period_end ? new Date(subscription.period_end) : null,
         graceEnd: subscription.grace_end ? new Date(subscription.grace_end) : null,
-        isActive: subscription.is_active,
+        isActive: isSubscriptionActive(subscriptionStatus),
         isLoading: false,
       };
 
@@ -193,15 +208,21 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       // Fall back to cached or default state
       const cached = await getCachedSubscription();
-      setState({
-        ...(cached || {
-          status: 'none',
+      if (cached) {
+        setState({
+          ...cached,
+          isLoading: false,
+        });
+      } else {
+        const fallbackStatus: SubscriptionStatus = 'none';
+        setState({
+          status: fallbackStatus,
           periodEnd: null,
           graceEnd: null,
-          isActive: false,
-        }),
-        isLoading: false,
-      });
+          isActive: isSubscriptionActive(fallbackStatus),
+          isLoading: false,
+        });
+      }
     }
   }, [user, mode]);
 

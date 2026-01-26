@@ -352,7 +352,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
                   {t('premium.androidOnly', 'Subscriptions are available on the Android app.')}
                 </p>
                 <a
-                  href="https://play.google.com/store/apps/details?id=com.matchops"
+                  href="https://play.google.com/store/apps/details?id=com.matchops.local"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-amber-400 text-sm hover:text-amber-300 inline-flex items-center gap-1"

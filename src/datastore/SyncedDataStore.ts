@@ -32,6 +32,7 @@ import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, type SyncOperationExecutor } from '@/sync';
 import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * SyncedDataStore - Local-first DataStore with background cloud sync.
@@ -213,11 +214,21 @@ export class SyncedDataStore implements DataStore {
       // This is not fatal - log and continue. The operation will be
       // missing from sync, but local data is safe. User can trigger
       // a full sync later if needed.
-      logger.error('[SyncedDataStore] Failed to queue sync operation', {
+      //
+      // IMPORTANT: This is a data loss scenario - the change won't sync to cloud.
+      // We log to Sentry for production monitoring so we can track frequency.
+      const context = {
         entityType,
         entityId,
         operation,
         error: error instanceof Error ? error.message : String(error),
+      };
+      logger.error('[SyncedDataStore] Failed to queue sync operation', context);
+
+      // Report to Sentry for production tracking
+      Sentry.captureException(error, {
+        tags: { component: 'SyncedDataStore', action: 'queueSync' },
+        extra: context,
       });
     }
   }

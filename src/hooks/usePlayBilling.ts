@@ -33,13 +33,14 @@ import logger from '@/utils/logger';
 
 /**
  * Result of a billing operation
+ *
+ * Discriminated union ensures:
+ * - success=true always has purchaseToken
+ * - success=false always has error message
  */
-export interface BillingResult {
-  success: boolean;
-  error?: string;
-  /** Purchase token (available on successful purchase) */
-  purchaseToken?: string;
-}
+export type BillingResult =
+  | { success: true; purchaseToken: string }
+  | { success: false; error: string };
 
 /**
  * Hook return type
@@ -140,12 +141,20 @@ async function ensureFreshSession() {
 }
 
 /**
+ * Result of server verification (internal use only)
+ * Different from BillingResult - doesn't return purchaseToken since caller already has it
+ */
+type VerifyResult =
+  | { success: true }
+  | { success: false; error: string };
+
+/**
  * Verify a purchase token with the server
  *
  * @param purchaseToken - Token from Play Billing
- * @returns BillingResult
+ * @returns VerifyResult (success or error)
  */
-async function verifyPurchaseWithServer(purchaseToken: string): Promise<BillingResult> {
+async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyResult> {
   try {
     const supabase = getSupabaseClient();
 
@@ -413,5 +422,9 @@ export default usePlayBilling;
  */
 export async function grantMockSubscription(testToken: string): Promise<BillingResult> {
   logger.info('[usePlayBilling] Granting mock subscription with test token');
-  return verifyPurchaseWithServer(testToken);
+  const result = await verifyPurchaseWithServer(testToken);
+  if (!result.success) {
+    return result;
+  }
+  return { success: true, purchaseToken: testToken };
 }

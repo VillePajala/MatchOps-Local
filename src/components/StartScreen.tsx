@@ -241,7 +241,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <div className="mt-3 text-slate-500 text-xs">
                   <span>{t('startScreen.newToCloud', 'New here? Subscribe via the Android app.')}</span>
                   <a
-                    href="https://play.google.com/store/apps/details?id=com.matchops"
+                    href="https://play.google.com/store/apps/details?id=com.matchops.local"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-amber-400/80 hover:text-amber-300 ml-1"

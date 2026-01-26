@@ -53,12 +53,14 @@ const MOCK_BILLING = (() => {
 
 /**
  * Result of a purchase attempt
+ *
+ * Discriminated union ensures:
+ * - success=true always has purchaseToken
+ * - success=false always has error message
  */
-export interface PurchaseResult {
-  success: boolean;
-  purchaseToken?: string;
-  error?: string;
-}
+export type PurchaseResult =
+  | { success: true; purchaseToken: string }
+  | { success: false; error: string };
 
 /**
  * Subscription product details from Play Store

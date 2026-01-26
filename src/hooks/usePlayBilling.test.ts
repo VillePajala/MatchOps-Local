@@ -9,6 +9,7 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { usePlayBilling, grantMockSubscription, BillingResult } from './usePlayBilling';
+import type { PurchaseResult } from '@/utils/playBilling';
 
 // Mock playBilling utilities
 jest.mock('@/utils/playBilling', () => ({
@@ -952,10 +953,11 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
     });
 
     // Play Billing returns success but no token (shouldn't happen but defensive)
+    // Cast to unknown to simulate malformed response for defensive testing
     mockPurchaseSubscription.mockResolvedValue({
       success: true,
       purchaseToken: undefined, // Missing token
-    });
+    } as unknown as PurchaseResult);
 
     let purchaseResult: BillingResult | undefined;
     await act(async () => {
@@ -1168,6 +1170,8 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
     });
 
     expect(purchaseResult?.success).toBe(false);
-    expect(purchaseResult?.error).toContain('Session invalid');
+    if (purchaseResult && !purchaseResult.success) {
+      expect(purchaseResult.error).toContain('Session invalid');
+    }
   });
 });

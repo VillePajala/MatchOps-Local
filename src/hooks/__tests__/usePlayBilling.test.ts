@@ -119,8 +119,7 @@ describe('usePlayBilling', () => {
         purchaseResult = await result.current.purchase();
       });
 
-      expect(purchaseResult?.success).toBe(false);
-      expect(purchaseResult?.error).toBe('Play Billing not available');
+      expect(purchaseResult).toEqual({ success: false, error: 'Play Billing not available' });
     });
 
     it('completes purchase flow successfully', async () => {
@@ -149,8 +148,7 @@ describe('usePlayBilling', () => {
         purchaseResult = await result.current.purchase();
       });
 
-      expect(purchaseResult?.success).toBe(true);
-      expect(purchaseResult?.purchaseToken).toBe('test-token-123');
+      expect(purchaseResult).toEqual({ success: true, purchaseToken: 'test-token-123' });
     });
 
     it('prevents duplicate purchases', async () => {
@@ -186,8 +184,7 @@ describe('usePlayBilling', () => {
         secondResult = await result.current.purchase();
       });
 
-      expect(secondResult?.success).toBe(false);
-      expect(secondResult?.error).toBe('Purchase already in progress');
+      expect(secondResult).toEqual({ success: false, error: 'Purchase already in progress' });
 
       // Clean up: resolve the first purchase
       await act(async () => {
@@ -213,8 +210,7 @@ describe('usePlayBilling', () => {
         restoreResult = await result.current.restore();
       });
 
-      expect(restoreResult?.success).toBe(false);
-      expect(restoreResult?.error).toBe('No purchases to restore');
+      expect(restoreResult).toEqual({ success: false, error: 'No purchases to restore' });
     });
 
     it('restores existing purchase successfully', async () => {
@@ -232,8 +228,7 @@ describe('usePlayBilling', () => {
         restoreResult = await result.current.restore();
       });
 
-      expect(restoreResult?.success).toBe(true);
-      expect(restoreResult?.purchaseToken).toBe('existing-token-456');
+      expect(restoreResult).toEqual({ success: true, purchaseToken: 'existing-token-456' });
     });
   });
 
@@ -306,7 +301,6 @@ describe('grantMockSubscription', () => {
 
     const result = await grantMockSubscription('test-token-456');
 
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Server error');
+    expect(result).toEqual({ success: false, error: 'Server error' });
   });
 });

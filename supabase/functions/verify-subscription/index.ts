@@ -375,6 +375,7 @@ Deno.serve(async (req: Request) => {
       google_purchase_token: purchaseToken,
       google_order_id: orderId,
       product_id: productId,
+      period_start: now,
       period_end: periodEnd.toISOString(),
       grace_end: graceEnd.toISOString(),
       last_verified_at: now,
