@@ -136,14 +136,71 @@ npm test -- --testPathPatterns=SyncQueue
 
 Tests use `fake-indexeddb` to simulate IndexedDB in Node.js.
 
-## Future Phases
+## Implementation Status
 
 | Phase | Component | Status |
 |-------|-----------|--------|
-| 1 | SyncQueue | Complete |
-| 2 | SyncEngine | Planned |
-| 3 | SyncedDataStore | Planned |
-| 4 | UI Integration | Planned |
-| 5-8 | Advanced features | Planned |
+| 1 | SyncQueue | ✅ Complete |
+| 2 | SyncEngine | ✅ Complete |
+| 3 | SyncedDataStore | ✅ Complete |
+| 4 | UI Integration | ✅ Complete |
+| 5-8 | Conflict resolution, testing | ✅ Complete |
+
+All phases merged via PR #324 (January 2026).
+
+---
+
+## Subscription Status Caching
+
+Subscription status is cached to reduce API calls and provide offline access to subscription info.
+
+### Cache Configuration
+
+```typescript
+// In SubscriptionContext.tsx
+const CACHE_KEY = 'matchops_subscription_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+```
+
+### Behavior
+
+| Scenario | Behavior |
+|----------|----------|
+| App opens | Read from cache if fresh (<5 min), otherwise fetch from server |
+| After purchase | Cache cleared, fresh fetch triggered |
+| Offline | Use cached status (may be stale) |
+| Cache expired | Fetch from server on next check |
+
+### Cross-Device Sync Expectations
+
+**Scenario**: User purchases on Device A, then opens Device B.
+
+| Timing | Device B Behavior |
+|--------|-------------------|
+| Immediate | May see stale cache (up to 5 min) |
+| After cache expires | Fetches fresh status from server |
+| Manual refresh | `subscription.refresh()` forces server fetch |
+
+**Design decision**: 5-minute cache is acceptable because:
+1. Subscriptions rarely change (monthly billing cycle)
+2. Reduces API load for frequent app opens
+3. Purchase flow always clears cache and fetches fresh
+
+**For real-time requirements**: Call `subscription.refresh()` explicitly after sign-in or when user requests sync.
+
+### Manual Refresh
+
+```typescript
+const { refresh } = useSubscription();
+
+// Force server fetch (clears cache)
+await refresh();
+```
+
+Currently used after:
+- Successful purchase verification
+- User explicitly requests refresh
+
+---
 
 See `docs/03-active-plans/local-first-sync-plan.md` for full implementation plan.
