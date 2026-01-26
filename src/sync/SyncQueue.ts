@@ -46,7 +46,17 @@ function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  // Fallback for older browsers
+  // Fallback using crypto.getRandomValues for better entropy than Math.random
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    // Set version (4) and variant (8, 9, a, or b) bits per RFC 4122
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  // Last resort fallback for very old browsers
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
@@ -84,6 +94,10 @@ export class SyncQueue {
   private maxRetries: number;
   private backoffBaseMs: number;
   private backoffMaxMs: number;
+
+  // Stats cache to avoid full table scans on every getStats() call
+  private statsCache: { stats: SyncQueueStats; timestamp: number } | null = null;
+  private static readonly STATS_CACHE_TTL_MS = 1000; // 1 second TTL
 
   constructor(config?: Partial<typeof DEFAULT_SYNC_CONFIG>) {
     this.maxRetries = config?.maxRetries ?? DEFAULT_SYNC_CONFIG.maxRetries;
@@ -250,8 +264,12 @@ export class SyncQueue {
               existingOperation: existing.operation,
               newOperation: input.operation,
             });
+            // Exit early - use first pending operation found, don't continue cursor
+            // This prevents finding multiple pending ops and only using the last one
+            resultId = this.performWriteInTransaction(store, input, existingOp);
+          } else {
+            cursor.continue();
           }
-          cursor.continue();
         } else {
           // Cursor exhausted - perform write in SAME transaction (atomic)
           resultId = this.performWriteInTransaction(store, input, existingOp);
@@ -269,6 +287,7 @@ export class SyncQueue {
 
       transaction.oncomplete = () => {
         if (resultId !== null) {
+          this.invalidateStatsCache();
           resolve(resultId);
         }
         // If resultId is null, error handler will have rejected
@@ -497,8 +516,14 @@ export class SyncQueue {
         const op = getRequest.result as SyncOperation | undefined;
 
         if (!op) {
-          logger.warn('[SyncQueue] Operation not found for markFailed:', id);
-          resolve();
+          // CRITICAL: Throw error instead of silently resolving
+          // Silent resolution masks bugs where operation IDs become mismatched,
+          // leading to operations stuck in 'syncing' state forever.
+          logger.error('[SyncQueue] Operation not found for markFailed:', id);
+          reject(new SyncError(
+            SyncErrorCode.QUEUE_ERROR,
+            `Operation ${id} not found in queue - cannot mark as failed`
+          ));
           return;
         }
 
@@ -524,7 +549,10 @@ export class SyncQueue {
         });
       };
 
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => {
+        this.invalidateStatsCache();
+        resolve();
+      };
 
       transaction.onerror = () => {
         logger.error('[SyncQueue] markFailed error:', transaction.error);
@@ -553,7 +581,10 @@ export class SyncQueue {
         logger.debug('[SyncQueue] Operation completed and removed', { id });
       };
 
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => {
+        this.invalidateStatsCache();
+        resolve();
+      };
 
       transaction.onerror = () => {
         logger.error('[SyncQueue] markCompleted error:', transaction.error);
@@ -592,13 +623,20 @@ export class SyncQueue {
         if (cursor) {
           const op = cursor.value as SyncOperation;
 
-          // Reset to pending for retry
+          // Reset to pending for retry, incrementing retry count
+          // The interrupted sync attempt counts against max retries to prevent
+          // infinite loops if an operation keeps crashing mid-sync.
+          const newRetryCount = op.retryCount + 1;
+          const newStatus: SyncOperationStatus = newRetryCount >= op.maxRetries ? 'failed' : 'pending';
+
           const updated: SyncOperation = {
             ...op,
-            status: 'pending',
+            status: newStatus,
+            retryCount: newRetryCount,
             lastError: op.lastError
               ? `${op.lastError} (reset from stale syncing)`
               : 'Reset from stale syncing state',
+            lastAttempt: Date.now(),
           };
 
           cursor.update(updated);
@@ -616,6 +654,7 @@ export class SyncQueue {
       transaction.oncomplete = () => {
         if (resetCount > 0) {
           logger.info(`[SyncQueue] Reset ${resetCount} stale syncing operations`);
+          this.invalidateStatsCache();
         }
         resolve(resetCount);
       };
@@ -625,6 +664,62 @@ export class SyncQueue {
         reject(new SyncError(
           SyncErrorCode.QUEUE_ERROR,
           `Failed to reset stale syncing operations: ${transaction.error?.message || 'Unknown error'}`,
+          transaction.error ?? undefined
+        ));
+      };
+    });
+  }
+
+  /**
+   * Reset a single operation to pending status.
+   * Used for recovery when markFailed() itself fails (e.g., after timeout).
+   *
+   * @returns true if operation was found and reset, false if not found
+   */
+  async resetOperationToPending(id: string): Promise<boolean> {
+    const db = this.ensureInitialized();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(SYNC_STORE_NAME);
+
+      const getRequest = store.get(id);
+      let found = false;
+
+      getRequest.onsuccess = () => {
+        const op = getRequest.result as SyncOperation | undefined;
+
+        if (!op) {
+          logger.warn('[SyncQueue] Operation not found for reset:', id);
+          return; // resolve with false via transaction.oncomplete
+        }
+
+        found = true;
+        const updated: SyncOperation = {
+          ...op,
+          status: 'pending',
+          lastError: op.lastError
+            ? `${op.lastError} (emergency reset to pending)`
+            : 'Emergency reset to pending after failure',
+          lastAttempt: Date.now(),
+        };
+
+        store.put(updated);
+        logger.info('[SyncQueue] Emergency reset operation to pending', { id });
+      };
+
+      transaction.oncomplete = () => {
+        if (found) {
+          this.invalidateStatsCache();
+        }
+        resolve(found);
+      };
+
+      transaction.onerror = () => {
+        logger.error('[SyncQueue] resetOperationToPending error:', transaction.error);
+        reject(new SyncError(
+          SyncErrorCode.QUEUE_ERROR,
+          `Failed to reset operation to pending: ${transaction.error?.message || 'Unknown error'}`,
           transaction.error ?? undefined
         ));
       };
@@ -660,8 +755,15 @@ export class SyncQueue {
 
   /**
    * Get queue statistics.
+   * Uses a 1-second cache to avoid full table scans on rapid calls.
    */
   async getStats(): Promise<SyncQueueStats> {
+    // Check cache first
+    const now = Date.now();
+    if (this.statsCache && now - this.statsCache.timestamp < SyncQueue.STATS_CACHE_TTL_MS) {
+      return this.statsCache.stats;
+    }
+
     const db = this.ensureInitialized();
 
     return new Promise((resolve, reject) => {
@@ -707,6 +809,8 @@ export class SyncQueue {
 
       transaction.oncomplete = () => {
         logger.debug('[SyncQueue] Stats:', stats);
+        // Update cache
+        this.statsCache = { stats, timestamp: Date.now() };
         resolve(stats);
       };
 
@@ -718,6 +822,14 @@ export class SyncQueue {
         ));
       };
     });
+  }
+
+  /**
+   * Invalidate the stats cache.
+   * Called after operations that modify queue contents.
+   */
+  private invalidateStatsCache(): void {
+    this.statsCache = null;
   }
 
   /**
@@ -775,6 +887,7 @@ export class SyncQueue {
 
       transaction.oncomplete = () => {
         logger.info('[SyncQueue] Reset failed operations for retry', { count: failed.length });
+        this.invalidateStatsCache();
         resolve(failed.length);
       };
 
@@ -809,6 +922,7 @@ export class SyncQueue {
 
       transaction.oncomplete = () => {
         logger.info('[SyncQueue] Discarded failed operations', { count: failed.length });
+        this.invalidateStatsCache();
         resolve(failed.length);
       };
 
@@ -838,7 +952,10 @@ export class SyncQueue {
         logger.info('[SyncQueue] Queue cleared');
       };
 
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => {
+        this.invalidateStatsCache();
+        resolve();
+      };
 
       transaction.onerror = () => {
         reject(new SyncError(
@@ -891,7 +1008,10 @@ export class SyncQueue {
         store.put(updated);
       };
 
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => {
+        this.invalidateStatsCache();
+        resolve();
+      };
 
       transaction.onerror = () => {
         reject(new SyncError(

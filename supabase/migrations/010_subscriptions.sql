@@ -98,7 +98,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 BEGIN
   RETURN QUERY
@@ -143,7 +143,7 @@ CREATE OR REPLACE FUNCTION upsert_subscription(
 RETURNS subscriptions
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_result subscriptions;

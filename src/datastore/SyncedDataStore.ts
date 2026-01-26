@@ -65,7 +65,7 @@ export class SyncedDataStore implements DataStore {
   private syncQueue: SyncQueue;
   private syncEngine: SyncEngine | null = null;
   private initialized = false;
-  private queueErrorListeners: SyncQueueErrorListener[] = [];
+  private queueErrorListeners: Set<SyncQueueErrorListener> = new Set();
 
   constructor() {
     this.localStore = new LocalDataStore();
@@ -107,6 +107,9 @@ export class SyncedDataStore implements DataStore {
     if (this.syncEngine) {
       this.syncEngine.stop();
     }
+
+    // Clear queue error listeners to prevent memory leaks on mode switch
+    this.queueErrorListeners.clear();
 
     // Close local store
     await this.localStore.close();
@@ -208,12 +211,12 @@ export class SyncedDataStore implements DataStore {
    * @returns Unsubscribe function
    */
   onQueueError(listener: SyncQueueErrorListener): () => void {
-    this.queueErrorListeners.push(listener);
+    this.queueErrorListeners.add(listener);
+    let unsubscribed = false;
     return () => {
-      const index = this.queueErrorListeners.indexOf(listener);
-      if (index !== -1) {
-        this.queueErrorListeners.splice(index, 1);
-      }
+      if (unsubscribed) return; // Idempotent unsubscribe
+      unsubscribed = true;
+      this.queueErrorListeners.delete(listener);
     };
   }
 
