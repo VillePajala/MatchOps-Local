@@ -884,6 +884,19 @@ export class SyncQueue {
 
   /**
    * Retry all failed operations by resetting their status to pending.
+   *
+   * IMPORTANT: This method resets retryCount to 0, which is INTENTIONAL and differs
+   * from other retry-related methods (markFailed, resetStaleSyncing, resetOperationToPending)
+   * which INCREMENT retryCount.
+   *
+   * Rationale: retryFailed() is USER-INITIATED (e.g., clicking "Retry" button after
+   * reviewing failures), so operations get a fresh set of retry attempts. This allows
+   * users to manually retry after fixing network issues or other transient problems.
+   *
+   * In contrast, automatic retries (from markFailed, stale resets) increment the counter
+   * to prevent infinite loops from operations that repeatedly fail.
+   *
+   * @returns Number of operations reset to pending
    */
   async retryFailed(): Promise<number> {
     const failed = await this.getFailed();

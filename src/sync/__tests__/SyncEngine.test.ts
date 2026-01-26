@@ -1,9 +1,13 @@
 /**
  * SyncEngine Tests
  *
- * Tests for the background sync processor.
+ * Tests for the background sync processor that handles local-to-cloud synchronization.
+ * These tests verify the sync engine's ability to process queued operations reliably.
  *
+ * @critical Core sync system - these tests protect against data loss and sync failures
+ * @integration Tests interaction between SyncEngine and SyncQueue
  * @see src/sync/SyncEngine.ts
+ * @see docs/03-active-plans/local-first-sync-plan.md
  */
 
 // Polyfill structuredClone for Node.js < 17 (required by fake-indexeddb)

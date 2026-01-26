@@ -16,6 +16,39 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { clearCloudAccountInfo } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
+/**
+ * Sanitize error messages to prevent information leakage.
+ * Maps internal error details to user-friendly messages.
+ */
+function sanitizeErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  const message = error.message.toLowerCase();
+
+  // Network/connectivity errors
+  if (message.includes('network') || message.includes('fetch') || message.includes('offline')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+
+  // Authentication errors (keep user-friendly auth errors)
+  if (message.includes('invalid email or password') || message.includes('invalid login credentials')) {
+    return 'Invalid email or password.';
+  }
+  if (message.includes('email not confirmed')) {
+    return 'Please confirm your email address before signing in.';
+  }
+
+  // Rate limiting
+  if (message.includes('too many requests') || message.includes('rate limit')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+
+  // Generic fallback - don't expose internal details
+  return 'An error occurred. Please try again.';
+}
+
 // Dynamic imports for Supabase services to avoid bundling in local mode
 // These are only loaded when the modal is actually used for cloud operations
 type SupabaseAuthServiceType = typeof import('@/auth/SupabaseAuthService').SupabaseAuthService;
@@ -66,6 +99,11 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // SECURITY: Ref for synchronous deletion tracking to prevent race condition
+  // React state updates are async, so rapid clicks could both pass the isDeleting check
+  // before either setState takes effect. The ref provides instant synchronous protection.
+  const deletionInProgressRef = useRef(false);
 
   // Focus trap
   useFocusTrap(modalRef, true);
@@ -147,11 +185,8 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
         passwordInputRef.current.value = '';
       }
       setHasPassword(false);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError(t('cloudAuth.errors.signInFailed', 'Sign in failed. Please try again.'));
-      }
+      // SECURITY: Sanitize error message to prevent information leakage
+      setError(sanitizeErrorMessage(err));
     } finally {
       setIsAuthenticating(false);
     }
@@ -161,15 +196,18 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
    * Handle delete confirmation
    */
   const handleDelete = useCallback(async () => {
-    // Prevent double-submission during the brief moment before state updates
-    // Check both isDeleting flag AND step state to handle rapid clicks
-    if (isDeleting || step === 'deleting') {
+    // SECURITY: Use ref for synchronous race condition prevention
+    // React state updates are async - rapid clicks could both pass the state check
+    // before either setState takes effect. The ref provides instant protection.
+    if (deletionInProgressRef.current) {
       return;
     }
     if (confirmText.toUpperCase() !== 'DELETE') {
       return;
     }
 
+    // Set ref immediately (synchronous) before any async operations
+    deletionInProgressRef.current = true;
     setIsDeleting(true);
     setStep('deleting');
     setError(null);
@@ -235,7 +273,8 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       setStep('success');
     } catch (err) {
       logger.error('[CloudAuthModal] Delete failed:', err);
-      setError(err instanceof Error ? err.message : t('cloudAuth.errors.deleteFailed', 'Delete failed'));
+      // SECURITY: Sanitize error message to prevent information leakage
+      setError(sanitizeErrorMessage(err));
       setStep('error');
     } finally {
       if (cloudStore) {
@@ -245,9 +284,11 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
           logger.warn('[CloudAuthModal] Failed to close cloud store (non-critical):', closeErr);
         }
       }
+      // Reset both the ref and state
+      deletionInProgressRef.current = false;
       setIsDeleting(false);
     }
-  }, [confirmText, isDeleting, step, queryClient, t]);
+  }, [confirmText, queryClient, t]);
 
   /**
    * Handle key press for form submission

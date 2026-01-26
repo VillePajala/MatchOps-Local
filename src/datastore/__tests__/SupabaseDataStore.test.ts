@@ -717,6 +717,44 @@ describe('SupabaseDataStore', () => {
         expect(team.boundTournamentId).toBe('tournament_2');
       });
 
+      /**
+       * @edge-case Rule 6 - boundTournamentSeriesId composite uniqueness
+       * Teams with same name/season/tournament but different series should be allowed.
+       */
+      it('should allow same team name with different boundTournamentSeriesId (composite uniqueness)', async () => {
+        // Existing team bound to series_1
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [{
+            id: 'team_existing',
+            name: 'Eagles',
+            color: null,
+            notes: null,
+            age_group: null,
+            game_type: 'soccer',
+            archived: false,
+            bound_season_id: 'season_1',
+            bound_tournament_id: 'tournament_1',
+            bound_tournament_series_id: 'series_1',
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            user_id: 'user_123',
+          }],
+          error: null,
+        });
+
+        // Same name, season, tournament but different series should succeed
+        const team = await dataStore.createTeam({
+          name: 'Eagles',
+          gameType: 'soccer',
+          boundSeasonId: 'season_1',
+          boundTournamentId: 'tournament_1',
+          boundTournamentSeriesId: 'series_2', // Different series
+        });
+
+        expect(team.name).toBe('Eagles');
+        expect(team.boundTournamentSeriesId).toBe('series_2');
+      });
+
       it('should detect duplicate with case-insensitive name comparison', async () => {
         // Existing team with lowercase name
         mockQueryBuilder.order = jest.fn().mockResolvedValue({
@@ -1024,6 +1062,81 @@ describe('SupabaseDataStore', () => {
 
         expect(season.name).toBe('Spring League');
         expect(season.gender).toBe('girls');
+      });
+
+      /**
+       * @edge-case Rule 6 - ageGroup composite uniqueness for seasons
+       * Seasons with same name/clubSeason/gameType/gender but different ageGroup should be allowed.
+       */
+      it('should allow same season name with different ageGroup (composite uniqueness)', async () => {
+        // Existing season for U12
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [{
+            id: 'season_existing',
+            name: 'Regional Cup',
+            club_season: '24/25',
+            game_type: 'soccer',
+            gender: 'boys',
+            age_group: 'U12',
+            league_id: null,
+            custom_league_name: null,
+            archived: false,
+            start_date: null,
+            end_date: null,
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            user_id: 'user_123',
+          }],
+          error: null,
+        });
+
+        // Creating same name for U14 should succeed (different ageGroup = different composite key)
+        const season = await dataStore.createSeason('Regional Cup', {
+          gameType: 'soccer',
+          gender: 'boys',
+          ageGroup: 'U14', // Different age group
+        });
+
+        expect(season.name).toBe('Regional Cup');
+        expect(season.ageGroup).toBe('U14');
+      });
+
+      /**
+       * @edge-case Rule 6 - leagueId composite uniqueness for seasons
+       * Seasons with same name/clubSeason/gameType/gender/ageGroup but different leagueId should be allowed.
+       */
+      it('should allow same season name with different leagueId (composite uniqueness)', async () => {
+        // Existing season with SM-sarja league
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [{
+            id: 'season_existing',
+            name: 'Fall Season',
+            club_season: '24/25',
+            game_type: 'soccer',
+            gender: 'boys',
+            age_group: 'U12',
+            league_id: 'sm-sarja',
+            custom_league_name: null,
+            archived: false,
+            start_date: null,
+            end_date: null,
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            user_id: 'user_123',
+          }],
+          error: null,
+        });
+
+        // Creating same name for harrastesarja should succeed (different leagueId = different composite key)
+        const season = await dataStore.createSeason('Fall Season', {
+          gameType: 'soccer',
+          gender: 'boys',
+          ageGroup: 'U12',
+          leagueId: 'harrastesarja', // Different league
+        });
+
+        expect(season.name).toBe('Fall Season');
+        expect(season.leagueId).toBe('harrastesarja');
       });
     });
 
@@ -2084,6 +2197,65 @@ describe('SupabaseDataStore', () => {
         expect(result.game.game_location).toBe('Stadium A');
         expect(result.game.age_group).toBe('U12');
         expect(result.game.league_id).toBe('sm-sarja');
+      });
+
+      /**
+       * @edge-case Rule 1 with mixed values - some empty strings, some populated
+       * Verifies that the transform correctly handles mixed state where some
+       * optional fields have values and others are empty strings.
+       */
+      it('should handle mixed empty string and populated fields (Rule 1 edge case)', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          // Mix of empty and populated fields
+          seasonId: 'season_123',      // populated
+          tournamentId: '',             // empty - should be NULL
+          tournamentSeriesId: '',       // empty - should be NULL
+          tournamentLevel: 'Gold',      // populated
+          teamId: '',                   // empty - should be NULL
+          gameTime: '14:00',            // populated
+          gameLocation: '',             // empty - should be NULL
+          ageGroup: 'U12',              // populated
+          leagueId: '',                 // empty - should be NULL
+          customLeagueName: 'Custom',   // populated
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        // Populated fields should be preserved
+        expect(result.game.season_id).toBe('season_123');
+        expect(result.game.tournament_level).toBe('Gold');
+        expect(result.game.game_time).toBe('14:00');
+        expect(result.game.age_group).toBe('U12');
+        expect(result.game.custom_league_name).toBe('Custom');
+
+        // Empty string fields should be NULL
+        expect(result.game.tournament_id).toBeNull();
+        expect(result.game.tournament_series_id).toBeNull();
+        expect(result.game.team_id).toBeNull();
+        expect(result.game.game_location).toBeNull();
+        expect(result.game.league_id).toBeNull();
       });
 
       it('should default homeOrAway to "home" when undefined', () => {
