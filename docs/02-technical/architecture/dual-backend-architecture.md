@@ -1,7 +1,7 @@
 # Dual-Backend Architecture
 
-**Status**: ✅ **Phase 1-3 Implemented** (Local backend complete, Supabase planned)
-**Last Updated**: 2025-12-19
+**Status**: ✅ **Phase 1-4 Implemented** (Local + Cloud backends complete, Local-First Sync added)
+**Last Updated**: 2026-01-26
 **Purpose**: Comprehensive architectural plan for supporting both IndexedDB (free/local) and Supabase (premium/cloud) backends
 **Related**: [DataStore Interface](./datastore-interface.md) | [AuthService Interface](./auth-service-interface.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md)
 
@@ -12,16 +12,17 @@ MatchOps-Local will evolve from a local-first, single-backend application to a *
 1. **Local Mode (Free)**: IndexedDB storage, no authentication, single-device, complete offline
 2. **Cloud Mode (Premium)**: Supabase PostgreSQL, authentication, multi-device sync, cloud backup
 
-### Implementation Status (December 2025)
+### Implementation Status (January 2026)
 
 | Phase | Status | Description |
 |-------|--------|-------------|
 | Phase 1: Foundation | ✅ Complete | Storage calls centralized, timerStateManager created |
 | Phase 2: DataStore Interface | ✅ Complete | `src/interfaces/DataStore.ts`, `src/interfaces/AuthService.ts` |
 | Phase 3: LocalDataStore | ✅ Complete | `src/datastore/LocalDataStore.ts`, `src/auth/LocalAuthService.ts`, factory |
-| Phase 4: Supabase | 📋 Planned | SupabaseDataStore, SupabaseAuthService (optional) |
+| Phase 4: Supabase | ✅ Complete | `src/datastore/SupabaseDataStore.ts`, `src/auth/SupabaseAuthService.ts` |
+| Phase 5: Local-First Sync | ✅ Complete | `src/datastore/SyncedDataStore.ts`, `src/sync/SyncEngine.ts`, `src/sync/SyncQueue.ts` |
 
-**PR #137** ready to merge `feature/backend-abstraction` → `master`.
+**All Supabase PRs (1-11)** merged to `feature/supabase-cloud-backend`. **PR #324** added local-first sync infrastructure.
 
 **Key Goals**:
 - ✅ Maintain local-first benefits (privacy, offline, performance)
@@ -59,13 +60,14 @@ MatchOps-Local will evolve from a local-first, single-backend application to a *
 │  (getItem, setItem, removeItem, clear, getKeys)        │
 └────────────────┬────────────────────────────────────────┘
                  │
-     ┌───────────┴───────────┐
-     │                       │
-┌────┴──────┐         ┌──────┴─────┐
-│ IndexedDB │         │ localStorage│
-│  Adapter  │         │   Adapter  │
-└───────────┘         └────────────┘
-   (Available)         (Current Prod)
+                 │
+          ┌──────┴──────┐
+          │  IndexedDB  │
+          │   Adapter   │
+          └─────────────┘
+           (Current Prod)
+
+Note: localStorage adapter removed. IndexedDB is the exclusive storage backend.
 ```
 
 **Characteristics**:

@@ -79,20 +79,21 @@ export const selectStyle =
 // Button Styles
 // ============================================================================
 
+// Button padding: py-3 provides ~44px touch target (iOS guideline minimum)
 const buttonBaseStyle =
-  "px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
+  "px-4 py-3 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const primaryButtonStyle =
-  "px-6 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
+  "px-6 py-3 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
 
 export const secondaryButtonStyle =
-  "px-6 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30";
+  "px-6 py-3 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30";
 
 export const dangerButtonStyle =
-  "px-6 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 text-white hover:bg-red-500 border border-red-400/30";
+  "px-6 py-3 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 text-white hover:bg-red-500 border border-red-400/30";
 
 export const successButtonStyle =
-  "px-6 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-green-600 text-white hover:bg-green-500 border border-green-400/30";
+  "px-6 py-3 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-green-600 text-white hover:bg-green-500 border border-green-400/30";
 
 // ============================================================================
 // Icon Button Styles

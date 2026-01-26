@@ -14,6 +14,7 @@
  */
 
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 import {
   SyncOperation,
   SyncOperationInput,
@@ -155,6 +156,11 @@ export class SyncQueue {
 
       request.onerror = () => {
         logger.error('[SyncQueue] Failed to open database:', request.error);
+        // Report to Sentry - database open failure is critical
+        Sentry.captureException(request.error, {
+          tags: { component: 'SyncQueue', action: 'openDatabase' },
+          level: 'error',
+        });
         reject(new SyncError(
           SyncErrorCode.QUEUE_ERROR,
           `Failed to open sync queue database: ${request.error?.message || 'Unknown error'}`,
@@ -299,6 +305,12 @@ export class SyncQueue {
         // Check for quota exceeded error
         if (error?.name === 'QuotaExceededError') {
           logger.error(`[SyncQueue] Quota exceeded while enqueuing ${entityInfo}:`, error);
+          // Report to Sentry - quota exceeded is critical for data safety
+          Sentry.captureException(error, {
+            tags: { component: 'SyncQueue', action: 'enqueue', errorType: 'QuotaExceeded' },
+            extra: { entityType: input.entityType, entityId: input.entityId, operation: input.operation },
+            level: 'error',
+          });
           reject(new SyncError(
             SyncErrorCode.QUOTA_EXCEEDED,
             `Storage quota exceeded while saving ${entityInfo}. Please free up space.`,
@@ -695,17 +707,28 @@ export class SyncQueue {
         }
 
         found = true;
+        // Increment retryCount to prevent infinite loops.
+        // The operation failed to mark as failed, which counts as a retry attempt.
+        const newRetryCount = op.retryCount + 1;
+        const newStatus: SyncOperationStatus = newRetryCount >= op.maxRetries ? 'failed' : 'pending';
+
         const updated: SyncOperation = {
           ...op,
-          status: 'pending',
+          status: newStatus,
+          retryCount: newRetryCount,
           lastError: op.lastError
-            ? `${op.lastError} (emergency reset to pending)`
-            : 'Emergency reset to pending after failure',
+            ? `${op.lastError} (emergency reset after markFailed failure)`
+            : 'Emergency reset after markFailed failure',
           lastAttempt: Date.now(),
         };
 
         store.put(updated);
-        logger.info('[SyncQueue] Emergency reset operation to pending', { id });
+
+        if (newStatus === 'failed') {
+          logger.warn('[SyncQueue] Emergency reset exhausted retries, marking as permanently failed', { id, retryCount: newRetryCount });
+        } else {
+          logger.info('[SyncQueue] Emergency reset operation to pending', { id, retryCount: newRetryCount });
+        }
       };
 
       transaction.oncomplete = () => {
@@ -994,8 +1017,14 @@ export class SyncQueue {
         const op = getRequest.result as SyncOperation | undefined;
 
         if (!op) {
-          logger.warn('[SyncQueue] Operation not found for status update:', id);
-          resolve();
+          // CRITICAL: Throw error for consistency with markFailed().
+          // If operation doesn't exist when trying to mark as syncing, something is wrong.
+          // This could indicate a race condition or bug in queue management.
+          logger.error('[SyncQueue] Operation not found for status update:', id);
+          reject(new SyncError(
+            SyncErrorCode.QUEUE_ERROR,
+            `Operation ${id} not found in queue - cannot update status to ${status}`
+          ));
           return;
         }
 

@@ -80,7 +80,7 @@ export default function WelcomeScreen({
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => setLanguage('en')}
-              className={`px-3 py-1.5 text-xs font-bold transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold transition-all ${
                 language === 'en'
                   ? 'bg-amber-500 text-slate-900'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
@@ -90,7 +90,7 @@ export default function WelcomeScreen({
             </button>
             <button
               onClick={() => setLanguage('fi')}
-              className={`px-3 py-1.5 text-xs font-bold transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold transition-all ${
                 language === 'fi'
                   ? 'bg-amber-500 text-slate-900'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
@@ -132,7 +132,7 @@ export default function WelcomeScreen({
               <div className="text-white font-semibold text-lg">
                 {t('welcome.startLocal', 'Start without an account')}
               </div>
-              <div className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">
+              <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
                 {t('welcome.badgeFree', 'Free')}
               </div>
               <div className="text-slate-400 text-sm">
@@ -151,11 +151,11 @@ export default function WelcomeScreen({
                 <div className="text-white font-semibold text-lg">
                   {t('welcome.signInCloud', 'Sign in or create an account')}
                 </div>
-                <div className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">
+                <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
                   {t('welcome.badgeFreeAccount', 'Free Account')}
                 </div>
                 <div className="text-slate-400 text-sm">
-                  {t('welcome.signInCloudDescFree', 'Create a free account. Subscribe anytime to sync across devices.')}
+                  {t('welcome.signInCloudDescWithPrice', 'Create a free account. Cloud sync available for €4.99/month.')}
                 </div>
               </button>
             )}
@@ -170,7 +170,7 @@ export default function WelcomeScreen({
               <div className="text-white font-semibold text-lg">
                 {isImporting ? t('welcome.importing', 'Importing...') : t('welcome.importBackup', 'Import a backup')}
               </div>
-              <div className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">
+              <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
                 {t('welcome.badgeFree', 'Free')}
               </div>
               <div className="text-slate-400 text-sm">

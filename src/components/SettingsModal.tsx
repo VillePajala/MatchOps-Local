@@ -21,7 +21,7 @@ import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFA
 import { queryKeys } from '@/config/queryKeys';
 import CloudSyncSection from './CloudSyncSection';
 
-type SettingsTab = 'general' | 'season' | 'data' | 'premium' | 'about';
+type SettingsTab = 'general' | 'data' | 'account' | 'about';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -448,14 +448,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             <button onClick={() => setActiveTab('general')} className={`${getTabStyle('general')} flex-1`} aria-pressed={activeTab === 'general'}>
               {t('settingsModal.tabs.general', 'General')}
             </button>
-            <button onClick={() => setActiveTab('season')} className={`${getTabStyle('season')} flex-1`} aria-pressed={activeTab === 'season'}>
-              {t('settingsModal.tabs.season', 'Season')}
-            </button>
             <button onClick={() => setActiveTab('data')} className={`${getTabStyle('data')} flex-1`} aria-pressed={activeTab === 'data'}>
               {t('settingsModal.tabs.data', 'Data')}
             </button>
-            <button onClick={() => setActiveTab('premium')} className={`${getTabStyle('premium')} flex-1`} aria-pressed={activeTab === 'premium'}>
-              {t('settingsModal.tabs.premium', 'Premium')}
+            <button onClick={() => setActiveTab('account')} className={`${getTabStyle('account')} flex-1`} aria-pressed={activeTab === 'account'}>
+              {t('settingsModal.tabs.account', 'Account')}
             </button>
             <button onClick={() => setActiveTab('about')} className={`${getTabStyle('about')} flex-1`} aria-pressed={activeTab === 'about'}>
               {t('settingsModal.tabs.about', 'About')}
@@ -463,40 +460,39 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            {/* Premium Tab - Cloud Subscription */}
-            {activeTab === 'premium' && (
-              <CloudSyncSection />
-            )}
-
-            {/* General Tab */}
+            {/* General Tab - App preferences and season settings */}
             {activeTab === 'general' && (
+            <>
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-4">
-              <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
-              <select
-                id="language-select"
-                value={language}
-                onChange={(e) => onLanguageChange(e.target.value)}
-                className={inputStyle}
-              >
-                <option value="en">English</option>
-                <option value="fi">Suomi</option>
-              </select>
+              <h3 className="text-lg font-semibold text-slate-200">
+                {t('settingsModal.preferencesTitle', 'Preferences')}
+              </h3>
               <div>
-              <label htmlFor="team-name-input" className={labelStyle}>{t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}</label>
-              <input
-                id="team-name-input"
-                type="text"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                onBlur={() => onDefaultTeamNameChange(teamName)}
-                className={inputStyle}
-              />
+                <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
+                <select
+                  id="language-select"
+                  value={language}
+                  onChange={(e) => onLanguageChange(e.target.value)}
+                  className={inputStyle}
+                >
+                  <option value="en">English</option>
+                  <option value="fi">Suomi</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="team-name-input" className={labelStyle}>{t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}</label>
+                <input
+                  id="team-name-input"
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  onBlur={() => onDefaultTeamNameChange(teamName)}
+                  className={inputStyle}
+                />
               </div>
             </div>
-            )}
 
-            {/* Season Tab */}
-            {activeTab === 'season' && (
+            {/* Season Settings - merged from Season tab */}
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.seasonStartTitle', 'Season Start Date')}
@@ -570,6 +566,103 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
               </div>
             </div>
+            </>
+            )}
+
+            {/* Account Tab - Cloud sync, subscription, and danger zone */}
+            {activeTab === 'account' && (
+            <>
+              <CloudSyncSection />
+
+              {/* Danger Zone - All destructive actions in one place */}
+              <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-red-700/50 shadow-inner">
+                <h3 className="text-lg font-semibold text-red-300">
+                  {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
+                </h3>
+
+                {/* Hard Reset App - Always shown */}
+                <div className="space-y-2">
+                  <p className="text-sm text-red-200">
+                    {t(
+                      'settingsModal.hardResetDescription',
+                      'Erase all saved teams, games and settings. This action cannot be undone.'
+                    )}
+                  </p>
+                  <label htmlFor="hard-reset-confirm" className={labelStyle}>
+                    {t('settingsModal.confirmResetLabel', 'Type RESET to confirm')}
+                  </label>
+                  <input
+                    id="hard-reset-confirm"
+                    type="text"
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value)}
+                    className={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      logger.log('[SettingsModal] Hard Reset button clicked', {
+                        resetConfirm,
+                        matches: resetConfirm === 'RESET',
+                        length: resetConfirm.length,
+                        trimmed: resetConfirm.trim()
+                      });
+                      if (resetConfirm.trim() === 'RESET') {
+                        logger.log('[SettingsModal] Calling onHardResetApp');
+                        onHardResetApp();
+                        setResetConfirm('');
+                      }
+                    }}
+                    className={dangerButtonStyle}
+                    disabled={resetConfirm.trim() !== 'RESET'}
+                  >
+                    {t('settingsModal.hardResetButton', 'Hard Reset App')}
+                  </button>
+                </div>
+
+                {/* Delete Account - Only visible in cloud mode */}
+                {authMode === 'cloud' && (
+                  <div className="mt-4 pt-4 border-t border-red-700/30">
+                    <h4 className="text-md font-semibold text-red-300 mb-2">
+                      {t('settingsModal.deleteAccountTitle', 'Delete Account')}
+                    </h4>
+                    <p className="text-sm text-red-200 mb-3">
+                      {t(
+                        'settingsModal.deleteAccountDescription',
+                        'Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.'
+                      )}
+                    </p>
+                    <label htmlFor="delete-account-confirm" className={labelStyle}>
+                      {t('settingsModal.confirmDeleteLabel', 'Type DELETE to confirm')}
+                    </label>
+                    <input
+                      id="delete-account-confirm"
+                      type="text"
+                      value={deleteAccountConfirm}
+                      onChange={(e) => setDeleteAccountConfirm(e.target.value)}
+                      className={inputStyle}
+                      disabled={isDeletingAccount}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteAccount();
+                      }}
+                      className={dangerButtonStyle}
+                      disabled={deleteAccountConfirm.trim() !== 'DELETE' || isDeletingAccount}
+                    >
+                      {isDeletingAccount
+                        ? t('settingsModal.deletingAccount', 'Deleting...')
+                        : t('settingsModal.deleteAccountButton', 'Delete Account')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
             )}
 
             {/* Data Tab */}
@@ -606,13 +699,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       {t('settingsModal.gdpr.deleteTitle', 'Delete Your Data')}
                     </p>
                     <p className="text-xs text-slate-400">
-                      {getBackendMode() === 'cloud'
-                        ? t('settingsModal.gdpr.deleteDescriptionCloud', 'To delete all cloud data, use the "Clear Cloud Data" option in the Premium tab.')
-                        : t('settingsModal.gdpr.deleteDescriptionLocal', 'To delete all local data, use the "Hard Reset App" option in the About tab.')}
+                      {t('settingsModal.gdpr.deleteDescriptionAccount', 'To delete all your data, use the Danger Zone options in the Account tab.')}
                     </p>
                   </div>
                   <button
-                    onClick={() => setActiveTab(getBackendMode() === 'cloud' ? 'premium' : 'about')}
+                    onClick={() => setActiveTab('account')}
                     className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors"
                   >
                     {t('settingsModal.gdpr.goToDelete', 'Go')}
@@ -655,7 +746,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={onCreateBackup}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-sm font-medium transition-colors border border-indigo-400/30"
                 >
                   <HiOutlineDocumentArrowDown className="h-5 w-5" />
                   {t('settingsModal.backupButton', 'Backup All Data')}
@@ -670,18 +761,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   onClick={() => gameImportFileInputRef.current?.click()}
                   disabled={isImporting}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors sm:col-span-2"
                 >
                   <HiOutlineChartBar className="h-5 w-5" />
                   {isImporting ? t('settingsModal.importing', 'Importing...') : t('settingsModal.importGamesButton', 'Import Games')}
-                </button>
-                <button
-                  onClick={handleCheckForUpdates}
-                  disabled={checkingForUpdates}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
-                >
-                  <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
-                  {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
                 </button>
               </div>
               <p className="text-sm text-slate-300">
@@ -696,8 +779,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* About Tab */}
             {activeTab === 'about' && (
-            <>
-            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.aboutTitle', 'About')}
               </h3>
@@ -731,17 +813,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
               <div className="space-y-1">
                 <label className={labelStyle}>{t('settingsModal.storageUsageLabel', 'Storage Usage')}</label>
-                  <p className="text-sm text-slate-300">
-                    {storageEstimate
-                      ? t('settingsModal.storageUsageDetails', {
-                          used: formatBytes(storageEstimate.usage),
-                          quota: formatBytes(storageEstimate.quota),
-                        })
-                      : t(
-                          'settingsModal.storageUsageUnavailable',
-                          'Storage usage information unavailable.'
-                        )}
-                  </p>
+                <p className="text-sm text-slate-300">
+                  {storageEstimate
+                    ? t('settingsModal.storageUsageDetails', {
+                        used: formatBytes(storageEstimate.usage),
+                        quota: formatBytes(storageEstimate.quota),
+                      })
+                    : t(
+                        'settingsModal.storageUsageUnavailable',
+                        'Storage usage information unavailable.'
+                      )}
+                </p>
                 {storageEstimate && (
                   <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
                     <div
@@ -752,7 +834,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </div>
 
-              <div className="space-y-1">
+              {/* Check for Updates - moved from Data tab */}
+              <div className="pt-2 border-t border-slate-700">
+                <button
+                  onClick={handleCheckForUpdates}
+                  disabled={checkingForUpdates}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                >
+                  <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
+                  {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
+                </button>
+              </div>
+
+              <div className="pt-2 border-t border-slate-700 space-y-1">
                 <button onClick={onResetGuide} className={primaryButtonStyle}>
                   {t('settingsModal.resetGuideButton', 'Reset App Guide')}
                 </button>
@@ -764,91 +858,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
               </div>
             </div>
-            {/* Danger Zone */}
-            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-              <h3 className="text-lg font-semibold text-red-300">
-                {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
-              </h3>
-              <p className="text-sm text-red-200">
-                {t(
-                  'settingsModal.hardResetDescription',
-                  'Erase all saved teams, games and settings. This action cannot be undone.'
-                )}
-              </p>
-              <label htmlFor="hard-reset-confirm" className={labelStyle}>
-                {t('settingsModal.confirmResetLabel', 'Type RESET to confirm')}
-              </label>
-              <input
-                id="hard-reset-confirm"
-                type="text"
-                value={resetConfirm}
-                onChange={(e) => setResetConfirm(e.target.value)}
-                className={inputStyle}
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  logger.log('[SettingsModal] Hard Reset button clicked', {
-                    resetConfirm,
-                    matches: resetConfirm === 'RESET',
-                    length: resetConfirm.length,
-                    trimmed: resetConfirm.trim()
-                  });
-                  if (resetConfirm.trim() === 'RESET') {
-                    logger.log('[SettingsModal] Calling onHardResetApp');
-                    onHardResetApp();
-                    setResetConfirm('');
-                  }
-                }}
-                className={dangerButtonStyle}
-                disabled={resetConfirm.trim() !== 'RESET'}
-              >
-                {t('settingsModal.hardResetButton', 'Hard Reset App')}
-              </button>
-
-              {/* Delete Account - Only visible in cloud mode */}
-              {authMode === 'cloud' && (
-                <div className="mt-6 pt-4 border-t border-red-700/30">
-                  <h4 className="text-md font-semibold text-red-300 mb-2">
-                    {t('settingsModal.deleteAccountTitle', 'Delete Account')}
-                  </h4>
-                  <p className="text-sm text-red-200 mb-3">
-                    {t(
-                      'settingsModal.deleteAccountDescription',
-                      'Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.'
-                    )}
-                  </p>
-                  <label htmlFor="delete-account-confirm" className={labelStyle}>
-                    {t('settingsModal.confirmDeleteLabel', 'Type DELETE to confirm')}
-                  </label>
-                  <input
-                    id="delete-account-confirm"
-                    type="text"
-                    value={deleteAccountConfirm}
-                    onChange={(e) => setDeleteAccountConfirm(e.target.value)}
-                    className={inputStyle}
-                    disabled={isDeletingAccount}
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDeleteAccount();
-                    }}
-                    className={dangerButtonStyle}
-                    disabled={deleteAccountConfirm.trim() !== 'DELETE' || isDeletingAccount}
-                  >
-                    {isDeletingAccount
-                      ? t('settingsModal.deletingAccount', 'Deleting...')
-                      : t('settingsModal.deleteAccountButton', 'Delete Account')}
-                  </button>
-                </div>
-              )}
-            </div>
-            </>
             )}
           </div>
           <ModalFooter>
