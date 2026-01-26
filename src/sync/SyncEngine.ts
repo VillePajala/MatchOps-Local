@@ -14,6 +14,7 @@ import {
   SyncStatusState,
   SyncStatusInfo,
   SyncEngineConfig,
+  SyncEntityType,
   DEFAULT_SYNC_CONFIG,
   SyncError,
   SyncErrorCode,
@@ -29,7 +30,7 @@ export type SyncOperationExecutor = (op: SyncOperation) => Promise<void>;
  * Event listener callback types.
  */
 type StatusChangeListener = (info: SyncStatusInfo) => void;
-type OperationCompleteListener = (opId: string, entityType: string, entityId: string) => void;
+type OperationCompleteListener = (opId: string, entityType: SyncEntityType, entityId: string) => void;
 type OperationFailedListener = (opId: string, error: string, willRetry: boolean) => void;
 
 /**
@@ -492,10 +493,11 @@ export function getSyncEngine(queue?: SyncQueue): SyncEngine {
 
 /**
  * Reset the singleton (for testing).
+ * Calls dispose() to stop engine AND clear all listeners, preventing memory leaks.
  */
 export function resetSyncEngine(): void {
   if (syncEngineInstance) {
-    syncEngineInstance.stop();
+    syncEngineInstance.dispose();
     syncEngineInstance = null;
   }
 }
