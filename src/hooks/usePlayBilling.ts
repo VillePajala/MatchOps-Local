@@ -193,11 +193,14 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyRe
       return { success: false, error: 'Session invalid. Please sign in again.' };
     }
 
-    logger.debug('[usePlayBilling] Calling Edge Function with fresh session:', {
+    logger.info('[usePlayBilling] Calling Edge Function with fresh session:', {
       userId: session.user.id,
       expiresAt: session.expires_at,
       hasAccessToken: !!accessToken,
       tokenPrefix: accessToken.substring(0, 20) + '...',
+      tokenLength: accessToken.length,
+      purchaseToken: purchaseToken.substring(0, 30) + '...',
+      productId: SUBSCRIPTION_PRODUCT_ID,
     });
 
     // Explicitly pass the Authorization header to ensure it's included
@@ -217,7 +220,13 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyRe
       // Supabase returns generic "Edge function returned non-2xx" error
       // The actual error message from the Edge Function is in the data field
       const actualError = data?.error || error.message;
-      logger.error('[usePlayBilling] Server verification failed:', { error: actualError, data });
+      logger.error('[usePlayBilling] Server verification failed:', {
+        errorMessage: error.message,
+        errorName: error.name,
+        dataError: data?.error,
+        fullData: data,
+        fullError: JSON.stringify(error),
+      });
       return { success: false, error: actualError };
     }
 
