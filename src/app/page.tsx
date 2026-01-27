@@ -8,6 +8,7 @@ import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
+import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
@@ -54,7 +55,8 @@ export default function Home() {
   // Welcome screen state (first-install onboarding)
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
-  // Note: Post-login upgrade modal removed - subscription status shown in CloudSyncSection instead
+  // Post-login upgrade modal (shown when user authenticates without subscription)
+  const [showPostLoginUpgrade, setShowPostLoginUpgrade] = useState(false);
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
   const { showToast } = useToast();
@@ -499,20 +501,32 @@ export default function Home() {
     // Clear the pending flag - user is now logged in
     clearPendingPostLoginCheck();
 
-    // Log subscription status for debugging
+    // Check subscription status and show upgrade modal if needed
     if (isPremium) {
       logger.info('[page.tsx] Post-login check: user has active subscription, sync enabled');
     } else {
-      // User has account but no subscription - sync is paused
-      // CloudSyncSection will show subscription banner, no modal needed
-      logger.info('[page.tsx] Post-login check: user has no subscription, sync paused (account active)');
+      // User has account but no subscription - show upgrade modal
+      logger.info('[page.tsx] Post-login check: user has no subscription, showing upgrade modal');
+      setShowPostLoginUpgrade(true);
     }
     // Migration check will run (if needed) via the other effect
   }, [mode, isAuthenticated, isAuthLoading, isPremiumLoading, isPremium]);
 
-  // Note: Post-login upgrade handlers removed
-  // Users with accounts but no subscription can still use the app (sync paused)
-  // CloudSyncSection shows subscription status and upgrade prompt
+  // Handle post-login upgrade modal close
+  const handlePostLoginUpgradeClose = useCallback(() => {
+    setShowPostLoginUpgrade(false);
+    // User dismissed without subscribing - sync stays paused
+    // They can subscribe later via Settings > Cloud Sync
+    logger.info('[page.tsx] Post-login upgrade modal dismissed');
+  }, []);
+
+  // Handle successful subscription from post-login modal
+  const handlePostLoginUpgradeSuccess = useCallback(() => {
+    setShowPostLoginUpgrade(false);
+    logger.info('[page.tsx] Post-login upgrade successful, sync enabled');
+    // Refresh to pick up new subscription status
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
 
   // Handle migration wizard completion
   const handleMigrationComplete = useCallback(async () => {
@@ -710,7 +724,13 @@ export default function Home() {
         {/* Migration status overlay */}
         <MigrationStatus />
 
-        {/* Note: Upgrade modals removed - subscription handled in CloudSyncSection */}
+        {/* Post-login upgrade modal - shown when user authenticates without subscription */}
+        <UpgradePromptModal
+          isOpen={showPostLoginUpgrade}
+          onClose={handlePostLoginUpgradeClose}
+          variant="cloudUpgrade"
+          onUpgradeSuccess={handlePostLoginUpgradeSuccess}
+        />
       </ModalProvider>
     </ErrorBoundary>
   );

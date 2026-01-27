@@ -4,6 +4,7 @@ import "./globals.css";
 import ClientWrapper from "@/components/ClientWrapper";
 import QueryProvider from './QueryProvider';
 import { AuthProvider } from '@/contexts/AuthProvider';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import ReConsentModal from '@/components/ReConsentModal';
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/InstallPrompt";
@@ -58,8 +59,10 @@ export default function RootLayout({
           <InstallPrompt />
           <QueryProvider>
             <AuthProvider>
-              <ClientWrapper>{children}</ClientWrapper>
-              <ReConsentModal />
+              <SubscriptionProvider>
+                <ClientWrapper>{children}</ClientWrapper>
+                <ReConsentModal />
+              </SubscriptionProvider>
             </AuthProvider>
           </QueryProvider>
         </I18nInitializer>
