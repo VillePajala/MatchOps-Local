@@ -26,6 +26,7 @@ import {
 import { useSyncStatus } from '@/hooks/useSyncStatus';
 import { useSubscriptionOptional } from '@/contexts/SubscriptionContext';
 import { useTranslation } from 'react-i18next';
+import { useModalContext } from '@/contexts/ModalProvider';
 
 interface SyncStatusIndicatorProps {
   /** Optional click handler for opening sync details */
@@ -50,6 +51,10 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   const { t } = useTranslation();
   const { mode, state, pendingCount, failedCount } = useSyncStatus();
   const subscription = useSubscriptionOptional();
+  const { openSettingsToTab } = useModalContext();
+
+  // Default click handler opens Settings modal to Account tab
+  const handleClick = onClick ?? (() => openSettingsToTab('account'));
 
   // Check subscription status for cloud mode
   const subscriptionLoading = !subscription || subscription.isLoading;
@@ -61,13 +66,13 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   // Local mode: just phone icon
   if (mode === 'local') {
     const localContainerClass = isField
-      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors ${onClick ? 'cursor-pointer' : 'cursor-default'}`
-      : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-slate-600/30 border-slate-500/40 ${onClick ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`;
+      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+      : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-slate-600/30 border-slate-500/40 hover:opacity-80 cursor-pointer`;
 
     return (
       <button
         type="button"
-        onClick={onClick}
+        onClick={handleClick}
         className={localContainerClass}
         title={t('syncStatus.localTitle', 'Data stored locally on device')}
         aria-label={t('syncStatus.localTitle', 'Data stored locally on device')}
@@ -81,13 +86,13 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   // Don't show confusing pending/error counts when sync is effectively disabled
   if (!subscriptionLoading && !hasSubscription) {
     const pausedContainerClass = isField
-      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors ${onClick ? 'cursor-pointer' : 'cursor-default'}`
-      : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-amber-500/20 border-amber-500/40 ${onClick ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`;
+      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+      : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-amber-500/20 border-amber-500/40 hover:opacity-80 cursor-pointer`;
 
     return (
       <button
         type="button"
-        onClick={onClick}
+        onClick={handleClick}
         className={pausedContainerClass}
         title={t('syncStatus.pausedTitle', 'Sync paused - subscription required')}
         aria-label={t('syncStatus.pausedTitle', 'Sync paused - subscription required')}
@@ -168,13 +173,13 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
   // Field variant: unified background, colored icons only
   const cloudContainerClass = isField
-    ? `relative flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors ${onClick ? 'cursor-pointer' : 'cursor-default'}`
-    : `relative flex flex-col items-center justify-center ${containerClass} rounded-md border transition-colors ${config.bgClass} ${onClick ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`;
+    ? `relative flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+    : `relative flex flex-col items-center justify-center ${containerClass} rounded-md border transition-colors ${config.bgClass} hover:opacity-80 cursor-pointer`;
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       className={cloudContainerClass}
       title={config.title}
       aria-label={config.title}
