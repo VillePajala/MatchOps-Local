@@ -116,6 +116,7 @@ async function getCachedSubscription(userId: string): Promise<Omit<SubscriptionS
       periodEnd: data.periodEnd ? new Date(data.periodEnd) : null,
       graceEnd: data.graceEnd ? new Date(data.graceEnd) : null,
       isActive: isSubscriptionActive(status),
+      fetchFailed: false, // Cached data was from a successful fetch
     };
   } catch (error) {
     logger.warn('[SubscriptionContext] Failed to read cached subscription:', error);
