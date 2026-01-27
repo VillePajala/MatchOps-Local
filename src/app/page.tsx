@@ -316,6 +316,8 @@ export default function Home() {
   // No premium gate - account creation is free, subscription only required for active sync
   const handleEnableCloudSync = useCallback(() => {
     logger.info('[page.tsx] StartScreen: User chose to enable cloud sync');
+    // Set flag so we check premium status after login and show upgrade modal if needed
+    setPendingPostLoginCheck();
     executeEnableCloudSync();
   }, [executeEnableCloudSync]);
 
@@ -323,6 +325,8 @@ export default function Home() {
   // Enables cloud mode and reloads to show LoginScreen (subscription verified after login)
   const handleSignInExistingSubscriber = useCallback(() => {
     logger.info('[page.tsx] StartScreen: Existing subscriber signing in (desktop)');
+    // Set flag to check premium status after login (even for existing subscribers, verify their status)
+    setPendingPostLoginCheck();
     executeEnableCloudSync();
   }, [executeEnableCloudSync]);
 
