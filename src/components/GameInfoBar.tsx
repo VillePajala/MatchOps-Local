@@ -101,14 +101,15 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
 
   return (
     <div
-      className="relative bg-gradient-to-b from-slate-800 to-slate-800/85 px-3 py-0.5 text-slate-200 flex justify-center items-center text-sm shadow-md min-h-[2.25rem]"
+      className="relative bg-gradient-to-b from-slate-800 to-slate-800/85 px-3 py-0.5 text-slate-200 flex items-center text-sm shadow-md min-h-[2.25rem]"
       style={{ fontFamily: 'Rajdhani, sans-serif' }}
     >
       {/* Modal background effects for unified feel */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
       <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+
       {/* Center Content: Teams and Score */}
-      <div className="relative flex items-center space-x-2.5 font-semibold z-10 max-w-full">
+      <div className="relative flex-1 flex items-center justify-center space-x-2.5 font-semibold z-10 max-w-full">
         {/* Left Team Name */}
         <div className="text-right min-w-0 max-w-[140px] overflow-hidden" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
           {editingField === 'left' ? (
