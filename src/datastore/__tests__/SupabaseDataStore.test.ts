@@ -17,6 +17,7 @@ import { SupabaseDataStore } from '../SupabaseDataStore';
 import {
   AlreadyExistsError,
   AuthError,
+  ConflictError,
   NetworkError,
   NotInitializedError,
   ValidationError,
@@ -2344,6 +2345,123 @@ describe('SupabaseDataStore', () => {
         await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(NetworkError);
         await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(
           /temporarily unavailable/i
+        );
+      });
+
+      /**
+       * Issue #330: Optimistic locking - ConflictError on version mismatch
+       * @critical - Prevents concurrent modification corruption
+       */
+      it('should throw ConflictError when RPC returns serialization_failure (40001)', async () => {
+        // Simulate conflict error from RPC (version mismatch)
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: {
+            code: '40001',
+            message: 'Conflict: game was modified by another session (expected version 5, found 6)',
+          },
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(ConflictError);
+      });
+
+      /**
+       * Issue #330: Optimistic locking - ConflictError message
+       * @critical - User-friendly error message for conflict
+       */
+      it('should provide user-friendly message on conflict', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: {
+            code: '40001',
+            message: 'Conflict: game was modified by another session',
+          },
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await expect(dataStore.saveGame('game_conflict', game as unknown as AppState)).rejects.toThrow(
+          /modified in another tab or device/i
+        );
+      });
+
+      /**
+       * Issue #330: Optimistic locking - null version for new games
+       * @critical - New games should skip version check
+       */
+      it('should pass null p_expected_version for new games', async () => {
+        // Don't load game first - no cached version
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: 1,  // Version 1 for new game
+          error: null,
+        });
+
+        const game = {
+          teamName: 'New Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await dataStore.saveGame('new_game_123', game as unknown as AppState);
+
+        // Verify p_expected_version was passed (null for new game without cached version)
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+          'save_game_with_relations',
+          expect.objectContaining({
+            p_expected_version: null,
+          })
         );
       });
     });

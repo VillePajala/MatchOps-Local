@@ -649,8 +649,8 @@ export class SupabaseAuthService implements AuthService {
         const result = await this.client!.rpc('record_user_consent', {
           p_consent_type: 'terms_and_privacy',
           p_policy_version: policyVersion,
-          p_ip_address: metadata?.ipAddress ?? null,
-          p_user_agent: metadata?.userAgent ?? null,
+          p_ip_address: metadata?.ipAddress,
+          p_user_agent: metadata?.userAgent,
         });
         return throwIfTransient(result as { data: unknown; error: { message: string } | null });
       }, { operationName: 'recordConsent' });

@@ -35,6 +35,7 @@ import type { Database, Json } from '@/types/supabase';
 import {
   AlreadyExistsError,
   AuthError,
+  ConflictError,
   NetworkError,
   NotInitializedError,
   ValidationError,
@@ -382,6 +383,9 @@ export class SupabaseDataStore implements DataStore {
   private userIdPromise: Promise<string> | null = null;
   // Promise deduplication for initialize() to prevent race conditions
   private initPromise: Promise<void> | null = null;
+  // Version cache for optimistic locking (Issue #330)
+  // Maps game ID -> current version number
+  private gameVersionCache: Map<string, number> = new Map();
 
   // Retry configuration for transient network errors
   // Improves resilience on mobile devices with flaky connections
@@ -679,7 +683,8 @@ export class SupabaseDataStore implements DataStore {
     this.seasonDatesCache = null;
     this.cachedUserId = null;
     this.cachedUserIdTimestamp = 0;
-    logger.debug('[SupabaseDataStore] User caches cleared');
+    this.gameVersionCache.clear();
+    logger.debug('[SupabaseDataStore] User caches cleared (including game version cache)');
   }
 
   // ==========================================================================
@@ -2938,6 +2943,9 @@ export class SupabaseDataStore implements DataStore {
       const failedIds: string[] = [];
       for (const { id, tables } of results) {
         if (tables) {
+          // Cache version for optimistic locking (Issue #330)
+          const version = tables.game.version;
+          this.gameVersionCache.set(id, version);
           collection[id] = this.transformTablesToGame(tables);
         } else {
           failedIds.push(id);
@@ -2959,6 +2967,10 @@ export class SupabaseDataStore implements DataStore {
     if (!tables) {
       return null;
     }
+
+    // Cache version for optimistic locking (Issue #330)
+    const version = tables.game.version;
+    this.gameVersionCache.set(id, version);
 
     return this.transformTablesToGame(tables);
   }
@@ -3048,13 +3060,18 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const tables = this.transformGameToTables(id, game, userId);
 
+    // Get expected version for optimistic locking (Issue #330)
+    // undefined = new game or version not yet cached (skip version check)
+    const expectedVersion = this.gameVersionCache.get(id);
+
     // Use RPC for atomic 5-table write within a single PostgreSQL transaction
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
     // Wrapped with retry for transient network errors (critical for mobile reliability)
     // throwIfTransient ensures network errors trigger retry
+    // Note: Conflict errors (40001) should NOT be retried - they indicate real concurrency issues
     const client = this.getClient();
     const rpcResult = await this.withRetry(async () => {
-      const result = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>)(
+      const result = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ data: number | null; error: { message: string; code?: string } | null }>)(
         'save_game_with_relations',
         {
           p_game: tables.game,
@@ -3062,14 +3079,38 @@ export class SupabaseDataStore implements DataStore {
           p_events: tables.events,
           p_assessments: tables.assessments,
           p_tactical_data: tables.tacticalData,
+          p_expected_version: expectedVersion ?? null,
         }
       );
       return throwIfTransient(result);
     }, 'saveGame');
-    const { error } = rpcResult;
+    const { data: newVersion, error } = rpcResult;
 
     if (error) {
       const errorMessage = error.message.toLowerCase();
+
+      // Issue #330: Detect optimistic locking conflict
+      // PostgreSQL raises serialization_failure (40001) for our custom conflict exception
+      const isConflict =
+        error.code === '40001' ||
+        errorMessage.includes('conflict') ||
+        errorMessage.includes('modified by another session');
+
+      if (isConflict) {
+        logger.warn('[SupabaseDataStore] Optimistic locking conflict detected for game', {
+          gameId: id,
+          expectedVersion,
+          message: error.message,
+        });
+        // Clear cached version so next load gets fresh data
+        this.gameVersionCache.delete(id);
+        throw new ConflictError(
+          'game',
+          id,
+          'This game was modified in another tab or device. Please refresh to see the latest changes.'
+        );
+      }
+
       const isMissingRpc =
         error.code === 'PGRST202' ||
         errorMessage.includes('does not exist') ||
@@ -3093,6 +3134,11 @@ export class SupabaseDataStore implements DataStore {
       }
 
       this.classifyAndThrowError(error, 'Failed to save game');
+    }
+
+    // Update version cache with new version returned from RPC (Issue #330)
+    if (typeof newVersion === 'number') {
+      this.gameVersionCache.set(id, newVersion);
     }
 
     await this.ensureGameCreatedAt(id);
@@ -3155,6 +3201,9 @@ export class SupabaseDataStore implements DataStore {
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete game');
     }
+
+    // Clear version cache for deleted game (Issue #330)
+    this.gameVersionCache.delete(id);
 
     return (count ?? 0) > 0;
   }
