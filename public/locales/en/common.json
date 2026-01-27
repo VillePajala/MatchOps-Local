@@ -2221,6 +2221,8 @@
     "errorTitle": "{{count}} operations failed - tap to retry",
     "offline": "Offline",
     "offlineTitle": "No internet connection - changes will sync when online",
+    "paused": "Paused",
+    "pausedTitle": "Sync paused - subscription required",
     "cloud": "Cloud",
     "cloudTitle": "Data syncs to cloud",
     "online": "Online"

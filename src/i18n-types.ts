@@ -1788,6 +1788,8 @@ export type TranslationKey =
   | 'syncStatus.offline'
   | 'syncStatus.offlineTitle'
   | 'syncStatus.online'
+  | 'syncStatus.paused'
+  | 'syncStatus.pausedTitle'
   | 'syncStatus.pending'
   | 'syncStatus.pendingCount'
   | 'syncStatus.pendingTitle'

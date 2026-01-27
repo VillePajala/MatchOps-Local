@@ -108,6 +108,24 @@ export default function CloudSyncSection({
     };
   }, []);
 
+  // Track if we've shown the auto upgrade modal this session
+  const hasShownAutoUpgradeRef = useRef(false);
+
+  // Auto-show upgrade modal when in cloud mode without subscription
+  // This makes the subscription requirement more prominent than just a banner
+  useEffect(() => {
+    if (
+      currentMode === 'cloud' &&
+      user && // User is authenticated
+      !subscriptionLoading &&
+      !hasSubscription &&
+      !hasShownAutoUpgradeRef.current
+    ) {
+      hasShownAutoUpgradeRef.current = true;
+      setShowUpgradeModal(true);
+    }
+  }, [currentMode, user, subscriptionLoading, hasSubscription]);
+
   // Actually enable cloud mode (called after premium check passes)
   const executeEnableCloud = useCallback(() => {
     if (!cloudAvailable) {
