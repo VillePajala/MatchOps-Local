@@ -214,6 +214,7 @@ export default function Home() {
   }, [executeEnableCloudFromWelcome]);
 
   // Handle "Import Backup" from welcome screen
+  // Import backup puts user in local mode (same as "Start Fresh")
   const handleWelcomeImportBackup = useCallback(async () => {
     logger.info('[page.tsx] Welcome: User chose to import backup');
     setIsImportingBackup(true);
@@ -226,6 +227,14 @@ export default function Home() {
         // Set welcome flag and hide screen before reload
         setWelcomeSeen();
         setShowWelcome(false);
+
+        // Ensure local mode - imported backups are local data, not cloud data
+        // This handles edge cases where mode might be 'cloud' from env or previous sessions
+        const modeResult = disableCloudMode();
+        if (!modeResult.success) {
+          logger.warn('[page.tsx] Failed to ensure local mode after import:', modeResult.message);
+        }
+
         // Trigger full page reload to ensure all caches are fresh
         // This is the safest way to ensure imported data is properly loaded
         try {
