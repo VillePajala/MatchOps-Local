@@ -2492,6 +2492,26 @@
     "androidRequired": "New here? Subscribe via the Android app.",
     "getAndroidApp": "Get on Google Play"
   },
+  "page": {
+    "startingLocalMode": "Starting in local mode...",
+    "refreshPageManually": "Please refresh the page manually",
+    "refreshPageManuallyContinue": "Please refresh the page manually to continue",
+    "cloudModeEnabledReloading": "Cloud mode enabled. Reloading...",
+    "cloudSyncNotAvailable": "Cloud sync is not available",
+    "importSucceededRefresh": "Import succeeded. Please refresh the page manually.",
+    "failedToImportBackup": "Failed to import backup",
+    "localModeEnabledReloading": "Local mode enabled. Reloading...",
+    "failedToSwitchLocalMode": "Failed to switch to local mode",
+    "couldNotCheckLocalData": "Could not check for local data. Please refresh the page to try again.",
+    "couldNotCheckCloudData": "Could not check cloud data. Your data will load automatically.",
+    "unableToCheckSync": "Unable to check data for sync. Please refresh if you have data to sync.",
+    "returningToLocalMode": "Returning to local mode...",
+    "failedToSwitchLocalModeRetry": "Failed to switch to local mode. Please try again.",
+    "refreshingAfterBackground": "Refreshing app after extended background period...",
+    "unableToRefreshApp": "Unable to refresh app. Please close and reopen.",
+    "failedResetAppData": "Failed to reset application data.",
+    "gameDataNotFound": "Error: Could not find game data for {{gameId}}"
+  },
   "positions": {
     "GK": "GK",
     "LB": "LB",

@@ -2492,6 +2492,26 @@
     "androidRequired": "Uusi käyttäjä? Tilaa Android-sovelluksessa.",
     "getAndroidApp": "Lataa Google Playsta"
   },
+  "page": {
+    "startingLocalMode": "Käynnistetään paikallisessa tilassa...",
+    "refreshPageManually": "Päivitä sivu manuaalisesti",
+    "refreshPageManuallyContinue": "Päivitä sivu manuaalisesti jatkaaksesi",
+    "cloudModeEnabledReloading": "Pilvitila käytössä. Ladataan uudelleen...",
+    "cloudSyncNotAvailable": "Pilvisynkronointi ei ole käytettävissä",
+    "importSucceededRefresh": "Tuonti onnistui. Päivitä sivu manuaalisesti.",
+    "failedToImportBackup": "Varmuuskopion tuonti epäonnistui",
+    "localModeEnabledReloading": "Paikallinen tila käytössä. Ladataan uudelleen...",
+    "failedToSwitchLocalMode": "Paikalliseen tilaan vaihtaminen epäonnistui",
+    "couldNotCheckLocalData": "Paikallisia tietoja ei voitu tarkistaa. Päivitä sivu yrittääksesi uudelleen.",
+    "couldNotCheckCloudData": "Pilvitietoja ei voitu tarkistaa. Tietosi latautuvat automaattisesti.",
+    "unableToCheckSync": "Synkronoitavia tietoja ei voitu tarkistaa. Päivitä sivu, jos sinulla on synkronoitavia tietoja.",
+    "returningToLocalMode": "Palataan paikalliseen tilaan...",
+    "failedToSwitchLocalModeRetry": "Paikalliseen tilaan vaihtaminen epäonnistui. Yritä uudelleen.",
+    "refreshingAfterBackground": "Päivitetään sovellusta taustalta palaamisen jälkeen...",
+    "unableToRefreshApp": "Sovelluksen päivitys epäonnistui. Sulje ja avaa uudelleen.",
+    "failedResetAppData": "Sovellustietojen nollaus epäonnistui.",
+    "gameDataNotFound": "Virhe: Pelitietoja ei löytynyt pelille {{gameId}}"
+  },
   "positions": {
     "GK": "MV",
     "LB": "VP",

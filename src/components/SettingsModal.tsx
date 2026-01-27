@@ -275,7 +275,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         logger.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
       }
     } catch (error) {
-      showToast(t('settingsModal.gameImportError', 'Error importing games: ') + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+      logger.error('[SettingsModal] Game import error:', error);
+      showToast(t('settingsModal.gameImportError', 'Error importing games. Please check the file format and try again.'), 'error');
     }
 
     event.target.value = '';

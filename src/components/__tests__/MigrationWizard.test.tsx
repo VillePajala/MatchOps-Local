@@ -292,8 +292,8 @@ describe('MigrationWizard', () => {
       expect(screen.getByText('Sync Failed')).toBeInTheDocument();
     });
 
-    // Should show error message
-    expect(screen.getByText('Network error occurred')).toBeInTheDocument();
+    // Should show sanitized error message (not raw error from service)
+    expect(screen.getByText('Network error. Please check your connection and try again.')).toBeInTheDocument();
 
     // Should show Retry and Cancel buttons
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
@@ -586,5 +586,175 @@ describe('MigrationWizard', () => {
 
     // Should render normally - deprecated props are ignored
     expect(screen.getByRole('button', { name: 'Sync to Cloud' })).toBeInTheDocument();
+  });
+
+  // ============================================================================
+  // Double-Click Protection Tests
+  // ============================================================================
+
+  it('prevents double-click on Sync to Cloud button', async () => {
+    let migrationCallCount = 0;
+    let resolveMigration: () => void;
+    const migrationPromise = new Promise<typeof mockMigrationResult>(resolve => {
+      resolveMigration = () => resolve(mockMigrationResult);
+    });
+    (migrateLocalToCloud as jest.Mock).mockImplementation(() => {
+      migrationCallCount++;
+      return migrationPromise;
+    });
+
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    await waitForDataLoaded();
+
+    const syncButton = screen.getByRole('button', { name: 'Sync to Cloud' });
+
+    // Rapid double-click
+    await act(async () => {
+      fireEvent.click(syncButton);
+      fireEvent.click(syncButton);
+    });
+
+    // Should only call migration once due to syncLockRef
+    expect(migrationCallCount).toBe(1);
+
+    // Cleanup
+    await act(async () => {
+      resolveMigration!();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sync complete!')).toBeInTheDocument();
+    });
+  });
+
+  // ============================================================================
+  // Additional Error Sanitization Tests
+  // ============================================================================
+
+  it('sanitizes timeout error messages', async () => {
+    const timeoutError = new Error('request timed out after 30000ms');
+    (migrateLocalToCloud as jest.Mock).mockRejectedValue(timeoutError);
+
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    await waitForDataLoaded();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sync to Cloud' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Request timed out. Please try again with a stable connection.')).toBeInTheDocument();
+  });
+
+  it('sanitizes permission error messages', async () => {
+    const permissionError = new Error('row level security policy violation');
+    (migrateLocalToCloud as jest.Mock).mockRejectedValue(permissionError);
+
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    await waitForDataLoaded();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sync to Cloud' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Permission error. Please try signing out and back in.')).toBeInTheDocument();
+  });
+
+  it('sanitizes validation error messages', async () => {
+    const validationError = new Error('validation failed: invalid email format');
+    (migrateLocalToCloud as jest.Mock).mockRejectedValue(validationError);
+
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    await waitForDataLoaded();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sync to Cloud' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Data validation failed. Please check your data and try again.')).toBeInTheDocument();
+  });
+
+  it('sanitizes result.errors array (not just thrown exceptions)', async () => {
+    // When migration returns failure with errors array (not thrown exception)
+    const failedResult = {
+      success: false,
+      errors: ['RLS policy denied: insufficient permissions'],
+      warnings: [],
+      migrated: { players: 0, teams: 0, games: 0, seasons: 0, tournaments: 0, personnel: 0, teamRosters: 0 },
+    };
+    (migrateLocalToCloud as jest.Mock).mockResolvedValue(failedResult);
+
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    await waitForDataLoaded();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sync to Cloud' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+    });
+
+    // Should show sanitized message (matches 'policy' pattern)
+    expect(screen.getByText('Permission error. Please try signing out and back in.')).toBeInTheDocument();
+    // Should NOT show raw error
+    expect(screen.queryByText('RLS policy denied')).not.toBeInTheDocument();
+  });
+
+  // ============================================================================
+  // Retry Data Reload Tests
+  // ============================================================================
+
+  it('reloads data on retry after sync failure', async () => {
+    let loadCallCount = 0;
+    (getLocalDataSummary as jest.Mock).mockImplementation(() => {
+      loadCallCount++;
+      return Promise.resolve(mockDataSummary);
+    });
+
+    const failedResult = {
+      success: false,
+      errors: ['Sync failed'],
+      warnings: [],
+      migrated: { players: 0, teams: 0, games: 0, seasons: 0, tournaments: 0, personnel: 0, teamRosters: 0 },
+    };
+    (migrateLocalToCloud as jest.Mock)
+      .mockResolvedValueOnce(failedResult)
+      .mockResolvedValueOnce(mockMigrationResult);
+
+    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+
+    await waitForDataLoaded();
+    expect(loadCallCount).toBe(1); // Initial load
+
+    // Sync fails
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sync to Cloud' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+    });
+
+    // Retry
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    });
+
+    // Should reload data on retry
+    await waitFor(() => {
+      expect(loadCallCount).toBe(2);
+    });
   });
 });

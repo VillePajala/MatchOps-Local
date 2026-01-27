@@ -1260,11 +1260,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     } catch (error) {
       logger.error("Error during hard reset:", error);
       setIsResetting(false); // Re-enable UI on error
-      showToast("Failed to reset application data.", 'error');
+      showToast(t('page.failedResetAppData', 'Failed to reset application data.'), 'error');
     } finally {
       setShowHardResetConfirm(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
 
   
@@ -1287,7 +1287,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleExportOneJson = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
-      showToast(`Error: Could not find game data for ${gameId}`, 'error');
+      showToast(t('page.gameDataNotFound', { gameId, defaultValue: `Error: Could not find game data for ${gameId}` }), 'error');
       return;
     }
     exportJson(gameId, gameData, gameDataManagement.seasons, gameDataManagement.tournaments);
@@ -1296,7 +1296,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleExportOneExcel = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
-      showToast(`Error: Could not find game data for ${gameId}`, 'error');
+      showToast(t('page.gameDataNotFound', { gameId, defaultValue: `Error: Could not find game data for ${gameId}` }), 'error');
       return;
     }
     try {

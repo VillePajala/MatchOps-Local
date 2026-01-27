@@ -50,6 +50,43 @@ import {
 import logger from '@/utils/logger';
 
 /**
+ * Sanitize error string to prevent information leakage.
+ */
+function sanitizeErrorString(message: string): string {
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes('network') || lowerMessage.includes('fetch') || lowerMessage.includes('offline')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+
+  if (lowerMessage.includes('not authenticated') || lowerMessage.includes('session') || lowerMessage.includes('unauthorized')) {
+    return 'Session expired. Please sign in again.';
+  }
+
+  if (lowerMessage.includes('too many requests') || lowerMessage.includes('rate limit')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+
+  if (lowerMessage.includes('database') || lowerMessage.includes('storage') || lowerMessage.includes('quota')) {
+    return 'Storage error. Please try again or contact support.';
+  }
+
+  if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
+    return 'Request timed out. Please try again with a stable connection.';
+  }
+
+  if (lowerMessage.includes('policy') || lowerMessage.includes('permission') || lowerMessage.includes('denied')) {
+    return 'Permission error. Please try signing out and back in.';
+  }
+
+  if (lowerMessage.includes('validation') || lowerMessage.includes('invalid')) {
+    return 'Data validation failed. Please check your data and try again.';
+  }
+
+  return 'Sync failed. Please try again.';
+}
+
+/**
  * Sanitize error messages to prevent information leakage.
  */
 function sanitizeErrorMessage(error: unknown): string {
@@ -57,25 +94,7 @@ function sanitizeErrorMessage(error: unknown): string {
     return 'An unexpected error occurred. Please try again.';
   }
 
-  const message = error.message.toLowerCase();
-
-  if (message.includes('network') || message.includes('fetch') || message.includes('offline')) {
-    return 'Network error. Please check your connection and try again.';
-  }
-
-  if (message.includes('not authenticated') || message.includes('session') || message.includes('unauthorized')) {
-    return 'Session expired. Please sign in again.';
-  }
-
-  if (message.includes('too many requests') || message.includes('rate limit')) {
-    return 'Too many attempts. Please wait a moment and try again.';
-  }
-
-  if (message.includes('database') || message.includes('storage') || message.includes('quota')) {
-    return 'Storage error. Please try again or contact support.';
-  }
-
-  return 'Sync failed. Please try again.';
+  return sanitizeErrorString(error.message);
 }
 
 type WizardStep = 'preview' | 'syncing' | 'complete' | 'error';
@@ -103,6 +122,10 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 }) => {
   const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Ref-based lock for synchronous double-click protection
+  // State updates are async, so isSyncing alone can't prevent race conditions
+  const syncLockRef = useRef(false);
 
   // Wizard state
   const [step, setStep] = useState<WizardStep>('preview');
@@ -150,6 +173,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
   // Retry loading data after error
   const handleRetryLoad = useCallback(async () => {
+    setLocalCounts(null); // Reset stale data before retry
     setIsLoadingCounts(true);
     setLoadError(null);
     try {
@@ -170,7 +194,10 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
   // Start sync (always merge mode)
   const handleStartSync = useCallback(async () => {
-    if (isSyncing) return;
+    // Synchronous lock check to prevent double-clicks (state updates are async)
+    if (syncLockRef.current) return;
+    syncLockRef.current = true;
+
     setIsSyncing(true);
     setStep('syncing');
     setProgress({ stage: 'preparing', progress: 0, message: t('migration.preparing', 'Preparing...') });
@@ -188,7 +215,11 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         } else {
           logger.warn('[MigrationWizard] Migration failed:', result.errors);
         }
-        setErrorMessage(result.errors[0] || t('migration.syncFailedUnknown', 'Sync failed due to an unknown error. Please try again.'));
+        // Sanitize error message to prevent information leakage
+        const errorMsg = result.errors[0]
+          ? sanitizeErrorString(result.errors[0])
+          : t('migration.syncFailedUnknown', 'Sync failed due to an unknown error. Please try again.');
+        setErrorMessage(errorMsg);
         setStep('error');
       }
     } catch (error) {
@@ -196,17 +227,19 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       setErrorMessage(sanitizeErrorMessage(error));
       setStep('error');
     } finally {
+      syncLockRef.current = false;
       setIsSyncing(false);
     }
-  }, [isSyncing, handleProgress, t]);
+  }, [handleProgress, t]);
 
-  // Retry after error - also allows retry from load error
+  // Retry after error - always reload data to ensure fresh state
   const handleRetry = useCallback(() => {
     setStep('preview');
     setErrorMessage(null);
-    setLoadError(null);
     setProgress(null);
-  }, []);
+    // Always reload data on retry to avoid stale data issues
+    handleRetryLoad();
+  }, [handleRetryLoad]);
 
   // Accessibility
   const titleId = 'migration-wizard-title';
