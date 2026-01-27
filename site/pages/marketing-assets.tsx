@@ -2422,7 +2422,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <span className="text-8xl font-bold text-primary font-rajdhani">210K</span>
+                    <span className="text-8xl font-bold text-primary font-rajdhani">252K</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2439,7 +2439,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <span className="text-7xl font-bold text-primary font-rajdhani">3,200+</span>
+                    <span className="text-7xl font-bold text-primary font-rajdhani">4,300+</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2474,7 +2474,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <span className="text-8xl font-bold text-primary font-rajdhani">75K</span>
+                    <span className="text-8xl font-bold text-primary font-rajdhani">85K</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2491,7 +2491,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-[40%] flex items-center justify-center flex-col">
-                    <span className="text-8xl font-bold text-primary font-rajdhani">71</span>
+                    <span className="text-8xl font-bold text-primary font-rajdhani">81</span>
                     <span className="text-gray-500 text-sm mt-1">components</span>
                   </div>
                 </div>

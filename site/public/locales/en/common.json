@@ -52,8 +52,8 @@
         "desc": ""
       },
       "private": {
-        "title": "Data Stored Only on Your Device",
-        "desc": ""
+        "title": "Your Data, Your Choice",
+        "desc": "Local mode: data stays on your device, full privacy. Cloud mode: secure sync to EU servers for multi-device access."
       },
       "backup": {
         "title": "Back Up Your Data",
@@ -67,8 +67,8 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps Local - Local-First Soccer Coaching App",
-      "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics. No signup required. Your data stays private on your device."
+      "title": "MatchOps Local - Soccer Coaching App | Free Local Mode or Cloud Sync",
+      "description": "Mobile coaching app for soccer and futsal. Free local mode keeps data on your device. Premium cloud sync (€4.99/mo) for multi-device access. Works offline."
     },
     "technical": {
       "title": "Technical Specifications - MatchOps Local",
@@ -82,7 +82,7 @@
     "legal": "Legal",
     "license": "License",
     "copyright": "© {{year}} Velomo AI. All rights reserved.",
-    "dataStays": "Your data stays on your device. Always.",
+    "dataStays": "Your data, your choice. Local or cloud.",
     "marketingAssets": "Marketing Assets"
   },
   "technical": {
@@ -95,7 +95,7 @@
       "typescript": "TypeScript Strict Mode",
       "typescriptDesc": "Full strict mode enabled with no-explicit-any rule",
       "testing": "Test Coverage",
-      "testingDesc": "1600+ tests with Jest and React Testing Library",
+      "testingDesc": "4300+ tests with Jest and React Testing Library",
       "linting": "Linting & Formatting",
       "lintingDesc": "ESLint with strict rules, Prettier for formatting",
       "cicd": "CI/CD",
@@ -157,7 +157,9 @@
     "architecture": {
       "title": "Architecture",
       "localFirst": "Local-First Design",
-      "localFirstDesc": "All data stored locally on your device. No external servers or databases required.",
+      "localFirstDesc": "Local mode keeps all data on your device—no servers, no accounts, full privacy. Cloud mode adds optional sync to secure EU servers.",
+      "dualBackend": "Dual Backend",
+      "dualBackendDesc": "Clean DataStore abstraction supports both IndexedDB (local) and Supabase PostgreSQL (cloud). Switch modes without losing data.",
       "offlineFirst": "Offline-First",
       "offlineFirstDesc": "Full functionality without internet connection. Network only required for PWA updates.",
       "singleUser": "Single-User",
@@ -188,8 +190,8 @@
       "dataScaleDesc": "Optimized for 50-100 players, 50-100 games per season. Small dataset, fast performance.",
       "backup": "Backup & Export",
       "backupDesc": "Full data export to JSON format. Import/restore on any device.",
-      "privacy": "Privacy",
-      "privacyDesc": "Zero data transmission. Everything stays on your device."
+      "privacy": "Privacy Options",
+      "privacyDesc": "Local mode: zero data transmission, everything stays on device. Cloud mode: encrypted sync to EU servers with GDPR compliance."
     },
     "requirements": {
       "title": "System Requirements",
@@ -274,9 +276,9 @@
       "q1": "How do I install the app?",
       "a1": "The app is available on Google Play. We're currently in beta testing - use the contact button below or email hello@match-ops.com to request access.",
       "q2": "Where is my data stored?",
-      "a2": "All data is stored locally on your device. Nothing is sent to external servers.",
+      "a2": "You choose. In local mode (free), all data stays on your device—nothing is sent anywhere. In cloud mode (€4.99/month), data syncs securely to EU-based servers so you can access it from any device.",
       "q3": "Can I use it on multiple devices?",
-      "a3": "Yes, but you'll need to export your data from one device and import it on another. There's no automatic syncing since everything is stored locally.",
+      "a3": "Local mode: Export your data from one device and import on another—no automatic sync. Cloud mode: Your data syncs automatically across all your devices.",
       "q4": "How do I back up my data?",
       "a4": "Open the Settings menu and use the Export function. This creates a JSON file with all your data that you can save and import later.",
       "q5": "Can I edit game data after it's recorded?",
@@ -290,7 +292,13 @@
       "q9": "How do I update the app?",
       "a9": "The app updates automatically when you open it and have an internet connection. After an update, the app will notify you of the new version and ask you to reload the page.",
       "q10": "Can I share statistics with other coaches?",
-      "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
+      "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps.",
+      "q11": "What's the difference between local and cloud mode?",
+      "a11": "Local mode is free forever—your data never leaves your device, works offline, no account needed. Cloud mode (€4.99/month) adds automatic sync across devices and cloud backup. Both modes have the same features. You can switch anytime.",
+      "q12": "Do I need an account?",
+      "a12": "No account needed for local mode—just install and start using. Cloud mode requires a simple email/password registration for secure sync.",
+      "q13": "Can I migrate my data between modes?",
+      "a13": "Yes! The app includes a migration wizard. Move your data from local to cloud when you subscribe, or from cloud back to local if you cancel. Your data is never locked in."
     },
     "cta": {
       "title": "The app is in beta testing. Get in touch to join."
@@ -497,20 +505,95 @@
       "quality": "QUALITY",
       "aiPowered": "100% AI-Built",
       "aiPoweredDesc": "Zero handwritten code. Built with Claude Code, Cursor, and Codex. Even these marketing materials.",
-      "linesOfCode": "200,000+ Lines",
-      "linesOfCodeDesc": "66K tests, 60K source, 75K docs. Test-first development at scale.",
-      "testCoverage": "3,200+ Tests",
-      "testCoverageDesc": "182 test suites with 100% pass rate. Quality enforced at every commit.",
+      "linesOfCode": "250,000+ Lines",
+      "linesOfCodeDesc": "85K tests, 82K source, 85K docs. Test-first development at scale.",
+      "testCoverage": "4,300+ Tests",
+      "testCoverageDesc": "200 test suites with 100% pass rate. Quality enforced at every commit.",
       "techStack": "Cutting-Edge Stack",
       "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, installable, auto-updating.",
-      "documentation": "75K Lines of Context",
+      "documentation": "85K Lines of Context",
       "documentationDesc": "AI assistants need context to stay consistent. Documentation serves as the project's persistent memory across sessions.",
       "architecture": "Clean Architecture",
-      "architectureDesc": "71 components, 26 hooks. Clean separation of UI, logic, and data layers.",
+      "architectureDesc": "81 components, 28 hooks. Clean separation of UI, logic, and data layers.",
       "codeQuality": "Enterprise Quality",
       "codeQualityDesc": "ESLint enforced, TypeScript strict mode, Sentry monitoring, accessibility tested.",
       "cicd": "Automated CI/CD",
-      "cicdDesc": "Lint, types, 3200+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge."
+      "cicdDesc": "Lint, types, 4300+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge."
+    },
+    "modes": {
+      "title": "Choose Your Mode",
+      "subtitle": "Both modes include all features. You choose where your data lives.",
+      "localTitle": "Local Mode",
+      "localPrice": "Free",
+      "localFeature1": "Data stays on your device",
+      "localFeature2": "Works offline",
+      "localFeature3": "No account required",
+      "localFeature4": "Full privacy",
+      "cloudTitle": "Cloud Sync",
+      "cloudPrice": "€4.99/mo",
+      "cloudFeature1": "Sync across devices",
+      "cloudFeature2": "Automatic cloud backup",
+      "cloudFeature3": "EU data residency",
+      "cloudFeature4": "Migrate anytime"
+    },
+    "benefits": {
+      "crossDeviceSync": "Cross-device sync",
+      "automaticBackup": "Automatic cloud backup",
+      "chooseYourMode": "Choose your mode",
+      "freeLocalMode": "Free local mode",
+      "premiumCloudSync": "Premium cloud sync",
+      "euDataResidency": "EU data residency",
+      "migrateAnytime": "Migrate anytime"
+    }
+  },
+  "pricing": {
+    "title": "Choose Your Mode",
+    "subtitle": "Same features. Different storage options.",
+    "localMode": {
+      "name": "Local Mode",
+      "price": "Free",
+      "priceNote": "forever",
+      "description": "Perfect for coaches who want full privacy and offline capability.",
+      "features": [
+        "All app features included",
+        "Data stays on your device",
+        "Works completely offline",
+        "No account required",
+        "Full privacy guaranteed",
+        "Export/import for backup"
+      ],
+      "cta": "Get Started Free"
+    },
+    "cloudMode": {
+      "name": "Cloud Sync",
+      "price": "€4.99",
+      "priceNote": "/month",
+      "description": "For coaches who want to access their data from any device.",
+      "features": [
+        "Everything in Local Mode",
+        "Automatic cloud sync",
+        "Access from any device",
+        "Automatic cloud backup",
+        "EU data residency",
+        "Migrate to/from local anytime"
+      ],
+      "cta": "Start Cloud Sync"
+    },
+    "comparison": {
+      "feature": "Feature",
+      "local": "Local",
+      "cloud": "Cloud",
+      "allFeatures": "All app features",
+      "offlineAccess": "Offline access",
+      "multiDevice": "Multi-device sync",
+      "autoBackup": "Automatic backup",
+      "accountRequired": "Account required",
+      "dataLocation": "Data location",
+      "onDevice": "On device",
+      "euServers": "EU servers",
+      "yes": "Yes",
+      "no": "No",
+      "manual": "Manual export"
     }
   }
 }

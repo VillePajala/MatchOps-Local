@@ -1363,7 +1363,7 @@
       "general": "General",
       "season": "Season",
       "data": "Data",
-      "premium": "Premium",
+      "account": "Account",
       "about": "About"
     },
     "languageLabel": "Language",
@@ -2069,10 +2069,10 @@
     "graceEnds": "Grace period ends: {{date}}"
   },
   "playBilling": {
-    "restorePurchases": "Restore Purchases",
-    "restoreSuccess": "Purchases restored successfully!",
-    "restoreFailed": "Failed to restore purchases. Please try again.",
-    "noPurchases": "No purchases found to restore."
+    "restorePurchases": "Restore Subscription",
+    "restoreSuccess": "Subscription restored successfully!",
+    "restoreFailed": "Failed to restore subscription. Please try again.",
+    "noPurchases": "No active subscription found."
   },
   "auth": {
     "signIn": "Sign In",
@@ -2230,6 +2230,10 @@
   },
   "cloudSync": {
     "title": "Account & Sync",
+    "subtitle": "Manage your data storage and sync settings",
+    "active": "Active",
+    "accountActions": "Account",
+    "switchMode": "Switch Mode",
     "statusLabel": "Current Mode",
     "cloudMode": "Cloud Sync Enabled",
     "localMode": "Local Storage",
@@ -2242,7 +2246,9 @@
     "notAvailable": "Cloud sync is not available. This feature requires a premium subscription and server configuration.",
     "notConfigured": "Cloud sync is not configured. Contact support for access.",
     "enableButton": "Enable Cloud Sync",
+    "enableDescription": "Sync data across all your devices",
     "disableButton": "Switch to Local Mode",
+    "disableDescription": "Store data only on this device",
     "enabling": "Enabling...",
     "disabling": "Disabling...",
     "enabledReloading": "Cloud mode enabled. Reloading...",
@@ -2271,15 +2277,18 @@
     "cloudUnavailable": "Cloud is not available. Cannot clear cloud data.",
     "wrongBackend": "Cannot clear: not connected to cloud storage.",
     "signOutButton": "Sign Out",
+    "signOutDescription": "Sign out of your cloud account",
     "signingOut": "Signing out...",
     "signedOut": "Signed out successfully. Reloading...",
     "signOutError": "Failed to sign out. Please try again.",
     "signOutNetworkError": "Network error. You can continue using the app offline.",
     "switchedToLocal": "Switched to local mode. Reloading...",
     "manageSubscription": "Manage Subscription",
+    "manageSubscriptionDescription": "View or cancel on Google Play",
     "subscriptionSuccess": "Subscription activated! Reloading...",
     "importLocalData": {
       "button": "Import Local Data to Cloud",
+      "description": "Migrate data from this device",
       "checking": "Checking...",
       "starting": "Starting import... Reloading.",
       "noData": "No local data found to import.",
@@ -2290,10 +2299,11 @@
     "cloudAccount": {
       "title": "Cloud Account",
       "lastSynced": "Last synced: {{date}}",
-      "neverSynced": "Never",
+      "neverSynced": "Never synced",
       "unknownDate": "Unknown",
       "unknownEmail": "Unknown",
       "hasCloudData": "You have data stored in the cloud.",
+      "hasData": "Has data",
       "deleteCloudData": "Delete All Cloud Data",
       "deleteWarning": "You will need to sign in again to delete your cloud data.",
       "signInToDelete": "Sign In to Delete",
@@ -2301,8 +2311,14 @@
       "deleteSuccess": "Cloud data deleted successfully."
     },
     "syncDetails": {
+      "sectionTitle": "Sync Status",
       "status": "Sync Status",
       "lastSynced": "Last synced",
+      "lastSyncedAt": "Last synced {{time}}",
+      "allSynced": "All synced",
+      "offline": "Offline",
+      "pendingShort": "{{count}} pending",
+      "ready": "Ready",
       "pendingChanges": "Pending changes",
       "syncNow": "Sync Now",
       "syncing": "Syncing...",

@@ -48,8 +48,8 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps Local - Jalkapallovalmentajan sovellus, tietosi pysyvät laitteellasi",
-      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Hallitse joukkueita, seuraa pelejä reaaliaikaisesti, kerää tilastoja. Ei rekisteröitymistä. Tietosi pysyvät yksityisinä laitteellasi."
+      "title": "MatchOps Local - Jalkapallovalmentajan työkalu | Ottelutapahtumien hallinta",
+      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Ilmaisversiossa tiedot pysyvät laitteellasi. Pilvisynkronointi (4,99 €/kk) mahdollistaa työskentelyn saumattomasti eri laitteilla (mobiili + työpöytä)."
     },
     "technical": {
       "title": "Tekniset tiedot - MatchOps Local",
@@ -63,7 +63,7 @@
     "legal": "Juridiikka",
     "license": "Lisenssi",
     "copyright": "© {{year}} Velomo AI. Kaikki oikeudet pidätetään.",
-    "dataStays": "Tietosi pysyvät laitteellasi. Aina.",
+    "dataStays": "Sinä päätät, missä datasi sijaitsee.",
     "marketingAssets": "Markkinointimateriaalit"
   },
   "technical": {
@@ -76,7 +76,7 @@
       "typescript": "TypeScript Strict Mode",
       "typescriptDesc": "Täysi strict-tila käytössä no-explicit-any-säännöllä",
       "testing": "Testikattavuus",
-      "testingDesc": "1600+ testiä Jest- ja React Testing Library -kirjastoilla",
+      "testingDesc": "4300+ testiä Jest- ja React Testing Library -kirjastoilla",
       "linting": "Linttaus ja muotoilu",
       "lintingDesc": "ESLint tiukoilla säännöillä, Prettier muotoiluun",
       "cicd": "CI/CD",
@@ -137,8 +137,10 @@
     },
     "architecture": {
       "title": "Arkkitehtuuri",
-      "localFirst": "Paikallinen tallennusarkkitehtuuri",
-      "localFirstDesc": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Ei ulkoisia palvelimia tai tietokantoja.",
+      "localFirst": "Paikallinen tallennus oletuksena",
+      "localFirstDesc": "Ilmaisversiossa kaikki tiedot pysyvät laitteellasi – ei palvelimia, ei tilejä, täysi yksityisyys. Pilvisynkronointi tuo valinnaisen tallennuksen EU-palvelimille.",
+      "dualBackend": "Joustava taustaratkaisu",
+      "dualBackendDesc": "Sovellus tukee sekä paikallista tallennusta (IndexedDB) että pilvipalvelua (Supabase PostgreSQL). Vaihda tilojen välillä menettämättä tietoja.",
       "offlineFirst": "Offline-ensin",
       "offlineFirstDesc": "Täysi toiminnallisuus ilman nettiyhteyttä. Verkko tarvitaan vain PWA-päivityksiin.",
       "singleUser": "Yhden käyttäjän ratkaisu",
@@ -169,8 +171,8 @@
       "dataScaleDesc": "Optimoitu 50-100 pelaajalle, 50-100 pelille per kausi. Pieni tietomäärä, nopea suorituskyky.",
       "backup": "Varmuuskopiointi ja vienti",
       "backupDesc": "Täydellinen tietojen vienti JSON-muotoon. Tuo/palauta millä tahansa laitteella.",
-      "privacy": "Yksityisyys",
-      "privacyDesc": "Ei tiedonsiirtoa. Kaikki pysyy laitteellasi."
+      "privacy": "Yksityisyysasetukset",
+      "privacyDesc": "Ilmaisversio: ei verkkoliikennettä, kaikki pysyy laitteella. Pilvisynkronointi: salattu yhteys EU-palvelimille, GDPR-yhteensopiva."
     },
     "requirements": {
       "title": "Järjestelmävaatimukset",
@@ -255,9 +257,9 @@
       "q1": "Miten asennan sovelluksen?",
       "a1": "Sovellus on saatavilla Google Playsta. Olemme parhaillaan betatestausvaiheessa - pyydä pääsy alla olevalla yhteydenottopainikkeella tai lähetä kysely osoitteeseen hello@match-ops.com.",
       "q2": "Mihin tietoni tallennetaan?",
-      "a2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Mitään ei lähetetä ulkoisille palvelimille.",
+      "a2": "Sinä päätät. Ilmaisversiossa kaikki tiedot pysyvät laitteellasi eikä mitään lähetetä minnekään. Pilvisynkronoinnissa (4,99 €/kk) tiedot tallentuvat turvallisesti EU-palvelimille ja ovat käytettävissä kaikilla laitteillasi.",
       "q3": "Voinko käyttää useammalla laitteella?",
-      "a3": "Kyllä, mutta sinun täytyy viedä tietosi yhdeltä laitteelta ja tuoda ne toiselle. Automaattista synkronointia ei ole, koska kaikki tallentuu paikallisesti.",
+      "a3": "Ilmaisversio: Vie tiedot yhdeltä laitteelta ja tuo toiselle. Pilvisynkronointi: Tiedot synkronoituvat automaattisesti kaikkien laitteidesi välillä.",
       "q4": "Miten varmuuskopioin tietoni?",
       "a4": "Avaa Asetukset-valikko ja käytä Vie-toimintoa. Tämä luo JSON-tiedoston, jossa on kaikki tietosi ja jonka voit tallentaa ja tuoda myöhemmin.",
       "q5": "Voinko muokata ottelutietoja jälkikäteen?",
@@ -271,7 +273,13 @@
       "q9": "Miten päivitän sovelluksen?",
       "a9": "Sovellus päivittyy automaattisesti kun avaat sen ja sinulla on nettiyhteys. Päivityksen jälkeen sovellus ilmoittaa uudesta versiosta ja pyytää lataamaan sivun uudelleen.",
       "q10": "Voinko jakaa tilastoja muille valmentajille?",
-      "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa."
+      "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa.",
+      "q11": "Mikä ero on ilmaisversiolla ja pilvisynkronoinnilla?",
+      "a11": "Ilmaisversio on pysyvästi maksuton. Tiedot pysyvät laitteellasi, sovellus toimii ilman nettiä eikä tiliä tarvita. Pilvisynkronointi (4,99 €/kk) tuo automaattisen synkronoinnin laitteiden välillä sekä pilvivarmuuskopioinnin. Ominaisuudet ovat muuten samat. Voit vaihtaa tilojen välillä koska tahansa.",
+      "q12": "Tarvitsenko käyttäjätilin?",
+      "a12": "Ilmaisversioon ei tarvita tiliä – asenna ja käytä. Pilvisynkronointi edellyttää rekisteröitymistä sähköpostilla ja salasanalla.",
+      "q13": "Voinko siirtää tietojani laitteen ja pilvitallennuksen välillä?",
+      "a13": "Kyllä. Sovellus sisältää siirtotyökalun. Voit siirtää tietosi paikallisesta pilveen tai pilvestä takaisin paikalliseen milloin tahansa. Tietosi eivät jää loukkuun kumpaankaan tilaan."
     },
     "cta": {
       "title": "Sovellus on betatestausvaiheessa. Ota yhteyttä päästäksesi mukaan."
@@ -478,20 +486,95 @@
       "quality": "LAATU",
       "aiPowered": "100% tekoälyrakennettu",
       "aiPoweredDesc": "Ei käsin kirjoitettua koodia. Rakennettu Claude Codella, Cursorilla ja Codexilla. Jopa nämä markkinointimateriaalit.",
-      "linesOfCode": "200 000+ riviä",
-      "linesOfCodeDesc": "66K riviä testejä, 60K riviä lähdekoodia, 75K riviä dokumentaatiota.",
-      "testCoverage": "3 200+ testiä",
-      "testCoverageDesc": "182 testisettiä. Toimivuus tarkastetaan testein automaattisesti jokaisen muutoksen yhteydessä.",
+      "linesOfCode": "250 000+ riviä",
+      "linesOfCodeDesc": "85K riviä testejä, 82K riviä lähdekoodia, 85K riviä dokumentaatiota.",
+      "testCoverage": "4 300+ testiä",
+      "testCoverageDesc": "200 testisettiä. Toimivuus tarkastetaan testein automaattisesti jokaisen muutoksen yhteydessä.",
       "techStack": "Uusin teknologia",
       "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, asennettava, automaattipäivitykset.",
-      "documentation": "75K riviä kontekstia",
+      "documentation": "85K riviä kontekstia",
       "documentationDesc": "Tekoälyavustajat tarvitsevat kontekstia pysyäkseen johdonmukaisina. Dokumentaatio toimii projektin pysyvänä muistina istuntojen välillä.",
       "architecture": "Selkeä arkkitehtuuri",
-      "architectureDesc": "71 komponenttia, 26 hookkia. Selkeä erottelu: käyttöliittymä, logiikka ja data.",
+      "architectureDesc": "81 komponenttia, 28 hookkia. Selkeä erottelu: käyttöliittymä, logiikka ja data.",
       "codeQuality": "Yritystason laatu",
       "codeQualityDesc": "ESLint käytössä, TypeScript tiukka tila, Sentry-seuranta, saavutettavuustestattu.",
       "cicd": "Automatisoitu CI/CD",
-      "cicdDesc": "Lint, tyypit, 3200+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Autom. julkaisu."
+      "cicdDesc": "Lint, tyypit, 4300+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Autom. julkaisu."
+    },
+    "modes": {
+      "title": "Tallennus",
+      "subtitle": "Samat ominaisuudet molemmissa. Sinä valitset missä tietosi ovat.",
+      "localTitle": "Ilmaisversio",
+      "localPrice": "Ilmainen",
+      "localFeature1": "Tiedot pysyvät laitteellasi",
+      "localFeature2": "Toimii ilman nettiä",
+      "localFeature3": "Ei vaadi tiliä",
+      "localFeature4": "Täysi yksityisyys",
+      "cloudTitle": "Pilvisynkronointi",
+      "cloudPrice": "4,99 €/kk",
+      "cloudFeature1": "Synkronointi laitteiden välillä",
+      "cloudFeature2": "Automaattinen pilvivarmuuskopio",
+      "cloudFeature3": "Tiedot EU:ssa",
+      "cloudFeature4": "Vaihda paikalliseen milloin vain"
+    },
+    "benefits": {
+      "crossDeviceSync": "Synkronointi laitteiden välillä",
+      "automaticBackup": "Automaattinen pilvivarmuuskopio",
+      "chooseYourMode": "Tallennus",
+      "freeLocalMode": "Ilmainen paikallinen tallennus",
+      "premiumCloudSync": "Pilvisynkronointi",
+      "euDataResidency": "Tiedot EU:ssa",
+      "migrateAnytime": "Vaihda milloin vain"
+    }
+  },
+  "pricing": {
+    "title": "Tallennus",
+    "subtitle": "Samat ominaisuudet, eri tallennusvaihtoehdot.",
+    "localMode": {
+      "name": "Ilmaisversio",
+      "price": "Ilmainen",
+      "priceNote": "pysyvästi",
+      "description": "Valmentajille, jotka arvostavat yksityisyyttä ja haluavat sovelluksen toimivan ilman nettiä.",
+      "features": [
+        "Kaikki ominaisuudet käytössä",
+        "Tiedot pysyvät laitteellasi",
+        "Toimii ilman nettiyhteyttä",
+        "Ei vaadi käyttäjätiliä",
+        "Täysi yksityisyys",
+        "Varmuuskopiointi vienti/tuonti-toiminnolla"
+      ],
+      "cta": "Aloita ilmaiseksi"
+    },
+    "cloudMode": {
+      "name": "Pilvisynkronointi",
+      "price": "4,99 €",
+      "priceNote": "/kk",
+      "description": "Valmentajille, jotka haluavat käyttää tietojaan useilla laitteilla.",
+      "features": [
+        "Kaikki ilmaisversion ominaisuudet",
+        "Automaattinen pilvisynkronointi",
+        "Käytä millä laitteella tahansa",
+        "Automaattinen pilvivarmuuskopiointi",
+        "Tiedot EU:n palvelimilla",
+        "Vaihda paikalliseen milloin tahansa"
+      ],
+      "cta": "Aloita pilvisynkronointi"
+    },
+    "comparison": {
+      "feature": "Ominaisuus",
+      "local": "Ilmainen",
+      "cloud": "Pilvi",
+      "allFeatures": "Kaikki ominaisuudet",
+      "offlineAccess": "Toimii ilman nettiä",
+      "multiDevice": "Useilla laitteilla",
+      "autoBackup": "Automaattinen varmuuskopio",
+      "accountRequired": "Vaatii tilin",
+      "dataLocation": "Tallennuspaikka",
+      "onDevice": "Laitteella",
+      "euServers": "EU-palvelimet",
+      "yes": "Kyllä",
+      "no": "Ei",
+      "manual": "Manuaalinen vienti"
     }
   }
 }

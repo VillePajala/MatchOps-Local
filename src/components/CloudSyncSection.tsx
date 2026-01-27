@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard, HiOutlineArrowUpTray } from 'react-icons/hi2';
+import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard, HiOutlineArrowUpTray } from 'react-icons/hi2';
 import {
   getBackendMode,
   isCloudAvailable,
@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import { getDataStore } from '@/datastore/factory';
-import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+// Note: We use custom Tailwind classes for buttons in this redesigned component
 import logger from '@/utils/logger';
 import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
@@ -530,290 +530,353 @@ export default function CloudSyncSection({
     }
   };
 
-  const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
+  // Shared styles
+  const sectionCardStyle = 'rounded-xl bg-gradient-to-b from-slate-800/60 to-slate-800/30 border border-slate-700/50 backdrop-blur-sm';
+  const sectionTitleStyle = 'text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3';
 
   return (
-    <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-      <h3 className="text-lg font-semibold text-slate-200">
-        {t('cloudSync.title', 'Account & Sync')}
-      </h3>
-
-      {/* Current Status */}
-      <div className="flex items-center gap-3 p-3 rounded-md bg-slate-800/50">
-        {currentMode === 'cloud' ? (
-          <>
-            <HiOutlineCloud className="h-6 w-6 text-sky-400" />
-            <div>
-              <p className={labelStyle}>{t('cloudSync.statusLabel', 'Current Mode')}</p>
-              <p className="text-sm text-sky-400 font-medium">
-                {t('cloudSync.cloudMode', 'Cloud Sync Enabled')}
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <HiOutlineServer className="h-6 w-6 text-slate-400" />
-            <div>
-              <p className={labelStyle}>{t('cloudSync.statusLabel', 'Current Mode')}</p>
-              <p className="text-sm text-slate-300 font-medium">
-                {t('cloudSync.localMode', 'Local Storage')}
-              </p>
-            </div>
-          </>
-        )}
+    <div className="space-y-4 -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 pb-2">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-2">
+        <h3 className="text-xl font-bold text-slate-100 tracking-tight">
+          {t('cloudSync.title', 'Account & Sync')}
+        </h3>
+        <p className="text-sm text-slate-400 mt-1">
+          {t('cloudSync.subtitle', 'Manage your data storage and sync settings')}
+        </p>
       </div>
 
-      {/* Mode Description */}
-      <p className="text-sm text-slate-400">
-        {currentMode === 'cloud'
-          ? (subscriptionLoading || hasSubscription
-            ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
-            : t('cloudSync.cloudNoSubscription', 'You have a cloud account but sync is paused. Subscribe to enable cloud sync.'))
-          : t('cloudSync.localDescription', 'Your data is stored locally on this device. Works offline, but data is not synced.')
-        }
-      </p>
+      {/* Current Mode Status Card */}
+      <div className="px-4">
+        <div className={`${sectionCardStyle} overflow-hidden`}>
+          {currentMode === 'cloud' ? (
+            <div className="relative">
+              {/* Gradient accent */}
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-indigo-500 to-sky-500" />
+              <div className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-sky-500/20 to-indigo-500/20 border border-sky-500/30">
+                    <HiOutlineCloud className="h-6 w-6 text-sky-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-slate-100">
+                        {t('cloudSync.cloudMode', 'Cloud Sync Enabled')}
+                      </span>
+                      {hasSubscription && (
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                          {t('cloudSync.active', 'Active')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-400 mt-1">
+                      {subscriptionLoading || hasSubscription
+                        ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
+                        : t('cloudSync.cloudNoSubscription', 'You have a cloud account but sync is paused. Subscribe to enable cloud sync.')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              {/* Gradient accent */}
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-600 via-slate-500 to-slate-600" />
+              <div className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-slate-600/30 to-slate-700/30 border border-slate-600/50">
+                    <HiOutlineServer className="h-6 w-6 text-slate-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-lg font-semibold text-slate-100">
+                      {t('cloudSync.localMode', 'Local Storage')}
+                    </span>
+                    <p className="text-sm text-slate-400 mt-1">
+                      {t('cloudSync.localDescription', 'Your data is stored locally on this device. Works offline, but data is not synced.')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Sync Details - shown in cloud mode with active subscription */}
       {currentMode === 'cloud' && hasSubscription && (
-        <div className="p-3 rounded-md bg-slate-800/50 space-y-3">
-          {/* Sync Status Row */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-300">{t('cloudSync.syncDetails.status', 'Sync Status')}</span>
-            <SyncStatusIndicator />
-          </div>
-
-          {/* Last Synced Row */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">{t('cloudSync.syncDetails.lastSynced', 'Last synced')}</span>
-            <span className="text-slate-300">
-              {syncStatus.lastSyncedAt
-                ? formatRelativeTime(syncStatus.lastSyncedAt)
-                : t('cloudSync.cloudAccount.neverSynced', 'Never')}
-            </span>
-          </div>
-
-          {/* Pending Changes Row */}
-          {syncStatus.pendingCount > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">{t('cloudSync.syncDetails.pendingChanges', 'Pending changes')}</span>
-              <span className="text-amber-400 font-medium">{syncStatus.pendingCount}</span>
+        <div className="px-4">
+          <p className={sectionTitleStyle}>{t('cloudSync.syncDetails.sectionTitle', 'Sync Status')}</p>
+          <div className={`${sectionCardStyle} p-4 space-y-4`}>
+            {/* Status and Indicator */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <SyncStatusIndicator />
+                <div>
+                  <p className="text-sm font-medium text-slate-200">
+                    {syncStatus.isSyncing
+                      ? t('cloudSync.syncDetails.syncing', 'Syncing...')
+                      : syncStatus.state === 'synced'
+                        ? t('cloudSync.syncDetails.allSynced', 'All synced')
+                        : syncStatus.state === 'offline'
+                          ? t('cloudSync.syncDetails.offline', 'Offline')
+                          : syncStatus.pendingCount > 0
+                            ? t('cloudSync.syncDetails.pendingShort', '{{count}} pending', { count: syncStatus.pendingCount })
+                            : t('cloudSync.syncDetails.ready', 'Ready')}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {syncStatus.lastSyncedAt
+                      ? t('cloudSync.syncDetails.lastSyncedAt', 'Last synced {{time}}', { time: formatRelativeTime(syncStatus.lastSyncedAt) })
+                      : t('cloudSync.cloudAccount.neverSynced', 'Never synced')}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={syncStatus.syncNow}
+                disabled={!syncStatus.isOnline || syncStatus.pendingCount === 0 || syncStatus.isSyncing}
+                className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 text-slate-300 hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                title={t('cloudSync.syncDetails.syncNow', 'Sync Now')}
+              >
+                <HiOutlineArrowPath className={`h-5 w-5 ${syncStatus.isSyncing ? 'animate-spin' : ''}`} />
+              </button>
             </div>
-          )}
 
-          {/* Sync Now Button */}
-          <button
-            onClick={syncStatus.syncNow}
-            disabled={!syncStatus.isOnline || syncStatus.pendingCount === 0 || syncStatus.isSyncing}
-            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
-          >
-            {syncStatus.isSyncing ? (
-              <>
-                <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
-                {t('cloudSync.syncDetails.syncing', 'Syncing...')}
-              </>
-            ) : (
-              <>
-                <HiOutlineArrowPath className="h-4 w-4" />
-                {t('cloudSync.syncDetails.syncNow', 'Sync Now')}
-              </>
+            {/* Failed Operations Warning */}
+            {syncStatus.failedCount > 0 && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                <div className="flex items-center gap-2 mb-3">
+                  <HiOutlineExclamationTriangle className="h-4 w-4 text-red-400" />
+                  <p className="text-sm font-medium text-red-300">
+                    {t('cloudSync.syncDetails.failedCount', '{{count}} operations failed to sync.', { count: syncStatus.failedCount })}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={syncStatus.retryFailed}
+                    className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 text-slate-200 transition-colors"
+                  >
+                    {t('cloudSync.syncDetails.retry', 'Retry')}
+                  </button>
+                  <button
+                    onClick={syncStatus.clearFailed}
+                    className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 transition-colors"
+                  >
+                    {t('cloudSync.syncDetails.discard', 'Discard')}
+                  </button>
+                </div>
+              </div>
             )}
-          </button>
-
-          {/* Failed Operations Warning */}
-          {syncStatus.failedCount > 0 && (
-            <div className="p-3 rounded-md bg-red-900/20 border border-red-700">
-              <div className="flex items-center gap-2 mb-2">
-                <HiOutlineExclamationTriangle className="h-4 w-4 text-red-400" />
-                <p className="text-sm text-red-300">
-                  {t('cloudSync.syncDetails.failedCount', '{{count}} operations failed to sync.', { count: syncStatus.failedCount })}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={syncStatus.retryFailed}
-                  className={`${secondaryButtonStyle} flex-1 py-1.5 text-xs`}
-                >
-                  {t('cloudSync.syncDetails.retry', 'Retry')}
-                </button>
-                <button
-                  onClick={syncStatus.clearFailed}
-                  className={`${dangerButtonStyle} flex-1 py-1.5 text-xs !bg-red-600/20 hover:!bg-red-600/30 !text-red-400`}
-                >
-                  {t('cloudSync.syncDetails.discard', 'Discard')}
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
       {/* Subscription Warning - shown in cloud mode without active subscription */}
       {/* Only show when we've confirmed no subscription (not while loading) */}
       {currentMode === 'cloud' && !subscriptionLoading && !hasSubscription && (
-        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
-          <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm text-amber-300 font-medium">
-              {t('cloudSync.subscriptionRequired', 'Subscription Required')}
-            </p>
-            <p className="text-sm text-amber-300/80 mt-1">
-              {t('cloudSync.subscriptionRequiredDescription', 'Your account is active but cloud sync is paused. Subscribe to sync your data across devices.')}
-            </p>
-            <button
-              onClick={() => setShowUpgradeModal(true)}
-              className="mt-2 px-3 py-1.5 text-sm font-medium bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-md transition-colors"
-            >
-              {t('cloudSync.subscribeButton', 'Subscribe Now')}
-            </button>
+        <div className="px-4">
+          <div className="relative rounded-xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 overflow-hidden">
+            {/* Decorative gradient */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/20 to-transparent rounded-full blur-2xl" />
+            <div className="relative p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                  <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-300">
+                    {t('cloudSync.subscriptionRequired', 'Subscription Required')}
+                  </p>
+                  <p className="text-sm text-amber-300/70 mt-1">
+                    {t('cloudSync.subscriptionRequiredDescription', 'Your account is active but cloud sync is paused. Subscribe to sync your data across devices.')}
+                  </p>
+                  <button
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="mt-3 px-4 py-2 text-sm font-semibold bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-900 rounded-lg shadow-lg shadow-amber-500/20 transition-all hover:shadow-amber-500/30"
+                  >
+                    {t('cloudSync.subscribeButton', 'Subscribe Now')}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Sign Out Button - Only shown in cloud mode */}
+      {/* Account Actions - Only shown in cloud mode */}
       {currentMode === 'cloud' && (
-        <div className="pt-2 space-y-2">
-          <button
-            onClick={handleSignOut}
-            disabled={isSigningOut || isChangingMode}
-            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
-          >
-            {isSigningOut ? (
+        <div className="px-4">
+          <p className={sectionTitleStyle}>{t('cloudSync.accountActions', 'Account')}</p>
+          <div className={`${sectionCardStyle} divide-y divide-slate-700/50`}>
+            {/* Sign Out */}
+            <button
+              onClick={handleSignOut}
+              disabled={isSigningOut || isChangingMode}
+              className="w-full flex items-center gap-3 p-3 hover:bg-slate-700/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed first:rounded-t-xl last:rounded-b-xl"
+            >
+              <div className="p-2 rounded-lg bg-slate-700/50">
+                {isSigningOut ? (
+                  <HiOutlineArrowPath className="h-4 w-4 text-slate-300 animate-spin" />
+                ) : (
+                  <HiOutlineArrowRightOnRectangle className="h-4 w-4 text-slate-300" />
+                )}
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-slate-200">
+                  {isSigningOut ? t('cloudSync.signingOut', 'Signing out...') : t('cloudSync.signOutButton', 'Sign Out')}
+                </p>
+                <p className="text-xs text-slate-500">{t('cloudSync.signOutDescription', 'Sign out of your cloud account')}</p>
+              </div>
+            </button>
+
+            {/* Manage Subscription - Only shown for users with active subscription */}
+            {hasSubscription && (
               <>
-                <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
-                {t('cloudSync.signingOut', 'Signing out...')}
-              </>
-            ) : (
-              <>
-                <HiOutlineArrowRightOnRectangle className="h-4 w-4" />
-                {t('cloudSync.signOutButton', 'Sign Out')}
+                <a
+                  href="https://play.google.com/store/account/subscriptions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center gap-3 p-3 hover:bg-slate-700/30 transition-colors no-underline"
+                >
+                  <div className="p-2 rounded-lg bg-slate-700/50">
+                    <HiOutlineCreditCard className="h-4 w-4 text-slate-300" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium text-slate-200">{t('cloudSync.manageSubscription', 'Manage Subscription')}</p>
+                    <p className="text-xs text-slate-500">{t('cloudSync.manageSubscriptionDescription', 'View or cancel on Google Play')}</p>
+                  </div>
+                </a>
+
+                {/* Import Local Data Button */}
+                <button
+                  onClick={handleImportLocalData}
+                  disabled={isCheckingLocalData || isChangingMode}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-slate-700/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed last:rounded-b-xl"
+                >
+                  <div className="p-2 rounded-lg bg-slate-700/50">
+                    {isCheckingLocalData ? (
+                      <HiOutlineArrowPath className="h-4 w-4 text-slate-300 animate-spin" />
+                    ) : (
+                      <HiOutlineArrowUpTray className="h-4 w-4 text-slate-300" />
+                    )}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium text-slate-200">
+                      {isCheckingLocalData ? t('cloudSync.importLocalData.checking', 'Checking...') : t('cloudSync.importLocalData.button', 'Import Local Data to Cloud')}
+                    </p>
+                    <p className="text-xs text-slate-500">{t('cloudSync.importLocalData.description', 'Migrate data from this device')}</p>
+                  </div>
+                </button>
               </>
             )}
-          </button>
-
-          {/* Manage Subscription Link - Only shown for users with active subscription */}
-          {hasSubscription && (
-            <>
-              <a
-                href="https://play.google.com/store/account/subscriptions"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm no-underline`}
-              >
-                <HiOutlineCreditCard className="h-4 w-4" />
-                {t('cloudSync.manageSubscription', 'Manage Subscription')}
-              </a>
-
-              {/* Import Local Data Button - for users who want to migrate local data to cloud */}
-              <button
-                onClick={handleImportLocalData}
-                disabled={isCheckingLocalData || isChangingMode}
-                className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
-              >
-                {isCheckingLocalData ? (
-                  <>
-                    <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
-                    {t('cloudSync.importLocalData.checking', 'Checking...')}
-                  </>
-                ) : (
-                  <>
-                    <HiOutlineArrowUpTray className="h-4 w-4" />
-                    {t('cloudSync.importLocalData.button', 'Import Local Data to Cloud')}
-                  </>
-                )}
-              </button>
-            </>
-          )}
+          </div>
         </div>
       )}
 
       {/* Cloud Not Available Warning */}
       {!cloudAvailable && currentMode === 'local' && (
-        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
-          <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-300">
-            {t('cloudSync.notAvailable', 'Cloud sync is not available. This feature requires a premium subscription and server configuration.')}
-          </p>
+        <div className="px-4">
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-300/80">
+              {t('cloudSync.notAvailable', 'Cloud sync is not available. This feature requires a premium subscription and server configuration.')}
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Mode Toggle Button */}
-      <div className="pt-2">
+      {/* Mode Switch Section */}
+      <div className="px-4 pt-2">
+        <p className={sectionTitleStyle}>{t('cloudSync.switchMode', 'Switch Mode')}</p>
         {currentMode === 'local' ? (
           <button
             onClick={handleEnableCloud}
             disabled={isChangingMode || !cloudAvailable}
-            className={`${primaryButtonStyle} flex items-center justify-center gap-2 w-full py-3`}
+            className="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all"
           >
-            {isChangingMode ? (
-              <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
-            ) : (
-              <HiOutlineCloud className="h-5 w-5" />
-            )}
-            {isChangingMode
-              ? t('cloudSync.enabling', 'Enabling...')
-              : t('cloudSync.enableButton', 'Enable Cloud Sync')
-            }
+            <div className="p-2 rounded-lg bg-white/10">
+              {isChangingMode ? (
+                <HiOutlineArrowPath className="h-5 w-5 text-white animate-spin" />
+              ) : (
+                <HiOutlineCloud className="h-5 w-5 text-white" />
+              )}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-semibold text-white">
+                {isChangingMode ? t('cloudSync.enabling', 'Enabling...') : t('cloudSync.enableButton', 'Enable Cloud Sync')}
+              </p>
+              <p className="text-xs text-white/70">{t('cloudSync.enableDescription', 'Sync data across all your devices')}</p>
+            </div>
           </button>
         ) : (
           <button
             onClick={handleDisableCloud}
             disabled={isChangingMode}
-            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-3`}
+            className={`w-full flex items-center gap-3 p-4 rounded-xl ${sectionCardStyle} hover:bg-slate-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
           >
-            {isChangingMode ? (
-              <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
-            ) : (
-              <HiOutlineServer className="h-5 w-5" />
-            )}
-            {isChangingMode
-              ? t('cloudSync.disabling', 'Disabling...')
-              : t('cloudSync.disableButton', 'Switch to Local Mode')
-            }
+            <div className="p-2 rounded-lg bg-slate-700/50">
+              {isChangingMode ? (
+                <HiOutlineArrowPath className="h-5 w-5 text-slate-300 animate-spin" />
+              ) : (
+                <HiOutlineServer className="h-5 w-5 text-slate-300" />
+              )}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium text-slate-200">
+                {isChangingMode ? t('cloudSync.disabling', 'Disabling...') : t('cloudSync.disableButton', 'Switch to Local Mode')}
+              </p>
+              <p className="text-xs text-slate-500">{t('cloudSync.disableDescription', 'Store data only on this device')}</p>
+            </div>
           </button>
         )}
-      </div>
 
-      {/* Migration Note */}
-      {currentMode === 'local' && cloudAvailable && (
-        <p className="text-xs text-slate-500">
-          {t('cloudSync.migrationNote', 'When you enable cloud sync, you can migrate your existing local data to the cloud.')}
-        </p>
-      )}
+        {/* Migration Note */}
+        {currentMode === 'local' && cloudAvailable && (
+          <p className="text-xs text-slate-500 mt-2 text-center">
+            {t('cloudSync.migrationNote', 'When you enable cloud sync, you can migrate your existing local data to the cloud.')}
+          </p>
+        )}
+      </div>
 
       {/* Clear Cloud Data Section - Only shown when cloud mode is active AND cloud is available */}
       {/* Safety: If cloudAvailable is false, getDataStore() falls back to LocalDataStore */}
       {/* which would clear local IndexedDB instead of cloud data - so we must gate on both */}
       {currentMode === 'cloud' && cloudAvailable && (
-        <div className="pt-4 mt-4 border-t border-slate-700">
-          <h4 className="text-sm font-medium text-slate-300 mb-2">
-            {t('cloudSync.dangerZone', 'Danger Zone')}
-          </h4>
+        <div className="px-4 pt-4">
+          <p className={`${sectionTitleStyle} text-red-400`}>{t('cloudSync.dangerZone', 'Danger Zone')}</p>
 
           {!showClearConfirm ? (
-            <button
-              onClick={() => setShowClearConfirm(true)}
-              disabled={isChangingMode}
-              className={`${dangerButtonStyle} flex items-center justify-center gap-2 w-full py-3 !bg-red-600/20 hover:!bg-red-600/30 !text-red-400 border border-red-500/50`}
-            >
-              <HiOutlineTrash className="h-5 w-5" />
-              {t('cloudSync.clearCloudData', 'Clear All Cloud Data')}
-            </button>
+            <div className={`${sectionCardStyle} border-red-500/20`}>
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                disabled={isChangingMode}
+                className="w-full flex items-center gap-3 p-3 hover:bg-red-500/10 transition-colors rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30">
+                  <HiOutlineTrash className="h-4 w-4 text-red-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-red-300">{t('cloudSync.clearCloudData', 'Clear All Cloud Data')}</p>
+                  <p className="text-xs text-slate-500">{t('cloudSync.clearNote', 'Permanently delete all data from the cloud')}</p>
+                </div>
+              </button>
+            </div>
           ) : (
-            <div className="p-4 rounded-md bg-red-900/20 border border-red-500/50">
-              <div className="flex items-start gap-2 mb-3">
-                <HiOutlineExclamationTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="rounded-xl bg-gradient-to-b from-red-900/30 to-red-900/10 border border-red-500/30 p-4">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-red-500/20">
+                  <HiOutlineExclamationTriangle className="h-5 w-5 text-red-400" />
+                </div>
                 <div>
-                  <p className="text-sm text-red-300 font-medium">
+                  <p className="text-sm font-semibold text-red-300">
                     {t('cloudSync.clearWarningTitle', 'This action cannot be undone!')}
                   </p>
-                  <p className="text-sm text-red-300/80 mt-1">
+                  <p className="text-sm text-red-300/70 mt-1">
                     {t('cloudSync.clearWarningDescription', 'All your games, players, teams, seasons, and other data will be permanently deleted from the cloud.')}
                   </p>
                 </div>
               </div>
 
-              <div className="mb-3">
-                <label className="block text-sm text-slate-300 mb-1">
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">
                   {t('cloudSync.clearConfirmLabel', 'Type DELETE to confirm:')}
                 </label>
                 <input
@@ -822,7 +885,7 @@ export default function CloudSyncSection({
                   onChange={(e) => setClearConfirmText(e.target.value)}
                   placeholder="DELETE"
                   disabled={isClearingCloud}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
+                  className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 disabled:opacity-50 transition-all"
                 />
               </div>
 
@@ -833,14 +896,14 @@ export default function CloudSyncSection({
                     setClearConfirmText('');
                   }}
                   disabled={isClearingCloud}
-                  className={`${secondaryButtonStyle} flex-1`}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 text-slate-200 disabled:opacity-50 transition-colors"
                 >
                   {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   onClick={handleClearCloudData}
                   disabled={clearConfirmText !== 'DELETE' || isClearingCloud}
-                  className={`${dangerButtonStyle} flex-1 flex items-center justify-center gap-2`}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-500 text-white disabled:bg-red-600/30 disabled:text-red-300/50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {isClearingCloud ? (
                     <>
@@ -857,57 +920,52 @@ export default function CloudSyncSection({
               </div>
             </div>
           )}
-
-          <p className="text-xs text-slate-500 mt-2">
-            {t('cloudSync.clearNote', 'This will delete all your data from the cloud. Local data on this device will not be affected.')}
-          </p>
         </div>
       )}
 
       {/* Cloud Account Section - Shown in LOCAL mode when user has cloud account info */}
       {currentMode === 'local' && cloudAccountInfo && (
-        <div className="pt-4 mt-4 border-t border-slate-700">
-          <div className="flex items-center gap-2 mb-3">
-            <HiOutlineLockClosed className="h-5 w-5 text-slate-400" />
-            <h4 className="text-sm font-medium text-slate-300">
-              {t('cloudSync.cloudAccount.title', 'Cloud Account')}
-            </h4>
-          </div>
+        <div className="px-4 pt-4">
+          <p className={sectionTitleStyle}>{t('cloudSync.cloudAccount.title', 'Cloud Account')}</p>
+          <div className={`${sectionCardStyle} p-4 space-y-4`}>
+            {/* Account info */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-slate-700/50">
+                <HiOutlineUser className="h-5 w-5 text-slate-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-200 truncate">
+                  {cloudAccountInfo?.email || t('cloudSync.cloudAccount.unknownEmail', 'Unknown')}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {t('cloudSync.cloudAccount.lastSynced', 'Last synced: {{date}}', {
+                    date: formatDate(cloudAccountInfo?.lastSyncedAt),
+                  })}
+                </p>
+              </div>
+              {cloudAccountInfo?.hasCloudData && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  {t('cloudSync.cloudAccount.hasData', 'Has data')}
+                </span>
+              )}
+            </div>
 
-          {/* Account info */}
-          <div className="p-3 rounded-md bg-slate-800/50 space-y-2 mb-3">
-            <div className="flex items-center gap-2">
-              <HiOutlineUser className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-300">{cloudAccountInfo?.email || t('cloudSync.cloudAccount.unknownEmail', 'Unknown')}</span>
-            </div>
-            <div className="text-xs text-slate-500">
-              {t('cloudSync.cloudAccount.lastSynced', 'Last synced: {{date}}', {
-                date: formatDate(cloudAccountInfo?.lastSyncedAt),
-              })}
-            </div>
+            {/* Delete cloud data from local mode */}
             {cloudAccountInfo?.hasCloudData && (
-              <div className="text-xs text-amber-400">
-                {t('cloudSync.cloudAccount.hasCloudData', 'You have data stored in the cloud.')}
+              <div className="pt-3 border-t border-slate-700/50">
+                <button
+                  onClick={handleDeleteCloudFromLocalMode}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 transition-colors"
+                >
+                  <HiOutlineTrash className="h-4 w-4 text-red-400" />
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium text-red-300">{t('cloudSync.cloudAccount.deleteCloudData', 'Delete All Cloud Data')}</p>
+                    <p className="text-xs text-slate-500">{t('cloudSync.cloudAccount.deleteNote', 'Permanently delete data from servers')}</p>
+                  </div>
+                </button>
               </div>
             )}
           </div>
-
-          {/* Delete cloud data from local mode */}
-          {cloudAccountInfo?.hasCloudData && (
-            <>
-              <button
-                onClick={handleDeleteCloudFromLocalMode}
-                className={`${dangerButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm !bg-red-600/20 hover:!bg-red-600/30 !text-red-400 border border-red-500/50`}
-              >
-                <HiOutlineTrash className="h-4 w-4" />
-                {t('cloudSync.cloudAccount.deleteCloudData', 'Delete All Cloud Data')}
-              </button>
-
-              <p className="text-xs text-slate-500 mt-2">
-                {t('cloudSync.cloudAccount.deleteNote', 'This will permanently delete all your data from our servers.')}
-              </p>
-            </>
-          )}
         </div>
       )}
 

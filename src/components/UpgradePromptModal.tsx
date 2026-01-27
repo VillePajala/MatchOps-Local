@@ -15,6 +15,18 @@ import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 import { isAndroid } from '@/utils/platform';
 
+/**
+ * Format price for display in European format
+ * Converts "4.99" + "EUR" to "€ 4,99/kk"
+ */
+function formatPrice(price: string, currencyCode: string): string {
+  // Convert decimal point to comma for European format
+  const formattedAmount = price.replace('.', ',');
+  // Map currency codes to symbols
+  const symbol = currencyCode === 'EUR' ? '€' : currencyCode;
+  return `${symbol} ${formattedAmount}/kk`;
+}
+
 export type UpgradePromptVariant = 'resourceLimit' | 'cloudUpgrade';
 
 export interface UpgradePromptModalProps {
@@ -320,7 +332,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         {/* Price - use Play Billing price if available, otherwise fallback */}
         <div className="mb-5 text-center">
           <div className="text-2xl font-bold text-amber-400">
-            {details?.price ? `${details.currencyCode} ${details.price}` : PREMIUM_PRICE}
+            {details?.price ? formatPrice(details.price, details.currencyCode) : PREMIUM_PRICE}
           </div>
           <div className="text-slate-400 text-sm">
             {PREMIUM_IS_SUBSCRIPTION

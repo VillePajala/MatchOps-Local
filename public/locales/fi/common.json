@@ -1363,7 +1363,7 @@
       "general": "Yleiset",
       "season": "Kausi",
       "data": "Tiedot",
-      "premium": "Premium",
+      "account": "Tili",
       "about": "Tietoja"
     },
     "languageLabel": "Kieli",
@@ -2069,10 +2069,10 @@
     "graceEnds": "Lisäaika päättyy: {{date}}"
   },
   "playBilling": {
-    "restorePurchases": "Palauta ostokset",
-    "restoreSuccess": "Ostokset palautettu onnistuneesti!",
-    "restoreFailed": "Ostosten palautus epäonnistui. Yritä uudelleen.",
-    "noPurchases": "Ei palautettavia ostoksia."
+    "restorePurchases": "Hae aiempi tilaus",
+    "restoreSuccess": "Tilaus palautettu onnistuneesti!",
+    "restoreFailed": "Tilauksen palautus epäonnistui. Yritä uudelleen.",
+    "noPurchases": "Aktiivista tilausta ei löytynyt."
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -2230,6 +2230,10 @@
   },
   "cloudSync": {
     "title": "Tili ja synkronointi",
+    "subtitle": "Hallitse tietojen tallennusta ja synkronointiasetuksia",
+    "active": "Aktiivinen",
+    "accountActions": "Tili",
+    "switchMode": "Vaihda tilaa",
     "statusLabel": "Nykyinen tila",
     "cloudMode": "Pilvisynkronointi käytössä",
     "localMode": "Paikallinen tallennus",
@@ -2242,7 +2246,9 @@
     "notAvailable": "Pilvisynkronointi ei ole käytettävissä. Tämä ominaisuus vaatii premium-tilauksen ja palvelimen määrityksen.",
     "notConfigured": "Pilvisynkronointia ei ole määritetty. Ota yhteyttä tukeen.",
     "enableButton": "Ota pilvisynkronointi käyttöön",
+    "enableDescription": "Synkronoi tiedot kaikkien laitteidesi välillä",
     "disableButton": "Vaihda paikalliseen tilaan",
+    "disableDescription": "Tallenna tiedot vain tälle laitteelle",
     "enabling": "Otetaan käyttöön...",
     "disabling": "Poistetaan käytöstä...",
     "enabledReloading": "Pilvitila käytössä. Ladataan uudelleen...",
@@ -2271,15 +2277,18 @@
     "cloudUnavailable": "Pilvi ei ole käytettävissä. Pilvitietoja ei voida tyhjentää.",
     "wrongBackend": "Tyhjennys epäonnistui: ei yhteyttä pilvitallennustilaan.",
     "signOutButton": "Kirjaudu ulos",
+    "signOutDescription": "Kirjaudu ulos pilvitililtäsi",
     "signingOut": "Kirjaudutaan ulos...",
     "signedOut": "Kirjauduttu ulos onnistuneesti. Ladataan uudelleen...",
     "signOutError": "Uloskirjautuminen epäonnistui. Yritä uudelleen.",
     "signOutNetworkError": "Verkkovirhe. Voit jatkaa sovelluksen käyttöä offline-tilassa.",
     "switchedToLocal": "Vaihdettu paikalliseen tilaan. Ladataan uudelleen...",
     "manageSubscription": "Hallitse tilausta",
+    "manageSubscriptionDescription": "Näytä tai peruuta Google Playssa",
     "subscriptionSuccess": "Tilaus aktivoitu! Ladataan uudelleen...",
     "importLocalData": {
       "button": "Tuo paikalliset tiedot pilveen",
+      "description": "Siirrä tiedot tältä laitteelta",
       "checking": "Tarkistetaan...",
       "starting": "Aloitetaan tuonti... Ladataan uudelleen.",
       "noData": "Ei paikallisia tietoja tuotavaksi.",
@@ -2290,10 +2299,11 @@
     "cloudAccount": {
       "title": "Pilvitili",
       "lastSynced": "Viimeksi synkronoitu: {{date}}",
-      "neverSynced": "Ei koskaan",
+      "neverSynced": "Ei koskaan synkronoitu",
       "unknownDate": "Tuntematon",
       "unknownEmail": "Tuntematon",
       "hasCloudData": "Sinulla on tietoja tallennettuna pilveen.",
+      "hasData": "Tietoja tallennettu",
       "deleteCloudData": "Poista kaikki pilvitiedot",
       "deleteWarning": "Sinun täytyy kirjautua uudelleen poistaaksesi pilvitietosi.",
       "signInToDelete": "Kirjaudu poistaaksesi",
@@ -2301,8 +2311,14 @@
       "deleteSuccess": "Pilvitiedot poistettu onnistuneesti."
     },
     "syncDetails": {
+      "sectionTitle": "Synkronointitila",
       "status": "Synkronointitila",
       "lastSynced": "Viimeksi synkronoitu",
+      "lastSyncedAt": "Viimeksi synkronoitu {{time}}",
+      "allSynced": "Kaikki synkronoitu",
+      "offline": "Ei yhteyttä",
+      "pendingShort": "{{count}} odottaa",
+      "ready": "Valmis",
       "pendingChanges": "Odottavat muutokset",
       "syncNow": "Synkronoi nyt",
       "syncing": "Synkronoidaan...",

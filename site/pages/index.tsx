@@ -376,6 +376,99 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ===== CHOOSE YOUR MODE ===== */}
+      <section className="section section-divider bg-slate-900">
+        <div className="container-custom">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+              {t('marketing.modes.title')}
+            </h2>
+            <p className="text-slate-400 mb-10">
+              {t('marketing.modes.subtitle')}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Local Mode Card */}
+              <div className="bg-slate-800/70 rounded-xl border border-slate-700 p-6 text-left">
+                <div className="text-3xl mb-4">🔒</div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  {t('marketing.modes.localTitle')}
+                </h3>
+                <p className="text-primary text-2xl font-bold mb-4">
+                  {t('marketing.modes.localPrice')}
+                </p>
+                <ul className="text-slate-300 space-y-2">
+                  <li>✓ {t('marketing.modes.localFeature1')}</li>
+                  <li>✓ {t('marketing.modes.localFeature2')}</li>
+                  <li>✓ {t('marketing.modes.localFeature3')}</li>
+                  <li>✓ {t('marketing.modes.localFeature4')}</li>
+                </ul>
+              </div>
+              {/* Cloud Mode Card */}
+              <div className="bg-gradient-to-br from-primary/20 to-slate-800/70 rounded-xl border border-primary/50 p-6 text-left">
+                <div className="text-3xl mb-4">☁️</div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  {t('marketing.modes.cloudTitle')}
+                </h3>
+                <p className="text-primary text-2xl font-bold mb-4">
+                  {t('marketing.modes.cloudPrice')}
+                </p>
+                <ul className="text-slate-300 space-y-2">
+                  <li>✓ {t('marketing.modes.cloudFeature1')}</li>
+                  <li>✓ {t('marketing.modes.cloudFeature2')}</li>
+                  <li>✓ {t('marketing.modes.cloudFeature3')}</li>
+                  <li>✓ {t('marketing.modes.cloudFeature4')}</li>
+                </ul>
+              </div>
+            </div>
+            {/* Phone mockups with placeholder screenshots */}
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Welcome Screen mockup placeholder */}
+              <div className="flex flex-col items-center">
+                <div className="phone-frame phone-frame-lg">
+                  <div className="phone-frame-screen bg-slate-900 flex items-center justify-center p-4">
+                    <div className="text-center text-slate-400 text-sm">
+                      <div className="text-4xl mb-4">📱</div>
+                      <p className="font-medium text-white mb-2">
+                        {isEnglish ? 'Screenshot needed:' : 'Kuvakaappaus tarvitaan:'}
+                      </p>
+                      <p>
+                        {isEnglish
+                          ? 'Welcome screen with mode selection (Local vs Cloud)'
+                          : 'Tervetuloruutu tilanvalinnalla (Paikallinen vs Pilvi)'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-slate-400 text-sm mt-3">
+                  {isEnglish ? 'Choose your mode on first launch' : 'Valitse tila ensimmäisellä käynnistyksellä'}
+                </p>
+              </div>
+              {/* Settings/Account mockup placeholder */}
+              <div className="flex flex-col items-center">
+                <div className="phone-frame phone-frame-lg">
+                  <div className="phone-frame-screen bg-slate-900 flex items-center justify-center p-4">
+                    <div className="text-center text-slate-400 text-sm">
+                      <div className="text-4xl mb-4">⚙️</div>
+                      <p className="font-medium text-white mb-2">
+                        {isEnglish ? 'Screenshot needed:' : 'Kuvakaappaus tarvitaan:'}
+                      </p>
+                      <p>
+                        {isEnglish
+                          ? 'Settings screen with cloud account options'
+                          : 'Asetukset-näkymä pilvitiliasetuksilla'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-slate-400 text-sm mt-3">
+                  {isEnglish ? 'Manage your cloud account in settings' : 'Hallitse pilvitiliäsi asetuksissa'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== FEATURE CARDS (14 features) ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
@@ -433,8 +526,8 @@ export default function HomePage() {
             </h2>
             <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
               {isEnglish
-                ? 'Enterprise-grade quality with 3,200+ automated tests.'
-                : 'Yritystason laatu ja yli 3 200 automaattista testiä.'}
+                ? 'Enterprise-grade quality with 4,300+ automated tests.'
+                : 'Yritystason laatu ja yli 4 300 automaattista testiä.'}
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">

@@ -466,7 +466,7 @@ Copy these into `site/public/locales/en/common.json`:
 
 ## Appendix B: Complete Translation Texts (Finnish)
 
-**⚠️ REVIEW NEEDED**: These Finnish translations should be reviewed by a native speaker before use. Marked items need particular attention.
+**✅ REVIEWED** - Native speaker reviewed 2026-01-27
 
 Copy these into `site/public/locales/fi/common.json`:
 
@@ -476,12 +476,12 @@ Copy these into `site/public/locales/fi/common.json`:
 {
   "seo": {
     "home": {
-      "title": "MatchOps Local - Jalkapallovalmentajan sovellus | Ilmainen tai pilvisynkronointi",
-      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Ilmaisversiossa tiedot pysyvät laitteellasi. Pilvisynkronointi (4,99 €/kk) useille laitteille. Toimii myös ilman nettiä."
+      "title": "MatchOps Local - Jalkapallovalmentajan työkalu | Ottelutapahtumien hallinta",
+      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Ilmaisversiossa tiedot pysyvät laitteellasi. Pilvisynkronointi (4,99 €/kk) mahdollistaa työskentelyn saumattomasti eri laitteilla (mobiili + työpöytä)."
     }
   },
   "footer": {
-    "dataStays": "Sinä päätät. Paikallisesti tai pilvessä."
+    "dataStays": "Sinä päätät, missä datasi sijaitsee."
   },
   "info": {
     "faq": {
@@ -493,7 +493,7 @@ Copy these into `site/public/locales/fi/common.json`:
       "a11": "Ilmaisversio on pysyvästi maksuton. Tiedot pysyvät laitteellasi, sovellus toimii ilman nettiä eikä tiliä tarvita. Pilvisynkronointi (4,99 €/kk) tuo automaattisen synkronoinnin laitteiden välillä sekä pilvivarmuuskopioinnin. Ominaisuudet ovat muuten samat. Voit vaihtaa tilojen välillä koska tahansa.",
       "q12": "Tarvitsenko käyttäjätilin?",
       "a12": "Ilmaisversioon ei tarvita tiliä – asenna ja käytä. Pilvisynkronointi edellyttää rekisteröitymistä sähköpostilla ja salasanalla.",
-      "q13": "Voinko siirtää tietojani tilojen välillä?",
+      "q13": "Voinko siirtää tietojani laitteen ja pilvitallennuksen välillä?",
       "a13": "Kyllä. Sovellus sisältää siirtotyökalun. Voit siirtää tietosi paikallisesta pilveen tai pilvestä takaisin paikalliseen milloin tahansa. Tietosi eivät jää loukkuun kumpaankaan tilaan."
     }
   },
@@ -523,7 +523,7 @@ Copy these into `site/public/locales/fi/common.json`:
 ```json
 {
   "pricing": {
-    "title": "Valitse tallennustapa",
+    "title": "Tallennus",
     "subtitle": "Samat ominaisuudet, eri tallennusvaihtoehdot.",
     "localMode": {
       "name": "Ilmaisversio",
@@ -574,7 +574,7 @@ Copy these into `site/public/locales/fi/common.json`:
   },
   "marketing": {
     "modes": {
-      "title": "Valitse tallennustapa",
+      "title": "Tallennus",
       "subtitle": "Samat ominaisuudet molemmissa. Sinä valitset missä tietosi ovat.",
       "localTitle": "Ilmaisversio",
       "localPrice": "Ilmainen",
@@ -592,7 +592,7 @@ Copy these into `site/public/locales/fi/common.json`:
     "benefits": {
       "crossDeviceSync": "Synkronointi laitteiden välillä",
       "automaticBackup": "Automaattinen pilvivarmuuskopio",
-      "chooseYourMode": "Valitse tallennustapa",
+      "chooseYourMode": "Tallennus",
       "freeLocalMode": "Ilmainen paikallinen tallennus",
       "premiumCloudSync": "Pilvisynkronointi",
       "euDataResidency": "Tiedot EU:ssa",
@@ -617,19 +617,24 @@ Copy these into `site/public/locales/fi/common.json`:
 | CTA (cloud) | Start Cloud Sync | Aloita pilvisynkronointi |
 | Migration | Migrate anytime | Vaihda milloin vain |
 | Account | No account required | Ei vaadi tiliä |
-| Tagline | Your data, your choice | Sinä päätät. |
+| Tagline | Your data, your choice | Sinä päätät, missä datasi sijaitsee. |
 | Works offline | Works offline | Toimii ilman nettiä |
-| Choose storage | Choose your mode | Valitse tallennustapa |
+| Section title | Storage | Tallennus |
+| SEO subtitle | Match event management | Ottelutapahtumien hallinta |
 
 ### Finnish Terminology Notes
 
-**Avoided awkward direct translations:**
+**Reviewed and corrected translations:**
 - ❌ "Paikallinen tila" → ✅ "Ilmaisversio" (clearer for users)
-- ❌ "Sinun datasi, sinun valintasi" → ✅ "Sinä päätät." (natural Finnish)
+- ❌ "Sinun datasi, sinun valintasi" → ✅ "Sinä päätät, missä datasi sijaitsee." (natural Finnish)
 - ❌ "Kaksoistaustajärjestelmä" → ✅ "Joustava taustaratkaisu" (less technical)
 - ❌ "Siirtovelho" → ✅ "Siirtotyökalu" (more natural)
+- ❌ "tilojen välillä" → ✅ "laitteen ja pilvitallennuksen välillä" (concrete)
+- ❌ "Valitse tallennustapa" → ✅ "Tallennus" (shorter section title)
+- ❌ "Jalkapallovalmentajan sovellus" → ✅ "Jalkapallovalmentajan työkalu" (better word choice)
 
 **Consistent terms:**
 - "Pilvisynkronointi" - used consistently for cloud sync feature
 - "EU-palvelimet" - for EU data residency
 - "Ilmaisversio" - emphasizes it's free, not just "local"
+- "Toimii ilman nettiä" - for offline capability

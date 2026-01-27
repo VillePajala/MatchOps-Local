@@ -29,6 +29,8 @@ const ALLOWED_ORIGINS = [
   // Allow localhost for development
   'http://localhost:3000',
   'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:3003',
 ];
 
 // Vercel preview deployment pattern: match-ops-local-{hash}-{team}.vercel.app
