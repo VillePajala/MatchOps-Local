@@ -58,6 +58,8 @@ export interface SubscriptionState {
   isActive: boolean;
   /** Whether initial load is in progress */
   isLoading: boolean;
+  /** Whether the last fetch failed (state may be from cache or fallback) */
+  fetchFailed: boolean;
 }
 
 /**
@@ -91,6 +93,7 @@ const DEFAULT_STATE: SubscriptionState = {
   graceEnd: null,
   isActive: false,
   isLoading: true,
+  fetchFailed: false,
 };
 
 /**
@@ -169,6 +172,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setState({
         ...DEFAULT_STATE,
         isLoading: false,
+        fetchFailed: false,
       });
       return;
     }
@@ -208,6 +212,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         graceEnd: subscription.grace_end ? new Date(subscription.grace_end) : null,
         isActive: isSubscriptionActive(subscriptionStatus),
         isLoading: false,
+        fetchFailed: false,
       };
 
       // Cache the result
@@ -218,12 +223,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     } catch (error) {
       logger.error('[SubscriptionContext] Failed to fetch subscription:', error);
 
-      // Fall back to cached or default state
+      // Fall back to cached or default state, but mark as failed so UI can distinguish
       const cached = await getCachedSubscription(user.id);
       if (cached) {
         setState({
           ...cached,
           isLoading: false,
+          fetchFailed: true, // Cached data may be stale
         });
       } else {
         const fallbackStatus: SubscriptionStatus = 'none';
@@ -233,6 +239,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           graceEnd: null,
           isActive: isSubscriptionActive(fallbackStatus),
           isLoading: false,
+          fetchFailed: true, // Status unknown due to fetch failure
         });
       }
     }
