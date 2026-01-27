@@ -190,6 +190,21 @@ function isNetworkError(error: unknown): boolean {
 }
 
 /**
+ * Rate limiting configuration for sign-in attempts.
+ * Prevents brute force attacks by enforcing exponential backoff.
+ */
+const RATE_LIMIT = {
+  /** Maximum attempts before requiring a wait period */
+  MAX_ATTEMPTS: 5,
+  /** Base delay in milliseconds (doubles with each attempt) */
+  BASE_DELAY_MS: 1000,
+  /** Maximum delay cap in milliseconds (60 seconds) */
+  MAX_DELAY_MS: 60000,
+  /** Reset failed attempts after this many ms of no failures (5 minutes) */
+  RESET_AFTER_MS: 5 * 60 * 1000,
+};
+
+/**
  * Supabase authentication service.
  *
  * Provides full authentication for cloud mode.
@@ -202,6 +217,10 @@ export class SupabaseAuthService implements AuthService {
   private currentUser: User | null = null;
   // Promise deduplication for initialize() to prevent race conditions
   private initPromise: Promise<void> | null = null;
+
+  // Rate limiting state for sign-in attempts
+  private failedSignInAttempts = 0;
+  private lastFailedSignInTime = 0;
 
   // ==========================================================================
   // LIFECYCLE
@@ -403,6 +422,30 @@ export class SupabaseAuthService implements AuthService {
   async signIn(email: string, password: string): Promise<AuthResult> {
     this.ensureInitialized();
 
+    // Rate limiting: Check if we need to wait before allowing another attempt
+    const now = Date.now();
+    const timeSinceLastFailure = now - this.lastFailedSignInTime;
+
+    // Reset counter if enough time has passed since last failure
+    if (timeSinceLastFailure > RATE_LIMIT.RESET_AFTER_MS) {
+      this.failedSignInAttempts = 0;
+    }
+
+    // Enforce rate limit if too many recent failures
+    if (this.failedSignInAttempts >= RATE_LIMIT.MAX_ATTEMPTS) {
+      const delayMs = Math.min(
+        RATE_LIMIT.BASE_DELAY_MS * Math.pow(2, this.failedSignInAttempts - RATE_LIMIT.MAX_ATTEMPTS),
+        RATE_LIMIT.MAX_DELAY_MS
+      );
+      const remainingMs = delayMs - timeSinceLastFailure;
+
+      if (remainingMs > 0) {
+        const remainingSec = Math.ceil(remainingMs / 1000);
+        logger.warn(`[SupabaseAuthService] Rate limited: ${this.failedSignInAttempts} failed attempts, wait ${remainingSec}s`);
+        throw new AuthError(`Too many failed attempts. Please wait ${remainingSec} seconds before trying again.`);
+      }
+    }
+
     // Basic validation only (no password complexity check on sign in)
     validateEmail(email);
 
@@ -412,6 +455,10 @@ export class SupabaseAuthService implements AuthService {
     });
 
     if (error) {
+      // Track failed attempt for rate limiting
+      this.failedSignInAttempts++;
+      this.lastFailedSignInTime = Date.now();
+
       logger.warn('[SupabaseAuthService] Sign in failed:', error.message);
 
       if (isNetworkError(error)) {
@@ -431,6 +478,10 @@ export class SupabaseAuthService implements AuthService {
     if (!data.user || !data.session) {
       throw new AuthError('Sign in failed: invalid response');
     }
+
+    // Success: reset rate limiting
+    this.failedSignInAttempts = 0;
+    this.lastFailedSignInTime = 0;
 
     const user = transformUser(data.user);
     const session = transformSession(data.session);
