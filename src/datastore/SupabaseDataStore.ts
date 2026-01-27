@@ -1322,48 +1322,21 @@ export class SupabaseDataStore implements DataStore {
         error.code === '42501' ||
         errorMessage.includes('permission denied');
 
-      if (!isMissingRpc && !isPermissionIssue) {
-        this.classifyAndThrowError(error, 'Failed to set team roster');
+      // Issue #332: Require RPC availability for data integrity.
+      // Non-atomic manual fallback removed - if RPC is unavailable, it's a deployment issue.
+      if (isMissingRpc || isPermissionIssue) {
+        logger.error('[SupabaseDataStore] set_team_roster RPC unavailable. ' +
+          'This is a deployment issue - the RPC function must be available.', {
+          code: error.code,
+          message: error.message,
+        });
+        throw new NetworkError(
+          'Team roster save temporarily unavailable. The server is being updated. ' +
+          'Please try again in a few minutes. Your data has not been lost.'
+        );
       }
 
-      // WARNING: Manual fallback is NON-ATOMIC. Deletes existing roster before inserting new.
-      // If network fails after delete but before insert, team roster will be empty.
-      logger.warn('[SupabaseDataStore] set_team_roster RPC failed, falling back to NON-ATOMIC manual writes. ' +
-        'Team roster may be left empty if operation is interrupted.', {
-        code: error.code,
-        message: error.message,
-      });
-
-      await this.setTeamRosterManually(teamId, rows, userId);
-    }
-  }
-
-  /**
-   * Manual (non-atomic) fallback for setting team rosters when RPC is unavailable.
-   */
-  private async setTeamRosterManually(teamId: string, rows: TeamPlayerInsert[], userId: string): Promise<void> {
-    const client = this.getClient();
-
-    const { error: deleteError } = await client
-      .from('team_players')
-      .delete()
-      .eq('team_id', teamId)
-      .eq('user_id', userId);
-
-    if (deleteError) {
-      this.classifyAndThrowError(deleteError, 'Failed to reset team roster (manual)');
-    }
-
-    if (rows.length === 0) {
-      return;
-    }
-
-    const { error: insertError } = await client
-      .from('team_players')
-      .insert(rows as unknown as never);
-
-    if (insertError) {
-      this.classifyAndThrowError(insertError, 'Failed to save team roster (manual)');
+      this.classifyAndThrowError(error, 'Failed to set team roster');
     }
   }
 
@@ -3105,108 +3078,26 @@ export class SupabaseDataStore implements DataStore {
         error.code === '42501' ||
         errorMessage.includes('permission denied');
 
-      if (!isMissingRpc && !isPermissionIssue) {
-        this.classifyAndThrowError(error, 'Failed to save game');
+      // Issue #332: Require RPC availability for data integrity.
+      // Non-atomic manual fallback removed - if RPC is unavailable, it's a deployment issue.
+      if (isMissingRpc || isPermissionIssue) {
+        logger.error('[SupabaseDataStore] save_game_with_relations RPC unavailable. ' +
+          'This is a deployment issue - the RPC function must be available.', {
+          code: error.code,
+          message: error.message,
+        });
+        throw new NetworkError(
+          'Game save temporarily unavailable. The server is being updated. ' +
+          'Please try again in a few minutes. Your data has not been lost.'
+        );
       }
 
-      // WARNING: Manual fallback is NON-ATOMIC. If network fails mid-operation,
-      // game may be left in inconsistent state with partial child data.
-      // This is a last resort when RPC is unavailable (e.g., migration needed).
-      logger.warn('[SupabaseDataStore] save_game_with_relations RPC failed, falling back to NON-ATOMIC manual writes. ' +
-        'Data consistency may be at risk if operation is interrupted.', {
-        code: error.code,
-        message: error.message,
-      });
-
-      await this.saveGameManually(id, tables, userId);
+      this.classifyAndThrowError(error, 'Failed to save game');
     }
 
     await this.ensureGameCreatedAt(id);
 
     return game;
-  }
-
-  /**
-   * Manual (non-atomic) fallback for saving game data when RPC is unavailable.
-   */
-  private async saveGameManually(gameId: string, tables: GameTableSet, userId: string): Promise<void> {
-    const client = this.getClient();
-
-    const { error: gameError } = await client
-      .from('games')
-      .upsert(tables.game as unknown as never, { onConflict: 'id' });
-
-    if (gameError) {
-      this.classifyAndThrowError(gameError, 'Failed to save game (manual)');
-    }
-
-    const { error: deletePlayersError } = await client
-      .from('game_players')
-      .delete()
-      .eq('game_id', gameId)
-      .eq('user_id', userId);
-
-    if (deletePlayersError) {
-      this.classifyAndThrowError(deletePlayersError, 'Failed to reset game players (manual)');
-    }
-
-    if (tables.players.length > 0) {
-      const { error: insertPlayersError } = await client
-        .from('game_players')
-        .insert(tables.players as unknown as never);
-
-      if (insertPlayersError) {
-        this.classifyAndThrowError(insertPlayersError, 'Failed to save game players (manual)');
-      }
-    }
-
-    const { error: deleteEventsError } = await client
-      .from('game_events')
-      .delete()
-      .eq('game_id', gameId)
-      .eq('user_id', userId);
-
-    if (deleteEventsError) {
-      this.classifyAndThrowError(deleteEventsError, 'Failed to reset game events (manual)');
-    }
-
-    if (tables.events.length > 0) {
-      const { error: insertEventsError } = await client
-        .from('game_events')
-        .insert(tables.events as unknown as never);
-
-      if (insertEventsError) {
-        this.classifyAndThrowError(insertEventsError, 'Failed to save game events (manual)');
-      }
-    }
-
-    const { error: deleteAssessmentsError } = await client
-      .from('player_assessments')
-      .delete()
-      .eq('game_id', gameId)
-      .eq('user_id', userId);
-
-    if (deleteAssessmentsError) {
-      this.classifyAndThrowError(deleteAssessmentsError, 'Failed to reset player assessments (manual)');
-    }
-
-    if (tables.assessments.length > 0) {
-      const { error: insertAssessmentsError } = await client
-        .from('player_assessments')
-        .insert(tables.assessments as unknown as never);
-
-      if (insertAssessmentsError) {
-        this.classifyAndThrowError(insertAssessmentsError, 'Failed to save player assessments (manual)');
-      }
-    }
-
-    const { error: tacticalError } = await client
-      .from('game_tactical_data')
-      .upsert(tables.tacticalData as unknown as never, { onConflict: 'game_id' });
-
-    if (tacticalError) {
-      this.classifyAndThrowError(tacticalError, 'Failed to save tactical data (manual)');
-    }
   }
 
   /**
