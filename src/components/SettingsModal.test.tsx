@@ -497,4 +497,5 @@ describe('<SettingsModal />', () => {
       });
     });
   });
+
 });

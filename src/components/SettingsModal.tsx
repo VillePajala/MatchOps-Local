@@ -221,8 +221,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           clearMigrationCompleted(user.id);
           logger.info('[SettingsModal] Cleared migration flag for backup import in cloud mode');
         } catch (error) {
-          // Non-critical: migration wizard may not show, but import can proceed
+          // Non-critical: import proceeds, but user should know sync wizard may not show
           logger.warn('[SettingsModal] Failed to clear migration flag:', error);
+          showToast(
+            t('fullBackup.migrationFlagWarning', 'Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later.'),
+            'info'
+          );
         }
       }
 

@@ -1589,7 +1589,8 @@
     "restoreKeyError": "Failed to restore item {{key}}. Import canceled.",
     "restoreSuccess": "Backup restored. Reloading app...",
     "restoreError": "Error importing backup: {{error}}",
-    "currentGameWarning": "Backup restored, but we could not update the current game selection automatically. Please select a game manually."
+    "currentGameWarning": "Backup restored, but we could not update the current game selection automatically. Please select a game manually.",
+    "migrationFlagWarning": "Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later."
   },
   "cloudModeImport": {
     "title": "Import Backup",

@@ -416,9 +416,13 @@ export default function Home() {
 
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
-            // Cloud check failed - log warning but don't block user
+            // Cloud check failed - notify user but don't block them
             // They can use the app, data will load when queries run
             logger.warn('[page.tsx] Failed to check cloud data:', cloudResult.error);
+            showToast(
+              'Could not check cloud data. Your data will load automatically.',
+              'info'
+            );
             setMigrationCompleted(userId);
           } else if (cloudResult.hasData) {
             // Cloud has data - trigger refetch to load it into the app

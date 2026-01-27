@@ -489,11 +489,14 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         </div>
 
         {/* Actions */}
-        {renderActions() && (
-          <div className={wizardFooterStyle}>
-            {renderActions()}
-          </div>
-        )}
+        {(() => {
+          const actions = renderActions();
+          return actions && (
+            <div className={wizardFooterStyle}>
+              {actions}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
