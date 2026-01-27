@@ -891,6 +891,46 @@ describe('SupabaseDataStore', () => {
 
         await expect(dataStore.setTeamRoster('team_123', roster)).rejects.toThrow(NetworkError);
       });
+
+      /**
+       * Issue #332: RPC unavailability should throw NetworkError (no manual fallback)
+       * @critical - Ensures data integrity by requiring atomic RPC operations
+       */
+      it('should throw NetworkError when RPC function missing (PGRST202)', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST202', message: 'Could not find the function set_team_roster' },
+        });
+
+        const roster: TeamPlayer[] = [
+          { id: 'player_1', name: 'Player 1', isGoalie: false, receivedFairPlayCard: false },
+        ];
+
+        await expect(dataStore.setTeamRoster('team_123', roster)).rejects.toThrow(NetworkError);
+        await expect(dataStore.setTeamRoster('team_123', roster)).rejects.toThrow(
+          /temporarily unavailable/i
+        );
+      });
+
+      /**
+       * Issue #332: Permission denied should throw NetworkError (no manual fallback)
+       * @critical - Ensures data integrity by requiring atomic RPC operations
+       */
+      it('should throw NetworkError when RPC permission denied (42501)', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: { code: '42501', message: 'permission denied for function set_team_roster' },
+        });
+
+        const roster: TeamPlayer[] = [
+          { id: 'player_1', name: 'Player 1', isGoalie: false, receivedFairPlayCard: false },
+        ];
+
+        await expect(dataStore.setTeamRoster('team_123', roster)).rejects.toThrow(NetworkError);
+        await expect(dataStore.setTeamRoster('team_123', roster)).rejects.toThrow(
+          /temporarily unavailable/i
+        );
+      });
     });
 
     describe('getAllTeamRosters', () => {
@@ -2233,6 +2273,78 @@ describe('SupabaseDataStore', () => {
         await expect(dataStore.saveGame('game_123', invalidGame as unknown as AppState)).rejects.toThrow(ValidationError);
         // RPC should NOT be called if validation fails
         expect(mockSupabaseClient.rpc).not.toHaveBeenCalledWith('save_game_with_relations', expect.any(Object));
+      });
+
+      /**
+       * Issue #332: RPC unavailability should throw NetworkError (no manual fallback)
+       * @critical - Ensures data integrity by requiring atomic RPC operations
+       */
+      it('should throw NetworkError when RPC function missing (PGRST202)', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST202', message: 'Could not find the function save_game_with_relations' },
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(NetworkError);
+        await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(
+          /temporarily unavailable/i
+        );
+      });
+
+      /**
+       * Issue #332: Permission denied should throw NetworkError (no manual fallback)
+       * @critical - Ensures data integrity by requiring atomic RPC operations
+       */
+      it('should throw NetworkError when RPC permission denied (42501)', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: { code: '42501', message: 'permission denied for function save_game_with_relations' },
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(NetworkError);
+        await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(
+          /temporarily unavailable/i
+        );
       });
     });
 
