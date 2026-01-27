@@ -140,7 +140,7 @@ describe('UpgradePromptModal', () => {
     it('displays price', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      expect(screen.getByText('€4.99/month')).toBeInTheDocument();
+      expect(screen.getByText('€4.99')).toBeInTheDocument();
       expect(screen.getByText('monthly subscription')).toBeInTheDocument();
       expect(screen.getByText('Cancel anytime')).toBeInTheDocument();
     });
