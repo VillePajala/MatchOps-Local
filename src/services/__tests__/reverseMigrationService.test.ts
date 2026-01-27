@@ -570,5 +570,59 @@ describe('reverseMigrationService', () => {
       expect(isReverseMigrationRunning()).toBe(false);
     });
   });
+
+  describe('session expiry during reverse migration', () => {
+    const { getAuthService } = jest.requireMock('@/datastore/factory') as {
+      getAuthService: jest.Mock;
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should fail gracefully when session refresh returns null', async () => {
+      // Mock auth service to return null on refresh
+      getAuthService.mockResolvedValue({
+        refreshSession: jest.fn().mockResolvedValue(null),
+        getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+      });
+
+      const result = await migrateCloudToLocal(() => {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('Session expired');
+    });
+
+    it('should fail gracefully when session refresh throws network error', async () => {
+      // Mock auth service to throw on refresh
+      getAuthService.mockResolvedValue({
+        refreshSession: jest.fn().mockRejectedValue(new Error('Network timeout')),
+        getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+      });
+
+      const result = await migrateCloudToLocal(() => {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('Session refresh failed');
+    });
+
+    it('should fail gracefully when session refresh throws auth error', async () => {
+      // Mock auth service to throw auth error
+      const { AuthError } = jest.requireActual('@/interfaces/DataStoreErrors');
+      getAuthService.mockResolvedValue({
+        refreshSession: jest.fn().mockRejectedValue(new AuthError('Token revoked')),
+        getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+      });
+
+      const result = await migrateCloudToLocal(() => {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      // Error should include the underlying reason
+      expect(result.errors[0]).toContain('Session refresh failed');
+    });
+  });
 });
 

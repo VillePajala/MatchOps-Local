@@ -203,6 +203,16 @@
 | Merge to master | 🔲 | After final testing |
 | TWA rebuild with billing | 🔲 | After Play Console setup |
 
+### 🔴 Data Integrity Improvements (Before Production)
+
+These issues were identified in deep code review and have GitHub issues for tracking:
+
+| Issue | GitHub | Priority | Description |
+|-------|--------|----------|-------------|
+| Optimistic Locking | [#330](https://github.com/VillePajala/MatchOps-Local/issues/330) | High | Prevent concurrent game save corruption with version field |
+| Composite Unique Constraints | [#331](https://github.com/VillePajala/MatchOps-Local/issues/331) | High | Add DB-level uniqueness for teams/seasons/tournaments |
+| Non-Atomic Manual Fallback | [#332](https://github.com/VillePajala/MatchOps-Local/issues/332) | High | Address partial save risk when RPC unavailable |
+
 ### Key Implementation Files
 
 ```

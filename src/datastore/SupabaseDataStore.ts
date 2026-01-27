@@ -565,15 +565,41 @@ export class SupabaseDataStore implements DataStore {
     return this.initialized && this.supabase !== null;
   }
 
-  private ensureInitialized(): void {
-    if (!this.initialized || !this.supabase) {
-      throw new NotInitializedError();
+  /**
+   * Ensure the store is initialized.
+   *
+   * IMPORTANT: This method handles the race condition where methods are called
+   * while initialization is still in progress. If init is pending, it awaits
+   * completion rather than throwing immediately.
+   *
+   * @throws NotInitializedError if not initialized and no init in progress
+   */
+  private async ensureInitialized(): Promise<void> {
+    // Fast path: already initialized
+    if (this.initialized && this.supabase) {
+      return;
     }
+
+    // If initialization is in progress, wait for it
+    if (this.initPromise) {
+      await this.initPromise;
+      // After init completes, check if it succeeded
+      if (!this.initialized || !this.supabase) {
+        throw new NotInitializedError();
+      }
+      return;
+    }
+
+    // Not initialized and no init in progress
+    throw new NotInitializedError();
   }
 
   private getClient(): SupabaseClient<Database> {
-    this.ensureInitialized();
-    return this.supabase!;
+    // Sync check for hot path - callers should have awaited ensureInitialized
+    if (!this.initialized || !this.supabase) {
+      throw new NotInitializedError();
+    }
+    return this.supabase;
   }
 
   /**
@@ -679,7 +705,7 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   async getPlayers(): Promise<Player[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const result = await this.withRetry(async () => {
@@ -699,7 +725,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async createPlayer(player: Omit<Player, 'id'>): Promise<Player> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = player.name?.trim();
@@ -729,7 +755,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('players')
        
-      .insert(this.transformPlayerToDb(newPlayer, now, userId) as unknown as never);
+      .insert(this.transformPlayerToDb(newPlayer, now, userId));
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create player');
@@ -739,7 +765,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async updatePlayer(id: string, updates: Partial<Player>): Promise<Player | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     if (updates.name !== undefined) {
@@ -808,7 +834,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async deletePlayer(id: string): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { error, count } = await this.getClient()
@@ -861,7 +887,7 @@ export class SupabaseDataStore implements DataStore {
    * @returns The upserted player
    */
   async upsertPlayer(player: Player): Promise<Player> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = player.name?.trim();
@@ -889,7 +915,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('players')
-      .upsert(this.transformPlayerToDb(playerToUpsert, now, userId) as unknown as never, {
+      .upsert(this.transformPlayerToDb(playerToUpsert, now, userId), {
         onConflict: 'id',
       });
 
@@ -905,7 +931,7 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   async getTeams(includeArchived = false): Promise<Team[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     let query = this.getClient().from('teams').select('*');
@@ -923,7 +949,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async getTeamById(id: string): Promise<Team | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { data, error } = await this.getClient()
@@ -949,7 +975,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async createTeam(team: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = normalizeName(team.name);
@@ -1033,7 +1059,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('teams')
        
-      .insert(this.transformTeamToDb(newTeam, userId) as unknown as never);
+      .insert(this.transformTeamToDb(newTeam, userId));
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create team');
@@ -1043,7 +1069,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async updateTeam(id: string, updates: Partial<Team>): Promise<Team | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     if (updates.name !== undefined) {
@@ -1153,7 +1179,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async deleteTeam(id: string): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { error, count } = await this.getClient()
@@ -1212,7 +1238,7 @@ export class SupabaseDataStore implements DataStore {
    * @returns The upserted team
    */
   async upsertTeam(team: Team): Promise<Team> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = normalizeName(team.name);
@@ -1245,7 +1271,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('teams')
-      .upsert(this.transformTeamToDb(teamToUpsert, userId) as unknown as never, {
+      .upsert(this.transformTeamToDb(teamToUpsert, userId), {
         onConflict: 'id',
       });
 
@@ -1261,7 +1287,7 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   async getTeamRoster(teamId: string): Promise<TeamPlayer[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { data, error } = await this.getClient()
@@ -1286,7 +1312,7 @@ export class SupabaseDataStore implements DataStore {
    * @see supabase/migrations/001_rpc_functions.sql
    */
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     // Transform roster to database format
@@ -1352,7 +1378,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error: insertError } = await client
       .from('team_players')
-      .insert(rows as unknown as never);
+      .insert(rows);
 
     if (insertError) {
       this.classifyAndThrowError(insertError, 'Failed to save team roster (manual)');
@@ -1360,7 +1386,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async getAllTeamRosters(): Promise<Record<string, TeamPlayer[]>> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { data, error } = await this.getClient()
@@ -1423,7 +1449,7 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   async getSeasons(includeArchived = false): Promise<Season[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     let query = this.getClient().from('seasons').select('*');
@@ -1447,7 +1473,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async createSeason(name: string, extra?: Partial<Omit<Season, 'id' | 'name'>>): Promise<Season> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = name.trim();
@@ -1510,7 +1536,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('seasons')
        
-      .insert(this.transformSeasonToDb(newSeason, now, userId) as unknown as never);
+      .insert(this.transformSeasonToDb(newSeason, now, userId));
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create season');
@@ -1520,7 +1546,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async updateSeason(season: Season): Promise<Season | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = season.name?.trim();
@@ -1634,7 +1660,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async deleteSeason(id: string): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { error, count } = await this.getClient()
@@ -1709,7 +1735,7 @@ export class SupabaseDataStore implements DataStore {
    * @returns The upserted season
    */
   async upsertSeason(season: Season): Promise<Season> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = normalizeName(season.name);
@@ -1745,7 +1771,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('seasons')
-      .upsert(this.transformSeasonToDb(seasonToUpsert, now, userId) as unknown as never, {
+      .upsert(this.transformSeasonToDb(seasonToUpsert, now, userId), {
         onConflict: 'id',
       });
 
@@ -1761,7 +1787,7 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   async getTournaments(includeArchived = false): Promise<Tournament[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     let query = this.getClient().from('tournaments').select('*');
@@ -1790,7 +1816,7 @@ export class SupabaseDataStore implements DataStore {
     name: string,
     extra?: Partial<Omit<Tournament, 'id' | 'name'>>
   ): Promise<Tournament> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = name.trim();
@@ -1854,7 +1880,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('tournaments')
        
-      .insert(this.transformTournamentToDb(newTournament, now, userId) as unknown as never);
+      .insert(this.transformTournamentToDb(newTournament, now, userId));
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create tournament');
@@ -1864,7 +1890,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async updateTournament(tournament: Tournament): Promise<Tournament | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = tournament.name?.trim();
@@ -1977,7 +2003,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async deleteTournament(id: string): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { error, count } = await this.getClient()
@@ -2054,7 +2080,7 @@ export class SupabaseDataStore implements DataStore {
    * @returns The upserted tournament
    */
   async upsertTournament(tournament: Tournament): Promise<Tournament> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = normalizeName(tournament.name);
@@ -2091,7 +2117,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('tournaments')
-      .upsert(this.transformTournamentToDb(tournamentToUpsert, now, userId) as unknown as never, {
+      .upsert(this.transformTournamentToDb(tournamentToUpsert, now, userId), {
         onConflict: 'id',
       });
 
@@ -2107,7 +2133,7 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   async getAllPersonnel(): Promise<Personnel[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { data, error } = await this.getClient()
@@ -2123,7 +2149,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async getPersonnelById(id: string): Promise<Personnel | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { data, error } = await this.getClient()
@@ -2151,7 +2177,7 @@ export class SupabaseDataStore implements DataStore {
   async addPersonnelMember(
     data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<Personnel> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = data.name?.trim();
@@ -2192,7 +2218,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('personnel')
        
-      .insert(this.transformPersonnelToDb(newPersonnel, userId) as unknown as never);
+      .insert(this.transformPersonnelToDb(newPersonnel, userId));
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create personnel');
@@ -2205,7 +2231,7 @@ export class SupabaseDataStore implements DataStore {
     id: string,
     updates: Partial<Personnel>
   ): Promise<Personnel | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const existing = await this.getPersonnelById(id);
@@ -2279,7 +2305,7 @@ export class SupabaseDataStore implements DataStore {
    * @see supabase/migrations/001_rpc_functions.sql
    */
   async removePersonnelMember(id: string): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     // Use RPC for atomic cascade delete within a single PostgreSQL transaction
@@ -2337,7 +2363,7 @@ export class SupabaseDataStore implements DataStore {
    * @returns The upserted personnel
    */
   async upsertPersonnelMember(personnel: Personnel): Promise<Personnel> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const trimmedName = personnel.name?.trim();
@@ -2357,7 +2383,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('personnel')
-      .upsert(this.transformPersonnelToDb(personnelToUpsert, userId) as unknown as never, {
+      .upsert(this.transformPersonnelToDb(personnelToUpsert, userId), {
         onConflict: 'id',
       });
 
@@ -2373,7 +2399,7 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   async getSettings(): Promise<AppSettings> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { data, error } = await this.getClient()
@@ -2399,14 +2425,14 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async saveSettings(settings: AppSettings): Promise<void> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const userId = await this.getUserId();
     const { error } = await this.getClient()
       .from('user_settings')
        
-      .upsert(this.transformSettingsToDb(settings, userId) as unknown as never);
+      .upsert(this.transformSettingsToDb(settings, userId));
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to save settings');
@@ -2417,7 +2443,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const current = await this.getSettings();
@@ -2911,7 +2937,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async getGames(): Promise<SavedGamesCollection> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     // Fetch all game IDs with retry for transient network errors
@@ -2971,7 +2997,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async getGameById(id: string): Promise<AppState | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const tables = await this.fetchGameTables(id);
@@ -2989,7 +3015,7 @@ export class SupabaseDataStore implements DataStore {
    * Especially periodDurationMinutes which has NO schema default.
    */
   async createGame(partialGame: Partial<AppState> = {}): Promise<{ gameId: string; gameData: AppState }> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const gameId = generateId('game');
@@ -3058,7 +3084,7 @@ export class SupabaseDataStore implements DataStore {
    * @see supabase/migrations/001_rpc_functions.sql
    */
   async saveGame(id: string, game: AppState): Promise<AppState> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     // Validate using shared helper (Rule #14 - same validation as LocalDataStore)
@@ -3126,7 +3152,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error: gameError } = await client
       .from('games')
-      .upsert(tables.game as unknown as never, { onConflict: 'id' });
+      .upsert(tables.game, { onConflict: 'id' });
 
     if (gameError) {
       this.classifyAndThrowError(gameError, 'Failed to save game (manual)');
@@ -3145,7 +3171,7 @@ export class SupabaseDataStore implements DataStore {
     if (tables.players.length > 0) {
       const { error: insertPlayersError } = await client
         .from('game_players')
-        .insert(tables.players as unknown as never);
+        .insert(tables.players);
 
       if (insertPlayersError) {
         this.classifyAndThrowError(insertPlayersError, 'Failed to save game players (manual)');
@@ -3165,7 +3191,7 @@ export class SupabaseDataStore implements DataStore {
     if (tables.events.length > 0) {
       const { error: insertEventsError } = await client
         .from('game_events')
-        .insert(tables.events as unknown as never);
+        .insert(tables.events);
 
       if (insertEventsError) {
         this.classifyAndThrowError(insertEventsError, 'Failed to save game events (manual)');
@@ -3185,7 +3211,7 @@ export class SupabaseDataStore implements DataStore {
     if (tables.assessments.length > 0) {
       const { error: insertAssessmentsError } = await client
         .from('player_assessments')
-        .insert(tables.assessments as unknown as never);
+        .insert(tables.assessments);
 
       if (insertAssessmentsError) {
         this.classifyAndThrowError(insertAssessmentsError, 'Failed to save player assessments (manual)');
@@ -3194,7 +3220,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error: tacticalError } = await client
       .from('game_tactical_data')
-      .upsert(tables.tacticalData as unknown as never, { onConflict: 'game_id' });
+      .upsert(tables.tacticalData, { onConflict: 'game_id' });
 
     if (tacticalError) {
       this.classifyAndThrowError(tacticalError, 'Failed to save tactical data (manual)');
@@ -3226,7 +3252,7 @@ export class SupabaseDataStore implements DataStore {
    * If any game fails validation, no games are saved.
    */
   async saveAllGames(games: SavedGamesCollection): Promise<void> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     // Validate ALL games before saving ANY (fail-fast, matches LocalDataStore)
@@ -3244,7 +3270,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async deleteGame(id: string): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     // Child tables have ON DELETE CASCADE, so just delete the game
@@ -3270,7 +3296,7 @@ export class SupabaseDataStore implements DataStore {
    * Uses full-save strategy to maintain contiguous order_index values.
    */
   async addGameEvent(gameId: string, event: GameEvent): Promise<AppState | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const game = await this.getGameById(gameId);
@@ -3295,7 +3321,7 @@ export class SupabaseDataStore implements DataStore {
    * Uses full-save strategy to maintain order_index integrity.
    */
   async updateGameEvent(gameId: string, eventIndex: number, event: GameEvent): Promise<AppState | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const game = await this.getGameById(gameId);
@@ -3325,7 +3351,7 @@ export class SupabaseDataStore implements DataStore {
    * Uses full-save strategy - array splice ensures order_index stays contiguous.
    */
   async removeGameEvent(gameId: string, eventIndex: number): Promise<AppState | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const game = await this.getGameById(gameId);
@@ -3368,7 +3394,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async getPlayerAdjustments(playerId: string): Promise<PlayerStatAdjustment[]> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { data, error } = await this.getClient()
@@ -3387,7 +3413,7 @@ export class SupabaseDataStore implements DataStore {
   async addPlayerAdjustment(
     adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
     this.validateAdjustmentNote(adjustment.note);
 
@@ -3403,7 +3429,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('player_adjustments')
        
-      .insert(dbAdjustment as unknown as never);
+      .insert(dbAdjustment);
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to add player adjustment');
@@ -3419,7 +3445,7 @@ export class SupabaseDataStore implements DataStore {
   async upsertPlayerAdjustment(
     adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
     this.validateAdjustmentNote(adjustment.note);
 
@@ -3434,7 +3460,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('player_adjustments')
-      .upsert(dbAdjustment as unknown as never, { onConflict: 'id' });
+      .upsert(dbAdjustment, { onConflict: 'id' });
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to upsert player adjustment');
@@ -3448,7 +3474,7 @@ export class SupabaseDataStore implements DataStore {
     adjustmentId: string,
     patch: Partial<PlayerStatAdjustment>
   ): Promise<PlayerStatAdjustment | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
     if (patch.note !== undefined) {
       this.validateAdjustmentNote(patch.note);
@@ -3482,7 +3508,7 @@ export class SupabaseDataStore implements DataStore {
     const { error: updateError } = await this.getClient()
       .from('player_adjustments')
        
-      .update(this.transformAdjustmentToDb(updated, userId) as unknown as never)
+      .update(this.transformAdjustmentToDb(updated, userId))
       .eq('id', adjustmentId)
       .eq('player_id', playerId);
 
@@ -3494,7 +3520,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async deletePlayerAdjustment(playerId: string, adjustmentId: string): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const { error, count } = await this.getClient()
@@ -3575,7 +3601,7 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   async getWarmupPlan(): Promise<WarmupPlan | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     // Each user has at most one warmup plan
@@ -3598,7 +3624,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async saveWarmupPlan(plan: WarmupPlan): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const userId = await this.getUserId();
@@ -3616,7 +3642,7 @@ export class SupabaseDataStore implements DataStore {
     // This ensures upsert finds existing row by user_id (not by 'id' which may differ)
     const { error } = await this.getClient()
       .from('warmup_plans')
-      .upsert(dbPlan as unknown as never, { onConflict: 'user_id' });
+      .upsert(dbPlan, { onConflict: 'user_id' });
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to save warmup plan');
@@ -3626,7 +3652,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async deleteWarmupPlan(): Promise<boolean> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     // Get user ID for explicit filter (defense in depth - don't rely solely on RLS)
@@ -3707,7 +3733,7 @@ export class SupabaseDataStore implements DataStore {
    * @throws NetworkError if deletion fails
    */
   async clearAllUserData(): Promise<void> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     checkOnline();
 
     const client = this.getClient();

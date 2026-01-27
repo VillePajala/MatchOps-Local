@@ -49,8 +49,9 @@ export const validateGame = (game: AppState, context?: string): void => {
     throw new ValidationError(`${prefix}Invalid age group`, 'ageGroup', game.ageGroup);
   }
 
-  // Validate periodDurationMinutes (required for Supabase - no schema default)
-  // Belt-and-suspenders: createGame provides default of 10, but validate anyway
+  // Validate periodDurationMinutes - always required by both backends.
+  // Schema has DEFAULT 10 as safety net, but app layer validates explicitly
+  // to catch issues before they reach the database (see CLAUDE.md Rule #10).
   if (
     game.periodDurationMinutes === undefined ||
     game.periodDurationMinutes === null ||

@@ -71,95 +71,189 @@ export interface TacticalDisc {
   type: 'home' | 'opponent' | 'goalie';
 }
 
-export interface AppState {
-  playersOnField: Player[];
-  opponents: Opponent[];
-  drawings: Point[][];
-  availablePlayers: Player[];
-  showPlayerNames: boolean;
+// =============================================================================
+// AppState decomposed into focused sub-interfaces
+// These provide better type organization while maintaining full backward compatibility.
+// =============================================================================
+
+/**
+ * Game metadata - identifying information about the game.
+ */
+export interface GameMetadata {
+  /** Home team name */
   teamName: string;
-  gameEvents: GameEvent[];
+  /** Opponent team name */
   opponentName: string;
+  /** Date of the game (YYYY-MM-DD format) */
   gameDate: string;
-  homeScore: number;
-  awayScore: number;
-  gameNotes: string;
-  homeOrAway: 'home' | 'away';
-  numberOfPeriods: 1 | 2;
-  periodDurationMinutes: number;
-  currentPeriod: number;
-  gameStatus: 'notStarted' | 'inProgress' | 'periodEnd' | 'gameEnd';
-  /** Indicates if the game has been fully played */
-  isPlayed?: boolean;
-  selectedPlayerIds: string[];
-  assessments?: { [playerId: string]: PlayerAssessment };
-  seasonId: string;
-  tournamentId: string;
-  tournamentLevel?: string;
-  /**
-   * Tournament series ID - references TournamentSeries.id
-   * Used when tournament has multiple series defined
-   */
-  tournamentSeriesId?: string;
-  /** Age group for the game, independent of tournament/season */
-  ageGroup?: string;
-  /** Difficulty weighting factor for demand-correction averages */
-  demandFactor?: number;
-  gameLocation?: string;
+  /** Time of the game (optional, for display purposes) */
   gameTime?: string;
-  subIntervalMinutes?: number;
-  completedIntervalDurations?: IntervalLog[];
-  lastSubConfirmationTimeSeconds?: number;
-  tacticalDiscs: TacticalDisc[];
-  tacticalDrawings: Point[][];
-  tacticalBallPosition: Point | null;
-  /** Formation snap points for player positioning assistance */
-  formationSnapPoints?: Point[];
-  teamId?: string;              // NEW: the team this game belongs to
-  /**
-   * League ID for this game - can override the season's league setting.
-   * @see src/config/leagues.ts for available leagues
-   * @example 'sm-sarja' | 'harrastesarja' | 'muu'
-   */
-  leagueId?: string;
-  /**
-   * Custom league name when leagueId === 'muu'
-   * @remarks Only used when leagueId is 'muu', otherwise ignored
-   */
-  customLeagueName?: string;
-  /**
-   * Personnel assigned to this game (coaches, trainers, etc.)
-   *
-   * @remarks
-   * Optional for backwards compatibility with old games.
-   * Stores IDs only - names resolved from global personnel collection.
-   */
-  gamePersonnel?: string[];
-  /**
-   * Timer elapsed time in seconds
-   *
-   * @remarks
-   * Optional for backwards compatibility with old games.
-   * Tracks the exact elapsed time for the timer state preservation.
-   */
-  timeElapsedInSeconds?: number;
+  /** Location/venue of the game */
+  gameLocation?: string;
+  /** Notes about the game */
+  gameNotes: string;
   /**
    * Game type - soccer (outdoor) or futsal (indoor).
-   *
-   * @remarks
-   * Optional for backwards compatibility - defaults to 'soccer' if undefined.
-   * Used for filtering and organizing games.
+   * @remarks Optional for backwards compatibility - defaults to 'soccer' if undefined.
    */
   gameType?: GameType;
   /**
    * Gender - boys or girls.
-   *
-   * @remarks
-   * Optional for backwards compatibility - legacy games work without gender set.
-   * Used for filtering and organizing games.
+   * @remarks Optional for backwards compatibility - legacy games work without gender set.
    */
   gender?: Gender;
+  /** Age group for the game, independent of tournament/season */
+  ageGroup?: string;
 }
+
+/**
+ * Game configuration - settings for how the game is structured.
+ */
+export interface GameConfiguration {
+  /** Whether playing at home or away */
+  homeOrAway: 'home' | 'away';
+  /** Number of periods (halves) in the game */
+  numberOfPeriods: 1 | 2;
+  /** Duration of each period in minutes */
+  periodDurationMinutes: number;
+  /** Substitution interval in minutes (optional) */
+  subIntervalMinutes?: number;
+  /** Whether to show player names on the field */
+  showPlayerNames: boolean;
+  /** Difficulty weighting factor for demand-correction averages */
+  demandFactor?: number;
+}
+
+/**
+ * Game scoring and progress state.
+ */
+export interface GameScoreState {
+  /** Home team score */
+  homeScore: number;
+  /** Away team score */
+  awayScore: number;
+  /** Current period number (1 or 2) */
+  currentPeriod: number;
+  /** Current game status */
+  gameStatus: 'notStarted' | 'inProgress' | 'periodEnd' | 'gameEnd';
+  /** Indicates if the game has been fully played */
+  isPlayed?: boolean;
+}
+
+/**
+ * Game timer state - tracks time-related state.
+ */
+export interface GameTimerState {
+  /** Timer elapsed time in seconds */
+  timeElapsedInSeconds?: number;
+  /** Last substitution confirmation time in seconds */
+  lastSubConfirmationTimeSeconds?: number;
+  /** Completed interval durations for substitution tracking */
+  completedIntervalDurations?: IntervalLog[];
+}
+
+/**
+ * Game player data - players involved in the game.
+ */
+export interface GamePlayerData {
+  /** Players currently on the field with positions */
+  playersOnField: Player[];
+  /** All players available for this game */
+  availablePlayers: Player[];
+  /** IDs of players selected/checked for the game */
+  selectedPlayerIds: string[];
+  /** Player assessments/ratings for this game */
+  assessments?: { [playerId: string]: PlayerAssessment };
+}
+
+/**
+ * Game tactical data - field drawings and positioning.
+ */
+export interface GameTacticalState {
+  /** Tactical discs on the field */
+  tacticalDiscs: TacticalDisc[];
+  /** Tactical drawings (arrow paths, etc.) */
+  tacticalDrawings: Point[][];
+  /** Ball position on field (null if not placed) */
+  tacticalBallPosition: Point | null;
+  /** Formation snap points for player positioning assistance */
+  formationSnapPoints?: Point[];
+  /** Legacy drawings on field */
+  drawings: Point[][];
+  /** Opponent markers on field */
+  opponents: Opponent[];
+}
+
+/**
+ * Game references - links to other entities (season, tournament, team).
+ */
+export interface GameReferences {
+  /** Season this game belongs to (empty string if none) */
+  seasonId: string;
+  /** Tournament this game belongs to (empty string if none) */
+  tournamentId: string;
+  /** Tournament series ID within a tournament */
+  tournamentSeriesId?: string;
+  /** Legacy tournament level field */
+  tournamentLevel?: string;
+  /** Team this game belongs to */
+  teamId?: string;
+  /**
+   * League ID for this game - can override the season's league setting.
+   * @see src/config/leagues.ts for available leagues
+   */
+  leagueId?: string;
+  /** Custom league name when leagueId === 'muu' */
+  customLeagueName?: string;
+}
+
+/**
+ * Game events data - goals, substitutions, etc.
+ */
+export interface GameEventsData {
+  /** List of events that occurred during the game */
+  gameEvents: GameEvent[];
+}
+
+/**
+ * Game personnel - coaches and staff assigned to the game.
+ */
+export interface GamePersonnelData {
+  /**
+   * Personnel assigned to this game (coaches, trainers, etc.)
+   * @remarks Stores IDs only - names resolved from global personnel collection.
+   */
+  gamePersonnel?: string[];
+}
+
+/**
+ * AppState - Complete game state.
+ *
+ * Composed from smaller focused interfaces for better organization:
+ * - GameMetadata: team names, date, location, type, gender
+ * - GameConfiguration: periods, duration, settings
+ * - GameScoreState: scores, period, status
+ * - GameTimerState: elapsed time, intervals
+ * - GamePlayerData: players on field, available, selected
+ * - GameTacticalState: drawings, discs, ball position
+ * - GameReferences: season, tournament, team links
+ * - GameEventsData: game events
+ * - GamePersonnelData: assigned personnel
+ *
+ * @remarks
+ * The type is defined as an intersection of all sub-interfaces for full
+ * backward compatibility - existing code using AppState works unchanged.
+ */
+export type AppState =
+  GameMetadata &
+  GameConfiguration &
+  GameScoreState &
+  GameTimerState &
+  GamePlayerData &
+  GameTacticalState &
+  GameReferences &
+  GameEventsData &
+  GamePersonnelData;
 
 export interface SavedGamesCollection {
   [gameId: string]: AppState;

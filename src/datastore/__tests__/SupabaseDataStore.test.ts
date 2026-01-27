@@ -1984,6 +1984,47 @@ describe('SupabaseDataStore', () => {
     });
 
     describe('getGameById', () => {
+      // Helper to create table-specific mock results
+      type TableMockResult = { data: unknown; error: { message: string; code?: string } | null };
+      const createTableMocks = (overrides: {
+        games?: TableMockResult;
+        game_players?: TableMockResult;
+        game_events?: TableMockResult;
+        player_assessments?: TableMockResult;
+        game_tactical_data?: TableMockResult;
+      } = {}): Record<string, TableMockResult> => {
+        const defaultGame = {
+          id: 'game_123',
+          user_id: 'user_123_abc',
+          team_name: 'Test Team',
+          opponent_name: 'Opponent',
+          game_date: '2024-01-15',
+          home_or_away: 'home',
+          number_of_periods: 2,
+          period_duration_minutes: 10,
+          sub_interval_minutes: 5,
+          current_period: 1,
+          game_status: 'notStarted',
+          is_played: true,
+          home_score: 0,
+          away_score: 0,
+          show_player_names: true,
+          last_sub_confirmation_time_seconds: 0,
+          created_at: '2024-01-15T10:00:00Z',
+          updated_at: '2024-01-15T10:00:00Z',
+        };
+
+        const defaults: Record<string, TableMockResult> = {
+          games: { data: defaultGame, error: null },
+          game_players: { data: [], error: null },
+          game_events: { data: [], error: null },
+          player_assessments: { data: [], error: null },
+          game_tactical_data: { data: null, error: null },
+        };
+
+        return { ...defaults, ...overrides };
+      };
+
       it('should return null for non-existent game', async () => {
         mockQueryBuilder.single = jest.fn().mockResolvedValue({
           data: null,
@@ -1994,10 +2035,180 @@ describe('SupabaseDataStore', () => {
         expect(game).toBeNull();
       });
 
-      // NOTE: Full integration test for getGameById with complete mocking requires
-      // complex mock setup for parallel fetches across 5 tables. The transform
-      // functions are thoroughly tested in the Game Transforms section.
-      // Integration tests will be added in PR #8 against a real Supabase instance.
+      it('should fetch and transform complete game data from all 5 tables', async () => {
+        const mocks = createTableMocks();
+
+        // Mock different responses per table using from() call tracking
+        // Query chains differ by table:
+        // - games, game_tactical_data: .select().eq().single()
+        // - game_players: .select().eq().order()
+        // - game_events, player_assessments: .select().eq() (thenable)
+        mockSupabaseClient.from = jest.fn((tableName: string) => {
+          const result = mocks[tableName] || { data: null, error: null };
+          const builder = createMockQueryBuilder();
+
+          // For tables that use .single()
+          if (tableName === 'games' || tableName === 'game_tactical_data') {
+            builder.single = jest.fn().mockResolvedValue(result);
+          } else if (tableName === 'game_players') {
+            // game_players uses .eq().order()
+            builder.eq = jest.fn().mockReturnThis();
+            builder.order = jest.fn().mockResolvedValue(result);
+          } else {
+            // game_events, player_assessments use .eq() as final (thenable)
+            builder.eq = jest.fn().mockResolvedValue(result);
+          }
+
+          return builder;
+        }) as jest.Mock;
+
+        const game = await dataStore.getGameById('game_123');
+
+        expect(game).not.toBeNull();
+        expect(game?.teamName).toBe('Test Team');
+        expect(game?.opponentName).toBe('Opponent');
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith('games');
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith('game_players');
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith('game_events');
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith('player_assessments');
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith('game_tactical_data');
+      });
+
+      it('should throw NetworkError when players table fails', async () => {
+        const mocks = createTableMocks({
+          game_players: { data: null, error: { message: 'Database error', code: '500' } },
+        });
+
+        // Create table-specific mock that properly handles different query chains:
+        // - games, game_tactical_data: .select().eq().single()
+        // - game_players: .select().eq().order()
+        // - game_events, player_assessments: .select().eq() (thenable)
+        mockSupabaseClient.from = jest.fn((tableName: string) => {
+          const result = mocks[tableName] || { data: null, error: null };
+          const builder = createMockQueryBuilder();
+
+          if (tableName === 'games' || tableName === 'game_tactical_data') {
+            builder.single = jest.fn().mockResolvedValue(result);
+          } else if (tableName === 'game_players') {
+            // game_players uses .eq().order()
+            builder.eq = jest.fn().mockReturnThis();
+            builder.order = jest.fn().mockResolvedValue(result);
+          } else {
+            // game_events, player_assessments use .eq() as final (thenable)
+            const thenableEq = jest.fn().mockResolvedValue(result);
+            builder.eq = thenableEq;
+          }
+
+          return builder;
+        }) as jest.Mock;
+
+        await expect(dataStore.getGameById('game_123')).rejects.toThrow(NetworkError);
+      });
+
+      it('should throw NetworkError when events table fails', async () => {
+        // Suppress expected retry warnings
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const mocks = createTableMocks({
+          game_events: { data: null, error: { message: 'Connection timeout' } },
+        });
+
+        mockSupabaseClient.from = jest.fn((tableName: string) => {
+          const result = mocks[tableName] || { data: null, error: null };
+          const builder = createMockQueryBuilder();
+
+          if (tableName === 'games' || tableName === 'game_tactical_data') {
+            builder.single = jest.fn().mockResolvedValue(result);
+          } else if (tableName === 'game_players') {
+            builder.eq = jest.fn().mockReturnThis();
+            builder.order = jest.fn().mockResolvedValue(result);
+          } else {
+            builder.eq = jest.fn().mockResolvedValue(result);
+          }
+
+          return builder;
+        }) as jest.Mock;
+
+        await expect(dataStore.getGameById('game_123')).rejects.toThrow(NetworkError);
+
+        warnSpy.mockRestore();
+      });
+
+      it('should throw AuthError when assessments table has permission error', async () => {
+        const mocks = createTableMocks({
+          player_assessments: { data: null, error: { message: 'Permission denied', code: '42501' } },
+        });
+
+        mockSupabaseClient.from = jest.fn((tableName: string) => {
+          const result = mocks[tableName] || { data: null, error: null };
+          const builder = createMockQueryBuilder();
+
+          if (tableName === 'games' || tableName === 'game_tactical_data') {
+            builder.single = jest.fn().mockResolvedValue(result);
+          } else if (tableName === 'game_players') {
+            builder.eq = jest.fn().mockReturnThis();
+            builder.order = jest.fn().mockResolvedValue(result);
+          } else {
+            builder.eq = jest.fn().mockResolvedValue(result);
+          }
+
+          return builder;
+        }) as jest.Mock;
+
+        // Permission errors (42501) are classified as AuthError
+        await expect(dataStore.getGameById('game_123')).rejects.toThrow(AuthError);
+      });
+
+      it('should succeed when tactical data is missing (PGRST116)', async () => {
+        const mocks = createTableMocks({
+          game_tactical_data: { data: null, error: { code: 'PGRST116', message: 'Not found' } },
+        });
+
+        mockSupabaseClient.from = jest.fn((tableName: string) => {
+          const result = mocks[tableName] || { data: null, error: null };
+          const builder = createMockQueryBuilder();
+
+          if (tableName === 'games' || tableName === 'game_tactical_data') {
+            builder.single = jest.fn().mockResolvedValue(result);
+          } else if (tableName === 'game_players') {
+            builder.eq = jest.fn().mockReturnThis();
+            builder.order = jest.fn().mockResolvedValue(result);
+          } else {
+            builder.eq = jest.fn().mockResolvedValue(result);
+          }
+
+          return builder;
+        }) as jest.Mock;
+
+        // Should NOT throw - tactical data is optional
+        const game = await dataStore.getGameById('game_123');
+        expect(game).not.toBeNull();
+        expect(game?.teamName).toBe('Test Team');
+      });
+
+      it('should throw when tactical data has actual error (not PGRST116)', async () => {
+        const mocks = createTableMocks({
+          game_tactical_data: { data: null, error: { message: 'Database connection failed' } },
+        });
+
+        mockSupabaseClient.from = jest.fn((tableName: string) => {
+          const result = mocks[tableName] || { data: null, error: null };
+          const builder = createMockQueryBuilder();
+
+          if (tableName === 'games' || tableName === 'game_tactical_data') {
+            builder.single = jest.fn().mockResolvedValue(result);
+          } else if (tableName === 'game_players') {
+            builder.eq = jest.fn().mockReturnThis();
+            builder.order = jest.fn().mockResolvedValue(result);
+          } else {
+            builder.eq = jest.fn().mockResolvedValue(result);
+          }
+
+          return builder;
+        }) as jest.Mock;
+
+        await expect(dataStore.getGameById('game_123')).rejects.toThrow(NetworkError);
+      });
     });
 
     describe('createGame', () => {

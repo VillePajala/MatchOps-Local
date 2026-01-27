@@ -633,4 +633,292 @@ describe('migrationService', () => {
       expect(stages).toContain('clearing');
     });
   });
+
+  describe('session expiry during migration', () => {
+    const { getAuthService } = jest.requireMock('@/datastore/factory') as {
+      getAuthService: jest.Mock;
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should fail gracefully when session refresh returns null before migration', async () => {
+      createMockLocalStore();
+      createMockCloudStore();
+
+      // Mock auth service to return null on refresh (session expired)
+      getAuthService.mockResolvedValue({
+        refreshSession: jest.fn().mockResolvedValue(null),
+        getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+      });
+
+      const result = await migrateLocalToCloud(() => {}, 'merge');
+
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('Session expired');
+    });
+
+    it('should fail gracefully when session refresh throws error before migration', async () => {
+      createMockLocalStore();
+      createMockCloudStore();
+
+      // Mock auth service to throw on refresh
+      getAuthService.mockResolvedValue({
+        refreshSession: jest.fn().mockRejectedValue(new Error('Network error')),
+        getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+      });
+
+      const result = await migrateLocalToCloud(() => {}, 'merge');
+
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('Session refresh failed');
+    });
+
+    it('should call refreshSession periodically during large game uploads (>50 games)', async () => {
+      // Create 60 mock games to trigger SESSION_REFRESH_INTERVAL (50 games threshold)
+      const manyGames: Record<string, AppState> = {};
+      for (let i = 0; i < 60; i++) {
+        manyGames[`game-${i}`] = {
+          ...mockGame,
+          teamName: `Team ${i}`,
+        };
+      }
+
+      const mockLocalWithManyGames = {
+        initialize: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+        isInitialized: jest.fn().mockReturnValue(true),
+        getPlayers: jest.fn().mockResolvedValue([]),
+        getTeams: jest.fn().mockResolvedValue([]),
+        getSeasons: jest.fn().mockResolvedValue([]),
+        getTournaments: jest.fn().mockResolvedValue([]),
+        getAllPersonnel: jest.fn().mockResolvedValue([]),
+        getGames: jest.fn().mockResolvedValue(manyGames),
+        getWarmupPlan: jest.fn().mockResolvedValue(null),
+        getAllTeamRosters: jest.fn().mockResolvedValue({}),
+        getSettings: jest.fn().mockResolvedValue({ language: 'en' }),
+        getPlayerAdjustments: jest.fn().mockResolvedValue([]),
+      };
+
+      MockedLocalDataStore.mockImplementation(() => mockLocalWithManyGames as unknown as LocalDataStore);
+
+      // Track uploaded games for verification
+      const uploadedGames: Record<string, AppState> = {};
+      const mockSaveGame = jest.fn().mockImplementation((id: string, game: AppState) => {
+        uploadedGames[id] = game;
+        return Promise.resolve(game);
+      });
+      const mockCloudInstance = {
+        initialize: jest.fn().mockResolvedValue(undefined),
+        upsertPlayer: jest.fn().mockResolvedValue(mockPlayer),
+        upsertTeam: jest.fn().mockResolvedValue(mockTeam),
+        upsertSeason: jest.fn().mockResolvedValue(mockSeason),
+        upsertTournament: jest.fn().mockResolvedValue(mockTournament),
+        upsertPersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
+        setTeamRoster: jest.fn().mockResolvedValue(undefined),
+        saveGame: mockSaveGame,
+        upsertPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
+        saveWarmupPlan: jest.fn().mockResolvedValue(true),
+        saveSettings: jest.fn().mockResolvedValue(undefined),
+        getPlayers: jest.fn().mockResolvedValue([]),
+        getTeams: jest.fn().mockResolvedValue([]),
+        getSeasons: jest.fn().mockResolvedValue([]),
+        getTournaments: jest.fn().mockResolvedValue([]),
+        getGames: jest.fn().mockImplementation(() => Promise.resolve(uploadedGames)),
+        getAllPersonnel: jest.fn().mockResolvedValue([]),
+        clearAllUserData: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
+      MockedSupabaseDataStore.mockImplementation(() => mockCloudInstance as unknown as SupabaseDataStore);
+
+      // Track all refresh session calls
+      const mockRefreshSession = jest.fn().mockResolvedValue({ user: { id: 'test-user-id' } });
+      getAuthService.mockResolvedValue({
+        refreshSession: mockRefreshSession,
+        getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+      });
+
+      const result = await migrateLocalToCloud(() => {}, 'merge');
+
+      // First check if migration succeeded and see what was migrated
+      // If this fails, check result.errors and result.warnings for clues
+      // console.log is used here for debugging test failures
+      // eslint-disable-next-line no-console
+      if (!result.success) {
+        // eslint-disable-next-line no-console
+        console.log('Migration failed. Errors:', JSON.stringify(result.errors, null, 2));
+        // eslint-disable-next-line no-console
+        console.log('Migration failed. Warnings:', JSON.stringify(result.warnings, null, 2));
+      }
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+
+      // Verify that all 60 games were uploaded
+      expect(mockSaveGame).toHaveBeenCalledTimes(60);
+      expect(result.migrated.games).toBe(60);
+
+      // Should be called at least twice:
+      // 1. Before migration starts
+      // 2. At game 50 (SESSION_REFRESH_INTERVAL)
+      expect(mockRefreshSession).toHaveBeenCalledTimes(2);
+    });
+
+    it('should abort migration when session refresh returns null during uploads', async () => {
+      // Create 60 mock games to trigger SESSION_REFRESH_INTERVAL (50 games threshold)
+      const manyGames: Record<string, AppState> = {};
+      for (let i = 0; i < 60; i++) {
+        manyGames[`game-${i}`] = {
+          ...mockGame,
+          teamName: `Team ${i}`,
+        };
+      }
+
+      const mockLocalWithManyGames = {
+        initialize: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+        isInitialized: jest.fn().mockReturnValue(true),
+        getPlayers: jest.fn().mockResolvedValue([]),
+        getTeams: jest.fn().mockResolvedValue([]),
+        getSeasons: jest.fn().mockResolvedValue([]),
+        getTournaments: jest.fn().mockResolvedValue([]),
+        getAllPersonnel: jest.fn().mockResolvedValue([]),
+        getGames: jest.fn().mockResolvedValue(manyGames),
+        getWarmupPlan: jest.fn().mockResolvedValue(null),
+        getAllTeamRosters: jest.fn().mockResolvedValue({}),
+        getSettings: jest.fn().mockResolvedValue({ language: 'en' }),
+        getPlayerAdjustments: jest.fn().mockResolvedValue([]),
+      };
+
+      MockedLocalDataStore.mockImplementation(() => mockLocalWithManyGames as unknown as LocalDataStore);
+
+      // Track saveGame calls to count uploads before abort
+      let saveGameCallCount = 0;
+      const mockCloudInstance = {
+        initialize: jest.fn().mockResolvedValue(undefined),
+        upsertPlayer: jest.fn().mockResolvedValue(mockPlayer),
+        upsertTeam: jest.fn().mockResolvedValue(mockTeam),
+        upsertSeason: jest.fn().mockResolvedValue(mockSeason),
+        upsertTournament: jest.fn().mockResolvedValue(mockTournament),
+        upsertPersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
+        setTeamRoster: jest.fn().mockResolvedValue(undefined),
+        saveGame: jest.fn().mockImplementation(() => {
+          saveGameCallCount++;
+          return Promise.resolve(mockGame);
+        }),
+        upsertPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
+        saveWarmupPlan: jest.fn().mockResolvedValue(true),
+        saveSettings: jest.fn().mockResolvedValue(undefined),
+        getPlayers: jest.fn().mockResolvedValue([]),
+        getTeams: jest.fn().mockResolvedValue([]),
+        getSeasons: jest.fn().mockResolvedValue([]),
+        getTournaments: jest.fn().mockResolvedValue([]),
+        getGames: jest.fn().mockResolvedValue({}),
+        getAllPersonnel: jest.fn().mockResolvedValue([]),
+        clearAllUserData: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
+      MockedSupabaseDataStore.mockImplementation(() => mockCloudInstance as unknown as SupabaseDataStore);
+
+      // First refresh succeeds, second (at game 50) returns null
+      let refreshCount = 0;
+      getAuthService.mockResolvedValue({
+        refreshSession: jest.fn().mockImplementation(() => {
+          refreshCount++;
+          if (refreshCount === 1) {
+            return Promise.resolve({ user: { id: 'test-user-id' } });
+          }
+          // Subsequent refresh returns null (session expired)
+          return Promise.resolve(null);
+        }),
+        getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+      });
+
+      const result = await migrateLocalToCloud(() => {}, 'merge');
+
+      // Migration should fail
+      expect(result.success).toBe(false);
+      // Should have uploaded 50 games before the abort (SESSION_REFRESH_INTERVAL = 50)
+      expect(saveGameCallCount).toBe(50);
+      // Error message should indicate session expiry
+      expect(result.errors.some(e => e.includes('Session expired'))).toBe(true);
+    });
+
+    it('should continue migration but add warning when session refresh throws error', async () => {
+      // Create 60 mock games to trigger SESSION_REFRESH_INTERVAL (50 games threshold)
+      const manyGames: Record<string, AppState> = {};
+      for (let i = 0; i < 60; i++) {
+        manyGames[`game-${i}`] = {
+          ...mockGame,
+          teamName: `Team ${i}`,
+        };
+      }
+
+      const mockLocalWithManyGames = {
+        initialize: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+        isInitialized: jest.fn().mockReturnValue(true),
+        getPlayers: jest.fn().mockResolvedValue([]),
+        getTeams: jest.fn().mockResolvedValue([]),
+        getSeasons: jest.fn().mockResolvedValue([]),
+        getTournaments: jest.fn().mockResolvedValue([]),
+        getAllPersonnel: jest.fn().mockResolvedValue([]),
+        getGames: jest.fn().mockResolvedValue(manyGames),
+        getWarmupPlan: jest.fn().mockResolvedValue(null),
+        getAllTeamRosters: jest.fn().mockResolvedValue({}),
+        getSettings: jest.fn().mockResolvedValue({ language: 'en' }),
+        getPlayerAdjustments: jest.fn().mockResolvedValue([]),
+      };
+
+      MockedLocalDataStore.mockImplementation(() => mockLocalWithManyGames as unknown as LocalDataStore);
+
+      // Track uploaded games for verification (all uploads succeed)
+      const uploadedGames: Record<string, AppState> = {};
+      const mockCloudInstance = {
+        initialize: jest.fn().mockResolvedValue(undefined),
+        upsertPlayer: jest.fn().mockResolvedValue(mockPlayer),
+        upsertTeam: jest.fn().mockResolvedValue(mockTeam),
+        upsertSeason: jest.fn().mockResolvedValue(mockSeason),
+        upsertTournament: jest.fn().mockResolvedValue(mockTournament),
+        upsertPersonnelMember: jest.fn().mockResolvedValue(mockPersonnel),
+        setTeamRoster: jest.fn().mockResolvedValue(undefined),
+        saveGame: jest.fn().mockImplementation((id: string, game: AppState) => {
+          uploadedGames[id] = game;
+          return Promise.resolve(game);
+        }),
+        upsertPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
+        saveWarmupPlan: jest.fn().mockResolvedValue(true),
+        saveSettings: jest.fn().mockResolvedValue(undefined),
+        getPlayers: jest.fn().mockResolvedValue([]),
+        getTeams: jest.fn().mockResolvedValue([]),
+        getSeasons: jest.fn().mockResolvedValue([]),
+        getTournaments: jest.fn().mockResolvedValue([]),
+        getGames: jest.fn().mockImplementation(() => Promise.resolve(uploadedGames)),
+        getAllPersonnel: jest.fn().mockResolvedValue([]),
+        clearAllUserData: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
+      MockedSupabaseDataStore.mockImplementation(() => mockCloudInstance as unknown as SupabaseDataStore);
+
+      // First refresh succeeds, second throws error (but upload continues)
+      let refreshCount = 0;
+      getAuthService.mockResolvedValue({
+        refreshSession: jest.fn().mockImplementation(() => {
+          refreshCount++;
+          if (refreshCount === 1) {
+            return Promise.resolve({ user: { id: 'test-user-id' } });
+          }
+          return Promise.reject(new Error('Network error during refresh'));
+        }),
+        getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+      });
+
+      const result = await migrateLocalToCloud(() => {}, 'merge');
+
+      // Migration continues and adds warning (doesn't abort)
+      expect(result.warnings.some(e => e.includes('Session refresh failed'))).toBe(true);
+    });
+  });
 });

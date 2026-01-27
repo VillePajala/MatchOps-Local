@@ -300,6 +300,68 @@ describe('SupabaseAuthService', () => {
         authService.signIn('test@example.com', 'Password123!@#')
       ).rejects.toThrow(NetworkError);
     });
+
+    it('should enforce rate limiting after multiple failed attempts', async () => {
+      // Mock failed sign-in attempts
+      mockAuth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Invalid login credentials' },
+      });
+
+      // Make 5 failed attempts (the limit)
+      for (let i = 0; i < 5; i++) {
+        await expect(
+          authService.signIn('test@example.com', 'wrongpassword')
+        ).rejects.toThrow('Invalid email or password');
+      }
+
+      // 6th attempt should be rate limited
+      await expect(
+        authService.signIn('test@example.com', 'wrongpassword')
+      ).rejects.toThrow(/Too many failed attempts/);
+    });
+
+    it('should reset rate limiting after successful sign-in', async () => {
+      // Mock failed attempts first
+      mockAuth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Invalid login credentials' },
+      });
+
+      // Make 3 failed attempts
+      for (let i = 0; i < 3; i++) {
+        await expect(
+          authService.signIn('test@example.com', 'wrongpassword')
+        ).rejects.toThrow('Invalid email or password');
+      }
+
+      // Now succeed
+      mockAuth.signInWithPassword.mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
+        error: null,
+      });
+
+      const result = await authService.signIn('test@example.com', 'Password123!@#');
+      expect(result.user).toBeDefined();
+
+      // After success, rate limit should be reset - fail again 5 times before rate limited
+      mockAuth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Invalid login credentials' },
+      });
+
+      // These 5 should work (just throw auth error, not rate limit)
+      for (let i = 0; i < 5; i++) {
+        await expect(
+          authService.signIn('test@example.com', 'wrongpassword')
+        ).rejects.toThrow('Invalid email or password');
+      }
+
+      // 6th should be rate limited
+      await expect(
+        authService.signIn('test@example.com', 'wrongpassword')
+      ).rejects.toThrow(/Too many failed attempts/);
+    });
   });
 
   // ==========================================================================
