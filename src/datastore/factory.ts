@@ -184,8 +184,9 @@ export async function getDataStore(): Promise<DataStore> {
         const err = error instanceof Error ? error : new Error(errorMessage);
         log.warn(`[factory] Cloud setup failed: ${errorMessage}, cleaning up SyncedDataStore`, err);
         await syncedStore.close();
-        // Re-throw with context for better debugging
-        throw new Error(`[factory] Cloud mode initialization failed: ${errorMessage}`);
+        // SECURITY: Throw generic message to prevent technical detail exposure
+        // Full details already logged above for debugging
+        throw new Error('Cloud mode initialization failed. Please try again or switch to local mode.');
       }
     } else if (mode === 'cloud') {
       log.warn(

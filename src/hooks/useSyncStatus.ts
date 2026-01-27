@@ -37,6 +37,9 @@ export interface UseSyncStatusResult {
   /** Whether sync is currently in progress */
   isSyncing: boolean;
 
+  /** Whether sync status is still initializing (state may not reflect actual status yet) */
+  isLoading: boolean;
+
   /** Trigger a manual sync */
   syncNow: () => Promise<void>;
 
@@ -56,6 +59,7 @@ const LOCAL_MODE_STATUS: UseSyncStatusResult = {
   lastSyncedAt: null,
   isOnline: true,
   isSyncing: false,
+  isLoading: false,
   syncNow: async () => {},
   retryFailed: async () => {},
   clearFailed: async () => {},
@@ -163,6 +167,7 @@ export function useSyncStatus(): UseSyncStatusResult {
   }
 
   // Return loading state while initializing
+  // Note: state defaults to 'synced' but isLoading=true indicates actual status is unknown
   if (!isInitialized || !status) {
     return {
       mode: 'cloud',
@@ -172,6 +177,7 @@ export function useSyncStatus(): UseSyncStatusResult {
       lastSyncedAt: null,
       isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
       isSyncing: false,
+      isLoading: true,
       syncNow,
       retryFailed,
       clearFailed,
@@ -186,6 +192,7 @@ export function useSyncStatus(): UseSyncStatusResult {
     lastSyncedAt: status.lastSyncedAt,
     isOnline: status.isOnline,
     isSyncing: status.state === 'syncing',
+    isLoading: false,
     syncNow,
     retryFailed,
     clearFailed,
