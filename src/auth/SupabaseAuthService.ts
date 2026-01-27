@@ -225,7 +225,7 @@ export class SupabaseAuthService implements AuthService {
       try {
         this.client = getSupabaseClient();
 
-        // Get initial session
+        // Get initial session from localStorage
         const { data: { session }, error } = await this.client.auth.getSession();
 
         if (error) {
@@ -240,9 +240,44 @@ export class SupabaseAuthService implements AuthService {
         }
 
         if (session) {
-          this.currentSession = transformSession(session);
-          this.currentUser = this.currentSession.user;
-          logger.info('[SupabaseAuthService] Initialized with existing session');
+          // CRITICAL: Validate the session by making an API call to getUser()
+          // getSession() only reads from localStorage and doesn't validate with the server.
+          // This prevents using stale/revoked sessions that were stored before sign-out failed
+          // or from a previous user who deleted their account.
+          try {
+            const { data: { user: validatedUser }, error: userError } = await this.client.auth.getUser();
+
+            if (userError || !validatedUser) {
+              // Session is invalid on server - clear it locally
+              logger.warn('[SupabaseAuthService] Session validation failed, clearing stale session:', userError?.message || 'no user returned');
+              try {
+                await this.client.auth.signOut({ scope: 'local' });
+              } catch (signOutError) {
+                logger.warn('[SupabaseAuthService] Failed to clear stale session:', signOutError);
+              }
+              this.currentSession = null;
+              this.currentUser = null;
+              logger.info('[SupabaseAuthService] Initialized without session (stale session cleared)');
+            } else {
+              // Session is valid - use it
+              this.currentSession = transformSession(session);
+              this.currentUser = transformUser(validatedUser);
+              logger.info('[SupabaseAuthService] Initialized with validated session');
+            }
+          } catch (validationError) {
+            // Network error during validation - trust the cached session
+            // (user might be offline, and session could still be valid)
+            if (isNetworkError(validationError)) {
+              logger.warn('[SupabaseAuthService] Network error validating session, trusting cached session');
+              this.currentSession = transformSession(session);
+              this.currentUser = this.currentSession.user;
+            } else {
+              // Non-network error - treat as invalid session
+              logger.error('[SupabaseAuthService] Session validation error:', validationError);
+              this.currentSession = null;
+              this.currentUser = null;
+            }
+          }
         } else if (!error) {
           // Only log "without session" if there was no error (legitimate no-session state)
           logger.info('[SupabaseAuthService] Initialized without session');
