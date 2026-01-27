@@ -23,6 +23,14 @@ import type { AppState } from '@/types';
 jest.mock('@/datastore/LocalDataStore');
 jest.mock('@/datastore/SupabaseDataStore');
 
+// Mock the factory to provide a mock auth service
+jest.mock('@/datastore/factory', () => ({
+  getAuthService: jest.fn().mockResolvedValue({
+    refreshSession: jest.fn().mockResolvedValue({ user: { id: 'test-user-id' } }),
+    getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+  }),
+}));
+
 // Mock backendConfig
 jest.mock('@/config/backendConfig', () => ({
   disableCloudMode: jest.fn(() => ({ success: true })),
@@ -425,21 +433,23 @@ describe('reverseMigrationService', () => {
 
     /**
      * @edge-case Delete cloud data failure after successful download
-     * When deletion fails in delete-cloud mode, we stay in cloud mode so user can retry.
-     * This means overall success is false (migration goal not achieved).
+     * When deletion fails in delete-cloud mode, the migration still succeeds because
+     * mode switch happened first. User is safely in local mode; cloud data can be
+     * deleted later from Settings. This is intentional - don't force user to redo
+     * the entire migration just because the cleanup step failed.
      */
-    it('should fail migration and stay in cloud mode if cloud deletion fails', async () => {
+    it('should succeed migration but warn if cloud deletion fails after mode switch', async () => {
       mockSupabaseDataStore.clearAllUserData.mockRejectedValue(new Error('Delete failed'));
 
       const result = await migrateCloudToLocal(mockOnProgress, 'delete-cloud');
 
-      // Migration fails because we don't switch to local mode when deletion fails
-      expect(result.success).toBe(false);
+      // Migration succeeds because mode switch happened before deletion attempt
+      expect(result.success).toBe(true);
       expect(result.cloudDeleted).toBe(false);
       expect(result.warnings.some(w => w.includes('Failed to delete cloud data'))).toBe(true);
-      expect(result.warnings.some(w => w.includes('Staying in cloud mode'))).toBe(true);
-      // Mode switch should NOT have been called since deletion failed
-      expect(mockDisableCloudMode).not.toHaveBeenCalled();
+      expect(result.warnings.some(w => w.includes('delete it later from Settings'))).toBe(true);
+      // Mode switch should have been called (happens before deletion)
+      expect(mockDisableCloudMode).toHaveBeenCalled();
     });
 
     /**

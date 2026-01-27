@@ -203,7 +203,8 @@ describe('CloudAuthModal', () => {
     });
 
     it('should show error message on sign in failure', async () => {
-      mockSignIn.mockRejectedValue(new Error('Invalid credentials'));
+      // Use error message that matches sanitization pattern for auth errors
+      mockSignIn.mockRejectedValue(new Error('Invalid login credentials'));
 
       renderModal();
 
@@ -213,7 +214,8 @@ describe('CloudAuthModal', () => {
       await user.click(screen.getByRole('button', { name: 'Sign In' }));
 
       await waitFor(() => {
-        expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
+        // Component sanitizes error to user-friendly message
+        expect(screen.getByText('Invalid email or password.')).toBeInTheDocument();
       });
     });
 
@@ -412,7 +414,8 @@ describe('CloudAuthModal', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Deletion Failed')).toBeInTheDocument();
-        expect(screen.getByText('Network error')).toBeInTheDocument();
+        // Component sanitizes error messages for security
+        expect(screen.getByText('Network error. Please check your connection and try again.')).toBeInTheDocument();
       });
     });
 
@@ -442,7 +445,8 @@ describe('CloudAuthModal', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Deletion Failed')).toBeInTheDocument();
-        expect(screen.getByText(/Expected supabase backend but got local/)).toBeInTheDocument();
+        // Component sanitizes error messages for security - raw backend error not exposed
+        expect(screen.getByText('An error occurred. Please try again.')).toBeInTheDocument();
       });
     });
   });

@@ -88,7 +88,7 @@ describe('WelcomeScreen', () => {
       expect(screen.getByText('Start without an account')).toBeInTheDocument();
       // Unified button for all platforms - account creation is free
       expect(screen.getByText('Sign in or create an account')).toBeInTheDocument();
-      expect(screen.getByText('Create a free account. Subscribe anytime to sync across devices.')).toBeInTheDocument();
+      expect(screen.getByText('Create a free account. Cloud sync available for €4.99/month.')).toBeInTheDocument();
       expect(screen.getByText('Import a backup')).toBeInTheDocument();
     });
 
@@ -116,7 +116,7 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Your data is saved on this device only.')).toBeInTheDocument();
-      expect(screen.getByText('Create a free account. Subscribe anytime to sync across devices.')).toBeInTheDocument();
+      expect(screen.getByText('Create a free account. Cloud sync available for €4.99/month.')).toBeInTheDocument();
       expect(screen.getByText('Restore your previous data from a file and continue where you left off.')).toBeInTheDocument();
     });
 

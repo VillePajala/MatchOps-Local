@@ -57,6 +57,10 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
+  // Ref-based lock for synchronous double-click protection
+  // State updates are async, so isProcessing alone can't prevent race conditions
+  const operationLockRef = useRef(false);
+
   // Focus trap: keeps Tab cycling within modal
   useFocusTrap(modalRef, isOpen);
 
@@ -121,6 +125,10 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const handleRestoreClick = async () => {
     if (!playBillingAvailable) return;
 
+    // Synchronous lock check to prevent double-clicks (state updates are async)
+    if (operationLockRef.current) return;
+    operationLockRef.current = true;
+
     setIsProcessing(true);
 
     try {
@@ -149,6 +157,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
       logger.error('[UpgradePromptModal] Restore error:', error);
       showToast(t('playBilling.restoreFailed', 'Failed to restore purchases. Please try again.'), 'error');
     } finally {
+      operationLockRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -156,6 +165,10 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   // Handle upgrade click - uses Play Billing in production, test tokens in dev
   const handleUpgradeClick = async () => {
     if (!canPurchase) return;
+
+    // Synchronous lock check to prevent double-clicks (state updates are async)
+    if (operationLockRef.current) return;
+    operationLockRef.current = true;
 
     setIsProcessing(true);
 
@@ -223,6 +236,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
       logger.error('[UpgradePromptModal] Failed to complete upgrade:', error);
       showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
     } finally {
+      operationLockRef.current = false;
       setIsProcessing(false);
     }
   };

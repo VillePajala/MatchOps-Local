@@ -1,8 +1,8 @@
 {
-  "version": "53008068",
-  "date": "2026-01-24",
+  "version": "fd66ee1a",
+  "date": "2026-01-27",
   "notes": {
-    "en": "Atomic transaction, operation merge, and robustness",
-    "fi": "Atomic transaction, operation merge, and robustness"
+    "en": "Translate all toast messages in page.tsx and useGameOrchestration",
+    "fi": "Translate all toast messages in page.tsx and useGameOrchestration"
   }
 }

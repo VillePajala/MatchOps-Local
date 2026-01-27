@@ -1,10 +1,16 @@
 # MatchOps-Local: Project Overview
 
-**A local-first soccer coaching PWA that puts coaches in control of their data**
+**A local-first soccer coaching PWA with optional cloud sync — your data, your choice**
 
 ## What is MatchOps-Local?
 
-MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specifically for soccer coaches who want complete control over their team data while maintaining the convenience of modern web applications. Unlike cloud-based alternatives, MatchOps-Local stores all data locally on the coach's device, ensuring privacy, reliability, and performance.
+MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specifically for soccer coaches who want complete control over their team data while maintaining the convenience of modern web applications.
+
+**Choose your mode:**
+- 🔒 **Local Mode (Free)**: All data stays on your device — works offline, no account needed
+- ☁️ **Cloud Mode (Premium)**: Optional Supabase backend for cross-device sync with email/password authentication
+
+Start locally with zero setup. Enable cloud sync later if you need cross-device access. Migrate your data between modes anytime.
 
 ## The Problem We Solve
 
@@ -65,9 +71,9 @@ MatchOps-Local combines the best of modern web technology with local data storag
 - Works perfectly in areas with poor cellular coverage
 - Battery efficient without constant network requests
 
-### 3. **No Ongoing Costs**
-- One-time setup, no subscription fees
-- No data storage costs or limits
+### 3. **Flexible Pricing**
+- **Local mode**: Completely free, no subscription, no limits
+- **Cloud mode**: Optional €4.99/month for cross-device sync
 - No per-user or per-team charges
 - Economic for clubs and organizations
 
@@ -82,7 +88,8 @@ MatchOps-Local combines the best of modern web technology with local data storag
 - Built with Next.js 16 and React 19.2 for cutting-edge performance
 - TypeScript for reliability and maintainability
 - Tailwind CSS 4 for responsive, professional design
-- Comprehensive testing suite for quality assurance
+- Supabase for optional cloud backend (PostgreSQL, Auth, Edge Functions)
+- Comprehensive testing suite (3,500+ tests) for quality assurance
 
 ## Project Vision
 
@@ -123,3 +130,13 @@ By choosing local-first architecture, we're not just solving technical challenge
 ### Scope & Boundaries
 
 MatchOps-Local is intentionally focused as a **data capture tool** for individual coaches. Multi-coach data aggregation (combining statistics from multiple coaches after tournaments) is handled by external tooling, not within the app itself. This separation keeps the app simple and respects volunteer coaches' time. See [ADR-003](../05-development/architecture-decisions/ADR-003-data-aggregation-external-tooling.md) for details on this architectural decision.
+
+---
+
+## Architecture Overview
+
+For technical details on the dual-mode architecture, see:
+- **[Dual-Backend Architecture](../02-technical/architecture/dual-backend-architecture.md)** — Local vs Cloud mode design
+- **[DataStore Interface](../02-technical/architecture/datastore-interface.md)** — Backend-agnostic data access
+- **[AuthService Interface](../02-technical/architecture/auth-service-interface.md)** — Authentication abstraction
+- **[Supabase Schema](../02-technical/database/supabase-schema.md)** — PostgreSQL schema for cloud mode

@@ -182,6 +182,8 @@ export class SyncedDataStore implements DataStore {
    */
   async getSyncStatus(): Promise<SyncStatusInfo> {
     if (!this.syncEngine) {
+      // Log when returning fallback status to aid debugging
+      logger.debug('[SyncedDataStore] getSyncStatus: returning fallback (no sync engine)');
       return {
         state: 'offline',
         pendingCount: 0,
