@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +35,8 @@ interface SettingsModalProps {
   // onDataImportSuccess prop kept for interface compatibility but not used
   // Backup restore now uses full page reload instead of state refresh
   onDataImportSuccess?: () => void;
+  /** Optional tab to open when modal opens */
+  initialTab?: SettingsTab;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -47,6 +49,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onResetGuide,
   onHardResetApp,
   onCreateBackup,
+  initialTab,
   // onDataImportSuccess not destructured - backup restore uses full page reload
 }) => {
   const { t } = useTranslation();
@@ -67,6 +70,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const { deleteAccount, mode: authMode } = useAuth();
+
+  // Set initial tab when modal opens
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Helper to get maximum day for a given month
   const getMaxDayForMonth = (month: number): number => {

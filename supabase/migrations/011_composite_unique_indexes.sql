@@ -20,7 +20,7 @@
 --   - Seasons: name + clubSeason + gameType + gender + ageGroup + leagueId
 --   - Tournaments: name + clubSeason + gameType + gender + ageGroup
 --
--- @see src/datastore/LocalDataStore.ts - createTeamCompositeKey, createSeasonCompositeKey, createTournamentCompositeKey
+-- @see src/datastore/SupabaseDataStore.ts - createTeamCompositeKey, createSeasonCompositeKey, createTournamentCompositeKey
 -- @see https://github.com/VillePajala/MatchOps-Local/issues/331
 -- ============================================================================
 
