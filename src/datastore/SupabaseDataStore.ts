@@ -390,7 +390,12 @@ export class SupabaseDataStore implements DataStore {
 
   /**
    * Classify a Supabase error and throw the appropriate error type.
-   * Improves error handling by distinguishing auth errors from network errors.
+   * Distinguishes auth errors, validation errors, and network errors for proper handling.
+   *
+   * Classification priority:
+   * 1. Auth errors (401/403, JWT, RLS) → AuthError (triggers re-auth flow)
+   * 2. Constraint violations (unique, FK, check) → ValidationError/AlreadyExistsError
+   * 3. All others → NetworkError (default fallback)
    *
    * @param error - The error object from Supabase
    * @param context - Description of the operation for error messages
@@ -399,34 +404,59 @@ export class SupabaseDataStore implements DataStore {
     error: { message: string; code?: string; status?: number },
     context: string
   ): never {
-    const message = error.message?.toLowerCase() ?? '';
-    const code = error.code?.toUpperCase() ?? '';
+    const message = (error.message ?? '').toLowerCase();
+    const code = (error.code ?? '').toUpperCase();
     const status = error.status;
 
-    // Auth/authorization errors - throw AuthError
+    // 1. Auth/authorization errors - throw AuthError
     const isAuthError =
-      // JWT/token issues
-      message.includes('jwt') ||
-      message.includes('token') ||
-      message.includes('expired') ||
+      // HTTP status codes (most reliable)
+      status === 401 ||
+      status === 403 ||
+      // PostgreSQL permission errors
+      code === '42501' || // insufficient_privilege
+      code === '28000' || // invalid_authorization_specification
+      code === '28P01' || // invalid_password
+      // Specific RLS/auth PGRST codes (not all PGRST are auth errors)
+      code === 'PGRST301' || // insufficient_permission (RLS violation)
+      code === 'PGRST302' || // jwt_claims_invalid
+      // JWT/token issues (specific patterns to avoid false positives)
+      message.includes('jwt expired') ||
+      message.includes('token expired') ||
+      message.includes('session expired') ||
+      message.includes('jwt') && (message.includes('invalid') || message.includes('malformed')) ||
       message.includes('invalid claim') ||
+      message.includes('refresh_token') ||
       // User/session issues
       message.includes('user not found') ||
       message.includes('not authenticated') ||
-      message.includes('session') ||
-      // RLS policy violations (PGRST prefix)
-      code.startsWith('PGRST') ||
-      code === '42501' || // PostgreSQL insufficient_privilege
-      // HTTP status codes
-      status === 401 ||
-      status === 403;
+      message.includes('session') && message.includes('invalid');
 
     if (isAuthError) {
-      throw new AuthError(`${context}: ${error.message}`);
+      throw new AuthError(`${context}: ${error.message}`, undefined, {
+        code: code as import('@/interfaces/AuthTypes').AuthErrorCode,
+        message: error.message ?? 'Authentication error',
+        status,
+      });
     }
 
-    // Default to NetworkError for other database/network issues
-    throw new NetworkError(`${context}: ${error.message}`);
+    // 2. Database constraint violations - throw ValidationError or AlreadyExistsError
+    const isUniqueViolation = code === '23505'; // unique_violation
+    if (isUniqueViolation) {
+      throw new AlreadyExistsError('Resource', context);
+    }
+
+    const isConstraintError =
+      code === '23503' || // foreign_key_violation
+      code === '23514' || // check_violation
+      code.startsWith('22');  // data exception class (invalid input)
+
+    if (isConstraintError) {
+      throw new ValidationError(`${context}: ${error.message}`);
+    }
+
+    // 3. Default to NetworkError for other database/network issues
+    throw new NetworkError(`${context}: ${error.message}`, status);
   }
 
   // ==========================================================================
@@ -440,6 +470,7 @@ export class SupabaseDataStore implements DataStore {
    * Non-transient errors (validation, auth, not found) are thrown immediately.
    *
    * @param operation - Async function to execute
+   * @param operationName - Optional name for logging purposes
    * @returns Result of the operation
    */
   private async withRetry<T>(operation: () => Promise<T>, operationName?: string): Promise<T> {
@@ -701,7 +732,7 @@ export class SupabaseDataStore implements DataStore {
       .insert(this.transformPlayerToDb(newPlayer, now, userId) as unknown as never);
 
     if (error) {
-      throw new NetworkError(`Failed to create player: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to create player');
     }
 
     return newPlayer;
@@ -738,12 +769,12 @@ export class SupabaseDataStore implements DataStore {
       .single();
 
     // PGRST116 = row not found - return null
-    // Other errors should be thrown as NetworkError
+    // Other errors should be classified appropriately
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
         return null;
       }
-      throw new NetworkError(`Failed to fetch player: ${fetchError.message}`);
+      this.classifyAndThrowError(fetchError, 'Failed to fetch player');
     }
 
     if (!existing) {
@@ -770,7 +801,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id);
 
     if (updateError) {
-      throw new NetworkError(`Failed to update player: ${updateError.message}`);
+      this.classifyAndThrowError(updateError, 'Failed to update player');
     }
 
     return updatedPlayer;
@@ -786,7 +817,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id);
 
     if (error) {
-      throw new NetworkError(`Failed to delete player: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to delete player');
     }
 
     return (count ?? 0) > 0;
@@ -863,7 +894,7 @@ export class SupabaseDataStore implements DataStore {
       });
 
     if (error) {
-      throw new NetworkError(`Failed to upsert player: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to upsert player');
     }
 
     return playerToUpsert;
@@ -902,12 +933,12 @@ export class SupabaseDataStore implements DataStore {
       .single();
 
     // PGRST116 = row not found - return null
-    // Other errors should be thrown as NetworkError
+    // Other errors should be classified appropriately
     if (error) {
       if (error.code === 'PGRST116') {
         return null;
       }
-      throw new NetworkError(`Failed to fetch team: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch team');
     }
 
     if (!data) {
@@ -1005,7 +1036,7 @@ export class SupabaseDataStore implements DataStore {
       .insert(this.transformTeamToDb(newTeam, userId) as unknown as never);
 
     if (error) {
-      throw new NetworkError(`Failed to create team: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to create team');
     }
 
     return newTeam;
@@ -1115,7 +1146,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id);
 
     if (error) {
-      throw new NetworkError(`Failed to update team: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to update team');
     }
 
     return updatedTeam;
@@ -1131,7 +1162,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id);
 
     if (error) {
-      throw new NetworkError(`Failed to delete team: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to delete team');
     }
 
     return (count ?? 0) > 0;
@@ -1219,7 +1250,7 @@ export class SupabaseDataStore implements DataStore {
       });
 
     if (error) {
-      throw new NetworkError(`Failed to upsert team: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to upsert team');
     }
 
     return teamToUpsert;
@@ -1240,7 +1271,7 @@ export class SupabaseDataStore implements DataStore {
       .order('created_at', { ascending: true });
 
     if (error) {
-      throw new NetworkError(`Failed to fetch team roster: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch team roster');
     }
 
     return (data || []).map(this.transformTeamPlayerFromDb);
@@ -1284,7 +1315,7 @@ export class SupabaseDataStore implements DataStore {
         errorMessage.includes('permission denied');
 
       if (!isMissingRpc && !isPermissionIssue) {
-        throw new NetworkError(`Failed to set team roster: ${error.message}`);
+        this.classifyAndThrowError(error, 'Failed to set team roster');
       }
 
       // WARNING: Manual fallback is NON-ATOMIC. Deletes existing roster before inserting new.
@@ -1312,7 +1343,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('user_id', userId);
 
     if (deleteError) {
-      throw new NetworkError(`Failed to reset team roster (manual): ${deleteError.message}`);
+      this.classifyAndThrowError(deleteError, 'Failed to reset team roster (manual)');
     }
 
     if (rows.length === 0) {
@@ -1324,7 +1355,7 @@ export class SupabaseDataStore implements DataStore {
       .insert(rows as unknown as never);
 
     if (insertError) {
-      throw new NetworkError(`Failed to save team roster (manual): ${insertError.message}`);
+      this.classifyAndThrowError(insertError, 'Failed to save team roster (manual)');
     }
   }
 
@@ -1338,7 +1369,7 @@ export class SupabaseDataStore implements DataStore {
       .order('created_at', { ascending: true });
 
     if (error) {
-      throw new NetworkError(`Failed to fetch team rosters: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch team rosters');
     }
 
     // Cast data due to placeholder Database types
@@ -1482,7 +1513,7 @@ export class SupabaseDataStore implements DataStore {
       .insert(this.transformSeasonToDb(newSeason, now, userId) as unknown as never);
 
     if (error) {
-      throw new NetworkError(`Failed to create season: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to create season');
     }
 
     return newSeason;
@@ -1523,7 +1554,7 @@ export class SupabaseDataStore implements DataStore {
       if (fetchError.code === 'PGRST116') {
         return null;
       }
-      throw new NetworkError(`Failed to fetch season: ${fetchError.message}`);
+      this.classifyAndThrowError(fetchError, 'Failed to fetch season');
     }
 
     if (!existing) {
@@ -1596,7 +1627,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', season.id);
 
     if (updateError) {
-      throw new NetworkError(`Failed to update season: ${updateError.message}`);
+      this.classifyAndThrowError(updateError, 'Failed to update season');
     }
 
     return updatedSeason;
@@ -1612,7 +1643,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id);
 
     if (error) {
-      throw new NetworkError(`Failed to delete season: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to delete season');
     }
 
     return (count ?? 0) > 0;
@@ -1719,7 +1750,7 @@ export class SupabaseDataStore implements DataStore {
       });
 
     if (error) {
-      throw new NetworkError(`Failed to upsert season: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to upsert season');
     }
 
     return seasonToUpsert;
@@ -1826,7 +1857,7 @@ export class SupabaseDataStore implements DataStore {
       .insert(this.transformTournamentToDb(newTournament, now, userId) as unknown as never);
 
     if (error) {
-      throw new NetworkError(`Failed to create tournament: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to create tournament');
     }
 
     return newTournament;
@@ -1867,7 +1898,7 @@ export class SupabaseDataStore implements DataStore {
       if (fetchError.code === 'PGRST116') {
         return null;
       }
-      throw new NetworkError(`Failed to fetch tournament: ${fetchError.message}`);
+      this.classifyAndThrowError(fetchError, 'Failed to fetch tournament');
     }
 
     if (!existing) {
@@ -1939,7 +1970,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', tournament.id);
 
     if (updateError) {
-      throw new NetworkError(`Failed to update tournament: ${updateError.message}`);
+      this.classifyAndThrowError(updateError, 'Failed to update tournament');
     }
 
     return updatedTournament;
@@ -1955,7 +1986,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id);
 
     if (error) {
-      throw new NetworkError(`Failed to delete tournament: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to delete tournament');
     }
 
     return (count ?? 0) > 0;
@@ -2065,7 +2096,7 @@ export class SupabaseDataStore implements DataStore {
       });
 
     if (error) {
-      throw new NetworkError(`Failed to upsert tournament: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to upsert tournament');
     }
 
     return tournamentToUpsert;
@@ -2085,7 +2116,7 @@ export class SupabaseDataStore implements DataStore {
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw new NetworkError(`Failed to fetch personnel: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch personnel');
     }
 
     return (data || []).map(this.transformPersonnelFromDb);
@@ -2107,7 +2138,7 @@ export class SupabaseDataStore implements DataStore {
         return null;
       }
       // Actual error (network, permission, etc.) - throw
-      throw new NetworkError(`Failed to fetch personnel by ID: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch personnel by ID');
     }
 
     if (!data) {
@@ -2164,7 +2195,7 @@ export class SupabaseDataStore implements DataStore {
       .insert(this.transformPersonnelToDb(newPersonnel, userId) as unknown as never);
 
     if (error) {
-      throw new NetworkError(`Failed to create personnel: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to create personnel');
     }
 
     return newPersonnel;
@@ -2232,7 +2263,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id);
 
     if (error) {
-      throw new NetworkError(`Failed to update personnel: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to update personnel');
     }
 
     return updated;
@@ -2261,7 +2292,7 @@ export class SupabaseDataStore implements DataStore {
     );
 
     if (error) {
-      throw new NetworkError(`Failed to delete personnel: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to delete personnel');
     }
 
     // RPC returns boolean: true if deleted, false if not found or unauthorized
@@ -2331,7 +2362,7 @@ export class SupabaseDataStore implements DataStore {
       });
 
     if (error) {
-      throw new NetworkError(`Failed to upsert personnel: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to upsert personnel');
     }
 
     return personnelToUpsert;
@@ -2356,7 +2387,7 @@ export class SupabaseDataStore implements DataStore {
         return { ...DEFAULT_APP_SETTINGS };
       }
       // Actual error (network, permission, etc.) - throw
-      throw new NetworkError(`Failed to fetch settings: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch settings');
     }
 
     if (!data) {
@@ -2378,7 +2409,7 @@ export class SupabaseDataStore implements DataStore {
       .upsert(this.transformSettingsToDb(settings, userId) as unknown as never);
 
     if (error) {
-      throw new NetworkError(`Failed to save settings: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to save settings');
     }
 
     // Invalidate cache if season dates changed
@@ -2848,7 +2879,7 @@ export class SupabaseDataStore implements DataStore {
         return null;
       }
       // Actual error (network, permission, etc.) - throw
-      throw new NetworkError(`Failed to fetch game ${gameId}: ${gameResult.error.message}`);
+      this.classifyAndThrowError(gameResult.error, `Failed to fetch game ${gameId}`);
     }
     if (!gameResult.data) {
       return null;
@@ -2857,17 +2888,17 @@ export class SupabaseDataStore implements DataStore {
     // Handle errors from child tables - throw to prevent partial data load
     // Child data (players, events, assessments) is essential for a complete game view
     if (playersResult.error) {
-      throw new NetworkError(`Failed to fetch game players for game ${gameId}: ${playersResult.error.message}`);
+      this.classifyAndThrowError(playersResult.error, `Failed to fetch game players for game ${gameId}`);
     }
     if (eventsResult.error) {
-      throw new NetworkError(`Failed to fetch game events for game ${gameId}: ${eventsResult.error.message}`);
+      this.classifyAndThrowError(eventsResult.error, `Failed to fetch game events for game ${gameId}`);
     }
     if (assessmentsResult.error) {
-      throw new NetworkError(`Failed to fetch player assessments for game ${gameId}: ${assessmentsResult.error.message}`);
+      this.classifyAndThrowError(assessmentsResult.error, `Failed to fetch player assessments for game ${gameId}`);
     }
     // Tactical data may legitimately not exist (PGRST116 = not found) - only throw for other errors
     if (tacticalResult.error && tacticalResult.error.code !== 'PGRST116') {
-      throw new NetworkError(`Failed to fetch tactical data for game ${gameId}: ${tacticalResult.error.message}`);
+      this.classifyAndThrowError(tacticalResult.error, `Failed to fetch tactical data for game ${gameId}`);
     }
 
     return {
@@ -3067,7 +3098,7 @@ export class SupabaseDataStore implements DataStore {
         errorMessage.includes('permission denied');
 
       if (!isMissingRpc && !isPermissionIssue) {
-        throw new NetworkError(`Failed to save game: ${error.message}`);
+        this.classifyAndThrowError(error, 'Failed to save game');
       }
 
       // WARNING: Manual fallback is NON-ATOMIC. If network fails mid-operation,
@@ -3098,7 +3129,7 @@ export class SupabaseDataStore implements DataStore {
       .upsert(tables.game as unknown as never, { onConflict: 'id' });
 
     if (gameError) {
-      throw new NetworkError(`Failed to save game (manual): ${gameError.message}`);
+      this.classifyAndThrowError(gameError, 'Failed to save game (manual)');
     }
 
     const { error: deletePlayersError } = await client
@@ -3108,7 +3139,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('user_id', userId);
 
     if (deletePlayersError) {
-      throw new NetworkError(`Failed to reset game players (manual): ${deletePlayersError.message}`);
+      this.classifyAndThrowError(deletePlayersError, 'Failed to reset game players (manual)');
     }
 
     if (tables.players.length > 0) {
@@ -3117,7 +3148,7 @@ export class SupabaseDataStore implements DataStore {
         .insert(tables.players as unknown as never);
 
       if (insertPlayersError) {
-        throw new NetworkError(`Failed to save game players (manual): ${insertPlayersError.message}`);
+        this.classifyAndThrowError(insertPlayersError, 'Failed to save game players (manual)');
       }
     }
 
@@ -3128,7 +3159,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('user_id', userId);
 
     if (deleteEventsError) {
-      throw new NetworkError(`Failed to reset game events (manual): ${deleteEventsError.message}`);
+      this.classifyAndThrowError(deleteEventsError, 'Failed to reset game events (manual)');
     }
 
     if (tables.events.length > 0) {
@@ -3137,7 +3168,7 @@ export class SupabaseDataStore implements DataStore {
         .insert(tables.events as unknown as never);
 
       if (insertEventsError) {
-        throw new NetworkError(`Failed to save game events (manual): ${insertEventsError.message}`);
+        this.classifyAndThrowError(insertEventsError, 'Failed to save game events (manual)');
       }
     }
 
@@ -3148,7 +3179,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('user_id', userId);
 
     if (deleteAssessmentsError) {
-      throw new NetworkError(`Failed to reset player assessments (manual): ${deleteAssessmentsError.message}`);
+      this.classifyAndThrowError(deleteAssessmentsError, 'Failed to reset player assessments (manual)');
     }
 
     if (tables.assessments.length > 0) {
@@ -3157,7 +3188,7 @@ export class SupabaseDataStore implements DataStore {
         .insert(tables.assessments as unknown as never);
 
       if (insertAssessmentsError) {
-        throw new NetworkError(`Failed to save player assessments (manual): ${insertAssessmentsError.message}`);
+        this.classifyAndThrowError(insertAssessmentsError, 'Failed to save player assessments (manual)');
       }
     }
 
@@ -3166,7 +3197,7 @@ export class SupabaseDataStore implements DataStore {
       .upsert(tables.tacticalData as unknown as never, { onConflict: 'game_id' });
 
     if (tacticalError) {
-      throw new NetworkError(`Failed to save tactical data (manual): ${tacticalError.message}`);
+      this.classifyAndThrowError(tacticalError, 'Failed to save tactical data (manual)');
     }
   }
 
@@ -3223,7 +3254,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('id', id);
 
     if (error) {
-      throw new NetworkError(`Failed to delete game: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to delete game');
     }
 
     return (count ?? 0) > 0;
@@ -3347,7 +3378,7 @@ export class SupabaseDataStore implements DataStore {
       .order('applied_at', { ascending: false });
 
     if (error) {
-      throw new NetworkError(`Failed to fetch player adjustments: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch player adjustments');
     }
 
     return (data || []).map((row: PlayerAdjustmentRow) => this.transformAdjustmentFromDb(row));
@@ -3375,7 +3406,7 @@ export class SupabaseDataStore implements DataStore {
       .insert(dbAdjustment as unknown as never);
 
     if (error) {
-      throw new NetworkError(`Failed to add player adjustment: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to add player adjustment');
     }
 
     return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
@@ -3406,7 +3437,7 @@ export class SupabaseDataStore implements DataStore {
       .upsert(dbAdjustment as unknown as never, { onConflict: 'id' });
 
     if (error) {
-      throw new NetworkError(`Failed to upsert player adjustment: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to upsert player adjustment');
     }
 
     return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
@@ -3437,7 +3468,7 @@ export class SupabaseDataStore implements DataStore {
         return null;
       }
       // Actual error (network, permission, etc.) - throw
-      throw new NetworkError(`Failed to fetch player adjustment for update: ${fetchError.message}`);
+      this.classifyAndThrowError(fetchError, 'Failed to fetch player adjustment for update');
     }
 
     if (!existing) {
@@ -3456,7 +3487,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('player_id', playerId);
 
     if (updateError) {
-      throw new NetworkError(`Failed to update player adjustment: ${updateError.message}`);
+      this.classifyAndThrowError(updateError, 'Failed to update player adjustment');
     }
 
     return updated;
@@ -3473,7 +3504,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('player_id', playerId);
 
     if (error) {
-      throw new NetworkError(`Failed to delete player adjustment: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to delete player adjustment');
     }
 
     return (count ?? 0) > 0;
@@ -3556,7 +3587,7 @@ export class SupabaseDataStore implements DataStore {
 
     // PGRST116 = row not found - this is expected if no plan exists
     if (error && error.code !== 'PGRST116') {
-      throw new NetworkError(`Failed to fetch warmup plan: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch warmup plan');
     }
 
     if (!data) {
@@ -3588,7 +3619,7 @@ export class SupabaseDataStore implements DataStore {
       .upsert(dbPlan as unknown as never, { onConflict: 'user_id' });
 
     if (error) {
-      throw new NetworkError(`Failed to save warmup plan: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to save warmup plan');
     }
 
     return true;
@@ -3608,7 +3639,7 @@ export class SupabaseDataStore implements DataStore {
       .eq('user_id', userId);
 
     if (error) {
-      throw new NetworkError(`Failed to delete warmup plan: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to delete warmup plan');
     }
 
     return (count ?? 0) > 0;
@@ -3716,7 +3747,7 @@ export class SupabaseDataStore implements DataStore {
       errorMessage.includes('permission denied');
 
     if (isNetworkLike || (!isMissingRpc && !isPermissionIssue)) {
-      throw new NetworkError(`Failed to clear user data: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to clear user data');
     }
 
     // Fallback: manual per-table deletion (non-atomic) if RPC missing/blocked
@@ -3750,7 +3781,7 @@ export class SupabaseDataStore implements DataStore {
         .eq('user_id', userId);
 
       if (deleteError) {
-        throw new NetworkError(`Failed to clear ${table}: ${deleteError.message}`);
+        this.classifyAndThrowError(deleteError, `Failed to clear ${table}`);
       }
     }
 

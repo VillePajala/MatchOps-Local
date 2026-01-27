@@ -1226,4 +1226,482 @@ Way more meaningful than "Matti: 0 goals, 0 assists."
 
 ---
 
+# Additional Feature Ideas (Dream Concepts)
+
+A collection of smaller features that could enhance the app.
+
+---
+
+## Smart Warmup Timer
+
+**Problem:** Coaches forget warmup structure, rush it, or waste time.
+
+```
+┌─────────────────────────────────────────┐
+│  PRE-GAME WARMUP                    ▶️   │
+│                                          │
+│  ████████████░░░░░░░░  Phase 2 of 5     │
+│                                          │
+│  DYNAMIC STRETCHING          2:34 left  │
+│  • High knees                           │
+│  • Butt kicks                           │
+│  • Leg swings                           │
+│                                          │
+│  Next: Passing squares (4 min)          │
+│                                          │
+│  [Skip Phase]              [Pause]      │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Pre-built warmup templates by age group
+- Audio cues (phone in pocket, earbuds in)
+- Adapts to available time ("20 min warmup" vs "10 min warmup")
+- Custom templates saveable
+
+**Technical:** Timer with phase config. Vibration + audio alerts. Fully offline.
+
+---
+
+## Weather Integration
+
+**Problem:** Coach arrives at field, weather is terrible, no backup plan.
+
+```
+┌─────────────────────────────────────────┐
+│  GAME DAY: Sunday 14:00                  │
+│                                          │
+│  ⛈️  Rain likely (80%) at kickoff        │
+│  🌡️  12°C, feels like 9°C               │
+│  💨  Wind 25 km/h from SW               │
+│                                          │
+│  ⚠️  RECOMMENDATION:                     │
+│  Consider indoor backup or rain gear     │
+│                                          │
+│  [View Hourly] [Dismiss]                │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Weather fetch for game location/time
+- Alerts 24h and 2h before game
+- Wind direction overlay on tactics board
+- Historical conditions stored with game
+
+**Technical:** Open-Meteo API (free, no key needed). Cache forecast.
+
+---
+
+## Injury & Availability Tracker
+
+**Problem:** Coach forgets who's injured, creates lineup with unavailable players.
+
+```
+┌─────────────────────────────────────────┐
+│  SQUAD AVAILABILITY                      │
+│                                          │
+│  Sunday vs HJK (14 needed, 12 available) │
+│                                          │
+│  ✅ Available (12)                       │
+│     Matti, Ville, Jussi...              │
+│                                          │
+│  🤕 Injured (2)                          │
+│     Pekka - ankle (return ~2 weeks)     │
+│     Antti - illness (day-to-day)        │
+│                                          │
+│  ❌ Unavailable (1)                      │
+│     Lauri - family event                │
+│                                          │
+│  [Update Availability]                   │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Injury log with expected return date
+- Recurring unavailability (every other weekend)
+- Auto-warn if selecting injured player
+- Injury history per player
+
+**Technical:** Availability/injury data model. Filter in player selection UI.
+
+---
+
+## Formation Templates & Quick Switch
+
+**Problem:** Manually dragging 11 players to try a new formation takes forever.
+
+```
+┌─────────────────────────────────────────┐
+│  FORMATIONS                              │
+│                                          │
+│  MY TEMPLATES:                           │
+│  [4-4-2 Standard]  [4-3-3 Wide]         │
+│  [3-5-2 Press]     [4-2-3-1 Control]    │
+│                                          │
+│  QUICK SWITCH:                           │
+│  Current: 4-4-2                          │
+│  [→ 4-3-3] [→ 3-5-2] [→ 5-3-2]          │
+│                                          │
+│  Players auto-move to nearest position   │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Save current formation as template
+- Library of common formations
+- One-tap formation switch during game
+- Smart player-to-position assignment
+
+**Technical:** Position templates as relative coordinates. Matching algorithm.
+
+---
+
+## Opponent Database & Head-to-Head
+
+**Problem:** "Have we played this team before? How did it go?"
+
+```
+┌─────────────────────────────────────────┐
+│  OPPONENT: HJK U12                       │
+│                                          │
+│  HEAD-TO-HEAD                            │
+│  Played: 4  Won: 1  Drawn: 1  Lost: 2   │
+│  Goals for: 5  Against: 8               │
+│                                          │
+│  LAST MEETING: Oct 15, 2025             │
+│  Lost 1-3 (away)                        │
+│  Notes: "Strong left winger #7"         │
+│                                          │
+│  [View All Matches] [Add Scouting Note] │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Auto-link games by opponent name
+- Pre-game scouting notes
+- Key player warnings
+- Historical stats vs opponent
+
+**Technical:** Opponent entity with fuzzy name matching.
+
+---
+
+## Referee Quick Reference
+
+**Problem:** Rules differ by age group. Was that offside legal for U10?
+
+```
+┌─────────────────────────────────────────┐
+│  RULES QUICK REFERENCE (U12)             │
+│                                          │
+│  ⚽ Ball size: 4                         │
+│  ⏱️  Match: 2 x 25 min                   │
+│  👥 Players: 9v9                         │
+│  📏 Offside: YES (full rules)           │
+│  🔄 Subs: Unlimited, re-entry allowed   │
+│                                          │
+│  PALLOLIITTO SPECIFIC:                   │
+│  • No heading in training (U12-)        │
+│  • GK can't punt past halfway           │
+│                                          │
+│  [Full Rules PDF]                        │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Age group selector
+- Finnish (Palloliitto) vs generic rules
+- Searchable, offline available
+
+**Technical:** Static content bundled with app.
+
+---
+
+## Travel & Logistics
+
+**Problem:** Away games need coordination. Where is it? When to leave?
+
+```
+┌─────────────────────────────────────────┐
+│  AWAY GAME LOGISTICS                     │
+│                                          │
+│  📍 Tapiolan Urheilupuisto, Espoo       │
+│  🚗 32 min from home field              │
+│  🅿️  Parking: Yes, free                  │
+│                                          │
+│  SUGGESTED SCHEDULE:                     │
+│  12:30 - Leave home field               │
+│  13:00 - Arrive, find parking           │
+│  13:10 - Warmup                         │
+│  13:30 - Kickoff                        │
+│                                          │
+│  [Open in Maps] [Share with Parents]    │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Venue database with parking notes
+- Travel time estimation
+- Auto-generate departure time
+- Shareable logistics summary
+
+**Technical:** Geocoding, link to native maps. Venue notes storage.
+
+---
+
+## Player Milestones & Celebrations
+
+**Problem:** Youth development needs positive reinforcement.
+
+```
+┌─────────────────────────────────────────┐
+│  🎉 NEW MILESTONES THIS WEEK            │
+│                                          │
+│  ⭐ Matti - 50 APPEARANCES              │
+│  ⭐ Ville - FIRST GOAL OF SEASON        │
+│  ⭐ Jussi - 10 CLEAN SHEETS (GK)        │
+│  ⭐ Pekka - 500 MINUTES PLAYED          │
+│                                          │
+│  [Announce to Team]                      │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Auto-detect milestones (10/25/50/100 appearances, etc.)
+- Custom milestones
+- Season awards tracking
+- Exportable certificate/graphic
+
+**Technical:** Milestone checks after game save. Configurable thresholds.
+
+---
+
+## Practice Attendance & Load Management
+
+**Problem:** Who's been to practice? Who's overplayed?
+
+```
+┌─────────────────────────────────────────┐
+│  PLAYER LOAD - LAST 14 DAYS             │
+│                                          │
+│  ⚠️ HIGH LOAD:                           │
+│  Matti: 3 games + 4 practices = 280 min │
+│                                          │
+│  ⚡ LOW LOAD (give more time):           │
+│  Pekka: 1 game + 2 practices = 90 min   │
+│                                          │
+│  PRACTICE ATTENDANCE (last 4):           │
+│  Matti ✓✓✓✓  Ville ✓✓✓✗  Pekka ✓✗✓✗   │
+│                                          │
+│  [Log Practice Session]                  │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Quick practice attendance logging
+- Weekly/monthly load calculation
+- Flag high/low load players
+- Correlate attendance with selection
+
+**Technical:** Practice session entity. Load calculation formula.
+
+---
+
+## Halftime Board
+
+**Problem:** Tactics board has current positions, need clean slate for halftime talk.
+
+```
+┌─────────────────────────────────────────┐
+│  HALFTIME BOARD                          │
+│                                          │
+│  [Current Positions] [Clean Board]       │
+│                                          │
+│  Quick Messages:                         │
+│  [PRESS HIGHER] [DROP DEEPER]           │
+│  [USE WIDTH] [MARK #7]                  │
+│                                          │
+│  Timer: 8:00 until 2nd half             │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Separate canvas for halftime drawings
+- Pre-made tactical message overlays
+- Countdown timer to second half
+- Save halftime boards with game
+
+**Technical:** Second canvas state. Message library.
+
+---
+
+## One-Handed Mode
+
+**Problem:** Coach holding coffee/whistle, can only use one thumb.
+
+```
+┌─────────────────────────────────────────┐
+│                              [≡ Menu]    │
+│                                          │
+│      (Field takes full screen)           │
+│                                          │
+│  ┌────────────────────────────────────┐ │
+│  │ ⏱️ 23:45 │ ⚽ │ 🔄 │ 📋 │ ⏸️  │     │
+│  └────────────────────────────────────┘ │
+│  All controls at bottom, thumb-reach    │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Bottom-anchored controls
+- Larger tap targets
+- Swipe gestures for common actions
+- Configurable left/right handed
+
+**Technical:** Alternative layout mode. Gesture handlers.
+
+---
+
+## Team Talk Library
+
+**Problem:** What do I say in the huddle? Same speech every week.
+
+```
+┌─────────────────────────────────────────┐
+│  TEAM TALK IDEAS                         │
+│                                          │
+│  PRE-GAME:                               │
+│  • Focus on your job, not the scoreboard │
+│  • First 5 minutes - high energy        │
+│                                          │
+│  HALFTIME (losing):                      │
+│  • We're in this. One goal at a time    │
+│  • Don't panic, play our game           │
+│                                          │
+│  [Add Custom] [Shuffle]                  │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Situation-based talk prompts
+- Custom notes saveable
+- Random shuffle for variety
+
+**Technical:** Content library, static + user-added.
+
+---
+
+## Photo Moments
+
+**Problem:** Great goal happens, want to capture celebration.
+
+```
+After logging a goal:
+
+┌─────────────────────────────────────────┐
+│  ⚽ GOAL! Matti (23:45)                  │
+│                                          │
+│  [📸 Add Photo]                          │
+│                                          │
+│  [Skip] [Open Camera]                    │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Photo attached to game events
+- Post-game photo gallery
+- Export report with photos
+
+**Technical:** File attachment to events. Camera API.
+
+---
+
+## Random Picker / Dice
+
+**Problem:** "Who starts in goal?" arguments need fair selection.
+
+```
+┌─────────────────────────────────────────┐
+│  RANDOM PICKER                           │
+│                                          │
+│  Question: Who starts in goal?          │
+│  [Matti ✓] [Ville ✓] [Pekka ✓]         │
+│                                          │
+│       🎲 [ PICK ]                        │
+│                                          │
+│  Result: VILLE                           │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Random player picker
+- Team splitter for training
+- Coin flip for kickoff
+- History to prevent "do-overs"
+
+**Technical:** Simple RNG with player filter.
+
+---
+
+## Season Goals & Tracking
+
+**Problem:** What are we trying to achieve? No measurable goals.
+
+```
+┌─────────────────────────────────────────┐
+│  SEASON GOALS 2025-26                    │
+│                                          │
+│  TEAM GOALS:                             │
+│  ☑️ Every player gets 200+ minutes       │
+│     Progress: 11/14 achieved             │
+│                                          │
+│  ◻️ Concede fewer than 30 goals          │
+│     Progress: 22 (8 games left)          │
+│                                          │
+│  INDIVIDUAL GOALS:                       │
+│  Matti: Score from outside box ◻️        │
+│  Ville: 5 clean sheets ☑️                │
+│                                          │
+│  [Add Goal]                              │
+└─────────────────────────────────────────┘
+```
+
+**Features:**
+- Team and individual goals
+- Auto-track measurable goals
+- Manual check-off for qualitative
+- End-of-season review
+
+**Technical:** Goal entity with type, threshold, linked metric.
+
+---
+
+## Implementation Priority Summary
+
+| Feature | Effort | Value | Needs Cloud? |
+|---------|--------|-------|--------------|
+| Formation Templates | Medium | High | No |
+| Injury/Availability | Medium | High | No |
+| Player Milestones | Low | High | No |
+| Practice Attendance/Load | Medium | High | No |
+| Smart Warmup Timer | Low | Medium | No |
+| Weather Integration | Low | Medium | Yes (API) |
+| Opponent Database | Medium | Medium | No |
+| Season Goals | Medium | Medium | No |
+| Halftime Board | Low | Medium | No |
+| One-Handed Mode | Medium | Medium | No |
+| Travel & Logistics | Medium | Medium | No |
+| Referee Quick Reference | Low | Medium | No |
+| Photo Moments | Medium | Medium | Optional |
+| Team Talk Library | Low | Low | No |
+| Random Picker | Low | Low | No |
+
+**Recommended build order:**
+1. Formation Templates - Huge time saver, differentiator
+2. Injury/Availability - Solves real pain point
+3. Player Milestones - Positive reinforcement for youth
+4. Practice Attendance/Load - Professional feature for volunteers
+
+---
+
 *This document is a collection of ideas for future exploration. No commitment to implement any specific feature.*
