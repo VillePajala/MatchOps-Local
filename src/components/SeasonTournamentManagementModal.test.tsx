@@ -27,7 +27,7 @@ jest.mock('@/hooks/usePremium', () => ({
     hasLimits: true,
     grantPremiumAccess: jest.fn(),
     revokePremiumAccess: jest.fn(),
-    PREMIUM_PRICE: '€4.99',
+    PREMIUM_PRICE: '€ 4,99/kk',
   }),
   useResourceLimit: () => ({
     canAdd: true,

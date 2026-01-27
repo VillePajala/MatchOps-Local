@@ -140,7 +140,8 @@ describe('UpgradePromptModal', () => {
     it('displays price', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      expect(screen.getByText('€4.99')).toBeInTheDocument();
+      // Price displayed in European format (€ 4,99/kk includes per-month indicator)
+      expect(screen.getByText('€ 4,99/kk')).toBeInTheDocument();
       expect(screen.getByText('monthly subscription')).toBeInTheDocument();
       expect(screen.getByText('Cancel anytime')).toBeInTheDocument();
     });
