@@ -112,11 +112,27 @@ describe('SupabaseAuthService', () => {
 
     it('should initialize with existing session', async () => {
       mockAuth.getSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+      // Session validation calls getUser() to verify session is valid on server
+      mockAuth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
 
       await authService.initialize();
 
       expect(authService.isInitialized()).toBe(true);
       expect(authService.isAuthenticated()).toBe(true);
+    });
+
+    it('should clear stale session if validation fails', async () => {
+      mockAuth.getSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+      // Session exists locally but getUser fails (stale/revoked session)
+      mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: { message: 'Session expired' } });
+      mockAuth.signOut.mockResolvedValue({ error: null });
+
+      await authService.initialize();
+
+      expect(authService.isInitialized()).toBe(true);
+      expect(authService.isAuthenticated()).toBe(false);
+      // Should have attempted to clear the stale session
+      expect(mockAuth.signOut).toHaveBeenCalledWith({ scope: 'local' });
     });
 
     it('should handle initialization error gracefully', async () => {
@@ -293,6 +309,8 @@ describe('SupabaseAuthService', () => {
   describe('signOut', () => {
     beforeEach(async () => {
       mockAuth.getSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+      // Session validation calls getUser() to verify session is valid on server
+      mockAuth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
       await authService.initialize();
     });
 
