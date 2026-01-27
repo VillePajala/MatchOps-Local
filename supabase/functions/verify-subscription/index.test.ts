@@ -51,8 +51,17 @@ const ALLOWED_ORIGINS = [
   'https://matchops.app',
   'https://www.matchops.app',
   'https://match-ops-local.vercel.app',
+  // Allow localhost for development (ports 3000-3009)
   'http://localhost:3000',
   'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:3003',
+  'http://localhost:3004',
+  'http://localhost:3005',
+  'http://localhost:3006',
+  'http://localhost:3007',
+  'http://localhost:3008',
+  'http://localhost:3009',
 ];
 
 const VERCEL_PREVIEW_PATTERN = /^https:\/\/match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/;
@@ -73,9 +82,19 @@ Deno.test('CORS: allows production origin', () => {
   assertEquals(isOriginAllowed('https://www.matchops.app'), true);
 });
 
-Deno.test('CORS: allows localhost origins', () => {
+Deno.test('CORS: allows localhost origins (ports 3000-3009)', () => {
   assertEquals(isOriginAllowed('http://localhost:3000'), true);
   assertEquals(isOriginAllowed('http://localhost:3001'), true);
+  assertEquals(isOriginAllowed('http://localhost:3002'), true);
+  assertEquals(isOriginAllowed('http://localhost:3003'), true);
+  assertEquals(isOriginAllowed('http://localhost:3004'), true);
+  assertEquals(isOriginAllowed('http://localhost:3005'), true);
+  assertEquals(isOriginAllowed('http://localhost:3006'), true);
+  assertEquals(isOriginAllowed('http://localhost:3007'), true);
+  assertEquals(isOriginAllowed('http://localhost:3008'), true);
+  assertEquals(isOriginAllowed('http://localhost:3009'), true);
+  // Port outside range should fail
+  assertEquals(isOriginAllowed('http://localhost:3010'), false);
 });
 
 Deno.test('CORS: allows Vercel preview deployments', () => {
