@@ -22,6 +22,14 @@ import type { AppState } from '@/types';
 jest.mock('@/datastore/LocalDataStore');
 jest.mock('@/datastore/SupabaseDataStore');
 
+// Mock the factory to provide a mock auth service
+jest.mock('@/datastore/factory', () => ({
+  getAuthService: jest.fn().mockResolvedValue({
+    refreshSession: jest.fn().mockResolvedValue({ user: { id: 'test-user-id' } }),
+    getCurrentUser: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+  }),
+}));
+
 const MockedLocalDataStore = LocalDataStore as jest.MockedClass<typeof LocalDataStore>;
 const MockedSupabaseDataStore = SupabaseDataStore as jest.MockedClass<typeof SupabaseDataStore>;
 

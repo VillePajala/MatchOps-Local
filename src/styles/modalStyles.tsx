@@ -175,7 +175,7 @@ export const wizardBackdropStyle =
   "fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4";
 
 export const wizardModalStyle =
-  "relative w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl";
+  "relative w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-[90vh] flex flex-col";
 
 export const wizardModalLargeStyle =
   "relative w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-[85vh] flex flex-col";
@@ -187,7 +187,7 @@ export const wizardTitleStyle =
   "text-lg font-semibold text-slate-100";
 
 export const wizardContentStyle =
-  "px-6 py-5";
+  "px-6 py-5 overflow-y-auto flex-1 min-h-0";
 
 export const wizardFooterStyle =
   "px-6 py-4 border-t border-slate-700 flex gap-3 justify-end";

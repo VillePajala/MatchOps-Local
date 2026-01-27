@@ -12,8 +12,7 @@ import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
-import CloudModeImportModal from './CloudModeImportModal';
-import { getBackendMode, disableCloudMode, clearMigrationCompleted } from '@/config/backendConfig';
+import { getBackendMode, clearMigrationCompleted } from '@/config/backendConfig';
 import { useAuth } from '@/contexts/AuthProvider';
 import { ModalFooter, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
@@ -147,7 +146,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingRestoreContent, setPendingRestoreContent] = useState<string | null>(null);
-  const [showCloudModeImportModal, setShowCloudModeImportModal] = useState(false);
   const { user } = useAuth();
 
   React.useLayoutEffect(() => {
@@ -201,13 +199,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       const jsonContent = e.target?.result as string;
       if (jsonContent) {
         setPendingRestoreContent(jsonContent);
-        // Check if in cloud mode - if so, show the cloud mode import modal
-        const mode = getBackendMode();
-        if (mode === 'cloud') {
-          setShowCloudModeImportModal(true);
-        } else {
-          setShowRestoreConfirm(true);
-        }
+        // Always show the same confirmation dialog - cloud mode will trigger
+        // migration wizard after import via the page.tsx migration check
+        setShowRestoreConfirm(true);
       } else {
         showToast(t('settingsModal.importReadError', 'Error reading file content.'), 'error');
       }
@@ -219,12 +213,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleRestoreConfirmed = async () => {
     if (pendingRestoreContent) {
-      // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
-      const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
-      if (result) {
-        // Show results modal
-        setBackupRestoreResult(result);
-        setShowRestoreResults(true);
+      // In cloud mode, clear migration flag so the simplified migration wizard
+      // will show after reload to sync the imported data to cloud
+      const mode = getBackendMode();
+      if (mode === 'cloud' && user?.id) {
+        try {
+          clearMigrationCompleted(user.id);
+          logger.info('[SettingsModal] Cleared migration flag for backup import in cloud mode');
+        } catch (error) {
+          // Non-critical: import proceeds, but user should know sync wizard may not show
+          logger.warn('[SettingsModal] Failed to clear migration flag:', error);
+          showToast(
+            t('fullBackup.migrationFlagWarning', 'Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later.'),
+            'info'
+          );
+        }
+      }
+
+      try {
+        // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
+        const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
+        if (result) {
+          // Show results modal
+          setBackupRestoreResult(result);
+          setShowRestoreResults(true);
+        } else {
+          // importFullBackup returned falsy - show error toast
+          showToast(t('fullBackup.restoreFailed', 'Failed to restore backup. The file may be corrupted or invalid.'), 'error');
+          logger.warn('[SettingsModal] importFullBackup returned falsy result');
+        }
+      } catch (error) {
+        logger.error('[SettingsModal] Restore backup failed:', error);
+        showToast(t('fullBackup.restoreError', 'An error occurred while restoring the backup.'), 'error');
       }
     }
     setShowRestoreConfirm(false);
@@ -241,56 +261,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }, 100);
   };
 
-  // Cloud mode import modal handlers
-  const handleCloudModeImportCancel = () => {
-    setShowCloudModeImportModal(false);
-    setPendingRestoreContent(null);
-  };
-
-  const handleCloudModeImportAndMigrate = async () => {
-    setShowCloudModeImportModal(false);
-    if (!pendingRestoreContent) return;
-
-    // Clear migration completed flag so migration wizard will show after import
-    // This ensures the imported local data gets uploaded to cloud
-    if (user?.id) {
-      clearMigrationCompleted(user.id);
-      logger.info('[SettingsModal] Cleared migration flag for import & migrate flow');
-    }
-
-    // Proceed with normal import flow
-    const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
-    if (result) {
-      setBackupRestoreResult(result);
-      setShowRestoreResults(true);
-    }
-    setPendingRestoreContent(null);
-  };
-
-  const handleCloudModeSwitchToLocal = async () => {
-    setShowCloudModeImportModal(false);
-    if (!pendingRestoreContent) return;
-
-    // Switch to local mode first
-    const switchResult = disableCloudMode();
-    if (!switchResult.success) {
-      showToast(t('cloudModeImport.switchFailed', 'Failed to switch to local mode. Please try again.'), 'error');
-      logger.error('[SettingsModal] Failed to switch to local mode:', switchResult.message);
-      setPendingRestoreContent(null);
-      return;
-    }
-
-    logger.info('[SettingsModal] Switched to local mode for import');
-
-    // Now proceed with import
-    const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
-    if (result) {
-      setBackupRestoreResult(result);
-      setShowRestoreResults(true);
-    }
-    setPendingRestoreContent(null);
-  };
-
   const handleGameImportFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -305,7 +275,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         logger.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
       }
     } catch (error) {
-      showToast(t('settingsModal.gameImportError', 'Error importing games: ') + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+      logger.error('[SettingsModal] Game import error:', error);
+      showToast(t('settingsModal.gameImportError', 'Error importing games. Please check the file format and try again.'), 'error');
     }
 
     event.target.value = '';
@@ -876,15 +847,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         isImporting={isImporting}
       />
 
-      {/* Cloud Mode Import Warning Modal */}
-      <CloudModeImportModal
-        isOpen={showCloudModeImportModal}
-        onImportAndMigrate={handleCloudModeImportAndMigrate}
-        onSwitchToLocal={handleCloudModeSwitchToLocal}
-        onCancel={handleCloudModeImportCancel}
-      />
-
-      {/* Restore Confirmation Modal (shown in local mode) */}
+      {/* Restore Confirmation Modal */}
       <ConfirmationModal
         isOpen={showRestoreConfirm}
         title={t('fullBackup.confirmRestoreTitle', 'Restore from Backup?')}

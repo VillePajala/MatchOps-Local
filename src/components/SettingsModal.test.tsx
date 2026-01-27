@@ -84,7 +84,8 @@ const defaultProps = {
 };
 
 // Helper to navigate to a specific tab
-const navigateToTab = (tabName: 'General' | 'Season' | 'Data' | 'Premium' | 'About') => {
+// Note: Season settings are now in General tab, Premium renamed to Account
+const navigateToTab = (tabName: 'General' | 'Data' | 'Account' | 'About') => {
   const tab = screen.getByRole('button', { name: tabName });
   fireEvent.click(tab);
 };
@@ -202,7 +203,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    navigateToTab('About');
+    // Hard Reset is in the Account tab (Danger Zone section)
+    navigateToTab('Account');
     const resetBtn = screen.getByRole('button', { name: /Hard Reset App/i });
     expect(resetBtn).toBeDisabled();
     fireEvent.change(
@@ -230,6 +232,7 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+    // Backup button is in Data tab
     navigateToTab('Data');
     const backupButton = screen.getByRole('button', { name: /Backup All Data/i });
     fireEvent.click(backupButton);
@@ -257,7 +260,7 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
-    navigateToTab('Season');
+    navigateToTab('General');
 
     // Check for season start label
     const startLabel = screen.getByText(/New season starts/i);
@@ -289,7 +292,7 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
-    navigateToTab('Season');
+    navigateToTab('General');
 
     // Wait for component to render
     await waitFor(() => {
@@ -380,7 +383,7 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      navigateToTab('Data');
+      navigateToTab('About');
 
       // Find and click the "Check for Updates" button
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
@@ -407,7 +410,7 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      navigateToTab('Data');
+      navigateToTab('About');
 
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
 
@@ -445,7 +448,7 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      navigateToTab('Data');
+      navigateToTab('About');
 
       // Click "Check for Updates"
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
@@ -477,7 +480,7 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      navigateToTab('Data');
+      navigateToTab('About');
 
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
@@ -494,4 +497,5 @@ describe('<SettingsModal />', () => {
       });
     });
   });
+
 });

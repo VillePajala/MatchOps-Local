@@ -6,15 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Healthy
 
-**Last Updated**: January 26, 2026
+**Last Updated**: January 27, 2026
 
 ### Quick Stats
 - ✅ **3,500+ tests** passing
 - ✅ **0 security vulnerabilities**
-- ✅ **Next.js 16.0.10 + React 19.2**
-- ✅ **HomePage**: 62 lines (was 3,725)
-- ✅ **9 hooks** extracted and tested
-- ✅ **React.memo** optimization complete
+- ✅ **Next.js 16.0.10 + React 19.2 + Supabase**
+- ✅ **Dual-mode**: Local (IndexedDB) + Cloud (Supabase)
+- ✅ **Auth**: Email/password via Supabase Auth
+- ✅ **Edge Functions**: verify-subscription, delete-account
 
 ### What's Complete
 - All P0/P1/P2 refactoring
@@ -401,7 +401,13 @@ The build process includes a custom manifest generation step that runs before Ne
 - **React 19.2** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker
-- **Browser IndexedDB** for data persistence
+- **Dual-mode data persistence**:
+  - **Local**: Browser IndexedDB (offline-first, no account required)
+  - **Cloud**: Supabase PostgreSQL (cross-device sync, requires auth)
+- **Supabase** for cloud backend:
+  - Auth (email/password)
+  - PostgreSQL database with RLS
+  - Edge Functions (subscription verification, account deletion)
 - **React Query** for state management
 - **i18next** for internationalization (English/Finnish)
 - **xlsx** for Excel export (CDN tarball: SheetJS removed npm registry access, CDN is official distribution)
@@ -427,12 +433,16 @@ The build process includes a custom manifest generation step that runs before Ne
 - `ControlBar` - Main app controls
 - Various modals for game settings, stats, and management
 
-**Data Persistence**: All data stored in browser IndexedDB via DataStore abstraction:
+**Data Persistence**: Dual-mode architecture via DataStore abstraction:
 - **DataStore Interface**: `src/interfaces/DataStore.ts` (backend-agnostic contract)
 - **LocalDataStore**: `src/datastore/LocalDataStore.ts` (IndexedDB implementation)
-- **Factory**: `src/datastore/factory.ts` (singleton access via `getDataStore()`)
+- **SupabaseDataStore**: `src/datastore/SupabaseDataStore.ts` (Supabase/PostgreSQL implementation)
+- **Factory**: `src/datastore/factory.ts` (singleton access via `getDataStore()`, mode-aware)
+- **AuthService Interface**: `src/interfaces/AuthService.ts` (auth abstraction)
+- **LocalAuthService**: `src/auth/LocalAuthService.ts` (no-op for local mode)
+- **SupabaseAuthService**: `src/auth/SupabaseAuthService.ts` (Supabase Auth)
 - Player roster, games, seasons, tournaments, personnel, settings
-- Legacy utilities (`src/utils/savedGames.ts`, etc.) now delegate to DataStore
+- Migration service for local ↔ cloud data transfer
 
 **Game Types**: Supports both soccer and futsal games via `gameType: 'soccer' | 'futsal'` field on games, seasons, and tournaments. Legacy games without `gameType` default to soccer. See `docs/04-features/game-type-support.md`.
 
@@ -458,23 +468,23 @@ The build process includes a custom manifest generation step that runs before Ne
 
 ## For Code Reviewers (AI or Human)
 
-### ⚠️ Critical: This is a Local-First PWA, NOT a Traditional Web App
+### ⚠️ Critical: This is a Local-First PWA with Optional Cloud Sync
 
-This is a **local-first Progressive Web App** for single-user soccer coaching. No backend, no multi-user features, no enterprise patterns needed.
+This is a **local-first Progressive Web App** for single-user soccer coaching with **optional** cloud backend for cross-device sync.
 
 ### Architecture Context
 
-**Single-User Installation**
-- One soccer coach per installation, no authentication/authorization/RBAC
-- 100% browser-based, no API endpoints or database servers
-- Minimal network: PWA updates, license validation, error reporting only
-- Works completely offline, all data in browser IndexedDB
+**Dual-Mode Operation**
+- **Local mode**: Zero setup, all data in IndexedDB, works offline, no account needed
+- **Cloud mode**: Supabase backend for cross-device sync, requires authentication
+- User chooses mode at first launch; can migrate data between modes anytime
+- Single-user per account (no team collaboration features)
 
 **Data Scale & Privacy**
 - 1 user, 50-100 players, 50-100 games/season, <50MB storage
 - Soccer scores/stats only - NOT sensitive PII/financial/healthcare data
-- Data never leaves device (except opt-in error tracking)
-- Primary threat: physical device theft (mitigated by OS encryption)
+- **Local mode**: Data never leaves device
+- **Cloud mode**: Data stored in Supabase (EU region), protected by RLS policies
 
 **PWA Private Mode Behavior**
 - PWA installation IMPOSSIBLE in private/incognito (by design across all browsers)
@@ -525,27 +535,40 @@ This is a **local-first Progressive Web App** for single-user soccer coaching. N
 
 ### Quick Reference
 
-1. **Remember**: One user, one device, no server, no network
+1. **Remember**: One user per account, local-first with optional cloud sync
 2. **Data scale**: Hundreds of records, not millions
-3. **Security**: Browser sandboxing is the boundary
+3. **Security**: Local mode = browser sandbox; Cloud mode = Supabase RLS + auth
 4. **Performance**: Optimize for small datasets and single-user UX
 
 See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
 
 ## Key Files to Understand
 
+**Core App:**
 - `src/app/page.tsx` - Main component orchestrating entire app (hooks, reducers, data fetching)
 - `src/hooks/useGameSessionReducer.ts` - Core game logic reducer (timer, score, status)
 - `src/hooks/useGameState.ts` - Interactive soccer field state management
 - `src/utils/masterRosterManager.ts` - Player CRUD operations
 - `src/config/queryKeys.ts` - React Query cache keys
 - `src/types/index.ts` - Core TypeScript interfaces
-- `src/utils/localStorage.ts` - Async localStorage wrapper
-- `src/utils/logger.ts` - Centralized logging utility
+
+**Data Layer (Dual-Mode):**
 - `src/interfaces/DataStore.ts` - Backend-agnostic data access interface
-- `src/datastore/LocalDataStore.ts` - IndexedDB implementation of DataStore
-- `src/datastore/factory.ts` - Singleton factory for DataStore/AuthService
-- `src/auth/LocalAuthService.ts` - No-op auth service for local mode
+- `src/datastore/LocalDataStore.ts` - IndexedDB implementation
+- `src/datastore/SupabaseDataStore.ts` - Supabase/PostgreSQL implementation
+- `src/datastore/factory.ts` - Mode-aware singleton factory
+- `src/config/backendConfig.ts` - Backend mode detection and configuration
+
+**Authentication:**
+- `src/interfaces/AuthService.ts` - Auth abstraction interface
+- `src/auth/LocalAuthService.ts` - No-op auth for local mode
+- `src/auth/SupabaseAuthService.ts` - Supabase Auth implementation
+- `src/datastore/supabase/client.ts` - Supabase client singleton
+
+**Cloud Infrastructure:**
+- `supabase/functions/verify-subscription/` - Edge Function for Play Store billing
+- `supabase/functions/delete-account/` - Edge Function for GDPR account deletion
+- `supabase/migrations/` - PostgreSQL schema migrations
 
 ## Opportunistic Refactoring Policy
 
@@ -903,7 +926,11 @@ Code that works in dev may fail in Vercel due to stricter ESLint, different Type
 
 ## Environment Variables
 
-### Required Production
+### Cloud Backend (enables cloud mode)
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon/public key
+
+### Error Reporting
 - `NEXT_PUBLIC_SENTRY_DSN` - Sentry DSN for error reporting (client-side)
 - `SENTRY_AUTH_TOKEN` - Sentry auth for source map uploads (server-side)
 

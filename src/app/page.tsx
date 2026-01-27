@@ -10,6 +10,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
 import { usePremium } from '@/hooks/usePremium';
@@ -32,8 +33,8 @@ import {
   setPendingPostLoginCheck,
   clearPendingPostLoginCheck,
 } from '@/config/backendConfig';
-import { hasLocalDataToMigrate, type MigrationCounts } from '@/services/migrationService';
-import { hasCloudData, getCloudDataSummary } from '@/services/reverseMigrationService';
+import { hasLocalDataToMigrate } from '@/services/migrationService';
+import { hasCloudData } from '@/services/reverseMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
 import logger from '@/utils/logger';
@@ -50,8 +51,6 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
-  const [cloudCounts, setCloudCounts] = useState<MigrationCounts | null>(null);
-  const [isLoadingCloudCounts, setIsLoadingCloudCounts] = useState(false);
   // Welcome screen state (first-install onboarding)
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
@@ -60,6 +59,7 @@ export default function Home() {
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
   const { isPremium, isLoading: isPremiumLoading } = usePremium();
   const queryClient = useQueryClient();
@@ -162,13 +162,13 @@ export default function Home() {
     // Otherwise just hide welcome screen
     if (mode === 'cloud') {
       logger.info('[page.tsx] Mode was cloud, reloading to switch to local');
-      showToast('Starting in local mode...', 'info');
+      showToast(t('page.startingLocalMode', 'Starting in local mode...'), 'info');
       setTimeout(() => {
         try {
           window.location.reload();
         } catch (error) {
           logger.error('[page.tsx] Reload blocked', error);
-          showToast('Please refresh the page manually', 'error');
+          showToast(t('page.refreshPageManually', 'Please refresh the page manually'), 'error');
         }
       }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
     } else {
@@ -176,7 +176,7 @@ export default function Home() {
       // Mode is already 'local', proceed to app state check
       setRefreshTrigger(prev => prev + 1);
     }
-  }, [mode, showToast]);
+  }, [mode, showToast, t]);
 
   // Actually enable cloud mode (called after premium check passes)
   const executeEnableCloudFromWelcome = useCallback(() => {
@@ -185,7 +185,7 @@ export default function Home() {
     if (success) {
       // Cloud mode enabled - reload to re-initialize AuthProvider in cloud mode
       // (AuthProvider reads getBackendMode() once on mount, so we need a full reload)
-      showToast('Cloud mode enabled. Reloading...', 'info');
+      showToast(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'), 'info');
       setTimeout(() => {
         try {
           // Set welcome flag just before reload - if reload fails, we'll clear it
@@ -196,14 +196,14 @@ export default function Home() {
           // Clear welcome flag so user can retry after manual refresh
           clearWelcomeSeen();
           logger.error('[page.tsx] Reload blocked', error);
-          showToast('Please refresh the page manually to continue', 'error');
+          showToast(t('page.refreshPageManuallyContinue', 'Please refresh the page manually to continue'), 'error');
         }
       }, 500);
     } else {
       // Cloud not available (shouldn't happen since button is hidden)
-      showToast('Cloud sync is not available', 'error');
+      showToast(t('page.cloudSyncNotAvailable', 'Cloud sync is not available'), 'error');
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   // Handle "Sign In to Cloud" from welcome screen
   // Note: Premium check happens AFTER login, not before (see post-login check effect)
@@ -246,23 +246,23 @@ export default function Home() {
           clearWelcomeSeen();
           setShowWelcome(true);
           logger.error('[page.tsx] Reload blocked after import', reloadError);
-          showToast('Import succeeded. Please refresh the page manually.', 'info');
+          showToast(t('page.importSucceededRefresh', 'Import succeeded. Please refresh the page manually.'), 'info');
         }
       } else if (result.cancelled) {
         logger.info('[page.tsx] Welcome: User cancelled import');
         // Stay on welcome screen - user can try again or choose different option
       } else {
         logger.warn('[page.tsx] Welcome: Import failed:', result.error);
-        showToast(result.error || 'Failed to import backup', 'error');
+        showToast(result.error || t('page.failedToImportBackup', 'Failed to import backup'), 'error');
         // Stay on welcome screen
       }
     } catch (error) {
       logger.error('[page.tsx] Welcome: Import error:', error);
-      showToast('Failed to import backup', 'error');
+      showToast(t('page.failedToImportBackup', 'Failed to import backup'), 'error');
     } finally {
       setIsImportingBackup(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   // Handle "Back" from LoginScreen - return to WelcomeScreen
   const handleLoginBack = useCallback(() => {
@@ -277,40 +277,40 @@ export default function Home() {
     if (result.success) {
       // Local mode enabled - reload to re-initialize AuthProvider in local mode
       setWelcomeSeen();
-      showToast('Local mode enabled. Reloading...', 'info');
+      showToast(t('page.localModeEnabledReloading', 'Local mode enabled. Reloading...'), 'info');
       setTimeout(() => {
         try {
           window.location.reload();
         } catch (error) {
           clearWelcomeSeen();
           logger.error('[page.tsx] Reload blocked', error);
-          showToast('Please refresh the page manually to continue', 'error');
+          showToast(t('page.refreshPageManuallyContinue', 'Please refresh the page manually to continue'), 'error');
         }
       }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
     } else {
       logger.error('[page.tsx] Failed to switch to local mode:', result.message);
-      showToast('Failed to switch to local mode', 'error');
+      showToast(t('page.failedToSwitchLocalMode', 'Failed to switch to local mode'), 'error');
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   // Actually enable cloud sync (called after premium check passes)
   const executeEnableCloudSync = useCallback(() => {
     logger.info('[page.tsx] StartScreen: Enabling cloud sync');
     const success = enableCloudMode();
     if (success) {
-      showToast('Cloud mode enabled. Reloading...', 'info');
+      showToast(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'), 'info');
       setTimeout(() => {
         try {
           window.location.reload();
         } catch (error) {
           logger.error('[page.tsx] Reload blocked', error);
-          showToast('Please refresh the page manually to continue', 'error');
+          showToast(t('page.refreshPageManuallyContinue', 'Please refresh the page manually to continue'), 'error');
         }
       }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
     } else {
-      showToast('Cloud sync is not available', 'error');
+      showToast(t('page.cloudSyncNotAvailable', 'Cloud sync is not available'), 'error');
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   // Handle "Enable Cloud Sync" from StartScreen (local mode users)
   // No premium gate - account creation is free, subscription only required for active sync
@@ -404,23 +404,18 @@ export default function Home() {
         // Check if there's local data to migrate
         const result = await hasLocalDataToMigrate();
         if (result.checkFailed) {
-          // Storage check failed - log warning but don't show wizard
-          // User can trigger migration manually from settings if needed
+          // Storage check failed - notify user and allow retry on next effect cycle
           logger.warn('[page.tsx] Failed to check local data:', result.error);
+          showToast(
+            t('page.couldNotCheckLocalData', 'Could not check for local data. Please refresh the page to try again.'),
+            'info'
+          );
+          // Reset to allow retry on next effect run
+          migrationCheckInitiatedRef.current = false;
         } else if (result.hasData) {
-          logger.info('[page.tsx] Local data found, fetching cloud counts for migration wizard');
-          // Fetch cloud counts to determine migration scenario
-          setIsLoadingCloudCounts(true);
-          try {
-            const counts = await getCloudDataSummary();
-            setCloudCounts(counts);
-          } catch (cloudError) {
-            // Cloud fetch failed - wizard will assume cloud is empty
-            logger.warn('[page.tsx] Failed to fetch cloud counts:', cloudError);
-            setCloudCounts(null);
-          } finally {
-            setIsLoadingCloudCounts(false);
-          }
+          // Local data found - show simplified migration wizard
+          // (No need to fetch cloud counts - wizard always uses merge mode)
+          logger.info('[page.tsx] Local data found, showing migration wizard');
           setShowMigrationWizard(true);
         } else {
           // No local data - check if cloud has data that needs to be loaded
@@ -428,9 +423,13 @@ export default function Home() {
 
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
-            // Cloud check failed - log warning but don't block user
+            // Cloud check failed - notify user but don't block them
             // They can use the app, data will load when queries run
             logger.warn('[page.tsx] Failed to check cloud data:', cloudResult.error);
+            showToast(
+              t('page.couldNotCheckCloudData', 'Could not check cloud data. Your data will load automatically.'),
+              'info'
+            );
             setMigrationCompleted(userId);
           } else if (cloudResult.hasData) {
             // Cloud has data - trigger refetch to load it into the app
@@ -449,8 +448,11 @@ export default function Home() {
         }
       } catch (error) {
         logger.warn('[page.tsx] Failed to check migration status', { error });
-        // Don't show wizard on error - user can trigger migration manually if needed
-        // Reset ref to allow retry on next effect run
+        // Notify user and allow retry on next effect run
+        showToast(
+          t('page.unableToCheckSync', 'Unable to check data for sync. Please refresh if you have data to sync.'),
+          'info'
+        );
         migrationCheckInitiatedRef.current = false;
       }
     };
@@ -561,25 +563,24 @@ export default function Home() {
   const handleMigrationCancel = useCallback(() => {
     logger.info('[page.tsx] Migration cancelled, switching to local mode');
     setShowMigrationWizard(false);
-    setCloudCounts(null);
 
     // Disable cloud mode and reload to reinitialize in local mode
     const result = disableCloudMode();
     if (result.success) {
-      showToast('Returning to local mode...', 'info');
+      showToast(t('page.returningToLocalMode', 'Returning to local mode...'), 'info');
       setTimeout(() => {
         try {
           window.location.reload();
         } catch (error) {
           logger.error('[page.tsx] Reload blocked', error);
-          showToast('Please refresh the page manually', 'error');
+          showToast(t('page.refreshPageManually', 'Please refresh the page manually'), 'error');
         }
       }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
     } else {
       logger.error('[page.tsx] Failed to switch to local mode:', result.message);
-      showToast('Failed to switch to local mode. Please try again.', 'error');
+      showToast(t('page.failedToSwitchLocalModeRetry', 'Failed to switch to local mode. Please try again.'), 'error');
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   // Handle app resume from background (Android TWA blank screen fix)
   // Triggers refreshTrigger to re-run checkAppState when returning from extended background
@@ -590,7 +591,7 @@ export default function Home() {
     },
     onBeforeForceReload: () => {
       // Show notification before force reload (5+ minute background)
-      showToast('Refreshing app after extended background period...', 'info');
+      showToast(t('page.refreshingAfterBackground', 'Refreshing app after extended background period...'), 'info');
       return new Promise(resolve => setTimeout(resolve, FORCE_RELOAD_NOTIFICATION_DELAY_MS));
     },
     minBackgroundTime: 30000, // 30 seconds
@@ -601,11 +602,11 @@ export default function Home() {
   // This handles the rare case where window.location.reload() fails
   useEffect(() => {
     const handleReloadFailed = () => {
-      showToast('Unable to refresh app. Please close and reopen.', 'error');
+      showToast(t('page.unableToRefreshApp', 'Unable to refresh app. Please close and reopen.'), 'error');
     };
     window.addEventListener('app-resume-reload-failed', handleReloadFailed);
     return () => window.removeEventListener('app-resume-reload-failed', handleReloadFailed);
-  }, [showToast]);
+  }, [showToast, t]);
 
   // Handle PWA shortcut query parameters (e.g., /?action=newGame)
   useEffect(() => {
@@ -688,13 +689,11 @@ export default function Home() {
             />
           </ErrorBoundary>
         ) : showMigrationWizard ? (
-          // Cloud mode: show migration wizard when local data needs to be migrated
+          // Cloud mode: show simplified migration wizard to sync local data
           <ErrorBoundary>
             <MigrationWizard
               onComplete={handleMigrationComplete}
               onCancel={handleMigrationCancel}
-              cloudCounts={cloudCounts}
-              isLoadingCloudCounts={isLoadingCloudCounts}
             />
           </ErrorBoundary>
         ) : screen === 'start' ? (
