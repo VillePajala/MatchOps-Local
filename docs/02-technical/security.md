@@ -2,11 +2,25 @@
 
 Status: Authoritative (current state + planned changes)
 
-## Local-First Security Model
+## Dual-Mode Security Model
+
+MatchOps-Local supports two operating modes with different security models:
+
+| Aspect | Local Mode | Cloud Mode |
+|--------|------------|------------|
+| **Threat Model** | Browser sandbox only | Browser + network + server |
+| **Authentication** | None | Supabase Auth (email/password, JWT) |
+| **Authorization** | N/A (single user) | Row-Level Security (RLS) policies |
+| **Data Protection** | OS disk encryption | TLS in transit + encryption at rest |
+| **Attack Surface** | XSS, malicious PWA updates | + API attacks, token theft |
+
+---
+
+## Local Mode Security
 
 ### Architecture Context
 
-MatchOps-Local is a **local-first Progressive Web App** with a fundamentally different threat model than traditional web applications:
+In local mode, MatchOps-Local is a **local-first Progressive Web App** with a fundamentally different threat model than traditional web applications:
 
 **What This Means for Security:**
 - ✅ **Primary defense**: Browser sandboxing and origin isolation
@@ -43,12 +57,114 @@ MatchOps-Local is a **local-first Progressive Web App** with a fundamentally dif
    - Backup/restore functionality
    - Version migration safety
 
-**NOT Security Concerns for This App:**
-- ❌ API authentication/authorization (no backend)
+**NOT Security Concerns for Local Mode:**
+- ❌ API authentication/authorization (no backend in local mode)
 - ❌ Data encryption at rest (browser sandboxing + OS encryption sufficient)
 - ❌ Network security hardening (minimal network communication)
 - ❌ Multi-user access control (single-user app)
 - ❌ GDPR compliance logging (no user data transmitted)
+
+---
+
+## Cloud Mode Security
+
+When cloud mode is enabled, additional security measures apply.
+
+### Authentication
+
+**Supabase Auth with Email/Password:**
+- User registration with email verification
+- Secure password hashing (bcrypt via Supabase)
+- JWT-based session management
+- Automatic token refresh
+
+**Session Management:**
+```typescript
+// JWT tokens stored in browser
+// Access token: Short-lived (1 hour default)
+// Refresh token: Long-lived, used to get new access tokens
+// Tokens refreshed automatically by Supabase client
+```
+
+### Authorization (Row-Level Security)
+
+All database tables are protected by RLS policies. Users can only access their own data.
+
+**Example RLS Policy:**
+```sql
+-- Users can only see their own games
+CREATE POLICY "Users can view own games"
+  ON games FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Users can only insert games for themselves
+CREATE POLICY "Users can insert own games"
+  ON games FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can only update their own games
+CREATE POLICY "Users can update own games"
+  ON games FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Users can only delete their own games
+CREATE POLICY "Users can delete own games"
+  ON games FOR DELETE
+  USING (auth.uid() = user_id);
+```
+
+**All Tables Protected:**
+- `players`, `teams`, `seasons`, `tournaments`, `personnel`
+- `games`, `game_events`, `game_players`, `game_personnel`, `game_assessments`
+- `tactical_data`, `timer_data`, `subscriptions`
+
+### Edge Function Security
+
+**verify-subscription:**
+- Validates JWT at code level (not gateway) for compatibility with asymmetric keys
+- Verifies Play Store purchase tokens via Google Play Developer API
+- Creates/updates subscription records in database
+- Rate limited by Supabase infrastructure
+
+**delete-account:**
+- Requires valid JWT authentication
+- Deletes all user data across all tables (GDPR compliance)
+- Removes auth.users record
+- Irreversible operation with confirmation required
+
+### Data Protection in Transit
+
+- All Supabase communication over HTTPS/TLS 1.3
+- No sensitive data in URL parameters
+- JWT tokens in Authorization headers only
+
+### Cloud Mode Threat Model
+
+**Defended Against:**
+- ✅ Unauthorized data access (RLS policies)
+- ✅ Token theft (short-lived access tokens, refresh rotation)
+- ✅ Man-in-the-middle (TLS encryption)
+- ✅ SQL injection (Supabase parameterized queries)
+
+**Accepted Risks:**
+- ⚠️ Supabase service compromise (mitigated by EU data residency, Supabase security practices)
+- ⚠️ User device compromise (out of scope - user responsibility)
+- ⚠️ Phishing attacks (user education, email verification)
+
+### Cloud Security Checklist
+
+**Before Production:**
+- [x] All tables have RLS policies enabled
+- [x] Edge Functions verify JWT in code
+- [x] No service role key exposed to client
+- [x] Environment variables properly configured
+- [x] Error messages don't leak implementation details
+
+**Ongoing:**
+- [ ] Monitor Supabase logs for suspicious activity
+- [ ] Review RLS policies when adding new tables
+- [ ] Rotate service role keys periodically
+- [ ] Keep Supabase client library updated
 
 ## Environment Variable Security
 

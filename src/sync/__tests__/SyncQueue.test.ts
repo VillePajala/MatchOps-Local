@@ -45,8 +45,24 @@ describe('SyncQueue', () => {
   });
 
   afterEach(async () => {
-    await queue.clear();
-    await queue.close();
+    // Timeout wrapper to prevent indefinite hanging due to fake-indexeddb race conditions
+    const cleanup = async () => {
+      await queue.clear();
+      await queue.close();
+    };
+    const timeout = new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error('Cleanup timeout')), 3000)
+    );
+    try {
+      await Promise.race([cleanup(), timeout]);
+    } catch {
+      // If cleanup times out, just close the database to release resources
+      try {
+        await queue.close();
+      } catch {
+        // Ignore close errors in cleanup
+      }
+    }
   });
 
   describe('initialization', () => {
@@ -729,37 +745,45 @@ describe('SyncQueue', () => {
     });
 
     it('should increment retryCount when resetting stale operations', async () => {
-      // Create a queue with low maxRetries for testing
-      const testQueue = new SyncQueue({ maxRetries: 2 });
-      await testQueue.initialize();
+      // Suppress expected console.warn when max retries reached
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        // Using main queue with maxRetries: 3 (set in beforeEach)
+        const id = await queue.enqueue({
+          entityType: 'game',
+          entityId: 'game_retry_stale',
+          operation: 'update',
+          data: {},
+          timestamp: Date.now(),
+        });
 
-      const id = await testQueue.enqueue({
-        entityType: 'game',
-        entityId: 'game_retry',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+        // Mark as syncing
+        await queue.markSyncing(id);
+        let op = await queue.getById(id);
+        expect(op?.retryCount).toBe(0);
 
-      // Mark as syncing
-      await testQueue.markSyncing(id);
-      let op = await testQueue.getById(id);
-      expect(op?.retryCount).toBe(0);
+        // Reset stale - should increment retryCount
+        await queue.resetStaleSyncing();
+        op = await queue.getById(id);
+        expect(op?.retryCount).toBe(1);
+        expect(op?.status).toBe('pending');
 
-      // Reset stale - should increment retryCount
-      await testQueue.resetStaleSyncing();
-      op = await testQueue.getById(id);
-      expect(op?.retryCount).toBe(1);
-      expect(op?.status).toBe('pending');
+        // Mark as syncing again and reset - retryCount should be 2
+        await queue.markSyncing(id);
+        await queue.resetStaleSyncing();
+        op = await queue.getById(id);
+        expect(op?.retryCount).toBe(2);
+        expect(op?.status).toBe('pending'); // Not failed yet (maxRetries=3)
 
-      // Mark as syncing again and reset - should reach failed
-      await testQueue.markSyncing(id);
-      await testQueue.resetStaleSyncing();
-      op = await testQueue.getById(id);
-      expect(op?.retryCount).toBe(2);
-      expect(op?.status).toBe('failed'); // maxRetries reached
-
-      await testQueue.close();
+        // Mark as syncing one more time and reset - should reach failed
+        await queue.markSyncing(id);
+        await queue.resetStaleSyncing();
+        op = await queue.getById(id);
+        expect(op?.retryCount).toBe(3);
+        expect(op?.status).toBe('failed'); // maxRetries reached
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
   });
 
@@ -782,63 +806,89 @@ describe('SyncQueue', () => {
 
       op = await queue.getById(id);
       expect(op?.status).toBe('pending');
-      expect(op?.lastError).toContain('emergency reset');
+      expect(op?.lastError?.toLowerCase()).toContain('emergency reset');
     });
 
     it('should increment retryCount to prevent infinite loops', async () => {
-      // Create a queue with low maxRetries for testing
-      const testQueue = new SyncQueue({ maxRetries: 2 });
-      await testQueue.initialize();
+      // Suppress expected console.warn when max retries reached
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        // Using main queue with maxRetries: 3 (set in beforeEach)
+        const id = await queue.enqueue({
+          entityType: 'game',
+          entityId: 'game_retry_pending',
+          operation: 'update',
+          data: {},
+          timestamp: Date.now(),
+        });
 
-      const id = await testQueue.enqueue({
-        entityType: 'game',
-        entityId: 'game_retry',
-        operation: 'update',
-        data: {},
-        timestamp: Date.now(),
-      });
+        await queue.markSyncing(id);
+        let op = await queue.getById(id);
+        expect(op?.retryCount).toBe(0);
 
-      await testQueue.markSyncing(id);
-      let op = await testQueue.getById(id);
-      expect(op?.retryCount).toBe(0);
+        // Reset - should increment
+        await queue.resetOperationToPending(id);
+        op = await queue.getById(id);
+        expect(op?.retryCount).toBe(1);
+        expect(op?.status).toBe('pending');
 
-      // Reset - should increment
-      await testQueue.resetOperationToPending(id);
-      op = await testQueue.getById(id);
-      expect(op?.retryCount).toBe(1);
-      expect(op?.status).toBe('pending');
+        // Mark syncing and reset again
+        await queue.markSyncing(id);
+        await queue.resetOperationToPending(id);
+        op = await queue.getById(id);
+        expect(op?.retryCount).toBe(2);
+        expect(op?.status).toBe('pending'); // Not failed yet (maxRetries=3)
 
-      // Mark syncing and reset again
-      await testQueue.markSyncing(id);
-      await testQueue.resetOperationToPending(id);
-      op = await testQueue.getById(id);
-      expect(op?.retryCount).toBe(2);
-      expect(op?.status).toBe('failed'); // maxRetries reached
-
-      await testQueue.close();
+        // Mark syncing one more time and reset - should reach failed
+        await queue.markSyncing(id);
+        await queue.resetOperationToPending(id);
+        op = await queue.getById(id);
+        expect(op?.retryCount).toBe(3);
+        expect(op?.status).toBe('failed'); // maxRetries reached
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('should return false for non-existent operation', async () => {
-      const result = await queue.resetOperationToPending('non_existent_id');
-      expect(result).toBe(false);
+      // Suppress expected console.warn when operation not found
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const result = await queue.resetOperationToPending('non_existent_id');
+        expect(result).toBe(false);
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
   });
 
   describe('edge cases', () => {
     it('should throw SyncError when marking non-existent operation as syncing', async () => {
-      // Should throw SyncError for consistency with markFailed
-      await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(SyncError);
-      await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(
-        'Operation non_existent_id not found in queue'
-      );
+      // Suppress expected console.error from logger when operation not found
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        // Should throw SyncError for consistency with markFailed
+        await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(SyncError);
+        await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(
+          'Operation non_existent_id not found in queue'
+        );
+      } finally {
+        errorSpy.mockRestore();
+      }
     });
 
     it('should throw SyncError when marking non-existent operation as failed', async () => {
-      // Should throw SyncError to catch bugs where operation IDs become mismatched
-      await expect(queue.markFailed('non_existent_id', 'Error')).rejects.toThrow(SyncError);
-      await expect(queue.markFailed('non_existent_id', 'Error')).rejects.toThrow(
-        'Operation non_existent_id not found in queue'
-      );
+      // Suppress expected console.error from logger when operation not found
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        // Should throw SyncError to catch bugs where operation IDs become mismatched
+        await expect(queue.markFailed('non_existent_id', 'Error')).rejects.toThrow(SyncError);
+        await expect(queue.markFailed('non_existent_id', 'Error')).rejects.toThrow(
+          'Operation non_existent_id not found in queue'
+        );
+      } finally {
+        errorSpy.mockRestore();
+      }
     });
 
     it('should handle marking non-existent operation as completed', async () => {

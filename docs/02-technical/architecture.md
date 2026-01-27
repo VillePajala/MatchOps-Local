@@ -4,40 +4,75 @@
 
 ## Architecture Philosophy
 
-MatchOps-Local is built on **local-first principles** with a **progressive enhancement approach**, prioritizing data privacy, performance, and reliability through client-side data management.
+MatchOps-Local is built on **local-first principles** with a **dual-backend architecture**, prioritizing data privacy, performance, and reliability while offering optional cloud sync for cross-device access.
 
 ### Core Architectural Principles
 
-1. **Local-First Data**: All data operations happen locally with optional sync capabilities
-2. **Progressive Enhancement**: Works offline, better online
-3. **Single Page Application**: Smooth, native-like user experience
-4. **Component-Based Design**: Modular, reusable, and maintainable codebase
-5. **Type Safety First**: TypeScript throughout for reliability and maintainability
+1. **Local-First Data**: Default mode stores all data locally (IndexedDB) — works offline, no account needed
+2. **Optional Cloud Sync**: Premium feature via Supabase backend for cross-device access
+3. **Backend Abstraction**: DataStore interface allows seamless switching between local and cloud modes
+4. **Progressive Enhancement**: Works offline, better online
+5. **Single Page Application**: Smooth, native-like user experience
+6. **Component-Based Design**: Modular, reusable, and maintainable codebase
+7. **Type Safety First**: TypeScript throughout for reliability and maintainability
 
 ## High-Level System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Browser Environment                       │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐ │
-│  │   React UI      │────│  React Query     │────│ Storage │ │
-│  │   (Components)  │    │  (State Mgmt)    │    │ Layer   │ │
-│  └─────────────────┘    └──────────────────┘    └─────────┘ │
-│           │                       │                    │    │
-│           ▼                       ▼                    ▼    │
-│  ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐ │
-│  │   Next.js       │    │    Hooks &       │    │IndexedDB│ │
-│  │   App Router    │    │    Utilities     │    │Adapter  │ │
-│  └─────────────────┘    └──────────────────┘    └─────────┘ │
-│           │                       │                    │    │
-│           ▼                       ▼                    ▼    │
-│  ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐ │
-│  │   PWA Shell     │    │   TypeScript     │    │IndexedDB│ │
-│  │(Service Worker) │    │   Type System    │    │ KV Store│ │
-│  └─────────────────┘    └──────────────────┘    └─────────┘ │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           Browser Environment                                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐    ┌──────────────────┐    ┌────────────────────────┐   │
+│  │   React UI      │────│  React Query     │────│   DataStore Factory    │   │
+│  │   (Components)  │    │  (State Mgmt)    │    │   (Mode Selection)     │   │
+│  └─────────────────┘    └──────────────────┘    └───────────┬────────────┘   │
+│           │                       │                         │                 │
+│           ▼                       ▼              ┌──────────┴──────────┐      │
+│  ┌─────────────────┐    ┌──────────────────┐    │                     │      │
+│  │   Next.js       │    │    Hooks &       │    ▼                     ▼      │
+│  │   App Router    │    │    Utilities     │  ┌─────────────┐  ┌───────────┐ │
+│  └─────────────────┘    └──────────────────┘  │LocalDataStore│  │Supabase   │ │
+│           │                       │           │ (IndexedDB)  │  │DataStore  │ │
+│           ▼                       ▼           └──────┬──────┘  └─────┬─────┘ │
+│  ┌─────────────────┐    ┌──────────────────┐        │                │       │
+│  │   PWA Shell     │    │   TypeScript     │        ▼                ▼       │
+│  │(Service Worker) │    │   Type System    │  ┌───────────┐  ┌─────────────┐ │
+│  └─────────────────┘    └──────────────────┘  │ IndexedDB │  │  Supabase   │ │
+│                                               │ KV Store  │  │ PostgreSQL  │ │
+│                                               └───────────┘  └──────┬──────┘ │
+└──────────────────────────────────────────────────────────────────────┼───────┘
+                                                                       │
+                                                                       ▼
+                                                            ┌──────────────────┐
+                                                            │  Supabase Cloud  │
+                                                            │  - PostgreSQL    │
+                                                            │  - Auth          │
+                                                            │  - Edge Functions│
+                                                            │  - RLS Policies  │
+                                                            └──────────────────┘
 ```
+
+### Dual-Mode Architecture
+
+The app supports two operating modes, selectable at first launch:
+
+| Aspect | Local Mode | Cloud Mode |
+|--------|------------|------------|
+| **Data Storage** | IndexedDB (browser) | Supabase PostgreSQL |
+| **Authentication** | None required | Email/password via Supabase Auth |
+| **Offline Support** | Full functionality | Read cached data; writes fail with clear error |
+| **Cross-Device** | No | Yes (real-time sync) |
+| **Cost** | Free | €4.99/month subscription |
+| **Privacy** | Data never leaves device | Data in Supabase (EU region), RLS-protected |
+
+**Key Implementation Details:**
+- **DataStore Interface**: `src/interfaces/DataStore.ts` — 60+ methods for all data operations
+- **LocalDataStore**: `src/datastore/LocalDataStore.ts` — IndexedDB implementation
+- **SupabaseDataStore**: `src/datastore/SupabaseDataStore.ts` — Supabase/PostgreSQL implementation
+- **Factory**: `src/datastore/factory.ts` — Mode-aware singleton that returns the correct implementation
+- **Migration Service**: Bidirectional data transfer between local and cloud modes
+
+See **[Dual-Backend Architecture](./architecture/dual-backend-architecture.md)** for complete details.
 
 ## Technology Stack & Rationale
 
@@ -217,16 +252,26 @@ const usePlayerManagement = () => {
 ## Security & Privacy Architecture
 
 ### Data Protection
+
+**Local Mode:**
 - **Local-Only**: No data transmission to external servers
 - **Input Validation**: All user inputs validated and sanitized
 - **XSS Protection**: Content Security Policy and input sanitization
-- **Storage Security**: localStorage data stays in browser sandbox
+- **Storage Security**: IndexedDB data stays in browser sandbox
+
+**Cloud Mode:**
+- **Authentication**: Email/password via Supabase Auth with JWT tokens
+- **Authorization**: Row-Level Security (RLS) policies ensure users only access their own data
+- **Encryption**: TLS for data in transit; Supabase encrypts data at rest
+- **Edge Functions**: JWT verification for subscription and account management
 
 ### Privacy by Design
-- **No Tracking**: Zero analytics or user tracking
-- **No External Requests**: Self-contained application
-- **Data Ownership**: Users maintain complete control
-- **GDPR Compliant**: No personal data collection or processing
+- **Local mode**: Data never leaves device, no tracking
+- **Cloud mode**: Data stored in Supabase (EU region), GDPR compliant
+- **No behavioral tracking**: Feature usage, user patterns NOT collected
+- **Data portability**: Export/import for data ownership
+
+See **[Security Guidelines](./security.md)** for complete security documentation.
 
 ## Scalability & Maintenance
 

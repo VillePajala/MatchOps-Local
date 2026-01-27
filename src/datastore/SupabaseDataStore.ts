@@ -385,6 +385,51 @@ export class SupabaseDataStore implements DataStore {
   };
 
   // ==========================================================================
+  // ERROR CLASSIFICATION HELPERS
+  // ==========================================================================
+
+  /**
+   * Classify a Supabase error and throw the appropriate error type.
+   * Improves error handling by distinguishing auth errors from network errors.
+   *
+   * @param error - The error object from Supabase
+   * @param context - Description of the operation for error messages
+   */
+  private classifyAndThrowError(
+    error: { message: string; code?: string; status?: number },
+    context: string
+  ): never {
+    const message = error.message?.toLowerCase() ?? '';
+    const code = error.code?.toUpperCase() ?? '';
+    const status = error.status;
+
+    // Auth/authorization errors - throw AuthError
+    const isAuthError =
+      // JWT/token issues
+      message.includes('jwt') ||
+      message.includes('token') ||
+      message.includes('expired') ||
+      message.includes('invalid claim') ||
+      // User/session issues
+      message.includes('user not found') ||
+      message.includes('not authenticated') ||
+      message.includes('session') ||
+      // RLS policy violations (PGRST prefix)
+      code.startsWith('PGRST') ||
+      code === '42501' || // PostgreSQL insufficient_privilege
+      // HTTP status codes
+      status === 401 ||
+      status === 403;
+
+    if (isAuthError) {
+      throw new AuthError(`${context}: ${error.message}`);
+    }
+
+    // Default to NetworkError for other database/network issues
+    throw new NetworkError(`${context}: ${error.message}`);
+  }
+
+  // ==========================================================================
   // RETRY HELPERS
   // ==========================================================================
 
@@ -616,7 +661,7 @@ export class SupabaseDataStore implements DataStore {
     }, 'getPlayers');
 
     if (result.error) {
-      throw new NetworkError(`Failed to fetch players: ${result.error.message}`);
+      this.classifyAndThrowError(result.error, 'Failed to fetch players');
     }
 
     return (result.data || []).map(this.transformPlayerFromDb);
@@ -840,7 +885,7 @@ export class SupabaseDataStore implements DataStore {
     const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
-      throw new NetworkError(`Failed to fetch teams: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch teams');
     }
 
     return (data || []).map(this.transformTeamFromDb);
@@ -1358,7 +1403,7 @@ export class SupabaseDataStore implements DataStore {
     const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
-      throw new NetworkError(`Failed to fetch seasons: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch seasons');
     }
 
     const rows = (data || []) as SeasonRow[];
@@ -1696,7 +1741,7 @@ export class SupabaseDataStore implements DataStore {
     const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
-      throw new NetworkError(`Failed to fetch tournaments: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch tournaments');
     }
 
     const rows = (data || []) as TournamentRow[];
@@ -2850,7 +2895,7 @@ export class SupabaseDataStore implements DataStore {
     const { data: games, error } = result;
 
     if (error) {
-      throw new NetworkError(`Failed to fetch games: ${error.message}`);
+      this.classifyAndThrowError(error, 'Failed to fetch games');
     }
 
     if (!games || games.length === 0) {
