@@ -781,6 +781,33 @@ describe('SupabaseDataStore', () => {
           dataStore.createTeam({ name: 'TIGERS' })
         ).rejects.toThrow(AlreadyExistsError);
       });
+
+      /**
+       * @edge-case Database constraint violation (code 23505)
+       * When client-side validation passes but database catches a race condition,
+       * the 23505 error should be caught and thrown as AlreadyExistsError.
+       */
+      it('should throw AlreadyExistsError when database returns unique constraint violation (23505)', async () => {
+        // Mock no existing teams (client-side validation passes)
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        });
+
+        // Mock insert returning unique constraint violation (race condition scenario)
+        // Note: Uses insert not single - createTeam calls .insert() directly
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({
+          data: null,
+          error: {
+            code: '23505',
+            message: 'duplicate key value violates unique constraint "idx_teams_composite_unique"',
+          },
+        });
+
+        await expect(
+          dataStore.createTeam({ name: 'Race Condition Team' })
+        ).rejects.toThrow(AlreadyExistsError);
+      });
     });
   });
 
@@ -1137,6 +1164,32 @@ describe('SupabaseDataStore', () => {
 
         expect(season.name).toBe('Fall Season');
         expect(season.leagueId).toBe('harrastesarja');
+      });
+
+      /**
+       * @edge-case Database constraint violation (code 23505)
+       * When client-side validation passes but database catches a race condition,
+       * the 23505 error should be caught and thrown as AlreadyExistsError.
+       */
+      it('should throw AlreadyExistsError when database returns unique constraint violation (23505)', async () => {
+        // Mock no existing seasons (client-side validation passes)
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        });
+
+        // Mock insert returning unique constraint violation (race condition scenario)
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({
+          data: null,
+          error: {
+            code: '23505',
+            message: 'duplicate key value violates unique constraint "idx_seasons_composite_unique"',
+          },
+        });
+
+        await expect(
+          dataStore.createSeason('Race Condition Season')
+        ).rejects.toThrow(AlreadyExistsError);
       });
     });
 
@@ -1559,6 +1612,32 @@ describe('SupabaseDataStore', () => {
 
         expect(tournament.name).toBe('Spring Cup');
         // The clubSeason will be computed from startDate as '25/26'
+      });
+
+      /**
+       * @edge-case Database constraint violation (code 23505)
+       * When client-side validation passes but database catches a race condition,
+       * the 23505 error should be caught and thrown as AlreadyExistsError.
+       */
+      it('should throw AlreadyExistsError when database returns unique constraint violation (23505)', async () => {
+        // Mock no existing tournaments (client-side validation passes)
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        });
+
+        // Mock insert returning unique constraint violation (race condition scenario)
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({
+          data: null,
+          error: {
+            code: '23505',
+            message: 'duplicate key value violates unique constraint "idx_tournaments_composite_unique"',
+          },
+        });
+
+        await expect(
+          dataStore.createTournament('Race Condition Tournament')
+        ).rejects.toThrow(AlreadyExistsError);
       });
     });
 
