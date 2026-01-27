@@ -32,8 +32,8 @@ import {
   setPendingPostLoginCheck,
   clearPendingPostLoginCheck,
 } from '@/config/backendConfig';
-import { hasLocalDataToMigrate, type MigrationCounts } from '@/services/migrationService';
-import { hasCloudData, getCloudDataSummary } from '@/services/reverseMigrationService';
+import { hasLocalDataToMigrate } from '@/services/migrationService';
+import { hasCloudData } from '@/services/reverseMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
 import logger from '@/utils/logger';
@@ -50,8 +50,6 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
-  const [cloudCounts, setCloudCounts] = useState<MigrationCounts | null>(null);
-  const [isLoadingCloudCounts, setIsLoadingCloudCounts] = useState(false);
   // Welcome screen state (first-install onboarding)
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
@@ -408,19 +406,9 @@ export default function Home() {
           // User can trigger migration manually from settings if needed
           logger.warn('[page.tsx] Failed to check local data:', result.error);
         } else if (result.hasData) {
-          logger.info('[page.tsx] Local data found, fetching cloud counts for migration wizard');
-          // Fetch cloud counts to determine migration scenario
-          setIsLoadingCloudCounts(true);
-          try {
-            const counts = await getCloudDataSummary();
-            setCloudCounts(counts);
-          } catch (cloudError) {
-            // Cloud fetch failed - wizard will assume cloud is empty
-            logger.warn('[page.tsx] Failed to fetch cloud counts:', cloudError);
-            setCloudCounts(null);
-          } finally {
-            setIsLoadingCloudCounts(false);
-          }
+          // Local data found - show simplified migration wizard
+          // (No need to fetch cloud counts - wizard always uses merge mode)
+          logger.info('[page.tsx] Local data found, showing migration wizard');
           setShowMigrationWizard(true);
         } else {
           // No local data - check if cloud has data that needs to be loaded
@@ -561,7 +549,6 @@ export default function Home() {
   const handleMigrationCancel = useCallback(() => {
     logger.info('[page.tsx] Migration cancelled, switching to local mode');
     setShowMigrationWizard(false);
-    setCloudCounts(null);
 
     // Disable cloud mode and reload to reinitialize in local mode
     const result = disableCloudMode();
@@ -688,13 +675,11 @@ export default function Home() {
             />
           </ErrorBoundary>
         ) : showMigrationWizard ? (
-          // Cloud mode: show migration wizard when local data needs to be migrated
+          // Cloud mode: show simplified migration wizard to sync local data
           <ErrorBoundary>
             <MigrationWizard
               onComplete={handleMigrationComplete}
               onCancel={handleMigrationCancel}
-              cloudCounts={cloudCounts}
-              isLoadingCloudCounts={isLoadingCloudCounts}
             />
           </ErrorBoundary>
         ) : screen === 'start' ? (

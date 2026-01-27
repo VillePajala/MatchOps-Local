@@ -120,7 +120,8 @@ describe('ReverseMigrationWizard', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Failed to check cloud data')).toBeInTheDocument();
-        expect(screen.getByText('Network error')).toBeInTheDocument();
+        // Error messages are sanitized - network errors show user-friendly message
+        expect(screen.getByText('Network error. Please check your connection and try again.')).toBeInTheDocument();
       });
 
       // Should have retry button
@@ -133,7 +134,8 @@ describe('ReverseMigrationWizard', () => {
       renderWizard();
 
       await waitFor(() => {
-        expect(screen.getByText('Network error')).toBeInTheDocument();
+        // Error messages are sanitized
+        expect(screen.getByText('Network error. Please check your connection and try again.')).toBeInTheDocument();
       });
 
       // Reset mock for retry
@@ -774,7 +776,8 @@ describe('ReverseMigrationWizard', () => {
     });
 
     it('should handle thrown exceptions', async () => {
-      mockMigrateCloudToLocal.mockRejectedValue(new Error('Unexpected error'));
+      // Use an error that will be sanitized to a generic message
+      mockMigrateCloudToLocal.mockRejectedValue(new Error('Some internal error'));
 
       renderWizard();
 
@@ -796,7 +799,9 @@ describe('ReverseMigrationWizard', () => {
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { level: 2, name: 'Download Failed' })).toBeInTheDocument();
-        expect(screen.getByText(/Unexpected error/)).toBeInTheDocument();
+        // Error messages are sanitized - generic errors show user-friendly message
+        // Text includes bullet point prefix
+        expect(screen.getByText(/Download failed\. Please try again\./)).toBeInTheDocument();
       });
     });
   });
