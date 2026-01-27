@@ -1288,7 +1288,10 @@ async function uploadToCloud(
         }
         logger.debug(`[MigrationService] Session refreshed at game ${i + 1}/${gameIds.length}`);
       } catch (refreshError) {
-        logger.warn(`[MigrationService] Session refresh failed at game ${i + 1}, continuing:`, refreshError);
+        const refreshErrorMsg = refreshError instanceof Error ? refreshError.message : 'Unknown error';
+        logger.warn(`[MigrationService] Session refresh failed at game ${i + 1}:`, refreshError);
+        // Inform user about session refresh failure - subsequent uploads may fail
+        warnings.push(`Session refresh failed at game ${i + 1}/${gameIds.length}: ${refreshErrorMsg}. Continuing, but subsequent uploads may fail if session expired.`);
         // Continue - the individual game upload will fail if session is truly expired
       }
     }

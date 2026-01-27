@@ -426,8 +426,9 @@ export class SupabaseAuthService implements AuthService {
         await this.client!.auth.signOut({ scope: 'local' });
         logger.info('[SupabaseAuthService] Local session cleared after API failure');
       } catch (localError) {
-        // Even local signout failed - this is unusual but session state is already cleared
-        logger.warn('[SupabaseAuthService] Local signout also failed:', localError);
+        // Both API and local signout failed - this is unusual and should be tracked
+        // Session state is cleared in memory, but localStorage may still have stale data
+        logger.error('[SupabaseAuthService] Both API and local signout failed - auth state may be inconsistent:', localError);
       }
     }
 

@@ -20,6 +20,7 @@ import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/Subs
 import { getDataStore } from '@/datastore/factory';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
+import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import CloudAuthModal from './CloudAuthModal';
@@ -285,10 +286,24 @@ export default function CloudSyncSection({
       setClearConfirmText('');
     } catch (error) {
       logger.error('[CloudSyncSection] Failed to clear cloud data:', error);
-      showToast(
-        t('cloudSync.clearError', 'Failed to clear cloud data. Please try again.'),
-        'error'
-      );
+
+      // Provide actionable feedback based on error type
+      if (error instanceof NetworkError) {
+        showToast(
+          t('cloudSync.clearNetworkError', 'Network error. Please check your connection and try again.'),
+          'error'
+        );
+      } else if (error instanceof AuthError) {
+        showToast(
+          t('cloudSync.clearAuthError', 'Session expired. Please sign out and sign in again.'),
+          'error'
+        );
+      } else {
+        showToast(
+          t('cloudSync.clearError', 'Failed to clear cloud data. Please try again.'),
+          'error'
+        );
+      }
     } finally {
       if (isMountedRef.current) {
         setIsClearingCloud(false);
@@ -348,10 +363,19 @@ export default function CloudSyncSection({
       }, 1000);
     } catch (error) {
       logger.error('[CloudSyncSection] Failed to sign out:', error);
-      showToast(
-        t('cloudSync.signOutError', 'Failed to sign out. Please try again.'),
-        'error'
-      );
+
+      // Provide actionable feedback based on error type
+      if (error instanceof NetworkError) {
+        showToast(
+          t('cloudSync.signOutNetworkError', 'Network error. You can continue using the app offline.'),
+          'error'
+        );
+      } else {
+        showToast(
+          t('cloudSync.signOutError', 'Failed to sign out. Please try again.'),
+          'error'
+        );
+      }
       if (isMountedRef.current) {
         setIsSigningOut(false);
       }
