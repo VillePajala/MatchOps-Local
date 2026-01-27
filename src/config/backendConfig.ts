@@ -5,7 +5,7 @@
  * Part of Phase 4: Supabase Cloud Backend implementation.
  *
  * @see docs/03-active-plans/supabase-implementation-guide.md
- * @updated 2026-01-27 - Cache bust v2 for Google OAuth staging config
+ * @updated 2026-01-27 - Cache bust v3 for Site URL trailing space fix
  */
 
 import logger from '@/utils/logger';
