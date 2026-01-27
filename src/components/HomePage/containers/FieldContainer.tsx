@@ -2,6 +2,7 @@ import React, { useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineCamera, HiOutlineBookOpen } from 'react-icons/hi2';
+import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
@@ -319,6 +320,11 @@ export function FieldContainer({
           subSlots={fieldVM.subSlots}
         />
       </ErrorBoundary>
+
+      {/* Sync status indicator - top left */}
+      <div className="absolute top-4 left-4 z-20">
+        <SyncStatusIndicator variant="field" />
+      </div>
 
       {/* Field action buttons - always visible */}
       <div className="absolute top-4 right-4 z-20 flex gap-2">

@@ -26,9 +26,17 @@ const ALLOWED_ORIGINS = [
   'https://matchops.app',
   'https://www.matchops.app',
   'https://match-ops-local.vercel.app',
-  // Allow localhost for development
+  // Allow localhost for development (ports 3000-3009)
   'http://localhost:3000',
   'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:3003',
+  'http://localhost:3004',
+  'http://localhost:3005',
+  'http://localhost:3006',
+  'http://localhost:3007',
+  'http://localhost:3008',
+  'http://localhost:3009',
 ];
 
 // Vercel preview deployment pattern: match-ops-local-{hash}-{team}.vercel.app
