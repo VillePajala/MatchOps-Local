@@ -93,8 +93,9 @@ describe('premiumLimits', () => {
       expect(PREMIUM_PRODUCT_ID).toBe('matchops_premium');
     });
 
-    it('should have correct price string', () => {
-      expect(PREMIUM_PRICE).toBe('€4.99');
+    it('should have correct price string in European format', () => {
+      // European format: symbol + space + comma decimal + /kk (per month in Finnish)
+      expect(PREMIUM_PRICE).toBe('€ 4,99/kk');
     });
 
     it('should have correct price amount', () => {

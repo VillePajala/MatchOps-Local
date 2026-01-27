@@ -328,7 +328,8 @@ describe('PremiumContext', () => {
         </PremiumProvider>
       );
 
-      expect(screen.getByTestId('price').textContent).toBe('€4.99');
+      // Price in European format: "€ 4,99/kk" includes per-month indicator
+      expect(screen.getByTestId('price').textContent).toBe('€ 4,99/kk');
     });
 
     it('should handle license load error gracefully', async () => {
@@ -555,7 +556,8 @@ describe('usePremium hook', () => {
 
     expect(screen.getByTestId('premium').textContent).toBe('false');
     expect(screen.getByTestId('has-limits').textContent).toBe('true');
-    expect(screen.getByTestId('price').textContent).toBe('€4.99');
+    // Price in European format: "€ 4,99/kk" includes per-month indicator
+    expect(screen.getByTestId('price').textContent).toBe('€ 4,99/kk');
   });
 });
 
