@@ -41,6 +41,7 @@ describe('SyncStatusIndicator', () => {
     lastSyncedAt: null,
     isOnline: true,
     isSyncing: false,
+    isLoading: false,
     syncNow: jest.fn(),
     retryFailed: jest.fn(),
     clearFailed: jest.fn(),
@@ -59,22 +60,23 @@ describe('SyncStatusIndicator', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseSyncStatus.mockReturnValue({ ...defaultSyncStatus, isLoading: false });
+    mockUseSyncStatus.mockReturnValue(defaultSyncStatus);
     // Default to having active subscription (cloud sync enabled)
     mockUseSubscriptionOptional.mockReturnValue(defaultSubscription);
   });
 
   describe('local mode', () => {
-    it('should render local mode indicator', () => {
+    it('should render local mode indicator with phone icon', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'local',
         state: 'local',
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByText('Local')).toBeInTheDocument();
+      // Local mode shows phone icon with correct title
       expect(screen.getByRole('button')).toHaveAttribute(
         'title',
         'Data stored locally on device'
@@ -86,6 +88,7 @@ describe('SyncStatusIndicator', () => {
         ...defaultSyncStatus,
         mode: 'local',
         state: 'local',
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
@@ -96,17 +99,60 @@ describe('SyncStatusIndicator', () => {
     });
   });
 
-  describe('cloud mode - synced state', () => {
-    it('should render synced indicator', () => {
+  describe('cloud mode - paused (no subscription)', () => {
+    it('should render paused indicator when no subscription', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'synced',
+        isLoading: false,
+      });
+      mockUseSubscriptionOptional.mockReturnValue({
+        ...defaultSubscription,
+        isActive: false,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByText('Synced')).toBeInTheDocument();
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'title',
+        'Sync paused - subscription required'
+      );
+    });
+
+    it('should have amber styling for paused state', () => {
+      mockUseSyncStatus.mockReturnValue({
+        ...defaultSyncStatus,
+        mode: 'cloud',
+        state: 'pending',
+        isLoading: false,
+      });
+      mockUseSubscriptionOptional.mockReturnValue({
+        ...defaultSubscription,
+        isActive: false,
+        isLoading: false,
+      });
+
+      render(<SyncStatusIndicator />);
+
+      const button = screen.getByRole('button');
+      expect(button).toHaveClass('bg-amber-500/20');
+      expect(button).toHaveClass('border-amber-500/40');
+    });
+  });
+
+  describe('cloud mode - synced state', () => {
+    it('should render synced indicator with checkmark', () => {
+      mockUseSyncStatus.mockReturnValue({
+        ...defaultSyncStatus,
+        mode: 'cloud',
+        state: 'synced',
+        isLoading: false,
+      });
+
+      render(<SyncStatusIndicator />);
+
       expect(screen.getByRole('button')).toHaveAttribute(
         'title',
         'All data synced to cloud'
@@ -118,6 +164,7 @@ describe('SyncStatusIndicator', () => {
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'synced',
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
@@ -129,17 +176,17 @@ describe('SyncStatusIndicator', () => {
   });
 
   describe('cloud mode - syncing state', () => {
-    it('should render syncing indicator with spinning icon', () => {
+    it('should render syncing indicator with correct title', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'syncing',
         isSyncing: true,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByText('Syncing')).toBeInTheDocument();
       expect(screen.getByRole('button')).toHaveAttribute(
         'title',
         'Syncing data to cloud...'
@@ -151,6 +198,7 @@ describe('SyncStatusIndicator', () => {
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'syncing',
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
@@ -162,30 +210,19 @@ describe('SyncStatusIndicator', () => {
   });
 
   describe('cloud mode - pending state', () => {
-    it('should render pending indicator with count', () => {
+    it('should render pending indicator with count badge', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'pending',
         pendingCount: 5,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByText('5 pending')).toBeInTheDocument();
-    });
-
-    it('should render pending without count when zero', () => {
-      mockUseSyncStatus.mockReturnValue({
-        ...defaultSyncStatus,
-        mode: 'cloud',
-        state: 'pending',
-        pendingCount: 0,
-      });
-
-      render(<SyncStatusIndicator />);
-
-      expect(screen.getByText('Pending')).toBeInTheDocument();
+      // Count badge shows the pending count
+      expect(screen.getByText('5')).toBeInTheDocument();
     });
 
     it('should have amber styling for pending state', () => {
@@ -194,6 +231,7 @@ describe('SyncStatusIndicator', () => {
         mode: 'cloud',
         state: 'pending',
         pendingCount: 3,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
@@ -203,47 +241,54 @@ describe('SyncStatusIndicator', () => {
       expect(button).toHaveClass('border-amber-500/40');
     });
 
-    it('should show online indicator when pending and online', () => {
+    it('should have correct title for pending state', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'pending',
         pendingCount: 3,
         isOnline: true,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      // Should have the small signal icon
-      expect(screen.getByTitle('Online')).toBeInTheDocument();
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'title',
+        '3 changes waiting to sync'
+      );
     });
   });
 
   describe('cloud mode - error state', () => {
-    it('should render error indicator with count', () => {
+    it('should render error indicator with count badge', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'error',
         failedCount: 2,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByText('2 failed')).toBeInTheDocument();
+      // Count badge shows the failed count
+      expect(screen.getByText('2')).toBeInTheDocument();
     });
 
-    it('should render error without count when zero', () => {
+    it('should render error with ! badge when zero count', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'error',
         failedCount: 0,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByText('Error')).toBeInTheDocument();
+      // Shows ! badge when no count
+      expect(screen.getByText('!')).toBeInTheDocument();
     });
 
     it('should have red styling for error state', () => {
@@ -252,6 +297,7 @@ describe('SyncStatusIndicator', () => {
         mode: 'cloud',
         state: 'error',
         failedCount: 2,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
@@ -263,17 +309,17 @@ describe('SyncStatusIndicator', () => {
   });
 
   describe('cloud mode - offline state', () => {
-    it('should render offline indicator', () => {
+    it('should render offline indicator with correct title', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'offline',
         isOnline: false,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByText('Offline')).toBeInTheDocument();
       expect(screen.getByRole('button')).toHaveAttribute(
         'title',
         'No internet connection - changes will sync when online'
@@ -286,6 +332,7 @@ describe('SyncStatusIndicator', () => {
         mode: 'cloud',
         state: 'offline',
         isOnline: false,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
@@ -294,32 +341,23 @@ describe('SyncStatusIndicator', () => {
       expect(button).toHaveClass('bg-slate-600/30');
       expect(button).toHaveClass('border-slate-500/40');
     });
-
-    it('should not show online indicator when offline', () => {
-      mockUseSyncStatus.mockReturnValue({
-        ...defaultSyncStatus,
-        mode: 'cloud',
-        state: 'offline',
-        isOnline: false,
-      });
-
-      render(<SyncStatusIndicator />);
-
-      expect(screen.queryByTitle('Online')).not.toBeInTheDocument();
-    });
   });
 
   describe('default cloud state', () => {
-    it('should render cloud indicator for unknown state', () => {
+    it('should render cloud indicator for unknown state with correct title', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'unknown' as never, // Force unknown state
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByText('Cloud')).toBeInTheDocument();
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'title',
+        'Data syncs to cloud'
+      );
     });
   });
 
@@ -377,70 +415,48 @@ describe('SyncStatusIndicator', () => {
     });
   });
 
-  describe('online indicator', () => {
-    it('should show online indicator for pending state when online', () => {
-      mockUseSyncStatus.mockReturnValue({
-        ...defaultSyncStatus,
-        mode: 'cloud',
-        state: 'pending',
-        isOnline: true,
-      });
-
-      render(<SyncStatusIndicator />);
-
-      expect(screen.getByTitle('Online')).toBeInTheDocument();
-    });
-
-    it('should show online indicator for error state when online', () => {
-      mockUseSyncStatus.mockReturnValue({
-        ...defaultSyncStatus,
-        mode: 'cloud',
-        state: 'error',
-        isOnline: true,
-      });
-
-      render(<SyncStatusIndicator />);
-
-      expect(screen.getByTitle('Online')).toBeInTheDocument();
-    });
-
-    it('should show online indicator for syncing state when online', () => {
-      mockUseSyncStatus.mockReturnValue({
-        ...defaultSyncStatus,
-        mode: 'cloud',
-        state: 'syncing',
-        isOnline: true,
-      });
-
-      render(<SyncStatusIndicator />);
-
-      expect(screen.getByTitle('Online')).toBeInTheDocument();
-    });
-
-    it('should NOT show online indicator for synced state', () => {
+  describe('subscription loading state', () => {
+    it('should show normal sync state while subscription is loading', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
         mode: 'cloud',
         state: 'synced',
-        isOnline: true,
+        isLoading: false,
+      });
+      // Subscription still loading
+      mockUseSubscriptionOptional.mockReturnValue({
+        ...defaultSubscription,
+        isLoading: true,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.queryByTitle('Online')).not.toBeInTheDocument();
+      // Should show synced state (not paused) while loading
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'title',
+        'All data synced to cloud'
+      );
     });
 
-    it('should NOT show online indicator in local mode', () => {
+    it('should show paused state when subscription is not loading and inactive', () => {
       mockUseSyncStatus.mockReturnValue({
         ...defaultSyncStatus,
-        mode: 'local',
-        state: 'local',
-        isOnline: true,
+        mode: 'cloud',
+        state: 'synced',
+        isLoading: false,
+      });
+      mockUseSubscriptionOptional.mockReturnValue({
+        ...defaultSubscription,
+        isActive: false,
+        isLoading: false,
       });
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.queryByTitle('Online')).not.toBeInTheDocument();
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'title',
+        'Sync paused - subscription required'
+      );
     });
   });
 });

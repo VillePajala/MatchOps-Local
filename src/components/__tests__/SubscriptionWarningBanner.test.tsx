@@ -69,6 +69,7 @@ describe('SubscriptionWarningBanner', () => {
         graceEnd: null,
         isActive: true,
         isLoading: false,
+        fetchFailed: false,
         refresh: jest.fn(),
       });
 
@@ -86,6 +87,7 @@ describe('SubscriptionWarningBanner', () => {
         graceEnd: null,
         isActive: false,
         isLoading: false,
+        fetchFailed: false,
         refresh: jest.fn(),
       });
 
@@ -104,6 +106,7 @@ describe('SubscriptionWarningBanner', () => {
         graceEnd: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
         isActive: true,
         isLoading: false,
+        fetchFailed: false,
         refresh: jest.fn(),
       });
     });
@@ -152,6 +155,7 @@ describe('SubscriptionWarningBanner', () => {
         graceEnd: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
         isActive: false,
         isLoading: false,
+        fetchFailed: false,
         refresh: jest.fn(),
       });
     });
@@ -189,6 +193,7 @@ describe('SubscriptionWarningBanner', () => {
         graceEnd: null,
         isActive: true,
         isLoading: false,
+        fetchFailed: false,
         refresh: jest.fn(),
       });
 
@@ -206,6 +211,7 @@ describe('SubscriptionWarningBanner', () => {
         graceEnd: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
         isActive: true,
         isLoading: false,
+        fetchFailed: false,
         refresh: jest.fn(),
       });
 

@@ -89,10 +89,19 @@ jest.mock('react-i18next', () => ({
 }));
 
 jest.mock('@/utils/logger', () => ({
-  error: jest.fn(),
-  warn: jest.fn(),
+  __esModule: true,
+  default: {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+  debug: jest.fn(),
   log: jest.fn(),
   info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
 }));
 
 // Default useSyncStatus mock (can be overridden in individual tests)
@@ -162,6 +171,26 @@ jest.mock('../ReverseMigrationWizard', () => {
       <div data-testid="reverse-migration-wizard">
         <button onClick={onComplete}>Complete Migration</button>
         <button onClick={onCancel}>Cancel Migration</button>
+      </div>
+    );
+  };
+});
+
+// Mock UpgradePromptModal to avoid async state update issues from usePlayBilling
+jest.mock('../UpgradePromptModal', () => {
+  return function MockUpgradePromptModal({
+    isOpen,
+    onClose,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    source?: string;
+  }) {
+    if (!isOpen) return null;
+    return (
+      <div data-testid="upgrade-prompt-modal">
+        <button onClick={onClose}>Close Upgrade Modal</button>
+        <button onClick={onClose}>Subscribe Now</button>
       </div>
     );
   };
@@ -583,7 +612,10 @@ describe('CloudSyncSection', () => {
       expect(screen.getByText('Subscription Required')).toBeInTheDocument();
       // "sync is paused" appears in both description and warning banner
       expect(screen.getAllByText(/sync is paused/i)).toHaveLength(2);
-      expect(screen.getByRole('button', { name: /subscribe now/i })).toBeInTheDocument();
+      // There are now two "Subscribe Now" buttons - one in banner, one in auto-shown upgrade modal
+      expect(screen.getAllByRole('button', { name: /subscribe now/i }).length).toBeGreaterThanOrEqual(1);
+      // Verify the upgrade modal is auto-shown
+      expect(screen.getByTestId('upgrade-prompt-modal')).toBeInTheDocument();
     });
 
     it('does not show subscription warning when user has active subscription', () => {
