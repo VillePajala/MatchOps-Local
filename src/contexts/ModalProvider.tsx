@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useRef, useReducer, useCallback } from 'react';
 import { initialModalState, modalReducer } from './modalReducer';
 
+type SettingsTab = 'general' | 'data' | 'account' | 'about';
+
 interface ModalContextValue {
   isGameSettingsModalOpen: boolean;
   setIsGameSettingsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -22,6 +24,10 @@ interface ModalContextValue {
   setIsNewGameSetupModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isSettingsModalOpen: boolean;
   setIsSettingsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Open settings modal to a specific tab */
+  openSettingsToTab: (tab: SettingsTab) => void;
+  /** The tab to open settings modal to (undefined = default) */
+  settingsInitialTab: SettingsTab | undefined;
   isPlayerAssessmentModalOpen: boolean;
   setIsPlayerAssessmentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -97,6 +103,9 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  // Settings modal initial tab state
+  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab | undefined>(undefined);
+
   // Reducer-backed setter for Settings modal (no anti-flash needed)
   const setIsSettingsModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((valueOrUpdater) => {
     const prev = settingsOpenRef.current;
@@ -110,8 +119,16 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     }
     if (!next && prev) {
       settingsOpenRef.current = false;
+      setSettingsInitialTab(undefined); // Reset initial tab when closing
       dispatchModal({ type: 'CLOSE_MODAL', id: 'settings' });
     }
+  }, []);
+
+  // Open settings modal to a specific tab
+  const openSettingsToTab = useCallback((tab: SettingsTab) => {
+    setSettingsInitialTab(tab);
+    settingsOpenRef.current = true;
+    dispatchModal({ type: 'OPEN_MODAL', id: 'settings', at: Date.now() });
   }, []);
 
   // Reducer-backed setter for Game Stats modal (no anti-flash needed)
@@ -186,6 +203,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsNewGameSetupModalOpen,
     isSettingsModalOpen: modalState.settings,
     setIsSettingsModalOpen,
+    openSettingsToTab,
+    settingsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   };
