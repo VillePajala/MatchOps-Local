@@ -478,8 +478,9 @@ export class SupabaseDataStore implements DataStore {
       logger.debug(`[SupabaseDataStore] isAvailable: ${available}${error ? ` (error: ${error.message})` : ''}`);
       return available;
     } catch (err) {
-      // Exceptions during availability check are unusual and warrant visibility
-      logger.warn(`[SupabaseDataStore] isAvailable check threw exception: ${err instanceof Error ? err.message : String(err)}`);
+      // Exceptions during availability check are unusual and indicate potential SDK/config issues
+      // Log at error level to ensure visibility in Sentry
+      logger.error(`[SupabaseDataStore] isAvailable check threw exception - cloud features may not work:`, err);
       return false;
     }
   }
