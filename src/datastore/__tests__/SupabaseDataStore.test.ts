@@ -2464,6 +2464,56 @@ describe('SupabaseDataStore', () => {
           })
         );
       });
+
+      /**
+       * Issue #330: Optimistic locking - version cache update after save
+       * @critical - Ensures subsequent saves use correct version
+       */
+      it('should update version cache after successful save', async () => {
+        // First save returns version 5
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: 5,
+          error: null,
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        // First save - no cached version yet
+        await dataStore.saveGame('game_version_test', game as unknown as AppState);
+
+        // Second save returns version 6
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: 6,
+          error: null,
+        });
+
+        // Second save - should use cached version 5 from first save
+        await dataStore.saveGame('game_version_test', game as unknown as AppState);
+
+        // Verify second call used version 5 (cached from first save's return value)
+        const calls = (mockSupabaseClient.rpc as jest.Mock).mock.calls;
+        expect(calls[1][1]).toMatchObject({
+          p_expected_version: 5,
+        });
+      });
     });
 
     describe('deleteGame', () => {

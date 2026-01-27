@@ -385,6 +385,11 @@ export class SupabaseDataStore implements DataStore {
   private initPromise: Promise<void> | null = null;
   // Version cache for optimistic locking (Issue #330)
   // Maps game ID -> current version number
+  // Lifecycle:
+  //   - Populated: getGameById(), getGames() on successful load
+  //   - Used: saveGame() passes cached version as p_expected_version
+  //   - Invalidated: deleteGame(), clearUserCaches(), conflict error
+  //   - Scoped: Per-user (cleared on logout/mode switch via clearUserCaches)
   private gameVersionCache: Map<string, number> = new Map();
 
   // Retry configuration for transient network errors
@@ -3068,7 +3073,10 @@ export class SupabaseDataStore implements DataStore {
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
     // Wrapped with retry for transient network errors (critical for mobile reliability)
     // throwIfTransient ensures network errors trigger retry
-    // Note: Conflict errors (40001) should NOT be retried - they indicate real concurrency issues
+    // IMPORTANT: Conflict errors (40001/serialization_failure) are NOT retried because:
+    //   1. isTransientError() in retry.ts excludes 40001 from transient codes
+    //   2. 40001 indicates real concurrent modification, not a transient network issue
+    //   3. User intervention required - they must refresh to see latest changes
     const client = this.getClient();
     const rpcResult = await this.withRetry(async () => {
       const result = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ data: number | null; error: { message: string; code?: string } | null }>)(
@@ -3090,11 +3098,9 @@ export class SupabaseDataStore implements DataStore {
       const errorMessage = error.message.toLowerCase();
 
       // Issue #330: Detect optimistic locking conflict
-      // PostgreSQL raises serialization_failure (40001) for our custom conflict exception
-      const isConflict =
-        error.code === '40001' ||
-        errorMessage.includes('conflict') ||
-        errorMessage.includes('modified by another session');
+      // PostgreSQL raises serialization_failure (SQLSTATE 40001) for version mismatch
+      // We check error code only - our migration uses ERRCODE = 'serialization_failure'
+      const isConflict = error.code === '40001';
 
       if (isConflict) {
         logger.warn('[SupabaseDataStore] Optimistic locking conflict detected for game', {
@@ -3139,6 +3145,14 @@ export class SupabaseDataStore implements DataStore {
     // Update version cache with new version returned from RPC (Issue #330)
     if (typeof newVersion === 'number') {
       this.gameVersionCache.set(id, newVersion);
+    } else {
+      // This should never happen - RPC always returns version on success
+      // Log for debugging but don't fail the save (data is already saved)
+      logger.warn('[SupabaseDataStore] Unexpected non-numeric version from RPC', {
+        gameId: id,
+        versionType: typeof newVersion,
+        versionValue: newVersion,
+      });
     }
 
     await this.ensureGameCreatedAt(id);
@@ -3148,6 +3162,13 @@ export class SupabaseDataStore implements DataStore {
 
   /**
    * Backfill created_at for legacy rows where it was left null.
+   *
+   * INTENTIONAL SILENT FAILURE: This is a best-effort backfill for legacy data.
+   * We log failures but don't propagate errors because:
+   * 1. The game data is already saved successfully at this point
+   * 2. created_at is used for sorting/display, not critical functionality
+   * 3. Failing the entire save for a backfill would be worse UX
+   * 4. The update is idempotent - will be retried on next save if needed
    */
   private async ensureGameCreatedAt(gameId: string): Promise<void> {
     const { error } = await this.getClient()
