@@ -91,7 +91,12 @@ function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   // Allow Vercel preview deployments
-  if (VERCEL_PREVIEW_PATTERN.test(origin)) return true;
+  if (VERCEL_PREVIEW_PATTERN.test(origin)) {
+    console.log(`[CORS] Allowed Vercel preview origin: ${origin}`);
+    return true;
+  }
+  // Log rejected origins for debugging
+  console.warn(`[CORS] Origin not allowed: ${origin}`);
   return false;
 }
 
@@ -151,8 +156,12 @@ Deno.serve(async (req: Request) => {
   const origin = req.headers.get('Origin');
   const corsHeaders = getCorsHeaders(origin);
 
+  // Debug logging for troubleshooting
+  console.log(`[verify-subscription] Request from origin: ${origin || '(no origin)'}, method: ${req.method}`);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    console.log(`[verify-subscription] CORS preflight response for origin: ${origin}`);
     return new Response('ok', { headers: corsHeaders });
   }
 
