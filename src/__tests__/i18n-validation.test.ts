@@ -266,8 +266,9 @@ describe('Translation File Validation', () => {
       // Local-first sync UI: syncStatus + syncDetails keys (Phase 6)
       // Mode switching: pendingSync warning keys (Phase 7)
       // CloudSync error differentiation: clearNetworkError, clearAuthError, signOutNetworkError (Phase 8)
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144
-      expect(enKeys.length).toBe(2144);
+      // Sync status paused state: paused, pausedTitle (Phase 8)
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146
+      expect(enKeys.length).toBe(2146);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -281,8 +282,9 @@ describe('Translation File Validation', () => {
       // Local-first sync UI: syncStatus + syncDetails keys (Phase 6)
       // Mode switching: pendingSync warning keys (Phase 7)
       // CloudSync error differentiation: clearNetworkError, clearAuthError, signOutNetworkError (Phase 8)
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144
-      expect(fiKeys.length).toBe(2144);
+      // Sync status paused state: paused, pausedTitle (Phase 8)
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146
+      expect(fiKeys.length).toBe(2146);
     });
   });
 });

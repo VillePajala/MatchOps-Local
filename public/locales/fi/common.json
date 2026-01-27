@@ -2221,6 +2221,8 @@
     "errorTitle": "{{count}} toimintoa epäonnistui - napauta yrittääksesi uudelleen",
     "offline": "Offline",
     "offlineTitle": "Ei internet-yhteyttä - muutokset synkronoidaan kun olet online",
+    "paused": "Keskeytetty",
+    "pausedTitle": "Synkronointi keskeytetty - tilaus vaaditaan",
     "cloud": "Pilvi",
     "cloudTitle": "Tiedot synkronoidaan pilveen",
     "online": "Online"

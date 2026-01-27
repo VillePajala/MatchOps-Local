@@ -8,10 +8,17 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import SyncStatusIndicator from '../SyncStatusIndicator';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
+import { useSubscriptionOptional } from '@/contexts/SubscriptionContext';
 
 // Mock useSyncStatus hook
 jest.mock('@/hooks/useSyncStatus');
 const mockUseSyncStatus = useSyncStatus as jest.MockedFunction<typeof useSyncStatus>;
+
+// Mock useSubscriptionOptional hook
+jest.mock('@/contexts/SubscriptionContext', () => ({
+  useSubscriptionOptional: jest.fn(),
+}));
+const mockUseSubscriptionOptional = useSubscriptionOptional as jest.MockedFunction<typeof useSubscriptionOptional>;
 
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
@@ -39,9 +46,22 @@ describe('SyncStatusIndicator', () => {
     clearFailed: jest.fn(),
   };
 
+  // Default subscription state (active subscription)
+  const defaultSubscription = {
+    status: 'active' as const,
+    periodEnd: null,
+    graceEnd: null,
+    isActive: true,
+    isLoading: false,
+    fetchFailed: false,
+    refresh: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseSyncStatus.mockReturnValue(defaultSyncStatus);
+    mockUseSyncStatus.mockReturnValue({ ...defaultSyncStatus, isLoading: false });
+    // Default to having active subscription (cloud sync enabled)
+    mockUseSubscriptionOptional.mockReturnValue(defaultSubscription);
   });
 
   describe('local mode', () => {
