@@ -35,6 +35,13 @@ jest.mock('@/hooks/useFocusTrap', () => ({
   useFocusTrap: jest.fn(),
 }));
 
+// Mock platform detection - default to Android for tests that need registration
+jest.mock('@/utils/platform', () => ({
+  isAndroid: jest.fn(() => true),
+  isIOS: jest.fn(() => false),
+  isDesktop: jest.fn(() => false),
+}));
+
 // Mock logger
 jest.mock('@/utils/logger', () => ({
   __esModule: true,
