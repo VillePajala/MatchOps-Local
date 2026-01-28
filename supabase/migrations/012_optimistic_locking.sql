@@ -30,7 +30,15 @@ COMMENT ON COLUMN games.version IS
 -- - If provided: Must match current version, otherwise raises conflict error
 --
 -- Returns the new version number after save.
+--
+-- IMPORTANT: Must DROP the old function first because we're changing:
+-- 1. Return type (void → integer)
+-- 2. Adding a new parameter (p_expected_version)
+-- PostgreSQL cannot change return type with CREATE OR REPLACE alone.
 -- ============================================================================
+
+-- Drop the old 5-parameter version (void return type) if it exists
+DROP FUNCTION IF EXISTS save_game_with_relations(jsonb, jsonb[], jsonb[], jsonb[], jsonb);
 
 CREATE OR REPLACE FUNCTION save_game_with_relations(
   p_game jsonb,

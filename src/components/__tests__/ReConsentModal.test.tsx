@@ -31,6 +31,7 @@ describe('ReConsentModal', () => {
     isLoading: false,
     mode: 'cloud' as const,
     needsReConsent: false,
+    initTimedOut: false,
     signIn: jest.fn(),
     signUp: jest.fn(),
     signOut: jest.fn(),
@@ -38,6 +39,7 @@ describe('ReConsentModal', () => {
     recordConsent: jest.fn(),
     acceptReConsent: jest.fn(),
     deleteAccount: jest.fn(),
+    retryAuthInit: jest.fn(),
   };
 
   beforeEach(() => {

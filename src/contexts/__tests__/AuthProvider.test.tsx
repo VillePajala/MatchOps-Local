@@ -120,6 +120,11 @@ jest.mock('@/contexts/SubscriptionContext', () => ({
   clearSubscriptionCache: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('@sentry/nextjs', () => ({
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+}));
+
 // Note: Platform detection and Play Billing mocks removed.
 // Subscription is no longer granted on signup - it's a separate flow.
 // Account creation is free; subscription only gates sync features.
@@ -669,6 +674,146 @@ describe('AuthProvider', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('no');
+      });
+    });
+  });
+
+  // ==========================================================================
+  // INITIALIZATION TIMEOUT AND RETRY
+  // ==========================================================================
+
+  describe('initialization timeout and retry', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      mockAuthService = createMockCloudAuthService(true);
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.getBackendMode.mockReturnValue('cloud');
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    /**
+     * Test component that exposes initTimedOut and retryAuthInit
+     */
+    function TimeoutTestComponent() {
+      const { isLoading, initTimedOut, retryAuthInit, isAuthenticated } = useAuth();
+      return (
+        <div>
+          <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+          <span data-testid="timed-out">{initTimedOut ? 'yes' : 'no'}</span>
+          <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+          <button data-testid="retry-btn" onClick={retryAuthInit}>Retry</button>
+        </div>
+      );
+    }
+
+    /**
+     * Issue #330: When auth initialization hangs, users should see initTimedOut=true
+     * and have the option to retry.
+     */
+    it('should set initTimedOut to true after 10 second timeout', async () => {
+      // Make getAuthService hang indefinitely
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => new Promise(() => {}));
+
+      render(
+        <AuthProvider>
+          <TimeoutTestComponent />
+        </AuthProvider>
+      );
+
+      // Initially loading
+      expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+      expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+
+      // Advance past the 10 second timeout
+      await act(async () => {
+        jest.advanceTimersByTime(10001);
+      });
+
+      // Should show timed out state
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        expect(screen.getByTestId('timed-out')).toHaveTextContent('yes');
+      });
+    });
+
+    /**
+     * Issue #330: Calling retryAuthInit should reset initTimedOut and re-attempt initialization.
+     */
+    it('should reset state and retry when retryAuthInit is called', async () => {
+      const factory = require('@/datastore/factory');
+      let callCount = 0;
+
+      // First call hangs, second call succeeds
+      factory.getAuthService.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return new Promise(() => {}); // Hang
+        }
+        return Promise.resolve(mockAuthService); // Succeed
+      });
+
+      render(
+        <AuthProvider>
+          <TimeoutTestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for timeout
+      await act(async () => {
+        jest.advanceTimersByTime(10001);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timed-out')).toHaveTextContent('yes');
+      });
+
+      // Click retry
+      await act(async () => {
+        screen.getByTestId('retry-btn').click();
+      });
+
+      // Should be loading again with initTimedOut reset
+      expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+      expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+
+      // Let the second initialization complete
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      });
+    });
+
+    /**
+     * Issue #330: Normal initialization should not set initTimedOut.
+     */
+    it('should not set initTimedOut when initialization completes normally', async () => {
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockResolvedValue(mockAuthService);
+
+      render(
+        <AuthProvider>
+          <TimeoutTestComponent />
+        </AuthProvider>
+      );
+
+      // Let initialization complete
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
       });
     });
   });

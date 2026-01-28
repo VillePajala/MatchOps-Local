@@ -505,6 +505,86 @@ describe('SupabaseDataStore', () => {
         expect(result).toBe(false);
       });
     });
+
+    /**
+     * Issue: Multi-agent review identified missing upsertPlayer tests.
+     * Upsert semantics differ from create/update - ensures idempotent sync operations.
+     */
+    describe('upsertPlayer', () => {
+      it('should upsert player successfully (insert or update)', async () => {
+        const mockRow = {
+          id: 'player_123',
+          name: 'Upserted Player',
+          nickname: null,
+          jersey_number: '10',
+          is_goalie: false,
+          color: null,
+          notes: null,
+          received_fair_play_card: false,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+
+        mockQueryBuilder.select = jest.fn().mockReturnThis();
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: mockRow,
+          error: null,
+        });
+
+        const player = await dataStore.upsertPlayer({
+          id: 'player_123',
+          name: 'Upserted Player',
+          jerseyNumber: '10',
+          isGoalie: false,
+          receivedFairPlayCard: false,
+        });
+
+        expect(player.id).toBe('player_123');
+        expect(player.name).toBe('Upserted Player');
+        expect(mockQueryBuilder.upsert).toHaveBeenCalled();
+      });
+
+      it('should throw ValidationError for empty name', async () => {
+        await expect(
+          dataStore.upsertPlayer({
+            id: 'player_123',
+            name: '',
+            isGoalie: false,
+            receivedFairPlayCard: false,
+          })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should throw ValidationError for name exceeding max length', async () => {
+        // VALIDATION_LIMITS.PLAYER_NAME_MAX is 100
+        await expect(
+          dataStore.upsertPlayer({
+            id: 'player_123',
+            name: 'A'.repeat(101),
+            isGoalie: false,
+            receivedFairPlayCard: false,
+          })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should throw NetworkError on database error', async () => {
+        // Mock upsert to return an error (upsertPlayer calls .upsert() directly, not .single())
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error', code: 'PGRST500' },
+        });
+
+        await expect(
+          dataStore.upsertPlayer({
+            id: 'player_123',
+            name: 'Test Player',
+            isGoalie: false,
+            receivedFairPlayCard: false,
+          })
+        ).rejects.toThrow(NetworkError);
+      });
+    });
   });
 
   // ==========================================================================
@@ -808,6 +888,80 @@ describe('SupabaseDataStore', () => {
         await expect(
           dataStore.createTeam({ name: 'Race Condition Team' })
         ).rejects.toThrow(AlreadyExistsError);
+      });
+    });
+
+    /**
+     * Issue: Multi-agent review identified missing upsertTeam tests.
+     * Upsert is critical for sync operations - must handle both insert and update cases.
+     */
+    describe('upsertTeam', () => {
+      it('should upsert team successfully', async () => {
+        const mockRow = {
+          id: 'team_123',
+          name: 'Upserted Team',
+          color: '#FF0000',
+          notes: null,
+          age_group: null,
+          game_type: 'soccer',
+          archived: false,
+          bound_season_id: null,
+          bound_tournament_id: null,
+          bound_tournament_series_id: null,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+
+        mockQueryBuilder.select = jest.fn().mockReturnThis();
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: mockRow,
+          error: null,
+        });
+
+        const team = await dataStore.upsertTeam({
+          id: 'team_123',
+          name: 'Upserted Team',
+          color: '#FF0000',
+          gameType: 'soccer',
+          archived: false,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        });
+
+        expect(team.id).toBe('team_123');
+        expect(team.name).toBe('Upserted Team');
+        expect(mockQueryBuilder.upsert).toHaveBeenCalled();
+      });
+
+      it('should throw ValidationError for empty team name', async () => {
+        await expect(
+          dataStore.upsertTeam({
+            id: 'team_123',
+            name: '',
+            archived: false,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should throw NetworkError on database error', async () => {
+        // Mock upsert to return an error (upsertTeam calls .upsert() directly, not .single())
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error', code: 'PGRST500' },
+        });
+
+        await expect(
+          dataStore.upsertTeam({
+            id: 'team_123',
+            name: 'Test Team',
+            archived: false,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          })
+        ).rejects.toThrow(NetworkError);
       });
     });
   });
@@ -1296,6 +1450,95 @@ describe('SupabaseDataStore', () => {
         expect(result).toBeNull();
       });
     });
+
+    describe('upsertSeason', () => {
+      it('should upsert season successfully', async () => {
+        const mockRow = {
+          id: 'season_123',
+          name: 'Upserted Season',
+          start_date: '2024-01-01',
+          end_date: '2024-12-31',
+          club_season: '23/24',
+          game_type: 'soccer',
+          gender: 'boys',
+          age_group: 'U12',
+          league_id: null,
+          custom_league_name: null,
+          archived: false,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+
+        mockQueryBuilder.select = jest.fn().mockReturnThis();
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: mockRow,
+          error: null,
+        });
+
+        // Mock settings for clubSeason calculation
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        const season = await dataStore.upsertSeason({
+          id: 'season_123',
+          name: 'Upserted Season',
+          startDate: '2024-01-01',
+          endDate: '2024-12-31',
+          gameType: 'soccer',
+          gender: 'boys',
+          ageGroup: 'U12',
+        });
+
+        expect(season.id).toBe('season_123');
+        expect(season.name).toBe('Upserted Season');
+        expect(mockQueryBuilder.upsert).toHaveBeenCalled();
+      });
+
+      it('should throw ValidationError for empty season name', async () => {
+        await expect(
+          dataStore.upsertSeason({
+            id: 'season_123',
+            name: '',
+            gameType: 'soccer',
+          })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should throw NetworkError on database error', async () => {
+        // Mock upsert to return an error (upsertSeason calls .upsert() directly, not .single())
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error', code: 'PGRST500' },
+        });
+
+        // Mock settings
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        await expect(
+          dataStore.upsertSeason({
+            id: 'season_123',
+            name: 'Test Season',
+            gameType: 'soccer',
+          })
+        ).rejects.toThrow(NetworkError);
+      });
+    });
   });
 
   // ==========================================================================
@@ -1743,6 +1986,97 @@ describe('SupabaseDataStore', () => {
         expect(result).toBeNull();
       });
     });
+
+    describe('upsertTournament', () => {
+      it('should upsert tournament successfully', async () => {
+        const mockRow = {
+          id: 'tournament_123',
+          name: 'Upserted Tournament',
+          start_date: '2024-06-01',
+          end_date: '2024-06-03',
+          location: 'Helsinki',
+          club_season: '23/24',
+          game_type: 'soccer',
+          gender: 'boys',
+          age_group: 'U12',
+          level: null,
+          series: null,
+          archived: false,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+
+        mockQueryBuilder.select = jest.fn().mockReturnThis();
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: mockRow,
+          error: null,
+        });
+
+        // Mock settings for clubSeason calculation
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        const tournament = await dataStore.upsertTournament({
+          id: 'tournament_123',
+          name: 'Upserted Tournament',
+          startDate: '2024-06-01',
+          endDate: '2024-06-03',
+          location: 'Helsinki',
+          gameType: 'soccer',
+          gender: 'boys',
+          ageGroup: 'U12',
+        });
+
+        expect(tournament.id).toBe('tournament_123');
+        expect(tournament.name).toBe('Upserted Tournament');
+        expect(mockQueryBuilder.upsert).toHaveBeenCalled();
+      });
+
+      it('should throw ValidationError for empty tournament name', async () => {
+        await expect(
+          dataStore.upsertTournament({
+            id: 'tournament_123',
+            name: '',
+            gameType: 'soccer',
+          })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should throw NetworkError on database error', async () => {
+        // Mock upsert to return an error (upsertTournament calls .upsert() directly, not .single())
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error', code: 'PGRST500' },
+        });
+
+        // Mock settings
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        await expect(
+          dataStore.upsertTournament({
+            id: 'tournament_123',
+            name: 'Test Tournament',
+            gameType: 'soccer',
+          })
+        ).rejects.toThrow(NetworkError);
+      });
+    });
   });
 
   // ==========================================================================
@@ -1869,6 +2203,75 @@ describe('SupabaseDataStore', () => {
         });
 
         await expect(dataStore.removePersonnelMember('personnel_123')).rejects.toThrow(NetworkError);
+      });
+    });
+
+    describe('upsertPersonnelMember', () => {
+      it('should upsert personnel member successfully', async () => {
+        const mockRow = {
+          id: 'personnel_123',
+          name: 'Upserted Coach',
+          role: 'headCoach',
+          email: 'coach@test.com',
+          phone: null,
+          certifications: ['UEFA B'],
+          notes: null,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+
+        mockQueryBuilder.select = jest.fn().mockReturnThis();
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: mockRow,
+          error: null,
+        });
+
+        const personnel = await dataStore.upsertPersonnelMember({
+          id: 'personnel_123',
+          name: 'Upserted Coach',
+          role: 'headCoach' as PersonnelRole,
+          email: 'coach@test.com',
+          certifications: ['UEFA B'],
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        });
+
+        expect(personnel.id).toBe('personnel_123');
+        expect(personnel.name).toBe('Upserted Coach');
+        expect(mockQueryBuilder.upsert).toHaveBeenCalled();
+      });
+
+      it('should throw ValidationError for empty personnel name', async () => {
+        await expect(
+          dataStore.upsertPersonnelMember({
+            id: 'personnel_123',
+            name: '',
+            role: 'headCoach' as PersonnelRole,
+            certifications: [],
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          })
+        ).rejects.toThrow(ValidationError);
+      });
+
+      it('should throw NetworkError on database error', async () => {
+        // Mock upsert to return an error (upsertPersonnelMember calls .upsert() directly, not .single())
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error', code: 'PGRST500' },
+        });
+
+        await expect(
+          dataStore.upsertPersonnelMember({
+            id: 'personnel_123',
+            name: 'Test Coach',
+            role: 'headCoach' as PersonnelRole,
+            certifications: [],
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          })
+        ).rejects.toThrow(NetworkError);
       });
     });
   });
@@ -2571,6 +2974,53 @@ describe('SupabaseDataStore', () => {
       });
 
       /**
+       * Issue #330: ConflictError must carry correct resourceType and resourceId.
+       * @critical - UI depends on these properties to display appropriate error messages.
+       */
+      it('should include correct resourceType and resourceId in ConflictError', async () => {
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        // First save succeeds, caches version
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: 1, error: null });
+        await dataStore.saveGame('game_metadata_test', game as unknown as AppState);
+
+        // Second save fails with conflict
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: null,
+          error: { message: 'Version conflict', code: '40001' },
+        });
+
+        try {
+          await dataStore.saveGame('game_metadata_test', game as unknown as AppState);
+          fail('Expected ConflictError to be thrown');
+        } catch (error) {
+          expect(error).toBeInstanceOf(ConflictError);
+          const conflictError = error as ConflictError;
+          expect(conflictError.resourceType).toBe('game');
+          expect(conflictError.resourceId).toBe('game_metadata_test');
+          expect(conflictError.message).toContain('modified in another tab or device');
+        }
+      });
+
+      /**
        * Issue #330: Optimistic locking - cache must stay current across saves
        * @critical - Ensures subsequent saves use correct version from previous save
        *
@@ -2621,6 +3071,73 @@ describe('SupabaseDataStore', () => {
         expect(calls[1][1]).toMatchObject({ p_expected_version: 1 });
         // Third call: 2 (from second save's return)
         expect(calls[2][1]).toMatchObject({ p_expected_version: 2 });
+      });
+
+      /**
+       * Issue #330: Load-then-save flow must populate version cache from getGameById.
+       * @critical - Primary user flow: load game via getGameById -> edit -> save
+       *
+       * If version cache population in getGameById broke, optimistic locking would be
+       * silently disabled (all saves would pass null, skipping version check).
+       */
+      it('should populate version cache when loading game via getGameById', async () => {
+        // Mock getGameById - simulate loading a game with version 7
+        // Note: getGameById uses fetchGameTables which makes parallel queries
+        // We need to mock the query builder chain for each table
+        const mockGameRow = {
+          id: 'game_load_test',
+          user_id: 'test-user-id',
+          team_name: 'Loaded Team',
+          opponent_name: 'Opponent',
+          game_date: '2024-01-15',
+          home_or_away: 'home',
+          number_of_periods: 2,
+          period_duration_minutes: 10,
+          current_period: 1,
+          game_status: 'notStarted',
+          home_score: 0,
+          away_score: 0,
+          game_notes: '',
+          show_player_names: true,
+          version: 7, // The version we're testing
+          created_at: '2024-01-15T00:00:00Z',
+          updated_at: '2024-01-15T00:00:00Z',
+        };
+
+        // Mock the parallel queries used by fetchGameTables
+        const mockSingle = jest.fn()
+          .mockResolvedValueOnce({ data: mockGameRow, error: null }); // games table
+        const mockSelect = jest.fn()
+          .mockResolvedValueOnce({ data: [], error: null }) // game_players
+          .mockResolvedValueOnce({ data: [], error: null }) // game_events
+          .mockResolvedValueOnce({ data: [], error: null }) // player_assessments
+          .mockResolvedValueOnce({ data: null, error: { code: 'PGRST116' } }); // game_tactical_data (not found is OK)
+
+        mockQueryBuilder.eq = jest.fn().mockReturnValue({
+          single: mockSingle,
+        });
+        mockQueryBuilder.select = jest.fn().mockImplementation(() => ({
+          eq: jest.fn().mockImplementation(() => mockSelect()),
+        }));
+
+        // Load game via getGameById
+        const loadedGame = await dataStore.getGameById('game_load_test');
+        expect(loadedGame).not.toBeNull();
+
+        // Now save the game - should use cached version 7
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: 8, error: null });
+
+        const gameToSave = {
+          ...loadedGame,
+          gameNotes: 'Updated notes',
+        };
+        await dataStore.saveGame('game_load_test', gameToSave as AppState);
+
+        // Verify saveGame used cached version 7 from getGameById
+        const rpcCalls = (mockSupabaseClient.rpc as jest.Mock).mock.calls;
+        expect(rpcCalls[0][1]).toMatchObject({
+          p_expected_version: 7,
+        });
       });
     });
 

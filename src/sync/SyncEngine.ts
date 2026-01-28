@@ -218,6 +218,11 @@ export class SyncEngine {
 
     if (this.isSyncing) {
       logger.warn('[SyncEngine] Dispose timeout - sync operation still in progress');
+      // Track in Sentry - timeout during dispose could indicate hung operations
+      Sentry.captureMessage('SyncEngine dispose timeout - sync still in progress', {
+        tags: { component: 'SyncEngine', action: 'dispose-timeout' },
+        level: 'warning',
+      });
     }
 
     // Clear all listeners
@@ -348,6 +353,11 @@ export class SyncEngine {
       // Fire-and-forget: don't await to avoid blocking the UI, but catch errors
       this.doProcessQueue().catch((e) => {
         logger.error('[SyncEngine] Error processing queue after retry:', e);
+        // Track in Sentry - retry processing errors need production visibility
+        Sentry.captureException(e, {
+          tags: { component: 'SyncEngine', action: 'retryFailed-doProcessQueue' },
+          level: 'error',
+        });
       });
     }
   }
@@ -463,6 +473,11 @@ export class SyncEngine {
       this.lastSyncedAt = Date.now();
     } catch (error) {
       logger.error('[SyncEngine] Error processing queue:', error);
+      // Track in Sentry - unexpected queue processing errors need visibility
+      Sentry.captureException(error, {
+        tags: { component: 'SyncEngine', action: 'doProcessQueue' },
+        level: 'error',
+      });
     } finally {
       this.isSyncing = false;
       this.emitStatusChange();
@@ -510,6 +525,11 @@ export class SyncEngine {
           listener(op.id, op.entityType, op.entityId);
         } catch (e) {
           logger.error('[SyncEngine] Error in complete listener:', e);
+          // Track in Sentry - listener bugs could cause UI inconsistencies
+          Sentry.captureException(e, {
+            tags: { component: 'SyncEngine', action: 'completeListener' },
+            level: 'error',
+          });
         }
       }
     } catch (error) {
@@ -565,6 +585,11 @@ export class SyncEngine {
           listener(op.id, errorMessage, willRetry);
         } catch (e) {
           logger.error('[SyncEngine] Error in failed listener:', e);
+          // Track in Sentry - listener bugs could cause UI inconsistencies
+          Sentry.captureException(e, {
+            tags: { component: 'SyncEngine', action: 'failedListener' },
+            level: 'error',
+          });
         }
       }
     }
@@ -594,12 +619,22 @@ export class SyncEngine {
             listener(status);
           } catch (e) {
             logger.error('[SyncEngine] Error in status listener:', e);
+            // Track in Sentry - listener bugs could cause UI inconsistencies
+            Sentry.captureException(e, {
+              tags: { component: 'SyncEngine', action: 'statusListener' },
+              level: 'error',
+            });
           }
         }
       })
       .catch((e) => {
         // Unexpected - queue should be initialized when engine is running
         logger.warn('[SyncEngine] Could not emit status change:', e);
+        // Track in Sentry - this is unexpected and could cause stale UI state
+        Sentry.captureException(e, {
+          tags: { component: 'SyncEngine', action: 'doEmitStatus' },
+          level: 'warning',
+        });
       })
       .finally(() => {
         this.pendingStatusEmit = false;

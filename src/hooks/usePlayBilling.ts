@@ -197,9 +197,9 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyRe
       userId: session.user.id,
       expiresAt: session.expires_at,
       hasAccessToken: !!accessToken,
-      tokenPrefix: accessToken.substring(0, 20) + '...',
-      tokenLength: accessToken.length,
-      purchaseToken: purchaseToken.substring(0, 30) + '...',
+      accessTokenLength: accessToken.length,
+      hasPurchaseToken: !!purchaseToken,
+      purchaseTokenLength: purchaseToken.length,
       productId: SUBSCRIPTION_PRODUCT_ID,
     });
 

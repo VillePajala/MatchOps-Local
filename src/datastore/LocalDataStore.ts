@@ -208,11 +208,15 @@ const createTeamCompositeKey = (
   boundTournamentSeriesId?: string,
   gameType?: string
 ): string => {
-  const parts = [normalizeTeamNameForCompare(name)];
-  if (boundSeasonId) parts.push(`season:${boundSeasonId}`);
-  if (boundTournamentId) parts.push(`tournament:${boundTournamentId}`);
-  if (boundTournamentSeriesId) parts.push(`series:${boundTournamentSeriesId}`);
-  if (gameType) parts.push(`type:${gameType}`);
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
+  const parts = [
+    normalizeTeamNameForCompare(name),
+    `season:${boundSeasonId ?? ''}`,
+    `tournament:${boundTournamentId ?? ''}`,
+    `series:${boundTournamentSeriesId ?? ''}`,
+    `type:${gameType ?? ''}`,
+  ];
   return parts.join('::');
 };
 
@@ -243,13 +247,15 @@ const createSeasonCompositeKey = (
   ageGroup?: string,
   leagueId?: string
 ): string => {
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
   const parts = [
     normalizeNameForCompare(name),
-    `clubSeason:${clubSeason ?? 'none'}`,
-    `gameType:${gameType ?? 'none'}`,
-    `gender:${gender ?? 'none'}`,
-    `ageGroup:${ageGroup ?? 'none'}`,
-    `leagueId:${leagueId ?? 'none'}`,
+    `clubSeason:${clubSeason ?? ''}`,
+    `gameType:${gameType ?? ''}`,
+    `gender:${gender ?? ''}`,
+    `ageGroup:${ageGroup ?? ''}`,
+    `leagueId:${leagueId ?? ''}`,
   ];
   return parts.join('::');
 };
@@ -278,12 +284,14 @@ const createTournamentCompositeKey = (
   gender?: string,
   ageGroup?: string
 ): string => {
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
   const parts = [
     normalizeNameForCompare(name),
-    `clubSeason:${clubSeason ?? 'none'}`,
-    `gameType:${gameType ?? 'none'}`,
-    `gender:${gender ?? 'none'}`,
-    `ageGroup:${ageGroup ?? 'none'}`,
+    `clubSeason:${clubSeason ?? ''}`,
+    `gameType:${gameType ?? ''}`,
+    `gender:${gender ?? ''}`,
+    `ageGroup:${ageGroup ?? ''}`,
   ];
   return parts.join('::');
 };

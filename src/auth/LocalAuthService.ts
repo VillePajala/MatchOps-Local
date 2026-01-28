@@ -14,6 +14,7 @@ import type { AuthService } from '@/interfaces/AuthService';
 import type { User, Session, AuthResult, AuthStateCallback } from '@/interfaces/AuthTypes';
 import { LOCAL_USER } from '@/interfaces/AuthTypes';
 import { NotSupportedError } from '@/interfaces/DataStoreErrors';
+import logger from '@/utils/logger';
 
 /**
  * Local authentication service.
@@ -65,6 +66,7 @@ export class LocalAuthService implements AuthService {
 
   async signOut(): Promise<void> {
     // No-op in local mode - user is always "signed in"
+    logger.debug('[LocalAuthService] signOut called (no-op in local mode)');
   }
 
   async resetPassword(_email: string): Promise<void> {
