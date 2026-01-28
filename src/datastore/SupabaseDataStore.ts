@@ -389,7 +389,7 @@ export class SupabaseDataStore implements DataStore {
   //   - Populated: getGameById(), getGames() on successful load
   //   - Used: saveGame() passes cached version as p_expected_version
   //   - Invalidated: deleteGame(), clearUserCaches(), conflict error
-  //   - Scoped: Per-user (cleared on logout/mode switch via clearUserCaches)
+  //   - Scoped: Per DataStore instance (effectively per user session)
   private gameVersionCache: Map<string, number> = new Map();
 
   // Retry configuration for transient network errors

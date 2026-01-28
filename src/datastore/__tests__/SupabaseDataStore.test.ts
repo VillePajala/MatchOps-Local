@@ -2514,6 +2514,61 @@ describe('SupabaseDataStore', () => {
           p_expected_version: 5,
         });
       });
+
+      /**
+       * Issue #330: Optimistic locking - cache invalidation on conflict
+       * @critical - Ensures stale cache is cleared after conflict
+       */
+      it('should clear version cache when conflict detected', async () => {
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        // First save succeeds, caches version 3
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: 3,
+          error: null,
+        });
+        await dataStore.saveGame('game_conflict_test', game as unknown as AppState);
+
+        // Second save fails with conflict (40001)
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: null,
+          error: { message: 'Version conflict', code: '40001' },
+        });
+        await expect(
+          dataStore.saveGame('game_conflict_test', game as unknown as AppState)
+        ).rejects.toThrow(ConflictError);
+
+        // Third save should pass null (cache was cleared on conflict)
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: 4,
+          error: null,
+        });
+        await dataStore.saveGame('game_conflict_test', game as unknown as AppState);
+
+        // Verify third call passed null for p_expected_version
+        const calls = (mockSupabaseClient.rpc as jest.Mock).mock.calls;
+        expect(calls[2][1]).toMatchObject({
+          p_expected_version: null,
+        });
+      });
     });
 
     describe('deleteGame', () => {
