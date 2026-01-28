@@ -1654,6 +1654,15 @@ export async function hasLocalDataToMigrate(): Promise<LocalDataCheckResult> {
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Unknown error';
     logger.error('[MigrationService] Failed to check local data:', err);
+    // Track in Sentry - local data check failure could indicate IndexedDB issues
+    try {
+      Sentry.captureException(err, {
+        tags: { component: 'MigrationService', action: 'hasLocalDataToMigrate' },
+        level: 'error',
+      });
+    } catch {
+      // Sentry failure is acceptable - error is already logged
+    }
     return { hasData: false, checkFailed: true, error: errorMsg };
   } finally {
     try {

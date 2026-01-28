@@ -1136,6 +1136,15 @@ export async function hasCloudData(): Promise<CloudDataCheckResult> {
     // Log the actual error for debugging
     const errorMsg = err instanceof Error ? err.message : 'Unknown error';
     logger.error('[ReverseMigrationService] Failed to check cloud data:', err);
+    // Track in Sentry - cloud data check failure could indicate auth or network issues
+    try {
+      Sentry.captureException(err, {
+        tags: { component: 'ReverseMigrationService', action: 'hasCloudData' },
+        level: 'error',
+      });
+    } catch {
+      // Sentry failure is acceptable - error is already logged
+    }
     return { hasData: false, checkFailed: true, error: errorMsg };
   }
 }

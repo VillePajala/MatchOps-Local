@@ -163,10 +163,15 @@ export default function AuthModal({
       // Log unexpected exceptions for production monitoring
       logger.error('[AuthModal] Unexpected error during auth:', error);
       // Track in Sentry for production visibility
-      Sentry.captureException(error, {
-        tags: { flow: `auth-modal-${mode}` },
-        level: 'error',
-      });
+      // Wrapped in try/catch to prevent Sentry SDK failures from affecting auth flow
+      try {
+        Sentry.captureException(error, {
+          tags: { flow: `auth-modal-${mode}` },
+          level: 'error',
+        });
+      } catch {
+        // Sentry failure must not affect auth error handling
+      }
     } finally {
       setIsLoading(false);
     }

@@ -93,7 +93,11 @@ function transformSession(supabaseSession: SupabaseSession): Session {
     expiresAtSeconds = Math.floor(Date.now() / 1000) + 3600;
     logger.warn('[SupabaseAuthService] Session missing expires_at, using 1-hour fallback');
     // Track this edge case to detect potential Supabase SDK issues
-    Sentry.captureMessage('Supabase session missing expires_at', 'warning');
+    try {
+      Sentry.captureMessage('Supabase session missing expires_at', 'warning');
+    } catch {
+      // Sentry failure must not break session transformation
+    }
   }
 
   return {
@@ -294,10 +298,14 @@ export class SupabaseAuthService implements AuthService {
               // Non-network error - treat as invalid session
               logger.error('[SupabaseAuthService] Session validation error:', validationError);
               // Track in Sentry - non-network validation failures need investigation
-              Sentry.captureException(validationError, {
-                tags: { flow: 'auth-init-session-validation' },
-                level: 'warning',
-              });
+              try {
+                Sentry.captureException(validationError, {
+                  tags: { flow: 'auth-init-session-validation' },
+                  level: 'warning',
+                });
+              } catch {
+                // Sentry failure must not break auth initialization
+              }
               this.currentSession = null;
               this.currentUser = null;
             }
@@ -593,11 +601,15 @@ export class SupabaseAuthService implements AuthService {
 
       // Refresh failed (expired/invalid) - return null per interface contract
       // Track in Sentry - non-network refresh failures help diagnose auth issues
-      Sentry.captureMessage('Session refresh failed (non-network)', {
-        tags: { flow: 'session-refresh' },
-        level: 'warning',
-        extra: { errorMessage: error.message },
-      });
+      try {
+        Sentry.captureMessage('Session refresh failed (non-network)', {
+          tags: { flow: 'session-refresh' },
+          level: 'warning',
+          extra: { errorMessage: error.message },
+        });
+      } catch {
+        // Sentry failure must not affect auth state handling
+      }
       this.currentSession = null;
       this.currentUser = null;
       return null;

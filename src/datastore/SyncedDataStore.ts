@@ -236,11 +236,15 @@ export class SyncedDataStore implements DataStore {
       } catch (listenerError) {
         logger.error('[SyncedDataStore] Queue error listener threw:', listenerError);
         // Track in Sentry - listener bugs could cause sync errors to go unreported to users
-        Sentry.captureException(listenerError, {
-          tags: { component: 'SyncedDataStore', action: 'notifyQueueError' },
-          level: 'error',
-          extra: { queueErrorInfo: info },
-        });
+        try {
+          Sentry.captureException(listenerError, {
+            tags: { component: 'SyncedDataStore', action: 'notifyQueueError' },
+            level: 'error',
+            extra: { queueErrorInfo: info },
+          });
+        } catch {
+          // Sentry failure must not prevent other listeners from being notified
+        }
       }
     }
   }
@@ -285,10 +289,14 @@ export class SyncedDataStore implements DataStore {
       logger.error('[SyncedDataStore] Failed to queue sync operation', context);
 
       // Report to Sentry for production tracking
-      Sentry.captureException(error, {
-        tags: { component: 'SyncedDataStore', action: 'queueSync' },
-        extra: context,
-      });
+      try {
+        Sentry.captureException(error, {
+          tags: { component: 'SyncedDataStore', action: 'queueSync' },
+          extra: context,
+        });
+      } catch {
+        // Sentry failure must not prevent listener notification
+      }
 
       // Notify listeners so the app can alert the user
       this.notifyQueueError({

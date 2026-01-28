@@ -125,10 +125,14 @@ export class SyncEngine {
       .catch((e) => {
         logger.error('[SyncEngine] Failed to reset stale syncing operations:', e);
         // Report to Sentry - stale reset failure may leave operations stuck
-        Sentry.captureException(e, {
-          tags: { component: 'SyncEngine', action: 'resetStaleSyncing' },
-          level: 'error',
-        });
+        try {
+          Sentry.captureException(e, {
+            tags: { component: 'SyncEngine', action: 'resetStaleSyncing' },
+            level: 'error',
+          });
+        } catch {
+          // Sentry failure must not prevent engine startup
+        }
         // Track that reset failed - operations may be stuck in 'syncing' state
         this.staleResetFailed = true;
         // Emit status change so UI can show warning about potential sync issues
@@ -243,10 +247,14 @@ export class SyncEngine {
     if (this.isSyncing) {
       logger.warn('[SyncEngine] Dispose timeout - sync operation still in progress');
       // Track in Sentry - timeout during dispose could indicate hung operations
-      Sentry.captureMessage('SyncEngine dispose timeout - sync still in progress', {
-        tags: { component: 'SyncEngine', action: 'dispose-timeout' },
-        level: 'warning',
-      });
+      try {
+        Sentry.captureMessage('SyncEngine dispose timeout - sync still in progress', {
+          tags: { component: 'SyncEngine', action: 'dispose-timeout' },
+          level: 'warning',
+        });
+      } catch {
+        // Sentry failure must not prevent dispose completion
+      }
     }
 
     // Clear all listeners
@@ -378,10 +386,14 @@ export class SyncEngine {
       this.doProcessQueue().catch((e) => {
         logger.error('[SyncEngine] Error processing queue after retry:', e);
         // Track in Sentry - retry processing errors need production visibility
-        Sentry.captureException(e, {
-          tags: { component: 'SyncEngine', action: 'retryFailed-doProcessQueue' },
-          level: 'error',
-        });
+        try {
+          Sentry.captureException(e, {
+            tags: { component: 'SyncEngine', action: 'retryFailed-doProcessQueue' },
+            level: 'error',
+          });
+        } catch {
+          // Sentry failure is acceptable - error is already logged
+        }
       });
     }
   }
@@ -407,10 +419,14 @@ export class SyncEngine {
       // CRITICAL: Must have .catch() to prevent unhandled rejection
       this.doProcessQueue().catch((e) => {
         logger.error('[SyncEngine] Error processing queue after coming online:', e);
-        Sentry.captureException(e, {
-          tags: { component: 'SyncEngine', action: 'handleOnline-processQueue' },
-          level: 'error',
-        });
+        try {
+          Sentry.captureException(e, {
+            tags: { component: 'SyncEngine', action: 'handleOnline-processQueue' },
+            level: 'error',
+          });
+        } catch {
+          // Sentry failure is acceptable - error is already logged
+        }
       });
     }
   };
@@ -445,6 +461,16 @@ export class SyncEngine {
           // Continue with processing below
         } catch (e) {
           logger.warn('[SyncEngine] Stale reset recovery failed:', e);
+          // Track in Sentry - persistent stale reset failures could indicate IndexedDB issues
+          try {
+            Sentry.captureException(e, {
+              tags: { component: 'SyncEngine', action: 'staleResetRecovery' },
+              level: 'warning',
+              extra: { retryCount: this.staleResetRetryCount },
+            });
+          } catch {
+            // Sentry failure is acceptable - warning is already logged
+          }
           return;
         }
       } else {
@@ -505,10 +531,14 @@ export class SyncEngine {
     } catch (error) {
       logger.error('[SyncEngine] Error processing queue:', error);
       // Track in Sentry - unexpected queue processing errors need visibility
-      Sentry.captureException(error, {
-        tags: { component: 'SyncEngine', action: 'doProcessQueue' },
-        level: 'error',
-      });
+      try {
+        Sentry.captureException(error, {
+          tags: { component: 'SyncEngine', action: 'doProcessQueue' },
+          level: 'error',
+        });
+      } catch {
+        // Sentry failure is acceptable - error is already logged
+      }
     } finally {
       this.isSyncing = false;
       this.emitStatusChange();
@@ -557,10 +587,14 @@ export class SyncEngine {
         } catch (e) {
           logger.error('[SyncEngine] Error in complete listener:', e);
           // Track in Sentry - listener bugs could cause UI inconsistencies
-          Sentry.captureException(e, {
-            tags: { component: 'SyncEngine', action: 'completeListener' },
-            level: 'error',
-          });
+          try {
+            Sentry.captureException(e, {
+              tags: { component: 'SyncEngine', action: 'completeListener' },
+              level: 'error',
+            });
+          } catch {
+            // Sentry failure is acceptable - error is already logged
+          }
         }
       }
     } catch (error) {
@@ -593,16 +627,20 @@ export class SyncEngine {
           // At this point, the operation is likely stuck. Log prominently.
           logger.error(`[SyncEngine] CRITICAL: Operation ${op.id} stuck in syncing state - manual intervention may be required:`, resetError);
           // Report to Sentry - stuck operation is critical and requires attention
-          Sentry.captureException(resetError, {
-            tags: { component: 'SyncEngine', action: 'emergencyReset', severity: 'critical' },
-            extra: {
-              operationId: op.id,
-              entityType: op.entityType,
-              entityId: op.entityId,
-              operation: op.operation,
-            },
-            level: 'fatal',
-          });
+          try {
+            Sentry.captureException(resetError, {
+              tags: { component: 'SyncEngine', action: 'emergencyReset', severity: 'critical' },
+              extra: {
+                operationId: op.id,
+                entityType: op.entityType,
+                entityId: op.entityId,
+                operation: op.operation,
+              },
+              level: 'fatal',
+            });
+          } catch {
+            // Sentry failure is acceptable - critical error is already logged
+          }
         }
       }
 
@@ -617,10 +655,14 @@ export class SyncEngine {
         } catch (e) {
           logger.error('[SyncEngine] Error in failed listener:', e);
           // Track in Sentry - listener bugs could cause UI inconsistencies
-          Sentry.captureException(e, {
-            tags: { component: 'SyncEngine', action: 'failedListener' },
-            level: 'error',
-          });
+          try {
+            Sentry.captureException(e, {
+              tags: { component: 'SyncEngine', action: 'failedListener' },
+              level: 'error',
+            });
+          } catch {
+            // Sentry failure is acceptable - error is already logged
+          }
         }
       }
     }
@@ -651,10 +693,14 @@ export class SyncEngine {
           } catch (e) {
             logger.error('[SyncEngine] Error in status listener:', e);
             // Track in Sentry - listener bugs could cause UI inconsistencies
-            Sentry.captureException(e, {
-              tags: { component: 'SyncEngine', action: 'statusListener' },
-              level: 'error',
-            });
+            try {
+              Sentry.captureException(e, {
+                tags: { component: 'SyncEngine', action: 'statusListener' },
+                level: 'error',
+              });
+            } catch {
+              // Sentry failure is acceptable - error is already logged
+            }
           }
         }
       })
@@ -662,10 +708,14 @@ export class SyncEngine {
         // Unexpected - queue should be initialized when engine is running
         logger.warn('[SyncEngine] Could not emit status change:', e);
         // Track in Sentry - this is unexpected and could cause stale UI state
-        Sentry.captureException(e, {
-          tags: { component: 'SyncEngine', action: 'doEmitStatus' },
-          level: 'warning',
-        });
+        try {
+          Sentry.captureException(e, {
+            tags: { component: 'SyncEngine', action: 'doEmitStatus' },
+            level: 'warning',
+          });
+        } catch {
+          // Sentry failure is acceptable - warning is already logged
+        }
       })
       .finally(() => {
         this.pendingStatusEmit = false;
