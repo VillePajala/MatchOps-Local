@@ -38,6 +38,11 @@ jest.mock('@/utils/storage', () => ({
   setStorageItem: jest.fn(),
 }));
 
+// Issue #336: Mock backendConfig for isCloudAvailable
+jest.mock('@/config/backendConfig', () => ({
+  isCloudAvailable: jest.fn(() => true),
+}));
+
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockGetSupabaseClient = getSupabaseClient as jest.MockedFunction<typeof getSupabaseClient>;
 const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
@@ -54,6 +59,9 @@ describe('SubscriptionContext', () => {
     mockGetSupabaseClient.mockReturnValue(mockSupabaseClient as unknown as ReturnType<typeof getSupabaseClient>);
     mockGetStorageItem.mockResolvedValue(null);
     mockSetStorageItem.mockResolvedValue(undefined);
+    // Issue #336: Reset isCloudAvailable to default between tests for isolation
+    const backendConfig = require('@/config/backendConfig');
+    backendConfig.isCloudAvailable.mockReturnValue(true);
   });
 
   describe('isSubscriptionActive helper', () => {
@@ -149,7 +157,7 @@ describe('SubscriptionContext', () => {
       expect(screen.getByTestId('period-end').textContent).toBe('2025-12-31T00:00:00.000Z');
     });
 
-    it('should return none status for local mode users', async () => {
+    it('should return none status for local mode users without authentication', async () => {
       mockUseAuth.mockReturnValue({
         user: null,
         mode: 'local',
@@ -175,6 +183,91 @@ describe('SubscriptionContext', () => {
       await waitFor(() => {
         expect(screen.getByTestId('loading').textContent).toBe('false');
       });
+      expect(screen.getByTestId('status').textContent).toBe('none');
+      expect(screen.getByTestId('active').textContent).toBe('false');
+      expect(mockRpcFn).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Issue #336: Subscription should be fetched in local mode when cloud is available
+     * AND user is authenticated. This allows subscription checks to work even when
+     * user is in local data storage mode (auth ≠ sync).
+     */
+    it('should fetch subscription in local mode when cloud is available and user is authenticated', async () => {
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.isCloudAvailable.mockReturnValue(true);
+
+      mockUseAuth.mockReturnValue({
+        user: { id: 'user-123' },
+        mode: 'local', // Key: local mode, but user is authenticated
+      } as ReturnType<typeof useAuth>);
+
+      mockRpcFn.mockResolvedValue({
+        data: [{ status: 'active', period_end: null, grace_end: null }],
+        error: null,
+      });
+
+      const TestComponent = () => {
+        const { status, isActive, isLoading } = useSubscription();
+        return (
+          <div>
+            <span data-testid="status">{status}</span>
+            <span data-testid="active">{isActive.toString()}</span>
+            <span data-testid="loading">{isLoading.toString()}</span>
+          </div>
+        );
+      };
+
+      render(
+        <SubscriptionProvider>
+          <TestComponent />
+        </SubscriptionProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+      // Should fetch and return active subscription
+      expect(screen.getByTestId('status').textContent).toBe('active');
+      expect(screen.getByTestId('active').textContent).toBe('true');
+      // RPC should be called even in local mode
+      expect(mockRpcFn).toHaveBeenCalledWith('get_subscription_status');
+    });
+
+    /**
+     * Issue #336: Subscription should NOT be fetched when cloud is unavailable,
+     * even if we somehow have a user (edge case).
+     */
+    it('should not fetch subscription when cloud is unavailable', async () => {
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.isCloudAvailable.mockReturnValue(false);
+
+      mockUseAuth.mockReturnValue({
+        user: { id: 'user-123' },
+        mode: 'local',
+      } as ReturnType<typeof useAuth>);
+
+      const TestComponent = () => {
+        const { status, isActive, isLoading } = useSubscription();
+        return (
+          <div>
+            <span data-testid="status">{status}</span>
+            <span data-testid="active">{isActive.toString()}</span>
+            <span data-testid="loading">{isLoading.toString()}</span>
+          </div>
+        );
+      };
+
+      render(
+        <SubscriptionProvider>
+          <TestComponent />
+        </SubscriptionProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+      // Should return 'none' without calling RPC
       expect(screen.getByTestId('status').textContent).toBe('none');
       expect(screen.getByTestId('active').textContent).toBe('false');
       expect(mockRpcFn).not.toHaveBeenCalled();
