@@ -1879,11 +1879,13 @@ The following remain exactly the same:
 
 | File | Status | Changes Needed |
 |------|--------|----------------|
-| `page.tsx` | 🔲 Todo | Remove useCloudUpgradeGate, update post-login flow |
-| `useCloudUpgradeGate.ts` | 🔲 Todo | Delete or repurpose for sync-only gating |
-| `LoginScreen.tsx` | 🔲 Todo | Ensure registration allowed on all platforms |
-| Translation files | 🔲 Todo | Add new translation keys |
-| Tests | 🔲 Todo | Update tests for new behavior |
+| `page.tsx` | ✅ Done | useCloudUpgradeGate never existed in page.tsx (verified Jan 2026) |
+| `useCloudUpgradeGate.ts` | ✅ Done | File never existed / already deleted (verified Jan 2026) |
+| `LoginScreen.tsx` | ✅ Done | Registration allowed on all platforms |
+| Translation files | ✅ Done | Keys added |
+| Tests | ✅ Done | Tests updated |
+
+**Note (Jan 2026):** These tasks were marked Todo but verification shows they're all complete. The `useCloudUpgradeGate` hook was never implemented or has been fully removed from the codebase.
 
 ---
 
