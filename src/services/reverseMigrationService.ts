@@ -235,11 +235,16 @@ function checkSaveTrackingConsistency(
     const msg = `Save tracking inconsistency: ${actual} ${entityType}s tracked (saved: ${savedCount}, failed: ${failureCount}) but ${expected} expected`;
     logger.error('[ReverseMigrationService] ' + msg);
     // Track in Sentry - this indicates a code bug in the migration logic
-    Sentry.captureMessage(msg, {
-      level: 'error',
-      tags: { component: 'ReverseMigrationService', action: 'saveTrackingCheck' },
-      extra: { entityType, expected, savedCount, failureCount, actual },
-    });
+    // Wrap in try/catch - Sentry failure must not change function behavior
+    try {
+      Sentry.captureMessage(msg, {
+        level: 'error',
+        tags: { component: 'ReverseMigrationService', action: 'saveTrackingCheck' },
+        extra: { entityType, expected, savedCount, failureCount, actual },
+      });
+    } catch {
+      // Sentry failure is acceptable - function must return warning message
+    }
     return msg;
   }
   return null;
@@ -339,6 +344,17 @@ async function performReverseMigration(
       onProgress(progress);
     } catch (e) {
       logger.warn('[ReverseMigrationService] Progress callback threw error:', e);
+      // Track in Sentry - callback failures could indicate UI bugs
+      // Wrap in nested try/catch so Sentry failure doesn't defeat purpose of safeProgress
+      try {
+        Sentry.captureException(e, {
+          tags: { component: 'ReverseMigrationService', action: 'progressCallback' },
+          level: 'warning',
+          extra: { stage: progress.stage, progress: progress.progress },
+        });
+      } catch {
+        // Sentry failure is acceptable - migration must continue
+      }
     }
   };
 

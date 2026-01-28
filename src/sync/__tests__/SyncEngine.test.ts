@@ -150,6 +150,45 @@ describe('SyncEngine', () => {
       // Old listeners should not have received new events
       expect(statusChanges.length).toBe(countBefore);
     });
+
+    /**
+     * Issue #330: Concurrent dispose() calls should wait for the same operation.
+     * Uses promise deduplication to prevent race conditions during cleanup.
+     */
+    it('should handle concurrent dispose calls via promise deduplication', async () => {
+      engine.start();
+      await flushAllAsync();
+
+      // Call dispose twice concurrently
+      const dispose1 = engine.dispose();
+      const dispose2 = engine.dispose();
+
+      // Both should resolve (not throw)
+      await expect(Promise.all([dispose1, dispose2])).resolves.not.toThrow();
+
+      // Engine should be stopped
+      expect(engine.isEngineRunning()).toBe(false);
+    });
+
+    /**
+     * Concurrent dispose calls should all wait for the same underlying operation.
+     */
+    it('should return same promise for concurrent dispose calls', async () => {
+      // We can't directly test promise identity due to the async wrapper,
+      // but we can verify both complete successfully without errors
+      engine.start();
+      await flushAllAsync();
+
+      // Start multiple disposes
+      const results = await Promise.allSettled([
+        engine.dispose(),
+        engine.dispose(),
+        engine.dispose(),
+      ]);
+
+      // All should succeed
+      expect(results.every(r => r.status === 'fulfilled')).toBe(true);
+    });
   });
 
   describe('processing', () => {

@@ -193,13 +193,37 @@ export class SyncEngine {
     this.emitStatusChange();
   }
 
+  /** Promise deduplication for dispose() to handle concurrent callers */
+  private disposePromise: Promise<void> | null = null;
+
   /**
    * Clean up all resources. Call this before discarding the engine instance.
    * Stops the engine, waits for in-flight operations, and clears all listeners.
+   *
+   * Uses promise deduplication to ensure concurrent dispose() calls wait for
+   * the same disposal operation rather than returning immediately.
    */
   async dispose(): Promise<void> {
+    // Promise deduplication: concurrent callers wait for the same dispose operation
+    if (this.disposePromise) {
+      logger.debug('[SyncEngine] Already disposing, waiting for completion');
+      return this.disposePromise;
+    }
+
+    this.disposePromise = this.performDispose();
+    try {
+      return await this.disposePromise;
+    } finally {
+      this.disposePromise = null;
+    }
+  }
+
+  /**
+   * Internal dispose implementation.
+   */
+  private async performDispose(): Promise<void> {
     if (this.isDisposing) {
-      logger.debug('[SyncEngine] Already disposing');
+      logger.debug('[SyncEngine] Already in dispose process');
       return;
     }
     this.isDisposing = true;
