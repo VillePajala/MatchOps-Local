@@ -404,7 +404,14 @@ export class SyncEngine {
 
     // Trigger sync when coming back online
     if (this.isRunning) {
-      this.doProcessQueue();
+      // CRITICAL: Must have .catch() to prevent unhandled rejection
+      this.doProcessQueue().catch((e) => {
+        logger.error('[SyncEngine] Error processing queue after coming online:', e);
+        Sentry.captureException(e, {
+          tags: { component: 'SyncEngine', action: 'handleOnline-processQueue' },
+          level: 'error',
+        });
+      });
     }
   };
 

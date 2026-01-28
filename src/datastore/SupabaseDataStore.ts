@@ -434,11 +434,16 @@ export class SupabaseDataStore implements DataStore {
       // disabling of optimistic locking which could lead to data loss.
       const errorMsg = `Game ${gameId} has invalid version (${typeof version}: ${version}). This indicates data corruption.`;
       logger.error('[SupabaseDataStore] ' + errorMsg);
-      Sentry.captureMessage('Game loaded with non-numeric version - data corruption detected', {
-        level: 'fatal',
-        tags: { component: 'SupabaseDataStore', action: 'cacheGameVersion', corruption: 'true' },
-        extra: { gameId, version, versionType: typeof version },
-      });
+      // Wrap in try/catch - Sentry failure must not prevent the validation error
+      try {
+        Sentry.captureMessage('Game loaded with non-numeric version - data corruption detected', {
+          level: 'fatal',
+          tags: { component: 'SupabaseDataStore', action: 'cacheGameVersion', corruption: 'true' },
+          extra: { gameId, version, versionType: typeof version },
+        });
+      } catch {
+        // Sentry failure is acceptable - validation error is critical
+      }
       throw new ValidationError(errorMsg, 'version', version);
     }
   }
@@ -616,11 +621,16 @@ export class SupabaseDataStore implements DataStore {
       // Exceptions during availability check are unusual and indicate potential SDK/config issues
       logger.error(`[SupabaseDataStore] isAvailable check threw exception - cloud features may not work:`, err);
       // Track in Sentry - SDK exceptions could indicate configuration or network issues
-      Sentry.captureException(err, {
-        tags: { component: 'SupabaseDataStore', action: 'isAvailable' },
-        level: 'error',
-        extra: { initialized: this.initialized, hasClient: !!this.supabase },
-      });
+      // Wrap in try/catch - Sentry failure must not break availability check
+      try {
+        Sentry.captureException(err, {
+          tags: { component: 'SupabaseDataStore', action: 'isAvailable' },
+          level: 'error',
+          extra: { initialized: this.initialized, hasClient: !!this.supabase },
+        });
+      } catch {
+        // Sentry failure is acceptable
+      }
       return false;
     }
   }
@@ -2562,8 +2572,9 @@ export class SupabaseDataStore implements DataStore {
         is_selected: isSelected || isOnField,
         on_field: isOnField,
         // Field position (only for on-field players)
-        rel_x: isOnField ? onFieldPlayer!.relX : null,
-        rel_y: isOnField ? onFieldPlayer!.relY : null,
+        // Use optional chaining with default to prevent crash if data is inconsistent
+        rel_x: isOnField ? (onFieldPlayer?.relX ?? 0.5) : null,
+        rel_y: isOnField ? (onFieldPlayer?.relY ?? 0.5) : null,
       });
     }
 
@@ -3031,16 +3042,21 @@ export class SupabaseDataStore implements DataStore {
         `Loaded ${loadedCount} successfully. Failed IDs: ${failedSample}${allFailedIds.length > 5 ? '...' : ''}`;
 
       logger.error(`[SupabaseDataStore] ${errorMsg}`);
-      Sentry.captureMessage('getGames completed with partial failures', {
-        level: 'error',
-        tags: { component: 'SupabaseDataStore', action: 'getGames-partialFailure' },
-        extra: {
-          failedCount: allFailedIds.length,
-          loadedCount,
-          totalCount,
-          failedIds: allFailedIds,
-        },
-      });
+      // Wrap in try/catch - Sentry failure must not break returning valid games
+      try {
+        Sentry.captureMessage('getGames completed with partial failures', {
+          level: 'error',
+          tags: { component: 'SupabaseDataStore', action: 'getGames-partialFailure' },
+          extra: {
+            failedCount: allFailedIds.length,
+            loadedCount,
+            totalCount,
+            failedIds: allFailedIds,
+          },
+        });
+      } catch {
+        // Sentry failure is acceptable - returning valid games is critical
+      }
 
       // CRITICAL: Return valid games instead of throwing
       // This prevents data lockout when a single game is corrupted
@@ -3188,10 +3204,27 @@ export class SupabaseDataStore implements DataStore {
       const isConflict = error.code === '40001';
 
       if (isConflict) {
+        // DATA SAFETY: Backup the unsaved game data before throwing
+        // User can recover this data on next load if they accidentally navigate away
+        try {
+          const backupKey = `conflict_backup_${id}`;
+          const backup = {
+            gameId: id,
+            gameData: game,
+            timestamp: new Date().toISOString(),
+            expectedVersion,
+          };
+          localStorage.setItem(backupKey, JSON.stringify(backup));
+          logger.info('[SupabaseDataStore] Conflict backup saved for recovery', { gameId: id });
+        } catch (backupErr) {
+          // Backup failure is non-critical - log but continue with conflict handling
+          logger.warn('[SupabaseDataStore] Failed to backup conflicting game data:', backupErr);
+        }
+
         const conflictError = new ConflictError(
           'game',
           id,
-          'This game was modified in another tab or device. Please refresh to see the latest changes.'
+          'This game was modified in another tab or device. Your changes have been saved for recovery. Please refresh to see the latest changes.'
         );
         logger.warn('[SupabaseDataStore] Optimistic locking conflict detected for game', {
           gameId: id,
@@ -3199,11 +3232,16 @@ export class SupabaseDataStore implements DataStore {
           message: error.message,
         });
         // Track conflict frequency in Sentry for production monitoring
-        Sentry.captureException(conflictError, {
-          level: 'warning',
-          tags: { component: 'SupabaseDataStore', action: 'saveGame-conflict' },
-          extra: { gameId: id, expectedVersion },
-        });
+        // Wrap in try/catch - Sentry failure must not prevent conflict error
+        try {
+          Sentry.captureException(conflictError, {
+            level: 'warning',
+            tags: { component: 'SupabaseDataStore', action: 'saveGame-conflict' },
+            extra: { gameId: id, expectedVersion },
+          });
+        } catch {
+          // Sentry failure is acceptable - conflict handling is critical
+        }
         // Clear cached version so next load gets fresh data
         this.gameVersionCache.delete(id);
         throw conflictError;
@@ -3858,5 +3896,84 @@ export class SupabaseDataStore implements DataStore {
     this.clearUserCaches();
 
     logger.info('[SupabaseDataStore] All user data cleared from cloud (manual fallback)');
+  }
+
+  // ==========================================================================
+  // CONFLICT BACKUP UTILITIES (DATA SAFETY)
+  // ==========================================================================
+
+  /**
+   * Get all conflict backups for games that couldn't be saved due to version conflicts.
+   * These backups are created when a ConflictError is thrown during saveGame.
+   *
+   * @returns Array of conflict backups with game data and metadata
+   */
+  static getConflictBackups(): Array<{
+    gameId: string;
+    gameData: AppState;
+    timestamp: string;
+    expectedVersion: number | null;
+  }> {
+    const backups: Array<{
+      gameId: string;
+      gameData: AppState;
+      timestamp: string;
+      expectedVersion: number | null;
+    }> = [];
+
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('conflict_backup_')) {
+          try {
+            const backup = JSON.parse(localStorage.getItem(key) || '');
+            if (backup.gameId && backup.gameData && backup.timestamp) {
+              backups.push(backup);
+            }
+          } catch {
+            // Skip invalid backup entries
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn('[SupabaseDataStore] Failed to retrieve conflict backups:', err);
+    }
+
+    return backups;
+  }
+
+  /**
+   * Clear a specific conflict backup after successful recovery.
+   *
+   * @param gameId - The game ID whose backup should be cleared
+   */
+  static clearConflictBackup(gameId: string): void {
+    try {
+      localStorage.removeItem(`conflict_backup_${gameId}`);
+      logger.info('[SupabaseDataStore] Conflict backup cleared', { gameId });
+    } catch (err) {
+      logger.warn('[SupabaseDataStore] Failed to clear conflict backup:', err);
+    }
+  }
+
+  /**
+   * Clear all conflict backups.
+   */
+  static clearAllConflictBackups(): void {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('conflict_backup_')) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
+      }
+      logger.info('[SupabaseDataStore] All conflict backups cleared', { count: keysToRemove.length });
+    } catch (err) {
+      logger.warn('[SupabaseDataStore] Failed to clear all conflict backups:', err);
+    }
   }
 }

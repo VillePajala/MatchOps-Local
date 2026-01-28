@@ -157,11 +157,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // Non-critical: don't break token refresh, consent will be checked on next sign-in
               logger.warn('[AuthProvider] Failed to check consent on token refresh:', consentError);
               // Track non-network errors in Sentry - could indicate RPC or database issues
+              // Wrap in try/catch - Sentry failure must not break auth flow
               if (!(consentError instanceof NetworkError)) {
-                Sentry.captureException(consentError, {
-                  tags: { flow: 'token-refresh-consent-check' },
-                  level: 'warning',
-                });
+                try {
+                  Sentry.captureException(consentError, {
+                    tags: { flow: 'token-refresh-consent-check' },
+                    level: 'warning',
+                  });
+                } catch {
+                  // Sentry failure is acceptable
+                }
               }
             }
           }
@@ -179,10 +184,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Non-critical: cache clearing failure shouldn't break auth flow
             logger.warn('[AuthProvider] Failed to clear caches on auth change:', error);
             // Track in Sentry - frequent failures indicate a real problem
-            Sentry.captureException(error, {
-              tags: { flow: 'auth-cache-clear' },
-              level: 'warning',
-            });
+            // Wrap in try/catch - Sentry failure must not break auth flow
+            try {
+              Sentry.captureException(error, {
+                tags: { flow: 'auth-cache-clear' },
+                level: 'warning',
+              });
+            } catch {
+              // Sentry failure is acceptable
+            }
           }
         });
 
@@ -190,14 +200,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         logger.error('[AuthProvider] Init failed:', error);
         // Track in Sentry - auth init failures could leave app in broken state
-        Sentry.captureException(error, {
-          tags: { flow: 'auth-init' },
-          level: 'error',
-          extra: {
-            cloudAvailable: isCloudAvailable(),
-            mode: getBackendMode(),
-          },
-        });
+        // Wrap in try/catch - Sentry failure must not break error handling
+        try {
+          Sentry.captureException(error, {
+            tags: { flow: 'auth-init' },
+            level: 'error',
+            extra: {
+              cloudAvailable: isCloudAvailable(),
+              mode: getBackendMode(),
+            },
+          });
+        } catch {
+          // Sentry failure is acceptable
+        }
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -288,10 +303,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Non-network errors (data corruption, auth issues) - log as error but still allow sign-in
             // Track in Sentry for production monitoring
             logger.error('[AuthProvider] Failed to verify consent on sign-in:', consentError);
-            Sentry.captureException(consentError, {
-              tags: { flow: 'sign-in-consent' },
-              level: 'warning',
-            });
+            // Wrap in try/catch - Sentry failure must not break sign-in
+            try {
+              Sentry.captureException(consentError, {
+                tags: { flow: 'sign-in-consent' },
+                level: 'warning',
+              });
+            } catch {
+              // Sentry failure is acceptable
+            }
           }
         }
       }
@@ -334,10 +354,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // Non-network error - still allow sign-up since checkbox was checked client-side
               // Track in Sentry for production monitoring (e.g., RPC failures, data issues)
               logger.error('[AuthProvider] Failed to record consent during sign-up:', consentError);
-              Sentry.captureException(consentError, {
-                tags: { flow: 'sign-up-consent' },
-                level: 'warning',
-              });
+              // Wrap in try/catch - Sentry failure must not break sign-up
+              try {
+                Sentry.captureException(consentError, {
+                  tags: { flow: 'sign-up-consent' },
+                  level: 'warning',
+                });
+              } catch {
+                // Sentry failure is acceptable
+              }
             }
           }
           // Note: Subscription is NOT granted on signup. Account creation is free.
@@ -368,10 +393,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Log but don't throw - user should be signed out locally regardless
       logger.warn('[AuthProvider] Sign out error:', error);
       // Track in Sentry - sign-out failures could leave orphaned sessions (security concern)
-      Sentry.captureException(error, {
-        tags: { flow: 'sign-out' },
-        level: 'warning',
-      });
+      // Wrap in try/catch - Sentry failure must not break sign-out
+      try {
+        Sentry.captureException(error, {
+          tags: { flow: 'sign-out' },
+          level: 'warning',
+        });
+      } catch {
+        // Sentry failure is acceptable
+      }
     }
 
     // Clear subscription cache to prevent data leakage to next user (privacy)
@@ -383,10 +413,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Non-critical: cache will expire naturally, log but don't block sign-out
         logger.warn('[AuthProvider] Failed to clear subscription cache:', error);
         // Track in Sentry - frequent failures could indicate IndexedDB issues
-        Sentry.captureException(error, {
-          tags: { flow: 'sign-out-cache-clear' },
-          level: 'warning',
-        });
+        // Wrap in try/catch - Sentry failure must not break sign-out
+        try {
+          Sentry.captureException(error, {
+            tags: { flow: 'sign-out-cache-clear' },
+            level: 'warning',
+          });
+        } catch {
+          // Sentry failure is acceptable
+        }
       }
     }
 
@@ -429,10 +464,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // The consent checkbox was checked client-side, this is just the audit trail
       logger.error('[AuthProvider] Failed to record consent:', error);
       // Track in Sentry - consent recording failures need production visibility
-      Sentry.captureException(error, {
-        tags: { flow: 'record-consent' },
-        level: 'warning',
-      });
+      // Wrap in try/catch - Sentry failure must not break consent recording
+      try {
+        Sentry.captureException(error, {
+          tags: { flow: 'record-consent' },
+          level: 'warning',
+        });
+      } catch {
+        // Sentry failure is acceptable
+      }
       return { error: error instanceof Error ? error.message : 'Failed to record consent' };
     }
   }, [authService]);
@@ -455,10 +495,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       logger.error('[AuthProvider] Failed to record re-consent:', error);
       // Track in Sentry - re-consent failures need production visibility
-      Sentry.captureException(error, {
-        tags: { flow: 'accept-re-consent' },
-        level: 'warning',
-      });
+      // Wrap in try/catch - Sentry failure must not break re-consent
+      try {
+        Sentry.captureException(error, {
+          tags: { flow: 'accept-re-consent' },
+          level: 'warning',
+        });
+      } catch {
+        // Sentry failure is acceptable
+      }
       return { error: error instanceof Error ? error.message : 'Failed to record consent' };
     }
   }, [authService]);
