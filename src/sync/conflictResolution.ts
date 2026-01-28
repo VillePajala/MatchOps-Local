@@ -340,8 +340,11 @@ export class ConflictResolver {
  * NOTE: ConflictError from optimistic locking (Issue #330) is explicitly EXCLUDED.
  * Those errors indicate concurrent modification and require user intervention
  * (refresh to see latest changes), not automatic timestamp-based resolution.
+ *
+ * @returns true if error is a unique constraint violation (auto-resolvable via last-write-wins)
+ * @returns false if error is ConflictError (requires user refresh) or any other error type
  */
-export function isConflictError(error: unknown): boolean {
+export function isAutoResolvableConflict(error: unknown): boolean {
   // Optimistic locking conflicts should propagate to UI, not auto-resolve
   // These require user to refresh and see the latest version
   if (error instanceof ConflictError) {
@@ -361,6 +364,11 @@ export function isConflictError(error: unknown): boolean {
   }
   return false;
 }
+
+/**
+ * @deprecated Use isAutoResolvableConflict instead. This alias exists for backwards compatibility.
+ */
+export const isConflictError = isAutoResolvableConflict;
 
 /**
  * Detect if an error indicates the record was not found.

@@ -58,6 +58,24 @@ describe('retry utility', () => {
       expect(isTransientError(new Error('Invalid input'))).toBe(false);
     });
 
+    /**
+     * Issue #330: CRITICAL - Optimistic locking conflicts must NOT be retried.
+     * PostgreSQL error code 40001 (serialization_failure) indicates a version conflict
+     * that requires user intervention (refresh to see latest changes), not automatic retry.
+     *
+     * If 40001 were treated as transient, conflict errors would be silently retried
+     * instead of surfacing to the user, defeating the purpose of optimistic locking.
+     */
+    it('should return false for PostgreSQL serialization_failure (40001) - optimistic locking conflicts', () => {
+      // Error code 40001 is used for optimistic locking conflicts in our save_game_with_relations RPC
+      expect(isTransientError({ code: '40001' })).toBe(false);
+      expect(isTransientError({ code: '40001', message: 'serialization_failure' })).toBe(false);
+      expect(isTransientError({ code: '40001', message: 'Conflict: game was modified by another session' })).toBe(false);
+
+      // Also verify with error message containing serialization_failure
+      expect(isTransientError(new Error('serialization_failure'))).toBe(false);
+    });
+
     it('should return false for null/undefined', () => {
       expect(isTransientError(null)).toBe(false);
       expect(isTransientError(undefined)).toBe(false);

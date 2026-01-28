@@ -175,6 +175,11 @@ export class SyncQueue {
         // Handle unexpected close
         this.db.onclose = () => {
           logger.warn('[SyncQueue] Database connection closed unexpectedly');
+          // Track in Sentry - unexpected close could indicate storage pressure or corruption
+          Sentry.captureMessage('SyncQueue database connection closed unexpectedly', {
+            tags: { component: 'SyncQueue', action: 'onclose' },
+            level: 'warning',
+          });
           this.db = null;
         };
 

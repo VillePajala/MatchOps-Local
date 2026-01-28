@@ -2,10 +2,11 @@
  * DataStore Error Classes
  *
  * Custom error types for DataStore operations.
- * Part of Phase 2 backend abstraction (PR #4).
+ * Originally created in Phase 2 backend abstraction (PR #4).
+ * Extended with ConflictError for optimistic locking (Issue #330).
  *
  * @see DataStore.ts for main interface
- * @see docs/03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md
+ * @see docs/02-technical/architecture/dual-backend-architecture.md
  */
 
 import type { AuthErrorCode, AuthErrorInfo } from './AuthTypes';

@@ -293,6 +293,11 @@ export class SupabaseAuthService implements AuthService {
             } else {
               // Non-network error - treat as invalid session
               logger.error('[SupabaseAuthService] Session validation error:', validationError);
+              // Track in Sentry - non-network validation failures need investigation
+              Sentry.captureException(validationError, {
+                tags: { flow: 'auth-init-session-validation' },
+                level: 'warning',
+              });
               this.currentSession = null;
               this.currentUser = null;
             }
@@ -587,6 +592,12 @@ export class SupabaseAuthService implements AuthService {
       }
 
       // Refresh failed (expired/invalid) - return null per interface contract
+      // Track in Sentry - non-network refresh failures help diagnose auth issues
+      Sentry.captureMessage('Session refresh failed (non-network)', {
+        tags: { flow: 'session-refresh' },
+        level: 'warning',
+        extra: { errorMessage: error.message },
+      });
       this.currentSession = null;
       this.currentUser = null;
       return null;

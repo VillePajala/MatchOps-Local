@@ -19,11 +19,12 @@
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import { getAuthService } from '@/datastore/factory';
-import { NetworkError } from '@/interfaces/DataStoreErrors';
+import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { disableCloudMode, clearCloudAccountInfo, updateCloudAccountInfo } from '@/config/backendConfig';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 // =============================================================================
 // TYPES
@@ -209,16 +210,66 @@ const REVERSE_MIGRATION_ENTITY_ORDER = [
 ] as const;
 
 // =============================================================================
-// MIGRATION LOCK
+// HELPER FUNCTIONS
 // =============================================================================
 
-let isReverseMigrationInProgress = false;
+/**
+ * Check for save tracking inconsistency between expected and actual counts.
+ * This catches silent failures where saveToLocal thought it succeeded but didn't track correctly.
+ *
+ * @param entityType - The type of entity being checked (e.g., 'player', 'team', 'game')
+ * @param expected - Expected count from cloud data
+ * @param savedCount - Number successfully saved
+ * @param failures - List of failures to count matching entity type
+ * @returns Error message if inconsistent, null if counts match
+ */
+function checkSaveTrackingConsistency(
+  entityType: string,
+  expected: number,
+  savedCount: number,
+  failures: EntitySaveFailure[]
+): string | null {
+  const failureCount = failures.filter(f => f.entityType === entityType).length;
+  const actual = savedCount + failureCount;
+  if (actual !== expected) {
+    const msg = `Save tracking inconsistency: ${actual} ${entityType}s tracked (saved: ${savedCount}, failed: ${failureCount}) but ${expected} expected`;
+    logger.error('[ReverseMigrationService] ' + msg);
+    // Track in Sentry - this indicates a code bug in the migration logic
+    Sentry.captureMessage(msg, {
+      level: 'error',
+      tags: { component: 'ReverseMigrationService', action: 'saveTrackingCheck' },
+      extra: { entityType, expected, savedCount, failureCount, actual },
+    });
+    return msg;
+  }
+  return null;
+}
+
+// =============================================================================
+// MIGRATION LOCK (Promise Deduplication Pattern)
+// =============================================================================
+
+/**
+ * Prevents concurrent reverse migrations using Promise deduplication.
+ *
+ * Pattern: Store the in-flight Promise so concurrent callers wait for the
+ * same result instead of getting an error. This matches the pattern used
+ * in migrationService.ts, SupabaseDataStore.initialize(), and
+ * SupabaseAuthService.initialize().
+ *
+ * Why Promise > boolean flag:
+ * - Boolean: Concurrent call #2 gets "already in progress" error, must retry
+ * - Promise: Concurrent call #2 waits and gets the same result as call #1
+ *
+ * The promise is reset to null in finally block, so next call starts fresh.
+ */
+let reverseMigrationPromise: Promise<ReverseMigrationResult> | null = null;
 
 /**
  * Check if a reverse migration is currently in progress.
  */
 export function isReverseMigrationRunning(): boolean {
-  return isReverseMigrationInProgress;
+  return reverseMigrationPromise !== null;
 }
 
 // =============================================================================
@@ -243,21 +294,42 @@ export async function migrateCloudToLocal(
   onProgress: ReverseMigrationProgressCallback,
   mode: ReverseMigrationMode = 'keep-cloud'
 ): Promise<ReverseMigrationResult> {
-  // Prevent concurrent migrations
-  if (isReverseMigrationInProgress) {
-    return {
-      success: false,
-      downloaded: createEmptyCounts(),
-      errors: ['Migration already in progress'],
-      warnings: [],
-      cloudDeleted: false,
-    };
+  // Promise deduplication: if migration is already in progress, wait for it
+  // This is safer than returning an error because concurrent callers get the
+  // actual result instead of having to implement retry logic
+  //
+  // NOTE: Concurrent callers will NOT receive progress callbacks - only the first
+  // caller's onProgress function is used. Concurrent callers receive the final
+  // result when the migration completes. This is acceptable because:
+  // 1. Concurrent calls are rare (user double-clicking, navigation)
+  // 2. The result is what matters, not the progress display
+  if (reverseMigrationPromise) {
+    logger.info('[ReverseMigrationService] Reverse migration already in progress, waiting for completion (progress callbacks will not be received)');
+    return reverseMigrationPromise;
   }
 
+  // Start new migration and store the promise
+  reverseMigrationPromise = performReverseMigration(onProgress, mode);
+
+  try {
+    return await reverseMigrationPromise;
+  } finally {
+    // Reset promise so next call starts fresh
+    reverseMigrationPromise = null;
+  }
+}
+
+/**
+ * Internal reverse migration implementation.
+ * Separated from migrateCloudToLocal to enable Promise deduplication pattern.
+ */
+async function performReverseMigration(
+  onProgress: ReverseMigrationProgressCallback,
+  mode: ReverseMigrationMode
+): Promise<ReverseMigrationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
   let cloudDeleted = false;
-  let lockAcquired = false;
   let cloudStore: SupabaseDataStore | null = null;
   let localStore: LocalDataStore | null = null;
 
@@ -271,8 +343,6 @@ export async function migrateCloudToLocal(
   };
 
   try {
-    isReverseMigrationInProgress = true;
-    lockAcquired = true;
     // Check network connectivity
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       logger.warn('[ReverseMigrationService] Reverse migration aborted: No network connectivity');
@@ -317,24 +387,15 @@ export async function migrateCloudToLocal(
 
     // Cross-check: savedCounts + failures should equal cloud data counts
     // This catches silent failures where saveToLocal thought it succeeded but didn't track correctly
-    const expectedPlayers = cloudData.players.length;
-    const playerFailures = saveFailures.filter(f => f.entityType === 'player').length;
-    const actualPlayersTracked = savedCounts.players + playerFailures;
-    if (actualPlayersTracked !== expectedPlayers) {
-      warnings.push(`Save tracking inconsistency: ${actualPlayersTracked} players tracked (saved: ${savedCounts.players}, failed: ${playerFailures}) but ${expectedPlayers} expected`);
-    }
+    // These are treated as ERRORS (not warnings) because they indicate a code bug in the migration
+    const playerError = checkSaveTrackingConsistency('player', cloudData.players.length, savedCounts.players, saveFailures);
+    if (playerError) errors.push(playerError);
 
-    const expectedTeams = cloudData.teams.length;
-    const actualTeamsTracked = savedCounts.teams + saveFailures.filter(f => f.entityType === 'team').length;
-    if (actualTeamsTracked !== expectedTeams) {
-      warnings.push(`Save tracking inconsistency: ${actualTeamsTracked} teams tracked but ${expectedTeams} expected`);
-    }
+    const teamError = checkSaveTrackingConsistency('team', cloudData.teams.length, savedCounts.teams, saveFailures);
+    if (teamError) errors.push(teamError);
 
-    const expectedGames = Object.keys(cloudData.games).length;
-    const actualGamesTracked = savedCounts.games + saveFailures.filter(f => f.entityType === 'game').length;
-    if (actualGamesTracked !== expectedGames) {
-      warnings.push(`Save tracking inconsistency: ${actualGamesTracked} games tracked but ${expectedGames} expected`);
-    }
+    const gameError = checkSaveTrackingConsistency('game', Object.keys(cloudData.games).length, savedCounts.games, saveFailures);
+    if (gameError) errors.push(gameError);
 
     // Report save failures as errors (critical failures for important data types)
     // or warnings (for less critical data like adjustments)
@@ -474,6 +535,7 @@ export async function migrateCloudToLocal(
 
   } finally {
     // Clean up resources
+    // Note: Migration lock (reverseMigrationPromise) is reset in the wrapper function
     if (cloudStore) {
       try {
         await cloudStore.close();
@@ -487,9 +549,6 @@ export async function migrateCloudToLocal(
       } catch (e) {
         logger.warn('[ReverseMigrationService] Error closing localStore:', e);
       }
-    }
-    if (lockAcquired) {
-      isReverseMigrationInProgress = false;
     }
   }
 }
@@ -819,6 +878,7 @@ interface VerificationResult {
     tournaments: number;
     personnel: number;
     games: number;
+    gameContentMismatches: number;
     rosterEntries: number;
     adjustments: number;
   };
@@ -837,6 +897,7 @@ async function verifyReverseMigration(
     tournaments: 0,
     personnel: 0,
     games: 0,
+    gameContentMismatches: 0,
     rosterEntries: 0,
     adjustments: 0,
   };
@@ -903,7 +964,6 @@ async function verifyReverseMigration(
 
   // Content verification for games (most complex entity)
   // Check that event counts match to detect partial/corrupted saves
-  let gameContentMismatches = 0;
   for (const gameId of cloudGameIds) {
     if (localGameIds.has(gameId)) {
       const cloudGame = cloudData.games[gameId];
@@ -913,19 +973,19 @@ async function verifyReverseMigration(
       const cloudEventCount = cloudGame.gameEvents?.length ?? 0;
       const localEventCount = localGame.gameEvents?.length ?? 0;
       if (cloudEventCount !== localEventCount) {
-        gameContentMismatches++;
+        missingCounts.gameContentMismatches++;
       }
 
       // Verify player count matches
       const cloudPlayerCount = cloudGame.availablePlayers?.length ?? 0;
       const localPlayerCount = localGame.availablePlayers?.length ?? 0;
       if (cloudPlayerCount !== localPlayerCount) {
-        gameContentMismatches++;
+        missingCounts.gameContentMismatches++;
       }
     }
   }
-  if (gameContentMismatches > 0) {
-    warnings.push(`${gameContentMismatches} game(s) have content mismatches (events or players differ)`);
+  if (missingCounts.gameContentMismatches > 0) {
+    warnings.push(`${missingCounts.gameContentMismatches} game(s) have content mismatches (events or players differ)`);
   }
 
   // Verify team rosters by player ID, not just count
@@ -995,7 +1055,7 @@ async function verifyReverseMigration(
     missingCounts.seasons > 0 ||
     missingCounts.tournaments > 0 ||
     missingCounts.personnel > 0 ||
-    gameContentMismatches > 0; // Game content corruption is critical - data loss
+    missingCounts.gameContentMismatches > 0; // Game content corruption is critical - data loss
 
   // Roster entries and adjustments are non-critical - warn but don't fail
   const hasMissingNonCriticalEntities =
@@ -1069,7 +1129,8 @@ export async function hasCloudData(): Promise<CloudDataCheckResult> {
  * Used for preview in reverse migration wizard.
  *
  * @returns Counts of all entity types in cloud
- * @throws {NetworkError} If offline
+ * @throws {NetworkError} If offline or network error
+ * @throws {AuthError} If session expired (with user-friendly message)
  */
 export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
   // Check network connectivity first for clear error message
@@ -1116,6 +1177,19 @@ export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
       warmupPlan: warmupPlan !== null,
       settings: settings !== null,
     };
+  } catch (error) {
+    // Wrap errors with user-friendly messages
+    if (error instanceof NetworkError || error instanceof AuthError) {
+      throw error; // Already has user-friendly message
+    }
+    // Check for common Supabase auth errors and wrap with friendly message
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    if (errorMsg.includes('JWT') || errorMsg.includes('expired') || errorMsg.includes('401')) {
+      throw new AuthError('Session expired. Please sign in again.');
+    }
+    // Re-throw with context for other errors
+    logger.error('[ReverseMigrationService] getCloudDataSummary failed:', error);
+    throw new NetworkError(`Failed to check cloud data: ${errorMsg}`);
   } finally {
     try {
       await cloudStore.close();

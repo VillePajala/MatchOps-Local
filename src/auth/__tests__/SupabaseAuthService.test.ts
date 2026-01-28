@@ -772,4 +772,85 @@ describe('SupabaseAuthService', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // ACCOUNT DELETION
+  // ==========================================================================
+
+  describe('deleteAccount', () => {
+    // Mock functions.invoke
+    let mockFunctionsInvoke: jest.Mock;
+
+    beforeEach(async () => {
+      // Sign in to have a current user
+      mockAuth.getSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+      mockAuth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
+      await authService.initialize();
+
+      // Setup mock for functions.invoke
+      mockFunctionsInvoke = jest.fn();
+      (mockSupabaseClient as unknown as { functions: { invoke: jest.Mock } }).functions = {
+        invoke: mockFunctionsInvoke,
+      };
+    });
+
+    it('should delete account successfully', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: { success: true },
+        error: null,
+      });
+      mockAuth.signOut.mockResolvedValue({ error: null });
+
+      await authService.deleteAccount();
+
+      expect(mockFunctionsInvoke).toHaveBeenCalledWith('delete-account', {
+        method: 'POST',
+      });
+      // After deletion, user should be signed out
+      expect(authService.isAuthenticated()).toBe(false);
+    });
+
+    it('should throw AuthError when not authenticated', async () => {
+      // Reset to unauthenticated state
+      authService = new SupabaseAuthService();
+      mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+      await authService.initialize();
+
+      await expect(authService.deleteAccount()).rejects.toThrow(AuthError);
+      await expect(authService.deleteAccount()).rejects.toThrow('Must be authenticated to delete account');
+    });
+
+    it('should throw NotInitializedError when not initialized', async () => {
+      const uninitializedService = new SupabaseAuthService();
+
+      await expect(uninitializedService.deleteAccount()).rejects.toThrow(NotInitializedError);
+    });
+
+    it('should throw NetworkError on network failure', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'network error: fetch failed' },
+      });
+
+      await expect(authService.deleteAccount()).rejects.toThrow(NetworkError);
+    });
+
+    it('should throw AuthError on Edge Function error', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Edge function error' },
+      });
+
+      await expect(authService.deleteAccount()).rejects.toThrow(AuthError);
+    });
+
+    it('should throw AuthError when Edge Function returns success=false', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: { success: false, error: 'User not found' },
+        error: null,
+      });
+
+      await expect(authService.deleteAccount()).rejects.toThrow(AuthError);
+    });
+  });
 });

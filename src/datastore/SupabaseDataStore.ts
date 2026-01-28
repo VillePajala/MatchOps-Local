@@ -48,6 +48,7 @@ import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 import { withRetry, throwIfTransient, TransientSupabaseError, type RetryConfig } from '@/datastore/supabase/retry';
 
 // Type-safe database types using the Database schema from supabase.ts
@@ -411,6 +412,32 @@ export class SupabaseDataStore implements DataStore {
     maxDelayMs: 10000,
     logRetries: true,
   };
+
+  // ==========================================================================
+  // VERSION CACHE HELPERS (Issue #330: Optimistic Locking)
+  // ==========================================================================
+
+  /**
+   * Cache a game's version for optimistic locking.
+   * Called after loading games (getGames, getGameById) to track current versions.
+   *
+   * @param gameId - The game ID
+   * @param version - The version from the database (should always be number per schema)
+   */
+  private cacheGameVersion(gameId: string, version: number | null | undefined): void {
+    if (typeof version === 'number') {
+      this.gameVersionCache.set(gameId, version);
+    } else {
+      // Schema guarantees version is NOT NULL with DEFAULT 1 - this indicates a bug
+      // Track in Sentry since non-numeric version silently disables optimistic locking
+      logger.warn('[SupabaseDataStore] Game loaded with non-numeric version', { gameId, version });
+      Sentry.captureMessage('Game loaded with non-numeric version - optimistic locking disabled for this game', {
+        level: 'error',
+        tags: { component: 'SupabaseDataStore', action: 'cacheGameVersion' },
+        extra: { gameId, version, versionType: typeof version },
+      });
+    }
+  }
 
   // ==========================================================================
   // ERROR CLASSIFICATION HELPERS
@@ -937,18 +964,15 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    let query = this.getClient().from('teams').select('*');
-    if (!includeArchived) {
-      query = query.eq('archived', false);
-    }
+    const result = await this.withRetry(async () => {
+      let query = this.getClient().from('teams').select('*');
+      if (!includeArchived) {
+        query = query.eq('archived', false);
+      }
+      return throwIfTransient(await query.order('created_at', { ascending: false }));
+    }, 'getTeams');
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch teams');
-    }
-
-    return (data || []).map(this.transformTeamFromDb);
+    return (result.data || []).map(this.transformTeamFromDb);
   }
 
   async getTeamById(id: string): Promise<Team | null> {
@@ -2951,6 +2975,12 @@ export class SupabaseDataStore implements DataStore {
             // Catch errors from individual game fetches to allow batch to continue
             const errorMsg = err instanceof Error ? err.message : 'Unknown error';
             logger.error(`[SupabaseDataStore] Error fetching game ${id}: ${errorMsg}`);
+            // Track in Sentry - partial data loading could cause user confusion
+            Sentry.captureException(err, {
+              tags: { component: 'SupabaseDataStore', action: 'getGames-fetchGame' },
+              level: 'warning',
+              extra: { gameId: id, errorMsg },
+            });
             return { id, tables: null, error: errorMsg };
           }
         })
@@ -2959,14 +2989,7 @@ export class SupabaseDataStore implements DataStore {
       const failedIds: string[] = [];
       for (const { id, tables } of results) {
         if (tables) {
-          // Cache version for optimistic locking (Issue #330)
-          const version = tables.game.version;
-          if (typeof version === 'number') {
-            this.gameVersionCache.set(id, version);
-          } else {
-            // Schema guarantees version is NOT NULL with DEFAULT 1, but validate defensively
-            logger.warn('[SupabaseDataStore] Game loaded with non-numeric version', { gameId: id, version });
-          }
+          this.cacheGameVersion(id, tables.game.version);
           collection[id] = this.transformTablesToGame(tables);
         } else {
           failedIds.push(id);
@@ -2974,6 +2997,12 @@ export class SupabaseDataStore implements DataStore {
       }
       if (failedIds.length > 0) {
         logger.warn(`[SupabaseDataStore] Failed to fetch ${failedIds.length} game(s) in batch: ${failedIds.join(', ')}`);
+        // Track batch-level failures in Sentry for production monitoring
+        Sentry.captureMessage('Partial game data loaded - some games failed to fetch', {
+          level: 'warning',
+          tags: { component: 'SupabaseDataStore', action: 'getGames-batchFailure' },
+          extra: { failedCount: failedIds.length, failedIds, totalInBatch: batch.length },
+        });
       }
     }
 
@@ -2989,14 +3018,7 @@ export class SupabaseDataStore implements DataStore {
       return null;
     }
 
-    // Cache version for optimistic locking (Issue #330)
-    const version = tables.game.version;
-    if (typeof version === 'number') {
-      this.gameVersionCache.set(id, version);
-    } else {
-      // Schema guarantees version is NOT NULL with DEFAULT 1, but validate defensively
-      logger.warn('[SupabaseDataStore] Game loaded with non-numeric version', { gameId: id, version });
-    }
+    this.cacheGameVersion(id, tables.game.version);
 
     return this.transformTablesToGame(tables);
   }
@@ -3124,18 +3146,25 @@ export class SupabaseDataStore implements DataStore {
       const isConflict = error.code === '40001';
 
       if (isConflict) {
+        const conflictError = new ConflictError(
+          'game',
+          id,
+          'This game was modified in another tab or device. Please refresh to see the latest changes.'
+        );
         logger.warn('[SupabaseDataStore] Optimistic locking conflict detected for game', {
           gameId: id,
           expectedVersion,
           message: error.message,
         });
+        // Track conflict frequency in Sentry for production monitoring
+        Sentry.captureException(conflictError, {
+          level: 'warning',
+          tags: { component: 'SupabaseDataStore', action: 'saveGame-conflict' },
+          extra: { gameId: id, expectedVersion },
+        });
         // Clear cached version so next load gets fresh data
         this.gameVersionCache.delete(id);
-        throw new ConflictError(
-          'game',
-          id,
-          'This game was modified in another tab or device. Please refresh to see the latest changes.'
-        );
+        throw conflictError;
       }
 
       const isMissingRpc =
@@ -3204,6 +3233,12 @@ export class SupabaseDataStore implements DataStore {
       logger.warn('[SupabaseDataStore] Failed to backfill created_at for game', {
         gameId,
         message: error.message,
+      });
+      // Track in Sentry for production monitoring - not critical but worth tracking
+      Sentry.captureMessage('Game created_at backfill failed', {
+        level: 'warning',
+        tags: { flow: 'game-created-at-backfill' },
+        extra: { gameId, error: error.message },
       });
     }
   }

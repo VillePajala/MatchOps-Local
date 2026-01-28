@@ -43,6 +43,8 @@ interface AuthContextValue {
   mode: 'local' | 'cloud';
   /** True when user has consented to an old policy version and needs to re-consent */
   needsReConsent: boolean;
+  /** True when auth initialization timed out (user may need to retry sign-in) */
+  initTimedOut: boolean;
 
   // Actions
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
@@ -54,6 +56,8 @@ interface AuthContextValue {
   acceptReConsent: () => Promise<{ error?: string }>;
   /** Permanently delete the user's account (cloud mode only) */
   deleteAccount: () => Promise<{ error?: string }>;
+  /** Retry auth initialization after a timeout (resets initTimedOut state) */
+  retryAuthInit: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -100,6 +104,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [mode, setMode] = useState<'local' | 'cloud'>('local');
   const [needsReConsent, setNeedsReConsent] = useState(false);
+  const [initTimedOut, setInitTimedOut] = useState(false);
+  // Trigger for re-running auth initialization (increments to force useEffect re-run)
+  const [initRetryTrigger, setInitRetryTrigger] = useState(0);
 
   // Initialize auth service
   useEffect(() => {
@@ -149,6 +156,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (consentError) {
               // Non-critical: don't break token refresh, consent will be checked on next sign-in
               logger.warn('[AuthProvider] Failed to check consent on token refresh:', consentError);
+              // Track non-network errors in Sentry - could indicate RPC or database issues
+              if (!(consentError instanceof NetworkError)) {
+                Sentry.captureException(consentError, {
+                  tags: { flow: 'token-refresh-consent-check' },
+                  level: 'warning',
+                });
+              }
             }
           }
 
@@ -175,6 +189,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logger.info('[AuthProvider] Initialized', { mode: currentMode, authenticated: !!currentSession });
       } catch (error) {
         logger.error('[AuthProvider] Init failed:', error);
+        // Track in Sentry - auth init failures could leave app in broken state
+        Sentry.captureException(error, {
+          tags: { flow: 'auth-init' },
+          level: 'error',
+          extra: {
+            cloudAvailable: isCloudAvailable(),
+            mode: getBackendMode(),
+          },
+        });
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -203,6 +226,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           extra: context,
         });
         setIsLoading(false);
+        // Set flag so UI can inform user and offer retry option
+        setInitTimedOut(true);
       }
     }, 10000);
 
@@ -215,7 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(timeoutId);
       }
     };
-  }, []);
+  }, [initRetryTrigger]); // Re-run when retry is triggered
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!authService) return { error: 'Auth not initialized' };
@@ -321,13 +346,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [authService]);
 
   const signOut = useCallback(async () => {
-    if (!authService) return;
+    if (!authService) {
+      // This shouldn't happen in normal flow - log for debugging
+      logger.warn('[AuthProvider] signOut called but authService is null');
+      return;
+    }
 
     try {
       await authService.signOut();
     } catch (error) {
       // Log but don't throw - user should be signed out locally regardless
       logger.warn('[AuthProvider] Sign out error:', error);
+      // Track in Sentry - sign-out failures could leave orphaned sessions (security concern)
+      Sentry.captureException(error, {
+        tags: { flow: 'sign-out' },
+        level: 'warning',
+      });
     }
 
     // Clear subscription cache to prevent data leakage to next user (privacy)
@@ -338,6 +372,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         // Non-critical: cache will expire naturally, log but don't block sign-out
         logger.warn('[AuthProvider] Failed to clear subscription cache:', error);
+        // Track in Sentry - frequent failures could indicate IndexedDB issues
+        Sentry.captureException(error, {
+          tags: { flow: 'sign-out-cache-clear' },
+          level: 'warning',
+        });
       }
     }
 
@@ -379,6 +418,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Log but don't fail sign-up/sign-in if consent recording fails
       // The consent checkbox was checked client-side, this is just the audit trail
       logger.error('[AuthProvider] Failed to record consent:', error);
+      // Track in Sentry - consent recording failures need production visibility
+      Sentry.captureException(error, {
+        tags: { flow: 'record-consent' },
+        level: 'warning',
+      });
       return { error: error instanceof Error ? error.message : 'Failed to record consent' };
     }
   }, [authService]);
@@ -400,6 +444,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return {};
     } catch (error) {
       logger.error('[AuthProvider] Failed to record re-consent:', error);
+      // Track in Sentry - re-consent failures need production visibility
+      Sentry.captureException(error, {
+        tags: { flow: 'accept-re-consent' },
+        level: 'warning',
+      });
       return { error: error instanceof Error ? error.message : 'Failed to record consent' };
     }
   }, [authService]);
@@ -431,6 +480,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authService]);
 
+  /**
+   * Retry auth initialization after a timeout.
+   * Resets state and triggers a fresh initialization attempt.
+   */
+  const retryAuthInit = useCallback(() => {
+    logger.info('[AuthProvider] Retrying auth initialization');
+    setIsLoading(true);
+    setInitTimedOut(false);
+    setInitRetryTrigger(prev => prev + 1);
+  }, []);
+
   // Memoize the context value to prevent unnecessary re-renders
   const value: AuthContextValue = useMemo(() => ({
     user,
@@ -443,6 +503,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     mode,
     needsReConsent,
+    initTimedOut,
     signIn,
     signUp,
     signOut,
@@ -450,7 +511,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     recordConsent,
     acceptReConsent,
     deleteAccount,
-  }), [user, session, mode, isLoading, needsReConsent, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount]);
+    retryAuthInit,
+  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit]);
 
   return (
     <AuthContext.Provider value={value}>

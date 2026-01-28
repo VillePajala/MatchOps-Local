@@ -25,6 +25,7 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 // =============================================================================
 // TYPES
@@ -289,8 +290,14 @@ export async function migrateLocalToCloud(
   // Promise deduplication: if migration is already in progress, wait for it
   // This is safer than returning an error because concurrent callers get the
   // actual result instead of having to implement retry logic
+  //
+  // NOTE: Concurrent callers will NOT receive progress callbacks - only the first
+  // caller's onProgress function is used. Concurrent callers receive the final
+  // result when the migration completes. This is acceptable because:
+  // 1. Concurrent calls are rare (user double-clicking, navigation)
+  // 2. The result is what matters, not the progress display
   if (migrationPromise) {
-    logger.info('[MigrationService] Migration already in progress, waiting for completion');
+    logger.info('[MigrationService] Migration already in progress, waiting for completion (progress callbacks will not be received)');
     return migrationPromise;
   }
 
@@ -1572,6 +1579,11 @@ const BATCH_SIZE = 5;
 /**
  * Process items in batches with a given async operation.
  * Limits concurrency to prevent overwhelming the API.
+ * Uses Promise.allSettled to continue processing even if individual items fail.
+ *
+ * NOTE: Only fulfilled results are returned. Failed items are logged and tracked
+ * in Sentry but excluded from the returned array, so results.length may be less
+ * than items.length when failures occur.
  */
 async function processBatch<T, R>(
   items: T[],
@@ -1581,8 +1593,19 @@ async function processBatch<T, R>(
   const results: R[] = [];
   for (let i = 0; i < items.length; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
-    const batchResults = await Promise.all(batch.map(operation));
-    results.push(...batchResults);
+    const batchResults = await Promise.allSettled(batch.map(operation));
+    for (const result of batchResults) {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        // Log and track individual failures, but continue processing
+        logger.warn('[MigrationService] Batch item failed:', result.reason);
+        Sentry.captureException(result.reason, {
+          tags: { component: 'MigrationService', action: 'processBatch' },
+          level: 'warning',
+        });
+      }
+    }
   }
   return results;
 }

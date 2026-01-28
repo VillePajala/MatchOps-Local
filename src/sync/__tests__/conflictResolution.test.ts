@@ -4,7 +4,8 @@
 
 import {
   ConflictResolver,
-  isConflictError,
+  isAutoResolvableConflict,
+  isConflictError, // Deprecated alias - imported to verify it still works
   isNotFoundError,
   type ConflictResolverOptions,
   type CloudRecord,
@@ -355,14 +356,14 @@ describe('ConflictResolver', () => {
   });
 });
 
-describe('isConflictError', () => {
+describe('isAutoResolvableConflict', () => {
   /**
    * Issue #330: ConflictError from optimistic locking should NOT be auto-resolved.
    * These require user intervention (refresh to see latest changes).
    */
   it('should return false for ConflictError (optimistic locking)', () => {
     const conflictError = new ConflictError('game', 'game_123', 'Version mismatch');
-    expect(isConflictError(conflictError)).toBe(false);
+    expect(isAutoResolvableConflict(conflictError)).toBe(false);
   });
 
   /**
@@ -371,50 +372,59 @@ describe('isConflictError', () => {
    */
   it('should NOT detect generic "conflict" in error message', () => {
     // Generic conflict errors should propagate to UI, not auto-resolve
-    expect(isConflictError(new Error('Conflict detected'))).toBe(false);
-    expect(isConflictError(new Error('A conflict occurred'))).toBe(false);
+    expect(isAutoResolvableConflict(new Error('Conflict detected'))).toBe(false);
+    expect(isAutoResolvableConflict(new Error('A conflict occurred'))).toBe(false);
   });
 
   /**
    * "version mismatch" indicates optimistic locking conflict - NOT auto-resolvable.
    */
   it('should NOT detect "version mismatch" in error message', () => {
-    expect(isConflictError(new Error('version mismatch'))).toBe(false);
+    expect(isAutoResolvableConflict(new Error('version mismatch'))).toBe(false);
   });
 
   // Unique constraint violations CAN be auto-resolved via timestamp-based last-write-wins
   it('should detect "already exists" in error message', () => {
-    expect(isConflictError(new Error('Record already exists'))).toBe(true);
+    expect(isAutoResolvableConflict(new Error('Record already exists'))).toBe(true);
   });
 
   it('should detect "duplicate key" in error message', () => {
-    expect(isConflictError(new Error('duplicate key value'))).toBe(true);
+    expect(isAutoResolvableConflict(new Error('duplicate key value'))).toBe(true);
   });
 
   it('should detect "unique constraint" in error message', () => {
-    expect(isConflictError(new Error('unique constraint violation'))).toBe(true);
+    expect(isAutoResolvableConflict(new Error('unique constraint violation'))).toBe(true);
   });
 
   it('should detect PostgreSQL error code 23505', () => {
-    expect(isConflictError(new Error('error code 23505'))).toBe(true);
+    expect(isAutoResolvableConflict(new Error('error code 23505'))).toBe(true);
   });
 
   it('should be case-insensitive for unique constraint violations', () => {
-    expect(isConflictError(new Error('ALREADY EXISTS'))).toBe(true);
-    expect(isConflictError(new Error('Unique Constraint'))).toBe(true);
+    expect(isAutoResolvableConflict(new Error('ALREADY EXISTS'))).toBe(true);
+    expect(isAutoResolvableConflict(new Error('Unique Constraint'))).toBe(true);
   });
 
   it('should return false for non-conflict errors', () => {
-    expect(isConflictError(new Error('Network error'))).toBe(false);
-    expect(isConflictError(new Error('Server timeout'))).toBe(false);
-    expect(isConflictError(new Error('Permission denied'))).toBe(false);
+    expect(isAutoResolvableConflict(new Error('Network error'))).toBe(false);
+    expect(isAutoResolvableConflict(new Error('Server timeout'))).toBe(false);
+    expect(isAutoResolvableConflict(new Error('Permission denied'))).toBe(false);
   });
 
   it('should return false for non-Error values', () => {
-    expect(isConflictError('conflict')).toBe(false);
-    expect(isConflictError({ message: 'conflict' })).toBe(false);
-    expect(isConflictError(null)).toBe(false);
-    expect(isConflictError(undefined)).toBe(false);
+    expect(isAutoResolvableConflict('conflict')).toBe(false);
+    expect(isAutoResolvableConflict({ message: 'conflict' })).toBe(false);
+    expect(isAutoResolvableConflict(null)).toBe(false);
+    expect(isAutoResolvableConflict(undefined)).toBe(false);
+  });
+
+  /**
+   * Verify the deprecated alias still works for backwards compatibility.
+   */
+  it('should work via deprecated isConflictError alias', () => {
+    // Both should behave identically
+    expect(isConflictError(new Error('already exists'))).toBe(true);
+    expect(isConflictError(new ConflictError('game', 'id', 'msg'))).toBe(false);
   });
 });
 
