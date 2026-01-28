@@ -8,6 +8,7 @@
  */
 
 import logger from '@/utils/logger';
+import { ConflictError } from '@/interfaces/DataStoreErrors';
 import type {
   SyncOperation,
   SyncEntityType,
@@ -333,19 +334,28 @@ export class ConflictResolver {
 }
 
 /**
- * Detect if an error indicates a conflict.
- * Used by SyncEngine to determine when to invoke conflict resolution.
+ * Detect if an error indicates a conflict that can be auto-resolved.
+ * Used by SyncEngine to determine when to invoke timestamp-based conflict resolution.
+ *
+ * NOTE: ConflictError from optimistic locking (Issue #330) is explicitly EXCLUDED.
+ * Those errors indicate concurrent modification and require user intervention
+ * (refresh to see latest changes), not automatic timestamp-based resolution.
  */
 export function isConflictError(error: unknown): boolean {
+  // Optimistic locking conflicts should propagate to UI, not auto-resolve
+  // These require user to refresh and see the latest version
+  if (error instanceof ConflictError) {
+    return false;
+  }
+
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    // Common conflict indicators from Supabase/PostgreSQL
+    // Common conflict indicators from Supabase/PostgreSQL (unique constraint violations)
+    // These CAN be auto-resolved via timestamp-based last-write-wins
     return (
-      message.includes('conflict') ||
       message.includes('already exists') ||
       message.includes('duplicate key') ||
       message.includes('unique constraint') ||
-      message.includes('version mismatch') ||
       message.includes('23505') // PostgreSQL unique violation code
     );
   }

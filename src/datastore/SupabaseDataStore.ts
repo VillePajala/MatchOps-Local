@@ -385,11 +385,22 @@ export class SupabaseDataStore implements DataStore {
   private initPromise: Promise<void> | null = null;
   // Version cache for optimistic locking (Issue #330)
   // Maps game ID -> current version number
+  //
   // Lifecycle:
   //   - Populated: getGameById(), getGames() on load; saveGame() updates with new version
   //   - Used: saveGame() passes cached version as p_expected_version
   //   - Invalidated: deleteGame(), clearUserCaches(), conflict error, invalid version from RPC
   //   - Scoped: Per DataStore instance (effectively per user session)
+  //
+  // Multi-tab/device behavior:
+  //   1. Tab A loads game (caches version 1)
+  //   2. Tab B saves game (version becomes 2 in database)
+  //   3. Tab A saves game (passes version 1, database has 2 → ConflictError)
+  //   4. Tab A's cache is cleared on conflict
+  //   5. Tab A must refresh to load version 2, then can save again
+  //
+  // After conflict, the cache is cleared so next save passes null (skips version check).
+  // This is acceptable because user must refresh to see latest changes anyway.
   private gameVersionCache: Map<string, number> = new Map();
 
   // Retry configuration for transient network errors

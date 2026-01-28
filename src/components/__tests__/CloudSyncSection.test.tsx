@@ -104,6 +104,34 @@ jest.mock('@/utils/logger', () => ({
   error: jest.fn(),
 }));
 
+// Mock ModalProvider context (required by SyncStatusIndicator)
+jest.mock('@/contexts/ModalProvider', () => ({
+  useModalContext: () => ({
+    isGameSettingsModalOpen: false,
+    setIsGameSettingsModalOpen: jest.fn(),
+    isLoadGameModalOpen: false,
+    setIsLoadGameModalOpen: jest.fn(),
+    isRosterModalOpen: false,
+    setIsRosterModalOpen: jest.fn(),
+    isStatsModalOpen: false,
+    setIsStatsModalOpen: jest.fn(),
+    isNewGameSetupModalOpen: false,
+    setIsNewGameSetupModalOpen: jest.fn(),
+    isTeamModalOpen: false,
+    setIsTeamModalOpen: jest.fn(),
+    isSeasonTournamentModalOpen: false,
+    setIsSeasonTournamentModalOpen: jest.fn(),
+    isPersonnelModalOpen: false,
+    setIsPersonnelModalOpen: jest.fn(),
+    isSettingsModalOpen: false,
+    setIsSettingsModalOpen: jest.fn(),
+    openSettingsToTab: jest.fn(),
+    settingsInitialTab: undefined,
+    isPlayerAssessmentModalOpen: false,
+    setIsPlayerAssessmentModalOpen: jest.fn(),
+  }),
+}));
+
 // Default useSyncStatus mock (can be overridden in individual tests)
 const mockSyncStatus = {
   pendingCount: 0,

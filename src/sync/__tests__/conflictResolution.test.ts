@@ -9,6 +9,7 @@ import {
   type ConflictResolverOptions,
   type CloudRecord,
 } from '../conflictResolution';
+import { ConflictError } from '@/interfaces/DataStoreErrors';
 import type { SyncOperation } from '../types';
 
 describe('ConflictResolver', () => {
@@ -355,11 +356,33 @@ describe('ConflictResolver', () => {
 });
 
 describe('isConflictError', () => {
-  it('should detect "conflict" in error message', () => {
-    expect(isConflictError(new Error('Conflict detected'))).toBe(true);
-    expect(isConflictError(new Error('A conflict occurred'))).toBe(true);
+  /**
+   * Issue #330: ConflictError from optimistic locking should NOT be auto-resolved.
+   * These require user intervention (refresh to see latest changes).
+   */
+  it('should return false for ConflictError (optimistic locking)', () => {
+    const conflictError = new ConflictError('game', 'game_123', 'Version mismatch');
+    expect(isConflictError(conflictError)).toBe(false);
   });
 
+  /**
+   * Generic "conflict" messages should NOT trigger auto-resolution.
+   * They could be ConflictError messages that need user intervention.
+   */
+  it('should NOT detect generic "conflict" in error message', () => {
+    // Generic conflict errors should propagate to UI, not auto-resolve
+    expect(isConflictError(new Error('Conflict detected'))).toBe(false);
+    expect(isConflictError(new Error('A conflict occurred'))).toBe(false);
+  });
+
+  /**
+   * "version mismatch" indicates optimistic locking conflict - NOT auto-resolvable.
+   */
+  it('should NOT detect "version mismatch" in error message', () => {
+    expect(isConflictError(new Error('version mismatch'))).toBe(false);
+  });
+
+  // Unique constraint violations CAN be auto-resolved via timestamp-based last-write-wins
   it('should detect "already exists" in error message', () => {
     expect(isConflictError(new Error('Record already exists'))).toBe(true);
   });
@@ -372,16 +395,12 @@ describe('isConflictError', () => {
     expect(isConflictError(new Error('unique constraint violation'))).toBe(true);
   });
 
-  it('should detect "version mismatch" in error message', () => {
-    expect(isConflictError(new Error('version mismatch'))).toBe(true);
-  });
-
   it('should detect PostgreSQL error code 23505', () => {
     expect(isConflictError(new Error('error code 23505'))).toBe(true);
   });
 
-  it('should be case-insensitive', () => {
-    expect(isConflictError(new Error('CONFLICT DETECTED'))).toBe(true);
+  it('should be case-insensitive for unique constraint violations', () => {
+    expect(isConflictError(new Error('ALREADY EXISTS'))).toBe(true);
     expect(isConflictError(new Error('Unique Constraint'))).toBe(true);
   });
 

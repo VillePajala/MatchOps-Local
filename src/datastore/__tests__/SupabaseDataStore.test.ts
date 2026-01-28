@@ -2569,6 +2569,59 @@ describe('SupabaseDataStore', () => {
           p_expected_version: null,
         });
       });
+
+      /**
+       * Issue #330: Optimistic locking - cache must stay current across saves
+       * @critical - Ensures subsequent saves use correct version from previous save
+       *
+       * Scenario: User saves game twice in a row without reloading
+       * 1. First save returns version 1 (new game)
+       * 2. Second save should use version 1 (from first save's return)
+       * 3. Second save returns version 2
+       * 4. Third save should use version 2
+       */
+      it('should track version across multiple consecutive saves', async () => {
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        // First save - new game, returns version 1
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: 1, error: null });
+        await dataStore.saveGame('game_multi_save', game as unknown as AppState);
+
+        // Second save - should use version 1, returns version 2
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: 2, error: null });
+        await dataStore.saveGame('game_multi_save', game as unknown as AppState);
+
+        // Third save - should use version 2, returns version 3
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: 3, error: null });
+        await dataStore.saveGame('game_multi_save', game as unknown as AppState);
+
+        const calls = (mockSupabaseClient.rpc as jest.Mock).mock.calls;
+
+        // First call: null (no cached version for new game)
+        expect(calls[0][1]).toMatchObject({ p_expected_version: null });
+        // Second call: 1 (from first save's return)
+        expect(calls[1][1]).toMatchObject({ p_expected_version: 1 });
+        // Third call: 2 (from second save's return)
+        expect(calls[2][1]).toMatchObject({ p_expected_version: 2 });
+      });
     });
 
     describe('deleteGame', () => {
