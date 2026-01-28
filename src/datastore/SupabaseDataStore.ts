@@ -386,9 +386,9 @@ export class SupabaseDataStore implements DataStore {
   // Version cache for optimistic locking (Issue #330)
   // Maps game ID -> current version number
   // Lifecycle:
-  //   - Populated: getGameById(), getGames() on successful load
+  //   - Populated: getGameById(), getGames() on load; saveGame() updates with new version
   //   - Used: saveGame() passes cached version as p_expected_version
-  //   - Invalidated: deleteGame(), clearUserCaches(), conflict error
+  //   - Invalidated: deleteGame(), clearUserCaches(), conflict error, invalid version from RPC
   //   - Scoped: Per DataStore instance (effectively per user session)
   private gameVersionCache: Map<string, number> = new Map();
 
@@ -2950,7 +2950,12 @@ export class SupabaseDataStore implements DataStore {
         if (tables) {
           // Cache version for optimistic locking (Issue #330)
           const version = tables.game.version;
-          this.gameVersionCache.set(id, version);
+          if (typeof version === 'number') {
+            this.gameVersionCache.set(id, version);
+          } else {
+            // Schema guarantees version is NOT NULL with DEFAULT 1, but validate defensively
+            logger.warn('[SupabaseDataStore] Game loaded with non-numeric version', { gameId: id, version });
+          }
           collection[id] = this.transformTablesToGame(tables);
         } else {
           failedIds.push(id);
@@ -2975,7 +2980,12 @@ export class SupabaseDataStore implements DataStore {
 
     // Cache version for optimistic locking (Issue #330)
     const version = tables.game.version;
-    this.gameVersionCache.set(id, version);
+    if (typeof version === 'number') {
+      this.gameVersionCache.set(id, version);
+    } else {
+      // Schema guarantees version is NOT NULL with DEFAULT 1, but validate defensively
+      logger.warn('[SupabaseDataStore] Game loaded with non-numeric version', { gameId: id, version });
+    }
 
     return this.transformTablesToGame(tables);
   }
@@ -3074,7 +3084,7 @@ export class SupabaseDataStore implements DataStore {
     // Wrapped with retry for transient network errors (critical for mobile reliability)
     // throwIfTransient ensures network errors trigger retry
     // IMPORTANT: Conflict errors (40001/serialization_failure) are NOT retried because:
-    //   1. isTransientError() in retry.ts excludes 40001 from transient codes
+    //   1. isTransientError() only returns true for specific patterns/codes (40001 is not among them)
     //   2. 40001 indicates real concurrent modification, not a transient network issue
     //   3. User intervention required - they must refresh to see latest changes
     const client = this.getClient();
@@ -3146,9 +3156,11 @@ export class SupabaseDataStore implements DataStore {
     if (typeof newVersion === 'number') {
       this.gameVersionCache.set(id, newVersion);
     } else {
-      // This should never happen - RPC always returns version on success
-      // Log for debugging but don't fail the save (data is already saved)
-      logger.warn('[SupabaseDataStore] Unexpected non-numeric version from RPC', {
+      // This should never happen - RPC always returns BIGINT version on success.
+      // Possible causes: RPC signature mismatch, null from DB trigger bug, or type coercion issue.
+      // Clear cache to force fresh load on next read (prevents stale version issues).
+      this.gameVersionCache.delete(id);
+      logger.error('[SupabaseDataStore] Unexpected non-numeric version from RPC - cache invalidated', {
         gameId: id,
         versionType: typeof newVersion,
         versionValue: newVersion,
