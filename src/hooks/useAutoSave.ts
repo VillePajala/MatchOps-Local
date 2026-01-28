@@ -186,10 +186,14 @@ export const useAutoSave = ({
         } catch (error) {
           // All retries failed or error was not transient
           logger.error('[useAutoSave] Save failed after retries (immediate):', error);
-          Sentry.captureException(error, {
-            tags: { operation: 'auto_save_immediate', gameId: currentGameId || 'unknown' },
-            extra: { trigger: 'immediate_state_change', retriesFailed: true },
-          });
+          try {
+            Sentry.captureException(error, {
+              tags: { operation: 'auto_save_immediate', gameId: currentGameId || 'unknown' },
+              extra: { trigger: 'immediate_state_change', retriesFailed: true },
+            });
+          } catch {
+            // Sentry failure must not affect auto-save error handling
+          }
           // Don't re-throw - let app continue running
         }
       })();
@@ -224,10 +228,14 @@ export const useAutoSave = ({
           } catch (error) {
             // All retries failed or error was not transient
             logger.error('[useAutoSave] Save failed after retries (short-delay):', error);
-            Sentry.captureException(error, {
-              tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
-              extra: { trigger: 'short_delay_state_change', delay: short.delay, retriesFailed: true },
-            });
+            try {
+              Sentry.captureException(error, {
+                tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
+                extra: { trigger: 'short_delay_state_change', delay: short.delay, retriesFailed: true },
+              });
+            } catch {
+              // Sentry failure must not affect auto-save error handling
+            }
             // Don't re-throw - let app continue running
           }
         } else {
@@ -265,10 +273,14 @@ export const useAutoSave = ({
           } catch (error) {
             // All retries failed or error was not transient
             logger.error('[useAutoSave] Save failed after retries (long-delay):', error);
-            Sentry.captureException(error, {
-              tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
-              extra: { trigger: 'long_delay_state_change', delay: long.delay, retriesFailed: true },
-            });
+            try {
+              Sentry.captureException(error, {
+                tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
+                extra: { trigger: 'long_delay_state_change', delay: long.delay, retriesFailed: true },
+              });
+            } catch {
+              // Sentry failure must not affect auto-save error handling
+            }
             // Don't re-throw - let app continue running
           }
         } else {

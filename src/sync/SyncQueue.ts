@@ -157,10 +157,14 @@ export class SyncQueue {
       request.onerror = () => {
         logger.error('[SyncQueue] Failed to open database:', request.error);
         // Report to Sentry - database open failure is critical
-        Sentry.captureException(request.error, {
-          tags: { component: 'SyncQueue', action: 'openDatabase' },
-          level: 'error',
-        });
+        try {
+          Sentry.captureException(request.error, {
+            tags: { component: 'SyncQueue', action: 'openDatabase' },
+            level: 'error',
+          });
+        } catch {
+          // Sentry failure must not prevent error handling
+        }
         reject(new SyncError(
           SyncErrorCode.QUEUE_ERROR,
           `Failed to open sync queue database: ${request.error?.message || 'Unknown error'}`,
@@ -176,10 +180,14 @@ export class SyncQueue {
         this.db.onclose = () => {
           logger.warn('[SyncQueue] Database connection closed unexpectedly');
           // Track in Sentry - unexpected close could indicate storage pressure or corruption
-          Sentry.captureMessage('SyncQueue database connection closed unexpectedly', {
-            tags: { component: 'SyncQueue', action: 'onclose' },
-            level: 'warning',
-          });
+          try {
+            Sentry.captureMessage('SyncQueue database connection closed unexpectedly', {
+              tags: { component: 'SyncQueue', action: 'onclose' },
+              level: 'warning',
+            });
+          } catch {
+            // Sentry failure must not affect database state handling
+          }
           this.db = null;
         };
 
@@ -311,11 +319,15 @@ export class SyncQueue {
         if (error?.name === 'QuotaExceededError') {
           logger.error(`[SyncQueue] Quota exceeded while enqueuing ${entityInfo}:`, error);
           // Report to Sentry - quota exceeded is critical for data safety
-          Sentry.captureException(error, {
-            tags: { component: 'SyncQueue', action: 'enqueue', errorType: 'QuotaExceeded' },
-            extra: { entityType: input.entityType, entityId: input.entityId, operation: input.operation },
-            level: 'error',
-          });
+          try {
+            Sentry.captureException(error, {
+              tags: { component: 'SyncQueue', action: 'enqueue', errorType: 'QuotaExceeded' },
+              extra: { entityType: input.entityType, entityId: input.entityId, operation: input.operation },
+              level: 'error',
+            });
+          } catch {
+            // Sentry failure must not prevent error handling
+          }
           reject(new SyncError(
             SyncErrorCode.QUOTA_EXCEEDED,
             `Storage quota exceeded while saving ${entityInfo}. Please free up space.`,

@@ -61,15 +61,20 @@ export async function onRequestError(
   // Import Sentry dynamically to avoid issues in environments where it's not initialized
   const Sentry = await import('@sentry/nextjs');
 
-  Sentry.captureException(err, {
-    tags: {
-      routerKind: context.routerKind,
-      routePath: context.routePath,
-      routeType: context.routeType,
-    },
-    extra: {
-      url: request.url,
-      method: request.method,
-    },
-  });
+  // Wrapped in try/catch to prevent Sentry SDK failures from affecting error handling
+  try {
+    Sentry.captureException(err, {
+      tags: {
+        routerKind: context.routerKind,
+        routePath: context.routePath,
+        routeType: context.routeType,
+      },
+      extra: {
+        url: request.url,
+        method: request.method,
+      },
+    });
+  } catch {
+    // Sentry failure must not affect server instrumentation
+  }
 }

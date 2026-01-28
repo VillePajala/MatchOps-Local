@@ -311,17 +311,22 @@ export function useGamePersistence({
         logger.error("Failed to quick save game state:", error);
 
         // Always report to Sentry for monitoring, even for silent auto-saves
-        Sentry.captureException(error, {
-          tags: {
-            operation: 'quick_save_game',
-            silent,
-            gameId: currentGameId,
-          },
-          extra: {
-            teamId: gameSessionState.teamId,
-            tournamentId: gameSessionState.tournamentId,
-          },
-        });
+        // Wrapped in try/catch to prevent Sentry SDK failures from affecting save error handling
+        try {
+          Sentry.captureException(error, {
+            tags: {
+              operation: 'quick_save_game',
+              silent,
+              gameId: currentGameId,
+            },
+            extra: {
+              teamId: gameSessionState.teamId,
+              tournamentId: gameSessionState.tournamentId,
+            },
+          });
+        } catch {
+          // Sentry failure must not affect save error handling
+        }
 
         // Show error toast unless explicitly suppressed (for retry logic)
         if (!suppressErrorToast) {
@@ -356,16 +361,21 @@ export function useGamePersistence({
         logger.error("Failed to create new saved game:", error);
 
         // Always report to Sentry for monitoring
-        Sentry.captureException(error, {
-          tags: {
-            operation: 'create_new_game',
-            silent,
-          },
-          extra: {
-            teamId: gameSessionState.teamId,
-            tournamentId: gameSessionState.tournamentId,
-          },
-        });
+        // Wrapped in try/catch to prevent Sentry SDK failures from affecting error handling
+        try {
+          Sentry.captureException(error, {
+            tags: {
+              operation: 'create_new_game',
+              silent,
+            },
+            extra: {
+              teamId: gameSessionState.teamId,
+              tournamentId: gameSessionState.tournamentId,
+            },
+          });
+        } catch {
+          // Sentry failure must not affect create game error handling
+        }
 
         // Show error toast unless explicitly suppressed
         if (!suppressErrorToast) {

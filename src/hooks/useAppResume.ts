@@ -123,18 +123,22 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         } catch (error) {
           // This is rare but critical - log to Sentry with high severity
           logger.error('[useAppResume] Failed to reload page:', error);
-          Sentry.captureException(error, {
-            level: 'fatal',
-            tags: {
-              component: 'useAppResume',
-              action: 'force_reload_failed',
-              backgroundDuration: String(backgroundDuration)
-            },
-            extra: {
-              backgroundDurationMs: backgroundDuration,
-              trigger
-            }
-          });
+          try {
+            Sentry.captureException(error, {
+              level: 'fatal',
+              tags: {
+                component: 'useAppResume',
+                action: 'force_reload_failed',
+                backgroundDuration: String(backgroundDuration)
+              },
+              extra: {
+                backgroundDurationMs: backgroundDuration,
+                trigger
+              }
+            });
+          } catch {
+            // Sentry failure must not affect resume error handling
+          }
 
           isReloadingRef.current = false;
 

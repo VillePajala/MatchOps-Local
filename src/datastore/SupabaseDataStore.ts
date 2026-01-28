@@ -2997,11 +2997,15 @@ export class SupabaseDataStore implements DataStore {
             const errorMsg = err instanceof Error ? err.message : 'Unknown error';
             logger.error(`[SupabaseDataStore] Error fetching game ${id}: ${errorMsg}`);
             // Track in Sentry - partial data loading could cause user confusion
-            Sentry.captureException(err, {
-              tags: { component: 'SupabaseDataStore', action: 'getGames-fetchGame' },
-              level: 'warning',
-              extra: { gameId: id, errorMsg },
-            });
+            try {
+              Sentry.captureException(err, {
+                tags: { component: 'SupabaseDataStore', action: 'getGames-fetchGame' },
+                level: 'warning',
+                extra: { gameId: id, errorMsg },
+              });
+            } catch {
+              // Sentry failure must not break batch processing
+            }
             return { id, tables: null, error: errorMsg };
           }
         })
@@ -3018,11 +3022,15 @@ export class SupabaseDataStore implements DataStore {
             // Log and track, but DON'T stop processing other games
             const errorMsg = transformErr instanceof Error ? transformErr.message : 'Unknown transform error';
             logger.error(`[SupabaseDataStore] Error transforming game ${id}: ${errorMsg}`);
-            Sentry.captureException(transformErr, {
-              tags: { component: 'SupabaseDataStore', action: 'getGames-transform' },
-              level: 'warning',
-              extra: { gameId: id, errorMsg },
-            });
+            try {
+              Sentry.captureException(transformErr, {
+                tags: { component: 'SupabaseDataStore', action: 'getGames-transform' },
+                level: 'warning',
+                extra: { gameId: id, errorMsg },
+              });
+            } catch {
+              // Sentry failure must not break batch processing
+            }
             allFailedIds.push(id);
           }
         } else {
@@ -3315,11 +3323,15 @@ export class SupabaseDataStore implements DataStore {
         message: error.message,
       });
       // Track in Sentry for production monitoring - not critical but worth tracking
-      Sentry.captureMessage('Game created_at backfill failed', {
-        level: 'warning',
-        tags: { flow: 'game-created-at-backfill' },
-        extra: { gameId, error: error.message },
-      });
+      try {
+        Sentry.captureMessage('Game created_at backfill failed', {
+          level: 'warning',
+          tags: { flow: 'game-created-at-backfill' },
+          extra: { gameId, error: error.message },
+        });
+      } catch {
+        // Sentry failure must not affect game save success
+      }
     }
   }
 
