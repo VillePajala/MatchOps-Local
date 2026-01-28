@@ -280,7 +280,8 @@ describe('reverseMigrationService', () => {
       const result = await hasCloudData();
 
       expect(result.checkFailed).toBe(true);
-      expect(result.error).toBe('Network error');
+      // Error message is wrapped by hasCloudData with prefix
+      expect(result.error).toBe('Failed to check cloud data: Network error');
     });
   });
 
@@ -552,19 +553,32 @@ describe('reverseMigrationService', () => {
       expect(isReverseMigrationRunning()).toBe(false);
     });
 
-    it('should prevent concurrent migrations', async () => {
-      // Start first migration but don't await
-      const firstMigration = migrateCloudToLocal(() => {});
+    it('should deduplicate concurrent migrations (Promise deduplication pattern)', async () => {
+      // The actual behavior is Promise deduplication - concurrent calls wait
+      // for the first one and receive the SAME result, not an error.
+      // This is intentional per the code comment in migrateCloudToLocal.
 
-      // Start second migration immediately
-      const secondResult = await migrateCloudToLocal(() => {});
+      // Track how many times performReverseMigration actually runs
+      let migrationExecutions = 0;
+      const originalGetPlayers = mockSupabaseDataStore.getPlayers;
+      mockSupabaseDataStore.getPlayers = jest.fn().mockImplementation(() => {
+        migrationExecutions++;
+        return originalGetPlayers();
+      });
 
-      // Second should fail
-      expect(secondResult.success).toBe(false);
-      expect(secondResult.errors).toContain('Migration already in progress');
+      // Start both migrations concurrently
+      const [result1, result2] = await Promise.all([
+        migrateCloudToLocal(() => {}),
+        migrateCloudToLocal(() => {}),
+      ]);
 
-      // Wait for first to complete
-      await firstMigration;
+      // Both should succeed (Promise deduplication returns same result)
+      expect(result1.success).toBe(true);
+      expect(result2.success).toBe(true);
+
+      // But only ONE migration actually executed (deduplication)
+      // Note: getPlayers is called once per migration execution
+      expect(migrationExecutions).toBe(1);
 
       // After completion, should allow new migration
       expect(isReverseMigrationRunning()).toBe(false);

@@ -423,19 +423,23 @@ export class SupabaseDataStore implements DataStore {
    *
    * @param gameId - The game ID
    * @param version - The version from the database (should always be number per schema)
+   * @throws {ValidationError} If version is not a number (indicates data corruption)
    */
   private cacheGameVersion(gameId: string, version: number | null | undefined): void {
     if (typeof version === 'number') {
       this.gameVersionCache.set(gameId, version);
     } else {
-      // Schema guarantees version is NOT NULL with DEFAULT 1 - this indicates a bug
-      // Track in Sentry since non-numeric version silently disables optimistic locking
-      logger.warn('[SupabaseDataStore] Game loaded with non-numeric version', { gameId, version });
-      Sentry.captureMessage('Game loaded with non-numeric version - optimistic locking disabled for this game', {
-        level: 'error',
-        tags: { component: 'SupabaseDataStore', action: 'cacheGameVersion' },
+      // Schema guarantees version is NOT NULL with DEFAULT 1 - non-numeric version indicates
+      // data corruption or schema migration issue. CRITICAL: Must throw to prevent silent
+      // disabling of optimistic locking which could lead to data loss.
+      const errorMsg = `Game ${gameId} has invalid version (${typeof version}: ${version}). This indicates data corruption.`;
+      logger.error('[SupabaseDataStore] ' + errorMsg);
+      Sentry.captureMessage('Game loaded with non-numeric version - data corruption detected', {
+        level: 'fatal',
+        tags: { component: 'SupabaseDataStore', action: 'cacheGameVersion', corruption: 'true' },
         extra: { gameId, version, versionType: typeof version },
       });
+      throw new ValidationError(errorMsg, 'version', version);
     }
   }
 
@@ -610,8 +614,13 @@ export class SupabaseDataStore implements DataStore {
       return available;
     } catch (err) {
       // Exceptions during availability check are unusual and indicate potential SDK/config issues
-      // Log at error level to ensure visibility in Sentry
       logger.error(`[SupabaseDataStore] isAvailable check threw exception - cloud features may not work:`, err);
+      // Track in Sentry - SDK exceptions could indicate configuration or network issues
+      Sentry.captureException(err, {
+        tags: { component: 'SupabaseDataStore', action: 'isAvailable' },
+        level: 'error',
+        extra: { initialized: this.initialized, hasClient: !!this.supabase },
+      });
       return false;
     }
   }
@@ -2963,6 +2972,7 @@ export class SupabaseDataStore implements DataStore {
     // Batch size of 20 balances parallelism vs. Supabase connection pool limits
     const BATCH_SIZE = 20;
     const collection: SavedGamesCollection = {};
+    const allFailedIds: string[] = []; // Track all failures across batches
 
     for (let i = 0; i < games.length; i += BATCH_SIZE) {
       const batch = games.slice(i, i + BATCH_SIZE);
@@ -2986,24 +2996,56 @@ export class SupabaseDataStore implements DataStore {
         })
       );
 
-      const failedIds: string[] = [];
       for (const { id, tables } of results) {
         if (tables) {
-          this.cacheGameVersion(id, tables.game.version);
-          collection[id] = this.transformTablesToGame(tables);
+          // CRITICAL: Wrap in try/catch so single corrupted game doesn't crash entire operation
+          // A game with null/undefined version shouldn't prevent loading other valid games
+          try {
+            this.cacheGameVersion(id, tables.game.version);
+            collection[id] = this.transformTablesToGame(tables);
+          } catch (transformErr) {
+            // Log and track, but DON'T stop processing other games
+            const errorMsg = transformErr instanceof Error ? transformErr.message : 'Unknown transform error';
+            logger.error(`[SupabaseDataStore] Error transforming game ${id}: ${errorMsg}`);
+            Sentry.captureException(transformErr, {
+              tags: { component: 'SupabaseDataStore', action: 'getGames-transform' },
+              level: 'warning',
+              extra: { gameId: id, errorMsg },
+            });
+            allFailedIds.push(id);
+          }
         } else {
-          failedIds.push(id);
+          allFailedIds.push(id);
         }
       }
-      if (failedIds.length > 0) {
-        logger.warn(`[SupabaseDataStore] Failed to fetch ${failedIds.length} game(s) in batch: ${failedIds.join(', ')}`);
-        // Track batch-level failures in Sentry for production monitoring
-        Sentry.captureMessage('Partial game data loaded - some games failed to fetch', {
-          level: 'warning',
-          tags: { component: 'SupabaseDataStore', action: 'getGames-batchFailure' },
-          extra: { failedCount: failedIds.length, failedIds, totalInBatch: batch.length },
-        });
-      }
+    }
+
+    // DATA SAFETY: If some games failed, log/track but RETURN the valid ones
+    // Throwing would discard ALL valid games - unacceptable data loss
+    // Users can still access their working games while we investigate failures
+    if (allFailedIds.length > 0) {
+      const loadedCount = Object.keys(collection).length;
+      const totalCount = games.length;
+      const failedSample = allFailedIds.slice(0, 5).join(', ');
+      const errorMsg = `Failed to load ${allFailedIds.length} of ${totalCount} games. ` +
+        `Loaded ${loadedCount} successfully. Failed IDs: ${failedSample}${allFailedIds.length > 5 ? '...' : ''}`;
+
+      logger.error(`[SupabaseDataStore] ${errorMsg}`);
+      Sentry.captureMessage('getGames completed with partial failures', {
+        level: 'error',
+        tags: { component: 'SupabaseDataStore', action: 'getGames-partialFailure' },
+        extra: {
+          failedCount: allFailedIds.length,
+          loadedCount,
+          totalCount,
+          failedIds: allFailedIds,
+        },
+      });
+
+      // CRITICAL: Return valid games instead of throwing
+      // This prevents data lockout when a single game is corrupted
+      // UI should check game count and show warning if fewer than expected
+      logger.warn(`[SupabaseDataStore] Returning ${loadedCount} valid games despite ${allFailedIds.length} failures`);
     }
 
     return collection;

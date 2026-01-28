@@ -90,6 +90,15 @@ BEGIN
         USING ERRCODE = 'serialization_failure';  -- Standard PostgreSQL code for serialization conflicts
     END IF;
 
+    -- CRITICAL: Check for INTEGER overflow before incrementing
+    -- Max INTEGER is 2147483647 (2^31 - 1), column defined as INTEGER
+    -- This should never happen in practice (~68 years at 1 save/second)
+    -- but prevents silent corruption if it ever does
+    IF v_current_version >= 2147483646 THEN
+      RAISE EXCEPTION 'Version overflow: game version has reached maximum value. Please contact support.'
+        USING ERRCODE = 'numeric_value_out_of_range';
+    END IF;
+
     v_new_version := v_current_version + 1;
   END IF;
 

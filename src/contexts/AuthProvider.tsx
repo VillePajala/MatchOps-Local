@@ -219,15 +219,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           online: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
         };
         logger.error('[AuthProvider] Init timeout after 10s - auth may be in incomplete state', context);
-        // Track in Sentry for production monitoring
-        Sentry.captureMessage('AuthProvider init timeout', {
-          level: 'warning',
-          tags: { flow: 'auth-init-timeout' },
-          extra: context,
-        });
+
+        // CRITICAL: Update state FIRST to ensure UI recovery
+        // If Sentry call fails, user must not be stuck in loading state
         setIsLoading(false);
         // Set flag so UI can inform user and offer retry option
         setInitTimedOut(true);
+
+        // Track in Sentry AFTER state updates (so failure doesn't block UI recovery)
+        // Use 'error' level because timeout leaves app in incomplete/broken state
+        try {
+          Sentry.captureMessage('AuthProvider init timeout', {
+            level: 'error',
+            tags: { flow: 'auth-init-timeout' },
+            extra: context,
+          });
+        } catch (sentryErr) {
+          // Sentry failure must not impact user experience
+          logger.warn('[AuthProvider] Failed to report timeout to Sentry', sentryErr);
+        }
       }
     }, 10000);
 

@@ -348,6 +348,17 @@ async function performMigration(
     } catch (err) {
       // Use warn level - callback failures don't stop migration, but should be investigated
       logger.warn('[MigrationService] Progress callback error:', err);
+      // Track in Sentry - callback failures could indicate UI bugs
+      // Wrap in nested try/catch so Sentry failure doesn't defeat purpose of safeProgress
+      try {
+        Sentry.captureException(err, {
+          tags: { component: 'MigrationService', action: 'progressCallback' },
+          level: 'warning',
+          extra: { stage: progress.stage, progress: progress.progress },
+        });
+      } catch {
+        // Sentry failure is acceptable - migration must continue
+      }
     }
   };
 
@@ -1600,10 +1611,15 @@ async function processBatch<T, R>(
       } else {
         // Log and track individual failures, but continue processing
         logger.warn('[MigrationService] Batch item failed:', result.reason);
-        Sentry.captureException(result.reason, {
-          tags: { component: 'MigrationService', action: 'processBatch' },
-          level: 'warning',
-        });
+        // Wrap in try/catch - Sentry failure must not stop batch processing
+        try {
+          Sentry.captureException(result.reason, {
+            tags: { component: 'MigrationService', action: 'processBatch' },
+            level: 'warning',
+          });
+        } catch {
+          // Sentry failure is acceptable - migration must continue
+        }
       }
     }
   }

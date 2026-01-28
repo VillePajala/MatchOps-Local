@@ -747,13 +747,17 @@ describe('AuthProvider', () => {
       const factory = require('@/datastore/factory');
       let callCount = 0;
 
-      // First call hangs, second call succeeds
+      // First call hangs, second call succeeds but with small delay
+      let resolveSecondInit: (value: typeof mockAuthService) => void;
       factory.getAuthService.mockImplementation(() => {
         callCount++;
         if (callCount === 1) {
-          return new Promise(() => {}); // Hang
+          return new Promise(() => {}); // Hang forever
         }
-        return Promise.resolve(mockAuthService); // Succeed
+        // Second call - return promise that we control
+        return new Promise((resolve) => {
+          resolveSecondInit = resolve;
+        });
       });
 
       render(
@@ -771,16 +775,24 @@ describe('AuthProvider', () => {
         expect(screen.getByTestId('timed-out')).toHaveTextContent('yes');
       });
 
-      // Click retry
+      // Click retry - this triggers second initialization
       await act(async () => {
         screen.getByTestId('retry-btn').click();
       });
 
       // Should be loading again with initTimedOut reset
-      expect(screen.getByTestId('loading')).toHaveTextContent('loading');
-      expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+      // Use waitFor since state updates may be batched
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+        expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+      });
 
-      // Let the second initialization complete
+      // Now resolve the second initialization
+      await act(async () => {
+        resolveSecondInit!(mockAuthService);
+      });
+
+      // Let effects settle
       await act(async () => {
         jest.advanceTimersByTime(100);
       });
