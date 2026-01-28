@@ -305,16 +305,6 @@ export interface AuthService {
 // 1. TOKEN LOGGING PREVENTION
 //    - Never log accessToken or refreshToken values
 //    - Add ESLint rule or token scrubber to catch accidental logging
-//    - Mask tokens in error messages (show only last 4 chars if needed)
-//
-//    Suggested utility (add to src/utils/security.ts):
-//    ```typescript
-//    /** Mask sensitive token for safe logging: 'abc123xyz' => '***xyz' */
-//    export function maskToken(token: string): string {
-//      if (!token || token.length < 4) return '***';
-//      return '***' + token.slice(-4);
-//    }
-//    ```
 //
 // 2. TOKEN ROTATION
 //    - Implement automatic token rotation on refreshSession()
