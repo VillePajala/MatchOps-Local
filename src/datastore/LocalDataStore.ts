@@ -2013,6 +2013,26 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  /**
+   * Get all player adjustments in a single batch operation.
+   * Returns a Map of playerId -> PlayerStatAdjustment[] for efficient bulk access.
+   * Used by migration services to avoid N+1 queries when fetching adjustments for all players.
+   */
+  async getAllPlayerAdjustments(): Promise<Map<string, PlayerStatAdjustment[]>> {
+    this.ensureInitialized();
+
+    const adjustmentsIndex = await this.loadPlayerAdjustments();
+    const result = new Map<string, PlayerStatAdjustment[]>();
+
+    for (const [playerId, adjustments] of Object.entries(adjustmentsIndex)) {
+      if (adjustments.length > 0) {
+        result.set(playerId, adjustments);
+      }
+    }
+
+    return result;
+  }
+
   async getWarmupPlan(): Promise<WarmupPlan | null> {
     this.ensureInitialized();
 

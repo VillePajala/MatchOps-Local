@@ -187,6 +187,7 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
 
     // Player Adjustments
     getPlayerAdjustments: jest.fn(async () => []) as unknown as jest.MockedFunction<DataStore['getPlayerAdjustments']>,
+    getAllPlayerAdjustments: jest.fn(async () => new Map<string, PlayerStatAdjustment[]>()) as unknown as jest.MockedFunction<DataStore['getAllPlayerAdjustments']>,
     addPlayerAdjustment: jest.fn(async (adj: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'>) => ({
       ...adj,
       id: `adj_${Date.now()}`,

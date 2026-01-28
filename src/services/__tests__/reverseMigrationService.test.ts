@@ -160,6 +160,7 @@ describe('reverseMigrationService', () => {
       getGames: jest.fn().mockResolvedValue({ 'game-1': mockGame }),
       getTeamRoster: jest.fn().mockResolvedValue([mockPlayer]),
       getPlayerAdjustments: jest.fn().mockResolvedValue([]),
+      getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
       getWarmupPlan: jest.fn().mockResolvedValue(null),
       getSettings: jest.fn().mockResolvedValue(null),
       clearAllUserData: jest.fn().mockResolvedValue(undefined),
@@ -416,8 +417,9 @@ describe('reverseMigrationService', () => {
      */
     it('should report warning for non-critical entity save failures', async () => {
       mockLocalDataStore.upsertPlayerAdjustment.mockRejectedValue(new Error('Adjustment save failed'));
-      // Add an adjustment to trigger the error
-      mockSupabaseDataStore.getPlayerAdjustments.mockResolvedValue([{
+      // Add an adjustment to trigger the error (use getAllPlayerAdjustments since batch method is now used)
+      const adjustmentMap = new Map();
+      adjustmentMap.set('player-1', [{
         id: 'adj-1',
         playerId: 'player-1',
         gamesPlayedDelta: 1,
@@ -425,6 +427,7 @@ describe('reverseMigrationService', () => {
         assistsDelta: 0,
         appliedAt: '2025-01-01T00:00:00.000Z',
       }]);
+      mockSupabaseDataStore.getAllPlayerAdjustments.mockResolvedValue(adjustmentMap);
 
       const result = await migrateCloudToLocal(mockOnProgress);
 

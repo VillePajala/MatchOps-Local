@@ -87,7 +87,7 @@ export function defender(overrides: Partial<Player> = {}): Player {
   return fixture.create({
     isGoalie: false,
     relX: 0.25, // Defensive third
-    relY: 0.3 + Math.random() * 0.4, // Spread across back line
+    relY: 0.5, // Center of back line (tests can override for specific positions)
     ...overrides,
   });
 }
@@ -102,7 +102,7 @@ export function midfielder(overrides: Partial<Player> = {}): Player {
   return fixture.create({
     isGoalie: false,
     relX: 0.5, // Middle third
-    relY: 0.25 + Math.random() * 0.5, // Wide midfield spread
+    relY: 0.5, // Center of midfield (tests can override for specific positions)
     ...overrides,
   });
 }
@@ -117,7 +117,7 @@ export function forward(overrides: Partial<Player> = {}): Player {
   return fixture.create({
     isGoalie: false,
     relX: 0.75, // Attacking third
-    relY: 0.35 + Math.random() * 0.3, // Forward line
+    relY: 0.5, // Center of forward line (tests can override for specific positions)
     ...overrides,
   });
 }

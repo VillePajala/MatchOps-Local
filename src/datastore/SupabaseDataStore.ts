@@ -228,10 +228,23 @@ const parseTeamPlacements = (value: Json | null): Record<string, TeamPlacementIn
 /**
  * Normalize a numeric rating to the DB constraint range (1-10).
  * Returns null for invalid/unknown values to avoid constraint violations.
+ * Used in forward transform (App → DB).
  */
 const normalizeRating = (value?: number | null): number | null => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   if (value < 1 || value > 10) return null;
+  return value;
+};
+
+/**
+ * Normalize a numeric rating from DB, clamping to valid range with default fallback.
+ * Used in reverse transform (DB → App) to handle potentially corrupted data.
+ */
+const normalizeRatingFromDb = (value: number | null | undefined, defaultValue: number = 0): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return defaultValue;
+  // Clamp to valid range if out of bounds (defensive against DB corruption)
+  if (value < 1) return defaultValue;
+  if (value > 10) return 10;
   return value;
 };
 
@@ -2792,6 +2805,21 @@ export class SupabaseDataStore implements DataStore {
       })
       .map((p) => p.player_id);
 
+    // CRITICAL: Verify subset relationship playersOnField ⊆ selectedPlayerIds
+    // If DB has corrupted data where on_field=true but is_selected=false, auto-fix
+    const selectedIdsSet = new Set(selectedPlayerIds);
+    for (const onFieldPlayer of playersOnField) {
+      if (!selectedIdsSet.has(onFieldPlayer.id)) {
+        logger.warn('[SupabaseDataStore] Data corruption detected: on-field player not in selected list', {
+          gameId: game.id,
+          playerId: onFieldPlayer.id,
+        });
+        // Auto-fix: add missing player to selected list (at start for UI ordering)
+        selectedPlayerIds.unshift(onFieldPlayer.id);
+        selectedIdsSet.add(onFieldPlayer.id);
+      }
+    }
+
     // Reconstruct gameEvents (sorted by order_index)
     const gameEvents: GameEvent[] = events
       .sort((a, b) => a.order_index - b.order_index)
@@ -2805,21 +2833,22 @@ export class SupabaseDataStore implements DataStore {
       }));
 
     // Reconstruct assessments as Record<playerId, Assessment>
+    // Use normalizeRatingFromDb to handle potentially corrupted data from DB
     const assessmentsRecord: { [playerId: string]: PlayerAssessment } = {};
     for (const a of assessments) {
       assessmentsRecord[a.player_id] = {
-        overall: a.overall_rating ?? 0,
+        overall: normalizeRatingFromDb(a.overall_rating, 0),
         sliders: {
-          intensity: a.intensity ?? 0,
-          courage: a.courage ?? 0,
-          duels: a.duels ?? 0,
-          technique: a.technique ?? 0,
-          creativity: a.creativity ?? 0,
-          decisions: a.decisions ?? 0,
-          awareness: a.awareness ?? 0,
-          teamwork: a.teamwork ?? 0,
-          fair_play: a.fair_play ?? 0,
-          impact: a.impact ?? 0,
+          intensity: normalizeRatingFromDb(a.intensity, 0),
+          courage: normalizeRatingFromDb(a.courage, 0),
+          duels: normalizeRatingFromDb(a.duels, 0),
+          technique: normalizeRatingFromDb(a.technique, 0),
+          creativity: normalizeRatingFromDb(a.creativity, 0),
+          decisions: normalizeRatingFromDb(a.decisions, 0),
+          awareness: normalizeRatingFromDb(a.awareness, 0),
+          teamwork: normalizeRatingFromDb(a.teamwork, 0),
+          fair_play: normalizeRatingFromDb(a.fair_play, 0),
+          impact: normalizeRatingFromDb(a.impact, 0),
         },
         notes: a.notes ?? '',
         minutesPlayed: a.minutes_played ?? 0,
@@ -3501,6 +3530,40 @@ export class SupabaseDataStore implements DataStore {
     }
 
     return (data || []).map((row: PlayerAdjustmentRow) => this.transformAdjustmentFromDb(row));
+  }
+
+  /**
+   * Batch fetch ALL player adjustments for the current user.
+   * Returns a Map keyed by playerId for efficient lookup.
+   *
+   * This is much more efficient than calling getPlayerAdjustments() in a loop
+   * (N+1 query problem) - use this for migration/bulk operations.
+   */
+  async getAllPlayerAdjustments(): Promise<Map<string, PlayerStatAdjustment[]>> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const { data, error } = await this.getClient()
+      .from('player_adjustments')
+      .select('*')
+      .order('applied_at', { ascending: false });
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to fetch all player adjustments');
+    }
+
+    const result = new Map<string, PlayerStatAdjustment[]>();
+    for (const row of data || []) {
+      const playerId = (row as PlayerAdjustmentRow).player_id;
+      const adjustment = this.transformAdjustmentFromDb(row as PlayerAdjustmentRow);
+
+      if (!result.has(playerId)) {
+        result.set(playerId, []);
+      }
+      result.get(playerId)!.push(adjustment);
+    }
+
+    return result;
   }
 
   async addPlayerAdjustment(

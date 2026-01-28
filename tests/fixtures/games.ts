@@ -81,10 +81,10 @@ export function inProgress(overrides: Partial<AppState> = {}): AppState {
 
   return fixture.create({
     gameStatus: 'inProgress',
-    playersOnField: startingEleven.map(p => ({
+    playersOnField: startingEleven.map((p, i) => ({
       ...p,
-      relX: 0.3 + Math.random() * 0.4,
-      relY: 0.2 + Math.random() * 0.6,
+      relX: 0.3 + (i % 4) * 0.1, // Deterministic spread: 0.3, 0.4, 0.5, 0.6, 0.3, ...
+      relY: 0.2 + (i % 6) * 0.1, // Deterministic spread: 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, ...
     })),
     availablePlayers: roster,
     selectedPlayerIds: startingEleven.map(p => p.id),
@@ -110,10 +110,10 @@ export function completed(overrides: Partial<AppState> = {}): AppState {
 
   return fixture.create({
     gameStatus: 'gameEnd',
-    playersOnField: startingEleven.map(p => ({
+    playersOnField: startingEleven.map((p, i) => ({
       ...p,
-      relX: 0.4 + Math.random() * 0.2,
-      relY: 0.3 + Math.random() * 0.4,
+      relX: 0.4 + (i % 3) * 0.07, // Deterministic spread: 0.4, 0.47, 0.54, 0.4, ...
+      relY: 0.3 + (i % 5) * 0.08, // Deterministic spread: 0.3, 0.38, 0.46, 0.54, 0.62, ...
     })),
     availablePlayers: roster,
     selectedPlayerIds: startingEleven.map(p => p.id),
