@@ -2,7 +2,7 @@
  * Supabase Database Types
  *
  * AUTO-GENERATED from Supabase project: matchops-cloud (aybjmnxxtgspqesdiqxd)
- * Generated: 2026-01-20
+ * Generated: 2026-01-27
  *
  * To regenerate:
  *   npx supabase gen types typescript --project-id aybjmnxxtgspqesdiqxd > src/types/supabase.ts
@@ -229,6 +229,7 @@ export type Database = {
           tournament_series_id: string | null
           updated_at: string | null
           user_id: string
+          version: number
         }
         Insert: {
           age_group?: string | null
@@ -265,6 +266,7 @@ export type Database = {
           tournament_series_id?: string | null
           updated_at?: string | null
           user_id: string
+          version?: number
         }
         Update: {
           age_group?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           tournament_series_id?: string | null
           updated_at?: string | null
           user_id?: string
+          version?: number
         }
         Relationships: [
           {
@@ -643,6 +646,51 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          google_order_id: string | null
+          google_purchase_token: string | null
+          grace_end: string | null
+          id: string
+          last_verified_at: string | null
+          period_end: string | null
+          period_start: string | null
+          product_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          google_order_id?: string | null
+          google_purchase_token?: string | null
+          grace_end?: string | null
+          id?: string
+          last_verified_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          google_order_id?: string | null
+          google_purchase_token?: string | null
+          grace_end?: string | null
+          id?: string
+          last_verified_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       team_players: {
         Row: {
           color: string | null
@@ -825,6 +873,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_consents: {
+        Row: {
+          consent_type: string
+          consented_at: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          policy_version: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          consent_type: string
+          consented_at?: string
+          created_at?: string | null
+          id: string
+          ip_address?: string | null
+          policy_version: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          consent_type?: string
+          consented_at?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          policy_version?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           club_season_end_date: string | null
@@ -870,39 +951,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_consents: {
-        Row: {
-          id: string
-          user_id: string
-          consent_type: string
-          policy_version: string
-          consented_at: string
-          ip_address: string | null
-          user_agent: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id: string
-          user_id: string
-          consent_type: string
-          policy_version: string
-          consented_at?: string
-          ip_address?: string | null
-          user_agent?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          consent_type?: string
-          policy_version?: string
-          consented_at?: string
-          ip_address?: string | null
-          user_agent?: string | null
-          created_at?: string | null
-        }
-        Relationships: []
-      }
       warmup_plans: {
         Row: {
           created_at: string | null
@@ -941,10 +989,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      clear_all_user_data: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      clear_all_user_data: { Args: Record<PropertyKey, never>; Returns: undefined }
       delete_personnel_cascade: {
         Args: { p_personnel_id: string }
         Returns: boolean
@@ -952,22 +997,19 @@ export type Database = {
       get_subscription_status: {
         Args: Record<PropertyKey, never>
         Returns: {
-          status: Database['public']['Enums']['subscription_status']
-          period_end: string | null
-          grace_end: string | null
+          grace_end: string
           is_active: boolean
+          period_end: string
+          status: Database["public"]["Enums"]["subscription_status"]
         }[]
       }
-      get_user_consent: {
-        Args: { p_consent_type: string }
-        Returns: Json | null
-      }
+      get_user_consent: { Args: { p_consent_type: string }; Returns: Json }
       record_user_consent: {
         Args: {
           p_consent_type: string
+          p_ip_address?: string
           p_policy_version: string
-          p_ip_address?: string | null
-          p_user_agent?: string | null
+          p_user_agent?: string
         }
         Returns: Json
       }
@@ -975,19 +1017,46 @@ export type Database = {
         Args: {
           p_assessments: Json[]
           p_events: Json[]
+          p_expected_version?: number
           p_game: Json
           p_players: Json[]
           p_tactical_data: Json
         }
-        Returns: undefined
+        Returns: number
       }
       set_team_roster: {
         Args: { p_roster: Json[]; p_team_id: string }
         Returns: undefined
       }
+      upsert_subscription: {
+        Args: {
+          p_google_order_id?: string
+          p_google_purchase_token?: string
+          p_grace_end?: string
+          p_period_end?: string
+          p_period_start?: string
+          p_product_id?: string
+          p_status: Database["public"]["Enums"]["subscription_status"]
+          p_user_id: string
+        }
+        Returns: {
+          created_at: string | null
+          google_order_id: string | null
+          google_purchase_token: string | null
+          grace_end: string | null
+          id: string
+          last_verified_at: string | null
+          period_end: string | null
+          period_start: string | null
+          product_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string | null
+          user_id: string
+        }
+      }
     }
     Enums: {
-      subscription_status: 'none' | 'active' | 'cancelled' | 'grace' | 'expired'
+      subscription_status: "none" | "active" | "cancelled" | "grace" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1114,6 +1183,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_status: ["none", "active", "cancelled", "grace", "expired"],
+    },
   },
 } as const

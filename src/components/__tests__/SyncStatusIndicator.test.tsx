@@ -32,6 +32,34 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
+// Mock ModalProvider context (required by SyncStatusIndicator)
+jest.mock('@/contexts/ModalProvider', () => ({
+  useModalContext: () => ({
+    isGameSettingsModalOpen: false,
+    setIsGameSettingsModalOpen: jest.fn(),
+    isLoadGameModalOpen: false,
+    setIsLoadGameModalOpen: jest.fn(),
+    isRosterModalOpen: false,
+    setIsRosterModalOpen: jest.fn(),
+    isStatsModalOpen: false,
+    setIsStatsModalOpen: jest.fn(),
+    isNewGameSetupModalOpen: false,
+    setIsNewGameSetupModalOpen: jest.fn(),
+    isTeamModalOpen: false,
+    setIsTeamModalOpen: jest.fn(),
+    isSeasonTournamentModalOpen: false,
+    setIsSeasonTournamentModalOpen: jest.fn(),
+    isPersonnelModalOpen: false,
+    setIsPersonnelModalOpen: jest.fn(),
+    isSettingsModalOpen: false,
+    setIsSettingsModalOpen: jest.fn(),
+    openSettingsToTab: jest.fn(),
+    settingsInitialTab: undefined,
+    isPlayerAssessmentModalOpen: false,
+    setIsPlayerAssessmentModalOpen: jest.fn(),
+  }),
+}));
+
 describe('SyncStatusIndicator', () => {
   const defaultSyncStatus = {
     mode: 'local' as const,
@@ -382,12 +410,13 @@ describe('SyncStatusIndicator', () => {
       expect(screen.getByRole('button')).toHaveClass('cursor-pointer');
     });
 
-    it('should have default cursor when no onClick', () => {
+    it('should have pointer cursor when no onClick (defaults to opening settings)', () => {
+      // Even without onClick prop, component opens Settings modal on click
       mockUseSyncStatus.mockReturnValue(defaultSyncStatus);
 
       render(<SyncStatusIndicator />);
 
-      expect(screen.getByRole('button')).toHaveClass('cursor-default');
+      expect(screen.getByRole('button')).toHaveClass('cursor-pointer');
     });
   });
 

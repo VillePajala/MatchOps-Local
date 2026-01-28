@@ -35,6 +35,7 @@ import type { Database, Json } from '@/types/supabase';
 import {
   AlreadyExistsError,
   AuthError,
+  ConflictError,
   NetworkError,
   NotInitializedError,
   ValidationError,
@@ -382,6 +383,25 @@ export class SupabaseDataStore implements DataStore {
   private userIdPromise: Promise<string> | null = null;
   // Promise deduplication for initialize() to prevent race conditions
   private initPromise: Promise<void> | null = null;
+  // Version cache for optimistic locking (Issue #330)
+  // Maps game ID -> current version number
+  //
+  // Lifecycle:
+  //   - Populated: getGameById(), getGames() on load; saveGame() updates with new version
+  //   - Used: saveGame() passes cached version as p_expected_version
+  //   - Invalidated: deleteGame(), clearUserCaches(), conflict error, invalid version from RPC
+  //   - Scoped: Per DataStore instance (effectively per user session)
+  //
+  // Multi-tab/device behavior:
+  //   1. Tab A loads game (caches version 1)
+  //   2. Tab B saves game (version becomes 2 in database)
+  //   3. Tab A saves game (passes version 1, database has 2 → ConflictError)
+  //   4. Tab A's cache is cleared on conflict
+  //   5. Tab A must refresh to load version 2, then can save again
+  //
+  // After conflict, the cache is cleared so next save passes null (skips version check).
+  // This is acceptable because user must refresh to see latest changes anyway.
+  private gameVersionCache: Map<string, number> = new Map();
 
   // Retry configuration for transient network errors
   // Improves resilience on mobile devices with flaky connections
@@ -679,7 +699,8 @@ export class SupabaseDataStore implements DataStore {
     this.seasonDatesCache = null;
     this.cachedUserId = null;
     this.cachedUserIdTimestamp = 0;
-    logger.debug('[SupabaseDataStore] User caches cleared');
+    this.gameVersionCache.clear();
+    logger.debug('[SupabaseDataStore] User caches cleared (including game version cache)');
   }
 
   // ==========================================================================
@@ -2938,6 +2959,14 @@ export class SupabaseDataStore implements DataStore {
       const failedIds: string[] = [];
       for (const { id, tables } of results) {
         if (tables) {
+          // Cache version for optimistic locking (Issue #330)
+          const version = tables.game.version;
+          if (typeof version === 'number') {
+            this.gameVersionCache.set(id, version);
+          } else {
+            // Schema guarantees version is NOT NULL with DEFAULT 1, but validate defensively
+            logger.warn('[SupabaseDataStore] Game loaded with non-numeric version', { gameId: id, version });
+          }
           collection[id] = this.transformTablesToGame(tables);
         } else {
           failedIds.push(id);
@@ -2958,6 +2987,15 @@ export class SupabaseDataStore implements DataStore {
     const tables = await this.fetchGameTables(id);
     if (!tables) {
       return null;
+    }
+
+    // Cache version for optimistic locking (Issue #330)
+    const version = tables.game.version;
+    if (typeof version === 'number') {
+      this.gameVersionCache.set(id, version);
+    } else {
+      // Schema guarantees version is NOT NULL with DEFAULT 1, but validate defensively
+      logger.warn('[SupabaseDataStore] Game loaded with non-numeric version', { gameId: id, version });
     }
 
     return this.transformTablesToGame(tables);
@@ -3048,13 +3086,21 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
     const tables = this.transformGameToTables(id, game, userId);
 
+    // Get expected version for optimistic locking (Issue #330)
+    // undefined = new game or version not yet cached (skip version check)
+    const expectedVersion = this.gameVersionCache.get(id);
+
     // Use RPC for atomic 5-table write within a single PostgreSQL transaction
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
     // Wrapped with retry for transient network errors (critical for mobile reliability)
     // throwIfTransient ensures network errors trigger retry
+    // IMPORTANT: Conflict errors (40001/serialization_failure) are NOT retried because:
+    //   1. isTransientError() only returns true for specific patterns/codes (40001 is not among them)
+    //   2. 40001 indicates real concurrent modification, not a transient network issue
+    //   3. User intervention required - they must refresh to see latest changes
     const client = this.getClient();
     const rpcResult = await this.withRetry(async () => {
-      const result = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>)(
+      const result = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ data: number | null; error: { message: string; code?: string } | null }>)(
         'save_game_with_relations',
         {
           p_game: tables.game,
@@ -3062,14 +3108,36 @@ export class SupabaseDataStore implements DataStore {
           p_events: tables.events,
           p_assessments: tables.assessments,
           p_tactical_data: tables.tacticalData,
+          p_expected_version: expectedVersion ?? null,
         }
       );
       return throwIfTransient(result);
     }, 'saveGame');
-    const { error } = rpcResult;
+    const { data: newVersion, error } = rpcResult;
 
     if (error) {
       const errorMessage = error.message.toLowerCase();
+
+      // Issue #330: Detect optimistic locking conflict
+      // PostgreSQL raises serialization_failure (SQLSTATE 40001) for version mismatch
+      // We check error code only - our migration uses ERRCODE = 'serialization_failure'
+      const isConflict = error.code === '40001';
+
+      if (isConflict) {
+        logger.warn('[SupabaseDataStore] Optimistic locking conflict detected for game', {
+          gameId: id,
+          expectedVersion,
+          message: error.message,
+        });
+        // Clear cached version so next load gets fresh data
+        this.gameVersionCache.delete(id);
+        throw new ConflictError(
+          'game',
+          id,
+          'This game was modified in another tab or device. Please refresh to see the latest changes.'
+        );
+      }
+
       const isMissingRpc =
         error.code === 'PGRST202' ||
         errorMessage.includes('does not exist') ||
@@ -3095,6 +3163,21 @@ export class SupabaseDataStore implements DataStore {
       this.classifyAndThrowError(error, 'Failed to save game');
     }
 
+    // Update version cache with new version returned from RPC (Issue #330)
+    if (typeof newVersion === 'number') {
+      this.gameVersionCache.set(id, newVersion);
+    } else {
+      // This should never happen - RPC always returns BIGINT version on success.
+      // Possible causes: RPC signature mismatch, null from DB trigger bug, or type coercion issue.
+      // Clear cache to force fresh load on next read (prevents stale version issues).
+      this.gameVersionCache.delete(id);
+      logger.error('[SupabaseDataStore] Unexpected non-numeric version from RPC - cache invalidated', {
+        gameId: id,
+        versionType: typeof newVersion,
+        versionValue: newVersion,
+      });
+    }
+
     await this.ensureGameCreatedAt(id);
 
     return game;
@@ -3102,6 +3185,13 @@ export class SupabaseDataStore implements DataStore {
 
   /**
    * Backfill created_at for legacy rows where it was left null.
+   *
+   * INTENTIONAL SILENT FAILURE: This is a best-effort backfill for legacy data.
+   * We log failures but don't propagate errors because:
+   * 1. The game data is already saved successfully at this point
+   * 2. created_at is used for sorting/display, not critical functionality
+   * 3. Failing the entire save for a backfill would be worse UX
+   * 4. The update is idempotent - will be retried on next save if needed
    */
   private async ensureGameCreatedAt(gameId: string): Promise<void> {
     const { error } = await this.getClient()
@@ -3155,6 +3245,9 @@ export class SupabaseDataStore implements DataStore {
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete game');
     }
+
+    // Clear version cache for deleted game (Issue #330)
+    this.gameVersionCache.delete(id);
 
     return (count ?? 0) > 0;
   }
