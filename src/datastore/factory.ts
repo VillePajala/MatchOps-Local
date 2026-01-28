@@ -288,7 +288,9 @@ export async function getAuthService(): Promise<AuthService> {
 
     await instance.initialize();
     authServiceInstance = instance;
-    authServiceCreatedWithCloudAvailable = currentCloudAvailable;
+    // Use isCloudAvailable() at completion time, not the captured value from line 240
+    // This prevents issues if cloud availability changed during async initialization
+    authServiceCreatedWithCloudAvailable = isCloudAvailable();
     return instance;
   })().finally(() => {
     authServiceInitPromise = null;
