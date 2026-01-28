@@ -24,6 +24,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { isNetworkErrorMessage, normalizeEmail } from '@/utils/authHelpers';
 import { isAndroid } from '@/utils/platform';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 type AuthMode = 'signIn' | 'signUp' | 'resetPassword';
 
@@ -161,6 +162,11 @@ export default function AuthModal({
       setError(errorMessage);
       // Log unexpected exceptions for production monitoring
       logger.error('[AuthModal] Unexpected error during auth:', error);
+      // Track in Sentry for production visibility
+      Sentry.captureException(error, {
+        tags: { flow: `auth-modal-${mode}` },
+        level: 'error',
+      });
     } finally {
       setIsLoading(false);
     }

@@ -307,6 +307,105 @@ describe('AuthProvider', () => {
   });
 
   // ==========================================================================
+  // MODE CHANGE PERSISTENCE (Issue #336)
+  // ==========================================================================
+
+  describe('mode change persistence', () => {
+    /**
+     * Issue #336: User should remain authenticated when the backend mode changes.
+     * AuthProvider captures mode at initialization, so a rerender won't change the
+     * displayed mode. What matters is that the authentication state (user, session)
+     * persists - the AuthService singleton is NOT reset on mode changes.
+     *
+     * Note: In real usage, mode changes happen via setBackendMode() which triggers
+     * a page reload or re-initialization. These tests verify that the AuthService
+     * itself doesn't lose user state when mode config changes.
+     * @critical
+     */
+    it('should maintain authentication state across renders (mode changes do not affect auth)', async () => {
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.isCloudAvailable.mockReturnValue(true);
+      backendConfig.getBackendMode.mockReturnValue('local');
+
+      // Use cloud auth service (cloud available) with session (authenticated)
+      mockAuthService = createMockCloudAuthService(true);
+
+      const { rerender } = render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Verify initial state: authenticated
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+
+      // Simulate mode change in config (user enables cloud sync)
+      // Note: AuthProvider doesn't react to mode changes - mode is captured at init
+      backendConfig.getBackendMode.mockReturnValue('cloud');
+
+      // Force re-render
+      rerender(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        // Auth state should persist - user is still authenticated
+        // This is the critical Issue #336 requirement
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+        expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+      });
+    });
+
+    /**
+     * Issue #336: Verify authenticated state persists with multiple rerenders.
+     * This simulates user toggling settings without losing auth state.
+     * @critical
+     */
+    it('should maintain authentication state across multiple rerenders', async () => {
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.isCloudAvailable.mockReturnValue(true);
+      backendConfig.getBackendMode.mockReturnValue('local');
+
+      mockAuthService = createMockCloudAuthService(true);
+
+      const { rerender } = render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Verify initial authenticated state
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+
+      // Multiple rerenders should not affect auth state
+      for (let i = 0; i < 3; i++) {
+        rerender(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+          expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+        });
+      }
+    });
+  });
+
+  // ==========================================================================
   // CACHE CLEARING
   // ==========================================================================
 

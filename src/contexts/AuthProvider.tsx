@@ -164,6 +164,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (error) {
             // Non-critical: cache clearing failure shouldn't break auth flow
             logger.warn('[AuthProvider] Failed to clear caches on auth change:', error);
+            // Track in Sentry - frequent failures indicate a real problem
+            Sentry.captureException(error, {
+              tags: { flow: 'auth-cache-clear' },
+              level: 'warning',
+            });
           }
         });
 
@@ -181,9 +186,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Safety timeout: if init hangs for 10 seconds, stop loading to prevent blank screen
+    // This prevents users from seeing a blank screen indefinitely
     timeoutId = setTimeout(() => {
       if (mounted) {
-        logger.warn('[AuthProvider] Init timeout - forcing loading to complete');
+        // Log detailed context for debugging init hangs
+        const context = {
+          cloudAvailable: isCloudAvailable(),
+          mode: getBackendMode(),
+          online: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
+        };
+        logger.error('[AuthProvider] Init timeout after 10s - auth may be in incomplete state', context);
+        // Track in Sentry for production monitoring
+        Sentry.captureMessage('AuthProvider init timeout', {
+          level: 'warning',
+          tags: { flow: 'auth-init-timeout' },
+          extra: context,
+        });
         setIsLoading(false);
       }
     }, 10000);

@@ -8,7 +8,10 @@
  * Tests for the authentication modal component.
  * Covers sign-in, sign-up, password reset, and error handling.
  *
- * Issue #336: AuthModal allows users to sign in while in local mode.
+ * Issue #336: AuthModal is mode-independent.
+ * Auth flows work identically in local and cloud modes when cloud is available.
+ * The mode-independence is verified through the useAuth mock which abstracts mode details.
+ * AuthModal has no direct dependency on backend mode - it can be shown from any context.
  *
  * @critical - Tests auth flows that are essential for user authentication
  */
