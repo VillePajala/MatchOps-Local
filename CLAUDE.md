@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Healthy
 
-**Last Updated**: January 27, 2026
+**Last Updated**: January 28, 2026
 
 ### Quick Stats
 - ✅ **3,500+ tests** passing
@@ -23,12 +23,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Layer 3 performance polish
 - Test coverage improvement (+694 tests)
 - **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory
-- **Supabase Cloud Backend PRs 1-11** ✅ - See PR Summary below
+- **Supabase Cloud Backend PRs 1-12** ✅ - See PR Summary below
 - **Local-First Cloud Sync** ✅ - SyncQueue, SyncEngine, SyncedDataStore (PR #324)
 
 ### What's Next
-- **Supabase PR #12: Migration Wizard Redesign** - IN PROGRESS
 - **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
+- **Cloud Sync Bug Fixes**: Warmup plan ID conflict, metadata normalization (see UNIFIED-ROADMAP.md)
 
 ### ⚠️ Quality Bar: Production-Ready (Not MVP)
 
@@ -374,7 +374,7 @@ All Supabase work happens on `feature/supabase-cloud-backend`. Sub-PRs (e.g., `s
 | 9 | ✅ | Infrastructure & Migration UI (SQL migrations, MigrationWizard) |
 | 10 | ✅ | Cloud Data Management (clear cloud data, migration modes) |
 | 11 | ✅ | Reverse Migration & Cloud Account (cloud → local, WelcomeScreen) |
-| **12** | 🚧 | **Migration Wizard Redesign** (scenario matrix, merge logic) |
+| 12 | ✅ | Migration Wizard Simplified (2 buttons: Sync/Not Now, CloudModeImportModal deleted) |
 
 ---
 
