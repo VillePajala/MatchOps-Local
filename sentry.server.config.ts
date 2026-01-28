@@ -10,8 +10,8 @@ if (dsn && (isProduction || isForceEnabled)) {
   Sentry.init({
     dsn,
 
-    // Performance monitoring
-    tracesSampleRate: isProduction ? 0.1 : 1.0, // 10% in production, 100% in dev
+    // Performance monitoring - 100% sampling for small user base (20 users)
+    tracesSampleRate: 1.0,
 
     // Environment
     environment: process.env.NODE_ENV,

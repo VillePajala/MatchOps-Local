@@ -61,12 +61,12 @@ if (dsn && (isProduction || isForceEnabled)) {
       }),
     ],
 
-    // Performance monitoring
-    tracesSampleRate: isProduction ? 0.1 : 1.0, // 10% in production, 100% in dev
+    // Performance monitoring - 100% sampling for small user base (20 users)
+    tracesSampleRate: 1.0,
 
-    // Session replay
-    replaysSessionSampleRate: 0.0, // Disable session replays by default
-    replaysOnErrorSampleRate: isProduction ? 0.1 : 1.0, // Only capture replays on errors
+    // Session replay - capture all error replays for debugging
+    replaysSessionSampleRate: 0.0, // Disable session replays by default (privacy)
+    replaysOnErrorSampleRate: 1.0, // Capture replay for every error
 
     // Environment
     environment: process.env.NODE_ENV,
