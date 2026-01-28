@@ -52,6 +52,8 @@ interface SeasonTournamentMutations {
   deleteTournament?: UseMutationResult<boolean, Error, string, unknown>;
 }
 
+type SettingsTab = 'general' | 'data' | 'account' | 'about';
+
 interface ModalManagerState {
   isTrainingResourcesOpen: boolean;
   isRulesDirectoryOpen: boolean;
@@ -66,6 +68,7 @@ interface ModalManagerState {
   isSeasonTournamentModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
   isSettingsModalOpen: boolean;
+  settingsInitialTab?: SettingsTab;
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
@@ -456,6 +459,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onHardResetApp={handlers.hardResetApp}
           onCreateBackup={handlers.onCreateBackup}
           onDataImportSuccess={handlers.onDataImportSuccess}
+          initialTab={state.settingsInitialTab}
         />
 
         <PlayerAssessmentModal

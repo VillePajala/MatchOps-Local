@@ -79,20 +79,21 @@ export const selectStyle =
 // Button Styles
 // ============================================================================
 
+// Button padding: py-3 provides ~44px touch target (iOS guideline minimum)
 const buttonBaseStyle =
-  "px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
+  "px-4 py-3 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const primaryButtonStyle =
-  "px-6 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
+  "px-6 py-3 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
 
 export const secondaryButtonStyle =
-  "px-6 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30";
+  "px-6 py-3 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30";
 
 export const dangerButtonStyle =
-  "px-6 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 text-white hover:bg-red-500 border border-red-400/30";
+  "px-6 py-3 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 text-white hover:bg-red-500 border border-red-400/30";
 
 export const successButtonStyle =
-  "px-6 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-green-600 text-white hover:bg-green-500 border border-green-400/30";
+  "px-6 py-3 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-green-600 text-white hover:bg-green-500 border border-green-400/30";
 
 // ============================================================================
 // Icon Button Styles
@@ -165,3 +166,63 @@ export const ScrollableContent: React.FC<{ children: React.ReactNode; className?
     {children}
   </div>
 );
+
+// ============================================================================
+// Wizard Modal Styles (Migration, Import dialogs)
+// ============================================================================
+
+export const wizardBackdropStyle =
+  "fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4";
+
+export const wizardModalStyle =
+  "relative w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-[90vh] flex flex-col";
+
+export const wizardModalLargeStyle =
+  "relative w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-[85vh] flex flex-col";
+
+export const wizardHeaderStyle =
+  "flex items-center justify-between px-6 py-4 border-b border-slate-700";
+
+export const wizardTitleStyle =
+  "text-lg font-semibold text-slate-100";
+
+export const wizardContentStyle =
+  "px-6 py-5 overflow-y-auto flex-1 min-h-0";
+
+export const wizardFooterStyle =
+  "px-6 py-4 border-t border-slate-700 flex gap-3 justify-end";
+
+// Data summary boxes
+export const dataSummaryBoxStyle =
+  "bg-slate-900/50 rounded-lg p-4";
+
+export const dataSummaryTitleStyle =
+  "text-sm font-medium text-slate-300 mb-2 flex items-center gap-2";
+
+// Status indicator dots
+export const localDataDotStyle = "w-2 h-2 rounded-full bg-amber-400";
+export const cloudDataDotStyle = "w-2 h-2 rounded-full bg-sky-400";
+
+// Alert boxes
+export const warningBoxStyle =
+  "bg-amber-900/30 border border-amber-700 rounded-lg p-4";
+
+export const errorBoxStyle =
+  "bg-red-900/30 border border-red-700 rounded-lg p-4";
+
+export const successBoxStyle =
+  "bg-green-900/30 border border-green-700 rounded-lg p-4";
+
+export const infoBoxStyle =
+  "bg-sky-900/30 border border-sky-700 rounded-lg p-4";
+
+// Progress bar
+export const progressBarContainerStyle =
+  "h-3 bg-slate-700 rounded-full overflow-hidden";
+
+export const progressBarFillStyle =
+  "h-full transition-all duration-300";
+
+// Close button (X)
+export const wizardCloseButtonStyle =
+  "text-slate-400 hover:text-slate-200 transition-colors";

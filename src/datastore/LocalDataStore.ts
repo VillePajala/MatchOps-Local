@@ -25,6 +25,8 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
+import { validateGame } from '@/datastore/validation';
+import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import {
   APP_SETTINGS_KEY,
   LAST_HOME_TEAM_NAME_KEY,
@@ -206,11 +208,15 @@ const createTeamCompositeKey = (
   boundTournamentSeriesId?: string,
   gameType?: string
 ): string => {
-  const parts = [normalizeTeamNameForCompare(name)];
-  if (boundSeasonId) parts.push(`season:${boundSeasonId}`);
-  if (boundTournamentId) parts.push(`tournament:${boundTournamentId}`);
-  if (boundTournamentSeriesId) parts.push(`series:${boundTournamentSeriesId}`);
-  if (gameType) parts.push(`type:${gameType}`);
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
+  const parts = [
+    normalizeTeamNameForCompare(name),
+    `season:${boundSeasonId ?? ''}`,
+    `tournament:${boundTournamentId ?? ''}`,
+    `series:${boundTournamentSeriesId ?? ''}`,
+    `type:${gameType ?? ''}`,
+  ];
   return parts.join('::');
 };
 
@@ -241,13 +247,15 @@ const createSeasonCompositeKey = (
   ageGroup?: string,
   leagueId?: string
 ): string => {
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
   const parts = [
     normalizeNameForCompare(name),
-    `clubSeason:${clubSeason ?? 'none'}`,
-    `gameType:${gameType ?? 'none'}`,
-    `gender:${gender ?? 'none'}`,
-    `ageGroup:${ageGroup ?? 'none'}`,
-    `leagueId:${leagueId ?? 'none'}`,
+    `clubSeason:${clubSeason ?? ''}`,
+    `gameType:${gameType ?? ''}`,
+    `gender:${gender ?? ''}`,
+    `ageGroup:${ageGroup ?? ''}`,
+    `leagueId:${leagueId ?? ''}`,
   ];
   return parts.join('::');
 };
@@ -276,12 +284,14 @@ const createTournamentCompositeKey = (
   gender?: string,
   ageGroup?: string
 ): string => {
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
   const parts = [
     normalizeNameForCompare(name),
-    `clubSeason:${clubSeason ?? 'none'}`,
-    `gameType:${gameType ?? 'none'}`,
-    `gender:${gender ?? 'none'}`,
-    `ageGroup:${ageGroup ?? 'none'}`,
+    `clubSeason:${clubSeason ?? ''}`,
+    `gameType:${gameType ?? ''}`,
+    `gender:${gender ?? ''}`,
+    `ageGroup:${ageGroup ?? ''}`,
   ];
   return parts.join('::');
 };
@@ -311,41 +321,6 @@ const migrateTournamentLevel = (tournament: Tournament): Tournament => {
   }
 
   return tournament;
-};
-
-/**
- * Validate a game's required and optional fields.
- * Throws ValidationError if validation fails.
- * Used by both saveGame and saveAllGames for consistent validation.
- *
- * @param game - The game state to validate
- * @param context - Optional context for error messages (e.g., gameId for batch operations)
- */
-const validateGame = (game: AppState, context?: string): void => {
-  const prefix = context ? `Game ${context}: ` : '';
-
-  // Validate required fields
-  if (!game.teamName || !game.opponentName || !game.gameDate) {
-    throw new ValidationError(
-      `${prefix}Missing required game fields`,
-      'game',
-      { hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
-    );
-  }
-
-  // Validate gameNotes length
-  if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
-    throw new ValidationError(
-      `${prefix}Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`,
-      'gameNotes',
-      game.gameNotes
-    );
-  }
-
-  // Validate ageGroup if present
-  if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
-    throw new ValidationError(`${prefix}Invalid age group`, 'ageGroup', game.ageGroup);
-  }
 };
 
 // Type for parsed settings with legacy month fields
@@ -463,6 +438,10 @@ export class LocalDataStore implements DataStore {
     return isIndexedDBAvailable();
   }
 
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+
   async getPlayers(): Promise<Player[]> {
     this.ensureInitialized();
     return this.loadPlayers();
@@ -552,6 +531,41 @@ export class LocalDataStore implements DataStore {
 
       await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(updatedRoster));
       return true;
+    });
+  }
+
+  /**
+   * Upsert a player (insert or update if exists).
+   * Used by reverse migration to preserve IDs from cloud.
+   */
+  async upsertPlayer(player: Player): Promise<Player> {
+    this.ensureInitialized();
+
+    const trimmedName = player.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Player name cannot be empty', 'name', player.name);
+    }
+
+    return withKeyLock(MASTER_ROSTER_KEY, async () => {
+      const roster = await this.loadPlayers();
+      const existingIndex = roster.findIndex((p) => p.id === player.id);
+
+      const normalizedPlayer: Player = {
+        ...player,
+        name: trimmedName,
+        nickname: player.nickname?.trim() || undefined,
+        isGoalie: player.isGoalie ?? false,
+        receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+      };
+
+      if (existingIndex !== -1) {
+        roster[existingIndex] = normalizedPlayer;
+      } else {
+        roster.push(normalizedPlayer);
+      }
+
+      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
+      return normalizedPlayer;
     });
   }
 
@@ -739,6 +753,34 @@ export class LocalDataStore implements DataStore {
       delete teamsIndex[id];
       await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       return true;
+    });
+  }
+
+  /**
+   * Upsert a team (insert or update if exists).
+   * Used by reverse migration to preserve IDs from cloud.
+   */
+  async upsertTeam(team: Team): Promise<Team> {
+    this.ensureInitialized();
+
+    const trimmedName = normalizeTeamName(team.name);
+    if (!trimmedName) {
+      throw new ValidationError('Team name cannot be empty', 'name', team.name);
+    }
+
+    return withKeyLock(TEAMS_INDEX_KEY, async () => {
+      const teamsIndex = await this.loadTeamsIndex();
+
+      const normalizedTeam: Team = {
+        ...team,
+        name: trimmedName,
+        notes: normalizeOptionalString(team.notes),
+        ageGroup: normalizeOptionalString(team.ageGroup),
+      };
+
+      teamsIndex[team.id] = normalizedTeam;
+      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      return normalizedTeam;
     });
   }
 
@@ -933,6 +975,63 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  /**
+   * Upsert a season - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   *
+   * @param season - The season to upsert (must have an ID)
+   * @returns The upserted season
+   */
+  async upsertSeason(season: Season): Promise<Season> {
+    this.ensureInitialized();
+
+    const trimmedName = season.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Season name cannot be empty', 'name', season.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.SEASON_NAME_MAX) {
+      throw new ValidationError(
+        `Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters (got ${trimmedName.length})`,
+        'name',
+        season.name
+      );
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(season.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', season.ageGroup);
+    }
+
+    const { start, end } = await this.getSeasonDates();
+
+    return withKeyLock(SEASONS_LIST_KEY, async () => {
+      const currentSeasons = await this.loadSeasons();
+      const existingIndex = currentSeasons.findIndex((s) => s.id === season.id);
+
+      const clubSeason = calculateClubSeason(season.startDate, start, end);
+
+      const normalizedSeason: Season = {
+        ...season,
+        name: trimmedName,
+        ageGroup: normalizedAgeGroup ?? undefined,
+        notes: normalizeOptionalString(season.notes) ?? undefined,
+        clubSeason,
+      };
+
+      if (existingIndex !== -1) {
+        // Update existing
+        currentSeasons[existingIndex] = normalizedSeason;
+      } else {
+        // Insert new
+        currentSeasons.push(normalizedSeason);
+      }
+
+      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
+      return normalizedSeason;
+    });
+  }
+
   async getTournaments(includeArchived = false): Promise<Tournament[]> {
     this.ensureInitialized();
 
@@ -1101,6 +1200,64 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  /**
+   * Upsert a tournament - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   *
+   * @param tournament - The tournament to upsert (must have an ID)
+   * @returns The upserted tournament
+   */
+  async upsertTournament(tournament: Tournament): Promise<Tournament> {
+    this.ensureInitialized();
+
+    const trimmedName = tournament.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Tournament name cannot be empty', 'name', tournament.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.TOURNAMENT_NAME_MAX) {
+      throw new ValidationError(
+        `Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters (got ${trimmedName.length})`,
+        'name',
+        tournament.name
+      );
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(tournament.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', tournament.ageGroup);
+    }
+
+    const { start, end } = await this.getSeasonDates();
+
+    return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
+      const currentTournaments = await this.loadTournaments();
+      const existingIndex = currentTournaments.findIndex((t) => t.id === tournament.id);
+
+      const clubSeason = calculateClubSeason(tournament.startDate, start, end);
+
+      const normalizedTournament: Tournament = {
+        ...tournament,
+        name: trimmedName,
+        ageGroup: normalizedAgeGroup ?? undefined,
+        level: normalizeOptionalString(tournament.level) ?? undefined,
+        notes: normalizeOptionalString(tournament.notes) ?? undefined,
+        clubSeason,
+      };
+
+      if (existingIndex !== -1) {
+        // Update existing
+        currentTournaments[existingIndex] = normalizedTournament;
+      } else {
+        // Insert new
+        currentTournaments.push(normalizedTournament);
+      }
+
+      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
+      return normalizedTournament;
+    });
+  }
+
   async getAllPersonnel(): Promise<Personnel[]> {
     this.ensureInitialized();
 
@@ -1205,6 +1362,48 @@ export class LocalDataStore implements DataStore {
       collection[id] = updated;
       await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
       return updated;
+    });
+  }
+
+  /**
+   * Upsert a personnel member - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   *
+   * @param personnel - The personnel to upsert (must have an ID)
+   * @returns The upserted personnel
+   */
+  async upsertPersonnelMember(personnel: Personnel): Promise<Personnel> {
+    this.ensureInitialized();
+
+    const trimmedName = personnel.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Personnel name cannot be empty', 'name', personnel.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.PERSONNEL_NAME_MAX) {
+      throw new ValidationError(
+        `Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters (got ${trimmedName.length})`,
+        'name',
+        personnel.name
+      );
+    }
+
+    return withKeyLock(PERSONNEL_KEY, async () => {
+      const collection = await this.loadPersonnelCollection();
+      const existing = collection[personnel.id];
+
+      const now = new Date().toISOString();
+
+      const normalizedPersonnel: Personnel = {
+        ...personnel,
+        name: trimmedName,
+        createdAt: existing?.createdAt ?? personnel.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      collection[personnel.id] = normalizedPersonnel;
+      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+      return normalizedPersonnel;
     });
   }
 
@@ -1681,41 +1880,86 @@ export class LocalDataStore implements DataStore {
     return all[playerId] || [];
   }
 
+  /**
+   * Helper to build a PlayerStatAdjustment with defaults.
+   * Extracted to avoid duplication between add and upsert methods.
+   */
+  private buildPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): PlayerStatAdjustment {
+    return {
+      id: adjustment.id || generateId('adj'),
+      appliedAt: adjustment.appliedAt || new Date().toISOString(),
+      playerId: adjustment.playerId,
+      seasonId: adjustment.seasonId,
+      teamId: adjustment.teamId,
+      tournamentId: adjustment.tournamentId,
+      externalTeamName: adjustment.externalTeamName,
+      opponentName: adjustment.opponentName,
+      scoreFor: adjustment.scoreFor,
+      scoreAgainst: adjustment.scoreAgainst,
+      gameDate: adjustment.gameDate,
+      homeOrAway: adjustment.homeOrAway,
+      includeInSeasonTournament: adjustment.includeInSeasonTournament,
+      gamesPlayedDelta: adjustment.gamesPlayedDelta || 0,
+      goalsDelta: adjustment.goalsDelta || 0,
+      assistsDelta: adjustment.assistsDelta || 0,
+      fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
+      note: adjustment.note,
+      createdBy: adjustment.createdBy,
+    };
+  }
+
+  /**
+   * Validate adjustment note length.
+   */
+  private validateAdjustmentNote(note: string | undefined): void {
+    if (note && note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
+      throw new ValidationError(
+        `Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${note.length})`,
+        'note',
+        note
+      );
+    }
+  }
+
   async addPlayerAdjustment(
     adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment> {
     this.ensureInitialized();
-
-    if (adjustment.note && adjustment.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
-      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${adjustment.note.length})`, 'note', adjustment.note);
-    }
+    this.validateAdjustmentNote(adjustment.note);
 
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
       const all = await this.loadPlayerAdjustments();
-      const newAdjustment: PlayerStatAdjustment = {
-        id: adjustment.id || generateId('adj'),
-        appliedAt: adjustment.appliedAt || new Date().toISOString(),
-        playerId: adjustment.playerId,
-        seasonId: adjustment.seasonId,
-        teamId: adjustment.teamId,
-        tournamentId: adjustment.tournamentId,
-        externalTeamName: adjustment.externalTeamName,
-        opponentName: adjustment.opponentName,
-        scoreFor: adjustment.scoreFor,
-        scoreAgainst: adjustment.scoreAgainst,
-        gameDate: adjustment.gameDate,
-        homeOrAway: adjustment.homeOrAway,
-        includeInSeasonTournament: adjustment.includeInSeasonTournament,
-        gamesPlayedDelta: adjustment.gamesPlayedDelta || 0,
-        goalsDelta: adjustment.goalsDelta || 0,
-        assistsDelta: adjustment.assistsDelta || 0,
-        fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
-        note: adjustment.note,
-        createdBy: adjustment.createdBy,
-      };
+      const newAdjustment = this.buildPlayerAdjustment(adjustment);
 
       const list = all[newAdjustment.playerId] || [];
       all[newAdjustment.playerId] = [...list, newAdjustment];
+      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+
+      return newAdjustment;
+    });
+  }
+
+  async upsertPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): Promise<PlayerStatAdjustment> {
+    this.ensureInitialized();
+    this.validateAdjustmentNote(adjustment.note);
+
+    return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
+      const all = await this.loadPlayerAdjustments();
+      const newAdjustment = this.buildPlayerAdjustment(adjustment);
+
+      const list = all[newAdjustment.playerId] || [];
+      // Upsert: Replace existing if found, otherwise append
+      const existingIndex = list.findIndex((item) => item.id === newAdjustment.id);
+      if (existingIndex !== -1) {
+        list[existingIndex] = newAdjustment;
+      } else {
+        list.push(newAdjustment);
+      }
+      all[newAdjustment.playerId] = list;
       await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
 
       return newAdjustment;
@@ -1769,6 +2013,26 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  /**
+   * Get all player adjustments in a single batch operation.
+   * Returns a Map of playerId -> PlayerStatAdjustment[] for efficient bulk access.
+   * Used by migration services to avoid N+1 queries when fetching adjustments for all players.
+   */
+  async getAllPlayerAdjustments(): Promise<Map<string, PlayerStatAdjustment[]>> {
+    this.ensureInitialized();
+
+    const adjustmentsIndex = await this.loadPlayerAdjustments();
+    const result = new Map<string, PlayerStatAdjustment[]>();
+
+    for (const [playerId, adjustments] of Object.entries(adjustmentsIndex)) {
+      if (adjustments.length > 0) {
+        result.set(playerId, adjustments);
+      }
+    }
+
+    return result;
+  }
+
   async getWarmupPlan(): Promise<WarmupPlan | null> {
     this.ensureInitialized();
 
@@ -1803,11 +2067,7 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(WARMUP_PLAN_KEY, async () => {
       try {
-        const planToSave: WarmupPlan = {
-          ...plan,
-          lastModified: new Date().toISOString(),
-          isDefault: false,
-        };
+        const planToSave = normalizeWarmupPlanForSave(plan);
         await setStorageItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
         return true;
       } catch (error) {
@@ -1860,6 +2120,31 @@ export class LocalDataStore implements DataStore {
     } catch (error) {
       logger.debug('[LocalDataStore] Failed to clear timer state', error);
     }
+  }
+
+  // ==========================================================================
+  // DATA MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Clear all user data from local storage.
+   *
+   * Deletes all data from IndexedDB.
+   * Does NOT clear localStorage settings (backend mode, migration flags).
+   *
+   * @throws {Error} If deletion fails
+   */
+  async clearAllUserData(): Promise<void> {
+    this.ensureInitialized();
+
+    // Import dynamically to avoid circular dependencies
+    // clearStorage() clears IndexedDB only, NOT localStorage.
+    // This preserves app settings (backend mode, migration flags, etc.)
+    // which is intentional: clearing data shouldn't reset preferences.
+    const { clearStorage } = await import('@/utils/storage');
+    await clearStorage();
+
+    logger.info('[LocalDataStore] All user data cleared from local storage');
   }
 
   private ensureInitialized(): void {

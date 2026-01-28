@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { saveTimerState, loadTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
 import { useWakeLock } from './useWakeLock';
 import { usePrecisionTimer, useTimerRestore } from './usePrecisionTimer';
@@ -177,8 +178,13 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
             savedTimerState.timestamp,
             savedTimerState.timeElapsedInSeconds,
             (restoredTime) => {
-              // Update stable start time BEFORE dispatching to prevent precision timer from using old value
-              setStableStartTime(restoredTime);
+              // Use flushSync to ensure stableStartTime is updated synchronously
+              // before the dispatch. This prevents the precision timer from starting
+              // with a stale value (e.g., 0) when returning from background, which
+              // caused a brief "00:00" flash in the UI.
+              flushSync(() => {
+                setStableStartTime(restoredTime);
+              });
 
               dispatch({
                 type: 'RESTORE_TIMER_STATE',

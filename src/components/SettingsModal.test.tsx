@@ -1,4 +1,3 @@
- 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,6 +6,7 @@ import '@testing-library/jest-dom';
 import SettingsModal from './SettingsModal';
 import { ToastProvider } from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
+import { AuthProvider } from '@/contexts/AuthProvider';
 
 // Create test query client
 const createTestQueryClient = () => new QueryClient({
@@ -21,11 +21,13 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = createTestQueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      <PremiumProvider>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
-      </PremiumProvider>
+      <AuthProvider>
+        <PremiumProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </PremiumProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };
@@ -40,6 +42,11 @@ jest.mock('react-i18next', () => ({
       // Return English translations for common keys
       const translations: Record<string, string> = {
         'settingsModal.title': 'App Settings',
+        'settingsModal.tabs.general': 'General',
+        'settingsModal.tabs.season': 'Season',
+        'settingsModal.tabs.data': 'Data',
+        'settingsModal.tabs.premium': 'Premium',
+        'settingsModal.tabs.about': 'About',
         'settingsModal.languageLabel': 'Language',
         'settingsModal.defaultTeamNameLabel': 'Default Team Name',
         'settingsModal.storageUsageLabel': 'Storage Usage',
@@ -76,6 +83,13 @@ const defaultProps = {
   onCreateBackup: jest.fn(),
 };
 
+// Helper to navigate to a specific tab
+// Note: Season settings are now in General tab, Premium renamed to Account
+const navigateToTab = (tabName: 'General' | 'Data' | 'Account' | 'About') => {
+  const tab = screen.getByRole('button', { name: tabName });
+  fireEvent.click(tab);
+};
+
 describe('<SettingsModal />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -104,6 +118,8 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
+    navigateToTab('About');
+
     expect(screen.getByText('Storage Usage')).toBeInTheDocument();
     expect(screen.getByText('Storage usage information unavailable.')).toBeInTheDocument();
   });
@@ -122,6 +138,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    navigateToTab('About');
 
     // Wait for the storage section to appear
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
@@ -151,6 +169,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    navigateToTab('About');
 
     // Wait for the storage section to appear
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
@@ -183,6 +203,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+    // Hard Reset is in the Account tab (Danger Zone section)
+    navigateToTab('Account');
     const resetBtn = screen.getByRole('button', { name: /Hard Reset App/i });
     expect(resetBtn).toBeDisabled();
     fireEvent.change(
@@ -199,6 +221,7 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+    navigateToTab('About');
     fireEvent.click(screen.getByRole('button', { name: /Reset App Guide/i }));
     expect(defaultProps.onResetGuide).toHaveBeenCalled();
   });
@@ -209,6 +232,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+    // Backup button is in Data tab
+    navigateToTab('Data');
     const backupButton = screen.getByRole('button', { name: /Backup All Data/i });
     fireEvent.click(backupButton);
     expect(defaultProps.onCreateBackup).toHaveBeenCalled();
@@ -235,20 +260,25 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
-    // Check for period start label
-    const startLabel = screen.getByText(/Period Start/i);
+    navigateToTab('General');
+
+    // Check for season start label
+    const startLabel = screen.getByText(/New season starts/i);
     expect(startLabel).toBeInTheDocument();
 
-    // Check for period end label
-    const endLabel = screen.getByText(/Period End/i);
+    // Check for season ends label (read-only display)
+    const endLabel = screen.getByText(/Season ends/i);
     expect(endLabel).toBeInTheDocument();
 
-    // Verify month and day dropdowns exist
+    // Verify month and day dropdowns exist for start date only (end date is auto-calculated, read-only)
     const monthSelects = screen.getAllByLabelText(/Month/i);
-    expect(monthSelects.length).toBeGreaterThanOrEqual(2); // At least 2 month selects (start and end)
+    expect(monthSelects.length).toBe(1); // Only 1 month select (start)
 
     const daySelects = screen.getAllByLabelText(/Day/i);
-    expect(daySelects.length).toBeGreaterThanOrEqual(2); // At least 2 day selects (start and end)
+    expect(daySelects.length).toBe(1); // Only 1 day select (start)
+
+    // Verify auto-calculated text is shown
+    expect(screen.getByText(/auto-calculated/i)).toBeInTheDocument();
   });
 
   /**
@@ -262,18 +292,21 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
+    navigateToTab('General');
+
     // Wait for component to render
     await waitFor(() => {
-      expect(screen.getByText(/Period Start/i)).toBeInTheDocument();
+      expect(screen.getByText(/New season starts/i)).toBeInTheDocument();
     });
 
-    // Find the month and day select elements
+    // Find the month and day select elements (only for start date)
     const monthSelects = screen.getAllByLabelText(/Month/i);
     const daySelects = screen.getAllByLabelText(/Day/i);
 
     // Verify the dropdown elements are rendered and can be interacted with
-    expect(monthSelects.length).toBeGreaterThanOrEqual(2);
-    expect(daySelects.length).toBeGreaterThanOrEqual(2);
+    // Only 1 month and 1 day select (end date is auto-calculated, read-only)
+    expect(monthSelects.length).toBe(1);
+    expect(daySelects.length).toBe(1);
 
     // Note: We're not testing the actual save functionality here as that's
     // tested at the unit level in appSettings.test.ts and requires complex mocking
@@ -350,6 +383,8 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
+      navigateToTab('About');
+
       // Find and click the "Check for Updates" button
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
@@ -374,6 +409,8 @@ describe('<SettingsModal />', () => {
           <SettingsModal {...defaultProps} />
         </TestWrapper>
       );
+
+      navigateToTab('About');
 
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
 
@@ -411,6 +448,8 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
+      navigateToTab('About');
+
       // Click "Check for Updates"
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
@@ -441,6 +480,8 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
+      navigateToTab('About');
+
       const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
       fireEvent.click(checkButton);
 
@@ -456,4 +497,5 @@ describe('<SettingsModal />', () => {
       });
     });
   });
+
 });

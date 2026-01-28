@@ -4,7 +4,7 @@
  */
 
 import { PREMIUM_LICENSE_KEY } from '@/config/storageKeys';
-import { FREE_LIMITS, ResourceType, PREMIUM_PRODUCT_ID, getLimit } from '@/config/premiumLimits';
+import { ResourceType, PREMIUM_PRODUCT_ID, getLimit } from '@/config/premiumLimits';
 import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import { getStorageItem, setStorageItem } from './storage';
 import logger from './logger';
@@ -166,52 +166,46 @@ export interface ResourceCounts {
 
 /**
  * Check if user can create a new resource
- * @param resource - The type of resource to create
- * @param currentCount - Current count of that resource
- * @param isPremium - Whether user has premium
- * @returns true if creation is allowed
+ *
+ * Business Model (as of 2026-01):
+ * - Local mode: FREE, unlimited
+ * - Account creation: FREE on all platforms
+ * - Cloud sync: Subscription required (checked via SubscriptionContext)
+ *
+ * Resource limits are NOT enforced - all users have unlimited access.
+ *
+ * @param _resource - The type of resource to create (unused - no limits)
+ * @param _currentCount - Current count of that resource (unused - no limits)
+ * @param _isPremium - Whether user has premium (unused - no limits)
+ * @returns always true - no resource limits
  */
 export function canCreateResource(
-  resource: ResourceType,
-  currentCount: number,
-  isPremium: boolean
+  _resource: ResourceType,
+  _currentCount: number,
+  _isPremium: boolean
 ): boolean {
-  if (isPremium) {
-    return true;
-  }
-
-  switch (resource) {
-    case 'team':
-      return currentCount < FREE_LIMITS.maxTeams;
-    case 'player':
-      return currentCount < FREE_LIMITS.maxPlayers;
-    case 'season':
-      return currentCount < FREE_LIMITS.maxSeasons;
-    case 'tournament':
-      return currentCount < FREE_LIMITS.maxTournaments;
-    case 'game':
-      // Games are checked per-competition, limit applies to both season and tournament
-      return currentCount < FREE_LIMITS.maxGamesPerSeason;
-    default:
-      return true;
-  }
+  // No resource limits - local is free unlimited, cloud subscription gates sync only
+  return true;
 }
 
 /**
  * Get remaining count for a resource
- * @returns remaining count, or Infinity if premium
+ *
+ * Business Model: No resource limits - always returns Infinity.
+ * Cloud sync is gated via SubscriptionContext (subscription required).
+ *
+ * @param _resource - The type of resource (unused - no limits)
+ * @param _currentCount - Current count (unused - no limits)
+ * @param _isPremium - Premium status (unused - no limits)
+ * @returns always Infinity - no resource limits
  */
 export function getRemainingCount(
-  resource: ResourceType,
-  currentCount: number,
-  isPremium: boolean
+  _resource: ResourceType,
+  _currentCount: number,
+  _isPremium: boolean
 ): number {
-  if (isPremium) {
-    return Infinity;
-  }
-
-  const limit = getResourceLimit(resource);
-  return Math.max(0, limit - currentCount);
+  // No resource limits - all users have unlimited access
+  return Infinity;
 }
 
 /**
@@ -223,39 +217,26 @@ export const getResourceLimit = getLimit;
 /**
  * Check if any resource is over the free limit (for import warnings)
  *
- * Note: gamesInSeason/gamesInTournament represent the MAXIMUM game count
- * in any single season or tournament, not the total across all competitions.
- * This matches how limits are enforced per-competition.
+ * Business Model: No resource limits - always returns false.
+ * All data imports are allowed without limit warnings.
+ *
+ * @param _counts - Resource counts (unused - no limits)
+ * @returns always false - no resource limits
  */
-export function isOverFreeLimit(counts: ResourceCounts): boolean {
-  return (
-    counts.teams > FREE_LIMITS.maxTeams ||
-    counts.players > FREE_LIMITS.maxPlayers ||
-    counts.seasons > FREE_LIMITS.maxSeasons ||
-    counts.tournaments > FREE_LIMITS.maxTournaments ||
-    counts.gamesInSeason > FREE_LIMITS.maxGamesPerSeason ||
-    counts.gamesInTournament > FREE_LIMITS.maxGamesPerTournament
-  );
+export function isOverFreeLimit(_counts: ResourceCounts): boolean {
+  // No resource limits - imports always allowed
+  return false;
 }
 
 /**
  * Get a summary of which resources are over limit
+ *
+ * Business Model: No resource limits - always returns empty array.
+ *
+ * @param _counts - Resource counts (unused - no limits)
+ * @returns always empty - no resource limits
  */
-export function getOverLimitSummary(counts: ResourceCounts): string[] {
-  const overLimit: string[] = [];
-
-  if (counts.teams > FREE_LIMITS.maxTeams) {
-    overLimit.push(`${counts.teams}/${FREE_LIMITS.maxTeams} teams`);
-  }
-  if (counts.players > FREE_LIMITS.maxPlayers) {
-    overLimit.push(`${counts.players}/${FREE_LIMITS.maxPlayers} players`);
-  }
-  if (counts.seasons > FREE_LIMITS.maxSeasons) {
-    overLimit.push(`${counts.seasons}/${FREE_LIMITS.maxSeasons} seasons`);
-  }
-  if (counts.tournaments > FREE_LIMITS.maxTournaments) {
-    overLimit.push(`${counts.tournaments}/${FREE_LIMITS.maxTournaments} tournaments`);
-  }
-
-  return overLimit;
+export function getOverLimitSummary(_counts: ResourceCounts): string[] {
+  // No resource limits - no over-limit warnings
+  return [];
 }

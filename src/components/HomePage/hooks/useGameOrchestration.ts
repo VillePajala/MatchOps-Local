@@ -30,6 +30,7 @@ import { useGameSessionCoordination } from './useGameSessionCoordination';
 import { useGamePersistence } from './useGamePersistence';
 import { useModalOrchestration } from './useModalOrchestration';
 import { useModalContext } from '@/contexts/ModalProvider';
+import { useAuth } from '@/contexts/AuthProvider';
 import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils/storage';
 import { queryKeys } from '@/config/queryKeys';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
@@ -47,6 +48,7 @@ import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
+import { generateSubSlots } from '@/utils/formations';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -143,6 +145,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // --- Get showToast early (needed by Field Coordination) ---
   const { showToast } = useToast();
 
+  // --- Auth (for cloud mode sign out) ---
+  const { signOut, mode: authMode } = useAuth();
+
   // --- Roster Management (Must come before Field Coordination) ---
   const {
     availablePlayers,
@@ -186,6 +191,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const setTacticalDrawings = fieldCoordination.setTacticalDrawings;
   const setTacticalBallPosition = fieldCoordination.setTacticalBallPosition;
   const setFormationSnapPoints = fieldCoordination.setFormationSnapPoints;
+  const setSubSlots = fieldCoordination.setSubSlots;
 
   // --- History Orchestration (Undo/Redo) ---
   /**
@@ -352,7 +358,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // showToast already defined earlier (needed by useFieldCoordination)
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
 
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
@@ -1004,6 +1010,26 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
     setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
     setFormationSnapPoints(gameData?.formationSnapPoints || []);
+
+    // Regenerate subSlots from persisted formationSnapPoints for sideline visuals
+    // subSlots are not persisted, but can be reconstructed from field positions
+    // Works for both soccer and futsal - generateSubSlots is sport-agnostic
+    const snapPoints = gameData?.formationSnapPoints || [];
+    if (snapPoints.length > 0) {
+      // Extract field positions only (exclude GK at relY > 0.9 and sideline at relX > 0.95)
+      const fieldPositions = snapPoints.filter(p =>
+        p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95
+      );
+      if (fieldPositions.length > 0) {
+        const newSubSlots = generateSubSlots(fieldPositions);
+        setSubSlots(newSubSlots);
+      } else {
+        setSubSlots([]);
+      }
+    } else {
+      setSubSlots([]);
+    }
+
     setIsPlayed(gameData?.isPlayed === false ? false : true);
 
     // Load per-game availablePlayers (with per-game goalie status)
@@ -1062,7 +1088,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setOrphanedGameInfo, dispatchGameSession, setIsPlayed, setAvailablePlayers, resetHistory,
     // Extracted stable setters from fieldCoordination
     setPlayersOnField, setOpponents, setDrawings, setTacticalDiscs,
-    setTacticalDrawings, setTacticalBallPosition, setFormationSnapPoints,
+    setTacticalDrawings, setTacticalBallPosition, setFormationSnapPoints, setSubSlots,
     // Stable data from hooks (initialGameSessionData from useGameSessionCoordination)
     initialGameSessionData,
     // Data dependencies (used as fallbacks - changes trigger callback recreation)
@@ -1234,11 +1260,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     } catch (error) {
       logger.error("Error during hard reset:", error);
       setIsResetting(false); // Re-enable UI on error
-      showToast("Failed to reset application data.", 'error');
+      showToast(t('page.failedResetAppData', 'Failed to reset application data.'), 'error');
     } finally {
       setShowHardResetConfirm(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
 
   
@@ -1261,7 +1287,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleExportOneJson = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
-      showToast(`Error: Could not find game data for ${gameId}`, 'error');
+      showToast(t('page.gameDataNotFound', { gameId, defaultValue: `Error: Could not find game data for ${gameId}` }), 'error');
       return;
     }
     exportJson(gameId, gameData, gameDataManagement.seasons, gameDataManagement.tournaments);
@@ -1270,7 +1296,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleExportOneExcel = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
-      showToast(`Error: Could not find game data for ${gameId}`, 'error');
+      showToast(t('page.gameDataNotFound', { gameId, defaultValue: `Error: Could not find game data for ${gameId}` }), 'error');
       return;
     }
     try {
@@ -2050,6 +2076,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
     onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
     onGoToStartScreen,
+    onSignOut: signOut,
+    isCloudMode: authMode === 'cloud',
   };
 
   const isLoading = gameDataManagement.isLoading;

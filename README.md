@@ -4,20 +4,22 @@
 
 # MatchOps-Local
 
-**Local-first soccer coaching PWA that keeps every byte of your team data on your device.**
+**Local-first soccer coaching PWA with optional cloud sync — your data, your choice.**
 
 [![License](https://img.shields.io/badge/license-All_Rights_Reserved-red.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.2-blue.svg)](https://reactjs.org/)
-[![Tests](https://img.shields.io/badge/tests-2535+-green.svg)](#)
+[![Supabase](https://img.shields.io/badge/Supabase-Cloud_Backend-3ECF8E.svg)](https://supabase.com/)
+[![Tests](https://img.shields.io/badge/tests-3500+-green.svg)](#)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
 [![Privacy](https://img.shields.io/badge/Privacy-No_Tracking-green.svg)](#)
 
-MatchOps-Local is built for coaches who need privacy, offline reliability, and soccer-specific workflows without subscriptions or external servers.
+MatchOps-Local is built for coaches who need privacy, offline reliability, and soccer-specific workflows. Start locally with zero setup, or enable cloud sync to access your data across devices.
 
-- 🔒 All data stays on-device (IndexedDB-first)
-- 🛡️ No tracking or analytics — your data is yours alone
+- 🔒 **Local mode**: All data on-device (IndexedDB) — works offline, no account needed
+- ☁️ **Cloud mode**: Optional Supabase backend for cross-device sync
+- 🔑 **Auth**: Email/password authentication via Supabase Auth
 - ⚡ Sub-second performance with local caching
 - 📴 Full offline + PWA install
 - ⚽ Purpose-built for match prep, live tracking, and post-game analysis
@@ -39,6 +41,8 @@ MatchOps-Local is built for coaches who need privacy, offline reliability, and s
 - **Stats & Assessment:** Track appearances/goals/assists/playtime, slice by season/tournament/team, and run structured player assessments with contextual weighting.
 - **Seasons & Tournaments:** Organize fixtures by season/tournament, including Finnish league presets, and capture awards/winners.
 - **Backup & Recovery:** Export/import full backups or individual games; migrations handle legacy localStorage to IndexedDB with pause/resume/cancel.
+- **Cloud Sync:** Optional Supabase backend — sign in to sync data across devices, migrate local data to cloud or vice versa, switch modes anytime.
+- **Authentication:** Email/password sign-up/sign-in via Supabase Auth; account deletion with full data removal (GDPR compliant).
 - **Accessibility & Localization:** WCAG AA-focused UI with keyboard navigation and ARIA labeling; bilingual EN/FI out of the box.
 - **Offline-first PWA:** Install to home screen, run fully offline, and rely on the service worker + offline fallback page for poor connectivity.
 
@@ -66,9 +70,17 @@ npm run start
 ## Environment & Config
 
 Copy `.env.example` to `.env.local`:
-- `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_*`: optional, for error reporting.
-- `ANALYZE=true`: enable bundle analyzer during builds.
-- `NEXT_PUBLIC_DEBUG` / `NEXT_PUBLIC_DEBUG_ALL`: optional debug flags for local dev.
+
+**Cloud Backend (optional):**
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL (enables cloud mode)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon/public key
+
+**Error Reporting (optional):**
+- `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_*`: for error reporting
+
+**Development:**
+- `ANALYZE=true`: enable bundle analyzer during builds
+- `NEXT_PUBLIC_DEBUG` / `NEXT_PUBLIC_DEBUG_ALL`: optional debug flags
 
 ## Development Workflow
 
@@ -112,6 +124,8 @@ Known test noise: Next.js `Link` triggers a one-time `act(...)` warning in jsdom
 - **Plan:** personnel pool, multi-team rosters, seasons/tournaments, bilingual (EN/FI).
 - **Track:** interactive field with undo/redo, live timer with substitution alerts, event logging, tactics board.
 - **Assess:** per-player stats across games/seasons/tournaments, assessments with weighted context, backups/import/export.
+- **Sync:** optional cloud backend (Supabase) for cross-device access, bidirectional migration between local and cloud.
+- **Auth:** email/password authentication, account management, data deletion (GDPR).
 - **PWA:** installable, offline-first, wake-lock support, auto-update prompt.
 
 ## Build & Deploy

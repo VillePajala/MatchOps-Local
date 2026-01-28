@@ -121,59 +121,47 @@ Consider refactoring when:
 
 ---
 
-### 🟡 MEDIUM: Auto-Save Error Handling - Missing Retry Logic
+### ✅ ~~MEDIUM: Auto-Save Error Handling - Missing Retry Logic~~ **RESOLVED**
 
 **Discovered**: November 20, 2025 (during Step 2.6.4 code review)
-**Component**: `useGamePersistence` - auto-save error handling
-**Impact**: Medium - silent data loss possible on transient errors
+**Resolved**: January 2026 (useAutoSave.ts rewrite)
+**Component**: `useAutoSave.ts` - tiered auto-save with retry logic
+**Impact**: ~~Medium - silent data loss possible on transient errors~~ **FIXED**
 
-#### The Problem
+#### ✅ Resolution
 
-Auto-save currently has no retry mechanism for transient errors:
+Auto-save now has full retry mechanism in `src/hooks/useAutoSave.ts`:
 
 ```typescript
-// Current: Single attempt, no retry
-useAutoSave({
-  saveFunction: () => handleQuickSaveGame(true, true),
-  // If this fails, the data is lost
-});
+// IMPLEMENTED: saveWithRetry with exponential backoff
+const saveWithRetry = async (saveFn, maxRetries = 3, context) => {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await saveFn();
+      return;
+    } catch (error) {
+      if (!isTransientError(error) || attempt === maxRetries - 1) {
+        throw error;
+      }
+      const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+};
 ```
 
-**Transient Error Scenarios:**
-- Storage quota temporarily exceeded
-- IndexedDB locked by another tab
-- Brief network interruption (if syncing)
-- Device suspend/resume timing issues
+#### What Was Implemented
 
-#### Why This Is Problematic
+**✅ All items now complete:**
+- ✅ Retry logic with exponential backoff (3 attempts: 1s, 2s, 4s)
+- ✅ Differentiation between transient and permanent errors (`isTransientError()`)
+- ✅ Errors logged to Sentry with context (gameId, operation, retriesFailed)
+- ✅ Error toasts suppressed for auto-save (no UX disruption)
+- ✅ Tiered debouncing (immediate/500ms/2000ms for different state types)
 
-1. **Silent Data Loss**:
-   - User makes changes → auto-save triggered → error occurs → changes lost
-   - No indication to user that save failed
-   - Only discoverable when loading game later
-
-2. **No Resilience**:
-   - Transient errors (90% of failures) treated same as permanent errors
-   - Single point of failure for all auto-saves
-   - No exponential backoff or circuit breaker
-
-3. **Limited Observability**:
-   - ✅ FIXED: Errors now logged to Sentry
-   - ✅ FIXED: Error toasts suppressed for auto-save
-   - ❌ TODO: No retry metrics or success rate tracking
-
-#### Current State (Partial Fix)
-
-**✅ Completed (November 20, 2025)**:
-- Errors logged to Sentry with context (gameId, operation, teamId)
-- Error toasts suppressed for auto-save (no UX disruption)
-- Manual saves still show error toasts for immediate feedback
-
-**❌ Not Yet Implemented**:
-- Retry logic with exponential backoff
-- Differentiation between transient and permanent errors
-- Circuit breaker to prevent retry storms
-- Success rate metrics
+**Remaining nice-to-have (low priority):**
+- Circuit breaker to prevent retry storms (not needed at current scale)
+- Success rate metrics dashboard
 
 #### Refactoring Options
 

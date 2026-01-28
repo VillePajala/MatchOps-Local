@@ -218,8 +218,8 @@ export const TestFixtures = {
         games: Array.from({ length: gameCount }, (_, i) =>
           games.completed({ teamName: `Perf Team ${i + 1}` })
         ),
-        events: Array.from({ length: eventCount }, () =>
-          games.createGoalEvent({ time: Math.floor(Math.random() * 2700) })
+        events: Array.from({ length: eventCount }, (_, i) =>
+          games.createGoalEvent({ time: (i * 137) % 2700 }) // Deterministic spread using prime multiplier
         ),
         metadata: {
           scale,

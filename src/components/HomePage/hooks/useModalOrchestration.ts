@@ -330,6 +330,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     // setIsNewGameSetupModalOpen not used - modal controlled by game orchestration
     isSettingsModalOpen,
     setIsSettingsModalOpen,
+    settingsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
@@ -489,6 +490,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       isSeasonTournamentModalOpen,
       isGameSettingsModalOpen,
       isSettingsModalOpen,
+      settingsInitialTab,
       isPlayerAssessmentModalOpen,
       isTeamReassignModalOpen,
       showNoPlayersConfirm,

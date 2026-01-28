@@ -94,3 +94,7 @@ local.properties
 # Environment files with signing credentials
 .env.keystore
 .env.signing
+.env*.local
+
+# Supabase CLI local config
+supabase/.temp/

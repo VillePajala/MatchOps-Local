@@ -229,6 +229,17 @@ const allowedConsolePatterns = [
   'Wake Lock request failed',
   // Club season validation warnings (expected in validation tests)
   '[getClubSeasonForDate] Invalid date format',
+  // Backend config warnings (expected in backendConfig tests)
+  '[backendConfig]',
+  '[factory]',
+  // SupabaseDataStore warnings (expected fallback behavior in tests)
+  '[SupabaseDataStore]',
+  // MigrationService errors/warnings (expected in migration failure tests)
+  '[MigrationService]',
+  // SyncEngine warnings/errors (expected in sync failure tests)
+  '[SyncEngine]',
+  // SyncExecutor warnings/errors (expected in sync failure tests)
+  '[SyncExecutor]',
 ];
 
 const shouldFailOnConsoleMessage = (message) => {

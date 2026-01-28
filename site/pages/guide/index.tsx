@@ -30,7 +30,7 @@ export default function GuideLanding() {
   return (
     <Layout>
       <Head>
-        <title>{t('landing.title')} - MatchOps Local</title>
+        <title>{t('landing.title')} - MatchOps</title>
         <meta name="description" content={t('landing.subtitle')} />
       </Head>
 
@@ -45,7 +45,7 @@ export default function GuideLanding() {
           <div className="container-custom relative z-10">
             <div className="max-w-3xl mx-auto text-center">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                <span className="text-primary">MatchOps Local</span>{' '}
+                <span className="text-primary">MatchOps</span>{' '}
                 <span className="text-white">{t('landing.title')}</span>
               </h1>
               <p className="text-lg md:text-xl text-slate-300 mb-8">

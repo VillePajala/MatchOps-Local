@@ -10,6 +10,30 @@
 
 import * as Sentry from '@sentry/nextjs';
 
+/**
+ * CRITICAL SECURITY CHECK: Prevent mock billing in production
+ *
+ * Mock billing bypasses real payments. If this env var is accidentally
+ * deployed to production, users could get premium features for free.
+ *
+ * Defense-in-depth layers:
+ * 1. This check - halts app initialization completely
+ * 2. Runtime check in playBilling.ts - refuses to enable and logs to Sentry
+ * 3. Edge Function check - rejects test tokens unless MOCK_BILLING secret is set
+ */
+if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_MOCK_BILLING === 'true') {
+  // Log to console for visibility in browser dev tools
+  // eslint-disable-next-line no-console
+  console.error('🚨 CRITICAL SECURITY: NEXT_PUBLIC_MOCK_BILLING=true in production. App halted.');
+
+  // Throw to halt execution - prevents any mock billing code from running
+  throw new Error(
+    'CRITICAL SECURITY VIOLATION: Mock billing is enabled in production. ' +
+    'This would allow users to bypass payment. Deployment blocked. ' +
+    'Remove NEXT_PUBLIC_MOCK_BILLING from production environment variables.'
+  );
+}
+
 const isProduction = process.env.NODE_ENV === 'production';
 const isForceEnabled = process.env.NEXT_PUBLIC_SENTRY_FORCE_ENABLE === 'true';
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
@@ -37,12 +61,12 @@ if (dsn && (isProduction || isForceEnabled)) {
       }),
     ],
 
-    // Performance monitoring
-    tracesSampleRate: isProduction ? 0.1 : 1.0, // 10% in production, 100% in dev
+    // Performance monitoring - 100% sampling for small user base (20 users)
+    tracesSampleRate: 1.0,
 
-    // Session replay
-    replaysSessionSampleRate: 0.0, // Disable session replays by default
-    replaysOnErrorSampleRate: isProduction ? 0.1 : 1.0, // Only capture replays on errors
+    // Session replay - capture all error replays for debugging
+    replaysSessionSampleRate: 0.0, // Disable session replays by default (privacy)
+    replaysOnErrorSampleRate: 1.0, // Capture replay for every error
 
     // Environment
     environment: process.env.NODE_ENV,

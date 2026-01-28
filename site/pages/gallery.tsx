@@ -64,7 +64,7 @@ export default function GalleryPage() {
   return (
     <Layout>
       <Head>
-        <title>{t('screenshots.gallery.title')} - MatchOps Local</title>
+        <title>{t('screenshots.gallery.title')} - MatchOps</title>
       </Head>
 
       <section className="section bg-slate-900">

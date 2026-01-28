@@ -33,21 +33,26 @@ export async function POST(request: NextRequest) {
     const violation = report['csp-report'];
 
     // Log to Sentry if available
+    // Wrapped in try/catch to prevent Sentry SDK failures from affecting API response
     if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-      Sentry.captureMessage('CSP Violation', {
-        level: 'warning',
-        tags: {
-          type: 'csp-violation',
-          directive: violation['effective-directive'],
-        },
-        extra: {
-          documentUri: violation['document-uri'],
-          violatedDirective: violation['violated-directive'],
-          blockedUri: violation['blocked-uri'],
-          sourceFile: violation['source-file'],
-          lineNumber: violation['line-number'],
-        },
-      });
+      try {
+        Sentry.captureMessage('CSP Violation', {
+          level: 'warning',
+          tags: {
+            type: 'csp-violation',
+            directive: violation['effective-directive'],
+          },
+          extra: {
+            documentUri: violation['document-uri'],
+            violatedDirective: violation['violated-directive'],
+            blockedUri: violation['blocked-uri'],
+            sourceFile: violation['source-file'],
+            lineNumber: violation['line-number'],
+          },
+        });
+      } catch {
+        // Sentry failure must not affect CSP report handling
+      }
     }
 
     // Also log for local development using logger

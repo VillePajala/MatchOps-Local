@@ -255,6 +255,46 @@ describe('LocalDataStore', () => {
         expect(result).toBe(false);
       });
     });
+
+    /**
+     * Upsert operations - used by reverse migration
+     * @integration
+     */
+    describe('upsertPlayer', () => {
+      it('should insert new player when not exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+
+        const newPlayer = { ...mockPlayer, id: 'player_new', name: 'New Player' };
+        const result = await dataStore.upsertPlayer(newPlayer);
+
+        expect(result.id).toBe('player_new');
+        expect(result.name).toBe('New Player');
+        expect(mockSetStorageItem).toHaveBeenCalled();
+      });
+
+      it('should update existing player when exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockPlayer]));
+
+        const updatedPlayer = { ...mockPlayer, name: 'Updated Name' };
+        const result = await dataStore.upsertPlayer(updatedPlayer);
+
+        expect(result.id).toBe('player_123');
+        expect(result.name).toBe('Updated Name');
+      });
+
+      it('should preserve other players when upserting', async () => {
+        const anotherPlayer = { ...mockPlayer, id: 'player_456', name: 'Another' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockPlayer, anotherPlayer]));
+
+        const updatedPlayer = { ...mockPlayer, name: 'Updated Name' };
+        await dataStore.upsertPlayer(updatedPlayer);
+
+        const saveCall = mockSetStorageItem.mock.calls[0];
+        const savedPlayers = JSON.parse(saveCall[1] as string);
+        expect(savedPlayers).toHaveLength(2);
+        expect(savedPlayers.find((p: Player) => p.id === 'player_456').name).toBe('Another');
+      });
+    });
   });
 
   // ============================================================
@@ -657,6 +697,56 @@ describe('LocalDataStore', () => {
       });
     });
 
+    /**
+     * Upsert operations - used by reverse migration
+     * @integration
+     */
+    describe('upsertTeam', () => {
+      it('should insert new team when not exists', async () => {
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify({})) // teams
+          .mockResolvedValueOnce(JSON.stringify({})); // rosters
+
+        const newTeam = { ...mockTeam, id: 'team_new', name: 'New Team' };
+        const result = await dataStore.upsertTeam(newTeam);
+
+        expect(result.id).toBe('team_new');
+        expect(result.name).toBe('New Team');
+      });
+
+      it('should update existing team when exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: mockTeam }));
+
+        const updatedTeam = { ...mockTeam, name: 'Updated Team', color: '#00FF00' };
+        const result = await dataStore.upsertTeam(updatedTeam);
+
+        expect(result.id).toBe('team_123');
+        expect(result.name).toBe('Updated Team');
+        expect(result.color).toBe('#00FF00');
+      });
+
+      it('should preserve original timestamps when not provided in update', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: mockTeam }));
+
+        const updatedTeam = { ...mockTeam, name: 'Updated Team' };
+        const result = await dataStore.upsertTeam(updatedTeam);
+
+        // upsertTeam preserves all fields including timestamps as-is
+        expect(result.createdAt).toBe(mockTeam.createdAt);
+      });
+
+      it('should save to teams index key (soccerTeamsIndex)', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: mockTeam }));
+
+        const updatedTeam = { ...mockTeam, name: 'Updated Team' };
+        await dataStore.upsertTeam(updatedTeam);
+
+        // Should save to soccerTeamsIndex (the TEAMS_INDEX_KEY)
+        const setStorageCalls = mockSetStorageItem.mock.calls;
+        expect(setStorageCalls.some(c => c[0] === 'soccerTeamsIndex')).toBe(true);
+      });
+    });
+
     describe('Team Rosters', () => {
       const mockRoster: TeamPlayer[] = [
         { id: 'player_1', name: 'Player One', jerseyNumber: '9' },
@@ -828,6 +918,45 @@ describe('LocalDataStore', () => {
         expect(result).toBe(false);
       });
     });
+
+    /**
+     * Upsert operations - used by reverse migration
+     * @integration
+     */
+    describe('upsertSeason', () => {
+      it('should insert new season when not exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+
+        const newSeason = { ...mockSeason, id: 'season_new', name: 'New Season' };
+        const result = await dataStore.upsertSeason(newSeason);
+
+        expect(result.id).toBe('season_new');
+        expect(result.name).toBe('New Season');
+      });
+
+      it('should update existing season when exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockSeason]));
+
+        const updatedSeason = { ...mockSeason, name: 'Updated Season' };
+        const result = await dataStore.upsertSeason(updatedSeason);
+
+        expect(result.id).toBe('season_123');
+        expect(result.name).toBe('Updated Season');
+      });
+
+      it('should preserve other seasons when upserting', async () => {
+        const anotherSeason = { ...mockSeason, id: 'season_456', name: 'Another' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockSeason, anotherSeason]));
+
+        const updatedSeason = { ...mockSeason, name: 'Updated Season' };
+        await dataStore.upsertSeason(updatedSeason);
+
+        const saveCall = mockSetStorageItem.mock.calls[0];
+        const savedSeasons = JSON.parse(saveCall[1] as string);
+        expect(savedSeasons).toHaveLength(2);
+        expect(savedSeasons.find((s: Season) => s.id === 'season_456').name).toBe('Another');
+      });
+    });
   });
 
   // ============================================================
@@ -962,6 +1091,45 @@ describe('LocalDataStore', () => {
         expect(result).toBe(false);
       });
     });
+
+    /**
+     * Upsert operations - used by reverse migration
+     * @integration
+     */
+    describe('upsertTournament', () => {
+      it('should insert new tournament when not exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+
+        const newTournament = { ...mockTournament, id: 'tournament_new', name: 'New Tournament' };
+        const result = await dataStore.upsertTournament(newTournament);
+
+        expect(result.id).toBe('tournament_new');
+        expect(result.name).toBe('New Tournament');
+      });
+
+      it('should update existing tournament when exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockTournament]));
+
+        const updatedTournament = { ...mockTournament, name: 'Updated Tournament' };
+        const result = await dataStore.upsertTournament(updatedTournament);
+
+        expect(result.id).toBe('tournament_123');
+        expect(result.name).toBe('Updated Tournament');
+      });
+
+      it('should preserve other tournaments when upserting', async () => {
+        const anotherTournament = { ...mockTournament, id: 'tournament_456', name: 'Another' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockTournament, anotherTournament]));
+
+        const updatedTournament = { ...mockTournament, name: 'Updated Tournament' };
+        await dataStore.upsertTournament(updatedTournament);
+
+        const saveCall = mockSetStorageItem.mock.calls[0];
+        const savedTournaments = JSON.parse(saveCall[1] as string);
+        expect(savedTournaments).toHaveLength(2);
+        expect(savedTournaments.find((t: Tournament) => t.id === 'tournament_456').name).toBe('Another');
+      });
+    });
   });
 
   // ============================================================
@@ -1090,6 +1258,50 @@ describe('LocalDataStore', () => {
           name: 'Test',
         });
         expect(result).toBeNull();
+      });
+    });
+
+    /**
+     * Upsert operations - used by reverse migration
+     * @integration
+     */
+    describe('upsertPersonnelMember', () => {
+      it('should insert new personnel when not exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+
+        const newPersonnel = { ...mockPersonnel, id: 'personnel_new', name: 'New Coach' };
+        const result = await dataStore.upsertPersonnelMember(newPersonnel);
+
+        expect(result.id).toBe('personnel_new');
+        expect(result.name).toBe('New Coach');
+      });
+
+      it('should update existing personnel when exists', async () => {
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({ personnel_123: mockPersonnel })
+        );
+
+        const updatedPersonnel = { ...mockPersonnel, name: 'Updated Coach', role: 'assistant_coach' as const };
+        const result = await dataStore.upsertPersonnelMember(updatedPersonnel);
+
+        expect(result.id).toBe('personnel_123');
+        expect(result.name).toBe('Updated Coach');
+        expect(result.role).toBe('assistant_coach');
+      });
+
+      it('should preserve other personnel when upserting', async () => {
+        const anotherPersonnel = { ...mockPersonnel, id: 'personnel_456', name: 'Another Coach' };
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({ personnel_123: mockPersonnel, personnel_456: anotherPersonnel })
+        );
+
+        const updatedPersonnel = { ...mockPersonnel, name: 'Updated Coach' };
+        await dataStore.upsertPersonnelMember(updatedPersonnel);
+
+        const saveCall = mockSetStorageItem.mock.calls[0];
+        const savedPersonnel = JSON.parse(saveCall[1] as string);
+        expect(Object.keys(savedPersonnel)).toHaveLength(2);
+        expect(savedPersonnel['personnel_456'].name).toBe('Another Coach');
       });
     });
 
@@ -1917,6 +2129,81 @@ describe('LocalDataStore', () => {
 
         const result = await dataStore.deletePlayerAdjustment('player_1', 'non_existent');
         expect(result).toBe(false);
+      });
+    });
+
+    /**
+     * Upsert operations - used by reverse migration
+     * @integration
+     */
+    describe('upsertPlayerAdjustment', () => {
+      it('should insert new adjustment when not exists', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+
+        const newAdjustment = {
+          id: 'adj_new',
+          playerId: 'player_2',
+          seasonId: 'season_1',
+          gamesPlayedDelta: 2,
+          goalsDelta: 1,
+          assistsDelta: 0,
+          appliedAt: '2025-01-01T00:00:00.000Z',
+        };
+        const result = await dataStore.upsertPlayerAdjustment(newAdjustment);
+
+        expect(result.id).toBe('adj_new');
+        expect(result.playerId).toBe('player_2');
+        expect(result.gamesPlayedDelta).toBe(2);
+      });
+
+      it('should update existing adjustment when exists', async () => {
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({ player_1: [mockAdjustment] })
+        );
+
+        const updatedAdjustment = { ...mockAdjustment, goalsDelta: 10 };
+        const result = await dataStore.upsertPlayerAdjustment(updatedAdjustment);
+
+        expect(result.id).toBe('adj_123');
+        expect(result.goalsDelta).toBe(10);
+      });
+
+      it('should add to existing player adjustments when new adjustment', async () => {
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({ player_1: [mockAdjustment] })
+        );
+
+        const newAdjustment = {
+          id: 'adj_456',
+          playerId: 'player_1',
+          seasonId: 'season_2',
+          gamesPlayedDelta: 3,
+          goalsDelta: 2,
+          assistsDelta: 1,
+          appliedAt: '2025-02-01T00:00:00.000Z',
+        };
+        await dataStore.upsertPlayerAdjustment(newAdjustment);
+
+        const saveCall = mockSetStorageItem.mock.calls[0];
+        const savedAdjustments = JSON.parse(saveCall[1] as string);
+        expect(savedAdjustments['player_1']).toHaveLength(2);
+      });
+
+      it('should preserve adjustments for other players', async () => {
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({
+            player_1: [mockAdjustment],
+            player_2: [{ ...mockAdjustment, id: 'adj_other', playerId: 'player_2' }]
+          })
+        );
+
+        const updatedAdjustment = { ...mockAdjustment, goalsDelta: 10 };
+        await dataStore.upsertPlayerAdjustment(updatedAdjustment);
+
+        const saveCall = mockSetStorageItem.mock.calls[0];
+        const savedAdjustments = JSON.parse(saveCall[1] as string);
+        expect(savedAdjustments['player_2']).toHaveLength(1);
+        expect(savedAdjustments['player_2'][0].id).toBe('adj_other');
       });
     });
   });

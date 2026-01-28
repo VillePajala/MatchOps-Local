@@ -53,7 +53,7 @@ export default function GuideLayout({
   return (
     <Layout>
       <Head>
-        <title>{pageTitle} - {t('nav.title')} - MatchOps Local</title>
+        <title>{pageTitle} - {t('nav.title')} - MatchOps</title>
         <meta name="description" content={pageDescription} />
       </Head>
 

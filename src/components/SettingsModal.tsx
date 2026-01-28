@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
@@ -12,14 +12,15 @@ import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
+import { getBackendMode, clearMigrationCompleted } from '@/config/backendConfig';
+import { useAuth } from '@/contexts/AuthProvider';
 import { ModalFooter, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
-import { usePremium } from '@/hooks/usePremium';
-import { HiSparkles } from 'react-icons/hi2';
-import { validateSeasonDates } from '@/utils/clubSeason';
 import { queryKeys } from '@/config/queryKeys';
-import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
+import CloudSyncSection from './CloudSyncSection';
+
+type SettingsTab = 'general' | 'data' | 'account' | 'about';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -34,6 +35,8 @@ interface SettingsModalProps {
   // onDataImportSuccess prop kept for interface compatibility but not used
   // Backup restore now uses full page reload instead of state refresh
   onDataImportSuccess?: () => void;
+  /** Optional tab to open when modal opens */
+  initialTab?: SettingsTab;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -46,12 +49,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onResetGuide,
   onHardResetApp,
   onCreateBackup,
+  initialTab,
   // onDataImportSuccess not destructured - backup restore uses full page reload
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const { isPremium, isLoading: isPremiumLoading, showUpgradePrompt, price, revokePremiumAccess } = usePremium();
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
@@ -63,6 +66,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(DEFAULT_CLUB_SEASON_END_DATE);
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const { deleteAccount, mode: authMode } = useAuth();
+
+  // Set initial tab when modal opens
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Helper to get maximum day for a given month
   const getMaxDayForMonth = (month: number): number => {
@@ -100,9 +114,49 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const dayStr = day.toString().padStart(2, '0');
     return `2000-${monthStr}-${dayStr}`;
   };
+
+  // Helper to calculate end date (day before start date)
+  // E.g., if season starts Aug 1, it ends Jul 31
+  const calculateEndDate = (startDateStr: string): string => {
+    const { month, day } = parseMonthDay(startDateStr);
+
+    // Subtract one day
+    if (day > 1) {
+      // Simple case: just go back one day in same month
+      return constructDateString(month, day - 1);
+    }
+
+    // Day is 1, need to go to previous month's last day
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const lastDayOfPrevMonth = getMaxDayForMonth(prevMonth);
+    // For February, use 28 as default (29 would be for leap years but we're using template year 2000)
+    const actualLastDay = prevMonth === 2 ? 28 : lastDayOfPrevMonth;
+    return constructDateString(prevMonth, actualLastDay);
+  };
+
+  // Helper to format date for display (e.g., "July 31")
+  const formatDateForDisplay = (dateStr: string): string => {
+    const { month, day } = parseMonthDay(dateStr);
+    const monthNames = [
+      t('months.january', 'January'),
+      t('months.february', 'February'),
+      t('months.march', 'March'),
+      t('months.april', 'April'),
+      t('months.may', 'May'),
+      t('months.june', 'June'),
+      t('months.july', 'July'),
+      t('months.august', 'August'),
+      t('months.september', 'September'),
+      t('months.october', 'October'),
+      t('months.november', 'November'),
+      t('months.december', 'December'),
+    ];
+    return `${monthNames[month - 1]} ${day}`;
+  };
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingRestoreContent, setPendingRestoreContent] = useState<string | null>(null);
+  const { user } = useAuth();
 
   React.useLayoutEffect(() => {
     setTeamName(defaultTeamName);
@@ -155,6 +209,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       const jsonContent = e.target?.result as string;
       if (jsonContent) {
         setPendingRestoreContent(jsonContent);
+        // Always show the same confirmation dialog - cloud mode will trigger
+        // migration wizard after import via the page.tsx migration check
         setShowRestoreConfirm(true);
       } else {
         showToast(t('settingsModal.importReadError', 'Error reading file content.'), 'error');
@@ -167,12 +223,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleRestoreConfirmed = async () => {
     if (pendingRestoreContent) {
-      // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
-      const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
-      if (result) {
-        // Show results modal
-        setBackupRestoreResult(result);
-        setShowRestoreResults(true);
+      // In cloud mode, clear migration flag so the simplified migration wizard
+      // will show after reload to sync the imported data to cloud
+      const mode = getBackendMode();
+      if (mode === 'cloud' && user?.id) {
+        try {
+          clearMigrationCompleted(user.id);
+          logger.info('[SettingsModal] Cleared migration flag for backup import in cloud mode');
+        } catch (error) {
+          // Non-critical: import proceeds, but user should know sync wizard may not show
+          logger.warn('[SettingsModal] Failed to clear migration flag:', error);
+          showToast(
+            t('fullBackup.migrationFlagWarning', 'Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later.'),
+            'info'
+          );
+        }
+      }
+
+      try {
+        // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
+        const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
+        if (result) {
+          // Show results modal
+          setBackupRestoreResult(result);
+          setShowRestoreResults(true);
+        } else {
+          // importFullBackup returned falsy - show error toast
+          showToast(t('fullBackup.restoreFailed', 'Failed to restore backup. The file may be corrupted or invalid.'), 'error');
+          logger.warn('[SettingsModal] importFullBackup returned falsy result');
+        }
+      } catch (error) {
+        logger.error('[SettingsModal] Restore backup failed:', error);
+        showToast(t('fullBackup.restoreError', 'An error occurred while restoring the backup.'), 'error');
       }
     }
     setShowRestoreConfirm(false);
@@ -203,7 +285,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         logger.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
       }
     } catch (error) {
-      showToast(t('settingsModal.gameImportError', 'Error importing games: ') + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+      logger.error('[SettingsModal] Game import error:', error);
+      showToast(t('settingsModal.gameImportError', 'Error importing games. Please check the file format and try again.'), 'error');
     }
 
     event.target.value = '';
@@ -241,48 +324,58 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleClubSeasonStartMonthChange = async (month: number) => {
-    let { day } = parseMonthDay(clubSeasonStartDate);
+  const handleDeleteAccount = async () => {
+    if (deleteAccountConfirm.trim() !== 'DELETE') return;
 
+    setIsDeletingAccount(true);
+    logger.log('[SettingsModal] Delete account initiated');
+
+    try {
+      const result = await deleteAccount();
+
+      if (result.error) {
+        showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account: ') + result.error, 'error');
+        logger.error('[SettingsModal] Delete account failed:', result.error);
+      } else {
+        showToast(t('settingsModal.deleteAccountSuccess', 'Account deleted successfully'), 'success');
+        logger.info('[SettingsModal] Account deleted successfully');
+        // Close the modal - user will be redirected to login
+        onClose();
+      }
+    } catch (error) {
+      showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account'), 'error');
+      logger.error('[SettingsModal] Delete account error:', error);
+    } finally {
+      setIsDeletingAccount(false);
+      setDeleteAccountConfirm('');
+    }
+  };
+
+  // Handler for season start date changes (auto-calculates end date)
+  const handleClubSeasonStartChange = async (month: number, day: number) => {
     // Auto-correct day if it exceeds max for the new month
     const maxDay = getMaxDayForMonth(month);
     if (day > maxDay) {
       day = maxDay;
-      logger.log(`[handleClubSeasonStartMonthChange] Auto-corrected day from ${day} to ${maxDay} for month ${month}`);
+      logger.log(`[handleClubSeasonStartChange] Auto-corrected day to ${maxDay} for month ${month}`);
     }
 
-    const date = constructDateString(month, day);
+    const startDate = constructDateString(month, day);
+    const endDate = calculateEndDate(startDate);
 
-    // Validate date before saving
-    if (!validateSeasonDates(date, clubSeasonEndDate)) {
-      // Check if it's a zero-length season (start = end)
-      const { month: endMonth, day: endDay } = parseMonthDay(clubSeasonEndDate);
-      if (month === endMonth && day === endDay) {
-        logger.warn('Cannot set season start same as end:', { start: date, end: clubSeasonEndDate });
-        showToast(
-          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the end date first.'),
-          'error'
-        );
-      } else {
-        logger.error('Invalid season start date:', date);
-        showToast(
-          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-          'error'
-        );
-      }
-      return;
-    }
+    setClubSeasonStartDate(startDate);
+    setClubSeasonEndDate(endDate);
 
-    setClubSeasonStartDate(date);
     try {
       await updateAppSettings({
-        clubSeasonStartDate: date,
+        clubSeasonStartDate: startDate,
+        clubSeasonEndDate: endDate,
         hasConfiguredSeasonDates: true
       });
       // Invalidate React Query cache so GameStatsModal sees the update
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
     } catch (error) {
-      logger.error('Failed to save club season start date:', error);
+      logger.error('Failed to save club season dates:', error);
       showToast(
         t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
         'error'
@@ -290,138 +383,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleClubSeasonStartDayChange = async (day: number) => {
+  const handleClubSeasonStartMonthChange = (month: number) => {
+    const { day } = parseMonthDay(clubSeasonStartDate);
+    handleClubSeasonStartChange(month, day);
+  };
+
+  const handleClubSeasonStartDayChange = (day: number) => {
     const { month } = parseMonthDay(clubSeasonStartDate);
-    const date = constructDateString(month, day);
-
-    // Validate date before saving
-    if (!validateSeasonDates(date, clubSeasonEndDate)) {
-      // Check if it's a zero-length season (start = end)
-      const { month: endMonth, day: endDay } = parseMonthDay(clubSeasonEndDate);
-      if (month === endMonth && day === endDay) {
-        logger.warn('Cannot set season start same as end:', { start: date, end: clubSeasonEndDate });
-        showToast(
-          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the end date first.'),
-          'error'
-        );
-      } else {
-        logger.error('Invalid season start date:', date);
-        showToast(
-          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-          'error'
-        );
-      }
-      return;
-    }
-
-    setClubSeasonStartDate(date);
-    try {
-      await updateAppSettings({
-        clubSeasonStartDate: date,
-        hasConfiguredSeasonDates: true
-      });
-      // Invalidate React Query cache so GameStatsModal sees the update
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
-    } catch (error) {
-      logger.error('Failed to save club season start date:', error);
-      showToast(
-        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
-        'error'
-      );
-    }
-  };
-
-  const handleClubSeasonEndMonthChange = async (month: number) => {
-    let { day } = parseMonthDay(clubSeasonEndDate);
-
-    // Auto-correct day if it exceeds max for the new month
-    const maxDay = getMaxDayForMonth(month);
-    if (day > maxDay) {
-      day = maxDay;
-      logger.log(`[handleClubSeasonEndMonthChange] Auto-corrected day from ${day} to ${maxDay} for month ${month}`);
-    }
-
-    const date = constructDateString(month, day);
-
-    // Validate date before saving
-    if (!validateSeasonDates(clubSeasonStartDate, date)) {
-      // Check if it's a zero-length season (start = end)
-      const { month: startMonth, day: startDay } = parseMonthDay(clubSeasonStartDate);
-      if (month === startMonth && day === startDay) {
-        logger.warn('Cannot set season end same as start:', { start: clubSeasonStartDate, end: date });
-        showToast(
-          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the start date first.'),
-          'error'
-        );
-      } else {
-        logger.error('Invalid season end date:', date);
-        showToast(
-          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-          'error'
-        );
-      }
-      return;
-    }
-
-    setClubSeasonEndDate(date);
-    try {
-      await updateAppSettings({
-        clubSeasonEndDate: date,
-        hasConfiguredSeasonDates: true
-      });
-      // Invalidate React Query cache so GameStatsModal sees the update
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
-    } catch (error) {
-      logger.error('Failed to save club season end date:', error);
-      showToast(
-        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
-        'error'
-      );
-    }
-  };
-
-  const handleClubSeasonEndDayChange = async (day: number) => {
-    const { month } = parseMonthDay(clubSeasonEndDate);
-    const date = constructDateString(month, day);
-
-    // Validate date before saving
-    if (!validateSeasonDates(clubSeasonStartDate, date)) {
-      // Check if it's a zero-length season (start = end)
-      const { month: startMonth, day: startDay } = parseMonthDay(clubSeasonStartDate);
-      if (month === startMonth && day === startDay) {
-        logger.warn('Cannot set season end same as start:', { start: clubSeasonStartDate, end: date });
-        showToast(
-          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the start date first.'),
-          'error'
-        );
-      } else {
-        logger.error('Invalid season end date:', date);
-        showToast(
-          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-          'error'
-        );
-      }
-      return;
-    }
-
-    setClubSeasonEndDate(date);
-    try {
-      await updateAppSettings({
-        clubSeasonEndDate: date,
-        hasConfiguredSeasonDates: true
-      });
-      // Invalidate React Query cache so GameStatsModal sees the update
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
-    } catch (error) {
-      logger.error('Failed to save club season end date:', error);
-      showToast(
-        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
-        'error'
-      );
-    }
+    handleClubSeasonStartChange(month, day);
   };
 
   if (!isOpen) return null;
+
+  const getTabStyle = (tab: SettingsTab) => {
+    const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors';
+    if (activeTab === tab) {
+      return `${baseStyle} bg-indigo-600 text-white`;
+    }
+    return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
+  };
 
   const modalContainerStyle =
     'bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden';
@@ -443,111 +423,69 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
             <h2 className={titleStyle}>{t('settingsModal.title', 'App Settings')}</h2>
           </div>
+
+          {/* Tab Navigation */}
+          <div className="flex w-full gap-2 px-6 py-3 bg-slate-900/50 border-b border-slate-700/30 flex-shrink-0">
+            <button onClick={() => setActiveTab('general')} className={`${getTabStyle('general')} flex-1`} aria-pressed={activeTab === 'general'}>
+              {t('settingsModal.tabs.general', 'General')}
+            </button>
+            <button onClick={() => setActiveTab('data')} className={`${getTabStyle('data')} flex-1`} aria-pressed={activeTab === 'data'}>
+              {t('settingsModal.tabs.data', 'Data')}
+            </button>
+            <button onClick={() => setActiveTab('account')} className={`${getTabStyle('account')} flex-1`} aria-pressed={activeTab === 'account'}>
+              {t('settingsModal.tabs.account', 'Account')}
+            </button>
+            <button onClick={() => setActiveTab('about')} className={`${getTabStyle('about')} flex-1`} aria-pressed={activeTab === 'about'}>
+              {t('settingsModal.tabs.about', 'About')}
+            </button>
+          </div>
+
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            {/* Premium Status */}
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <HiSparkles className={`w-5 h-5 ${isPremium ? 'text-amber-400' : 'text-slate-400'}`} aria-hidden="true" />
-                  <span className="text-slate-200 font-medium">
-                    {t('settingsModal.premiumStatusLabel', 'Premium Status')}
-                  </span>
-                </div>
-                {isPremiumLoading ? (
-                  <span className="text-slate-400 text-sm">{t('common.loading', 'Loading...')}</span>
-                ) : isPremium ? (
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
-                      {t('settingsModal.premiumActive', 'Premium')}
-                    </span>
-                    {/* Reset button when enforcement is disabled or in development (for testing) */}
-                    {(!PREMIUM_ENFORCEMENT_ENABLED || process.env.NODE_ENV === 'development') && (
-                      <button
-                        onClick={async () => {
-                          await revokePremiumAccess();
-                          showToast(t('settingsModal.resetToFreeSuccess', 'Reset to free version'), 'success');
-                        }}
-                        className="text-xs text-slate-500 hover:text-slate-300 underline"
-                      >
-                        {t('settingsModal.resetToFree', 'Reset')}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-600/50 text-slate-300">
-                    {t('settingsModal.freeVersion', 'Free')}
-                  </span>
-                )}
+            {/* General Tab - App preferences and season settings */}
+            {activeTab === 'general' && (
+            <>
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-4">
+              <h3 className="text-lg font-semibold text-slate-200">
+                {t('settingsModal.preferencesTitle', 'Preferences')}
+              </h3>
+              <div>
+                <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
+                <select
+                  id="language-select"
+                  value={language}
+                  onChange={(e) => onLanguageChange(e.target.value)}
+                  className={inputStyle}
+                >
+                  <option value="en">English</option>
+                  <option value="fi">Suomi</option>
+                </select>
               </div>
-              {!isPremium && !isPremiumLoading && (
-                <>
-                  <p className="text-slate-400 text-xs mt-2 mb-2">
-                    {t('settingsModal.freeLimitsLabel', 'Free version limits:')}
-                  </p>
-                  <ul className="text-slate-400 text-xs space-y-0.5 mb-3">
-                    <li>• {t('settingsModal.limitTeams', '1 team')}</li>
-                    <li>• {t('settingsModal.limitPlayers', '18 players')}</li>
-                    <li>• {t('settingsModal.limitSeasons', '1 season / 1 tournament')}</li>
-                    <li>• {t('settingsModal.limitGames', '10 games per competition')}</li>
-                  </ul>
-                  <p className="text-slate-300 text-xs mb-3">
-                    {t('settingsModal.premiumDescription', 'The full version includes unlimited teams, players, seasons, tournaments, and games.')}
-                  </p>
-                  <button
-                    onClick={() => showUpgradePrompt()}
-                    className="inline-flex items-center justify-center gap-1 w-full px-3 py-2 rounded-md text-sm font-medium bg-gradient-to-b from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-sm transition-colors"
-                  >
-                    <HiSparkles className="w-4 h-4" aria-hidden="true" />
-                    {t('settingsModal.upgradeToPremium', 'Upgrade')} - {price}
-                  </button>
-                  {/* TODO P4C: Add "Restore Purchase" button for edge case where:
-                      - User has valid Play Billing purchase but local verification failed
-                      - User reinstalled app and needs to restore their purchase
-                      Button should call Play Billing's queryPurchases() to re-verify */}
-                </>
-              )}
+              <div>
+                <label htmlFor="team-name-input" className={labelStyle}>{t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}</label>
+                <input
+                  id="team-name-input"
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  onBlur={() => onDefaultTeamNameChange(teamName)}
+                  className={inputStyle}
+                />
+              </div>
             </div>
 
-            {/* General Settings */}
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 space-y-4">
-              <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
-              <select
-                id="language-select"
-                value={language}
-                onChange={(e) => onLanguageChange(e.target.value)}
-                className={inputStyle}
-              >
-                <option value="en">English</option>
-                <option value="fi">Suomi</option>
-              </select>
-              <div>
-              <label htmlFor="team-name-input" className={labelStyle}>{t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}</label>
-              <input
-                id="team-name-input"
-                type="text"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                onBlur={() => onDefaultTeamNameChange(teamName)}
-                className={inputStyle}
-              />
-              </div>
-            </div>
-            {/* Season Period */}
-            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            {/* Season Settings - merged from Season tab */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
-                {t('settingsModal.seasonPeriodTitle', 'Season Period')}
+                {t('settingsModal.seasonStartTitle', 'Season Start Date')}
               </h3>
               <p id="club-season-description" className="text-sm text-slate-300">
-                {t('settingsModal.seasonPeriodDescription', 'Define when your season runs (for filtering statistics). Month and day only - the year is just a template (e.g., October to May).')}
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                {t('settingsModal.seasonDatesNote', 'Note: Changing dates affects new seasons only. Existing seasons retain their original club season labels.')}
+                {t('settingsModal.seasonStartDescription', 'When does your club\'s new season begin? This is typically when players move to new age groups. The previous season automatically ends the day before.')}
               </p>
               <div className="space-y-3">
-                {/* Period Start */}
+                {/* Season Start Date */}
                 <div>
                   <label className={labelStyle}>
-                    {t('settingsModal.periodStartLabel', 'Period Start')}
+                    {t('settingsModal.newSeasonStartsLabel', 'New season starts')}
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
@@ -588,54 +526,185 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </select>
                   </div>
                 </div>
-                {/* Period End */}
+                {/* Season End Date (auto-calculated, read-only) */}
                 <div>
                   <label className={labelStyle}>
-                    {t('settingsModal.periodEndLabel', 'Period End')}
+                    {t('settingsModal.seasonEndsLabel', 'Season ends')}
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      id="season-end-month"
-                      value={parseMonthDay(clubSeasonEndDate).month}
-                      onChange={(e) => handleClubSeasonEndMonthChange(parseInt(e.target.value, 10))}
+                  <div className="px-3 py-2 bg-slate-800/50 rounded-md border border-slate-600 text-slate-300">
+                    {formatDateForDisplay(clubSeasonEndDate)}
+                    <span className="text-slate-500 text-xs ml-2">
+                      ({t('settingsModal.autoCalculated', 'auto-calculated')})
+                    </span>
+                  </div>
+                </div>
+                {/* Example */}
+                <p className="text-xs text-slate-400 mt-2">
+                  {t('settingsModal.seasonExample', 'Example: If your season starts {{startDate}}, the 2024-25 season runs {{startDate}}, 2024 → {{endDate}}, 2025.', {
+                    startDate: formatDateForDisplay(clubSeasonStartDate),
+                    endDate: formatDateForDisplay(clubSeasonEndDate)
+                  })}
+                </p>
+              </div>
+            </div>
+            </>
+            )}
+
+            {/* Account Tab - Cloud sync, subscription, and danger zone */}
+            {activeTab === 'account' && (
+            <>
+              <CloudSyncSection />
+
+              {/* Danger Zone - All destructive actions in one place */}
+              <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-red-700/50 shadow-inner">
+                <h3 className="text-lg font-semibold text-red-300">
+                  {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
+                </h3>
+
+                {/* Hard Reset App - Always shown */}
+                <div className="space-y-2">
+                  <p className="text-sm text-red-200">
+                    {t(
+                      'settingsModal.hardResetDescription',
+                      'Erase all saved teams, games and settings. This action cannot be undone.'
+                    )}
+                  </p>
+                  <label htmlFor="hard-reset-confirm" className={labelStyle}>
+                    {t('settingsModal.confirmResetLabel', 'Type RESET to confirm')}
+                  </label>
+                  <input
+                    id="hard-reset-confirm"
+                    type="text"
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value)}
+                    className={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      logger.log('[SettingsModal] Hard Reset button clicked', {
+                        resetConfirm,
+                        matches: resetConfirm === 'RESET',
+                        length: resetConfirm.length,
+                        trimmed: resetConfirm.trim()
+                      });
+                      if (resetConfirm.trim() === 'RESET') {
+                        logger.log('[SettingsModal] Calling onHardResetApp');
+                        onHardResetApp();
+                        setResetConfirm('');
+                      }
+                    }}
+                    className={dangerButtonStyle}
+                    disabled={resetConfirm.trim() !== 'RESET'}
+                  >
+                    {t('settingsModal.hardResetButton', 'Hard Reset App')}
+                  </button>
+                </div>
+
+                {/* Delete Account - Only visible in cloud mode */}
+                {authMode === 'cloud' && (
+                  <div className="mt-4 pt-4 border-t border-red-700/30">
+                    <h4 className="text-md font-semibold text-red-300 mb-2">
+                      {t('settingsModal.deleteAccountTitle', 'Delete Account')}
+                    </h4>
+                    <p className="text-sm text-red-200 mb-3">
+                      {t(
+                        'settingsModal.deleteAccountDescription',
+                        'Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.'
+                      )}
+                    </p>
+                    <label htmlFor="delete-account-confirm" className={labelStyle}>
+                      {t('settingsModal.confirmDeleteLabel', 'Type DELETE to confirm')}
+                    </label>
+                    <input
+                      id="delete-account-confirm"
+                      type="text"
+                      value={deleteAccountConfirm}
+                      onChange={(e) => setDeleteAccountConfirm(e.target.value)}
                       className={inputStyle}
-                      aria-describedby="club-season-description"
-                      aria-label={t('settingsModal.monthLabel', 'Month')}
+                      disabled={isDeletingAccount}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteAccount();
+                      }}
+                      className={dangerButtonStyle}
+                      disabled={deleteAccountConfirm.trim() !== 'DELETE' || isDeletingAccount}
                     >
-                      <option value={1}>{t('months.january', 'January')}</option>
-                      <option value={2}>{t('months.february', 'February')}</option>
-                      <option value={3}>{t('months.march', 'March')}</option>
-                      <option value={4}>{t('months.april', 'April')}</option>
-                      <option value={5}>{t('months.may', 'May')}</option>
-                      <option value={6}>{t('months.june', 'June')}</option>
-                      <option value={7}>{t('months.july', 'July')}</option>
-                      <option value={8}>{t('months.august', 'August')}</option>
-                      <option value={9}>{t('months.september', 'September')}</option>
-                      <option value={10}>{t('months.october', 'October')}</option>
-                      <option value={11}>{t('months.november', 'November')}</option>
-                      <option value={12}>{t('months.december', 'December')}</option>
-                    </select>
-                    <select
-                      id="season-end-day"
-                      value={parseMonthDay(clubSeasonEndDate).day}
-                      onChange={(e) => handleClubSeasonEndDayChange(parseInt(e.target.value, 10))}
-                      className={inputStyle}
-                      aria-describedby="club-season-description"
-                      aria-label={t('settingsModal.dayLabel', 'Day')}
-                    >
-                      {Array.from(
-                        { length: getMaxDayForMonth(parseMonthDay(clubSeasonEndDate).month) },
-                        (_, i) => i + 1
-                      ).map(day => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
+                      {isDeletingAccount
+                        ? t('settingsModal.deletingAccount', 'Deleting...')
+                        : t('settingsModal.deleteAccountButton', 'Delete Account')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+            )}
+
+            {/* Data Tab */}
+            {activeTab === 'data' && (
+            <>
+            {/* GDPR / Your Data Rights Section */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+              <h3 className="text-lg font-semibold text-slate-200">
+                {t('settingsModal.gdpr.title', 'Your Data Rights')}
+              </h3>
+              <p className="text-sm text-slate-300">
+                {t('settingsModal.gdpr.description', 'You have full control over your data. Use the options below to exercise your GDPR rights.')}
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.downloadTitle', 'Download Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.gdpr.downloadDescription', 'Export all your data (players, games, teams, etc.) to a backup file you can keep.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={onCreateBackup}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {t('settingsModal.gdpr.downloadButton', 'Download')}
+                  </button>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.deleteTitle', 'Delete Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.gdpr.deleteDescriptionAccount', 'To delete all your data, use the Danger Zone options in the Account tab.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('account')}
+                    className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {t('settingsModal.gdpr.goToDelete', 'Go')}
+                  </button>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.correctTitle', 'Correct Your Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.gdpr.correctDescription', 'You can edit player names, game details, and all other data directly in the app at any time.')}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-            {/* Data Management */}
-            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+
+            {/* Data Management Section */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.backupTitle', 'Data Management')}
               </h3>
@@ -658,7 +727,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={onCreateBackup}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-sm font-medium transition-colors border border-indigo-400/30"
                 >
                   <HiOutlineDocumentArrowDown className="h-5 w-5" />
                   {t('settingsModal.backupButton', 'Backup All Data')}
@@ -673,18 +742,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   onClick={() => gameImportFileInputRef.current?.click()}
                   disabled={isImporting}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors sm:col-span-2"
                 >
                   <HiOutlineChartBar className="h-5 w-5" />
                   {isImporting ? t('settingsModal.importing', 'Importing...') : t('settingsModal.importGamesButton', 'Import Games')}
-                </button>
-                <button
-                  onClick={handleCheckForUpdates}
-                  disabled={checkingForUpdates}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
-                >
-                  <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
-                  {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
                 </button>
               </div>
               <p className="text-sm text-slate-300">
@@ -694,8 +755,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </p>
             </div>
-            {/* About */}
-            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            </>
+            )}
+
+            {/* About Tab */}
+            {activeTab === 'about' && (
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.aboutTitle', 'About')}
               </h3>
@@ -729,17 +794,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
               <div className="space-y-1">
                 <label className={labelStyle}>{t('settingsModal.storageUsageLabel', 'Storage Usage')}</label>
-                  <p className="text-sm text-slate-300">
-                    {storageEstimate
-                      ? t('settingsModal.storageUsageDetails', {
-                          used: formatBytes(storageEstimate.usage),
-                          quota: formatBytes(storageEstimate.quota),
-                        })
-                      : t(
-                          'settingsModal.storageUsageUnavailable',
-                          'Storage usage information unavailable.'
-                        )}
-                  </p>
+                <p className="text-sm text-slate-300">
+                  {storageEstimate
+                    ? t('settingsModal.storageUsageDetails', {
+                        used: formatBytes(storageEstimate.usage),
+                        quota: formatBytes(storageEstimate.quota),
+                      })
+                    : t(
+                        'settingsModal.storageUsageUnavailable',
+                        'Storage usage information unavailable.'
+                      )}
+                </p>
                 {storageEstimate && (
                   <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
                     <div
@@ -750,7 +815,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </div>
 
-              <div className="space-y-1">
+              {/* Check for Updates - moved from Data tab */}
+              <div className="pt-2 border-t border-slate-700">
+                <button
+                  onClick={handleCheckForUpdates}
+                  disabled={checkingForUpdates}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                >
+                  <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
+                  {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
+                </button>
+              </div>
+
+              <div className="pt-2 border-t border-slate-700 space-y-1">
                 <button onClick={onResetGuide} className={primaryButtonStyle}>
                   {t('settingsModal.resetGuideButton', 'Reset App Guide')}
                 </button>
@@ -762,50 +839,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
               </div>
             </div>
-            {/* Danger Zone */}
-            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <h3 className="text-lg font-semibold text-red-300">
-                {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
-              </h3>
-              <p className="text-sm text-red-200">
-                {t(
-                  'settingsModal.hardResetDescription',
-                  'Erase all saved teams, games and settings. This action cannot be undone.'
-                )}
-              </p>
-              <label htmlFor="hard-reset-confirm" className={labelStyle}>
-                {t('settingsModal.confirmResetLabel', 'Type RESET to confirm')}
-              </label>
-              <input
-                id="hard-reset-confirm"
-                type="text"
-                value={resetConfirm}
-                onChange={(e) => setResetConfirm(e.target.value)}
-                className={inputStyle}
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  logger.log('[SettingsModal] Hard Reset button clicked', {
-                    resetConfirm,
-                    matches: resetConfirm === 'RESET',
-                    length: resetConfirm.length,
-                    trimmed: resetConfirm.trim()
-                  });
-                  if (resetConfirm.trim() === 'RESET') {
-                    logger.log('[SettingsModal] Calling onHardResetApp');
-                    onHardResetApp();
-                    setResetConfirm('');
-                  }
-                }}
-                className={dangerButtonStyle}
-                disabled={resetConfirm.trim() !== 'RESET'}
-              >
-                {t('settingsModal.hardResetButton', 'Hard Reset App')}
-              </button>
-            </div>
+            )}
           </div>
           <ModalFooter>
             <button onClick={onClose} className={primaryButtonStyle}>

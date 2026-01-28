@@ -1,7 +1,7 @@
 # DataStore Interface Specification
 
-**Status**: ✅ **Implemented** (Phase 1-3 Complete)
-**Last Updated**: 2025-12-19
+**Status**: ✅ **Implemented** (Phase 1-4 Complete, Local-First Sync Added)
+**Last Updated**: 2026-01-26
 **Purpose**: Unified data access interface for both IndexedDB (local) and Supabase (cloud) backends
 **Related**: [Dual-Backend Architecture](./dual-backend-architecture.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md)
 
@@ -18,10 +18,15 @@ The `DataStore` interface provides a **unified, domain-oriented API** for data o
 | LocalDataStore | ✅ Implemented | `src/datastore/LocalDataStore.ts` |
 | LocalAuthService | ✅ Implemented | `src/auth/LocalAuthService.ts` |
 | Factory | ✅ Implemented | `src/datastore/factory.ts` |
-| SupabaseDataStore | 📋 Planned (Phase 4) | - |
-| SupabaseAuthService | 📋 Planned (Phase 4) | - |
+| SupabaseDataStore | ✅ Implemented | `src/datastore/SupabaseDataStore.ts` |
+| SupabaseAuthService | ✅ Implemented | `src/auth/SupabaseAuthService.ts` |
+| SyncedDataStore | ✅ Implemented | `src/datastore/SyncedDataStore.ts` |
+| SyncEngine | ✅ Implemented | `src/sync/SyncEngine.ts` |
+| SyncQueue | ✅ Implemented | `src/sync/SyncQueue.ts` |
 
-**Test Coverage**: 3,203 tests across 182 suites including comprehensive LocalDataStore test suite.
+**Test Coverage**: 3,500+ tests including comprehensive LocalDataStore and sync system test suites.
+
+**Cloud Mode Architecture**: In cloud mode, the factory returns `SyncedDataStore` which wraps `LocalDataStore` with background sync capabilities. This enables local-first operation where all reads/writes go to IndexedDB first, with changes synced to Supabase in the background via `SyncQueue` and `SyncEngine`. See PR #324 for implementation details.
 
 **Key Design Principles**:
 1. **Backend Agnostic**: Same interface for IndexedDB and Supabase implementations

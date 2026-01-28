@@ -118,6 +118,20 @@ jest.mock('@/hooks/usePremium', () => ({
   }),
 }));
 
+// Mock AuthProvider context
+jest.mock('@/contexts/AuthProvider', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useAuth: () => ({
+    user: null,
+    session: null,
+    isLoading: false,
+    isAuthenticated: false,
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+    signUp: jest.fn(),
+  }),
+}));
+
 // Mock useGameDataQueries to avoid React Query errors
 jest.mock('@/hooks/useGameDataQueries', () => ({
   useGameDataQueries: () => ({

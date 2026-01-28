@@ -51,6 +51,20 @@ jest.mock('@/contexts/ModalProvider', () => ({
   }),
 }));
 
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: () => ({
+    user: null,
+    session: null,
+    mode: 'local',
+    isAuthenticated: false,
+    isLoading: false,
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
+    resetPassword: jest.fn(),
+  }),
+}));
+
 const noop = () => {};
 const noopAsync = async () => {};
 
