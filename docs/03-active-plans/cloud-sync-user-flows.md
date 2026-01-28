@@ -1,16 +1,35 @@
 # Cloud Sync User Flows
 
-**Status**: Planning
+**Status**: Planning (Updated per Issue #336)
 **Created**: 2026-01-22
+**Updated**: 2026-01-28
 **Purpose**: Define all cloud sync scenarios and their expected behaviors
 
 ---
 
 ## Overview
 
-The app supports two modes:
-- **Local mode**: Data stored in browser IndexedDB, works offline, device-specific
-- **Cloud mode**: Data stored in Supabase, syncs across devices, requires authentication
+### Key Principle: Sign-In ≠ Cloud Mode
+
+**Authentication and sync are separate concepts:**
+- **Sign-in** = Create/access an account (for future features, upgrade path)
+- **Enable sync** = Turn on cloud mode (subscriber-only feature)
+
+A user can be signed in but still use local mode. Cloud sync is an **explicit toggle** available only to subscribers.
+
+### Mode/Sync Matrix (Source of Truth)
+
+| User State | Mode | Sync | Storage | Limits |
+|------------|------|------|---------|--------|
+| No account | Local | OFF | IndexedDB | None |
+| Free account (signed in) | Local | OFF | IndexedDB | None |
+| Subscriber + sync OFF | Local | OFF | IndexedDB | None |
+| Subscriber + sync ON | Cloud | ON | Supabase | None |
+
+### Storage Modes
+
+- **Local mode**: Data stored in browser IndexedDB, works offline, device-specific, unlimited
+- **Cloud mode**: Data stored in Supabase, syncs across devices, requires active subscription
 
 This document defines how the app should behave in all cloud sync scenarios.
 
@@ -18,96 +37,159 @@ This document defines how the app should behave in all cloud sync scenarios.
 
 ## User Flows Matrix
 
-| # | Scenario | Local Data? | Cloud Data? | Current Behavior | Expected Behavior |
-|---|----------|-------------|-------------|------------------|-------------------|
-| 1 | Fresh install, stays local | No | N/A | ✅ Works | Works |
-| 2 | Local user enables cloud (first time) | Yes | No | ✅ Migration wizard | Migration wizard |
-| 3 | Local user enables cloud (has cloud data) | Yes | Yes | ⚠️ Migration wizard (may overwrite) | **Merge/Replace choice** |
-| 4 | **New device, existing cloud account** | No | Yes | ❌ Empty app | **Auto-fetch cloud data** |
-| 5 | New device with local data, logs into cloud | Yes | Yes | ❌ Unclear | **Merge/Replace choice** |
-| 6 | Sign out from cloud mode | Cached | Yes | ❌ Not implemented | **Clear cache, switch to local** |
-| 7 | Switch to different cloud account | Cached | Yes (other) | ❌ Not implemented | **Clear cache, fetch new account** |
-| 8 | Disable cloud sync (keep cloud data) | No | Yes | ⚠️ Partial | **Reverse migration offer** |
-| 9 | Delete cloud account | Cached | Yes→No | ✅ Works | Works |
+| # | Scenario | Account | Subscription | Sync | Expected Behavior |
+|---|----------|---------|--------------|------|-------------------|
+| 1 | Fresh install, stays local | None | No | OFF | Works in local mode |
+| 2 | Create free account | Free | No | OFF | Account created, stays local mode |
+| 3 | Free user tries to enable sync | Free | No | OFF | Show "Subscribe to enable sync" |
+| 4 | Subscribe (first time) | Subscriber | Yes | OFF→ON | Post-payment prompt: "Enable sync now?" |
+| 5 | Subscriber enables sync (no local data) | Subscriber | Yes | ON | Switch to cloud, auto-fetch if cloud has data |
+| 6 | Subscriber enables sync (has local data) | Subscriber | Yes | ON | Migration wizard (upload/download/merge) |
+| 7 | Subscriber disables sync | Subscriber | Yes | ON→OFF | Offer to download, switch to local mode |
+| 8 | Sign out (any user) | Any→None | - | OFF | Clear cache, stay/switch to local mode |
+| 9 | Subscription expires | Expired | No | ON→OFF | Auto-disable sync, switch to local, keep data |
 
 ---
 
 ## Detailed Flow Specifications
 
-### Flow 4: New Device with Existing Cloud Account (PRIMARY GAP)
+### Flow 2: Create Free Account
 
-**Trigger**: User enables cloud sync and logs in on a device with NO local data
-
-**Current behavior**:
-- App shows empty because it's reading from empty local IndexedDB
-- SupabaseDataStore is active but React Query cache is empty
-- User sees nothing until manual reload (now fixed) but still no data because cloud data isn't fetched
-
-**Root cause**:
-- The app assumes "enable cloud sync" means "upload local data"
-- There's no "download from cloud" flow
+**Trigger**: User clicks "Sign In" or "Create Account" on Welcome Screen or Settings
 
 **Expected behavior**:
-
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  User enables Cloud Sync in Settings                        │
+│  User clicks "Sign In" / "Create Account"                   │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  User logs in (magic link)                                  │
+│  LoginScreen: Enter email, receive magic link               │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  App checks: Does user have LOCAL data?                     │
+│  Account created/accessed                                   │
+│  User is now AUTHENTICATED but still in LOCAL MODE          │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Show welcome message:                                      │
+│  "Welcome! Your data stays on this device.                  │
+│   Subscribe to sync across all your devices."               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key point**: Sign-in does NOT enable cloud mode. User stays in local mode.
+
+---
+
+### Flow 3: Free User Tries to Enable Sync
+
+**Trigger**: Free user clicks "Enable Sync" toggle in Settings
+
+**Expected behavior**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Free user clicks "Enable Cloud Sync"                       │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Show upgrade prompt:                                       │
+│  "Cloud sync is a Premium feature.                          │
+│   Subscribe to sync your data across all devices."          │
+│                                                             │
+│   [Subscribe Now]          [Maybe Later]                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key point**: Sync toggle is disabled/shows prompt for free users.
+
+---
+
+### Flow 4: Post-Subscription Sync Prompt
+
+**Trigger**: User completes subscription payment
+
+**Expected behavior**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Payment successful!                                        │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Show sync prompt:                                          │
+│  "🎉 Welcome to Premium!                                    │
+│                                                             │
+│   Would you like to enable cloud sync now?                  │
+│   Your data will sync across all your devices.              │
+│                                                             │
+│   [Enable Sync Now]        [Maybe Later]                    │
+└─────────────────────────────────────────────────────────────┘
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ▼                           ▼
+       Enable Sync Now              Maybe Later
+              │                           │
+              ▼                           ▼
+       Go to Flow 5 or 6          Stay in local mode
+       (based on local data)      (can enable later)
+```
+
+---
+
+### Flow 5: Subscriber Enables Sync (No Local Data)
+
+**Trigger**: Subscriber enables sync on empty device
+
+**Expected behavior**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Subscriber clicks "Enable Cloud Sync"                      │
+│  Device has NO local data                                   │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Check: Does cloud have data?                               │
 └─────────────────────────────────────────────────────────────┘
                             │
               ┌─────────────┴─────────────┐
               │                           │
               ▼                           ▼
 ┌─────────────────────┐       ┌─────────────────────────────┐
-│  YES: Has local     │       │  NO: Empty device           │
-│  → Show Flow 3 or 5 │       │  → Check cloud for data     │
+│  Cloud has data     │       │  Cloud is empty             │
+│  → AUTO-FETCH       │       │  → Switch to cloud mode     │
+│  → "Syncing..."     │       │  → Fresh start              │
+│  → Display data     │       │  → Ready to use             │
 └─────────────────────┘       └─────────────────────────────┘
-                                          │
-                            ┌─────────────┴─────────────┐
-                            │                           │
-                            ▼                           ▼
-              ┌─────────────────────┐     ┌─────────────────────┐
-              │  Cloud has data     │     │  Cloud is empty     │
-              │  → AUTO-FETCH       │     │  → Ready to use     │
-              │  → Show loading     │     │  (fresh start)      │
-              │  → Display data     │     │                     │
-              └─────────────────────┘     └─────────────────────┘
 ```
 
-**Implementation approach**:
-
-1. After successful cloud login, check if local IndexedDB has data
-2. If local is empty AND cloud has data → automatically fetch and display
-3. Show a brief loading indicator: "Syncing your data from cloud..."
-4. No wizard needed - just seamless data appearance
-
-**Code changes needed**:
-
+**Implementation**:
 ```typescript
-// In CloudSyncSection.tsx or page.tsx after successful login
-const handleCloudLoginSuccess = async () => {
+const handleEnableSync = async () => {
+  // Subscriber enabling sync
   const localHasData = await hasLocalDataToMigrate();
 
   if (!localHasData.hasData) {
-    // Empty device - check if cloud has data
+    // Empty device - check cloud
     const cloudHasData = await hasCloudDataToDownload();
 
     if (cloudHasData) {
-      // Auto-fetch: just switch to cloud mode and refetch queries
-      // SupabaseDataStore will automatically read from cloud
+      // Auto-fetch from cloud
+      enableCloudMode();
       await queryClient.refetchQueries();
       showToast('Synced from cloud', 'success');
+    } else {
+      // Both empty - just switch modes
+      enableCloudMode();
+      showToast('Cloud sync enabled', 'success');
     }
-    // If cloud is also empty, user starts fresh
   } else {
     // Device has local data - show migration wizard (existing flow)
     setShowMigrationWizard(true);
@@ -117,25 +199,22 @@ const handleCloudLoginSuccess = async () => {
 
 ---
 
-### Flow 3 & 5: Device Has Local Data, Cloud Has Data (MERGE SCENARIO)
+### Flow 6: Subscriber Enables Sync (Has Local Data)
 
-**Trigger**: User enables cloud sync on a device that already has local data, but their cloud account also has data (e.g., from another device)
-
-**Current behavior**:
-- Migration wizard shows "Replace" or "Merge" options
-- But this is framed as "upload local to cloud", not "reconcile two datasets"
+**Trigger**: Subscriber enables sync on device that has local data
 
 **Expected behavior**:
 
-Show a clear choice dialog:
+Show migration wizard with clear choices:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
+│  Enable Cloud Sync                                          │
+├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  You have data on this device AND in the cloud.             │
-│                                                             │
+│  You have data on this device.                              │
 │  Local: 15 players, 8 games, 2 seasons                      │
-│  Cloud: 12 players, 5 games, 1 season                       │
+│  Cloud: 12 players, 5 games, 1 season (or "empty")          │
 │                                                             │
 │  What would you like to do?                                 │
 │                                                             │
@@ -150,34 +229,62 @@ Show a clear choice dialog:
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  🔀 Merge Both (Advanced)                           │   │
-│  │  Combine data from both sources (may have dupes)    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
 │  │  ❌ Cancel                                          │   │
-│  │  Stay in local mode, don't enable cloud sync        │   │
+│  │  Stay in local mode                                 │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Implementation notes**:
-- Reuse existing MigrationWizard component but add "Download" option
-- Merge is complex (ID conflicts, duplicates) - could be Phase 2
-- For MVP: just Upload or Download, no merge
+**Notes**:
+- Merge option deferred (complex ID conflicts)
+- For MVP: Upload OR Download, not both
 
 ---
 
-### Flow 6: Sign Out from Cloud Mode
+### Flow 7: Subscriber Disables Sync
 
-**Trigger**: User wants to sign out of their cloud account
-
-**Current behavior**: Not implemented (no sign out button visible)
+**Trigger**: Subscriber toggles "Cloud Sync" OFF in Settings
 
 **Expected behavior**:
 
-1. Add "Sign Out" button to Settings → Cloud Sync section (when logged in)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Disable Cloud Sync?                                        │
+├─────────────────────────────────────────────────────────────┤
+│  Your data will remain safely in the cloud.                 │
+│                                                             │
+│  What would you like to do with this device?                │
+│                                                             │
+│  ○ Download a copy to this device                           │
+│    (Continue using app offline with local data)             │
+│                                                             │
+│  ○ Don't download (fresh local start)                       │
+│    (Cloud data stays safe, local will be empty)             │
+│                                                             │
+│  [Cancel]                              [Disable Sync]       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**After disable**:
+- `syncEnabled` = false
+- Mode switches to 'local'
+- User stays authenticated (can re-enable sync later)
+
+---
+
+### Flow 8: Sign Out
+
+**Trigger**: User clicks "Sign Out" in Settings
+
+**Expected behavior**:
+
+1. Show confirmation if in cloud mode:
+   ```
+   Sign out will switch to local mode.
+   Your cloud data remains safe.
+   [Cancel]  [Sign Out]
+   ```
 2. On sign out:
    - Call `authService.signOut()`
    - Clear React Query cache
@@ -204,60 +311,16 @@ Show a clear choice dialog:
 
 ---
 
-### Flow 7: Switch Cloud Accounts
+### Flow 9: Subscription Expires
 
-**Trigger**: User wants to sign into a different cloud account
-
-**Expected behavior**:
-
-1. Sign out current account (Flow 6)
-2. Clear all local cached data
-3. Sign in with new account
-4. Fetch new account's cloud data (Flow 4)
-
-**Warning dialog**:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Switch Account                                             │
-├─────────────────────────────────────────────────────────────┤
-│  Switching accounts will:                                   │
-│  • Sign out of current account (user@example.com)           │
-│  • Clear locally cached data                                │
-│  • Sign into a new account                                  │
-│                                                             │
-│  Your cloud data will remain safe in the cloud.             │
-│                                                             │
-│  [Cancel]                              [Switch Account]     │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Flow 8: Disable Cloud Sync (Keep Cloud Data)
-
-**Trigger**: User toggles cloud sync OFF but wants to keep cloud data
-
-**Current behavior**: Partial - reverse migration exists but UX is unclear
+**Trigger**: User's subscription lapses (payment failed, cancelled, etc.)
 
 **Expected behavior**:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Disable Cloud Sync?                                        │
-├─────────────────────────────────────────────────────────────┤
-│  Your data will remain in the cloud. Choose what to do      │
-│  with the local copy:                                       │
-│                                                             │
-│  ○ Download a copy to this device                           │
-│    (You can use the app offline with this data)             │
-│                                                             │
-│  ○ Don't download (start fresh locally)                     │
-│    (Cloud data stays safe, local will be empty)             │
-│                                                             │
-│  [Cancel]                              [Disable Cloud]      │
-└─────────────────────────────────────────────────────────────┘
-```
+1. Auto-disable sync (can't use cloud without subscription)
+2. Download cloud data to local (preserve user's work)
+3. Switch to local mode
+4. Show message: "Subscription expired. Your data has been saved locally."
+5. User stays authenticated (can resubscribe and re-enable sync)
 
 ---
 
@@ -265,31 +328,34 @@ Show a clear choice dialog:
 
 ### Phase 1: Critical (Must Have)
 
-1. **Flow 4: Auto-fetch cloud data on empty device**
-   - Highest priority - this is the main blocker for multi-device use
-   - Relatively simple: check local empty → fetch cloud → refetch queries
+1. **Separate sign-in from sync** (Issue #336 core change)
+   - Sign-in creates account only, stays local
+   - Sync is explicit toggle for subscribers
 
-2. **Flow 6: Sign Out**
-   - Add sign out button to Settings
-   - Clear state and switch to local mode
+2. **Post-subscription sync prompt**
+   - After payment, ask "Enable sync now?"
+
+3. **Flow 5: Auto-fetch on empty device**
+   - When subscriber enables sync on empty device
 
 ### Phase 2: Important (Should Have)
 
-3. **Flow 3/5: Upload vs Download choice**
-   - Enhance MigrationWizard with bidirectional options
-   - Show data counts for informed decision
+4. **Flow 6: Migration wizard for local data**
+   - Upload/Download choice when enabling sync with local data
 
-4. **Flow 8: Disable cloud with download option**
-   - Enhance the disable flow with clear choices
+5. **Flow 7: Disable sync with download**
+   - Reverse migration when disabling sync
+
+6. **Flow 8: Sign out**
+   - Clean up and switch to local
 
 ### Phase 3: Nice to Have
 
-5. **Flow 7: Switch accounts**
-   - Combines sign out + sign in flows
+7. **Switch accounts**
+   - Combines sign out + sign in
 
-6. **Merge functionality**
+8. **Merge functionality**
    - Complex due to ID conflicts
-   - May not be needed if users primarily use one device
 
 ---
 
@@ -603,7 +669,7 @@ When user taps "Sign In" on Start Screen:
 │                                                             │
 │                    Sign In to MatchOps                      │
 │                                                             │
-│  Access your game data from any device                      │
+│  Create an account for future features and upgrades         │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  Email                                              │   │
@@ -622,9 +688,11 @@ When user taps "Sign In" on Start Screen:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-After successful login:
-- If cloud has data → auto-fetch and show Start Screen with data
-- If cloud is empty → show normal Start Screen (first-time user flow)
+**After successful login (IMPORTANT: stays in LOCAL mode)**:
+- Show welcome message: "Welcome! Your data stays on this device."
+- If subscriber → show "Enable cloud sync?" prompt
+- If free user → show "Subscribe to sync across devices"
+- User continues in LOCAL mode until they explicitly enable sync
 
 ---
 
@@ -668,8 +736,8 @@ Show a welcome screen **only on first launch** that lets users choose their path
 │                                                             │
 │   ┌─────────────────────────────────────────────────────┐   │
 │   │                                                     │   │
-│   │   ☁️  Sign In to Cloud                              │   │
-│   │   Sync across all your devices                      │   │
+│   │   👤  Sign In                                       │   │
+│   │   Create account or access existing                 │   │
 │   │                                                     │   │
 │   └─────────────────────────────────────────────────────┘   │
 │                                                             │
@@ -685,17 +753,19 @@ Show a welcome screen **only on first launch** that lets users choose their path
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Note**: "Sign In to Cloud" button only shows if `isCloudAvailable() === true`
+**Note**: "Sign In" button only shows if `isCloudAvailable() === true`
+
+**IMPORTANT (Issue #336)**: Sign-in does NOT enable cloud mode. User stays in local mode after sign-in. Cloud sync requires subscription + explicit enable.
 
 ### User Flow Diagrams
 
-#### Flow A: Start Fresh (Local)
+#### Flow A: Start Fresh (Local, No Account)
 ```
 Welcome Screen
     │ click "Start Fresh"
     ▼
 Set hasSeenWelcome = true (localStorage)
-Mode stays 'local'
+Mode stays 'local', no account
     │
     ▼
 StartScreen (first-time user view)
@@ -706,45 +776,53 @@ StartScreen (first-time user view)
 HomePage with first-time guidance
 ```
 
-#### Flow B: Sign In to Cloud (New Cloud User)
+#### Flow B: Sign In (Creates Account, STAYS LOCAL)
 ```
 Welcome Screen
-    │ click "Sign In to Cloud"
+    │ click "Sign In"
     ▼
 Set hasSeenWelcome = true
-enableCloudMode()
     │
     ▼
 LoginScreen
-    │ user signs in
+    │ user signs in / creates account
     ▼
-Cloud data check → empty
+Show welcome message:
+"Welcome! Your data stays on this device.
+ Subscribe to sync across devices."
+    │
+    ▼
+MODE STAYS 'LOCAL' (not cloud!)
+User has account but no sync
     │
     ▼
 StartScreen (first-time user view)
-    - Same view as local first-timer
-    - But data will sync to cloud as created
 ```
 
-#### Flow C: Sign In to Cloud (Returning User)
+#### Flow C: Sign In (Returning Subscriber Who Had Sync Enabled)
 ```
 Welcome Screen
-    │ click "Sign In to Cloud"
+    │ click "Sign In"
     ▼
 Set hasSeenWelcome = true
-enableCloudMode()
     │
     ▼
 LoginScreen
     │ user signs in
     ▼
-Cloud data loads (games, roster, etc.)
+Check: Was sync previously enabled for this account?
+    │ yes (subscriber with sync preference)
+    ▼
+Prompt: "Welcome back! Enable cloud sync?"
+    │ yes
+    ▼
+Enable cloud mode, fetch cloud data
     │
     ▼
 StartScreen (returning user view)
     - "Resume" if has current game
     - "Load Game" option available
-    - Ready to continue
+    - Data synced from cloud
 ```
 
 #### Flow D: Import Backup
@@ -784,15 +862,15 @@ Stay on Welcome Screen
 
 interface WelcomeScreenProps {
   onStartLocal: () => void;
-  onSignInCloud: () => void;
+  onSignIn: () => void;        // Note: Sign-in only, NOT "sign in to cloud"
   onImportBackup: () => void;
-  isCloudAvailable: boolean;
+  isCloudAvailable: boolean;   // Show sign-in button only if cloud backend available
   isImporting: boolean;
 }
 
 export default function WelcomeScreen({
   onStartLocal,
-  onSignInCloud,
+  onSignIn,
   onImportBackup,
   isCloudAvailable,
   isImporting,
@@ -824,17 +902,17 @@ export default function WelcomeScreen({
             </div>
           </button>
 
-          {/* Sign In to Cloud - only if available */}
+          {/* Sign In - only if cloud available (for future features) */}
           {isCloudAvailable && (
             <button
-              onClick={onSignInCloud}
-              className="w-full p-4 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-left transition-colors"
+              onClick={onSignIn}
+              className="w-full p-4 bg-slate-800 hover:bg-slate-700 rounded-lg text-left transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">☁️</span>
+                <span className="text-2xl">👤</span>
                 <div>
-                  <div className="text-white font-medium">Sign In to Cloud</div>
-                  <div className="text-indigo-200 text-sm">Sync across all your devices</div>
+                  <div className="text-white font-medium">Sign In</div>
+                  <div className="text-slate-400 text-sm">Create account or access existing</div>
                 </div>
               </div>
             </button>
@@ -909,12 +987,13 @@ export function clearWelcomeSeen(): void {
 
 import WelcomeScreen from '@/components/WelcomeScreen';
 import { hasSeenWelcome, setWelcomeSeen } from '@/config/backendConfig';
-import { isCloudAvailable, enableCloudMode } from '@/config/backendConfig';
+import { isCloudAvailable } from '@/config/backendConfig';
 
 export default function Home() {
   // Existing state...
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [showLoginScreen, setShowLoginScreen] = useState(false);
 
   // Check welcome flag on mount
   useEffect(() => {
@@ -927,51 +1006,57 @@ export default function Home() {
   const handleStartLocal = useCallback(() => {
     setWelcomeSeen();
     setShowWelcome(false);
-    // Mode is already 'local' by default
+    // Mode stays 'local', no account
   }, []);
 
-  const handleSignInCloud = useCallback(() => {
+  // IMPORTANT (Issue #336): Sign-in does NOT enable cloud mode
+  // User creates/accesses account but stays in local mode
+  const handleSignIn = useCallback(() => {
     setWelcomeSeen();
-    enableCloudMode();
     setShowWelcome(false);
-    // Now needsAuth will be true, LoginScreen will show
+    setShowLoginScreen(true);
+    // NOTE: Do NOT call enableCloudMode() here!
+    // After login, user stays in local mode
+    // Cloud sync requires subscription + explicit enable
   }, []);
 
   const handleImportBackup = useCallback(async () => {
     setIsImporting(true);
     try {
-      // Trigger file picker and import
       const success = await importFromFilePicker();
       if (success) {
         setWelcomeSeen();
         setShowWelcome(false);
         setRefreshTrigger(prev => prev + 1);
       }
-      // If cancelled/failed, stay on welcome screen
     } finally {
       setIsImporting(false);
     }
   }, []);
 
-  // Render logic - add welcome screen check
+  // After successful login, show welcome message (stays in local mode)
+  const handleLoginSuccess = useCallback(() => {
+    setShowLoginScreen(false);
+    showToast('Welcome! Your data stays on this device. Subscribe to sync across devices.');
+    // User is now authenticated but still in LOCAL mode
+  }, []);
+
+  // Render logic
   return (
     <ErrorBoundary>
       <ModalProvider>
         {isAuthLoading || isCheckingState ? (
           // Loading spinner...
         ) : showWelcome ? (
-          // Welcome screen (first install)
           <WelcomeScreen
             onStartLocal={handleStartLocal}
-            onSignInCloud={handleSignInCloud}
+            onSignIn={handleSignIn}
             onImportBackup={handleImportBackup}
             isCloudAvailable={isCloudAvailable()}
             isImporting={isImporting}
           />
-        ) : needsAuth ? (
-          // LoginScreen...
-        ) : showMigrationWizard ? (
-          // MigrationWizard...
+        ) : showLoginScreen ? (
+          <LoginScreen onSuccess={handleLoginSuccess} />
         ) : screen === 'start' ? (
           // StartScreen...
         ) : (

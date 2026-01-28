@@ -1,8 +1,8 @@
 {
-  "version": "fd66ee1a",
-  "date": "2026-01-27",
+  "version": "c2387930",
+  "date": "2026-01-28",
   "notes": {
-    "en": "Translate all toast messages in page.tsx and useGameOrchestration",
-    "fi": "Translate all toast messages in page.tsx and useGameOrchestration"
+    "en": "Address 6-agent review findings",
+    "fi": "Address 6-agent review findings"
   }
 }
