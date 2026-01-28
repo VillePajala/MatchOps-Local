@@ -4,8 +4,13 @@
  * Provides authentication state and actions to all components.
  *
  * @remarks
- * - In local mode: No-op, always "authenticated" as local user
- * - In cloud mode: Manages Supabase auth state
+ * Issue #336: Authentication is independent of data storage mode.
+ * - When cloud is available: Manages Supabase auth state (regardless of local/cloud mode)
+ * - When cloud is unavailable: No-op, always "authenticated" as local user
+ *
+ * This means users can sign in while in local mode (auth ≠ sync).
+ * Cloud sync is a separate, subscriber-only toggle.
+ *
  * - Wraps the app (inside layout.tsx) to provide auth context before data fetching
  *
  * Part of Phase 4 Supabase implementation (PR #5).
@@ -17,7 +22,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { getAuthService, getDataStore, isDataStoreInitialized } from '@/datastore/factory';
-import { getBackendMode } from '@/config/backendConfig';
+import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
 import { POLICY_VERSION } from '@/config/constants';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { User, Session, AuthState } from '@/interfaces/AuthTypes';
@@ -84,8 +89,9 @@ export function useAuth(): AuthContextValue {
  * Authentication provider component.
  *
  * Wraps the app to provide authentication context.
- * In local mode, the user is always considered "authenticated".
- * In cloud mode, manages Supabase authentication state.
+ * Issue #336: Auth is independent of data storage mode:
+ * - Cloud available: Manages Supabase auth (user can sign in even in local mode)
+ * - Cloud unavailable: Always "authenticated" as local user (no-op)
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authService, setAuthService] = useState<AuthService | null>(null);
@@ -132,7 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // Re-verify consent on token refresh to catch policy version updates
           // Without this, users with auto-refreshing tokens could avoid re-consent indefinitely
-          if (state === 'token_refreshed' && newSession && currentMode === 'cloud') {
+          // Issue #336: Check consent when cloud is available, regardless of data storage mode
+          if (state === 'token_refreshed' && newSession && isCloudAvailable()) {
             try {
               const latestConsent = await service.getLatestConsent();
               if (latestConsent && latestConsent.policyVersion !== POLICY_VERSION) {
@@ -157,6 +164,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (error) {
             // Non-critical: cache clearing failure shouldn't break auth flow
             logger.warn('[AuthProvider] Failed to clear caches on auth change:', error);
+            // Track in Sentry - frequent failures indicate a real problem
+            Sentry.captureException(error, {
+              tags: { flow: 'auth-cache-clear' },
+              level: 'warning',
+            });
           }
         });
 
@@ -174,9 +186,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Safety timeout: if init hangs for 10 seconds, stop loading to prevent blank screen
+    // This prevents users from seeing a blank screen indefinitely
     timeoutId = setTimeout(() => {
       if (mounted) {
-        logger.warn('[AuthProvider] Init timeout - forcing loading to complete');
+        // Log detailed context for debugging init hangs
+        const context = {
+          cloudAvailable: isCloudAvailable(),
+          mode: getBackendMode(),
+          online: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
+        };
+        logger.error('[AuthProvider] Init timeout after 10s - auth may be in incomplete state', context);
+        // Track in Sentry for production monitoring
+        Sentry.captureMessage('AuthProvider init timeout', {
+          level: 'warning',
+          tags: { flow: 'auth-init-timeout' },
+          extra: context,
+        });
         setIsLoading(false);
       }
     }, 10000);
@@ -200,8 +225,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check consent BEFORE setting user/session to prevent race condition
       // where user briefly appears logged in before re-consent modal shows
+      // Issue #336: Check consent when cloud is available, regardless of data storage mode
       let requiresReConsent = false;
-      if (mode === 'cloud') {
+      if (isCloudAvailable()) {
         try {
           const latestConsent = await authService.getLatestConsent();
 
@@ -247,7 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Sign in failed' };
     }
-  }, [authService, mode]);
+  }, [authService]);
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!authService) return { error: 'Auth not initialized' };
@@ -257,7 +283,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!result.confirmationRequired) {
         // Record consent BEFORE setting user/session to ensure consent is captured
         // before user gains access to the app (GDPR compliance)
-        if (mode === 'cloud') {
+        // Issue #336: Record consent when cloud is available, regardless of data storage mode
+        if (isCloudAvailable()) {
           try {
             const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : undefined;
             await authService.recordConsent(POLICY_VERSION, { userAgent });
@@ -291,7 +318,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Sign up failed' };
     }
-  }, [authService, mode]);
+  }, [authService]);
 
   const signOut = useCallback(async () => {
     if (!authService) return;
@@ -338,7 +365,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const recordConsent = useCallback(async () => {
     if (!authService) return { error: 'Auth not initialized' };
-    if (mode === 'local') return {}; // No consent needed for local mode
+    // Issue #336: Consent is based on cloud availability, not data storage mode
+    if (!isCloudAvailable()) return {}; // No consent needed without cloud
 
     try {
       // Get browser info for audit trail
@@ -353,7 +381,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logger.error('[AuthProvider] Failed to record consent:', error);
       return { error: error instanceof Error ? error.message : 'Failed to record consent' };
     }
-  }, [authService, mode]);
+  }, [authService]);
 
   /**
    * Accept the new Terms/Privacy Policy (re-consent flow).
@@ -361,7 +389,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const acceptReConsent = useCallback(async () => {
     if (!authService) return { error: 'Auth not initialized' };
-    if (mode === 'local') return {}; // No consent needed for local mode
+    // Issue #336: Consent is based on cloud availability, not data storage mode
+    if (!isCloudAvailable()) return {}; // No consent needed without cloud
 
     try {
       const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : undefined;
@@ -373,15 +402,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logger.error('[AuthProvider] Failed to record re-consent:', error);
       return { error: error instanceof Error ? error.message : 'Failed to record consent' };
     }
-  }, [authService, mode]);
+  }, [authService]);
 
   /**
    * Permanently delete the user's account.
-   * Only available in cloud mode. Deletes all data and the auth user.
+   * Available when cloud is configured. Deletes all data and the auth user.
+   * Issue #336: Works regardless of data storage mode (user can delete account while in local mode).
    */
   const deleteAccount = useCallback(async () => {
     if (!authService) return { error: 'Auth not initialized' };
-    if (mode === 'local') return { error: 'Account deletion not available in local mode' };
+    // Issue #336: Account deletion is based on cloud availability, not data storage mode
+    // Users can delete their account while in local mode if they have one
+    if (!isCloudAvailable()) return { error: 'Account deletion requires cloud configuration' };
 
     try {
       await authService.deleteAccount();
@@ -397,14 +429,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logger.error('[AuthProvider] Account deletion failed:', error);
       return { error: error instanceof Error ? error.message : 'Failed to delete account' };
     }
-  }, [authService, mode]);
+  }, [authService]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const value: AuthContextValue = useMemo(() => ({
     user,
     session,
-    // Local mode is always "authenticated", cloud mode checks session
-    isAuthenticated: mode === 'local' ? true : !!session,
+    // Issue #336: isAuthenticated reflects actual auth state when cloud is available,
+    // regardless of data storage mode. Only fallback to "always authenticated" when
+    // cloud is not configured (no Supabase URL/key). This allows users to sign in
+    // while in local mode.
+    isAuthenticated: !isCloudAvailable() ? true : !!session,
     isLoading,
     mode,
     needsReConsent,

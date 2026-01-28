@@ -6,6 +6,7 @@ import StartScreen from '@/components/StartScreen';
 import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
+import AuthModal from '@/components/AuthModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
@@ -54,6 +55,8 @@ export default function Home() {
   // Welcome screen state (first-install onboarding)
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
+  // Issue #336: Auth modal for sign-in from welcome screen (stays in local mode)
+  const [showAuthModal, setShowAuthModal] = useState(false);
   // Post-login upgrade modal (shown when user authenticates without subscription)
   const [showPostLoginUpgrade, setShowPostLoginUpgrade] = useState(false);
   // Ref to track if migration check has been initiated (prevents race conditions)
@@ -178,42 +181,29 @@ export default function Home() {
     }
   }, [mode, showToast, t]);
 
-  // Actually enable cloud mode (called after premium check passes)
-  const executeEnableCloudFromWelcome = useCallback(() => {
-    logger.info('[page.tsx] Welcome: Enabling cloud mode');
-    const success = enableCloudMode();
-    if (success) {
-      // Cloud mode enabled - reload to re-initialize AuthProvider in cloud mode
-      // (AuthProvider reads getBackendMode() once on mount, so we need a full reload)
-      showToast(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'), 'info');
-      setTimeout(() => {
-        try {
-          // Set welcome flag just before reload - if reload fails, we'll clear it
-          setWelcomeSeen();
-          window.location.reload();
-        } catch (error) {
-          // Reload blocked (e.g., by browser extension or security policy)
-          // Clear welcome flag so user can retry after manual refresh
-          clearWelcomeSeen();
-          logger.error('[page.tsx] Reload blocked', error);
-          showToast(t('page.refreshPageManuallyContinue', 'Please refresh the page manually to continue'), 'error');
-        }
-      }, 500);
-    } else {
-      // Cloud not available (shouldn't happen since button is hidden)
-      showToast(t('page.cloudSyncNotAvailable', 'Cloud sync is not available'), 'error');
-    }
-  }, [showToast, t]);
-
   // Handle "Sign In to Cloud" from welcome screen
-  // Note: Premium check happens AFTER login, not before (see post-login check effect)
+  // Issue #336: Sign-in creates account but stays in local mode (auth ≠ sync)
   const handleWelcomeSignInCloud = useCallback(() => {
-    logger.info('[page.tsx] Welcome: User chose cloud mode - setting pending post-login check');
-    // Set flag so we know to check premium after authentication
-    setPendingPostLoginCheck();
-    // Proceed to enable cloud mode (this will reload and show LoginScreen)
-    executeEnableCloudFromWelcome();
-  }, [executeEnableCloudFromWelcome]);
+    logger.info('[page.tsx] Welcome: User chose to sign in - showing auth modal (staying in local mode)');
+    setShowAuthModal(true);
+  }, []);
+
+  // Handle successful auth from welcome screen's auth modal
+  // Issue #336: User signed in but stays in local mode - sync is a separate toggle
+  const handleWelcomeAuthSuccess = useCallback(() => {
+    logger.info('[page.tsx] Welcome: Auth successful - dismissing welcome, staying in local mode');
+    setShowAuthModal(false);
+    setWelcomeSeen();
+    setShowWelcome(false);
+    // Trigger app state refresh to pick up authenticated state
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  // Handle auth modal cancel from welcome screen
+  const handleWelcomeAuthCancel = useCallback(() => {
+    logger.info('[page.tsx] Welcome: Auth modal cancelled');
+    setShowAuthModal(false);
+  }, []);
 
   // Handle "Import Backup" from welcome screen
   // Import backup puts user in local mode (same as "Start Fresh")
@@ -678,6 +668,14 @@ export default function Home() {
               isCloudAvailable={isCloudAvailable()}
               isImporting={isImportingBackup}
             />
+            {/* Issue #336: Auth modal for sign-in from welcome screen (stays in local mode) */}
+            {showAuthModal && (
+              <AuthModal
+                onSuccess={handleWelcomeAuthSuccess}
+                onCancel={handleWelcomeAuthCancel}
+                allowRegistration={true}
+              />
+            )}
           </ErrorBoundary>
         ) : needsAuth ? (
           // Cloud mode: show login screen when not authenticated

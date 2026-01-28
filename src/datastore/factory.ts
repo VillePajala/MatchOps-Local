@@ -32,10 +32,12 @@ const log = {
 let dataStoreInstance: DataStore | null = null;
 let authServiceInstance: AuthService | null = null;
 
-// Track the mode each singleton was created for
-// Used to detect mode changes and auto-reset the factory
+// Track the mode DataStore was created for
+// Used to detect mode changes and auto-reset the DataStore singleton
 let dataStoreCreatedForMode: 'local' | 'cloud' | null = null;
-let authServiceCreatedForMode: 'local' | 'cloud' | null = null;
+// Track cloud availability at AuthService creation
+// Issue #336: AuthService resets if cloud availability changes (not mode changes)
+let authServiceCreatedWithCloudAvailable: boolean | null = null;
 
 // Initialization promises to prevent race conditions during concurrent calls
 let dataStoreInitPromise: Promise<DataStore> | null = null;
@@ -222,40 +224,40 @@ export async function getDataStore(): Promise<DataStore> {
  * Subsequent calls return the same instance.
  * Handles concurrent calls safely by sharing the initialization promise.
  *
- * In cloud mode, returns SupabaseAuthService.
- * In local mode, returns LocalAuthService (no-op authentication).
+ * Issue #336: Auth service is based on cloud AVAILABILITY, not current mode.
+ * This allows users to sign in while in local mode (authentication ≠ sync).
+ * - If Supabase is configured: use SupabaseAuthService (works in any mode)
+ * - If Supabase is not configured: use LocalAuthService (no-op)
  *
  * @returns Initialized AuthService instance
  */
 export async function getAuthService(): Promise<AuthService> {
-  const currentMode = getBackendMode();
+  // Issue #336: AuthService should NOT be reset when mode changes.
+  // Auth is independent of data storage mode - user stays signed in
+  // regardless of whether they're using local or cloud data storage.
+  // Only reset if cloud availability changes (service type would change).
 
-  // Check if mode changed since the AuthService was created
-  // This handles the case where user enables/disables cloud sync
-  if (authServiceInstance && authServiceCreatedForMode !== currentMode) {
-    log.info(`[factory] Mode changed from ${authServiceCreatedForMode} to ${currentMode} - resetting AuthService`);
+  const currentCloudAvailable = isCloudAvailable();
 
-    // Save reference for cleanup, then immediately null to prevent race conditions
-    // (other callers see null and wait for re-initialization)
-    const oldAuthService = authServiceInstance;
-    const oldMode = authServiceCreatedForMode;
-    authServiceInstance = null;
-    authServiceCreatedForMode = null;
+  // Check if cloud availability changed since AuthService was created
+  // This handles edge cases like env vars changing at runtime
+  if (authServiceInstance && authServiceCreatedWithCloudAvailable !== currentCloudAvailable) {
+    log.info(`[factory] Cloud availability changed from ${authServiceCreatedWithCloudAvailable} to ${currentCloudAvailable} - resetting AuthService`);
 
-    // If switching FROM cloud mode, clean up auth subscriptions
-    // signOut() clears Supabase auth state and unsubscribes listeners
-    if (oldMode === 'cloud') {
-      try {
-        await oldAuthService.signOut();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        const err = e instanceof Error ? e : new Error(msg);
-        log.warn(`[factory] Error signing out during mode change: ${msg}`, err);
-      }
+    // Sign out from old service to clean up subscriptions
+    try {
+      await authServiceInstance.signOut();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error signing out during AuthService reset: ${msg}`, err);
     }
+
+    authServiceInstance = null;
+    authServiceCreatedWithCloudAvailable = null;
   }
 
-  // Already initialized for current mode - return immediately
+  // Already initialized for current cloud availability - return immediately
   if (authServiceInstance) {
     return authServiceInstance;
   }
@@ -268,27 +270,27 @@ export async function getAuthService(): Promise<AuthService> {
   // Start initialization and store the promise
   authServiceInitPromise = (async () => {
     const mode = getBackendMode();
-    log.info(`[factory] Initializing AuthService in ${mode} mode`);
+    log.info(`[factory] Initializing AuthService (mode: ${mode}, cloudAvailable: ${isCloudAvailable()})`);
 
     let instance: AuthService;
 
-    if (mode === 'cloud' && isCloudAvailable()) {
+    // Issue #336: Auth service is based on cloud AVAILABILITY, not current mode.
+    // This allows users to sign in while in local mode (auth ≠ sync).
+    if (isCloudAvailable()) {
       // Lazy load SupabaseAuthService to avoid bundling Supabase in local mode
       const { SupabaseAuthService } = await import('@/auth/SupabaseAuthService');
       instance = new SupabaseAuthService();
-      log.info('[factory] Using SupabaseAuthService (cloud mode)');
-    } else if (mode === 'cloud') {
-      log.warn(
-        '[factory] Cloud mode requested but Supabase not configured - using LocalAuthService'
-      );
-      instance = new LocalAuthService();
+      log.info('[factory] Using SupabaseAuthService (cloud available)');
     } else {
       instance = new LocalAuthService();
+      log.info('[factory] Using LocalAuthService (cloud not available)');
     }
 
     await instance.initialize();
     authServiceInstance = instance;
-    authServiceCreatedForMode = mode;
+    // Use isCloudAvailable() at completion time, not the captured value from line 240
+    // This prevents issues if cloud availability changed during async initialization
+    authServiceCreatedWithCloudAvailable = isCloudAvailable();
     return instance;
   })().finally(() => {
     authServiceInitPromise = null;
@@ -359,7 +361,7 @@ export async function resetFactory(): Promise<void> {
   dataStoreInitPromise = null;
   authServiceInitPromise = null;
   dataStoreCreatedForMode = null;
-  authServiceCreatedForMode = null;
+  authServiceCreatedWithCloudAvailable = null;
 }
 
 /**
