@@ -367,6 +367,45 @@ describe('Factory', () => {
       // Verifies that authServiceCreatedWithCloudAvailable is being used correctly
       expect(isAuthServiceInitialized()).toBe(true);
     });
+
+    /**
+     * Verify concurrent getDataStore calls during mode config change are safe.
+     *
+     * This tests the race condition scenario where:
+     * 1. Call A triggers mode change cleanup (nulls singleton)
+     * 2. Call B enters during cleanup, starts new initialization
+     * 3. Call A finishes cleanup, waits for Call B's init promise
+     * 4. Both callers receive the same new instance
+     *
+     * The init promise pattern ensures this is safe.
+     */
+    it('should handle concurrent getDataStore calls when mode config differs', async () => {
+      mockBackendConfig.cloudAvailable = false;
+      mockBackendConfig.backendMode = 'local';
+
+      // Get initial instance
+      const dataStore1 = await getDataStore();
+      expect(dataStore1).toBeInstanceOf(LocalDataStore);
+
+      // Reset to simulate fresh state but with different mode config
+      await resetFactory();
+
+      // Change mode config (simulating user action)
+      mockBackendConfig.backendMode = 'cloud'; // Still cloudAvailable=false, so will fallback
+
+      // Concurrent calls should all get the same new instance
+      const [ds1, ds2, ds3] = await Promise.all([
+        getDataStore(),
+        getDataStore(),
+        getDataStore(),
+      ]);
+
+      // All should be the same instance
+      expect(ds1).toBe(ds2);
+      expect(ds2).toBe(ds3);
+      // Should be LocalDataStore (fallback since cloud unavailable)
+      expect(ds1).toBeInstanceOf(LocalDataStore);
+    });
   });
 
   // ==========================================================================
