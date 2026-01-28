@@ -717,26 +717,9 @@ async function exportAllLocalData(
   exportProgress(7, 'games');
   const games = await localStore.getGames();
 
-  // Player adjustments (need to collect from all players)
+  // Player adjustments - use batch method for single IndexedDB read (avoids N+1 queries)
   exportProgress(8, 'player adjustments');
-  const playerAdjustments = new Map<string, PlayerStatAdjustment[]>();
-
-  // Batch fetch adjustments for performance
-  const adjustmentResults = await processBatch(
-    players,
-    async (player) => {
-      const adjustments = await localStore.getPlayerAdjustments(player.id);
-      return { playerId: player.id, adjustments };
-    },
-    BATCH_SIZE
-  );
-
-  // Build the map from batch results
-  for (const { playerId, adjustments } of adjustmentResults) {
-    if (adjustments.length > 0) {
-      playerAdjustments.set(playerId, adjustments);
-    }
-  }
+  const playerAdjustments = await localStore.getAllPlayerAdjustments();
 
   // Warmup plan
   exportProgress(9, 'warmup plan');
@@ -1578,54 +1561,6 @@ function normalizePersonnelArray(
   return personnel;
 }
 
-/**
- * Batch size for concurrent operations.
- * Balances speed with not overwhelming the API.
- *
- * Note: This could be made dynamic based on network conditions or API rate limits.
- * For now, 5 is a conservative value that works well for typical migrations.
- */
-const BATCH_SIZE = 5;
-
-/**
- * Process items in batches with a given async operation.
- * Limits concurrency to prevent overwhelming the API.
- * Uses Promise.allSettled to continue processing even if individual items fail.
- *
- * NOTE: Only fulfilled results are returned. Failed items are logged and tracked
- * in Sentry but excluded from the returned array, so results.length may be less
- * than items.length when failures occur.
- */
-async function processBatch<T, R>(
-  items: T[],
-  operation: (item: T) => Promise<R>,
-  batchSize: number = BATCH_SIZE
-): Promise<R[]> {
-  const results: R[] = [];
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    const batchResults = await Promise.allSettled(batch.map(operation));
-    for (const result of batchResults) {
-      if (result.status === 'fulfilled') {
-        results.push(result.value);
-      } else {
-        // Log and track individual failures, but continue processing
-        logger.warn('[MigrationService] Batch item failed:', result.reason);
-        // Wrap in try/catch - Sentry failure must not stop batch processing
-        try {
-          Sentry.captureException(result.reason, {
-            tags: { component: 'MigrationService', action: 'processBatch' },
-            level: 'warning',
-          });
-        } catch {
-          // Sentry failure is acceptable - migration must continue
-        }
-      }
-    }
-  }
-  return results;
-}
-
 // =============================================================================
 // PUBLIC HELPER FUNCTIONS
 // =============================================================================
@@ -1701,16 +1636,12 @@ export async function getLocalDataSummary(): Promise<MigrationCounts> {
       teamRosterCount += roster.length;
     }
 
-    // Count player adjustments (batch for performance)
-    const adjustmentCounts = await processBatch(
-      players,
-      async (player) => {
-        const adjustments = await localStore.getPlayerAdjustments(player.id);
-        return adjustments.length;
-      },
-      BATCH_SIZE
-    );
-    const adjustmentCount = adjustmentCounts.reduce((sum, count) => sum + count, 0);
+    // Count player adjustments (use batch method for single IndexedDB read)
+    const allAdjustments = await localStore.getAllPlayerAdjustments();
+    let adjustmentCount = 0;
+    for (const adjustments of allAdjustments.values()) {
+      adjustmentCount += adjustments.length;
+    }
 
     const personnelArray = normalizePersonnelArray(personnel);
 

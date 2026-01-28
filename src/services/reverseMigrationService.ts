@@ -636,23 +636,9 @@ async function downloadFromCloud(
   const games = await cloudStore.getGames();
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
 
-  // Get player adjustments for all players
+  // Get all player adjustments in a single batch operation (avoids N+1 queries)
   reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.ADJUSTMENTS);
-  const playerAdjustments = new Map<string, PlayerStatAdjustment[]>();
-  const playerCount = players.length;
-  for (let index = 0; index < playerCount; index++) {
-    const player = players[index];
-    const adjustments = await cloudStore.getPlayerAdjustments(player.id);
-    if (adjustments.length > 0) {
-      playerAdjustments.set(player.id, adjustments);
-    }
-    if (playerCount > 0) {
-      reportProgress(
-        (index + 1) / playerCount,
-        `${REVERSE_MIGRATION_ENTITY_NAMES.ADJUSTMENTS} (${index + 1}/${playerCount})`
-      );
-    }
-  }
+  const playerAdjustments = await cloudStore.getAllPlayerAdjustments();
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.ADJUSTMENTS);
 
   reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.WARMUP_PLAN);

@@ -482,6 +482,17 @@ export interface DataStore {
   getPlayerAdjustments(playerId: string): Promise<PlayerStatAdjustment[]>;
 
   /**
+   * Batch fetch ALL player adjustments for the current user.
+   * Returns a Map keyed by playerId for efficient lookup.
+   *
+   * This avoids the N+1 query problem when fetching adjustments for many players.
+   * Use this for migration/bulk operations instead of calling getPlayerAdjustments in a loop.
+   *
+   * @returns Map from playerId to array of adjustments
+   */
+  getAllPlayerAdjustments(): Promise<Map<string, PlayerStatAdjustment[]>>;
+
+  /**
    * Add a new player adjustment.
    * @param adjustment - Adjustment data (id and appliedAt will be generated if not provided)
    * @returns The created adjustment

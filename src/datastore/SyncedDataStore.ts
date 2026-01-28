@@ -701,6 +701,10 @@ export class SyncedDataStore implements DataStore {
     return deleted;
   }
 
+  async getAllPlayerAdjustments(): Promise<Map<string, PlayerStatAdjustment[]>> {
+    return this.localStore.getAllPlayerAdjustments();
+  }
+
   // ==========================================================================
   // WARMUP PLAN
   // ==========================================================================

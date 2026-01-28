@@ -137,6 +137,7 @@ function createMockLocalStore() {
     getAllPersonnel: jest.fn().mockResolvedValue([mockPersonnel]),
     getGames: jest.fn().mockResolvedValue({ 'game-1': mockGame }),
     getPlayerAdjustments: jest.fn().mockResolvedValue([]),
+    getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
     getWarmupPlan: jest.fn().mockResolvedValue(null),
     getSettings: jest.fn().mockResolvedValue({ language: 'en' }),
     close: jest.fn().mockResolvedValue(undefined),
@@ -452,9 +453,11 @@ describe('migrationService', () => {
         { id: 'player-1', name: 'P1' },
         { id: 'player-2', name: 'P2' },
       ] as Player[]);
-      mockLocal.getPlayerAdjustments
-        .mockResolvedValueOnce([{ id: 'adj-1' }, { id: 'adj-2' }])
-        .mockResolvedValueOnce([{ id: 'adj-3' }]);
+      // Use getAllPlayerAdjustments mock (batch method used since N+1 fix)
+      const adjustmentMap = new Map();
+      adjustmentMap.set('player-1', [{ id: 'adj-1' }, { id: 'adj-2' }]);
+      adjustmentMap.set('player-2', [{ id: 'adj-3' }]);
+      mockLocal.getAllPlayerAdjustments.mockResolvedValue(adjustmentMap);
 
       const summary = await getLocalDataSummary();
 

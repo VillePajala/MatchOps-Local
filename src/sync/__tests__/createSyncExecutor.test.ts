@@ -94,6 +94,7 @@ describe('createSyncExecutor', () => {
 
       // Player Adjustments
       getPlayerAdjustments: jest.fn().mockResolvedValue([]),
+      getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
       addPlayerAdjustment: jest.fn().mockResolvedValue({ id: 'adj-1' }),
       upsertPlayerAdjustment: jest.fn().mockResolvedValue({ id: 'adj-1' }),
       updatePlayerAdjustment: jest.fn().mockResolvedValue({ id: 'adj-1' }),
