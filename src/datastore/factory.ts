@@ -35,10 +35,9 @@ let authServiceInstance: AuthService | null = null;
 // Track the mode DataStore was created for
 // Used to detect mode changes and auto-reset the DataStore singleton
 let dataStoreCreatedForMode: 'local' | 'cloud' | null = null;
-// Track mode at AuthService creation (for logging/debugging only)
-// Issue #336: AuthService is NOT reset on mode changes - auth is mode-independent
-// Prefixed with _ to indicate intentionally unused (kept for debugging/audit)
-let _authServiceCreatedForMode: 'local' | 'cloud' | null = null;
+// Track cloud availability at AuthService creation
+// Issue #336: AuthService resets if cloud availability changes (not mode changes)
+let authServiceCreatedWithCloudAvailable: boolean | null = null;
 
 // Initialization promises to prevent race conditions during concurrent calls
 let dataStoreInitPromise: Promise<DataStore> | null = null;
@@ -236,10 +235,29 @@ export async function getAuthService(): Promise<AuthService> {
   // Issue #336: AuthService should NOT be reset when mode changes.
   // Auth is independent of data storage mode - user stays signed in
   // regardless of whether they're using local or cloud data storage.
-  // Only reset if the underlying service type would change (cloud availability changed).
+  // Only reset if cloud availability changes (service type would change).
 
-  // Already initialized - return immediately
-  // Note: We no longer reset based on mode changes (auth is mode-independent)
+  const currentCloudAvailable = isCloudAvailable();
+
+  // Check if cloud availability changed since AuthService was created
+  // This handles edge cases like env vars changing at runtime
+  if (authServiceInstance && authServiceCreatedWithCloudAvailable !== currentCloudAvailable) {
+    log.info(`[factory] Cloud availability changed from ${authServiceCreatedWithCloudAvailable} to ${currentCloudAvailable} - resetting AuthService`);
+
+    // Sign out from old service to clean up subscriptions
+    try {
+      await authServiceInstance.signOut();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error signing out during AuthService reset: ${msg}`, err);
+    }
+
+    authServiceInstance = null;
+    authServiceCreatedWithCloudAvailable = null;
+  }
+
+  // Already initialized for current cloud availability - return immediately
   if (authServiceInstance) {
     return authServiceInstance;
   }
@@ -270,7 +288,7 @@ export async function getAuthService(): Promise<AuthService> {
 
     await instance.initialize();
     authServiceInstance = instance;
-    _authServiceCreatedForMode = mode;
+    authServiceCreatedWithCloudAvailable = currentCloudAvailable;
     return instance;
   })().finally(() => {
     authServiceInitPromise = null;
@@ -341,7 +359,7 @@ export async function resetFactory(): Promise<void> {
   dataStoreInitPromise = null;
   authServiceInitPromise = null;
   dataStoreCreatedForMode = null;
-  _authServiceCreatedForMode = null;
+  authServiceCreatedWithCloudAvailable = null;
 }
 
 /**

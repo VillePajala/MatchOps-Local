@@ -15,23 +15,17 @@
 
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { HiOutlineXMark } from 'react-icons/hi2';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { isNetworkErrorMessage, normalizeEmail } from '@/utils/authHelpers';
+import { isAndroid } from '@/utils/platform';
 import logger from '@/utils/logger';
 
 type AuthMode = 'signIn' | 'signUp' | 'resetPassword';
-
-/**
- * Check if an error message indicates a network problem.
- */
-function isNetworkErrorMessage(message: string): boolean {
-  const lower = message.toLowerCase();
-  return lower.includes('network') || lower.includes('offline') || lower.includes('connection');
-}
 
 export interface AuthModalProps {
   /** Initial mode to show */
@@ -54,11 +48,21 @@ export default function AuthModal({
   initialMode = 'signIn',
   onSuccess,
   onCancel,
-  allowRegistration = true,
+  allowRegistration,
 }: AuthModalProps) {
   const { t } = useTranslation();
   const { signIn, signUp, resetPassword } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Platform-enforced registration: only allow on Android (Play Billing required)
+  // If prop is explicitly set, respect it; otherwise default based on platform
+  const effectiveAllowRegistration = useMemo(() => {
+    if (allowRegistration !== undefined) {
+      return allowRegistration;
+    }
+    // Default: only allow registration on Android
+    return isAndroid();
+  }, [allowRegistration]);
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
@@ -91,8 +95,8 @@ export default function AuthModal({
     setSuccess(null);
     setIsLoading(true);
 
-    // Trim email to avoid whitespace issues
-    const trimmedEmail = email.trim();
+    // Normalize email (trim and lowercase) for consistent handling
+    const normalizedEmail = normalizeEmail(email);
 
     try {
       if (mode === 'signUp') {
@@ -109,7 +113,7 @@ export default function AuthModal({
           return;
         }
         // Password strength is validated in SupabaseAuthService
-        const result = await signUp(trimmedEmail, password);
+        const result = await signUp(normalizedEmail, password);
         if (result.error) {
           setError(result.error);
           // Log network errors for production monitoring (non-user-error)
@@ -127,7 +131,7 @@ export default function AuthModal({
           onSuccess();
         }
       } else if (mode === 'signIn') {
-        const result = await signIn(trimmedEmail, password);
+        const result = await signIn(normalizedEmail, password);
         if (result.error) {
           setError(result.error);
           // Log network errors for production monitoring (non-user-error)
@@ -139,7 +143,7 @@ export default function AuthModal({
           onSuccess();
         }
       } else if (mode === 'resetPassword') {
-        const result = await resetPassword(trimmedEmail);
+        const result = await resetPassword(normalizedEmail);
         if (result.error) {
           setError(result.error);
           // Log network errors for production monitoring (non-user-error)
@@ -163,8 +167,8 @@ export default function AuthModal({
   }, [email, password, confirmPassword, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t]);
 
   const switchMode = useCallback((newMode: AuthMode) => {
-    // Prevent switching to signUp if registration is not allowed (desktop)
-    if (newMode === 'signUp' && !allowRegistration) {
+    // Prevent switching to signUp if registration is not allowed (non-Android)
+    if (newMode === 'signUp' && !effectiveAllowRegistration) {
       return;
     }
     setMode(newMode);
@@ -174,7 +178,7 @@ export default function AuthModal({
     setPassword('');
     setConfirmPassword('');
     setHasAcceptedTerms(false);
-  }, [allowRegistration]);
+  }, [effectiveAllowRegistration]);
 
   // Styles
   const primaryButtonStyle =
@@ -346,7 +350,7 @@ export default function AuthModal({
                 <button type="button" onClick={() => switchMode('resetPassword')} className={linkButtonStyle}>
                   {t('auth.forgotPassword', 'Forgot password?')}
                 </button>
-                {allowRegistration ? (
+                {effectiveAllowRegistration ? (
                   <div className="text-slate-500 text-sm">
                     {t('auth.noAccount', "Don't have an account?")}{' '}
                     <button type="button" onClick={() => switchMode('signUp')} className={linkButtonStyle}>
@@ -354,7 +358,7 @@ export default function AuthModal({
                     </button>
                   </div>
                 ) : (
-                  // Desktop: No registration - must subscribe via Android app
+                  // Non-Android: No registration - must subscribe via Android app
                   <div className="mt-4 p-3 rounded-lg bg-slate-700/50 border border-slate-600/50 text-center">
                     <p className="text-slate-400 text-sm">
                       {t('auth.androidOnlyRegistration', "Don't have an account? Subscribe via the Android app.")}
@@ -372,7 +376,7 @@ export default function AuthModal({
                 )}
               </>
             )}
-            {mode === 'signUp' && allowRegistration && (
+            {mode === 'signUp' && effectiveAllowRegistration && (
               <div className="text-slate-500 text-sm">
                 {t('auth.hasAccount', 'Already have an account?')}{' '}
                 <button type="button" onClick={() => switchMode('signIn')} className={linkButtonStyle}>
