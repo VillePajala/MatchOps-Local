@@ -102,6 +102,8 @@ jest.mock('@/datastore/factory', () => ({
 
 jest.mock('@/config/backendConfig', () => ({
   getBackendMode: jest.fn(() => 'local'),
+  // Issue #336: isCloudAvailable determines auth behavior, not mode
+  isCloudAvailable: jest.fn(() => true),
 }));
 
 jest.mock('@/utils/logger', () => ({
@@ -143,6 +145,10 @@ describe('AuthProvider', () => {
     mockDataStore = {
       clearUserCaches: jest.fn(),
     };
+    // Issue #336: Reset backend config mocks to defaults between tests for isolation
+    const backendConfig = require('@/config/backendConfig');
+    backendConfig.isCloudAvailable.mockReturnValue(true);
+    backendConfig.getBackendMode.mockReturnValue('local');
   });
 
   // ==========================================================================
@@ -178,7 +184,14 @@ describe('AuthProvider', () => {
   // ==========================================================================
 
   describe('local mode', () => {
-    it('should always be authenticated in local mode', async () => {
+    /**
+     * Issue #336: In local mode without cloud configured, users are always authenticated.
+     * This is the "no account required" mode for users who don't have Supabase configured.
+     */
+    it('should always be authenticated in local mode when cloud is not available', async () => {
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.isCloudAvailable.mockReturnValue(false);
+
       render(
         <AuthProvider>
           <TestComponent />
@@ -191,6 +204,61 @@ describe('AuthProvider', () => {
 
       expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
       expect(screen.getByTestId('mode')).toHaveTextContent('local');
+    });
+
+    /**
+     * Issue #336: In local mode with cloud available, authentication depends on session.
+     * This allows users to sign in while staying in local mode (auth ≠ sync).
+     */
+    it('should check session for authentication in local mode when cloud is available', async () => {
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.isCloudAvailable.mockReturnValue(true);
+      // Local auth service returns null session
+      mockAuthService.getSession = jest.fn().mockResolvedValue(null);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Not authenticated since no session
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      expect(screen.getByTestId('mode')).toHaveTextContent('local');
+    });
+
+    /**
+     * Issue #336: Core use case - user signs in while in local mode (auth ≠ sync).
+     * User should be authenticated AND in local data storage mode.
+     */
+    it('should be authenticated in local mode when cloud is available AND session exists', async () => {
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.isCloudAvailable.mockReturnValue(true);
+      backendConfig.getBackendMode.mockReturnValue('local');
+
+      // Use cloud auth service (cloud available) with session (authenticated)
+      mockAuthService = createMockCloudAuthService(true);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Should be authenticated because session exists
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      // But mode is still local (auth ≠ sync)
+      expect(screen.getByTestId('mode')).toHaveTextContent('local');
+      // User should be set from session
+      expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
     });
   });
 

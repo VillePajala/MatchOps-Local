@@ -24,6 +24,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth } from './AuthProvider';
 import { getSupabaseClient } from '@/datastore/supabase/client';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
+import { isCloudAvailable } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
 /**
@@ -163,13 +164,14 @@ export async function clearSubscriptionCache(userId: string): Promise<void> {
  * SubscriptionProvider component
  */
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
-  const { user, mode } = useAuth();
+  const { user } = useAuth();
   const [state, setState] = useState<SubscriptionState>(DEFAULT_STATE);
 
   // Fetch subscription from Supabase
   const fetchSubscription = useCallback(async (skipCache = false) => {
-    // Only fetch for cloud mode with authenticated user
-    if (mode !== 'cloud' || !user) {
+    // Issue #336: Fetch subscription when cloud is available (regardless of mode) and user is authenticated.
+    // This allows subscription checks to work even in local mode when user has an account.
+    if (!isCloudAvailable() || !user) {
       setState({
         ...DEFAULT_STATE,
         isLoading: false,
@@ -244,9 +246,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         });
       }
     }
-  }, [user, mode]);
+    // Issue #336: isCloudAvailable() is a pure function, doesn't need to be in deps
+  }, [user]);
 
-  // Initial fetch when user/mode changes
+  // Initial fetch when user changes
   useEffect(() => {
     fetchSubscription();
   }, [fetchSubscription]);
