@@ -637,16 +637,18 @@ describe('SupabaseAuthService', () => {
         });
       });
 
-      it('should pass null for optional parameters', async () => {
+      it('should pass undefined for optional parameters', async () => {
         mockRpc.mockResolvedValue({ data: {}, error: null });
 
         await authService.recordConsent('2025-01');
 
+        // After type regeneration, optional params use undefined (not null)
+        // Supabase RPC treats both as "not provided"
         expect(mockRpc).toHaveBeenCalledWith('record_user_consent', {
           p_consent_type: 'terms_and_privacy',
           p_policy_version: '2025-01',
-          p_ip_address: null,
-          p_user_agent: null,
+          p_ip_address: undefined,
+          p_user_agent: undefined,
         });
       });
 

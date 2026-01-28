@@ -174,7 +174,7 @@ export default function HomePage() {
               {t('marketing.cards.forCoaches')}
             </p>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              <span className="text-primary">MatchOps Local</span>
+              <span className="text-primary">MatchOps</span>
             </h1>
             <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
               {t('marketing.taglines.power')}

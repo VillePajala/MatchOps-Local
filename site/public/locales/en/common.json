@@ -67,12 +67,12 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps Local - Local-First Soccer Coaching App",
+      "title": "MatchOps - Local-First Soccer Coaching App",
       "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics. No signup required. Your data stays private on your device."
     },
     "technical": {
-      "title": "Technical Specifications - MatchOps Local",
-      "description": "Technical details of MatchOps Local: Progressive Web App built with React 19, Next.js 15. Offline-first, local-first architecture with data stored on your device."
+      "title": "Technical Specifications - MatchOps",
+      "description": "Technical details of MatchOps: Progressive Web App built with React 19, Next.js 15. Offline-first, local-first architecture with data stored on your device."
     }
   },
   "footer": {
@@ -218,13 +218,13 @@
   },
   "info": {
     "whatIsThis": {
-      "title": "What is MatchOps Local?",
-      "description": "MatchOps Local replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup and positions before the game. During the match, track substitution intervals, log goals and assists with a tap. Your statistics build automatically—game results, scoring leaders, season trends.",
+      "title": "What is MatchOps?",
+      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup and positions before the game. During the match, track substitution intervals, log goals and assists with a tap. Your statistics build automatically—game results, scoring leaders, season trends.",
       "oneLine": "No signup required. Install once and your data stays private on your device. Works anywhere, even without internet."
     },
     "whoIsThisFor": {
       "title": "Who Is This For?",
-      "description": "MatchOps Local is for soccer coaches at any level—from recreational to competitive—who want a simple way to organize games without complex team management software or monthly subscriptions.",
+      "description": "MatchOps is for soccer coaches at any level—from recreational to competitive—who want a simple way to organize games without complex team management software or monthly subscriptions.",
       "item1": "Youth team coaches (U8–U19)",
       "item2": "Recreational and competitive team coaches",
       "item3": "Coaches who value privacy and own their data"
@@ -265,7 +265,7 @@
     },
     "technical": {
       "title": "Technical Details",
-      "desc1": "MatchOps Local is a Progressive Web App (PWA). This means it installs like a native app but runs in your web browser.",
+      "desc1": "MatchOps is a Progressive Web App (PWA). This means it installs like a native app but runs in your web browser.",
       "desc2": "All data is stored locally on your device. No internet connection is required to use the app.",
       "desc3": "Compatible with iOS Safari, Android Chrome, and all major desktop browsers."
     },

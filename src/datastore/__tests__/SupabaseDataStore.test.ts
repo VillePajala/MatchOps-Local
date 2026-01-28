@@ -17,6 +17,7 @@ import { SupabaseDataStore } from '../SupabaseDataStore';
 import {
   AlreadyExistsError,
   AuthError,
+  ConflictError,
   NetworkError,
   NotInitializedError,
   ValidationError,
@@ -2345,6 +2346,281 @@ describe('SupabaseDataStore', () => {
         await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(
           /temporarily unavailable/i
         );
+      });
+
+      /**
+       * Issue #330: Optimistic locking - ConflictError on version mismatch
+       * @critical - Prevents concurrent modification corruption
+       */
+      it('should throw ConflictError when RPC returns serialization_failure (40001)', async () => {
+        // Simulate conflict error from RPC (version mismatch)
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: {
+            code: '40001',
+            message: 'Conflict: game was modified by another session (expected version 5, found 6)',
+          },
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await expect(dataStore.saveGame('game_123', game as unknown as AppState)).rejects.toThrow(ConflictError);
+      });
+
+      /**
+       * Issue #330: Optimistic locking - ConflictError message
+       * @critical - User-friendly error message for conflict
+       */
+      it('should provide user-friendly message on conflict', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: null,
+          error: {
+            code: '40001',
+            message: 'Conflict: game was modified by another session',
+          },
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await expect(dataStore.saveGame('game_conflict', game as unknown as AppState)).rejects.toThrow(
+          /modified in another tab or device/i
+        );
+      });
+
+      /**
+       * Issue #330: Optimistic locking - null version for new games
+       * @critical - New games should skip version check
+       */
+      it('should pass null p_expected_version for new games', async () => {
+        // Don't load game first - no cached version
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+          data: 1,  // Version 1 for new game
+          error: null,
+        });
+
+        const game = {
+          teamName: 'New Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        await dataStore.saveGame('new_game_123', game as unknown as AppState);
+
+        // Verify p_expected_version was passed (null for new game without cached version)
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+          'save_game_with_relations',
+          expect.objectContaining({
+            p_expected_version: null,
+          })
+        );
+      });
+
+      /**
+       * Issue #330: Optimistic locking - version cache update after save
+       * @critical - Ensures subsequent saves use correct version
+       */
+      it('should update version cache after successful save', async () => {
+        // First save returns version 5
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: 5,
+          error: null,
+        });
+
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        // First save - no cached version yet
+        await dataStore.saveGame('game_version_test', game as unknown as AppState);
+
+        // Second save returns version 6
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: 6,
+          error: null,
+        });
+
+        // Second save - should use cached version 5 from first save
+        await dataStore.saveGame('game_version_test', game as unknown as AppState);
+
+        // Verify second call used version 5 (cached from first save's return value)
+        const calls = (mockSupabaseClient.rpc as jest.Mock).mock.calls;
+        expect(calls[1][1]).toMatchObject({
+          p_expected_version: 5,
+        });
+      });
+
+      /**
+       * Issue #330: Optimistic locking - cache invalidation on conflict
+       * @critical - Ensures stale cache is cleared after conflict
+       */
+      it('should clear version cache when conflict detected', async () => {
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        // First save succeeds, caches version 3
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: 3,
+          error: null,
+        });
+        await dataStore.saveGame('game_conflict_test', game as unknown as AppState);
+
+        // Second save fails with conflict (40001)
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: null,
+          error: { message: 'Version conflict', code: '40001' },
+        });
+        await expect(
+          dataStore.saveGame('game_conflict_test', game as unknown as AppState)
+        ).rejects.toThrow(ConflictError);
+
+        // Third save should pass null (cache was cleared on conflict)
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+          data: 4,
+          error: null,
+        });
+        await dataStore.saveGame('game_conflict_test', game as unknown as AppState);
+
+        // Verify third call passed null for p_expected_version
+        const calls = (mockSupabaseClient.rpc as jest.Mock).mock.calls;
+        expect(calls[2][1]).toMatchObject({
+          p_expected_version: null,
+        });
+      });
+
+      /**
+       * Issue #330: Optimistic locking - cache must stay current across saves
+       * @critical - Ensures subsequent saves use correct version from previous save
+       *
+       * Scenario: User saves game twice in a row without reloading
+       * 1. First save returns version 1 (new game)
+       * 2. Second save should use version 1 (from first save's return)
+       * 3. Second save returns version 2
+       * 4. Third save should use version 2
+       */
+      it('should track version across multiple consecutive saves', async () => {
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          assessments: {},
+        };
+
+        // First save - new game, returns version 1
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: 1, error: null });
+        await dataStore.saveGame('game_multi_save', game as unknown as AppState);
+
+        // Second save - should use version 1, returns version 2
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: 2, error: null });
+        await dataStore.saveGame('game_multi_save', game as unknown as AppState);
+
+        // Third save - should use version 2, returns version 3
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: 3, error: null });
+        await dataStore.saveGame('game_multi_save', game as unknown as AppState);
+
+        const calls = (mockSupabaseClient.rpc as jest.Mock).mock.calls;
+
+        // First call: null (no cached version for new game)
+        expect(calls[0][1]).toMatchObject({ p_expected_version: null });
+        // Second call: 1 (from first save's return)
+        expect(calls[1][1]).toMatchObject({ p_expected_version: 1 });
+        // Third call: 2 (from second save's return)
+        expect(calls[2][1]).toMatchObject({ p_expected_version: 2 });
       });
     });
 
