@@ -276,9 +276,12 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     // either completes - without this check, the last one to finish would
     // overwrite the singleton with potentially wrong user's data.
     if (dataStoreInstance && dataStoreCreatedForUserId !== initUserId) {
-      log.warn(`[factory] Concurrent initialization conflict detected: ` +
+      // SECURITY: Log as error for monitoring - this indicates a potential race condition
+      // attack or bug in calling code. The issue is mitigated (no data leak) but should
+      // be investigated if it occurs frequently.
+      log.error(`[factory] SECURITY: Concurrent initialization conflict detected: ` +
         `initialized for '${initUserId}' but singleton is for '${dataStoreCreatedForUserId}'. ` +
-        `Closing duplicate instance.`);
+        `Closing duplicate instance to prevent cross-user data access.`);
       await instance.close();
       // Close the user adapter we created to prevent resource leak
       if (initUserId) {
