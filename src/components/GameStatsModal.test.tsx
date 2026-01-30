@@ -47,10 +47,14 @@ beforeAll(() => {
 jest.mock('@/utils/seasons');
 jest.mock('@/utils/tournaments');
 jest.mock('@/utils/appSettings');
+jest.mock('@/utils/teams');
+
+import * as teamsUtils from '@/utils/teams';
 
 const mockGetSeasons = seasonsUtils.getSeasons as jest.Mock;
 const mockGetTournaments = tournamentsUtils.getTournaments as jest.Mock;
 const mockGetAppSettings = appSettingsUtils.getAppSettings as jest.Mock;
+const mockGetTeams = teamsUtils.getTeams as jest.Mock;
 
 // Sample Data
 const samplePlayers: Player[] = [
@@ -193,6 +197,7 @@ describe('GameStatsModal', () => {
   beforeEach(async () => {
     mockGetSeasons.mockResolvedValue(sampleSeasonsData);
     mockGetTournaments.mockResolvedValue(sampleTournamentsData);
+    mockGetTeams.mockResolvedValue([]); // Mock teams to prevent IndexedDB access
     mockGetAppSettings.mockResolvedValue({
       currentGameId: null,
       lastHomeTeamName: '',

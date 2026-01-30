@@ -259,6 +259,31 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       log.warn('[factory] Instance not initialized after initialize() - retrying');
       await instance.initialize();
     }
+
+    // CRITICAL: Double-check for concurrent initialization race condition
+    // If another concurrent call finished first with a DIFFERENT userId,
+    // we must close our instance to prevent data leakage between users.
+    // This can happen if User A and User B both call getDataStore() before
+    // either completes - without this check, the last one to finish would
+    // overwrite the singleton with potentially wrong user's data.
+    if (dataStoreInstance && dataStoreCreatedForUserId !== initUserId) {
+      log.warn(`[factory] Concurrent initialization conflict detected: ` +
+        `initialized for '${initUserId}' but singleton is for '${dataStoreCreatedForUserId}'. ` +
+        `Closing duplicate instance.`);
+      await instance.close();
+      // Close the user adapter we created to prevent resource leak
+      if (initUserId) {
+        try {
+          const { closeUserStorageAdapter } = await import('@/utils/storage');
+          await closeUserStorageAdapter(initUserId);
+        } catch {
+          // Best effort cleanup - ignore errors
+        }
+      }
+      // Return the existing singleton (caller should retry with correct userId if needed)
+      return dataStoreInstance;
+    }
+
     dataStoreInstance = instance;
     dataStoreCreatedForMode = mode;
     dataStoreCreatedForUserId = initUserId;

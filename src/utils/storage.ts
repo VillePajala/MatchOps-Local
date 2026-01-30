@@ -119,25 +119,26 @@ const MAX_USER_ADAPTERS = 5;
 
 /**
  * Cache for user-scoped storage adapters.
- * Key: userId, Value: { adapter, createdAt }
+ * Key: userId, Value: { promise, lastAccessedAt }
+ * lastAccessedAt is updated on every cache hit for true LRU eviction.
  */
 const userAdapterCache = new Map<string, {
   promise: Promise<StorageAdapter>;
-  createdAt: number;
+  lastAccessedAt: number;
 }>();
 
 /**
- * Evict oldest user adapters if cache exceeds MAX_USER_ADAPTERS.
- * Uses createdAt timestamp as LRU proxy.
+ * Evict least-recently-used user adapters if cache exceeds MAX_USER_ADAPTERS.
+ * Uses lastAccessedAt timestamp for true LRU eviction.
  */
 async function evictOldestUserAdapters(): Promise<void> {
   if (userAdapterCache.size <= MAX_USER_ADAPTERS) {
     return;
   }
 
-  // Sort entries by createdAt (oldest first)
+  // Sort entries by lastAccessedAt (least recently accessed first)
   const entries = Array.from(userAdapterCache.entries())
-    .sort((a, b) => a[1].createdAt - b[1].createdAt);
+    .sort((a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt);
 
   // Evict oldest entries until we're at or below the limit
   const toEvict = entries.slice(0, userAdapterCache.size - MAX_USER_ADAPTERS);
@@ -191,7 +192,9 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
 
   // Check for cached adapter (fast path)
   const cached = userAdapterCache.get(trimmedUserId);
-  if (cached && !isUserAdapterExpired(cached.createdAt)) {
+  if (cached && !isUserAdapterExpired(cached.lastAccessedAt)) {
+    // Update lastAccessedAt for true LRU eviction
+    cached.lastAccessedAt = Date.now();
     return cached.promise;
   }
 
@@ -201,7 +204,9 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
 
     // Double-check after acquiring mutex
     const cachedAfterLock = userAdapterCache.get(trimmedUserId);
-    if (cachedAfterLock && !isUserAdapterExpired(cachedAfterLock.createdAt)) {
+    if (cachedAfterLock && !isUserAdapterExpired(cachedAfterLock.lastAccessedAt)) {
+      // Update lastAccessedAt for true LRU eviction
+      cachedAfterLock.lastAccessedAt = Date.now();
       return cachedAfterLock.promise;
     }
 
@@ -221,11 +226,11 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
     }
 
     // Create new adapter
-    const createdAt = Date.now();
+    const lastAccessedAt = Date.now();
     const promise = createUserAdapter(trimmedUserId);
 
     // Cache the promise (not the resolved adapter) to handle concurrent requests
-    userAdapterCache.set(trimmedUserId, { promise, createdAt });
+    userAdapterCache.set(trimmedUserId, { promise, lastAccessedAt });
 
     // Evict oldest adapters if cache is full (LRU eviction)
     // Do this asynchronously to not block the current request
