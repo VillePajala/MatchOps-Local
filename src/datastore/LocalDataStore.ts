@@ -358,8 +358,26 @@ export class LocalDataStore implements DataStore {
    * @param userId - Optional user ID for user-scoped storage.
    *                 If provided, uses database `matchops_user_{userId}`.
    *                 If omitted, uses legacy global database `MatchOpsLocal`.
+   * @throws {ValidationError} If userId is provided but invalid (empty, whitespace-only,
+   *                           too long, or contains invalid characters).
    */
   constructor(userId?: string) {
+    // Validate userId early if provided (fail fast)
+    // This catches invalid userIds at construction time rather than deferring to initialize()
+    if (userId !== undefined) {
+      // Import validation is deferred, so we do basic checks here
+      // Full validation (including MAX_USER_ID_LENGTH) happens in getUserDatabaseName()
+      const trimmed = userId.trim();
+      if (trimmed.length === 0) {
+        throw new ValidationError('userId cannot be empty or whitespace-only');
+      }
+      // Check for obviously invalid characters early
+      if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+        throw new ValidationError(
+          'userId contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.'
+        );
+      }
+    }
     this.userId = userId;
   }
 

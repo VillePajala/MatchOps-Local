@@ -148,6 +148,35 @@ describe('LocalDataStore', () => {
       const store = new LocalDataStore();
       await expect(store.getPlayers()).rejects.toThrow(NotInitializedError);
     });
+
+    describe('Constructor userId Validation', () => {
+      it('should accept undefined userId for anonymous mode', () => {
+        expect(() => new LocalDataStore()).not.toThrow();
+        expect(() => new LocalDataStore(undefined)).not.toThrow();
+      });
+
+      it('should accept valid userId', () => {
+        expect(() => new LocalDataStore('user-123')).not.toThrow();
+        expect(() => new LocalDataStore('USER_456')).not.toThrow();
+        expect(() => new LocalDataStore('abc123')).not.toThrow();
+      });
+
+      it('should throw ValidationError on empty userId', () => {
+        expect(() => new LocalDataStore('')).toThrow(ValidationError);
+      });
+
+      it('should throw ValidationError on whitespace-only userId', () => {
+        expect(() => new LocalDataStore('   ')).toThrow(ValidationError);
+        expect(() => new LocalDataStore('\t\n')).toThrow(ValidationError);
+      });
+
+      it('should throw ValidationError on userId with invalid characters', () => {
+        expect(() => new LocalDataStore('user@email.com')).toThrow(ValidationError);
+        expect(() => new LocalDataStore('user/path')).toThrow(ValidationError);
+        expect(() => new LocalDataStore('user..name')).toThrow(ValidationError);
+        expect(() => new LocalDataStore('user name')).toThrow(ValidationError);
+      });
+    });
   });
 
   // ============================================================

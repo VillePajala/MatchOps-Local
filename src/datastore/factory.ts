@@ -176,10 +176,13 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   // This handles user sign-in/sign-out transitions by:
   // 1. Comparing the requested userId with the userId used when creating the current instance
   // 2. If different, closing the old instance (which also closes the user's IndexedDB adapter)
-  // 3. Allowing a new instance to be created for the new user below
+  // 3. Clearing any pending init promises to prevent stale promises from completing
+  // 4. Allowing a new instance to be created for the new user below
   // This check only runs when an instance EXISTS - if null, we skip to creation
   if (dataStoreInstance && dataStoreCreatedForUserId !== userId) {
     log.info(`[factory] User changed from ${dataStoreCreatedForUserId || '(anonymous)'} to ${userId || '(anonymous)'} - resetting DataStore`);
+    // Clear pending init promises to prevent stale completions from interfering
+    dataStoreInitPromises.clear();
     await closeDataStoreInternal('user change');
   }
 
@@ -271,17 +274,15 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
 
     // CRITICAL: Double-check for concurrent initialization race condition
     // If another concurrent call finished first with a DIFFERENT userId,
-    // we must close our instance to prevent data leakage between users.
+    // we must NOT return that instance as it would leak data between users.
     // This can happen if User A and User B both call getDataStore() before
-    // either completes - without this check, the last one to finish would
-    // overwrite the singleton with potentially wrong user's data.
+    // either completes.
     if (dataStoreInstance && dataStoreCreatedForUserId !== initUserId) {
       // SECURITY: Log as error for monitoring - this indicates a potential race condition
-      // attack or bug in calling code. The issue is mitigated (no data leak) but should
-      // be investigated if it occurs frequently.
+      // attack or bug in calling code.
       log.error(`[factory] SECURITY: Concurrent initialization conflict detected: ` +
         `initialized for '${initUserId}' but singleton is for '${dataStoreCreatedForUserId}'. ` +
-        `Closing duplicate instance to prevent cross-user data access.`);
+        `Rejecting to prevent cross-user data access.`);
       await instance.close();
       // Close the user adapter we created to prevent resource leak
       if (initUserId) {
@@ -292,8 +293,12 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           // Best effort cleanup - ignore errors
         }
       }
-      // Return the existing singleton (caller should retry with correct userId if needed)
-      return dataStoreInstance;
+      // SECURITY FIX: Throw error instead of returning wrong user's instance
+      // Caller must retry - returning dataStoreInstance would leak User A's data to User B
+      throw new Error(
+        `DataStore initialization conflict: Another user's DataStore was created concurrently. ` +
+        `Please retry the operation.`
+      );
     }
 
     dataStoreInstance = instance;
@@ -402,77 +407,79 @@ export async function getAuthService(): Promise<AuthService> {
  * @internal
  */
 export async function resetFactory(): Promise<void> {
-  // If any initialization is in-flight, await all to avoid leaving initialized instances around
-  // after clearing the promise references.
-  if (dataStoreInitPromises.size > 0) {
-    const promises = Array.from(dataStoreInitPromises.values());
-    for (const promise of promises) {
-      try {
-        await promise;
-      } catch (e) {
-        // Best-effort cleanup: log but don't throw
-        const msg = e instanceof Error ? e.message : String(e);
-        const err = e instanceof Error ? e : new Error(msg);
-        log.warn(`[factory] Error awaiting dataStoreInitPromise during reset: ${msg}`, err);
-      }
-    }
-    dataStoreInitPromises.clear();
-  }
+  // IMPORTANT: Capture and clear tracking variables FIRST to prevent
+  // inconsistent state if cleanup operations fail or take a long time.
+  // This ensures new getDataStore() calls don't use stale state.
+  const pendingPromises = Array.from(dataStoreInitPromises.values());
+  const wasCloudMode = dataStoreCreatedForMode === 'cloud';
+  const oldDataStoreInstance = dataStoreInstance;
+  const oldAuthServiceInitPromise = authServiceInitPromise;
 
-  // Reset sync engine if cloud mode was active (prevents memory leaks in tests)
-  if (dataStoreCreatedForMode === 'cloud') {
-    try {
-      const { resetSyncEngine } = await import('@/sync');
-      await resetSyncEngine();
-    } catch (e) {
-      // Best-effort cleanup: log but don't throw (engine may not be initialized)
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error resetting sync engine during factory reset: ${msg}`, err);
-    }
-  }
-
-  if (dataStoreInstance) {
-    try {
-      await dataStoreInstance.close();
-    } catch (e) {
-      // Best-effort cleanup: log but don't throw
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error closing DataStore during reset: ${msg}`, err);
-    }
-    dataStoreInstance = null;
-  }
-
-  // Close all user storage adapters to release IndexedDB connections
-  // This prevents memory leaks in tests and when switching between users
-  try {
-    const { closeAllUserStorageAdapters } = await import('@/utils/storage');
-    await closeAllUserStorageAdapters();
-  } catch (e) {
-    // Best-effort cleanup: log but don't throw
-    const msg = e instanceof Error ? e.message : String(e);
-    const err = e instanceof Error ? e : new Error(msg);
-    log.warn(`[factory] Error closing user storage adapters during reset: ${msg}`, err);
-  }
-
-  if (authServiceInitPromise) {
-    try {
-      await authServiceInitPromise;
-    } catch (e) {
-      // Best-effort cleanup: log but don't throw
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error awaiting authServiceInitPromise during reset: ${msg}`, err);
-    }
-  }
-
+  // Clear all tracking state immediately
+  dataStoreInstance = null;
   authServiceInstance = null;
   dataStoreInitPromises.clear();
   authServiceInitPromise = null;
   dataStoreCreatedForMode = null;
   dataStoreCreatedForUserId = undefined;
   authServiceCreatedWithCloudAvailable = null;
+
+  // Now perform cleanup operations (best-effort, failures logged but not thrown)
+
+  // Await any in-flight initialization promises
+  for (const promise of pendingPromises) {
+    try {
+      await promise;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error awaiting dataStoreInitPromise during reset: ${msg}`, err);
+    }
+  }
+
+  // Reset sync engine if cloud mode was active (prevents memory leaks in tests)
+  if (wasCloudMode) {
+    try {
+      const { resetSyncEngine } = await import('@/sync');
+      await resetSyncEngine();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error resetting sync engine during factory reset: ${msg}`, err);
+    }
+  }
+
+  // Close the old DataStore instance
+  if (oldDataStoreInstance) {
+    try {
+      await oldDataStoreInstance.close();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error closing DataStore during reset: ${msg}`, err);
+    }
+  }
+
+  // Close all user storage adapters to release IndexedDB connections
+  try {
+    const { closeAllUserStorageAdapters } = await import('@/utils/storage');
+    await closeAllUserStorageAdapters();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const err = e instanceof Error ? e : new Error(msg);
+    log.warn(`[factory] Error closing user storage adapters during reset: ${msg}`, err);
+  }
+
+  // Await auth service init promise
+  if (oldAuthServiceInitPromise) {
+    try {
+      await oldAuthServiceInitPromise;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error awaiting authServiceInitPromise during reset: ${msg}`, err);
+    }
+  }
 }
 
 /**
@@ -499,6 +506,11 @@ export function isAuthServiceInitialized(): boolean {
  * Call this when the user signs out to ensure their data is properly
  * cleaned up before another user can sign in. This closes the user's
  * IndexedDB connection and clears the singleton.
+ *
+ * @todo Consider adding `force?: boolean` parameter to skip pending operation
+ * checks and close immediately. Currently, the function warns about pending
+ * sync operations but still closes. A force parameter would make the intent
+ * explicit and could be used for emergency cleanup scenarios.
  *
  * @example
  * ```typescript

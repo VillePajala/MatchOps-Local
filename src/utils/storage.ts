@@ -114,6 +114,12 @@ const adapterCreationMutex = new MutexManager({
  * Maximum number of user adapters to keep in cache.
  * Prevents unbounded memory growth in multi-user scenarios.
  * When exceeded, oldest adapters are evicted (LRU-style).
+ *
+ * The value of 5 was chosen based on:
+ * - Typical usage: 1-2 users (primary user + maybe a test account)
+ * - Test scenarios: May create 3-4 user contexts in quick succession
+ * - Memory overhead: ~1-2MB per IndexedDB connection is acceptable
+ * - 5 provides buffer for edge cases without excessive memory usage
  */
 const MAX_USER_ADAPTERS = 5;
 
@@ -136,6 +142,12 @@ const ADAPTER_CLOSE_TIMEOUT_MS = 5000;
  *
  * Close operations have a 5-second timeout to prevent blocking new adapter
  * creation if an adapter's close() hangs (e.g., IndexedDB unresponsive).
+ *
+ * Note: If close() times out, the connection may remain open until garbage
+ * collected. This is acceptable because:
+ * 1. IndexedDB connections are automatically closed when the page unloads
+ * 2. Orphaned connections have no references and will be GC'd eventually
+ * 3. The timeout prevents blocking, which is more critical than perfect cleanup
  */
 async function evictOldestUserAdapters(): Promise<void> {
   if (userAdapterCache.size <= MAX_USER_ADAPTERS) {
@@ -202,6 +214,9 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
   const trimmedUserId = userId.trim();
 
   // Check for cached adapter (fast path)
+  // Note: lastAccessedAt update outside mutex is intentionally racy - both concurrent
+  // updates write nearly identical timestamps, and this fast path avoids mutex overhead
+  // for the common case of accessing an already-cached adapter.
   const cached = userAdapterCache.get(trimmedUserId);
   if (cached && !isUserAdapterExpired(cached.lastAccessedAt)) {
     // Update lastAccessedAt for true LRU eviction
