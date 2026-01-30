@@ -1,6 +1,6 @@
 # Terms of Service for MatchOps
 
-**Last Updated**: December 2025
+**Last Updated**: January 2026
 
 > **Hosted URL**: https://matchops.com/terms (use this URL for Play Store submission)
 
@@ -39,7 +39,17 @@ You are responsible for:
 
 ## Data and Privacy
 
-Your data is stored locally on your device. We do not have access to your game data, player information, or statistics. See our [Privacy Policy](/privacy-policy) for details on what limited data we may collect (error reports, license validation).
+Your data is stored locally on your device (local mode) or in our secure cloud database (cloud mode with subscription). See our [Privacy Policy](/privacy-policy) for details on data handling, security, and what limited data we may collect (error reports, license validation, consent records).
+
+### Data Security Acknowledgment
+By using MatchOps, you acknowledge that:
+- **Local mode**: Data is stored in your browser's IndexedDB without additional encryption beyond what your device provides
+- **Device security**: Your device's access controls (screen lock, password, biometrics) are your primary protection for local data
+- **Backup files**: Exported backup files contain unencrypted data and should be stored securely
+- **Personnel data**: If you store personnel contact information (email, phone), it follows the same security model as other app data
+- **Your responsibility**: You are responsible for protecting access to your device and backup files
+
+This is industry standard for local-first applications. For additional security, enable cloud sync which provides server-side encryption and row-level security.
 
 ## Intellectual Property
 

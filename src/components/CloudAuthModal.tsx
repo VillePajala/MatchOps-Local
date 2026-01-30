@@ -99,6 +99,8 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   // SECURITY: Ref for synchronous deletion tracking to prevent race condition
   // React state updates are async, so rapid clicks could both pass the isDeleting check
@@ -191,6 +193,42 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       setIsAuthenticating(false);
     }
   }, [email, t]);
+
+  /**
+   * Handle forgot password - send reset email
+   */
+  const handleForgotPassword = useCallback(async () => {
+    if (isSendingReset) return;
+
+    setIsSendingReset(true);
+    setError(null);
+
+    try {
+      // Dynamic import to avoid bundling Supabase in local mode
+      let SupabaseAuthService: SupabaseAuthServiceType;
+      try {
+        const authModule = await import('@/auth/SupabaseAuthService');
+        SupabaseAuthService = authModule.SupabaseAuthService as SupabaseAuthServiceType;
+      } catch (importErr) {
+        logger.error('[CloudAuthModal] Failed to load auth module for password reset:', importErr);
+        throw new Error(t('cloudAuth.errors.moduleLoadFailed', 'Failed to load cloud services. Please check your connection and try again.'));
+      }
+
+      const authService = new SupabaseAuthService();
+      await authService.initialize();
+      await authService.resetPassword(email);
+
+      // Show success message
+      setResetEmailSent(true);
+      logger.info('[CloudAuthModal] Password reset email sent');
+    } catch (err) {
+      logger.error('[CloudAuthModal] Password reset failed:', err);
+      // SECURITY: Sanitize error message
+      setError(sanitizeErrorMessage(err));
+    } finally {
+      setIsSendingReset(false);
+    }
+  }, [email, isSendingReset, t]);
 
   /**
    * Handle delete confirmation
@@ -349,7 +387,30 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
                 autoComplete="current-password"
                 autoFocus
               />
+              {/* Forgot password link */}
+              <div className="mt-2 text-right">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isSendingReset || isAuthenticating}
+                  className="text-sm text-sky-400 hover:text-sky-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSendingReset
+                    ? t('cloudAuth.sendingReset', 'Sending...')
+                    : t('cloudAuth.forgotPassword', 'Forgot password?')}
+                </button>
+              </div>
             </div>
+
+            {/* Password reset confirmation */}
+            {resetEmailSent && (
+              <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-green-900/30 border border-green-700">
+                <HiOutlineCheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
+                <p className="text-sm text-green-300">
+                  {t('cloudAuth.resetEmailSent', 'Password reset email sent. Check your inbox and try again.')}
+                </p>
+              </div>
+            )}
 
             {/* Error message */}
             {error && (

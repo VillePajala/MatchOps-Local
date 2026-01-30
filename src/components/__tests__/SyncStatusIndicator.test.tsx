@@ -73,6 +73,7 @@ describe('SyncStatusIndicator', () => {
     syncNow: jest.fn(),
     retryFailed: jest.fn(),
     clearFailed: jest.fn(),
+    forceRetryAll: jest.fn(),
   };
 
   // Default subscription state (active subscription)

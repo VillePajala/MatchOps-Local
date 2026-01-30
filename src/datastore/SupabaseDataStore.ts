@@ -48,6 +48,7 @@ import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 import logger from '@/utils/logger';
+import { setStorageItem, getStorageItem, removeStorageItem, getAllStorageData } from '@/utils/storage';
 import * as Sentry from '@sentry/nextjs';
 import { withRetry, throwIfTransient, TransientSupabaseError, type RetryConfig } from '@/datastore/supabase/retry';
 
@@ -3251,7 +3252,7 @@ export class SupabaseDataStore implements DataStore {
             timestamp: new Date().toISOString(),
             expectedVersion,
           };
-          localStorage.setItem(backupKey, JSON.stringify(backup));
+          await setStorageItem(backupKey, JSON.stringify(backup));
           logger.info('[SupabaseDataStore] Conflict backup saved for recovery', { gameId: id });
         } catch (backupErr) {
           // Backup failure is non-critical - log but continue with conflict handling
@@ -3928,54 +3929,49 @@ export class SupabaseDataStore implements DataStore {
       error.code === '42501' ||
       errorMessage.includes('permission denied');
 
-    if (isNetworkLike || (!isMissingRpc && !isPermissionIssue)) {
+    // For network-like errors, use standard error classification
+    if (isNetworkLike) {
       this.classifyAndThrowError(error, 'Failed to clear user data');
     }
 
-    // Fallback: manual per-table deletion (non-atomic) if RPC missing/blocked
-    logger.warn('[SupabaseDataStore] clear_all_user_data RPC failed, falling back to manual deletes', {
-      code: error.code,
-      message: error.message,
-    });
-
-    const userId = await this.getUserId();
-    const tablesToClear = [
-      'game_events',
-      'game_players',
-      'game_tactical_data',
-      'player_assessments',
-      'games',
-      'player_adjustments',
-      'team_players',
-      'teams',
-      'tournaments',
-      'seasons',
-      'personnel',
-      'players',
-      'warmup_plans',
-      'user_settings',
-    ] as const;
-
-    for (const table of tablesToClear) {
-      const { error: deleteError } = await client
-        .from(table)
-        .delete()
-        .eq('user_id', userId);
-
-      if (deleteError) {
-        this.classifyAndThrowError(deleteError, `Failed to clear ${table}`);
-      }
+    // For missing RPC or permission issues, throw NetworkError with clear message
+    // NO FALLBACK: Non-atomic deletion risks leaving database in inconsistent state
+    // The RPC must be deployed and accessible for this operation to succeed
+    // See Issue #332 for rationale
+    if (isMissingRpc) {
+      logger.error('[SupabaseDataStore] clear_all_user_data RPC not available', {
+        code: error.code,
+        message: error.message,
+      });
+      throw new NetworkError(
+        'Cloud data deletion service is temporarily unavailable. Please try again later or contact support.'
+      );
     }
 
-    // Clear local caches
-    this.clearUserCaches();
+    if (isPermissionIssue) {
+      logger.error('[SupabaseDataStore] clear_all_user_data RPC permission denied', {
+        code: error.code,
+        message: error.message,
+      });
+      throw new NetworkError(
+        'Permission denied while clearing cloud data. Please sign out and sign in again.'
+      );
+    }
 
-    logger.info('[SupabaseDataStore] All user data cleared from cloud (manual fallback)');
+    // Any other error - use standard classification
+    this.classifyAndThrowError(error, 'Failed to clear user data');
   }
 
   // ==========================================================================
   // CONFLICT BACKUP UTILITIES (DATA SAFETY)
   // ==========================================================================
+
+  // ===========================================================================
+  // CONFLICT BACKUP METHODS (Static)
+  //
+  // These methods use IndexedDB (via storage helpers) to store conflict backups.
+  // Backups are transient/ephemeral - cleared after recovery or manual clear.
+  // ===========================================================================
 
   /**
    * Get all conflict backups for games that couldn't be saved due to version conflicts.
@@ -3983,12 +3979,12 @@ export class SupabaseDataStore implements DataStore {
    *
    * @returns Array of conflict backups with game data and metadata
    */
-  static getConflictBackups(): Array<{
+  static async getConflictBackups(): Promise<Array<{
     gameId: string;
     gameData: AppState;
     timestamp: string;
     expectedVersion: number | null;
-  }> {
+  }>> {
     const backups: Array<{
       gameId: string;
       gameData: AppState;
@@ -3997,11 +3993,11 @@ export class SupabaseDataStore implements DataStore {
     }> = [];
 
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('conflict_backup_')) {
+      const allBackupData = await getAllStorageData({ keyPrefix: 'conflict_backup_' });
+      for (const [_key, value] of Object.entries(allBackupData)) {
+        if (value) {
           try {
-            const backup = JSON.parse(localStorage.getItem(key) || '');
+            const backup = JSON.parse(value);
             if (backup.gameId && backup.gameData && backup.timestamp) {
               backups.push(backup);
             }
@@ -4022,9 +4018,9 @@ export class SupabaseDataStore implements DataStore {
    *
    * @param gameId - The game ID whose backup should be cleared
    */
-  static clearConflictBackup(gameId: string): void {
+  static async clearConflictBackup(gameId: string): Promise<void> {
     try {
-      localStorage.removeItem(`conflict_backup_${gameId}`);
+      await removeStorageItem(`conflict_backup_${gameId}`);
       logger.info('[SupabaseDataStore] Conflict backup cleared', { gameId });
     } catch (err) {
       logger.warn('[SupabaseDataStore] Failed to clear conflict backup:', err);
@@ -4034,17 +4030,12 @@ export class SupabaseDataStore implements DataStore {
   /**
    * Clear all conflict backups.
    */
-  static clearAllConflictBackups(): void {
+  static async clearAllConflictBackups(): Promise<void> {
     try {
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('conflict_backup_')) {
-          keysToRemove.push(key);
-        }
-      }
+      const allBackupData = await getAllStorageData({ keyPrefix: 'conflict_backup_' });
+      const keysToRemove = Object.keys(allBackupData);
       for (const key of keysToRemove) {
-        localStorage.removeItem(key);
+        await removeStorageItem(key);
       }
       logger.info('[SupabaseDataStore] All conflict backups cleared', { count: keysToRemove.length });
     } catch (err) {

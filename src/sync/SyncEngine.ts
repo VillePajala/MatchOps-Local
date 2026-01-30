@@ -407,6 +407,49 @@ export class SyncEngine {
     this.emitStatusChange();
   }
 
+  /**
+   * Force retry ALL stuck operations (both failed and pending in backoff).
+   * Use this when user wants immediate sync without waiting for backoff.
+   */
+  async forceRetryAll(): Promise<void> {
+    // First, get all operations for diagnostics
+    const allOps = await this.queue.getAllOperations();
+    logger.info('[SyncEngine] Force retry all - current queue state', {
+      total: allOps.length,
+      pending: allOps.filter(o => o.status === 'pending').length,
+      syncing: allOps.filter(o => o.status === 'syncing').length,
+      failed: allOps.filter(o => o.status === 'failed').length,
+    });
+
+    // Reset failed operations to pending
+    const failedCount = await this.queue.retryFailed();
+
+    // Reset backoff on pending operations
+    const pendingCount = await this.queue.forceRetryPending();
+
+    logger.info('[SyncEngine] Force retry all complete', {
+      failedReset: failedCount,
+      pendingReset: pendingCount,
+    });
+
+    this.emitStatusChange();
+
+    // Trigger immediate processing
+    if ((failedCount > 0 || pendingCount > 0) && this.isRunning) {
+      this.doProcessQueue().catch((e) => {
+        logger.error('[SyncEngine] Error processing queue after force retry:', e);
+        try {
+          Sentry.captureException(e, {
+            tags: { component: 'SyncEngine', action: 'forceRetryAll-doProcessQueue' },
+            level: 'error',
+          });
+        } catch {
+          // Sentry failure is acceptable
+        }
+      });
+    }
+  }
+
   // ---- Private Methods ----
 
   private handleOnline = (): void => {
@@ -608,6 +651,20 @@ export class SyncEngine {
       }
 
       logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
+
+      // DIAGNOSTIC: Log full operation details to help identify why specific operations fail
+      // This helps diagnose the "one item stuck" issue where most ops succeed but one fails
+      logger.error('[SyncEngine] SYNC FAILURE DETAILS', {
+        operationId: op.id,
+        entityType: op.entityType,
+        entityId: op.entityId,
+        operation: op.operation,
+        retryCount: op.retryCount,
+        timestamp: op.timestamp,
+        error: errorMessage,
+        // Include data size to check for timeout issues with large entities
+        dataSize: op.data ? JSON.stringify(op.data).length : 0,
+      });
 
       try {
         // Mark as failed
