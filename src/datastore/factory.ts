@@ -162,7 +162,11 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   const currentMode = getBackendMode();
 
   // Check if userId changed since the DataStore was created
-  // This handles user sign-in/sign-out transitions
+  // This handles user sign-in/sign-out transitions by:
+  // 1. Comparing the requested userId with the userId used when creating the current instance
+  // 2. If different, closing the old instance (which also closes the user's IndexedDB adapter)
+  // 3. Allowing a new instance to be created for the new user below
+  // This check only runs when an instance EXISTS - if null, we skip to creation
   if (dataStoreInstance && dataStoreCreatedForUserId !== userId) {
     log.info(`[factory] User changed from ${dataStoreCreatedForUserId || '(anonymous)'} to ${userId || '(anonymous)'} - resetting DataStore`);
     await closeDataStoreInternal('user change');
