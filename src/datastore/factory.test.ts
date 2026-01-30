@@ -121,7 +121,7 @@ jest.mock('@/auth/SupabaseAuthService', () => ({
 }));
 
 // Import modules AFTER mocks are set up using require
-const { getDataStore, getAuthService, resetFactory, isDataStoreInitialized, isAuthServiceInitialized } = require('./factory');
+const { getDataStore, getAuthService, resetFactory, isDataStoreInitialized, isAuthServiceInitialized, canCloseDataStore, closeDataStore } = require('./factory');
 const { LocalDataStore } = require('./LocalDataStore');
 const { LocalAuthService } = require('@/auth/LocalAuthService');
 
@@ -821,6 +821,106 @@ describe('Factory', () => {
       expect(errorMessage).toContain('one user at a time');
       expect(errorMessage).toContain(USER_A);
       expect(errorMessage).toContain(USER_B);
+    });
+  });
+
+  // ==========================================================================
+  // DATA LOSS PREVENTION TESTS
+  // ==========================================================================
+  /**
+   * Tests for canCloseDataStore and closeDataStore with force option.
+   * Verifies that:
+   * - canCloseDataStore returns correct status in local mode
+   * - closeDataStore without force succeeds when no pending operations
+   * - closeDataStore with force succeeds even with pending operations (not testable in local mode)
+   * @critical
+   */
+  describe('Data Loss Prevention', () => {
+    afterEach(async () => {
+      await resetFactory();
+    });
+
+    /**
+     * Verify canCloseDataStore returns canClose=true in local mode.
+     * Local mode has no sync operations.
+     * @critical
+     */
+    it('should report canClose=true when no DataStore exists', async () => {
+      const result = await canCloseDataStore();
+      expect(result.canClose).toBe(true);
+      expect(result.pendingCount).toBe(0);
+      expect(result.message).toContain('No DataStore');
+    });
+
+    /**
+     * Verify canCloseDataStore returns canClose=true in local mode.
+     * @critical
+     */
+    it('should report canClose=true in local mode (no sync operations)', async () => {
+      await getDataStore();
+      const result = await canCloseDataStore();
+      expect(result.canClose).toBe(true);
+      expect(result.pendingCount).toBe(0);
+      expect(result.message).toContain('Local mode');
+    });
+
+    /**
+     * Verify closeDataStore works without force when safe.
+     * @critical
+     */
+    it('should close DataStore without force when canClose=true', async () => {
+      await getDataStore();
+      expect(isDataStoreInitialized()).toBe(true);
+
+      // Should succeed without force (local mode has no pending ops)
+      await closeDataStore();
+
+      expect(isDataStoreInitialized()).toBe(false);
+    });
+
+    /**
+     * Verify closeDataStore with force works.
+     * @critical
+     */
+    it('should close DataStore with force option', async () => {
+      await getDataStore();
+      expect(isDataStoreInitialized()).toBe(true);
+
+      await closeDataStore({ force: true });
+
+      expect(isDataStoreInitialized()).toBe(false);
+    });
+
+    /**
+     * Verify closeDataStore is idempotent.
+     */
+    it('should be idempotent (multiple calls without error)', async () => {
+      await getDataStore();
+      await closeDataStore();
+      await closeDataStore(); // Second call should not throw
+      await closeDataStore({ force: true }); // Third call should not throw
+
+      expect(isDataStoreInitialized()).toBe(false);
+    });
+
+    /**
+     * Verify user switch calls closeDataStore internally.
+     * This ensures data loss prevention applies to user switches.
+     */
+    it('should close previous DataStore when switching users', async () => {
+      const USER_X = 'user-x-switch';
+      const USER_Y = 'user-y-switch';
+
+      const dsX = await getDataStore(USER_X);
+      expect(dsX).toBeInstanceOf(LocalDataStore);
+
+      // Switch users (internally closes USER_X's DataStore)
+      const dsY = await getDataStore(USER_Y);
+      expect(dsY).toBeInstanceOf(LocalDataStore);
+      expect(dsX).not.toBe(dsY);
+
+      // Verify closeUserStorageAdapter was called for USER_X
+      expect(mockCloseUserStorageAdapter).toHaveBeenCalledWith(USER_X);
     });
   });
 });

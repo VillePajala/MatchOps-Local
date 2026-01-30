@@ -50,12 +50,101 @@ const dataStoreInitPromises = new Map<string | undefined, Promise<DataStore>>();
 let authServiceInitPromise: Promise<AuthService> | null = null;
 
 /**
+ * Result of checking if DataStore can be safely closed.
+ */
+export interface CloseCheckResult {
+  /** Whether it's safe to close (no pending operations) */
+  canClose: boolean;
+  /** Number of pending sync operations (0 if not in cloud mode) */
+  pendingCount: number;
+  /** Human-readable message explaining the result */
+  message: string;
+}
+
+/**
+ * Check if DataStore can be safely closed without data loss.
+ *
+ * Call this BEFORE user transitions or mode changes to verify no pending
+ * sync operations exist. If `canClose` is false, show user a confirmation
+ * dialog before proceeding.
+ *
+ * @returns Check result with pending operation count
+ *
+ * @example
+ * ```typescript
+ * const check = await canCloseDataStore();
+ * if (!check.canClose) {
+ *   const confirmed = await showConfirmDialog(
+ *     `You have ${check.pendingCount} unsaved changes. Discard them?`
+ *   );
+ *   if (!confirmed) return;
+ * }
+ * await closeDataStore({ force: true });
+ * ```
+ */
+export async function canCloseDataStore(): Promise<CloseCheckResult> {
+  if (!dataStoreInstance) {
+    return { canClose: true, pendingCount: 0, message: 'No DataStore to close' };
+  }
+
+  if (dataStoreCreatedForMode !== 'cloud') {
+    return { canClose: true, pendingCount: 0, message: 'Local mode - no sync operations' };
+  }
+
+  try {
+    const { getSyncEngine } = await import('@/sync');
+    const engine = getSyncEngine();
+    const status = await engine.getStatus();
+
+    if (status.pendingCount > 0) {
+      return {
+        canClose: false,
+        pendingCount: status.pendingCount,
+        message: `${status.pendingCount} pending sync operation(s) will be lost if you proceed`,
+      };
+    }
+
+    return { canClose: true, pendingCount: 0, message: 'All changes synced' };
+  } catch (e) {
+    // Engine not initialized means no pending ops
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('not initialized')) {
+      return { canClose: true, pendingCount: 0, message: 'Sync engine not started' };
+    }
+    // On unexpected errors, be conservative and allow close
+    // (can't determine pending count, so don't block user)
+    log.warn(`[factory] Error checking pending operations: ${msg}`);
+    return { canClose: true, pendingCount: 0, message: 'Unable to check sync status' };
+  }
+}
+
+/**
+ * Options for closing the DataStore.
+ */
+export interface CloseDataStoreOptions {
+  /**
+   * If true, close even if there are pending sync operations (data loss).
+   * If false (default), throws an error when pending operations exist.
+   *
+   * IMPORTANT: Only set to true after showing user confirmation dialog!
+   */
+  force?: boolean;
+}
+
+/**
  * Internal helper to close and clean up the current DataStore instance.
  * Used for user changes and mode changes.
  *
  * @param reason - Description of why the close is happening (for logging)
+ * @param options - Close options (force flag)
+ * @throws Error if pending sync operations exist and force is not true
  */
-async function closeDataStoreInternal(reason: string): Promise<void> {
+async function closeDataStoreInternal(
+  reason: string,
+  options: CloseDataStoreOptions = {}
+): Promise<void> {
+  const { force = false } = options;
+
   if (!dataStoreInstance) {
     return;
   }
@@ -66,34 +155,51 @@ async function closeDataStoreInternal(reason: string): Promise<void> {
   const oldDataStore = dataStoreInstance;
   const oldMode = dataStoreCreatedForMode;
   const oldUserId = dataStoreCreatedForUserId;
+
+  // CRITICAL: Check for pending sync operations BEFORE nulling references
+  // If not forced and there are pending ops, throw to prevent data loss
+  if (oldMode === 'cloud' && !force) {
+    const check = await canCloseDataStore();
+    if (!check.canClose) {
+      throw new Error(
+        `Cannot close DataStore: ${check.pendingCount} pending sync operation(s). ` +
+        `Either wait for sync to complete, or call closeDataStore({ force: true }) ` +
+        `after showing user confirmation.`
+      );
+    }
+  }
+
+  // Now safe to null references
   dataStoreInstance = null;
   dataStoreCreatedForMode = null;
   dataStoreCreatedForUserId = undefined;
 
   // If closing from cloud mode, clean up sync engine and Supabase resources
   if (oldMode === 'cloud') {
-    // Check for pending sync operations
-    try {
-      const { getSyncEngine } = await import('@/sync');
-      const engine = getSyncEngine();
-      const status = await engine.getStatus();
-      if (status.pendingCount > 0) {
-        log.error(`[factory] DATA LOSS: Closing DataStore with ${status.pendingCount} pending sync operations.`);
-      }
-    } catch (e) {
-      // Check for "not initialized" error using SyncError type and code
-      // This is expected during early close (before sync engine was set up)
-      const { SyncError, SyncErrorCode } = await import('@/sync');
-      const isSyncError = e instanceof SyncError;
-      const isNotInitialized = isSyncError && e.code === SyncErrorCode.QUEUE_ERROR &&
-        e.message.includes('not initialized');
+    // Log if force-closing with pending ops (for monitoring/debugging)
+    if (force) {
+      try {
+        const { getSyncEngine } = await import('@/sync');
+        const engine = getSyncEngine();
+        const status = await engine.getStatus();
+        if (status.pendingCount > 0) {
+          log.warn(`[factory] Force-closing DataStore with ${status.pendingCount} pending sync operations (user confirmed data loss).`);
+        }
+      } catch (e) {
+        // Check for "not initialized" error using SyncError type and code
+        // This is expected during early close (before sync engine was set up)
+        const { SyncError, SyncErrorCode } = await import('@/sync');
+        const isSyncError = e instanceof SyncError;
+        const isNotInitialized = isSyncError && e.code === SyncErrorCode.QUEUE_ERROR &&
+          e.message.includes('not initialized');
 
-      if (!isNotInitialized) {
-        const msg = e instanceof Error ? e.message : String(e);
-        const err = e instanceof Error ? e : new Error(msg);
-        log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
+        if (!isNotInitialized) {
+          const msg = e instanceof Error ? e.message : String(e);
+          const err = e instanceof Error ? e : new Error(msg);
+          log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
+        }
+        // "not initialized" is expected - sync engine wasn't started yet, no pending ops
       }
-      // "not initialized" is expected - sync engine wasn't started yet, no pending ops
     }
 
     // Stop the sync engine singleton
@@ -155,6 +261,27 @@ async function closeDataStoreInternal(reason: string): Promise<void> {
  * - If userId is undefined, uses the legacy global database (`MatchOpsLocal`).
  * - When userId changes (user sign-in/sign-out), the DataStore is automatically
  *   closed and re-created for the new user.
+ *
+ * ## User/Mode Transitions and Data Loss Prevention
+ *
+ * When switching users or modes, this function throws an error if there are
+ * pending sync operations. This prevents silent data loss. To handle transitions:
+ *
+ * ```typescript
+ * // Check if safe to switch
+ * const check = await canCloseDataStore();
+ * if (!check.canClose) {
+ *   const confirmed = await showConfirmDialog(
+ *     `You have ${check.pendingCount} unsaved changes. Discard them?`
+ *   );
+ *   if (!confirmed) return; // User cancelled - don't switch
+ *   await closeDataStore({ force: true }); // User confirmed - force close
+ * }
+ * // Now safe to get DataStore for new user
+ * const dataStore = await getDataStore(newUserId);
+ * ```
+ *
+ * @throws Error if transitioning users/modes with pending sync operations
  *
  * ## Implementation Status
  *
@@ -536,20 +663,34 @@ export function isAuthServiceInitialized(): boolean {
  * cleaned up before another user can sign in. This closes the user's
  * IndexedDB connection and clears the singleton.
  *
- * @todo Consider adding `force?: boolean` parameter to skip pending operation
- * checks and close immediately. Currently, the function warns about pending
- * sync operations but still closes. A force parameter would make the intent
- * explicit and could be used for emergency cleanup scenarios.
+ * ## Data Loss Prevention
+ *
+ * By default, this function throws an error if there are pending sync
+ * operations. This prevents silent data loss. To handle user transitions:
+ *
+ * 1. Check if close is safe: `await canCloseDataStore()`
+ * 2. If not safe, show confirmation dialog
+ * 3. If user confirms, close with force: `await closeDataStore({ force: true })`
+ *
+ * @param options - Close options. Set `force: true` to close even with pending operations.
+ * @throws Error if there are pending sync operations and force is not true
  *
  * @example
  * ```typescript
- * // In sign-out handler
+ * // Safe close (throws if pending operations)
  * await closeDataStore();
- * await authService.signOut();
+ *
+ * // Force close after user confirmation
+ * const check = await canCloseDataStore();
+ * if (!check.canClose) {
+ *   const confirmed = confirm(`Discard ${check.pendingCount} pending changes?`);
+ *   if (!confirmed) return;
+ * }
+ * await closeDataStore({ force: true });
  * ```
  */
-export async function closeDataStore(): Promise<void> {
-  await closeDataStoreInternal('explicit close');
+export async function closeDataStore(options?: CloseDataStoreOptions): Promise<void> {
+  await closeDataStoreInternal('explicit close', options);
 }
 
 /**
