@@ -49,6 +49,10 @@ let dataStoreCreatedForUserId: string | undefined = undefined;
 const dataStoreInitPromises = new Map<string | undefined, Promise<DataStore>>();
 let authServiceInitPromise: Promise<AuthService> | null = null;
 
+// Guard flag to prevent getDataStore() calls during resetFactory() cleanup
+// This prevents creating a new instance while the old one is still closing
+let isResetting = false;
+
 /**
  * Result of checking if DataStore can be safely closed.
  */
@@ -328,6 +332,15 @@ async function closeDataStoreInternal(
  * ```
  */
 export async function getDataStore(userId?: string): Promise<DataStore> {
+  // Guard: Block calls during resetFactory() cleanup to prevent race conditions
+  // where a new instance is created while the old one is still closing
+  if (isResetting) {
+    throw new Error(
+      'Cannot get DataStore while factory reset is in progress. ' +
+      'Wait for resetFactory() to complete before calling getDataStore().'
+    );
+  }
+
   const currentMode = getBackendMode();
 
   // Check if userId changed since the DataStore was created
@@ -582,22 +595,27 @@ export async function getAuthService(): Promise<AuthService> {
  * @internal
  */
 export async function resetFactory(): Promise<void> {
-  // IMPORTANT: Capture and clear tracking variables FIRST to prevent
-  // inconsistent state if cleanup operations fail or take a long time.
-  // This ensures new getDataStore() calls don't use stale state.
-  const pendingPromises = Array.from(dataStoreInitPromises.values());
-  const wasCloudMode = dataStoreCreatedForMode === 'cloud';
-  const oldDataStoreInstance = dataStoreInstance;
-  const oldAuthServiceInitPromise = authServiceInitPromise;
+  // Guard: Set resetting flag to block concurrent getDataStore() calls
+  // This prevents creating a new instance while cleanup is in progress
+  isResetting = true;
 
-  // Clear all tracking state immediately
-  dataStoreInstance = null;
-  authServiceInstance = null;
-  dataStoreInitPromises.clear();
-  authServiceInitPromise = null;
-  dataStoreCreatedForMode = null;
-  dataStoreCreatedForUserId = undefined;
-  authServiceCreatedWithCloudAvailable = null;
+  try {
+    // IMPORTANT: Capture and clear tracking variables FIRST to prevent
+    // inconsistent state if cleanup operations fail or take a long time.
+    // This ensures new getDataStore() calls don't use stale state.
+    const pendingPromises = Array.from(dataStoreInitPromises.values());
+    const wasCloudMode = dataStoreCreatedForMode === 'cloud';
+    const oldDataStoreInstance = dataStoreInstance;
+    const oldAuthServiceInitPromise = authServiceInitPromise;
+
+    // Clear all tracking state immediately
+    dataStoreInstance = null;
+    authServiceInstance = null;
+    dataStoreInitPromises.clear();
+    authServiceInitPromise = null;
+    dataStoreCreatedForMode = null;
+    dataStoreCreatedForUserId = undefined;
+    authServiceCreatedWithCloudAvailable = null;
 
   // Now perform cleanup operations (best-effort, failures logged but not thrown)
 
@@ -645,15 +663,19 @@ export async function resetFactory(): Promise<void> {
     log.warn(`[factory] Error closing user storage adapters during reset: ${msg}`, err);
   }
 
-  // Await auth service init promise
-  if (oldAuthServiceInitPromise) {
-    try {
-      await oldAuthServiceInitPromise;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error awaiting authServiceInitPromise during reset: ${msg}`, err);
+    // Await auth service init promise
+    if (oldAuthServiceInitPromise) {
+      try {
+        await oldAuthServiceInitPromise;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error awaiting authServiceInitPromise during reset: ${msg}`, err);
+      }
     }
+  } finally {
+    // Always clear the resetting flag, even if cleanup fails
+    isResetting = false;
   }
 }
 

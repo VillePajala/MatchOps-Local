@@ -172,9 +172,14 @@ const LEGACY_DB_CHECK_TIMEOUT_MS = 5000;
  */
 export interface LegacyDatabaseCheckOptions {
   /**
-   * If true, always waits the full timeout duration before returning.
-   * This prevents timing attacks that could reveal whether the database exists.
-   * Default: false (for better UX in normal usage)
+   * If true, the function ALWAYS returns after exactly LEGACY_DB_CHECK_TIMEOUT_MS (5000ms),
+   * regardless of when the actual database check completes.
+   *
+   * This eliminates timing side-channels that could reveal database existence:
+   * - Without constantTime: Fast return = database exists, Slow return = timeout
+   * - With constantTime: Always 5000ms, no timing information leaks
+   *
+   * Default: false (for better UX in normal usage - most apps don't need this)
    */
   constantTime?: boolean;
 }
