@@ -198,7 +198,11 @@ async function evictOldestUserAdapters(): Promise<void> {
   // Evict oldest entries until we're at or below the limit
   const toEvict = entries.slice(0, userAdapterCache.size - MAX_USER_ADAPTERS);
 
+  /** Threshold for logging slow evictions (100ms) */
+  const SLOW_EVICTION_THRESHOLD_MS = 100;
+
   for (const [userId, entry] of toEvict) {
+    const evictionStart = Date.now();
     logger.debug(`[storage] Evicting oldest user adapter: ${userId}`);
     try {
       const adapter = await entry.promise;
@@ -223,6 +227,16 @@ async function evictOldestUserAdapters(): Promise<void> {
       // This prevents memory leaks from stuck entries and ensures
       // future requests get a fresh adapter instead of a potentially-closed one
       userAdapterCache.delete(userId);
+
+      // Log slow evictions for production monitoring
+      const evictionDuration = Date.now() - evictionStart;
+      if (evictionDuration > SLOW_EVICTION_THRESHOLD_MS) {
+        logger.warn(`[storage] Slow eviction detected`, {
+          userId,
+          durationMs: evictionDuration,
+          thresholdMs: SLOW_EVICTION_THRESHOLD_MS,
+        });
+      }
     }
   }
 }
@@ -380,10 +394,9 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
  * ```
  */
 export async function closeUserStorageAdapter(userId: string): Promise<void> {
-  // Validate userId - empty string or whitespace is invalid
+  // Validate userId - consistent with getUserStorageAdapter validation
   if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
-    logger.warn('[storage] Invalid userId provided to closeUserStorageAdapter', { userId });
-    return;
+    throw new Error('userId is required and must be a non-empty string');
   }
 
   const trimmedUserId = userId.trim();
