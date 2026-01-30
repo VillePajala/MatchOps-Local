@@ -365,17 +365,12 @@ export class LocalDataStore implements DataStore {
     // Validate userId early if provided (fail fast)
     // This catches invalid userIds at construction time rather than deferring to initialize()
     if (userId !== undefined) {
-      // Import validation is deferred, so we do basic checks here
-      // Full validation (including MAX_USER_ID_LENGTH) happens in getUserDatabaseName()
-      const trimmed = userId.trim();
-      if (trimmed.length === 0) {
-        throw new ValidationError('userId cannot be empty or whitespace-only');
-      }
-      // Check for obviously invalid characters early
-      if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
-        throw new ValidationError(
-          'userId contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.'
-        );
+      // Use shared validation function for consistency and ReDoS prevention
+      // (length check before regex is critical for security)
+      const { validateUserId } = require('./userDatabase');
+      const result = validateUserId(userId);
+      if (!result.valid) {
+        throw new ValidationError(result.error);
       }
     }
     this.userId = userId;

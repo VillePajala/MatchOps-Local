@@ -47,7 +47,74 @@ const USER_DATABASE_PREFIX = 'matchops_user_';
  * from extremely long strings that could cause memory issues or exceed
  * IndexedDB database name limits.
  */
-const MAX_USER_ID_LENGTH = 255;
+export const MAX_USER_ID_LENGTH = 255;
+
+/**
+ * Result of userId validation.
+ */
+export interface UserIdValidationResult {
+  /** Whether the userId is valid */
+  valid: boolean;
+  /** Trimmed userId (if valid) */
+  trimmedId?: string;
+  /** Error message (if invalid) */
+  error?: string;
+}
+
+/**
+ * Validate a userId for use in database names.
+ *
+ * Performs checks in order to prevent ReDoS attacks:
+ * 1. Type and presence check (fast)
+ * 2. Trim whitespace (fast)
+ * 3. Empty check (fast)
+ * 4. Length check BEFORE regex (prevents ReDoS on very long strings)
+ * 5. Character validation regex (safe after length check)
+ *
+ * @param userId - The userId to validate
+ * @returns Validation result with trimmed ID or error message
+ *
+ * @example
+ * ```typescript
+ * const result = validateUserId('user-123');
+ * if (!result.valid) {
+ *   throw new Error(result.error);
+ * }
+ * const dbName = `matchops_user_${result.trimmedId}`;
+ * ```
+ */
+export function validateUserId(userId: string | undefined | null): UserIdValidationResult {
+  // 1. Type and presence check (fast)
+  if (!userId || typeof userId !== 'string') {
+    return { valid: false, error: 'userId is required and must be a non-empty string' };
+  }
+
+  // 2. Trim whitespace (fast)
+  const trimmedId = userId.trim();
+
+  // 3. Empty check (fast)
+  if (trimmedId.length === 0) {
+    return { valid: false, error: 'userId cannot be empty or whitespace' };
+  }
+
+  // 4. Length check BEFORE regex (prevents ReDoS on very long strings)
+  if (trimmedId.length > MAX_USER_ID_LENGTH) {
+    return { valid: false, error: `userId exceeds maximum length of ${MAX_USER_ID_LENGTH} characters` };
+  }
+
+  // 5. Character validation regex (safe after length check)
+  // Supabase UUIDs match this pattern. Prevents:
+  // - Path traversal attacks (no slashes, dots, etc.)
+  // - Database name injection
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
+    return {
+      valid: false,
+      error: 'userId contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.',
+    };
+  }
+
+  return { valid: true, trimmedId };
+}
 
 /**
  * Get the database name for a specific user.
@@ -67,31 +134,11 @@ const MAX_USER_ID_LENGTH = 255;
  * ```
  */
 export function getUserDatabaseName(userId: string): string {
-  if (!userId || typeof userId !== 'string') {
-    throw new Error('userId is required and must be a non-empty string');
+  const result = validateUserId(userId);
+  if (!result.valid) {
+    throw new Error(result.error);
   }
-
-  const trimmedId = userId.trim();
-  if (trimmedId.length === 0) {
-    throw new Error('userId cannot be empty or whitespace');
-  }
-
-  // Security: Prevent DoS attacks from extremely long userIds
-  // that could cause memory issues or exceed IndexedDB limits
-  if (trimmedId.length > MAX_USER_ID_LENGTH) {
-    throw new Error(`userId exceeds maximum length of ${MAX_USER_ID_LENGTH} characters`);
-  }
-
-  // Validate userId format (alphanumeric, hyphens, underscores only)
-  // Supabase UUIDs match this pattern. This validation prevents:
-  // 1. Path traversal attacks (no slashes, dots, etc.)
-  // 2. Database name injection
-  // 3. Reserved/confusing names (validation is sufficient since UUIDs are opaque)
-  if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
-    throw new Error('userId contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.');
-  }
-
-  return `${USER_DATABASE_PREFIX}${trimmedId}`;
+  return `${USER_DATABASE_PREFIX}${result.trimmedId}`;
 }
 
 /**

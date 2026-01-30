@@ -231,7 +231,7 @@ export class SyncQueue {
   private ensureInitialized(): IDBDatabase {
     if (!this.db) {
       throw new SyncError(
-        SyncErrorCode.QUEUE_ERROR,
+        SyncErrorCode.NOT_INITIALIZED,
         'SyncQueue not initialized. Call initialize() first.'
       );
     }

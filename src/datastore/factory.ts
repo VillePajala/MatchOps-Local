@@ -186,12 +186,11 @@ async function closeDataStoreInternal(
           log.warn(`[factory] Force-closing DataStore with ${status.pendingCount} pending sync operations (user confirmed data loss).`);
         }
       } catch (e) {
-        // Check for "not initialized" error using SyncError type and code
+        // Check for "not initialized" error using SyncError type and error code
         // This is expected during early close (before sync engine was set up)
         const { SyncError, SyncErrorCode } = await import('@/sync');
         const isSyncError = e instanceof SyncError;
-        const isNotInitialized = isSyncError && e.code === SyncErrorCode.QUEUE_ERROR &&
-          e.message.includes('not initialized');
+        const isNotInitialized = isSyncError && e.code === SyncErrorCode.NOT_INITIALIZED;
 
         if (!isNotInitialized) {
           const msg = e instanceof Error ? e.message : String(e);
