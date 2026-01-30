@@ -81,11 +81,19 @@ async function closeDataStoreInternal(reason: string): Promise<void> {
         log.error(`[factory] DATA LOSS: Closing DataStore with ${status.pendingCount} pending sync operations.`);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.includes('not initialized')) {
+      // Check for "not initialized" error using SyncError type and code
+      // This is expected during early close (before sync engine was set up)
+      const { SyncError, SyncErrorCode } = await import('@/sync');
+      const isSyncError = e instanceof SyncError;
+      const isNotInitialized = isSyncError && e.code === SyncErrorCode.QUEUE_ERROR &&
+        e.message.includes('not initialized');
+
+      if (!isNotInitialized) {
+        const msg = e instanceof Error ? e.message : String(e);
         const err = e instanceof Error ? e : new Error(msg);
-        log.warn(`[factory] Error checking pending operations: ${msg}`, err);
+        log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
       }
+      // "not initialized" is expected - sync engine wasn't started yet, no pending ops
     }
 
     // Stop the sync engine singleton

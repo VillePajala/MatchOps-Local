@@ -16,7 +16,15 @@ import logger from './logger';
  * Used for type-safe cleanup of IndexedDB connections
  */
 interface DisposableAdapter extends StorageAdapter {
-  close?: () => Promise<void>;
+  close: () => Promise<void>;
+}
+
+/**
+ * Type guard for checking if an adapter has a close method.
+ * Prefer this over type assertions for safer runtime checks.
+ */
+function hasCloseMethod(adapter: StorageAdapter): adapter is DisposableAdapter {
+  return 'close' in adapter && typeof (adapter as DisposableAdapter).close === 'function';
 }
 
 /**
@@ -165,10 +173,9 @@ async function evictOldestUserAdapters(): Promise<void> {
     logger.debug(`[storage] Evicting oldest user adapter: ${userId}`);
     try {
       const adapter = await entry.promise;
-      const disposable = adapter as DisposableAdapter;
-      if (disposable.close) {
+      if (hasCloseMethod(adapter)) {
         // Use timeout to prevent blocking if close() hangs
-        const closePromise = disposable.close();
+        const closePromise = adapter.close();
         const timeoutPromise = new Promise<void>((_, reject) =>
           setTimeout(() => reject(new Error('Adapter close timeout')), ADAPTER_CLOSE_TIMEOUT_MS)
         );
@@ -213,37 +220,35 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
 
   const trimmedUserId = userId.trim();
 
-  // Check for cached adapter (fast path)
-  // Note: lastAccessedAt update outside mutex is intentionally racy - both concurrent
-  // updates write nearly identical timestamps, and this fast path avoids mutex overhead
-  // for the common case of accessing an already-cached adapter.
-  const cached = userAdapterCache.get(trimmedUserId);
-  if (cached && !isUserAdapterExpired(cached.lastAccessedAt)) {
-    // Update lastAccessedAt for true LRU eviction
-    cached.lastAccessedAt = Date.now();
-    return cached.promise;
-  }
+  // IMPORTANT: No fast path outside mutex!
+  // A fast path that reads cache and updates lastAccessedAt without holding the mutex
+  // creates a race condition where:
+  // 1. Fast path finds cached adapter X
+  // 2. Concurrent eviction (triggered by another user's creation) decides to evict X
+  // 3. Eviction closes adapter X
+  // 4. Fast path returns closed adapter X -> user gets errors
+  //
+  // The mutex overhead (~microseconds) is negligible compared to IndexedDB operations (~milliseconds).
 
-  // Use mutex to prevent concurrent adapter creation for same user
+  // Use mutex to prevent concurrent adapter creation AND cache access races
   try {
     await userAdapterCreationMutex.acquire();
 
-    // Double-check after acquiring mutex
-    const cachedAfterLock = userAdapterCache.get(trimmedUserId);
-    if (cachedAfterLock && !isUserAdapterExpired(cachedAfterLock.lastAccessedAt)) {
-      // Update lastAccessedAt for true LRU eviction
-      cachedAfterLock.lastAccessedAt = Date.now();
-      return cachedAfterLock.promise;
+    // Check for cached adapter (mutex-protected)
+    const cached = userAdapterCache.get(trimmedUserId);
+    if (cached && !isUserAdapterExpired(cached.lastAccessedAt)) {
+      // Update lastAccessedAt for true LRU eviction (safe: we hold the mutex)
+      cached.lastAccessedAt = Date.now();
+      return cached.promise;
     }
 
     // Close and remove expired adapter if exists
-    if (cachedAfterLock) {
+    if (cached) {
       logger.debug('Closing expired user adapter', { userId: trimmedUserId });
       try {
-        const oldAdapter = await cachedAfterLock.promise;
-        const disposable = oldAdapter as DisposableAdapter;
-        if (disposable.close) {
-          await disposable.close();
+        const oldAdapter = await cached.promise;
+        if (hasCloseMethod(oldAdapter)) {
+          await oldAdapter.close();
         }
       } catch (error) {
         logger.warn('Failed to close expired user adapter', { userId: trimmedUserId, error });
@@ -259,12 +264,18 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
     userAdapterCache.set(trimmedUserId, { promise, lastAccessedAt });
 
     // Evict oldest adapters if cache is full (LRU eviction)
-    // Do this asynchronously to not block the current request
-    evictOldestUserAdapters().catch(error => {
+    // IMPORTANT: Must await eviction while holding the mutex to prevent race:
+    // - Without await: mutex released, another thread gets adapter, eviction closes it
+    // - With await: eviction completes before any thread can access evicted adapters
+    // The eviction overhead is acceptable (~5ms for close) and happens rarely (only when cache full).
+    try {
+      await evictOldestUserAdapters();
+    } catch (error) {
       logger.warn('[storage] Error during user adapter eviction', { error });
-    });
+      // Continue - eviction failure shouldn't block adapter creation
+    }
 
-    // Handle creation failure
+    // Handle creation failure (async, outside mutex - just cleans up our own entry)
     promise.catch(() => {
       // Remove from cache on failure
       userAdapterCache.delete(trimmedUserId);
@@ -291,7 +302,9 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
  * ```
  */
 export async function closeUserStorageAdapter(userId: string): Promise<void> {
-  if (!userId || typeof userId !== 'string') {
+  // Validate userId - empty string or whitespace is invalid
+  if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+    logger.warn('[storage] Invalid userId provided to closeUserStorageAdapter', { userId });
     return;
   }
 
@@ -307,9 +320,8 @@ export async function closeUserStorageAdapter(userId: string): Promise<void> {
 
   try {
     const adapter = await cached.promise;
-    const disposable = adapter as DisposableAdapter;
-    if (disposable.close) {
-      await disposable.close();
+    if (hasCloseMethod(adapter)) {
+      await adapter.close();
     }
     logger.debug('User adapter closed successfully', { userId: trimmedUserId });
   } catch (error) {
