@@ -67,8 +67,22 @@ export class SyncedDataStore implements DataStore {
   private initialized = false;
   private queueErrorListeners: Set<SyncQueueErrorListener> = new Set();
 
-  constructor() {
-    this.localStore = new LocalDataStore();
+  /**
+   * User ID for user-scoped storage.
+   * If set, the underlying LocalDataStore uses a user-specific IndexedDB database.
+   */
+  private readonly userId?: string;
+
+  /**
+   * Creates a new SyncedDataStore instance.
+   *
+   * @param userId - Optional user ID for user-scoped storage.
+   *                 If provided, data is stored in database `matchops_user_{userId}`.
+   *                 If omitted, uses legacy global database `MatchOpsLocal`.
+   */
+  constructor(userId?: string) {
+    this.userId = userId;
+    this.localStore = new LocalDataStore(userId);
     this.syncQueue = new SyncQueue();
   }
 
