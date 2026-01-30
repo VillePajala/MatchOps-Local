@@ -461,6 +461,16 @@ export class LocalDataStore implements DataStore {
     this.initialized = true;
   }
 
+  /**
+   * Close the DataStore and release resources.
+   *
+   * This method delegates IndexedDB connection cleanup to the storage layer:
+   * - For user-scoped mode: calls closeUserStorageAdapter() to close user's database
+   * - For legacy mode: calls clearAdapterCacheWithCleanup() to close global database
+   *
+   * The storage layer manages the actual IndexedDB connections and caching.
+   * LocalDataStore just tracks initialization state and delegates cleanup.
+   */
   async close(): Promise<void> {
     if (!this.initialized) {
       return;
@@ -471,12 +481,14 @@ export class LocalDataStore implements DataStore {
     this.settingsMigrationPromise = null;
     this.seasonDatesCache = null;
 
-    // Close the user-scoped adapter if we have one
+    // Delegate IndexedDB connection cleanup to the storage layer
+    // The storage layer manages connection caching and proper disposal
     if (this.userId) {
+      // User-scoped: close this user's specific database connection
       await closeUserStorageAdapter(this.userId);
       this.adapter = null;
     } else {
-      // For legacy mode, clear the global adapter cache
+      // Legacy mode: clear the global adapter cache
       await clearAdapterCacheWithCleanup();
       this.adapter = null;
     }

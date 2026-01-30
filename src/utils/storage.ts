@@ -152,8 +152,11 @@ async function evictOldestUserAdapters(): Promise<void> {
       }
     } catch (error) {
       logger.warn(`[storage] Failed to close evicted user adapter: ${userId}`, { error });
+    } finally {
+      // Always remove from cache, even if close() failed
+      // This prevents memory leaks from stuck entries
+      userAdapterCache.delete(userId);
     }
-    userAdapterCache.delete(userId);
   }
 }
 
