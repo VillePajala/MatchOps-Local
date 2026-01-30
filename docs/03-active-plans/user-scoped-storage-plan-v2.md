@@ -2,7 +2,7 @@
 
 **Status:** Planning
 **Created:** 2026-01-29
-**Last Updated:** 2026-01-30 (Added migration trigger, deployment order, user_settings verification checklist)
+**Last Updated:** 2026-01-30 (Added userId security requirements for Step 6 caller updates)
 **Branch:** `feature/user-scoped-storage` (from `feature/supabase-cloud-backend`)
 
 ### Related Documents
@@ -377,6 +377,30 @@ const { user } = useAuth();
 if (!user?.id) throw new Error('User not authenticated');
 const dataStore = await getDataStore(user.id);
 ```
+
+### ⚠️ CRITICAL: userId Security Requirements
+
+**The `userId` parameter MUST only come from trusted, authenticated sources.**
+
+When updating the ~36 callers in Step 6, **NEVER** pass:
+- ❌ User-provided input (form fields, URL params, query strings)
+- ❌ localStorage values (can be tampered with)
+- ❌ Values from unverified contexts
+
+**ONLY** pass:
+- ✅ `user.id` from authenticated Supabase session (via `useAuth()` hook)
+- ✅ `session.user.id` from `supabase.auth.getSession()` (server-side)
+
+**Why this matters:**
+- If an attacker can control the `userId` parameter, they could potentially access or modify another user's IndexedDB database
+- The `userId` determines which database (`matchops_user_{userId}`) is opened
+- Supabase Auth is the single source of truth for authenticated user identity
+
+**Code Review Checklist for Step 6 PRs:**
+- [ ] Every `getDataStore(userId)` call gets userId from `useAuth()` or equivalent
+- [ ] No userId values derived from user input
+- [ ] No userId values from localStorage/sessionStorage
+- [ ] No userId values from URL parameters
 
 **Files requiring updates (~36 files):**
 

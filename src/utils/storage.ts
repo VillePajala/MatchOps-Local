@@ -145,6 +145,13 @@ const userAdapterCache = new Map<string, {
 const ADAPTER_CLOSE_TIMEOUT_MS = 5000;
 
 /**
+ * Timeout for adapter creation (25 seconds).
+ * Set lower than mutex timeout (30s) so timeout error is thrown before mutex times out.
+ * This prevents hung IndexedDB operations from blocking indefinitely.
+ */
+const ADAPTER_CREATE_TIMEOUT_MS = 25000;
+
+/**
  * Evict least-recently-used user adapters if cache exceeds MAX_USER_ADAPTERS.
  * Uses lastAccessedAt timestamp for true LRU eviction.
  *
@@ -182,10 +189,17 @@ async function evictOldestUserAdapters(): Promise<void> {
         await Promise.race([closePromise, timeoutPromise]);
       }
     } catch (error) {
-      logger.warn(`[storage] Failed to close evicted user adapter: ${userId}`, { error });
+      // If close() timed out or threw, the connection may still be open.
+      // This is acceptable because:
+      // 1. We remove from cache so no new code can access it
+      // 2. Orphaned connections have no references and will be GC'd
+      // 3. IndexedDB connections auto-close on page unload
+      // 4. Timeout/error is logged for monitoring
+      logger.warn(`[storage] Eviction close failed for ${userId}, relying on GC for cleanup`, { error });
     } finally {
       // Always remove from cache, even if close() failed or timed out
-      // This prevents memory leaks from stuck entries
+      // This prevents memory leaks from stuck entries and ensures
+      // future requests get a fresh adapter instead of a potentially-closed one
       userAdapterCache.delete(userId);
     }
   }
@@ -256,9 +270,16 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
       userAdapterCache.delete(trimmedUserId);
     }
 
-    // Create new adapter
+    // Create new adapter with timeout to prevent indefinite hangs
     const lastAccessedAt = Date.now();
-    const promise = createUserAdapter(trimmedUserId);
+    const createPromise = createUserAdapter(trimmedUserId);
+    const timeoutPromise = new Promise<StorageAdapter>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Adapter creation timeout after ${ADAPTER_CREATE_TIMEOUT_MS}ms`)),
+        ADAPTER_CREATE_TIMEOUT_MS
+      )
+    );
+    const promise = Promise.race([createPromise, timeoutPromise]);
 
     // Cache the promise (not the resolved adapter) to handle concurrent requests
     userAdapterCache.set(trimmedUserId, { promise, lastAccessedAt });
