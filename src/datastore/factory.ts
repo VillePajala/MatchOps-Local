@@ -21,9 +21,9 @@ import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
 // Safe logger wrapper for test environments
-// Accepts optional Error object as second parameter to preserve stack traces for Sentry
+// Supports structured data logging and optional Error objects for Sentry stack traces
 const log = {
-  info: (msg: string) => logger?.info?.(msg),
+  info: (msg: string, data?: Record<string, unknown>) => data ? logger?.info?.(msg, data) : logger?.info?.(msg),
   warn: (msg: string, error?: Error) => error ? logger?.warn?.(msg, error) : logger?.warn?.(msg),
   error: (msg: string, error?: Error) => error ? logger?.error?.(msg, error) : logger?.error?.(msg),
 };
