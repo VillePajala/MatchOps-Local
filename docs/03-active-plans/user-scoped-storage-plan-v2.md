@@ -1,9 +1,23 @@
 # User-Scoped Data Architecture Plan v2
 
-**Status:** Planning
+**Status:** In Progress - Steps 1-4 Complete ✅
 **Created:** 2026-01-29
-**Last Updated:** 2026-01-30 (Added userId security requirements for Step 6 caller updates)
-**Branch:** `feature/user-scoped-storage` (from `feature/supabase-cloud-backend`)
+**Last Updated:** 2026-01-30 (Steps 1-4 merged to feature/supabase-cloud-backend)
+**Branch:** `feature/supabase-cloud-backend`
+
+### Progress
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 1-4 | Storage layer, LocalDataStore, SyncedDataStore, Factory | ✅ Complete |
+| 5 | useDataStore helper hook | ⏳ Not started |
+| 6 | Update ~36 callers to pass userId | ⏳ Not started |
+| 7 | Export/import updates | ⏳ Not started |
+| 8 | Legacy migration (MatchOpsLocal → user DB) | ⏳ Not started |
+| 9-10 | SQL migrations (composite keys, RPC updates) | ⏳ Not started |
+| 11 | Tests | ⏳ Not started |
+
+**Note:** User isolation is NOT active until Step 6 is complete. All users currently share the legacy `MatchOpsLocal` database.
 
 ### Related Documents
 
