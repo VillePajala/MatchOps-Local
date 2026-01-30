@@ -335,7 +335,15 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   // 4. Allowing a new instance to be created for the new user below
   // This check only runs when an instance EXISTS - if null, we skip to creation
   if (dataStoreInstance && dataStoreCreatedForUserId !== userId) {
-    log.info(`[factory] User changed from ${dataStoreCreatedForUserId || '(anonymous)'} to ${userId || '(anonymous)'} - resetting DataStore`);
+    // Capture metrics BEFORE close for production diagnostics
+    const closeCheck = await canCloseDataStore();
+    log.info(`[factory] User switch`, {
+      previousUserId: dataStoreCreatedForUserId || '(anonymous)',
+      newUserId: userId || '(anonymous)',
+      previousMode: dataStoreCreatedForMode,
+      hadPendingOps: closeCheck.pendingCount > 0,
+      pendingCount: closeCheck.pendingCount,
+    });
     // Clear pending init promises to prevent stale completions from interfering
     dataStoreInitPromises.clear();
     await closeDataStoreInternal('user change');
@@ -344,7 +352,15 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   // Check if mode changed since the DataStore was created
   // This handles the case where user enables/disables cloud sync
   if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
-    log.info(`[factory] Mode changed from ${dataStoreCreatedForMode} to ${currentMode} - resetting DataStore`);
+    // Capture metrics BEFORE close for production diagnostics
+    const closeCheck = await canCloseDataStore();
+    log.info(`[factory] Mode switch`, {
+      previousMode: dataStoreCreatedForMode,
+      newMode: currentMode,
+      userId: userId || '(anonymous)',
+      hadPendingOps: closeCheck.pendingCount > 0,
+      pendingCount: closeCheck.pendingCount,
+    });
     await closeDataStoreInternal('mode change');
   }
 
