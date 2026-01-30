@@ -16,7 +16,16 @@ const mockIsIndexedDBAvailable = jest.fn(() => true);
 const mockClearAdapterCacheWithCleanup = jest.fn();
 
 // Create mock adapter for user-scoped storage
+// Note: This shared state is cleared in beforeEach to ensure test isolation
 const mockStorageData: Record<string, string> = {};
+
+/** Clear mock storage data - call in beforeEach for test isolation */
+function clearMockStorageData(): void {
+  for (const key of Object.keys(mockStorageData)) {
+    delete mockStorageData[key];
+  }
+}
+
 const mockAdapter = {
   getItem: jest.fn().mockImplementation((key: string) => Promise.resolve(mockStorageData[key] ?? null)),
   setItem: jest.fn().mockImplementation((key: string, value: string) => {
@@ -120,8 +129,8 @@ describe('Factory', () => {
     // Clear all mocks
     jest.clearAllMocks();
 
-    // Clear mock storage data between tests
-    Object.keys(mockStorageData).forEach((key) => delete mockStorageData[key]);
+    // Clear mock storage data between tests for true isolation
+    clearMockStorageData();
 
     // Reset mock function defaults
     mockGetStorageItem.mockResolvedValue(null);

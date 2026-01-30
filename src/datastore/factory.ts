@@ -140,12 +140,21 @@ async function closeDataStoreInternal(reason: string): Promise<void> {
  * Subsequent calls return the same instance.
  * Handles concurrent calls safely by sharing the initialization promise.
  *
- * User-Scoped Storage:
+ * ## User-Scoped Storage
+ *
  * - If userId is provided, the DataStore uses a user-specific IndexedDB database
  *   (`matchops_user_{userId}`) for complete data isolation between users.
  * - If userId is undefined, uses the legacy global database (`MatchOpsLocal`).
  * - When userId changes (user sign-in/sign-out), the DataStore is automatically
  *   closed and re-created for the new user.
+ *
+ * ## Implementation Status
+ *
+ * This is part of Steps 1-4 of the user-scoped storage plan.
+ * **Step 6 (updating ~36 callers to pass userId) is required** for user isolation
+ * to work. Until then, all users share the legacy `MatchOpsLocal` database.
+ *
+ * @see docs/03-active-plans/user-scoped-storage-plan-v2.md
  *
  * @param userId - Optional user ID for user-scoped storage. Pass the authenticated
  *                 user's ID to enable user-scoped storage, or undefined for legacy mode.

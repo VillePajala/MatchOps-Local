@@ -127,9 +127,15 @@ const userAdapterCache = new Map<string, {
   lastAccessedAt: number;
 }>();
 
+/** Timeout for adapter close operations during eviction (5 seconds) */
+const ADAPTER_CLOSE_TIMEOUT_MS = 5000;
+
 /**
  * Evict least-recently-used user adapters if cache exceeds MAX_USER_ADAPTERS.
  * Uses lastAccessedAt timestamp for true LRU eviction.
+ *
+ * Close operations have a 5-second timeout to prevent blocking new adapter
+ * creation if an adapter's close() hangs (e.g., IndexedDB unresponsive).
  */
 async function evictOldestUserAdapters(): Promise<void> {
   if (userAdapterCache.size <= MAX_USER_ADAPTERS) {
@@ -149,12 +155,17 @@ async function evictOldestUserAdapters(): Promise<void> {
       const adapter = await entry.promise;
       const disposable = adapter as DisposableAdapter;
       if (disposable.close) {
-        await disposable.close();
+        // Use timeout to prevent blocking if close() hangs
+        const closePromise = disposable.close();
+        const timeoutPromise = new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('Adapter close timeout')), ADAPTER_CLOSE_TIMEOUT_MS)
+        );
+        await Promise.race([closePromise, timeoutPromise]);
       }
     } catch (error) {
       logger.warn(`[storage] Failed to close evicted user adapter: ${userId}`, { error });
     } finally {
-      // Always remove from cache, even if close() failed
+      // Always remove from cache, even if close() failed or timed out
       // This prevents memory leaks from stuck entries
       userAdapterCache.delete(userId);
     }
