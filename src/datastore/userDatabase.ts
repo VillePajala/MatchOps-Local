@@ -124,16 +124,25 @@ const LEGACY_DB_CHECK_TIMEOUT_MS = 5000;
  * Check if the legacy database exists.
  * Used during migration to detect if there's data to migrate.
  *
- * ## Timing Consideration
+ * ## Timing Consideration (Security Analysis)
  *
  * This function uses a 5-second timeout. Response times vary:
  * - Fast response: database exists (or doesn't, from onupgradeneeded)
  * - Timeout: IndexedDB unresponsive (returns false)
  *
- * This timing variance is acceptable because:
+ * This timing variance is **acceptable** because:
  * 1. This is for migration UX, not security-critical operations
  * 2. IndexedDB databases can already be enumerated via browser APIs
+ *    (e.g., indexedDB.databases() in Chrome)
  * 3. Knowing whether a legacy database exists reveals no sensitive data
+ *    (only that the user has used the app before)
+ * 4. The attacker would need local code execution, which already grants
+ *    full IndexedDB access
+ *
+ * If constant-time behavior is ever needed, options include:
+ * - Always wait the full timeout before returning
+ * - Use a fixed delay after the actual check
+ * - Return a random delay within a range
  *
  * @returns Promise resolving to true if legacy database exists
  */

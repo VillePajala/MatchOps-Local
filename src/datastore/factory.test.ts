@@ -5,6 +5,7 @@
 // Import types for type annotations (types are erased at runtime, so they're safe)
 import type { LocalDataStore as LocalDataStoreClass } from './LocalDataStore';
 import type { LocalAuthService as LocalAuthServiceClass } from '@/auth/LocalAuthService';
+import type { DataStore } from '@/interfaces/DataStore';
 
 // Create mock functions BEFORE jest.mock (so they can be referenced in mocks)
 const mockGetStorageItem = jest.fn();
@@ -697,19 +698,19 @@ describe('Factory', () => {
     });
 
     /**
-     * Verify that concurrent calls with DIFFERENT userIds safely resolve to the same instance.
+     * Verify that concurrent calls with DIFFERENT userIds throw errors for losers.
      *
      * SECURITY: When concurrent initialization with different userIds occurs:
      * 1. The first caller's initialization wins and sets the singleton
-     * 2. Other callers detect the conflict and close their instances
-     * 3. All callers receive the winner's instance (safe - no data exposure)
+     * 2. Other callers detect the conflict and throw an error
+     * 3. Callers must retry - the factory never returns wrong user's DataStore
      *
      * This prevents a race condition where User B could accidentally get User A's DataStore.
      * In normal app usage, only one user should be active at a time, so this scenario
      * indicates a bug in the calling code. The factory safely handles it by:
-     * - Logging a warning about the conflict
-     * - Returning the singleton to all callers
-     * - The app should then detect the userId mismatch and retry
+     * - Logging an error about the conflict
+     * - Throwing an error for conflicting callers
+     * - Callers must retry to get their own DataStore
      *
      * @critical - Prevents cross-user data exposure
      */
@@ -721,20 +722,38 @@ describe('Factory', () => {
 
       // Concurrent calls with different userIds
       // This simulates a race condition - should NOT happen in normal app usage
-      const [dsA, dsB, dsC] = await Promise.all([
+      // SECURITY: The factory throws an error for the "losers" to prevent data leakage
+      const results = await Promise.allSettled([
         getDataStore(USER_A),
         getDataStore(USER_B),
         getDataStore(USER_C),
       ]);
 
-      // SECURITY: All callers get the SAME instance (the first to finish wins)
-      // This prevents data exposure - no user gets another user's DataStore
-      expect(dsA).toBe(dsB);
-      expect(dsB).toBe(dsC);
+      // At least one should succeed (the "winner")
+      const successResults = results.filter(r => r.status === 'fulfilled');
+      const errorResults = results.filter(r => r.status === 'rejected');
+
+      expect(successResults.length).toBeGreaterThanOrEqual(1);
+
+      // Error results should have the conflict error message
+      for (const result of errorResults) {
+        expect((result as PromiseRejectedResult).reason.message).toContain(
+          'DataStore initialization conflict'
+        );
+      }
+
+      // All successful results should return the same instance (the winner's)
+      if (successResults.length > 1) {
+        const instances = successResults.map(r => (r as PromiseFulfilledResult<DataStore>).value);
+        for (let i = 1; i < instances.length; i++) {
+          expect(instances[i]).toBe(instances[0]);
+        }
+      }
 
       // The winning instance should be valid and initialized
-      expect(dsA).toBeInstanceOf(LocalDataStore);
-      expect(dsA.isInitialized()).toBe(true);
+      const winningInstance = (successResults[0] as PromiseFulfilledResult<DataStore>).value;
+      expect(winningInstance).toBeInstanceOf(LocalDataStore);
+      expect(winningInstance.isInitialized()).toBe(true);
     });
 
     /**

@@ -125,6 +125,10 @@ export class StorageFactory {
   );
 
 
+  // Maximum recovery attempts to prevent infinite recursion
+  private static readonly MAX_RECOVERY_ATTEMPTS = 3;
+  private recoveryAttemptCount = 0;
+
   /**
    * Create and return the appropriate storage adapter based on configuration
    *
@@ -178,6 +182,8 @@ export class StorageFactory {
 
         // Create new adapter
         const adapter = await this.createAdapterInternal(forceMode);
+        // Reset recovery counter on successful creation
+        this.recoveryAttemptCount = 0;
         timer.success({ cached: false, mode: adapter.getBackendName() });
         return adapter;
 
@@ -193,18 +199,30 @@ export class StorageFactory {
 
       this.logger.error('Failed to create storage adapter', { error, forceMode });
 
-      // Attempt recovery for corruption errors
+      // Attempt recovery for corruption errors (with retry limit to prevent infinite loops)
       if (error instanceof StorageError && error.type === StorageErrorType.CORRUPTED_DATA) {
-        this.logger.info('Attempting automatic recovery from corruption');
-        try {
-          const recoveryResult = await storageRecovery.repairCorruption(error, this.cachedAdapter || new IndexedDBKvAdapter());
-          if (recoveryResult.success) {
-            this.logger.info('Recovery successful', recoveryResult);
-            // Retry adapter creation after recovery
-            return this.createAdapter(forceMode);
+        if (this.recoveryAttemptCount < StorageFactory.MAX_RECOVERY_ATTEMPTS) {
+          this.recoveryAttemptCount++;
+          this.logger.info('Attempting automatic recovery from corruption', {
+            attempt: this.recoveryAttemptCount,
+            maxAttempts: StorageFactory.MAX_RECOVERY_ATTEMPTS
+          });
+          try {
+            const recoveryResult = await storageRecovery.repairCorruption(error, this.cachedAdapter || new IndexedDBKvAdapter());
+            if (recoveryResult.success) {
+              this.logger.info('Recovery successful', recoveryResult);
+              // Retry adapter creation after recovery
+              return this.createAdapter(forceMode);
+            }
+          } catch (recoveryError) {
+            this.logger.error('Recovery failed', { recoveryError });
           }
-        } catch (recoveryError) {
-          this.logger.error('Recovery failed', { recoveryError });
+        } else {
+          this.logger.error('Max recovery attempts reached, giving up', {
+            attempts: this.recoveryAttemptCount
+          });
+          // Reset counter for future attempts (e.g., after page reload)
+          this.recoveryAttemptCount = 0;
         }
       }
 
