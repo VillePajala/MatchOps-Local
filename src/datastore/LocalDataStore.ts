@@ -365,12 +365,25 @@ export class LocalDataStore implements DataStore {
     // Validate userId early if provided (fail fast)
     // This catches invalid userIds at construction time rather than deferring to initialize()
     if (userId !== undefined) {
-      // Use shared validation function for consistency and ReDoS prevention
-      // (length check before regex is critical for security)
-      const { validateUserId } = require('./userDatabase');
-      const result = validateUserId(userId);
-      if (!result.valid) {
-        throw new ValidationError(result.error);
+      // IMPORTANT: This validation logic is duplicated from userDatabase.ts/validateUserId()
+      // to avoid require() imports (lint error) and potential circular dependencies.
+      // If updating validation rules, update BOTH locations:
+      // - src/datastore/userDatabase.ts (validateUserId function)
+      // - src/datastore/LocalDataStore.ts (this constructor)
+      // Length check BEFORE regex is critical for ReDoS prevention.
+      const trimmedId = userId.trim();
+      if (trimmedId.length === 0) {
+        throw new ValidationError('userId cannot be empty or whitespace');
+      }
+      // Length check BEFORE regex (prevents ReDoS on very long strings)
+      const MAX_USER_ID_LENGTH = 255;
+      if (trimmedId.length > MAX_USER_ID_LENGTH) {
+        throw new ValidationError(`userId exceeds maximum length of ${MAX_USER_ID_LENGTH} characters`);
+      }
+      if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
+        throw new ValidationError(
+          'userId contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.'
+        );
       }
     }
     this.userId = userId;
@@ -528,12 +541,27 @@ export class LocalDataStore implements DataStore {
   /**
    * Get an item from storage.
    * Uses user-scoped adapter if available, otherwise falls back to global.
+   *
+   * ## When is adapter null?
+   *
+   * The adapter should NEVER be null at runtime after successful initialize().
+   * All public methods call ensureInitialized() which throws if not initialized.
+   *
+   * The fallback exists for:
+   * 1. **Test scenarios**: Some tests may call private methods directly
+   * 2. **Defensive coding**: Ensures graceful behavior if adapter is unexpectedly null
+   *
+   * If this fallback is ever hit in production, it indicates a bug where a method
+   * was called without proper initialization. The global storage fallback prevents
+   * a crash but could cause data isolation issues (reading wrong user's data).
+   *
+   * @see ensureInitialized() - throws NotInitializedError if not initialized
    */
   private async storageGetItem(key: string): Promise<string | null> {
     if (this.adapter) {
       return this.adapter.getItem(key);
     }
-    // Fallback to global for backward compatibility (during tests or edge cases)
+    // Fallback to global - should not be hit in production (see JSDoc above)
     return getStorageItem(key);
   }
 

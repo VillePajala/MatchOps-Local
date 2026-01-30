@@ -106,13 +106,17 @@ export async function canCloseDataStore(): Promise<CloseCheckResult> {
 
     return { canClose: true, pendingCount: 0, message: 'All changes synced' };
   } catch (e) {
-    // Engine not initialized means no pending ops
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('not initialized')) {
+    // Engine not initialized means no pending ops - use error code for reliability
+    const { SyncError, SyncErrorCode } = await import('@/sync');
+    const isSyncError = e instanceof SyncError;
+    const isNotInitialized = isSyncError && e.code === SyncErrorCode.NOT_INITIALIZED;
+
+    if (isNotInitialized) {
       return { canClose: true, pendingCount: 0, message: 'Sync engine not started' };
     }
     // On unexpected errors, be conservative and allow close
     // (can't determine pending count, so don't block user)
+    const msg = e instanceof Error ? e.message : String(e);
     log.warn(`[factory] Error checking pending operations: ${msg}`);
     return { canClose: true, pendingCount: 0, message: 'Unable to check sync status' };
   }
@@ -731,13 +735,17 @@ export async function getPendingSyncCount(): Promise<number> {
     const status = await engine.getStatus();
     return status.pendingCount;
   } catch (e) {
-    // Engine not initialized is expected - return 0 (no pending operations if engine not running)
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('not initialized')) {
+    // Engine not initialized is expected - use error code for reliability
+    const { SyncError, SyncErrorCode } = await import('@/sync');
+    const isSyncError = e instanceof SyncError;
+    const isNotInitialized = isSyncError && e.code === SyncErrorCode.NOT_INITIALIZED;
+
+    if (isNotInitialized) {
       return 0;
     }
     // Unexpected errors: throw to prevent UI from assuming it's safe to switch modes
     // Returning 0 here could mask data loss if there are actually pending operations
+    const msg = e instanceof Error ? e.message : String(e);
     const err = e instanceof Error ? e : new Error(msg);
     log.error(`[factory] Unexpected error getting pending sync count: ${msg}`, err);
     throw err;
