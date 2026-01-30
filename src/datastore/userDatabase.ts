@@ -26,6 +26,15 @@ export const LEGACY_DATABASE_NAME = 'MatchOpsLocal';
 const USER_DATABASE_PREFIX = 'matchops_user_';
 
 /**
+ * Maximum allowed length for userId.
+ * Supabase UUIDs are 36 characters (e.g., 'f47ac10b-58cc-4372-a567-0e02b2c3d479').
+ * We use 255 to allow for future flexibility while preventing DoS attacks
+ * from extremely long strings that could cause memory issues or exceed
+ * IndexedDB database name limits.
+ */
+const MAX_USER_ID_LENGTH = 255;
+
+/**
  * Get the database name for a specific user.
  *
  * IMPORTANT: userId is expected to be a UUID from Supabase Auth (e.g., 'f47ac10b-58cc-4372-a567-0e02b2c3d479').
@@ -50,6 +59,12 @@ export function getUserDatabaseName(userId: string): string {
   const trimmedId = userId.trim();
   if (trimmedId.length === 0) {
     throw new Error('userId cannot be empty or whitespace');
+  }
+
+  // Security: Prevent DoS attacks from extremely long userIds
+  // that could cause memory issues or exceed IndexedDB limits
+  if (trimmedId.length > MAX_USER_ID_LENGTH) {
+    throw new Error(`userId exceeds maximum length of ${MAX_USER_ID_LENGTH} characters`);
   }
 
   // Validate userId format (alphanumeric, hyphens, underscores only)
