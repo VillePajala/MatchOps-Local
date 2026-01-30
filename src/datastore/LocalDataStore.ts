@@ -558,11 +558,11 @@ export class LocalDataStore implements DataStore {
    * @see ensureInitialized() - throws NotInitializedError if not initialized
    */
   private async storageGetItem(key: string): Promise<string | null> {
-    if (this.adapter) {
-      return this.adapter.getItem(key);
+    if (!this.adapter) {
+      // SECURITY: Fail fast to prevent cross-user data access
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
     }
-    // Fallback to global - should not be hit in production (see JSDoc above)
-    return getStorageItem(key);
+    return this.adapter.getItem(key);
   }
 
   /**
@@ -570,11 +570,10 @@ export class LocalDataStore implements DataStore {
    * Uses user-scoped adapter if available, otherwise falls back to global.
    */
   private async storageSetItem(key: string, value: string): Promise<void> {
-    if (this.adapter) {
-      return this.adapter.setItem(key, value);
+    if (!this.adapter) {
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
     }
-    // Fallback to global for backward compatibility
-    return setStorageItem(key, value);
+    return this.adapter.setItem(key, value);
   }
 
   /**
@@ -582,11 +581,10 @@ export class LocalDataStore implements DataStore {
    * Uses user-scoped adapter if available, otherwise falls back to global.
    */
   private async storageRemoveItem(key: string): Promise<void> {
-    if (this.adapter) {
-      return this.adapter.removeItem(key);
+    if (!this.adapter) {
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
     }
-    // Fallback to global for backward compatibility
-    return removeStorageItem(key);
+    return this.adapter.removeItem(key);
   }
 
   /**
@@ -594,40 +592,36 @@ export class LocalDataStore implements DataStore {
    * Uses user-scoped adapter if available, otherwise falls back to global.
    */
   private async storageClear(): Promise<void> {
-    if (this.adapter) {
-      return this.adapter.clear();
+    if (!this.adapter) {
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
     }
-    // Fallback to global for backward compatibility
-    const { clearStorage } = await import('@/utils/storage');
-    return clearStorage();
+    return this.adapter.clear();
   }
 
   /**
    * Get and parse JSON from storage.
    */
   private async storageGetJSON<T>(key: string): Promise<T | null> {
-    if (this.adapter) {
-      const value = await this.adapter.getItem(key);
-      if (value === null) return null;
-      try {
-        return JSON.parse(value) as T;
-      } catch {
-        return null;
-      }
+    if (!this.adapter) {
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
     }
-    // Fallback to global for backward compatibility
-    return getStorageJSON<T>(key);
+    const value = await this.adapter.getItem(key);
+    if (value === null) return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
   }
 
   /**
    * Set JSON value in storage.
    */
   private async storageSetJSON<T>(key: string, value: T): Promise<void> {
-    if (this.adapter) {
-      return this.adapter.setItem(key, JSON.stringify(value));
+    if (!this.adapter) {
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
     }
-    // Fallback to global for backward compatibility
-    return setStorageJSON(key, value);
+    return this.adapter.setItem(key, JSON.stringify(value));
   }
 
   async getPlayers(): Promise<Player[]> {
