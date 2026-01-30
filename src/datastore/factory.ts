@@ -39,9 +39,97 @@ let dataStoreCreatedForMode: 'local' | 'cloud' | null = null;
 // Issue #336: AuthService resets if cloud availability changes (not mode changes)
 let authServiceCreatedWithCloudAvailable: boolean | null = null;
 
+// Track the userId the DataStore was created for
+// Used to detect user changes (sign-in/sign-out) and auto-reset the DataStore singleton
+let dataStoreCreatedForUserId: string | undefined = undefined;
+
 // Initialization promises to prevent race conditions during concurrent calls
 let dataStoreInitPromise: Promise<DataStore> | null = null;
 let authServiceInitPromise: Promise<AuthService> | null = null;
+
+/**
+ * Internal helper to close and clean up the current DataStore instance.
+ * Used for user changes and mode changes.
+ *
+ * @param reason - Description of why the close is happening (for logging)
+ */
+async function closeDataStoreInternal(reason: string): Promise<void> {
+  if (!dataStoreInstance) {
+    return;
+  }
+
+  log.info(`[factory] Closing DataStore due to: ${reason}`);
+
+  // Save references for cleanup, then immediately null to prevent race conditions
+  const oldDataStore = dataStoreInstance;
+  const oldMode = dataStoreCreatedForMode;
+  const oldUserId = dataStoreCreatedForUserId;
+  dataStoreInstance = null;
+  dataStoreCreatedForMode = null;
+  dataStoreCreatedForUserId = undefined;
+
+  // If closing from cloud mode, clean up sync engine and Supabase resources
+  if (oldMode === 'cloud') {
+    // Check for pending sync operations
+    try {
+      const { getSyncEngine } = await import('@/sync');
+      const engine = getSyncEngine();
+      const status = await engine.getStatus();
+      if (status.pendingCount > 0) {
+        log.error(`[factory] DATA LOSS: Closing DataStore with ${status.pendingCount} pending sync operations.`);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes('not initialized')) {
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error checking pending operations: ${msg}`, err);
+      }
+    }
+
+    // Stop the sync engine singleton
+    try {
+      const { resetSyncEngine } = await import('@/sync');
+      await resetSyncEngine();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error resetting sync engine: ${msg}`, err);
+    }
+
+    // Clean up Supabase client
+    try {
+      const { cleanupSupabaseClient } = await import('./supabase/client');
+      await cleanupSupabaseClient();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error cleaning up Supabase client: ${msg}`, err);
+    }
+  }
+
+  // Close the old instance
+  try {
+    await oldDataStore.close();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const err = e instanceof Error ? e : new Error(msg);
+    log.warn(`[factory] Error closing DataStore: ${msg}`, err);
+  }
+
+  // Close the user storage adapter to release IndexedDB connection
+  // This prevents memory leaks when switching users
+  if (oldUserId) {
+    try {
+      const { closeUserStorageAdapter } = await import('@/utils/storage');
+      await closeUserStorageAdapter(oldUserId);
+      log.info(`[factory] Closed user storage adapter for: ${oldUserId}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = e instanceof Error ? e : new Error(msg);
+      log.warn(`[factory] Error closing user storage adapter: ${msg}`, err);
+    }
+  }
+}
 
 /**
  * Get the DataStore singleton instance.
@@ -50,88 +138,41 @@ let authServiceInitPromise: Promise<AuthService> | null = null;
  * Subsequent calls return the same instance.
  * Handles concurrent calls safely by sharing the initialization promise.
  *
+ * User-Scoped Storage:
+ * - If userId is provided, the DataStore uses a user-specific IndexedDB database
+ *   (`matchops_user_{userId}`) for complete data isolation between users.
+ * - If userId is undefined, uses the legacy global database (`MatchOpsLocal`).
+ * - When userId changes (user sign-in/sign-out), the DataStore is automatically
+ *   closed and re-created for the new user.
+ *
+ * @param userId - Optional user ID for user-scoped storage. Pass the authenticated
+ *                 user's ID to enable user-scoped storage, or undefined for legacy mode.
  * @returns Initialized DataStore instance
  *
  * @example
  * ```typescript
- * // In React Query queryFn
+ * // In React Query queryFn with authenticated user
  * queryFn: async () => {
- *   const dataStore = await getDataStore();
+ *   const dataStore = await getDataStore(user?.id);
  *   return dataStore.getPlayers();
  * }
  * ```
  */
-export async function getDataStore(): Promise<DataStore> {
+export async function getDataStore(userId?: string): Promise<DataStore> {
   const currentMode = getBackendMode();
+
+  // Check if userId changed since the DataStore was created
+  // This handles user sign-in/sign-out transitions
+  if (dataStoreInstance && dataStoreCreatedForUserId !== userId) {
+    log.info(`[factory] User changed from ${dataStoreCreatedForUserId || '(anonymous)'} to ${userId || '(anonymous)'} - resetting DataStore`);
+    await closeDataStoreInternal('user change');
+  }
 
   // Check if mode changed since the DataStore was created
   // This handles the case where user enables/disables cloud sync
   if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
     log.info(`[factory] Mode changed from ${dataStoreCreatedForMode} to ${currentMode} - resetting DataStore`);
-
-    // Save reference for cleanup, then immediately null to prevent race conditions
-    // (other callers see null and wait for re-initialization via the init promise)
-    const oldDataStore = dataStoreInstance;
-    const oldMode = dataStoreCreatedForMode;
-    dataStoreInstance = null;
-    dataStoreCreatedForMode = null;
-
-    // If switching FROM cloud mode, clean up sync engine and Supabase resources
-    // This prevents stale auth subscriptions and memory leaks
-    // Cleanup order: check pending → stop engine → cleanup Supabase → close DataStore
-    // (check first to capture what will be lost before engine stops processing)
-    if (oldMode === 'cloud') {
-      // Step 1: Check for pending sync operations (before stopping engine)
-      // WARNING: This is a safety net - proper protection should happen in the UI layer
-      // BEFORE calling setBackendMode(). The UI should call getPendingSyncCount() and
-      // either block the switch, wait for sync, or show a confirmation dialog.
-      // See: CloudSyncSection toggle handler
-      try {
-        const { getSyncEngine } = await import('@/sync');
-        const engine = getSyncEngine();
-        const status = await engine.getStatus();
-        if (status.pendingCount > 0) {
-          // Use error level because this indicates data loss
-          log.error(`[factory] DATA LOSS: Mode switch with ${status.pendingCount} pending sync operations that will be lost. UI layer should have blocked this.`);
-        }
-      } catch (e) {
-        // Expected: engine not initialized. Unexpected errors logged for debugging.
-        const msg = e instanceof Error ? e.message : String(e);
-        if (!msg.includes('not initialized')) {
-          const err = e instanceof Error ? e : new Error(msg);
-          log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
-        }
-      }
-
-      // Step 2: Stop the sync engine singleton
-      try {
-        const { resetSyncEngine } = await import('@/sync');
-        await resetSyncEngine();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        const err = e instanceof Error ? e : new Error(msg);
-        log.warn(`[factory] Error resetting sync engine during mode change: ${msg}`, err);
-      }
-
-      // Step 3: Clean up Supabase client
-      try {
-        const { cleanupSupabaseClient } = await import('./supabase/client');
-        await cleanupSupabaseClient();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        const err = e instanceof Error ? e : new Error(msg);
-        log.warn(`[factory] Error cleaning up Supabase client during mode change: ${msg}`, err);
-      }
-    }
-
-    // Close the old instance (reference saved before nulling)
-    try {
-      await oldDataStore.close();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error closing old DataStore during mode change: ${msg}`, err);
-    }
+    await closeDataStoreInternal('mode change');
   }
 
   // Already initialized for current mode - return immediately
@@ -146,14 +187,22 @@ export async function getDataStore(): Promise<DataStore> {
   }
 
   // Initialization in progress - wait for it
+  // Note: If concurrent calls come in with different userIds during initialization,
+  // all callers will get the first caller's DataStore. This is acceptable because:
+  // 1. User changes during initialization are rare (sign-in/out is usually sequential)
+  // 2. The next call after initialization will detect the userId mismatch and reset
+  // 3. This avoids complex per-userId promise tracking
   if (dataStoreInitPromise) {
     return dataStoreInitPromise;
   }
 
+  // Capture userId for the initialization closure
+  const initUserId = userId;
+
   // Start initialization and store the promise
   dataStoreInitPromise = (async () => {
     const mode = getBackendMode();
-    log.info(`[factory] Initializing DataStore in ${mode} mode`);
+    log.info(`[factory] Initializing DataStore in ${mode} mode for user: ${initUserId || '(anonymous)'}`);
 
     let instance: DataStore;
 
@@ -162,7 +211,7 @@ export async function getDataStore(): Promise<DataStore> {
       // - SyncedDataStore wraps LocalDataStore for instant local writes
       // - Operations queue and sync to SupabaseDataStore in background
       const { SyncedDataStore } = await import('./SyncedDataStore');
-      const syncedStore = new SyncedDataStore();
+      const syncedStore = new SyncedDataStore(initUserId);
       await syncedStore.initialize();
 
       try {
@@ -194,10 +243,10 @@ export async function getDataStore(): Promise<DataStore> {
       log.warn(
         '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'
       );
-      instance = new LocalDataStore();
+      instance = new LocalDataStore(initUserId);
       await instance.initialize();
     } else {
-      instance = new LocalDataStore();
+      instance = new LocalDataStore(initUserId);
       await instance.initialize();
     }
 
@@ -208,6 +257,7 @@ export async function getDataStore(): Promise<DataStore> {
     }
     dataStoreInstance = instance;
     dataStoreCreatedForMode = mode;
+    dataStoreCreatedForUserId = initUserId;
     return instance;
   })().finally(() => {
     // Allow retry on failure, and keep the steady state as `dataStoreInstance !== null`.
@@ -346,6 +396,18 @@ export async function resetFactory(): Promise<void> {
     dataStoreInstance = null;
   }
 
+  // Close all user storage adapters to release IndexedDB connections
+  // This prevents memory leaks in tests and when switching between users
+  try {
+    const { closeAllUserStorageAdapters } = await import('@/utils/storage');
+    await closeAllUserStorageAdapters();
+  } catch (e) {
+    // Best-effort cleanup: log but don't throw
+    const msg = e instanceof Error ? e.message : String(e);
+    const err = e instanceof Error ? e : new Error(msg);
+    log.warn(`[factory] Error closing user storage adapters during reset: ${msg}`, err);
+  }
+
   if (authServiceInitPromise) {
     try {
       await authServiceInitPromise;
@@ -361,6 +423,7 @@ export async function resetFactory(): Promise<void> {
   dataStoreInitPromise = null;
   authServiceInitPromise = null;
   dataStoreCreatedForMode = null;
+  dataStoreCreatedForUserId = undefined;
   authServiceCreatedWithCloudAvailable = null;
 }
 
@@ -380,6 +443,24 @@ export function isDataStoreInitialized(): boolean {
  */
 export function isAuthServiceInitialized(): boolean {
   return authServiceInstance !== null;
+}
+
+/**
+ * Close the current DataStore instance.
+ *
+ * Call this when the user signs out to ensure their data is properly
+ * cleaned up before another user can sign in. This closes the user's
+ * IndexedDB connection and clears the singleton.
+ *
+ * @example
+ * ```typescript
+ * // In sign-out handler
+ * await closeDataStore();
+ * await authService.signOut();
+ * ```
+ */
+export async function closeDataStore(): Promise<void> {
+  await closeDataStoreInternal('explicit close');
 }
 
 /**

@@ -51,7 +51,11 @@ import {
   removeStorageItem,
   setStorageItem,
   setStorageJSON,
+  getUserStorageAdapter,
+  closeUserStorageAdapter,
+  getStorageAdapter,
 } from '@/utils/storage';
+import type { StorageAdapter } from '@/utils/storageAdapter';
 import { withKeyLock } from '@/utils/storageKeyLock';
 import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
@@ -336,6 +340,30 @@ export class LocalDataStore implements DataStore {
   private seasonDatesCache: { start: string; end: string } | null = null;
 
   /**
+   * User ID for user-scoped storage.
+   * If set, this LocalDataStore uses a user-specific IndexedDB database.
+   * If undefined, uses the legacy global database (anonymous mode).
+   */
+  private readonly userId?: string;
+
+  /**
+   * Storage adapter for this LocalDataStore instance.
+   * Set during initialize() based on userId.
+   */
+  private adapter: StorageAdapter | null = null;
+
+  /**
+   * Creates a new LocalDataStore instance.
+   *
+   * @param userId - Optional user ID for user-scoped storage.
+   *                 If provided, uses database `matchops_user_{userId}`.
+   *                 If omitted, uses legacy global database `MatchOpsLocal`.
+   */
+  constructor(userId?: string) {
+    this.userId = userId;
+  }
+
+  /**
    * Gets cached season dates or loads from settings.
    * Used by season/tournament creation to use user-configured dates for clubSeason calculation.
    *
@@ -415,6 +443,21 @@ export class LocalDataStore implements DataStore {
   }
 
   async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    // Get the appropriate storage adapter based on userId
+    if (this.userId) {
+      // User-scoped storage: each user gets their own IndexedDB database
+      this.adapter = await getUserStorageAdapter(this.userId);
+      logger.info('[LocalDataStore] Initialized with user-scoped storage', { userId: this.userId });
+    } else {
+      // Legacy anonymous mode: use global database
+      this.adapter = await getStorageAdapter();
+      logger.info('[LocalDataStore] Initialized with legacy global storage');
+    }
+
     this.initialized = true;
   }
 
@@ -427,7 +470,16 @@ export class LocalDataStore implements DataStore {
     this.settingsMigrated = false;
     this.settingsMigrationPromise = null;
     this.seasonDatesCache = null;
-    await clearAdapterCacheWithCleanup();
+
+    // Close the user-scoped adapter if we have one
+    if (this.userId) {
+      await closeUserStorageAdapter(this.userId);
+      this.adapter = null;
+    } else {
+      // For legacy mode, clear the global adapter cache
+      await clearAdapterCacheWithCleanup();
+      this.adapter = null;
+    }
   }
 
   getBackendName(): string {
@@ -440,6 +492,89 @@ export class LocalDataStore implements DataStore {
 
   isInitialized(): boolean {
     return this.initialized;
+  }
+
+  // ==========================================================================
+  // PRIVATE STORAGE HELPERS
+  // These methods use the instance adapter when available (user-scoped mode)
+  // or fall back to global storage functions (legacy mode).
+  // ==========================================================================
+
+  /**
+   * Get an item from storage.
+   * Uses user-scoped adapter if available, otherwise falls back to global.
+   */
+  private async storageGetItem(key: string): Promise<string | null> {
+    if (this.adapter) {
+      return this.adapter.getItem(key);
+    }
+    // Fallback to global for backward compatibility (during tests or edge cases)
+    return getStorageItem(key);
+  }
+
+  /**
+   * Set an item in storage.
+   * Uses user-scoped adapter if available, otherwise falls back to global.
+   */
+  private async storageSetItem(key: string, value: string): Promise<void> {
+    if (this.adapter) {
+      return this.adapter.setItem(key, value);
+    }
+    // Fallback to global for backward compatibility
+    return setStorageItem(key, value);
+  }
+
+  /**
+   * Remove an item from storage.
+   * Uses user-scoped adapter if available, otherwise falls back to global.
+   */
+  private async storageRemoveItem(key: string): Promise<void> {
+    if (this.adapter) {
+      return this.adapter.removeItem(key);
+    }
+    // Fallback to global for backward compatibility
+    return removeStorageItem(key);
+  }
+
+  /**
+   * Clear all items from storage.
+   * Uses user-scoped adapter if available, otherwise falls back to global.
+   */
+  private async storageClear(): Promise<void> {
+    if (this.adapter) {
+      return this.adapter.clear();
+    }
+    // Fallback to global for backward compatibility
+    const { clearStorage } = await import('@/utils/storage');
+    return clearStorage();
+  }
+
+  /**
+   * Get and parse JSON from storage.
+   */
+  private async storageGetJSON<T>(key: string): Promise<T | null> {
+    if (this.adapter) {
+      const value = await this.adapter.getItem(key);
+      if (value === null) return null;
+      try {
+        return JSON.parse(value) as T;
+      } catch {
+        return null;
+      }
+    }
+    // Fallback to global for backward compatibility
+    return getStorageJSON<T>(key);
+  }
+
+  /**
+   * Set JSON value in storage.
+   */
+  private async storageSetJSON<T>(key: string, value: T): Promise<void> {
+    if (this.adapter) {
+      return this.adapter.setItem(key, JSON.stringify(value));
+    }
+    // Fallback to global for backward compatibility
+    return setStorageJSON(key, value);
   }
 
   async getPlayers(): Promise<Player[]> {
@@ -471,7 +606,7 @@ export class LocalDataStore implements DataStore {
       };
 
       roster.push(newPlayer);
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
+      await this.storageSetItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
       return newPlayer;
     });
   }
@@ -512,7 +647,7 @@ export class LocalDataStore implements DataStore {
       }
 
       roster[playerIndex] = updatedPlayer;
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
+      await this.storageSetItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
 
       return updatedPlayer;
     });
@@ -529,7 +664,7 @@ export class LocalDataStore implements DataStore {
         return false;
       }
 
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(updatedRoster));
+      await this.storageSetItem(MASTER_ROSTER_KEY, JSON.stringify(updatedRoster));
       return true;
     });
   }
@@ -564,7 +699,7 @@ export class LocalDataStore implements DataStore {
         roster.push(normalizedPlayer);
       }
 
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
+      await this.storageSetItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
       return normalizedPlayer;
     });
   }
@@ -653,7 +788,7 @@ export class LocalDataStore implements DataStore {
       };
 
       teamsIndex[newTeam.id] = newTeam;
-      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       await this.setTeamRoster(newTeam.id, []);
 
       return newTeam;
@@ -736,7 +871,7 @@ export class LocalDataStore implements DataStore {
       };
 
       teamsIndex[id] = updatedTeam;
-      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       return updatedTeam;
     });
   }
@@ -751,7 +886,7 @@ export class LocalDataStore implements DataStore {
       }
 
       delete teamsIndex[id];
-      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       return true;
     });
   }
@@ -779,7 +914,7 @@ export class LocalDataStore implements DataStore {
       };
 
       teamsIndex[team.id] = normalizedTeam;
-      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       return normalizedTeam;
     });
   }
@@ -804,7 +939,7 @@ export class LocalDataStore implements DataStore {
 
     const rostersIndex = await this.loadTeamRosters();
     rostersIndex[teamId] = roster;
-    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
   }
 
   /**
@@ -887,7 +1022,7 @@ export class LocalDataStore implements DataStore {
         clubSeason: newClubSeason,
       };
 
-      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify([...currentSeasons, newSeason]));
+      await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify([...currentSeasons, newSeason]));
       return newSeason;
     });
   }
@@ -953,7 +1088,7 @@ export class LocalDataStore implements DataStore {
         clubSeason: newClubSeason,
       };
       currentSeasons[seasonIndex] = updatedSeason;
-      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
+      await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
 
       return updatedSeason;
     });
@@ -970,7 +1105,7 @@ export class LocalDataStore implements DataStore {
         return false;
       }
 
-      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(nextSeasons));
+      await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(nextSeasons));
       return true;
     });
   }
@@ -1027,7 +1162,7 @@ export class LocalDataStore implements DataStore {
         currentSeasons.push(normalizedSeason);
       }
 
-      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
+      await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
       return normalizedSeason;
     });
   }
@@ -1112,7 +1247,7 @@ export class LocalDataStore implements DataStore {
         clubSeason: newClubSeason,
       };
 
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify([...currentTournaments, newTournament]));
+      await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify([...currentTournaments, newTournament]));
       return newTournament;
     });
   }
@@ -1178,7 +1313,7 @@ export class LocalDataStore implements DataStore {
       };
 
       currentTournaments[tournamentIndex] = updatedTournament;
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
+      await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
 
       return updatedTournament;
     });
@@ -1195,7 +1330,7 @@ export class LocalDataStore implements DataStore {
         return false;
       }
 
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(nextTournaments));
+      await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(nextTournaments));
       return true;
     });
   }
@@ -1253,7 +1388,7 @@ export class LocalDataStore implements DataStore {
         currentTournaments.push(normalizedTournament);
       }
 
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
+      await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
       return normalizedTournament;
     });
   }
@@ -1310,7 +1445,7 @@ export class LocalDataStore implements DataStore {
       };
 
       collection[newPersonnel.id] = newPersonnel;
-      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+      await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(collection));
       return newPersonnel;
     });
   }
@@ -1360,7 +1495,7 @@ export class LocalDataStore implements DataStore {
       };
 
       collection[id] = updated;
-      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+      await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(collection));
       return updated;
     });
   }
@@ -1402,7 +1537,7 @@ export class LocalDataStore implements DataStore {
       };
 
       collection[personnel.id] = normalizedPersonnel;
-      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+      await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(collection));
       return normalizedPersonnel;
     });
   }
@@ -1450,17 +1585,17 @@ export class LocalDataStore implements DataStore {
           }
 
           if (gamesUpdated > 0) {
-            await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+            await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
           }
 
           delete collection[id];
-          await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+          await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(collection));
 
           return true;
         } catch (error) {
           try {
-            await setStorageItem(PERSONNEL_KEY, JSON.stringify(backup.personnel));
-            await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(backup.games));
+            await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(backup.personnel));
+            await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(backup.games));
 
             // Verify rollback succeeded by re-reading data
             const restoredPersonnel = await this.loadPersonnelCollection();
@@ -1572,7 +1707,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(SAVED_GAMES_KEY, async () => {
       const games = await this.loadSavedGames();
       games[id] = game;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
       return game;
     });
   }
@@ -1596,7 +1731,7 @@ export class LocalDataStore implements DataStore {
     }
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
     });
   }
 
@@ -1610,7 +1745,7 @@ export class LocalDataStore implements DataStore {
       }
 
       delete games[id];
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
       return true;
     });
   }
@@ -1632,7 +1767,7 @@ export class LocalDataStore implements DataStore {
       };
 
       games[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
 
       return updatedGame;
     });
@@ -1665,7 +1800,7 @@ export class LocalDataStore implements DataStore {
       };
 
       games[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
 
       return updatedGame;
     });
@@ -1694,7 +1829,7 @@ export class LocalDataStore implements DataStore {
       };
 
       games[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
 
       return updatedGame;
     });
@@ -1711,7 +1846,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      const settingsJson = await getStorageItem(APP_SETTINGS_KEY);
+      const settingsJson = await this.storageGetItem(APP_SETTINGS_KEY);
       if (!settingsJson) {
         this.settingsMigrated = false; // Reset so migration runs when settings restored
         return { ...DEFAULT_APP_SETTINGS };
@@ -1766,7 +1901,7 @@ export class LocalDataStore implements DataStore {
             // Create migration promise to synchronize concurrent calls
             this.settingsMigrationPromise = withKeyLock(APP_SETTINGS_KEY, async () => {
               try {
-                await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+                await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
                 logger.info('[LocalDataStore] Successfully migrated app settings to new format');
                 this.settingsMigrated = true;
               } catch (saveError) {
@@ -1792,7 +1927,7 @@ export class LocalDataStore implements DataStore {
 
       if (!settings.lastHomeTeamName) {
         try {
-          const legacyValue = await getStorageItem(LAST_HOME_TEAM_NAME_KEY);
+          const legacyValue = await this.storageGetItem(LAST_HOME_TEAM_NAME_KEY);
           if (legacyValue) {
             settings.lastHomeTeamName = legacyValue;
           }
@@ -1812,7 +1947,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     await withKeyLock(APP_SETTINGS_KEY, async () => {
-      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+      await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(settings));
     });
 
     // Invalidate season dates cache in case dates were changed
@@ -1828,7 +1963,7 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(APP_SETTINGS_KEY, async () => {
       // Read directly from storage (avoid nested lock)
-      const stored = await getStorageItem(APP_SETTINGS_KEY);
+      const stored = await this.storageGetItem(APP_SETTINGS_KEY);
 
       // Parse with validation - fall back to defaults on corruption
       // Use same validation as getSettings() for consistency
@@ -1860,7 +1995,7 @@ export class LocalDataStore implements DataStore {
       // Remove legacy fields before saving
       const toSave = this.removeLegacyMonthFields(updated);
 
-      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+      await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
       // Legacy fields removed from storage - mark as migrated
       this.settingsMigrated = true;
 
@@ -1935,7 +2070,7 @@ export class LocalDataStore implements DataStore {
 
       const list = all[newAdjustment.playerId] || [];
       all[newAdjustment.playerId] = [...list, newAdjustment];
-      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+      await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
 
       return newAdjustment;
     });
@@ -1960,7 +2095,7 @@ export class LocalDataStore implements DataStore {
         list.push(newAdjustment);
       }
       all[newAdjustment.playerId] = list;
-      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+      await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
 
       return newAdjustment;
     });
@@ -1989,7 +2124,7 @@ export class LocalDataStore implements DataStore {
       const updated = { ...list[index], ...patch } as PlayerStatAdjustment;
       list[index] = updated;
       all[playerId] = list;
-      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+      await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
 
       return updated;
     });
@@ -2008,7 +2143,7 @@ export class LocalDataStore implements DataStore {
       }
 
       all[playerId] = nextList;
-      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+      await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
       return true;
     });
   }
@@ -2037,7 +2172,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      const planJson = await getStorageItem(WARMUP_PLAN_KEY);
+      const planJson = await this.storageGetItem(WARMUP_PLAN_KEY);
       if (!planJson) {
         return null;
       }
@@ -2068,7 +2203,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(WARMUP_PLAN_KEY, async () => {
       try {
         const planToSave = normalizeWarmupPlanForSave(plan);
-        await setStorageItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
+        await this.storageSetItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
         return true;
       } catch (error) {
         logger.error('[LocalDataStore] Error saving warmup plan', error);
@@ -2082,7 +2217,7 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(WARMUP_PLAN_KEY, async () => {
       try {
-        await setStorageItem(WARMUP_PLAN_KEY, '');
+        await this.storageSetItem(WARMUP_PLAN_KEY, '');
         return true;
       } catch (error) {
         logger.error('[LocalDataStore] Error deleting warmup plan', error);
@@ -2095,7 +2230,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      return await getStorageJSON<TimerState>(TIMER_STATE_KEY);
+      return await this.storageGetJSON<TimerState>(TIMER_STATE_KEY);
     } catch (error) {
       logger.debug('[LocalDataStore] Failed to load timer state', error);
       return null;
@@ -2106,7 +2241,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      await setStorageJSON(TIMER_STATE_KEY, state);
+      await this.storageSetJSON(TIMER_STATE_KEY, state);
     } catch (error) {
       logger.debug('[LocalDataStore] Failed to save timer state', error);
     }
@@ -2116,7 +2251,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      await removeStorageItem(TIMER_STATE_KEY);
+      await this.storageRemoveItem(TIMER_STATE_KEY);
     } catch (error) {
       logger.debug('[LocalDataStore] Failed to clear timer state', error);
     }
@@ -2155,7 +2290,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadPlayers(): Promise<Player[]> {
     try {
-      const rosterJson = await getStorageItem(MASTER_ROSTER_KEY);
+      const rosterJson = await this.storageGetItem(MASTER_ROSTER_KEY);
       if (!rosterJson) {
         return [];
       }
@@ -2170,7 +2305,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadTeamsIndex(): Promise<TeamsIndex> {
     try {
-      const json = await getStorageItem(TEAMS_INDEX_KEY);
+      const json = await this.storageGetItem(TEAMS_INDEX_KEY);
       if (!json) {
         return {};
       }
@@ -2189,7 +2324,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadTeamRosters(): Promise<TeamRostersIndex> {
     try {
-      const json = await getStorageItem(TEAM_ROSTERS_KEY);
+      const json = await this.storageGetItem(TEAM_ROSTERS_KEY);
       if (!json) {
         return {};
       }
@@ -2208,7 +2343,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadSeasons(): Promise<Season[]> {
     try {
-      const seasonsJson = await getStorageItem(SEASONS_LIST_KEY);
+      const seasonsJson = await this.storageGetItem(SEASONS_LIST_KEY);
       if (!seasonsJson) {
         return [];
       }
@@ -2223,7 +2358,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadTournaments(): Promise<Tournament[]> {
     try {
-      const tournamentsJson = await getStorageItem(TOURNAMENTS_LIST_KEY);
+      const tournamentsJson = await this.storageGetItem(TOURNAMENTS_LIST_KEY);
       if (!tournamentsJson) {
         return [];
       }
@@ -2238,7 +2373,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadPersonnelCollection(): Promise<PersonnelCollection> {
     try {
-      const personnelJson = await getStorageItem(PERSONNEL_KEY);
+      const personnelJson = await this.storageGetItem(PERSONNEL_KEY);
       if (!personnelJson) {
         return {};
       }
@@ -2257,7 +2392,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadSavedGames(): Promise<SavedGamesCollection> {
     try {
-      const gamesJson = await getStorageItem(SAVED_GAMES_KEY);
+      const gamesJson = await this.storageGetItem(SAVED_GAMES_KEY);
       if (!gamesJson) {
         return {};
       }
@@ -2276,7 +2411,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadPlayerAdjustments(): Promise<PlayerAdjustmentsIndex> {
     try {
-      const json = await getStorageItem(PLAYER_ADJUSTMENTS_KEY);
+      const json = await this.storageGetItem(PLAYER_ADJUSTMENTS_KEY);
       if (!json) {
         return {};
       }
