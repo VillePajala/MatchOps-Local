@@ -798,7 +798,7 @@ export function getSyncEngine(queue?: SyncQueue): SyncEngine {
   if (!syncEngineInstance) {
     if (!queue) {
       throw new SyncError(
-        SyncErrorCode.QUEUE_ERROR,
+        SyncErrorCode.NOT_INITIALIZED,
         'SyncEngine not initialized. Provide SyncQueue on first call.'
       );
     }
