@@ -1508,6 +1508,27 @@ SELECT user_id, id FROM players WHERE id = 'some-player-id';
 
 This is industry-standard multi-tenant architecture used by Salesforce, Stripe, and most SaaS platforms.
 
+### For Security-Conscious Deployments
+
+**Timing Attack Mitigation (Optional)**
+
+The `legacyDatabaseExists()` function supports a `constantTime` option that ensures consistent response time regardless of whether the database exists:
+
+```typescript
+// Standard usage (fine for most apps)
+const exists = await legacyDatabaseExists();
+
+// For paranoid deployments - prevents timing side-channel
+const exists = await legacyDatabaseExists({ constantTime: true });
+```
+
+**When to use `constantTime: true`:**
+- High-security environments where database existence could be sensitive
+- Applications subject to security audits that flag timing differences
+- If you're unsure, the default (false) is appropriate for most use cases
+
+**Note:** This is for migration detection only. The timing difference reveals only whether a user has previously used the app (the legacy database exists), which is generally not sensitive information.
+
 ---
 
 ## Appendix C: Implementation Order
