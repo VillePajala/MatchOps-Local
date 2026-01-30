@@ -25,6 +25,21 @@ const mockSetStorageJSON = jest.fn();
 const mockIsIndexedDBAvailable = jest.fn(() => true);
 const mockClearAdapterCacheWithCleanup = jest.fn();
 
+// Create mock adapter for user-scoped storage
+// The adapter methods delegate to the global mock functions for test backward compatibility
+const mockAdapter = {
+  getItem: jest.fn().mockImplementation((key: string) => mockGetStorageItem(key)),
+  setItem: jest.fn().mockImplementation((key: string, value: string) => mockSetStorageItem(key, value)),
+  removeItem: jest.fn().mockImplementation((key: string) => mockRemoveStorageItem(key)),
+  clear: jest.fn(),
+  getKeys: jest.fn().mockResolvedValue([]),
+  getBackendName: jest.fn().mockReturnValue('indexedDB'),
+  close: jest.fn(),
+};
+const mockGetUserStorageAdapter = jest.fn().mockResolvedValue(mockAdapter);
+const mockCloseUserStorageAdapter = jest.fn();
+const mockGetStorageAdapter = jest.fn().mockResolvedValue(mockAdapter);
+
 // Reset modules to ensure clean mocking
 jest.resetModules();
 
@@ -37,6 +52,9 @@ jest.mock('@/utils/storage', () => ({
   setStorageJSON: mockSetStorageJSON,
   isIndexedDBAvailable: mockIsIndexedDBAvailable,
   clearAdapterCacheWithCleanup: mockClearAdapterCacheWithCleanup,
+  getUserStorageAdapter: mockGetUserStorageAdapter,
+  closeUserStorageAdapter: mockCloseUserStorageAdapter,
+  getStorageAdapter: mockGetStorageAdapter,
 }));
 
 // Mock appSettings to prevent import of @/datastore (which would load the real storage)
@@ -129,6 +147,35 @@ describe('LocalDataStore', () => {
     it('should throw NotInitializedError when not initialized', async () => {
       const store = new LocalDataStore();
       await expect(store.getPlayers()).rejects.toThrow(NotInitializedError);
+    });
+
+    describe('Constructor userId Validation', () => {
+      it('should accept undefined userId for anonymous mode', () => {
+        expect(() => new LocalDataStore()).not.toThrow();
+        expect(() => new LocalDataStore(undefined)).not.toThrow();
+      });
+
+      it('should accept valid userId', () => {
+        expect(() => new LocalDataStore('user-123')).not.toThrow();
+        expect(() => new LocalDataStore('USER_456')).not.toThrow();
+        expect(() => new LocalDataStore('abc123')).not.toThrow();
+      });
+
+      it('should throw ValidationError on empty userId', () => {
+        expect(() => new LocalDataStore('')).toThrow(ValidationError);
+      });
+
+      it('should throw ValidationError on whitespace-only userId', () => {
+        expect(() => new LocalDataStore('   ')).toThrow(ValidationError);
+        expect(() => new LocalDataStore('\t\n')).toThrow(ValidationError);
+      });
+
+      it('should throw ValidationError on userId with invalid characters', () => {
+        expect(() => new LocalDataStore('user@email.com')).toThrow(ValidationError);
+        expect(() => new LocalDataStore('user/path')).toThrow(ValidationError);
+        expect(() => new LocalDataStore('user..name')).toThrow(ValidationError);
+        expect(() => new LocalDataStore('user name')).toThrow(ValidationError);
+      });
     });
   });
 
@@ -2297,7 +2344,8 @@ describe('LocalDataStore', () => {
 
     describe('getTimerState', () => {
       it('should return timer state', async () => {
-        mockGetStorageJSON.mockResolvedValue(mockTimerState);
+        // Mock adapter's getItem to return JSON-stringified timer state
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(mockTimerState));
 
         const state = await dataStore.getTimerState();
         expect(state?.gameId).toBe('game_1');
@@ -2305,14 +2353,15 @@ describe('LocalDataStore', () => {
       });
 
       it('should return null when no timer state exists', async () => {
-        mockGetStorageJSON.mockResolvedValue(null);
+        mockGetStorageItem.mockResolvedValue(null);
 
         const state = await dataStore.getTimerState();
         expect(state).toBeNull();
       });
 
       it('should handle errors gracefully', async () => {
-        mockGetStorageJSON.mockRejectedValue(new Error('Storage error'));
+        // Mock adapter's getItem to throw (once, to not affect subsequent tests)
+        mockAdapter.getItem.mockRejectedValueOnce(new Error('Storage error'));
 
         const state = await dataStore.getTimerState();
         expect(state).toBeNull();
@@ -2322,14 +2371,16 @@ describe('LocalDataStore', () => {
     describe('saveTimerState', () => {
       it('should save timer state', async () => {
         await dataStore.saveTimerState(mockTimerState);
-        expect(mockSetStorageJSON).toHaveBeenCalledWith(
+        // The adapter's setItem is called with the JSON-stringified value
+        expect(mockAdapter.setItem).toHaveBeenCalledWith(
           'soccerTimerState',
-          mockTimerState
+          JSON.stringify(mockTimerState)
         );
       });
 
       it('should handle errors gracefully', async () => {
-        mockSetStorageJSON.mockRejectedValue(new Error('Storage error'));
+        // Mock adapter's setItem to throw
+        mockAdapter.setItem.mockRejectedValueOnce(new Error('Storage error'));
 
         await expect(
           dataStore.saveTimerState(mockTimerState)

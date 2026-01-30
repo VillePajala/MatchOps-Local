@@ -247,6 +247,9 @@ export enum SyncErrorCode {
 
   /** IndexedDB quota exceeded */
   QUOTA_EXCEEDED = 'SYNC_QUOTA_EXCEEDED',
+
+  /** Sync engine or queue not initialized */
+  NOT_INITIALIZED = 'SYNC_NOT_INITIALIZED',
 }
 
 /**

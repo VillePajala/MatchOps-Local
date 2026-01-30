@@ -149,7 +149,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="mt-20 border-t border-slate-700/20 bg-slate-900/40 backdrop-blur-sm relative z-10">
         <div className="container-custom py-8 text-center">
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-slate-300" suppressHydrationWarning>
             {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
           <Link
