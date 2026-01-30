@@ -148,8 +148,30 @@ const ADAPTER_CLOSE_TIMEOUT_MS = 5000;
  * Timeout for adapter creation (25 seconds).
  * Set lower than mutex timeout (30s) so timeout error is thrown before mutex times out.
  * This prevents hung IndexedDB operations from blocking indefinitely.
+ *
+ * NOTE: The timeout uses Promise.race which doesn't actually cancel the underlying
+ * IndexedDB operation. If timeout occurs:
+ * 1. The hung adapter is NOT cached (removed in .catch handler)
+ * 2. The hung connection will eventually close when the promise resolves/rejects
+ * 3. Next retry gets a fresh connection attempt
+ *
+ * True cancellation would require AbortController support in IndexedDB, which
+ * doesn't exist. This timeout prevents blocking callers, which is the critical goal.
  */
 const ADAPTER_CREATE_TIMEOUT_MS = 25000;
+
+/**
+ * Track timed-out adapter creations to prevent memory leaks.
+ * When a creation times out, we track the promise so we can close it if it
+ * eventually resolves (cleanup orphaned connections).
+ */
+const timedOutCreations = new Set<Promise<StorageAdapter>>();
+
+/**
+ * Maximum number of orphaned timed-out adapters to track before cleanup.
+ * Prevents unbounded memory growth from tracking timed-out promises.
+ */
+const MAX_TRACKED_TIMEOUTS = 10;
 
 /**
  * Evict least-recently-used user adapters if cache exceeds MAX_USER_ADAPTERS.
@@ -273,13 +295,48 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
     // Create new adapter with timeout to prevent indefinite hangs
     const lastAccessedAt = Date.now();
     const createPromise = createUserAdapter(trimmedUserId);
+
+    // Track the original promise for cleanup if timeout occurs
+    let didTimeout = false;
     const timeoutPromise = new Promise<StorageAdapter>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Adapter creation timeout after ${ADAPTER_CREATE_TIMEOUT_MS}ms`)),
-        ADAPTER_CREATE_TIMEOUT_MS
-      )
+      setTimeout(() => {
+        didTimeout = true;
+        reject(new Error(`Adapter creation timeout after ${ADAPTER_CREATE_TIMEOUT_MS}ms`));
+      }, ADAPTER_CREATE_TIMEOUT_MS)
     );
+
+    // Race between creation and timeout
     const promise = Promise.race([createPromise, timeoutPromise]);
+
+    // Handle timeout cleanup: if creation times out, track the original promise
+    // so we can close the orphaned connection when it eventually resolves
+    promise.catch(() => {
+      if (didTimeout) {
+        // Track timed-out creation for cleanup
+        timedOutCreations.add(createPromise);
+
+        // Clean up orphaned connection when it eventually resolves
+        createPromise.then(adapter => {
+          timedOutCreations.delete(createPromise);
+          if (hasCloseMethod(adapter)) {
+            adapter.close().catch(err => {
+              logger.warn('[storage] Error closing orphaned timed-out adapter', { error: err });
+            });
+          }
+        }).catch(() => {
+          // Creation failed anyway - just remove from tracking
+          timedOutCreations.delete(createPromise);
+        });
+
+        // Prevent unbounded tracking if too many timeouts
+        if (timedOutCreations.size > MAX_TRACKED_TIMEOUTS) {
+          logger.warn('[storage] Too many timed-out adapter creations - possible IndexedDB issue');
+          // Remove oldest (first added) to prevent memory leak
+          const oldest = timedOutCreations.values().next().value;
+          if (oldest) timedOutCreations.delete(oldest);
+        }
+      }
+    });
 
     // Cache the promise (not the resolved adapter) to handle concurrent requests
     userAdapterCache.set(trimmedUserId, { promise, lastAccessedAt });
@@ -353,12 +410,34 @@ export async function closeUserStorageAdapter(userId: string): Promise<void> {
 }
 
 /**
- * Close all user storage adapters.
+ * Close all user storage adapters and clear the cache.
  *
- * Useful for testing and app shutdown scenarios.
+ * Call this during:
+ * - Application shutdown (ensures clean IndexedDB disconnect)
+ * - Test cleanup (prevents state leakage between tests)
+ * - Factory reset (part of resetFactory() cleanup)
+ *
+ * This function is safe to call even if no adapters are cached.
+ * Errors closing individual adapters are logged but don't fail the operation.
+ *
+ * @example
+ * ```typescript
+ * // In test cleanup
+ * afterEach(async () => {
+ *   await closeAllUserStorageAdapters();
+ * });
+ *
+ * // During app shutdown
+ * window.addEventListener('beforeunload', async () => {
+ *   await closeAllUserStorageAdapters();
+ * });
+ * ```
  */
 export async function closeAllUserStorageAdapters(): Promise<void> {
-  logger.debug('Closing all user storage adapters', { count: userAdapterCache.size });
+  logger.debug('Closing all user storage adapters', {
+    cachedCount: userAdapterCache.size,
+    timedOutCount: timedOutCreations.size
+  });
 
   const closePromises = Array.from(userAdapterCache.keys()).map(userId =>
     closeUserStorageAdapter(userId).catch(error => {
@@ -368,6 +447,9 @@ export async function closeAllUserStorageAdapters(): Promise<void> {
 
   await Promise.all(closePromises);
   userAdapterCache.clear();
+
+  // Also clear timed-out creation tracking (they'll close themselves when resolved)
+  timedOutCreations.clear();
 }
 
 /**
