@@ -6,10 +6,18 @@
  * - Next: Branches 2-4 will build advanced features on this foundation
  */
 
-import { createStorageAdapter } from './storageFactory';
+import { createStorageAdapter, createUserAdapter } from './storageFactory';
 import { StorageAdapter } from './storageAdapter';
 import { MutexManager } from './storageMutex';
 import logger from './logger';
+
+/**
+ * Extended interface for storage adapters that support connection disposal
+ * Used for type-safe cleanup of IndexedDB connections
+ */
+interface DisposableAdapter extends StorageAdapter {
+  close?: () => Promise<void>;
+}
 
 /**
  * Check if running in production environment
@@ -97,6 +105,210 @@ const adapterCreationMutex = new MutexManager({
   defaultTimeout: 30000, // 30 second timeout for adapter creation
   enableDebugLogging: false
 });
+
+// ==========================================================================
+// USER-SCOPED ADAPTER MANAGEMENT
+// ==========================================================================
+
+/**
+ * Maximum number of user adapters to keep in cache.
+ * Prevents unbounded memory growth in multi-user scenarios.
+ * When exceeded, oldest adapters are evicted (LRU-style).
+ */
+const MAX_USER_ADAPTERS = 5;
+
+/**
+ * Cache for user-scoped storage adapters.
+ * Key: userId, Value: { adapter, createdAt }
+ */
+const userAdapterCache = new Map<string, {
+  promise: Promise<StorageAdapter>;
+  createdAt: number;
+}>();
+
+/**
+ * Evict oldest user adapters if cache exceeds MAX_USER_ADAPTERS.
+ * Uses createdAt timestamp as LRU proxy.
+ */
+async function evictOldestUserAdapters(): Promise<void> {
+  if (userAdapterCache.size <= MAX_USER_ADAPTERS) {
+    return;
+  }
+
+  // Sort entries by createdAt (oldest first)
+  const entries = Array.from(userAdapterCache.entries())
+    .sort((a, b) => a[1].createdAt - b[1].createdAt);
+
+  // Evict oldest entries until we're at or below the limit
+  const toEvict = entries.slice(0, userAdapterCache.size - MAX_USER_ADAPTERS);
+
+  for (const [userId, entry] of toEvict) {
+    logger.debug(`[storage] Evicting oldest user adapter: ${userId}`);
+    try {
+      const adapter = await entry.promise;
+      const disposable = adapter as DisposableAdapter;
+      if (disposable.close) {
+        await disposable.close();
+      }
+    } catch (error) {
+      logger.warn(`[storage] Failed to close evicted user adapter: ${userId}`, { error });
+    }
+    userAdapterCache.delete(userId);
+  }
+}
+
+// Mutex for user adapter creation (separate from global adapter mutex)
+const userAdapterCreationMutex = new MutexManager({
+  defaultTimeout: 30000,
+  enableDebugLogging: false
+});
+
+/**
+ * Get a user-scoped storage adapter.
+ *
+ * Creates and caches an IndexedDB adapter for the specified user.
+ * Each user gets their own database for complete data isolation.
+ *
+ * @param userId - The authenticated user's ID
+ * @returns Promise resolving to user-scoped storage adapter
+ * @throws Error if userId is invalid or IndexedDB is unavailable
+ *
+ * @example
+ * ```typescript
+ * const adapter = await getUserStorageAdapter('user123');
+ * await adapter.setItem('settings', JSON.stringify({ theme: 'dark' }));
+ * ```
+ */
+export async function getUserStorageAdapter(userId: string): Promise<StorageAdapter> {
+  if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+    throw new Error('userId is required and must be a non-empty string');
+  }
+
+  const trimmedUserId = userId.trim();
+
+  // Check for cached adapter (fast path)
+  const cached = userAdapterCache.get(trimmedUserId);
+  if (cached && !isUserAdapterExpired(cached.createdAt)) {
+    return cached.promise;
+  }
+
+  // Use mutex to prevent concurrent adapter creation for same user
+  try {
+    await userAdapterCreationMutex.acquire();
+
+    // Double-check after acquiring mutex
+    const cachedAfterLock = userAdapterCache.get(trimmedUserId);
+    if (cachedAfterLock && !isUserAdapterExpired(cachedAfterLock.createdAt)) {
+      return cachedAfterLock.promise;
+    }
+
+    // Close and remove expired adapter if exists
+    if (cachedAfterLock) {
+      logger.debug('Closing expired user adapter', { userId: trimmedUserId });
+      try {
+        const oldAdapter = await cachedAfterLock.promise;
+        const disposable = oldAdapter as DisposableAdapter;
+        if (disposable.close) {
+          await disposable.close();
+        }
+      } catch (error) {
+        logger.warn('Failed to close expired user adapter', { userId: trimmedUserId, error });
+      }
+      userAdapterCache.delete(trimmedUserId);
+    }
+
+    // Create new adapter
+    const createdAt = Date.now();
+    const promise = createUserAdapter(trimmedUserId);
+
+    // Cache the promise (not the resolved adapter) to handle concurrent requests
+    userAdapterCache.set(trimmedUserId, { promise, createdAt });
+
+    // Evict oldest adapters if cache is full (LRU eviction)
+    // Do this asynchronously to not block the current request
+    evictOldestUserAdapters().catch(error => {
+      logger.warn('[storage] Error during user adapter eviction', { error });
+    });
+
+    // Handle creation failure
+    promise.catch(() => {
+      // Remove from cache on failure
+      userAdapterCache.delete(trimmedUserId);
+    });
+
+    return promise;
+  } finally {
+    userAdapterCreationMutex.release();
+  }
+}
+
+/**
+ * Close and remove a user's storage adapter from cache.
+ *
+ * Call this when a user signs out to release resources and
+ * ensure data isolation when another user signs in.
+ *
+ * @param userId - The user's ID whose adapter should be closed
+ *
+ * @example
+ * ```typescript
+ * // On sign out
+ * await closeUserStorageAdapter(currentUserId);
+ * ```
+ */
+export async function closeUserStorageAdapter(userId: string): Promise<void> {
+  if (!userId || typeof userId !== 'string') {
+    return;
+  }
+
+  const trimmedUserId = userId.trim();
+  const cached = userAdapterCache.get(trimmedUserId);
+
+  if (!cached) {
+    logger.debug('No cached adapter to close for user', { userId: trimmedUserId });
+    return;
+  }
+
+  logger.debug('Closing user storage adapter', { userId: trimmedUserId });
+
+  try {
+    const adapter = await cached.promise;
+    const disposable = adapter as DisposableAdapter;
+    if (disposable.close) {
+      await disposable.close();
+    }
+    logger.debug('User adapter closed successfully', { userId: trimmedUserId });
+  } catch (error) {
+    logger.warn('Error closing user adapter', { userId: trimmedUserId, error });
+  } finally {
+    userAdapterCache.delete(trimmedUserId);
+  }
+}
+
+/**
+ * Close all user storage adapters.
+ *
+ * Useful for testing and app shutdown scenarios.
+ */
+export async function closeAllUserStorageAdapters(): Promise<void> {
+  logger.debug('Closing all user storage adapters', { count: userAdapterCache.size });
+
+  const closePromises = Array.from(userAdapterCache.keys()).map(userId =>
+    closeUserStorageAdapter(userId).catch(error => {
+      logger.warn('Error closing user adapter during bulk close', { userId, error });
+    })
+  );
+
+  await Promise.all(closePromises);
+  userAdapterCache.clear();
+}
+
+/**
+ * Check if a user adapter has expired based on TTL.
+ */
+function isUserAdapterExpired(createdAt: number): boolean {
+  return Date.now() - createdAt > ADAPTER_TTL;
+}
 
 // Configurable TTL for adapter caching (default: 15 minutes)
 // Longer TTL improves performance for active users while still ensuring fresh connections
