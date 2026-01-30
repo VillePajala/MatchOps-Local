@@ -28,14 +28,18 @@ const USER_DATABASE_PREFIX = 'matchops_user_';
 /**
  * Get the database name for a specific user.
  *
- * @param userId - The authenticated user's ID (from Supabase Auth)
+ * IMPORTANT: userId is expected to be a UUID from Supabase Auth (e.g., 'f47ac10b-58cc-4372-a567-0e02b2c3d479').
+ * Supabase UUIDs are safe for database names (alphanumeric + hyphens only).
+ * Do NOT pass user-controlled input directly - always use the authenticated user's ID from Supabase.
+ *
+ * @param userId - The authenticated user's ID (UUID from Supabase Auth)
  * @returns Database name in format `matchops_user_{userId}`
- * @throws {Error} If userId is empty or invalid
+ * @throws {Error} If userId is empty or contains invalid characters
  *
  * @example
  * ```typescript
- * const dbName = getUserDatabaseName('abc123');
- * // Returns: 'matchops_user_abc123'
+ * const dbName = getUserDatabaseName('f47ac10b-58cc-4372-a567-0e02b2c3d479');
+ * // Returns: 'matchops_user_f47ac10b-58cc-4372-a567-0e02b2c3d479'
  * ```
  */
 export function getUserDatabaseName(userId: string): string {
@@ -49,7 +53,10 @@ export function getUserDatabaseName(userId: string): string {
   }
 
   // Validate userId format (alphanumeric, hyphens, underscores only)
-  // This prevents path traversal and ensures safe database names
+  // Supabase UUIDs match this pattern. This validation prevents:
+  // 1. Path traversal attacks (no slashes, dots, etc.)
+  // 2. Database name injection
+  // 3. Reserved/confusing names (validation is sufficient since UUIDs are opaque)
   if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
     throw new Error('userId contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.');
   }

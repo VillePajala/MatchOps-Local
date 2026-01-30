@@ -43,8 +43,10 @@ let authServiceCreatedWithCloudAvailable: boolean | null = null;
 // Used to detect user changes (sign-in/sign-out) and auto-reset the DataStore singleton
 let dataStoreCreatedForUserId: string | undefined = undefined;
 
-// Initialization promises to prevent race conditions during concurrent calls
-let dataStoreInitPromise: Promise<DataStore> | null = null;
+// Per-userId initialization promises to prevent race conditions during concurrent calls
+// Map key is the userId (undefined for anonymous users)
+// This ensures concurrent calls with different userIds get separate DataStores
+const dataStoreInitPromises = new Map<string | undefined, Promise<DataStore>>();
 let authServiceInitPromise: Promise<AuthService> | null = null;
 
 /**
@@ -190,21 +192,19 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     return dataStoreInstance;
   }
 
-  // Initialization in progress - wait for it
-  // Note: If concurrent calls come in with different userIds during initialization,
-  // all callers will get the first caller's DataStore. This is acceptable because:
-  // 1. User changes during initialization are rare (sign-in/out is usually sequential)
-  // 2. The next call after initialization will detect the userId mismatch and reset
-  // 3. This avoids complex per-userId promise tracking
-  if (dataStoreInitPromise) {
-    return dataStoreInitPromise;
+  // Initialization in progress for this specific userId - wait for it
+  // Per-userId promise tracking ensures concurrent calls with different userIds
+  // get separate DataStores (prevents cross-user data access)
+  const existingPromise = dataStoreInitPromises.get(userId);
+  if (existingPromise) {
+    return existingPromise;
   }
 
   // Capture userId for the initialization closure
   const initUserId = userId;
 
-  // Start initialization and store the promise
-  dataStoreInitPromise = (async () => {
+  // Start initialization and store the promise for this userId
+  const initPromise = (async () => {
     const mode = getBackendMode();
     log.info(`[factory] Initializing DataStore in ${mode} mode for user: ${initUserId || '(anonymous)'}`);
 
@@ -265,10 +265,13 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     return instance;
   })().finally(() => {
     // Allow retry on failure, and keep the steady state as `dataStoreInstance !== null`.
-    dataStoreInitPromise = null;
+    // Remove this specific userId's promise (not all promises)
+    dataStoreInitPromises.delete(initUserId);
   });
 
-  return dataStoreInitPromise;
+  // Store promise for this specific userId
+  dataStoreInitPromises.set(initUserId, initPromise);
+  return initPromise;
 }
 
 /**
@@ -362,17 +365,21 @@ export async function getAuthService(): Promise<AuthService> {
  * @internal
  */
 export async function resetFactory(): Promise<void> {
-  // If initialization is in-flight, await it to avoid leaving an initialized instance around
+  // If any initialization is in-flight, await all to avoid leaving initialized instances around
   // after clearing the promise references.
-  if (dataStoreInitPromise) {
-    try {
-      await dataStoreInitPromise;
-    } catch (e) {
-      // Best-effort cleanup: log but don't throw
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error awaiting dataStoreInitPromise during reset: ${msg}`, err);
+  if (dataStoreInitPromises.size > 0) {
+    const promises = Array.from(dataStoreInitPromises.values());
+    for (const promise of promises) {
+      try {
+        await promise;
+      } catch (e) {
+        // Best-effort cleanup: log but don't throw
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error awaiting dataStoreInitPromise during reset: ${msg}`, err);
+      }
     }
+    dataStoreInitPromises.clear();
   }
 
   // Reset sync engine if cloud mode was active (prevents memory leaks in tests)
@@ -424,7 +431,7 @@ export async function resetFactory(): Promise<void> {
   }
 
   authServiceInstance = null;
-  dataStoreInitPromise = null;
+  dataStoreInitPromises.clear();
   authServiceInitPromise = null;
   dataStoreCreatedForMode = null;
   dataStoreCreatedForUserId = undefined;

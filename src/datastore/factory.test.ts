@@ -686,5 +686,58 @@ describe('Factory', () => {
       // When no userId is provided, getStorageAdapter should be called
       expect(mockGetStorageAdapter).toHaveBeenCalled();
     });
+
+    /**
+     * Verify that concurrent calls with DIFFERENT userIds get their own DataStores.
+     * This tests the per-userId promise tracking fix for race conditions.
+     * Without this fix, all callers would get the first caller's DataStore.
+     * @critical
+     */
+    it('should handle concurrent getDataStore calls with different users', async () => {
+      const USER_C = 'user-c-789';
+
+      // Reset mocks to track call counts
+      mockGetUserStorageAdapter.mockClear();
+
+      // Concurrent calls with different userIds
+      // This simulates a race condition where User A and User B both call getDataStore
+      // before either initialization completes
+      const [dsA, dsB, dsC] = await Promise.all([
+        getDataStore(USER_A),
+        getDataStore(USER_B),
+        getDataStore(USER_C),
+      ]);
+
+      // Each user should get their own instance
+      expect(dsA).not.toBe(dsB);
+      expect(dsB).not.toBe(dsC);
+      expect(dsA).not.toBe(dsC);
+
+      // Each user should have triggered a separate adapter creation
+      // Note: The actual behavior depends on how fast the promises resolve
+      // With per-userId promise tracking, each userId gets its own initialization
+      expect(mockGetUserStorageAdapter).toHaveBeenCalled();
+    });
+
+    /**
+     * Verify error recovery when adapter creation fails.
+     * The factory should allow retry after failure.
+     * @edge-case
+     */
+    it('should allow retry after adapter creation failure', async () => {
+      // First call fails
+      mockGetUserStorageAdapter.mockRejectedValueOnce(new Error('IndexedDB quota exceeded'));
+
+      await expect(getDataStore(USER_A)).rejects.toThrow('IndexedDB quota exceeded');
+
+      // Reset factory state for retry
+      await resetFactory();
+
+      // Second call succeeds (mock returns to default success behavior)
+      mockGetUserStorageAdapter.mockResolvedValueOnce(mockAdapter);
+      const dataStore = await getDataStore(USER_A);
+
+      expect(dataStore).toBeInstanceOf(LocalDataStore);
+    });
   });
 });
