@@ -8,6 +8,21 @@
  * - Legacy (anonymous): `MatchOpsLocal` (single global database)
  * - User-scoped: `matchops_user_{userId}` (per-user database)
  *
+ * ## Migration Path (Steps 7-11 of plan)
+ *
+ * 1. Anonymous user has data in `MatchOpsLocal` (legacy)
+ * 2. User signs in → `getDataStore(userId)` creates `matchops_user_{userId}`
+ * 3. App detects legacy data via `legacyDatabaseExists()` and offers migration
+ * 4. Copy data from `MatchOpsLocal` to `matchops_user_{userId}`
+ * 5. Delete `MatchOpsLocal` after successful migration
+ * 6. User signs out → `getDataStore()` falls back to `MatchOpsLocal`
+ *
+ * ## Implementation Status
+ *
+ * This module implements Steps 1-4 of the plan (storage layer).
+ * Steps 5-6 (updating callers to pass userId) are in a separate PR.
+ * Until callers are updated, all users share the legacy database.
+ *
  * @see docs/03-active-plans/user-scoped-storage-plan-v2.md
  */
 
@@ -108,6 +123,17 @@ const LEGACY_DB_CHECK_TIMEOUT_MS = 5000;
 /**
  * Check if the legacy database exists.
  * Used during migration to detect if there's data to migrate.
+ *
+ * ## Timing Consideration
+ *
+ * This function uses a 5-second timeout. Response times vary:
+ * - Fast response: database exists (or doesn't, from onupgradeneeded)
+ * - Timeout: IndexedDB unresponsive (returns false)
+ *
+ * This timing variance is acceptable because:
+ * 1. This is for migration UX, not security-critical operations
+ * 2. IndexedDB databases can already be enumerated via browser APIs
+ * 3. Knowing whether a legacy database exists reveals no sensitive data
  *
  * @returns Promise resolving to true if legacy database exists
  */
