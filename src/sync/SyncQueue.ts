@@ -900,6 +900,118 @@ export class SyncQueue {
   }
 
   /**
+   * Get all operations in the queue (for diagnostics).
+   * Returns operations sorted by timestamp (oldest first).
+   */
+  async getAllOperations(): Promise<SyncOperation[]> {
+    const db = this.ensureInitialized();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SYNC_STORE_NAME, 'readonly');
+      const store = transaction.objectStore(SYNC_STORE_NAME);
+      const index = store.index(INDEX_TIMESTAMP);
+
+      const request = index.getAll();
+
+      request.onsuccess = () => {
+        const ops = request.result as SyncOperation[];
+        // Log diagnostic info about stuck operations
+        const now = Date.now();
+        for (const op of ops) {
+          if (op.status === 'pending' && op.retryCount > 0) {
+            const backoffDelay = Math.min(
+              this.backoffBaseMs * Math.pow(2, op.retryCount - 1),
+              this.backoffMaxMs
+            );
+            const readyAt = (op.lastAttempt || 0) + backoffDelay;
+            const waitTimeRemaining = Math.max(0, readyAt - now);
+            logger.info('[SyncQueue] Pending operation in backoff', {
+              id: op.id,
+              entityType: op.entityType,
+              entityId: op.entityId,
+              retryCount: op.retryCount,
+              lastError: op.lastError,
+              waitTimeRemaining: `${Math.round(waitTimeRemaining / 1000)}s`,
+            });
+          }
+        }
+        resolve(ops);
+      };
+
+      transaction.onerror = () => {
+        reject(new SyncError(
+          SyncErrorCode.QUEUE_ERROR,
+          `Failed to get all operations: ${transaction.error?.message || 'Unknown error'}`,
+          transaction.error ?? undefined
+        ));
+      };
+    });
+  }
+
+  /**
+   * Force retry all pending operations that are in backoff.
+   * Resets lastAttempt so isReadyForRetry returns true immediately.
+   * Use this when user explicitly requests immediate retry.
+   *
+   * @returns Number of operations reset
+   */
+  async forceRetryPending(): Promise<number> {
+    const db = this.ensureInitialized();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(SYNC_STORE_NAME);
+      const index = store.index(INDEX_STATUS);
+
+      let resetCount = 0;
+      const request = index.openCursor(IDBKeyRange.only('pending'));
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+
+        if (cursor) {
+          const op = cursor.value as SyncOperation;
+
+          // Only reset operations that are in backoff (have been tried before)
+          if (op.retryCount > 0 && op.lastAttempt) {
+            const updated: SyncOperation = {
+              ...op,
+              lastAttempt: 0, // Reset to allow immediate retry
+            };
+            cursor.update(updated);
+            resetCount++;
+            logger.info('[SyncQueue] Force retry - reset backoff', {
+              id: op.id,
+              entityType: op.entityType,
+              entityId: op.entityId,
+              previousRetryCount: op.retryCount,
+            });
+          }
+
+          cursor.continue();
+        }
+      };
+
+      transaction.oncomplete = () => {
+        if (resetCount > 0) {
+          logger.info(`[SyncQueue] Force retry: reset ${resetCount} operations`);
+          this.invalidateStatsCache();
+        }
+        resolve(resetCount);
+      };
+
+      transaction.onerror = () => {
+        logger.error('[SyncQueue] forceRetryPending error:', transaction.error);
+        reject(new SyncError(
+          SyncErrorCode.QUEUE_ERROR,
+          `Failed to force retry pending operations: ${transaction.error?.message || 'Unknown error'}`,
+          transaction.error ?? undefined
+        ));
+      };
+    });
+  }
+
+  /**
    * Retry all failed operations by resetting their status to pending.
    *
    * IMPORTANT: This method resets retryCount to 0, which is INTENTIONAL and differs

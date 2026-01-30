@@ -48,6 +48,9 @@ export interface UseSyncStatusResult {
 
   /** Clear failed operations */
   clearFailed: () => Promise<void>;
+
+  /** Force retry ALL stuck operations (ignores backoff) */
+  forceRetryAll: () => Promise<void>;
 }
 
 // Default status for local mode
@@ -63,6 +66,7 @@ const LOCAL_MODE_STATUS: UseSyncStatusResult = {
   syncNow: async () => {},
   retryFailed: async () => {},
   clearFailed: async () => {},
+  forceRetryAll: async () => {},
 };
 
 /**
@@ -161,6 +165,19 @@ export function useSyncStatus(): UseSyncStatusResult {
     }
   }, [mode]);
 
+  // Force retry ALL stuck operations (ignores backoff)
+  const forceRetryAll = useCallback(async () => {
+    if (mode !== 'cloud') return;
+
+    try {
+      const { getSyncEngine } = await import('@/sync');
+      const engine = getSyncEngine();
+      await engine.forceRetryAll();
+    } catch (error) {
+      logger.error('[useSyncStatus] Force retry all failed:', error);
+    }
+  }, [mode]);
+
   // Return local mode status
   if (mode !== 'cloud') {
     return LOCAL_MODE_STATUS;
@@ -181,6 +198,7 @@ export function useSyncStatus(): UseSyncStatusResult {
       syncNow,
       retryFailed,
       clearFailed,
+      forceRetryAll,
     };
   }
 
@@ -196,5 +214,6 @@ export function useSyncStatus(): UseSyncStatusResult {
     syncNow,
     retryFailed,
     clearFailed,
+    forceRetryAll,
   };
 }

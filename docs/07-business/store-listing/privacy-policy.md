@@ -1,6 +1,6 @@
 # Privacy Policy for MatchOps
 
-**Last Updated**: December 2025
+**Last Updated**: January 2026
 
 > **Hosted URL**: https://matchops.com/privacy-policy (use this URL for Play Store submission)
 
@@ -10,17 +10,28 @@ MatchOps ("we", "our", "the app") is a local-first soccer coaching application. 
 
 ## Data Storage
 
-### Local Data
-All your data is stored locally on your device:
+### Local Data (Local Mode)
+When using local mode, your data is stored on your device:
 - Player rosters and information
 - Game records and statistics
 - Settings and preferences
 - Season and tournament data
+- Personnel information (names, roles, contact details)
 
-**We do not have access to this data.** It never leaves your device unless you explicitly export it.
+**We do not have access to this data.** It never leaves your device unless you explicitly export it or enable cloud sync.
 
-### No Account Required
-MatchOps works entirely offline. No account creation, login, or personal information is required to use the app.
+### Cloud Data (Cloud Mode with Subscription)
+When you enable cloud sync with a subscription, your data is:
+- Copied to our secure EU-based servers (Supabase)
+- Encrypted in transit (HTTPS/TLS)
+- Protected by row-level security (only you can access your data)
+- Synced across your devices
+
+### Account Requirement
+MatchOps requires an account to use the app. Your account:
+- Provides a unique identifier for your data
+- Enables data isolation on shared devices
+- Allows optional cloud sync (paid subscription required)
 
 ## Data We May Collect
 
@@ -51,13 +62,25 @@ When you accept our Terms of Service and Privacy Policy in Cloud Mode, we record
 
 This information is required for GDPR compliance to prove that consent was obtained. Consent records are retained even after account deletion for legal purposes.
 
+### Personnel Data
+When you add team personnel (coaches, assistants, medical staff), we store:
+- Name
+- Role
+- Email address (optional)
+- Phone number (optional)
+- Certifications (optional)
+
+This data is stored:
+- **Local mode**: On your device only - we have no access
+- **Cloud mode**: In our secure database, accessible only to you
+
+Personnel contact information (email, phone) is considered personally identifiable information (PII) under GDPR. See the Data Security section below for how this data is protected.
+
 ## Data We Do NOT Collect
 
-- Names or personal details of players in your roster
-- Game content, scores, or statistics
+- Game content, scores, or statistics (stored locally only, or in your cloud account if enabled)
 - Location data
 - Photos or media
-- Contact information
 - Device identifiers for tracking
 
 ## Third-Party Services
@@ -87,10 +110,30 @@ MatchOps does not knowingly collect information from children. The app stores pl
 
 ## Data Security
 
-Your data is protected by:
-- Device-level encryption (provided by Android)
-- Local-only storage
-- No network transmission of game data
+### Local Storage Security
+In local mode, your data is stored in your browser's IndexedDB database. This data:
+- Is protected by your device's access controls (screen lock, password, biometrics)
+- Is NOT additionally encrypted at rest beyond what your device provides
+- Could theoretically be accessed by someone with physical access to your unlocked device
+
+This is industry standard for local-first applications and is appropriate for coaching data. If you store personnel contact information (email, phone numbers), please be aware this data follows the same security model.
+
+**Your device's security is your primary protection for local data.** We recommend using a strong screen lock.
+
+### Cloud Storage Security
+In cloud mode, your data is:
+- Encrypted in transit (HTTPS/TLS)
+- Stored in secure EU-based servers (Supabase)
+- Protected by row-level security (only you can access your data)
+- Backed by Supabase's security infrastructure
+
+### Backup File Security
+When you export your data, the backup file:
+- Contains all your data including personnel contact information
+- Is NOT encrypted
+- Should be stored securely and not shared publicly
+
+We recommend storing backup files in a secure location and deleting them after import to another device.
 
 ## Changes to This Policy
 

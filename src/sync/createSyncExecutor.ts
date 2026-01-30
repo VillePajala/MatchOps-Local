@@ -24,6 +24,7 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import { SyncError, SyncErrorCode } from './types';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * Validate that data is a non-null object before type assertion.
@@ -176,12 +177,35 @@ export function createSyncExecutor(cloudStore: DataStore): SyncOperationExecutor
         operation,
       });
     } catch (error) {
-      logger.error('[SyncExecutor] Sync operation failed', {
+      // DIAGNOSTIC: Capture full error details to diagnose "one item stuck" issue
+      const errorDetails = {
         entityType,
         entityId,
         operation,
-        error: error instanceof Error ? error.message : String(error),
-      });
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        // Supabase errors often have additional details
+        errorCode: (error as { code?: string })?.code,
+        errorDetails: (error as { details?: string })?.details,
+        errorHint: (error as { hint?: string })?.hint,
+      };
+      logger.error('[SyncExecutor] Sync operation failed - FULL DETAILS', errorDetails);
+
+      // Report to Sentry with full context
+      try {
+        Sentry.captureException(error, {
+          tags: {
+            component: 'SyncExecutor',
+            entityType,
+            operation,
+          },
+          extra: errorDetails,
+          level: 'error',
+        });
+      } catch {
+        // Sentry failure is acceptable
+      }
+
       throw error;
     }
   };
