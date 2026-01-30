@@ -121,6 +121,18 @@ export function extractUserIdFromDatabaseName(databaseName: string): string | nu
 const LEGACY_DB_CHECK_TIMEOUT_MS = 5000;
 
 /**
+ * Options for legacyDatabaseExists check.
+ */
+export interface LegacyDatabaseCheckOptions {
+  /**
+   * If true, always waits the full timeout duration before returning.
+   * This prevents timing attacks that could reveal whether the database exists.
+   * Default: false (for better UX in normal usage)
+   */
+  constantTime?: boolean;
+}
+
+/**
  * Check if the legacy database exists.
  * Used during migration to detect if there's data to migrate.
  *
@@ -139,19 +151,26 @@ const LEGACY_DB_CHECK_TIMEOUT_MS = 5000;
  * 4. The attacker would need local code execution, which already grants
  *    full IndexedDB access
  *
- * If constant-time behavior is ever needed, options include:
- * - Always wait the full timeout before returning
- * - Use a fixed delay after the actual check
- * - Return a random delay within a range
+ * For paranoid deployments, use `constantTime: true` to always wait the
+ * full timeout before returning, eliminating timing variance.
  *
+ * @param options - Optional configuration for the check
  * @returns Promise resolving to true if legacy database exists
  */
-export async function legacyDatabaseExists(): Promise<boolean> {
+export async function legacyDatabaseExists(
+  options?: LegacyDatabaseCheckOptions
+): Promise<boolean> {
+  const startTime = Date.now();
+
   if (typeof window === 'undefined' || !window.indexedDB) {
+    // Still honor constantTime option even for early returns
+    if (options?.constantTime) {
+      await new Promise(resolve => setTimeout(resolve, LEGACY_DB_CHECK_TIMEOUT_MS));
+    }
     return false;
   }
 
-  return new Promise((resolve) => {
+  const result = await new Promise<boolean>((resolve) => {
     let resolved = false;
     let request: IDBOpenDBRequest | null = null;
 
@@ -212,4 +231,16 @@ export async function legacyDatabaseExists(): Promise<boolean> {
       }
     }
   });
+
+  // If constantTime is requested, wait until the full timeout has elapsed
+  // This eliminates timing side-channel that could reveal database existence
+  if (options?.constantTime) {
+    const elapsed = Date.now() - startTime;
+    const remainingWait = LEGACY_DB_CHECK_TIMEOUT_MS - elapsed;
+    if (remainingWait > 0) {
+      await new Promise(resolve => setTimeout(resolve, remainingWait));
+    }
+  }
+
+  return result;
 }

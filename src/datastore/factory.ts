@@ -162,19 +162,39 @@ async function closeDataStoreInternal(reason: string): Promise<void> {
  * **Step 6 (updating ~36 callers to pass userId) is required** for user isolation
  * to work. Until then, all users share the legacy `MatchOpsLocal` database.
  *
+ * ## CRITICAL SECURITY: userId Source (Step 6)
+ *
+ * When updating callers to pass userId, NEVER pass:
+ * - ❌ User-provided input directly (form fields, text inputs)
+ * - ❌ URL parameters or query strings
+ * - ❌ Unvalidated form data
+ * - ❌ Data from localStorage/cookies without validation
+ *
+ * ONLY pass:
+ * - ✅ `user.id` from authenticated Supabase session
+ * - ✅ `session.user.id` from auth callback
+ * - ✅ Values from `useAuth()` hook that originated from Supabase Auth
+ *
  * @see docs/03-active-plans/user-scoped-storage-plan-v2.md
  *
  * @param userId - Optional user ID for user-scoped storage. Pass the authenticated
  *                 user's ID to enable user-scoped storage, or undefined for legacy mode.
+ *                 **MUST be from Supabase Auth - never user input!**
  * @returns Initialized DataStore instance
  *
  * @example
  * ```typescript
- * // In React Query queryFn with authenticated user
- * queryFn: async () => {
- *   const dataStore = await getDataStore(user?.id);
- *   return dataStore.getPlayers();
- * }
+ * // CORRECT: Get userId from Supabase Auth
+ * const { data: { user } } = await supabase.auth.getUser();
+ * const dataStore = await getDataStore(user?.id);
+ *
+ * // CORRECT: In React component with useAuth hook
+ * const { user } = useAuth();
+ * const dataStore = await getDataStore(user?.id);
+ *
+ * // WRONG: Never pass URL params or user input!
+ * // const userId = searchParams.get('userId'); // ❌ SECURITY RISK
+ * // const dataStore = await getDataStore(userId);
  * ```
  */
 export async function getDataStore(userId?: string): Promise<DataStore> {
@@ -304,8 +324,9 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       // SECURITY FIX: Throw error instead of returning wrong user's instance
       // Caller must retry - returning dataStoreInstance would leak User A's data to User B
       throw new Error(
-        `DataStore initialization conflict: Another user's DataStore was created concurrently. ` +
-        `Please retry the operation.`
+        `DataStore initialization conflict: Multiple users tried to initialize simultaneously. ` +
+        `This is a bug in the calling code - getDataStore() should only be called for one user at a time. ` +
+        `Current user: '${dataStoreCreatedForUserId ?? '(anonymous)'}', Requested user: '${initUserId ?? '(anonymous)'}'.`
       );
     }
 
