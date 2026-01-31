@@ -734,9 +734,12 @@ function createCloudWriter(cloudStore: DataStore): CloudRecordWriter {
 /**
  * Create a cloud record deleter for the ConflictResolver.
  * Maps entity types to the appropriate delete methods.
+ *
+ * @param cloudStore - The cloud DataStore implementation
+ * @returns A deleter function that accepts entityType, entityId, and optional context
  */
 function createCloudDeleter(cloudStore: DataStore): CloudRecordDeleter {
-  return async (entityType: SyncEntityType, entityId: string): Promise<void> => {
+  return async (entityType: SyncEntityType, entityId: string, context?: unknown): Promise<void> => {
     switch (entityType) {
       case 'player':
         await cloudStore.deletePlayer(entityId);
@@ -771,10 +774,23 @@ function createCloudDeleter(cloudStore: DataStore): CloudRecordDeleter {
         logger.warn('[SyncExecutor] Cannot delete settings - no-op');
         break;
 
-      case 'playerAdjustment':
-        // Need playerId to delete - this requires additional context
-        // For now, throw error - the resolver should have the data
-        throw new Error('playerAdjustment delete requires playerId context');
+      case 'playerAdjustment': {
+        // Extract playerId from context (passed from op.data)
+        const contextData = context as { playerId?: string } | null | undefined;
+        const playerId = contextData?.playerId;
+        if (!playerId) {
+          logger.error('[SyncExecutor] playerAdjustment delete failed: missing playerId in context', {
+            entityId,
+            hasContext: context !== null && context !== undefined,
+          });
+          throw new SyncError(
+            SyncErrorCode.INVALID_OPERATION,
+            `Cannot delete player adjustment ${entityId}: playerId not provided in context`
+          );
+        }
+        await cloudStore.deletePlayerAdjustment(playerId, entityId);
+        break;
+      }
 
       case 'warmupPlan':
         await cloudStore.deleteWarmupPlan();

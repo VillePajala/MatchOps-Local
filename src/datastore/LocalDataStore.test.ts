@@ -2000,6 +2000,42 @@ describe('LocalDataStore', () => {
         expect(result.currentGameId).toBe(null); // from defaults
       });
 
+      it('should preserve cloud timestamp during conflict resolution (cloud-wins)', async () => {
+        // Scenario: Cloud has newer settings, sync writes them locally with cloud timestamp
+        const cloudTimestamp = '2026-01-15T12:00:00.000Z';
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSettings));
+
+        // When cloud wins, updateSettings is called with updatedAt from cloud
+        const result = await dataStore.updateSettings({
+          language: 'fi',
+          updatedAt: cloudTimestamp,
+        });
+
+        // Should preserve the cloud timestamp, NOT generate a new one
+        expect(result.updatedAt).toBe(cloudTimestamp);
+
+        // Verify saved data also has cloud timestamp
+        const savedCall = mockSetStorageItem.mock.calls.find(
+          call => call[0] === 'soccerAppSettings'
+        );
+        expect(savedCall).toBeDefined();
+        const savedData = JSON.parse(savedCall![1]);
+        expect(savedData.updatedAt).toBe(cloudTimestamp);
+      });
+
+      it('should generate new timestamp when no updatedAt provided', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSettings));
+
+        const beforeUpdate = new Date().toISOString();
+        const result = await dataStore.updateSettings({ language: 'fi' });
+        const afterUpdate = new Date().toISOString();
+
+        // Should have generated a new timestamp
+        expect(result.updatedAt).toBeDefined();
+        expect(result.updatedAt! >= beforeUpdate).toBe(true);
+        expect(result.updatedAt! <= afterUpdate).toBe(true);
+      });
+
       it('should handle concurrent updateSettings calls safely', async () => {
         // Track storage state with a variable for proper concurrent simulation
         let storedValue = JSON.stringify({

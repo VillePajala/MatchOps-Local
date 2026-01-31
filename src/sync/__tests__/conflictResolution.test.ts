@@ -180,7 +180,8 @@ describe('ConflictResolver', () => {
 
       expect(result.resolution.winner).toBe('local');
       expect(result.actionTaken).toBe(true);
-      expect(mockDeleteFromCloud).toHaveBeenCalledWith('player', 'player-1');
+      // deleteFromCloud now receives context (op.data) as third parameter
+      expect(mockDeleteFromCloud).toHaveBeenCalledWith('player', 'player-1', null);
       expect(mockWriteToLocal).not.toHaveBeenCalled();
     });
 

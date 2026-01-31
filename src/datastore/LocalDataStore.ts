@@ -963,11 +963,12 @@ export class LocalDataStore implements DataStore {
   }
 
   /**
-   * Set team roster. Raw storage operation - no locking.
-   * Callers (teams.ts) are responsible for atomicity via withRosterLock.
+   * Set team roster. Raw storage operation - no locking for roster key.
+   * Callers (teams.ts) are responsible for roster atomicity via withRosterLock.
    *
    * Also updates the parent Team's updatedAt timestamp for conflict resolution.
-   * This ensures roster changes are tracked even when Team metadata is unchanged.
+   * The teams index update IS locked to prevent race conditions with other
+   * operations that modify the teams index.
    */
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
@@ -978,14 +979,17 @@ export class LocalDataStore implements DataStore {
 
     // Update parent Team's updatedAt for conflict resolution
     // This ensures roster changes have their own timestamp for last-write-wins
-    const teamsIndex = await this.loadTeamsIndex();
-    if (teamsIndex[teamId]) {
-      teamsIndex[teamId] = {
-        ...teamsIndex[teamId],
-        updatedAt: new Date().toISOString(),
-      };
-      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
-    }
+    // Uses withKeyLock to prevent race conditions with other team operations
+    await withKeyLock(TEAMS_INDEX_KEY, async () => {
+      const teamsIndex = await this.loadTeamsIndex();
+      if (teamsIndex[teamId]) {
+        teamsIndex[teamId] = {
+          ...teamsIndex[teamId],
+          updatedAt: new Date().toISOString(),
+        };
+        await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      }
+    });
   }
 
   /**
@@ -2056,7 +2060,8 @@ export class LocalDataStore implements DataStore {
         current = this.migrateSeasonDates(parsed).settings;
       }
 
-      const updated = { ...current, ...updates, updatedAt: new Date().toISOString() };
+      // Preserve cloud timestamp if present (cloud-wins scenario), otherwise generate new
+      const updated = { ...current, ...updates, updatedAt: updates.updatedAt ?? new Date().toISOString() };
 
       // Remove legacy fields before saving
       const toSave = this.removeLegacyMonthFields(updated);
