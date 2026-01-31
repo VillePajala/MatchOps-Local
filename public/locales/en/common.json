@@ -2088,6 +2088,7 @@
     "passwordMismatch": "Passwords do not match",
     "passwordRequirements": "Password must be at least 12 characters and include 3 of: uppercase, lowercase, numbers, special characters.",
     "checkEmail": "Check your email to confirm your account",
+    "emailMayExist": "If this email is not already registered, check your inbox for confirmation. If you already have an account, please sign in instead.",
     "resetEmailSent": "Check your email for reset instructions",
     "sendResetEmail": "Send Reset Email",
     "forgotPassword": "Forgot password?",

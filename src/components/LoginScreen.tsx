@@ -109,7 +109,12 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
         if (result.error) {
           setError(result.error);
         } else if (result.confirmationRequired) {
-          setSuccess(t('auth.checkEmail', 'Check your email to confirm your account'));
+          // Show different message if email might already exist
+          if (result.existingUser) {
+            setSuccess(t('auth.emailMayExist', 'If this email is not already registered, check your inbox for confirmation. If you already have an account, please sign in instead.'));
+          } else {
+            setSuccess(t('auth.checkEmail', 'Check your email to confirm your account'));
+          }
           setMode('signIn');
           // Clear password fields
           setPassword('');

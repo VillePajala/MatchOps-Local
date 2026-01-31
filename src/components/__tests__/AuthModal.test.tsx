@@ -564,7 +564,7 @@ describe('AuthModal', () => {
       );
 
       await act(async () => {
-        fireEvent.click(screen.getByLabelText('Close'));
+        fireEvent.click(screen.getByLabelText('Back'));
       });
 
       expect(mockOnCancel).toHaveBeenCalled();
@@ -740,7 +740,7 @@ describe('AuthModal', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Close')).toBeDisabled();
+        expect(screen.getByLabelText('Back')).toBeDisabled();
       });
     });
   });

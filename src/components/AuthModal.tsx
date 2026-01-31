@@ -18,7 +18,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
-import { HiOutlineXMark } from 'react-icons/hi2';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { isNetworkErrorMessage, normalizeEmail } from '@/utils/authHelpers';
@@ -122,7 +121,12 @@ export default function AuthModal({
             logger.warn('[AuthModal] Network error during sign up:', result.error);
           }
         } else if (result.confirmationRequired) {
-          setSuccess(t('auth.checkEmail', 'Check your email to confirm your account'));
+          // Show different message if email might already exist
+          if (result.existingUser) {
+            setSuccess(t('auth.emailMayExist', 'If this email is not already registered, check your inbox for confirmation. If you already have an account, please sign in instead.'));
+          } else {
+            setSuccess(t('auth.checkEmail', 'Check your email to confirm your account'));
+          }
           setMode('signIn');
           // Clear password fields
           setPassword('');
@@ -207,36 +211,59 @@ export default function AuthModal({
     'placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-slate-900 text-white overflow-hidden">
+      {/* === AMBIENT BACKGROUND GLOWS === */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Blue glow - top right */}
+        <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+        {/* Blue glow - bottom left */}
+        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+      </div>
+
+      {/* === MAIN CONTENT === */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="relative w-full max-w-md mx-4 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto"
+        className="relative z-10 flex-1 flex flex-col px-6 py-8 pb-safe"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
-          <h2 id="auth-modal-title" className="text-lg font-semibold text-slate-100">
-            {mode === 'signIn' && t('auth.signIn', 'Sign In')}
-            {mode === 'signUp' && t('auth.createAccount', 'Create Account')}
-            {mode === 'resetPassword' && t('auth.resetPassword', 'Reset Password')}
-          </h2>
+        {/* === TOP: Back Button === */}
+        <div className="flex justify-between items-center mb-4">
           <button
             type="button"
             onClick={onCancel}
             disabled={isLoading}
-            className="text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
-            aria-label={t('common.close', 'Close')}
+            className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm disabled:opacity-50"
+            aria-label={t('common.back', 'Back')}
           >
-            <HiOutlineXMark className="h-6 w-6" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            {t('common.back', 'Back')}
           </button>
+          <div /> {/* Spacer for alignment */}
         </div>
 
-        {/* Content */}
-        <div className="px-6 py-5">
-          {/* Subtitle */}
-          <p className="text-slate-400 text-center mb-6 text-sm">
+        {/* === HERO: App Name === */}
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="max-w-sm mx-auto w-full">
+            {/* App name */}
+            <div className="text-center mb-8">
+              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-amber-400">
+                MatchOps
+              </h1>
+            </div>
+
+            {/* Title */}
+            <h2 id="auth-modal-title" className="text-2xl font-bold text-center mb-2">
+              {mode === 'signIn' && t('auth.signIn', 'Sign In')}
+              {mode === 'signUp' && t('auth.createAccount', 'Create Account')}
+              {mode === 'resetPassword' && t('auth.resetPassword', 'Reset Password')}
+            </h2>
+
+            {/* Subtitle */}
+            <p className="text-slate-400 text-center mb-6 text-sm">
             {mode === 'signIn' && t('auth.signInSubtitle', 'Sign in to sync your data across devices')}
             {mode === 'signUp' && t('auth.signUpSubtitle', 'Create an account to enable cloud sync')}
             {mode === 'resetPassword' && t('auth.resetSubtitle', 'Enter your email to receive reset instructions')}
@@ -400,6 +427,7 @@ export default function AuthModal({
                 {t('auth.backToSignIn', 'Back to sign in')}
               </button>
             )}
+          </div>
           </div>
         </div>
       </div>

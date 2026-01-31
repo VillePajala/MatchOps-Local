@@ -2088,6 +2088,7 @@
     "passwordMismatch": "Salasanat eivät täsmää",
     "passwordRequirements": "Salasanan on oltava vähintään 12 merkkiä ja sisällettävä 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit.",
     "checkEmail": "Tarkista sähköpostisi vahvistaaksesi tilisi",
+    "emailMayExist": "Jos tämä sähköposti ei ole vielä rekisteröity, tarkista postilaatikkosi vahvistusviestiltä. Jos sinulla on jo tili, kirjaudu sen sijaan sisään.",
     "resetEmailSent": "Tarkista sähköpostistasi nollausohjeet",
     "sendResetEmail": "Lähetä nollaussähköposti",
     "forgotPassword": "Unohditko salasanasi?",
