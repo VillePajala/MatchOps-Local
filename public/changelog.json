@@ -1,8 +1,8 @@
 {
-  "version": "ecbd5326",
+  "version": "5917cc3a",
   "date": "2026-01-31",
   "notes": {
-    "en": "Merge pull request #346 from VillePajala/supabase/user-scoped-storage-step5-6",
-    "fi": "Merge pull request #346 from VillePajala/supabase/user-scoped-storage-step5-6"
+    "en": "Step 8 - legacy migration MatchOpsLocal → user database",
+    "fi": "Step 8 - legacy migration MatchOpsLocal → user database"
   }
 }

@@ -2510,7 +2510,10 @@
     "refreshingAfterBackground": "Päivitetään sovellusta taustalta palaamisen jälkeen...",
     "unableToRefreshApp": "Sovelluksen päivitys epäonnistui. Sulje ja avaa uudelleen.",
     "failedResetAppData": "Sovellustietojen nollaus epäonnistui.",
-    "gameDataNotFound": "Virhe: Pelitietoja ei löytynyt pelille {{gameId}}"
+    "gameDataNotFound": "Virhe: Pelitietoja ei löytynyt pelille {{gameId}}",
+    "legacyDataMigrated_one": "Tietosi on siirretty tilillesi ({{count}} kohde)",
+    "legacyDataMigrated_other": "Tietosi on siirretty tilillesi ({{count}} kohdetta)",
+    "legacyMigrationFailed": "Tietojesi siirto epäonnistui. Ota yhteyttä tukeen, jos ongelma jatkuu."
   },
   "positions": {
     "GK": "GK",
