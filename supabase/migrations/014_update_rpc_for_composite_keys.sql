@@ -14,6 +14,11 @@
 -- CHANGES:
 -- - save_game_with_relations: ON CONFLICT (id) → ON CONFLICT (user_id, id)
 -- - save_game_with_relations: ON CONFLICT (game_id) → ON CONFLICT (user_id, game_id)
+-- - Version SELECT: Added user_id filter (CRITICAL: id alone is no longer unique)
+-- - Removed separate ownership check (now implicit via user_id-scoped SELECT)
+--
+-- CLIENT COMPATIBILITY: Function signature unchanged (6 params, returns integer).
+-- No client code changes needed.
 --
 -- OTHER RPC FUNCTIONS (unchanged):
 -- - delete_personnel_cascade: Uses DELETE with WHERE clause (no ON CONFLICT)
@@ -70,20 +75,21 @@ BEGIN
   -- Extract game ID
   v_game_id := p_game->>'id';
 
-  -- Check if game exists and get current version
-  -- Note: RLS provides implicit scoping; explicit ownership check follows in IF EXISTS block
+  -- Check if THIS USER's game exists and get current version
+  -- CRITICAL: With composite PK (user_id, id), must filter by user_id
+  -- Without this, the query could return another user's game with the same id
   SELECT version INTO v_current_version
   FROM games
-  WHERE id = v_game_id;
+  WHERE user_id = v_user_id AND id = v_game_id;
 
   IF NOT FOUND THEN
+    -- Game doesn't exist for this user - it's a new game
+    -- Note: With composite PK, another user may have the same id (that's allowed)
     v_is_new_game := true;
     v_new_version := 1;
   ELSE
-    -- Verify ownership
-    IF EXISTS (SELECT 1 FROM games WHERE id = v_game_id AND user_id != v_user_id) THEN
-      RAISE EXCEPTION 'Access denied: game belongs to another user';
-    END IF;
+    -- Game exists for this user - no need for separate ownership check
+    -- The SELECT above already scoped to this user's data
 
     -- Optimistic locking check (only if expected_version provided)
     IF p_expected_version IS NOT NULL AND v_current_version != p_expected_version THEN

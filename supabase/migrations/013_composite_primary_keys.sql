@@ -86,7 +86,10 @@ ALTER TABLE team_players DROP CONSTRAINT IF EXISTS team_players_pkey;
 
 -- Drop unique index if exists (may be created implicitly by UNIQUE constraint)
 DROP INDEX IF EXISTS game_tactical_data_game_id_key;
--- Drop the UNIQUE constraint on game_tactical_data.game_id (will conflict with new PK)
+-- Drop the UNIQUE constraint on game_tactical_data.game_id
+-- Note: This is intentionally NOT recreated because the new composite PRIMARY KEY
+-- (user_id, game_id) already enforces uniqueness for this user/game combination.
+-- The original UNIQUE(game_id) was for global uniqueness which is no longer needed.
 ALTER TABLE game_tactical_data DROP CONSTRAINT IF EXISTS game_tactical_data_game_id_key;
 
 -- ============================================================================
