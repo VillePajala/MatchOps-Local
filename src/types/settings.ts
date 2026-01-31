@@ -16,5 +16,7 @@ export interface AppSettings {
   clubSeasonEndDate?: string;
   /** Tracks whether user has explicitly configured season dates (enables season filtering UI) */
   hasConfiguredSeasonDates?: boolean;
+  /** ISO timestamp of last update - used for conflict resolution in cloud sync */
+  updatedAt?: string;
   // Add other settings as needed
 }

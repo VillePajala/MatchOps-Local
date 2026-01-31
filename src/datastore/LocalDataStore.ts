@@ -965,6 +965,9 @@ export class LocalDataStore implements DataStore {
   /**
    * Set team roster. Raw storage operation - no locking.
    * Callers (teams.ts) are responsible for atomicity via withRosterLock.
+   *
+   * Also updates the parent Team's updatedAt timestamp for conflict resolution.
+   * This ensures roster changes are tracked even when Team metadata is unchanged.
    */
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
@@ -972,6 +975,17 @@ export class LocalDataStore implements DataStore {
     const rostersIndex = await this.loadTeamRosters();
     rostersIndex[teamId] = roster;
     await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+
+    // Update parent Team's updatedAt for conflict resolution
+    // This ensures roster changes have their own timestamp for last-write-wins
+    const teamsIndex = await this.loadTeamsIndex();
+    if (teamsIndex[teamId]) {
+      teamsIndex[teamId] = {
+        ...teamsIndex[teamId],
+        updatedAt: new Date().toISOString(),
+      };
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+    }
   }
 
   /**
@@ -1997,7 +2011,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     await withKeyLock(APP_SETTINGS_KEY, async () => {
-      await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+      // Set updatedAt for conflict resolution
+      const toSave = { ...settings, updatedAt: new Date().toISOString() };
+      await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
     });
 
     // Invalidate season dates cache in case dates were changed
@@ -2040,7 +2056,7 @@ export class LocalDataStore implements DataStore {
         current = this.migrateSeasonDates(parsed).settings;
       }
 
-      const updated = { ...current, ...updates };
+      const updated = { ...current, ...updates, updatedAt: new Date().toISOString() };
 
       // Remove legacy fields before saving
       const toSave = this.removeLegacyMonthFields(updated);
