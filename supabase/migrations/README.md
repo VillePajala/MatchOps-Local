@@ -86,6 +86,29 @@ For datasets significantly larger than 500 games, consider:
 - Running during maintenance window
 - Monitoring `pg_stat_activity` for lock wait times
 
+### Post-Migration: Validate NOT VALID Constraints
+
+Migration 013 uses `NOT VALID` for nullable FKs to allow NULL values without validation errors.
+After deployment, validate constraints to catch any orphaned references:
+
+```sql
+-- Run during low-traffic window (no locks, but CPU-intensive scan)
+-- If any fail, investigate orphaned data before proceeding
+ALTER TABLE games VALIDATE CONSTRAINT games_season_fkey;
+ALTER TABLE games VALIDATE CONSTRAINT games_tournament_fkey;
+ALTER TABLE games VALIDATE CONSTRAINT games_team_fkey;
+ALTER TABLE player_adjustments VALIDATE CONSTRAINT player_adjustments_season_fkey;
+ALTER TABLE player_adjustments VALIDATE CONSTRAINT player_adjustments_tournament_fkey;
+```
+
+If validation fails, query for orphaned references:
+```sql
+-- Example: Find games with invalid season_id
+SELECT id, season_id FROM games
+WHERE season_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM seasons WHERE seasons.id = games.season_id AND seasons.user_id = games.user_id);
+```
+
 ---
 
 ## Production Deployment Runbook

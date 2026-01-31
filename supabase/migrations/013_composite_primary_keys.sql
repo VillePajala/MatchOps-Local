@@ -176,7 +176,10 @@ ALTER TABLE player_adjustments
   NOT VALID;
 
 -- Team players → teams
--- NOTE: No FK to players table (intentional for graceful degradation)
+-- NOTE: No FK to players table - INTENTIONAL DESIGN DECISION
+-- Reason: Graceful degradation when players are deleted
+-- Behavior: UI shows last known name via snapshot stored in team_players.name
+-- Trade-off: Orphaned player_id references are acceptable for UX
 -- See supabase-schema.md "Intentionally No Foreign Keys" section
 ALTER TABLE team_players
   ADD CONSTRAINT team_players_team_fkey

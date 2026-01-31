@@ -26,6 +26,12 @@
 -- - record_user_consent: Uses unique index on (user_id, consent_type, policy_version)
 --   which is not affected by this migration
 --
+-- ROLLBACK: To revert this migration, re-run 012_optimistic_locking.sql which
+-- contains the original function with single-column ON CONFLICT clauses:
+--   - ON CONFLICT (id) for games
+--   - ON CONFLICT (game_id) for game_tactical_data
+-- See user-scoped-storage-plan-v2.md Section 7.1 for full rollback procedure.
+--
 -- ============================================================================
 
 -- ============================================================================
