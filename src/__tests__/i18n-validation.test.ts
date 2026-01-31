@@ -268,8 +268,9 @@ describe('Translation File Validation', () => {
       // CloudSync error differentiation: clearNetworkError, clearAuthError, signOutNetworkError (Phase 8)
       // Sync status paused state: paused, pausedTitle (Phase 8)
       // Page toast translations: 18 keys for page.tsx and useGameOrchestration.ts toasts
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165
-      expect(enKeys.length).toBe(2165);
+      // Legacy migration keys: legacyDataMigrated, legacyMigrationFailed (Step 8)
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167
+      expect(enKeys.length).toBe(2167);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -285,8 +286,9 @@ describe('Translation File Validation', () => {
       // CloudSync error differentiation: clearNetworkError, clearAuthError, signOutNetworkError (Phase 8)
       // Sync status paused state: paused, pausedTitle (Phase 8)
       // Page toast translations: 18 keys for page.tsx and useGameOrchestration.ts toasts
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165
-      expect(fiKeys.length).toBe(2165);
+      // Legacy migration keys: legacyDataMigrated, legacyMigrationFailed (Step 8)
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167
+      expect(fiKeys.length).toBe(2167);
     });
   });
 });

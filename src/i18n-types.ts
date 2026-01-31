@@ -1154,6 +1154,8 @@ export type TranslationKey =
   | 'page.failedToSwitchLocalModeRetry'
   | 'page.gameDataNotFound'
   | 'page.importSucceededRefresh'
+  | 'page.legacyDataMigrated'
+  | 'page.legacyMigrationFailed'
   | 'page.localModeEnabledReloading'
   | 'page.refreshPageManually'
   | 'page.refreshPageManuallyContinue'

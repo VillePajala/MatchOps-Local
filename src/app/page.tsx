@@ -36,6 +36,7 @@ import {
 } from '@/config/backendConfig';
 import { hasLocalDataToMigrate } from '@/services/migrationService';
 import { hasCloudData } from '@/services/reverseMigrationService';
+import { migrateLegacyData } from '@/services/legacyMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
 import logger from '@/utils/logger';
@@ -61,6 +62,8 @@ export default function Home() {
   const [showPostLoginUpgrade, setShowPostLoginUpgrade] = useState(false);
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
+  // Ref to track if legacy database migration has been checked this session
+  const legacyMigrationCheckedRef = useRef(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
@@ -341,6 +344,84 @@ export default function Home() {
 
     checkAppState();
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode]);
+
+  // ============================================================================
+  // LEGACY DATABASE MIGRATION (MatchOpsLocal → User-Scoped Database)
+  // ============================================================================
+  // When a user signs in, check if they have data in the legacy global database
+  // that needs to be migrated to their user-scoped database.
+  // This runs once per session when userId becomes available.
+  useEffect(() => {
+    // Skip if no userId (user not signed in)
+    if (!userId) {
+      // Reset ref when user signs out to allow re-check on next sign-in
+      legacyMigrationCheckedRef.current = false;
+      return;
+    }
+
+    // Skip if auth is still loading
+    if (isAuthLoading) {
+      return;
+    }
+
+    // Skip if already checked this session
+    if (legacyMigrationCheckedRef.current) {
+      return;
+    }
+
+    // Mark as checked before async work to prevent re-runs
+    legacyMigrationCheckedRef.current = true;
+
+    const checkLegacyMigration = async () => {
+      try {
+        logger.info('[page.tsx] Checking for legacy database migration', { userId });
+        const result = await migrateLegacyData(userId);
+
+        switch (result.status) {
+          case 'migrated':
+            // Show success toast with entity count
+            logger.info('[page.tsx] Legacy migration completed', result);
+            showToast(
+              t('page.legacyDataMigrated', 'Your data has been migrated to your account ({{count}} items)', {
+                count: result.entityCount ?? 0,
+              }),
+              'success'
+            );
+            // Trigger app state refresh to pick up migrated data
+            setRefreshTrigger(prev => prev + 1);
+            break;
+
+          case 'already_migrated':
+            // Silent - user already has data
+            logger.debug('[page.tsx] Legacy migration skipped - user already has data');
+            break;
+
+          case 'no_legacy_data':
+            // Silent - no legacy database
+            logger.debug('[page.tsx] Legacy migration skipped - no legacy data');
+            break;
+
+          case 'migration_error':
+            // Show error toast
+            logger.error('[page.tsx] Legacy migration failed', { error: result.error });
+            showToast(
+              t('page.legacyMigrationFailed', 'Could not migrate your data. Please contact support if this persists.'),
+              'error'
+            );
+            // Reset ref to allow retry on next effect run
+            legacyMigrationCheckedRef.current = false;
+            break;
+        }
+      } catch (error) {
+        logger.error('[page.tsx] Legacy migration check failed', { error });
+        // Reset ref to allow retry
+        legacyMigrationCheckedRef.current = false;
+      }
+    };
+
+    checkLegacyMigration();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, isAuthLoading]);
 
   // Check if migration wizard should be shown (cloud mode only, post-authentication)
   // This runs once when the user first authenticates in cloud mode
