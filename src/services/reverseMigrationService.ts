@@ -1355,11 +1355,23 @@ export async function hydrateLocalFromCloud(
 
     safeProgress('Saving to local storage...', 40);
 
-    // Save players
+    // Save players (with timestamp-based conflict resolution)
+    const existingPlayers = await localStore.getPlayers();
+    const existingPlayerMap = new Map(existingPlayers.map(p => [p.id, p]));
+
     for (const player of cloudData.players) {
       try {
-        await localStore.upsertPlayer(player);
-        counts.players++;
+        const existingPlayer = existingPlayerMap.get(player.id);
+        if (shouldWriteBasedOnTimestamp(player.updatedAt, existingPlayer?.updatedAt)) {
+          await localStore.upsertPlayer(player);
+          counts.players++;
+        } else {
+          logger.debug('[ReverseMigrationService] Skipping player (local is newer)', {
+            playerId: player.id,
+            cloudUpdatedAt: player.updatedAt,
+            localUpdatedAt: existingPlayer?.updatedAt,
+          });
+        }
       } catch (err) {
         const msg = `Failed to save player ${player.name}: ${err instanceof Error ? err.message : 'Unknown error'}`;
         logger.error('[ReverseMigrationService] ' + msg);
@@ -1406,11 +1418,23 @@ export async function hydrateLocalFromCloud(
     }
     safeProgress('Saving teams...', 55);
 
-    // Save seasons
+    // Save seasons (with timestamp-based conflict resolution)
+    const existingSeasons = await localStore.getSeasons(true);
+    const existingSeasonMap = new Map(existingSeasons.map(s => [s.id, s]));
+
     for (const season of cloudData.seasons) {
       try {
-        await localStore.upsertSeason(season);
-        counts.seasons++;
+        const existingSeason = existingSeasonMap.get(season.id);
+        if (shouldWriteBasedOnTimestamp(season.updatedAt, existingSeason?.updatedAt)) {
+          await localStore.upsertSeason(season);
+          counts.seasons++;
+        } else {
+          logger.debug('[ReverseMigrationService] Skipping season (local is newer)', {
+            seasonId: season.id,
+            cloudUpdatedAt: season.updatedAt,
+            localUpdatedAt: existingSeason?.updatedAt,
+          });
+        }
       } catch (err) {
         const msg = `Failed to save season ${season.name}: ${err instanceof Error ? err.message : 'Unknown error'}`;
         logger.error('[ReverseMigrationService] ' + msg);
@@ -1418,11 +1442,23 @@ export async function hydrateLocalFromCloud(
       }
     }
 
-    // Save tournaments
+    // Save tournaments (with timestamp-based conflict resolution)
+    const existingTournaments = await localStore.getTournaments(true);
+    const existingTournamentMap = new Map(existingTournaments.map(t => [t.id, t]));
+
     for (const tournament of cloudData.tournaments) {
       try {
-        await localStore.upsertTournament(tournament);
-        counts.tournaments++;
+        const existingTournament = existingTournamentMap.get(tournament.id);
+        if (shouldWriteBasedOnTimestamp(tournament.updatedAt, existingTournament?.updatedAt)) {
+          await localStore.upsertTournament(tournament);
+          counts.tournaments++;
+        } else {
+          logger.debug('[ReverseMigrationService] Skipping tournament (local is newer)', {
+            tournamentId: tournament.id,
+            cloudUpdatedAt: tournament.updatedAt,
+            localUpdatedAt: existingTournament?.updatedAt,
+          });
+        }
       } catch (err) {
         const msg = `Failed to save tournament ${tournament.name}: ${err instanceof Error ? err.message : 'Unknown error'}`;
         logger.error('[ReverseMigrationService] ' + msg);
@@ -1457,13 +1493,23 @@ export async function hydrateLocalFromCloud(
     }
     safeProgress('Saving personnel...', 65);
 
-    // Save games (largest data set, likely)
+    // Save games (with timestamp-based conflict resolution)
+    const existingGames = await localStore.getGames();
     const gameEntries = Object.entries(cloudData.games);
     for (let i = 0; i < gameEntries.length; i++) {
       const [gameId, game] = gameEntries[i];
       try {
-        await localStore.saveGame(gameId, game);
-        counts.games++;
+        const existingGame = existingGames[gameId];
+        if (shouldWriteBasedOnTimestamp(game.updatedAt, existingGame?.updatedAt)) {
+          await localStore.saveGame(gameId, game);
+          counts.games++;
+        } else {
+          logger.debug('[ReverseMigrationService] Skipping game (local is newer)', {
+            gameId,
+            cloudUpdatedAt: game.updatedAt,
+            localUpdatedAt: existingGame?.updatedAt,
+          });
+        }
         // Progress updates for games (65-90%)
         const gameProgress = 65 + Math.floor((i / gameEntries.length) * 25);
         safeProgress(`Saving games... (${i + 1}/${gameEntries.length})`, gameProgress);

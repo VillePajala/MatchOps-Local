@@ -1627,7 +1627,10 @@ describe('LocalDataStore', () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
 
         const saved = await dataStore.saveGame('game_1', mockGame);
-        expect(saved).toEqual(mockGame);
+        // saveGame now adds createdAt/updatedAt timestamps for conflict resolution
+        expect(saved).toMatchObject(mockGame);
+        expect(saved.createdAt).toBeDefined();
+        expect(saved.updatedAt).toBeDefined();
         expect(mockSetStorageItem).toHaveBeenCalled();
       });
 

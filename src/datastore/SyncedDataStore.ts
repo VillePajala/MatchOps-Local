@@ -180,6 +180,16 @@ export class SyncedDataStore implements DataStore {
   }
 
   /**
+   * Get the underlying local store for direct writes.
+   * Used by conflict resolution to update local without re-queueing for sync.
+   *
+   * @returns The LocalDataStore instance
+   */
+  getLocalStore(): DataStore {
+    return this.localStore;
+  }
+
+  /**
    * Start the sync engine.
    * Called by the factory after executor is set.
    */
