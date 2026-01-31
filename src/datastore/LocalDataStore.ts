@@ -329,6 +329,19 @@ type ParsedSettingsWithLegacy = AppSettings & {
   clubSeasonEndMonth?: number;
 };
 
+/**
+ * LocalDataStore - IndexedDB-backed implementation of DataStore.
+ *
+ * ## Immutability Contract
+ *
+ * Methods that accept entity objects (upsertPlayer, upsertTeam, saveGame, etc.)
+ * perform shallow copies of the input data. Callers MUST NOT mutate input objects
+ * after method calls return, as this could corrupt stored data.
+ *
+ * This is a deliberate design choice for performance - deep cloning large game
+ * objects (with hundreds of events) would be expensive. The current usage in
+ * the codebase is safe as callers create fresh objects or use spread operators.
+ */
 export class LocalDataStore implements DataStore {
   private initialized = false;
   private settingsMigrated = false;
@@ -700,6 +713,10 @@ export class LocalDataStore implements DataStore {
   /**
    * Upsert a player (insert or update if exists).
    * Used by reverse migration to preserve IDs from cloud.
+   *
+   * @param player - Player data to upsert. Caller must not mutate this object
+   *   after the call returns, as timestamp fields are shallow-copied.
+   * @returns The upserted player with normalized fields
    */
   async upsertPlayer(player: Player): Promise<Player> {
     this.ensureInitialized();

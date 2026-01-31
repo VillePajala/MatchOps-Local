@@ -3,6 +3,16 @@
  *
  * Data structures for user-customizable warm-up plans.
  * Plans are stored in IndexedDB and can be edited by users.
+ *
+ * ## Timestamp Fields
+ *
+ * WarmupPlan has two timestamp fields for historical reasons:
+ * - `lastModified`: Original field, still set for backwards compatibility
+ * - `updatedAt`: Added for consistency with other entities (Player, Team, etc.)
+ *   and cloud sync conflict resolution
+ *
+ * Both fields are set to the same value by `normalizeWarmupPlanForSave()`.
+ * New code should use `updatedAt` for conflict resolution.
  */
 
 /**
