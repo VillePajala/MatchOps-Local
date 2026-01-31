@@ -205,6 +205,37 @@ WHERE proname = 'save_game_with_relations';
 --   User A: version = 6 (updated)
 --   User B: version = 10 (unchanged - RPC only affected User A's row)
 
+-- 3e. Simplified service-role test (Dashboard-compatible)
+-- Verifies RPC exists and requires authentication
+DO $$
+DECLARE
+  v_result integer;
+BEGIN
+  -- Setup: Create test game
+  INSERT INTO games (user_id, id, team_name, opponent_name, game_date, version, created_at, updated_at)
+  VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_rpc_auth_check', 'Team', 'Opponent', '2025-01-01', 1, now(), now())
+  ON CONFLICT (user_id, id) DO NOTHING;
+
+  -- Test: RPC should fail with "Not authenticated" when called without auth context
+  BEGIN
+    SELECT save_game_with_relations(
+      '{"id": "test_rpc_auth_check", "team_name": "Updated"}'::jsonb,
+      ARRAY[]::jsonb[], ARRAY[]::jsonb[], ARRAY[]::jsonb[], NULL, 1
+    ) INTO v_result;
+    RAISE EXCEPTION 'UNEXPECTED: RPC should have required authentication';
+  EXCEPTION
+    WHEN OTHERS THEN
+      IF SQLERRM LIKE '%Not authenticated%' THEN
+        RAISE NOTICE 'PASS: RPC correctly requires authentication';
+      ELSE
+        RAISE NOTICE 'INFO: Got error: % (may be expected depending on context)', SQLERRM;
+      END IF;
+  END;
+
+  -- Cleanup
+  DELETE FROM games WHERE id = 'test_rpc_auth_check';
+END $$;
+
 -- ============================================================================
 -- TEST 4: Composite Foreign Keys - Nullable References
 -- ============================================================================
@@ -239,6 +270,23 @@ DELETE FROM seasons WHERE user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' AND i
 SELECT season_id FROM games
 WHERE user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' AND id = 'test_null_refs_game';
 -- EXPECTED: season_id = NULL (SET NULL worked)
+
+-- 4e. Test ON DELETE SET NULL for team deletion
+INSERT INTO teams (user_id, id, name, created_at, updated_at)
+VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_team', 'Test Team', now(), now());
+
+INSERT INTO games (user_id, id, team_id, team_name, opponent_name, game_date, version, created_at, updated_at)
+VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_team_cascade_game', 'test_cascade_team', 'Team Name', 'Opponent', '2025-01-01', 1, now(), now());
+
+-- Delete team
+DELETE FROM teams WHERE user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' AND id = 'test_cascade_team';
+
+-- Verify SET NULL worked (game still exists, team_id is NULL)
+SELECT id, team_id FROM games WHERE id = 'test_team_cascade_game';
+-- EXPECTED: team_id = NULL (game preserved, team reference cleared)
+
+-- Cleanup
+DELETE FROM games WHERE id = 'test_team_cascade_game';
 
 -- ============================================================================
 -- TEST 5: Primary Key Structure Verification

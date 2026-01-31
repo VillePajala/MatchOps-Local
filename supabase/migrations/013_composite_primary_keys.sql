@@ -17,14 +17,17 @@
 -- - user_consents: user_id can be NULL for GDPR retention (cannot be part of PK)
 -- - subscriptions: Uses UUID primary key, has UNIQUE(user_id), billing not user content
 --
--- DEPLOYMENT ORDER (CRITICAL - client MUST be deployed first):
+-- DEPLOYMENT ORDER (see README.md for full details):
+-- Scenario 1 (initial deployment, no users): Migrations first, then client
+-- Scenario 2 (production with active users): Client first, then migrations
+--
+-- For Scenario 2:
 -- 1. Deploy client code first (handles both old and new schemas)
 --    - Client uses RPC save_game_with_relations (schema-agnostic)
 --    - Client queries use RLS which adds user_id filter automatically
---    - No client changes needed for composite PK transition
--- 2. Run this migration on STAGING
+-- 2. Run this migration on STAGING during low-traffic window
 -- 3. Verify on staging (see __tests__/013_014_composite_keys.verification.sql)
--- 4. Run this migration on PRODUCTION
+-- 4. Run this migration on PRODUCTION during low-traffic window
 -- See docs/03-active-plans/user-scoped-storage-plan-v2.md Section 2.2.2
 --
 -- ROLLBACK:
@@ -42,6 +45,15 @@
 -- Client code prevents this; it's a data integrity issue, not security.
 --
 -- ============================================================================
+
+-- PRE-MIGRATION CHECK (run BEFORE this migration to avoid lock waits):
+-- SELECT pid, usename, state, query_start, query
+-- FROM pg_stat_activity
+-- WHERE datname = current_database() AND state != 'idle' AND pid != pg_backend_pid();
+-- If any long-running queries (>30s), coordinate to clear them first.
+
+-- Prevent indefinite lock wait - fail fast after 30 seconds
+SET lock_timeout = '30s';
 
 BEGIN;
 
