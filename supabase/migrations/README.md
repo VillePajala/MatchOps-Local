@@ -17,6 +17,10 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 | `008_user_consents.sql` | Creates user_consents table for GDPR compliance |
 | `009_fix_user_consents_gdpr.sql` | Fixes ON DELETE to SET NULL for consent retention |
 | `010_subscriptions.sql` | Creates subscriptions table for Play Store billing |
+| `011_add_game_version_column.sql` | Adds version column to games table for optimistic locking |
+| `012_optimistic_locking.sql` | Updates save_game_with_relations for optimistic locking |
+| `013_composite_primary_keys.sql` | Changes PRIMARY KEY (id) → PRIMARY KEY (user_id, id) for user isolation |
+| `014_update_rpc_for_composite_keys.sql` | Updates save_game_with_relations for composite keys |
 
 ## Deployment Order
 
@@ -33,6 +37,10 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 9. `008_user_consents.sql` - Creates GDPR consent tracking table
 10. `009_fix_user_consents_gdpr.sql` - Fixes consent retention on account deletion
 11. `010_subscriptions.sql` - Creates subscription tracking for billing
+12. `011_add_game_version_column.sql` - Adds version column for optimistic locking
+13. `012_optimistic_locking.sql` - Updates RPC for optimistic locking
+14. `013_composite_primary_keys.sql` - **CRITICAL**: Composite keys for user isolation
+15. `014_update_rpc_for_composite_keys.sql` - Updates RPC for composite keys
 
 ---
 
@@ -78,7 +86,7 @@ supabase db remote commit
 #### Option B: Manual via SQL Editor
 
 1. Open Supabase Dashboard > SQL Editor
-2. Copy/paste each migration file in order (000 → 010)
+2. Copy/paste each migration file in order (000 → 014)
 3. Run each script individually
 4. Verify no errors before proceeding to next
 
@@ -180,6 +188,96 @@ SELECT indexname FROM pg_indexes
 WHERE schemaname = 'public'
 ORDER BY indexname;
 -- Should include idx_* for all tables
+
+-- 6. Verify composite primary keys (after migration 013)
+SELECT tc.table_name, kcu.column_name, kcu.ordinal_position
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+  ON tc.constraint_name = kcu.constraint_name
+WHERE tc.constraint_type = 'PRIMARY KEY'
+  AND tc.table_schema = 'public'
+  AND tc.table_name IN ('players', 'teams', 'seasons', 'tournaments',
+    'personnel', 'games', 'game_events', 'game_players',
+    'game_tactical_data', 'player_assessments', 'player_adjustments',
+    'warmup_plans', 'team_players')
+ORDER BY tc.table_name, kcu.ordinal_position;
+-- Expected: Each table should have (user_id, id) or (user_id, game_id) as composite PK
+
+-- 7. Verify composite foreign keys exist
+SELECT conname, conrelid::regclass AS table_name,
+  pg_get_constraintdef(oid) AS definition
+FROM pg_constraint
+WHERE contype = 'f' AND connamespace = 'public'::regnamespace
+  AND conname IN ('game_events_game_fkey', 'game_players_game_fkey',
+    'game_tactical_data_game_fkey', 'player_assessments_game_fkey',
+    'games_season_fkey', 'games_tournament_fkey', 'games_team_fkey',
+    'player_adjustments_season_fkey', 'player_adjustments_tournament_fkey',
+    'team_players_team_fkey')
+ORDER BY conname;
+-- Expected: All FKs reference (user_id, ...) composite columns
+
+-- 8. Security test: Verify same ID allowed for different users
+-- (Run this AFTER creating test data for two users)
+-- INSERT INTO players (user_id, id, name) VALUES
+--   ('user-a-uuid', 'test-id', 'Player A'),
+--   ('user-b-uuid', 'test-id', 'Player B');
+-- Should succeed (composite PK allows same id for different users)
+-- SELECT user_id, id, name FROM players WHERE id = 'test-id';
+-- Should return both rows
+```
+
+#### Verify Migration 013-014 (Composite Keys)
+
+**Full verification script**: `supabase/migrations/__tests__/013_014_composite_keys.verification.sql`
+
+Run the complete verification script in Supabase Dashboard > SQL Editor. It includes:
+- Test 1: Composite key enforcement (same ID for different users)
+- Test 2: Foreign key cascade behavior (game deletion)
+- Test 3: Version SELECT security (user isolation in RPC)
+- Test 4: Nullable foreign key references
+- Test 5: Primary key structure verification
+
+Quick security checks (if not running full script):
+
+```sql
+-- A. Verify save_game_with_relations uses user-scoped version check
+-- This query shows the function definition - look for:
+-- "WHERE user_id = v_user_id AND id = v_game_id" in the version SELECT
+SELECT pg_get_functiondef(oid)
+FROM pg_proc
+WHERE proname = 'save_game_with_relations';
+
+-- B. Test cascade delete behavior (games → child tables)
+-- 1. Create test game as user A
+INSERT INTO games (user_id, id, team_name, opponent_name)
+VALUES ('test-user-a', 'cascade-test-game', 'Test Team', 'Opponent');
+
+-- 2. Add child records
+INSERT INTO game_events (user_id, id, game_id, event_type, time_seconds, order_index)
+VALUES ('test-user-a', 'test-event', 'cascade-test-game', 'goal', 300, 0);
+
+-- 3. Delete the game
+DELETE FROM games WHERE user_id = 'test-user-a' AND id = 'cascade-test-game';
+
+-- 4. Verify child records are gone (CASCADE worked)
+SELECT COUNT(*) FROM game_events WHERE game_id = 'cascade-test-game';
+-- Expected: 0
+
+-- C. Test user isolation (CRITICAL security verification)
+-- Create same entity ID for two users
+INSERT INTO players (user_id, id, name)
+VALUES ('user-a-uuid', 'isolation-test', 'User A Player');
+
+INSERT INTO players (user_id, id, name)
+VALUES ('user-b-uuid', 'isolation-test', 'User B Player');
+-- Should succeed (no constraint violation)
+
+-- Verify isolation
+SELECT user_id, name FROM players WHERE id = 'isolation-test';
+-- Expected: Two rows, each with correct user's data
+
+-- Cleanup test data
+DELETE FROM players WHERE id = 'isolation-test';
 ```
 
 #### Test Edge Functions
@@ -317,7 +415,7 @@ supabase db push
 ### Option 2: Manual via SQL Editor
 
 1. Open Supabase Dashboard > SQL Editor
-2. Copy/paste each file in order (000 → 010)
+2. Copy/paste each file in order (000 → 014)
 3. Run each script and verify no errors
 
 ---
