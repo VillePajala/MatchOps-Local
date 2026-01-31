@@ -76,6 +76,12 @@ export interface AuthResult {
   session: Session | null;
   /** Whether email confirmation is required before sign-in */
   confirmationRequired?: boolean;
+  /**
+   * Whether the email might already be registered.
+   * Supabase returns success (not error) for existing emails to prevent enumeration,
+   * but doesn't send confirmation email. We detect this via empty identities array.
+   */
+  existingUser?: boolean;
 }
 
 /**

@@ -406,15 +406,22 @@ export class SupabaseAuthService implements AuthService {
       throw new AuthError('Sign up failed: no user returned');
     }
 
+    // Detect existing user: Supabase returns a "fake" user with empty identities
+    // for security (prevents email enumeration), but doesn't send confirmation email.
+    // We should tell the user the email might already be registered.
+    const isExistingUser = data.user.identities?.length === 0;
+
     const user = transformUser(data.user);
 
     // Check if email confirmation is required
     if (!data.session) {
-      // Email confirmation required
+      // Email confirmation required (or user already exists)
       return {
         user,
         session: null,
         confirmationRequired: true,
+        // Signal to UI that this might be an existing user
+        existingUser: isExistingUser,
       };
     }
 
