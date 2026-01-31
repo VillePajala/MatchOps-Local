@@ -23,8 +23,16 @@ export interface WarmupPlan {
   id: string;
   /** Schema version for future migrations */
   version: number;
-  /** ISO timestamp of last modification */
+  /**
+   * ISO timestamp of last modification (legacy field).
+   * @deprecated Use updatedAt for new code. Kept for backwards compatibility.
+   */
   lastModified: string;
+  /**
+   * ISO timestamp of last update - used for conflict resolution in cloud sync.
+   * Added for consistency with other entity types (AppSettings, teams, etc.)
+   */
+  updatedAt?: string;
   /** True if this is the unmodified default template */
   isDefault: boolean;
   /** Ordered list of sections */

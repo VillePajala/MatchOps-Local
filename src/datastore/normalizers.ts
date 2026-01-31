@@ -11,13 +11,19 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 
 /**
  * Normalizes a warmup plan for persistence.
- * - Sets lastModified to current timestamp
+ * - Sets lastModified to current timestamp (legacy field)
+ * - Sets updatedAt for conflict resolution (preserves cloud timestamp if present)
  * - Sets isDefault to false (user-modified plans are never default)
  *
  * Used by LocalDataStore and SyncedDataStore to ensure consistent normalization.
  */
-export const normalizeWarmupPlanForSave = (plan: WarmupPlan): WarmupPlan => ({
-  ...plan,
-  lastModified: new Date().toISOString(),
-  isDefault: false,
-});
+export const normalizeWarmupPlanForSave = (plan: WarmupPlan): WarmupPlan => {
+  const now = new Date().toISOString();
+  return {
+    ...plan,
+    lastModified: now,
+    // Preserve cloud timestamp if present (cloud-wins scenario), otherwise use now
+    updatedAt: plan.updatedAt ?? now,
+    isDefault: false,
+  };
+};

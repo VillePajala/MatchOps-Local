@@ -52,10 +52,15 @@ export type CloudRecordWriter = (
 /**
  * Deleter function type for removing records from cloud.
  * Provided by the cloud store implementation.
+ *
+ * @param entityType - The type of entity to delete
+ * @param entityId - The ID of the entity to delete
+ * @param context - Optional context data (e.g., playerId for playerAdjustment)
  */
 export type CloudRecordDeleter = (
   entityType: SyncEntityType,
-  entityId: string
+  entityId: string,
+  context?: unknown
 ) => Promise<void>;
 
 /**
@@ -246,7 +251,8 @@ export class ConflictResolver {
         cloudTimestamp,
       });
 
-      await this.deleteFromCloud(entityType, entityId);
+      // Pass op.data as context for entity types that need it (e.g., playerAdjustment needs playerId)
+      await this.deleteFromCloud(entityType, entityId, op.data);
 
       return {
         resolution: {
