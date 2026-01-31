@@ -274,7 +274,12 @@ export default function CloudSyncSection({
 
     setIsClearingCloud(true);
     try {
-      const dataStore = await getDataStore();
+      if (!user?.id) {
+        logger.error('[CloudSyncSection] Cannot clear cloud data: no user ID');
+        showToast(t('cloudSync.noUser', 'Cannot clear: not signed in.'), 'error');
+        return;
+      }
+      const dataStore = await getDataStore(user.id);
 
       // Defense-in-depth: Verify we're actually using cloud backend
       // This catches edge cases where cloudAvailable is true but factory returned LocalDataStore

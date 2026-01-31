@@ -10,14 +10,16 @@ import {
 } from '@/utils/personnelManager';
 import type { Personnel } from '@/types/personnel';
 import logger from '@/utils/logger';
+import { useDataStore } from '@/hooks/useDataStore';
 
 /**
  * Get all personnel with React Query caching
  */
 export const usePersonnel = () => {
+  const { userId } = useDataStore();
   return useQuery({
-    queryKey: queryKeys.personnel,
-    queryFn: getAllPersonnel,
+    queryKey: [...queryKeys.personnel, userId],
+    queryFn: () => getAllPersonnel(userId),
   });
 };
 
@@ -25,9 +27,10 @@ export const usePersonnel = () => {
  * Get single personnel by ID
  */
 export const usePersonnelById = (personnelId: string | null) => {
+  const { userId } = useDataStore();
   return useQuery({
-    queryKey: queryKeys.personnelDetail(personnelId || ''),
-    queryFn: () => personnelId ? getPersonnelById(personnelId) : null,
+    queryKey: [...queryKeys.personnelDetail(personnelId || ''), userId],
+    queryFn: () => personnelId ? getPersonnelById(personnelId, userId) : null,
     enabled: !!personnelId,
   });
 };
@@ -36,9 +39,10 @@ export const usePersonnelById = (personnelId: string | null) => {
  * Get personnel by role (for filtering)
  */
 export const usePersonnelByRole = (role: Personnel['role']) => {
+  const { userId } = useDataStore();
   return useQuery({
-    queryKey: queryKeys.personnelByRole(role),
-    queryFn: () => getPersonnelByRole(role),
+    queryKey: [...queryKeys.personnelByRole(role), userId],
+    queryFn: () => getPersonnelByRole(role, userId),
   });
 };
 
@@ -56,12 +60,13 @@ export const usePersonnelByRole = (role: Personnel['role']) => {
  */
 export const useAddPersonnel = () => {
   const queryClient = useQueryClient();
+  const { userId } = useDataStore();
 
   return useMutation({
     mutationFn: (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) =>
-      addPersonnelMember(data),
+      addPersonnelMember(data, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.personnel });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.personnel, userId] });
       logger.log('Personnel added successfully - cache invalidated');
     },
     onError: (error) => {
@@ -106,6 +111,7 @@ export const useAddPersonnel = () => {
  */
 export const useUpdatePersonnel = () => {
   const queryClient = useQueryClient();
+  const { userId } = useDataStore();
 
   return useMutation({
     mutationFn: ({
@@ -114,10 +120,10 @@ export const useUpdatePersonnel = () => {
     }: {
       personnelId: string;
       updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>
-    }) => updatePersonnelMember(personnelId, updates),
+    }) => updatePersonnelMember(personnelId, updates, userId),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.personnel });
-      queryClient.invalidateQueries({ queryKey: queryKeys.personnelDetail(variables.personnelId) });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.personnel, userId] });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.personnelDetail(variables.personnelId), userId] });
       logger.log('Personnel updated successfully - cache invalidated');
     },
     onError: (error) => {
@@ -159,11 +165,12 @@ export const useUpdatePersonnel = () => {
  */
 export const useRemovePersonnel = () => {
   const queryClient = useQueryClient();
+  const { userId } = useDataStore();
 
   return useMutation({
-    mutationFn: (personnelId: string) => removePersonnelMember(personnelId),
+    mutationFn: (personnelId: string) => removePersonnelMember(personnelId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.personnel });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.personnel, userId] });
       logger.log('Personnel removed successfully - cache invalidated');
     },
     onError: (error) => {

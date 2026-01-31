@@ -421,7 +421,9 @@ describe('AuthProvider', () => {
       backendConfig.getBackendMode.mockReturnValue('cloud');
     });
 
-    it('should clear caches when auth state changes', async () => {
+    it('should NOT clear caches on sign-out (no userId available)', async () => {
+      // With user-scoped storage, we can't access DataStore without a userId.
+      // On sign-out, session is null → userId is undefined → cache clearing is skipped.
       render(
         <AuthProvider>
           <TestComponent />
@@ -432,14 +434,21 @@ describe('AuthProvider', () => {
         expect(screen.getByTestId('loading')).toHaveTextContent('ready');
       });
 
-      // Simulate auth state change (e.g., sign out)
+      // Clear any calls from initialization
+      mockDataStore.clearUserCaches.mockClear();
+
+      // Simulate sign out (null session = no userId)
       await act(async () => {
         authCallbacks.forEach(cb => cb('signed_out', null));
       });
 
-      await waitFor(() => {
-        expect(mockDataStore.clearUserCaches).toHaveBeenCalled();
+      // Wait a tick to ensure any async operations complete
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
       });
+
+      // Cache clearing should NOT be called (no userId available)
+      expect(mockDataStore.clearUserCaches).not.toHaveBeenCalled();
     });
 
     it('should clear caches when user signs in', async () => {

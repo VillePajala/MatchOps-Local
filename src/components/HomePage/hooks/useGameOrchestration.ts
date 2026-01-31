@@ -33,6 +33,7 @@ import { useModalContext } from '@/contexts/ModalProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils/storage';
 import { queryKeys } from '@/config/queryKeys';
+import { useDataStore } from '@/hooks/useDataStore';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
@@ -147,6 +148,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // --- Auth (for cloud mode sign out) ---
   const { signOut, mode: authMode } = useAuth();
+
+  // --- User-Scoped Storage ---
+  const { userId } = useDataStore();
 
   // --- Roster Management (Must come before Field Coordination) ---
   const {
@@ -274,8 +278,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [appLanguage, setAppLanguage] = useState<string>(i18n.language);
 
   useEffect(() => {
-    utilGetLastHomeTeamName().then((name) => setDefaultTeamNameSetting(name));
-  }, []);
+    utilGetLastHomeTeamName(userId).then((name) => setDefaultTeamNameSetting(name));
+  }, [userId]);
 
   useEffect(() => {
     i18n.changeLanguage(appLanguage);
@@ -578,7 +582,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       };
 
       // Save updated game
-      await utilSaveGame(currentGameId, updatedGame);
+      await utilSaveGame(currentGameId, updatedGame, userId);
 
       // Update local state
       setSavedGames(prev => ({
@@ -587,7 +591,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       }));
 
       // Invalidate React Query cache to update LoadGameModal
-      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
       // Clear orphaned state if team was assigned
       if (newTeamId) {
@@ -609,7 +613,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const lastAppliedMutationSequenceRef = useRef(0);
 
   const updateGameDetailsMutation = useMutation<AppState | null, Error, UpdateGameDetailsMutationVariables>({
-    mutationFn: ({ gameId, updates }) => utilUpdateGameDetails(gameId, updates),
+    mutationFn: ({ gameId, updates }) => utilUpdateGameDetails(gameId, updates, userId),
     onSuccess: (data, variables) => {
       const { meta } = variables;
       const shouldApplyUpdate = (() => {
@@ -675,10 +679,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       }
 
       // After a successful update, invalidate the savedGames query to refetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
       // Optimistically update the query cache
-      queryClient.setQueryData(queryKeys.savedGames, (oldData: SavedGamesCollection | undefined) => {
+      queryClient.setQueryData([...queryKeys.savedGames, userId], (oldData: SavedGamesCollection | undefined) => {
         if (!oldData) return oldData;
         const existing = oldData[variables.gameId];
         return {
@@ -828,7 +832,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // --- TIMER RESTORATION LOGIC ---
         try {
           const lastGameId = gameDataManagement.currentGameIdSetting;
-          const savedTimerState = await loadTimerStateForGame(lastGameId || '');
+          const savedTimerState = await loadTimerStateForGame(lastGameId || '', userId);
 
           if (savedTimerState) {
             const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
@@ -839,11 +843,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
             dispatchGameSession({ type: 'START_TIMER' });
           } else {
             // Clear any stale timer state (might be for a different game)
-            await clearTimerState();
+            await clearTimerState(userId);
           }
         } catch (error) {
           logger.error('[EFFECT init] Error restoring timer state:', error);
-          await clearTimerState();
+          await clearTimerState(userId);
         }
         // --- END TIMER RESTORATION LOGIC ---
 
@@ -868,6 +872,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     initialAction, // Used to determine if instructions modal should show automatically
     savedGames, // Used to check if user has any saved games for instructions modal logic
     dispatchGameSession, // Used for timer restoration
+    userId, // User-scoped storage
     // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
   ]);
 
@@ -886,7 +891,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         const firstGameGuideShown = await getHasSeenFirstGameGuide();
 
         // Also check if user has any saved games (imported or created)
-        const savedGames = await utilGetSavedGames();
+        const savedGames = await utilGetSavedGames(userId);
         const hasMultipleGames = Object.keys(savedGames).length > 1; // More than just default game
 
         logger.log('[FirstGameGuide] Checking conditions:', {
@@ -919,7 +924,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     };
 
     checkFirstGameGuide();
-  }, [initialLoadComplete, currentGameId, isFirstTimeUser]);
+  }, [initialLoadComplete, currentGameId, isFirstTimeUser, userId]);
 
   // --- NEW: Robust Visibility Change Handling ---
   // --- Wake Lock Effect ---
@@ -1248,7 +1253,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // Show full-screen overlay to unmount all components
       setIsResetting(true);
 
-      // Clear storage completely
+      // Clear storage completely (hard reset clears all user data)
       await utilResetAppSettings();
 
       logger.log("Hard reset complete, reloading app...");
@@ -1496,7 +1501,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // 2. Reducer-authoritative fields - timer, score, status, metadata from gameSessionState
       // 3. Field coordination - player positions, tactical elements
       if (currentGameId) {
-        const freshGameState = await utilGetGame(currentGameId);
+        const freshGameState = await utilGetGame(currentGameId, userId);
 
         if (!freshGameState) {
           logger.warn(`[handleToggleGoalieForModal] Cannot save - game ${currentGameId} not found in storage`);
@@ -1549,10 +1554,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           tacticalDiscs: fieldCoordination.tacticalDiscs,
           tacticalDrawings: fieldCoordination.tacticalDrawings,
           tacticalBallPosition: fieldCoordination.tacticalBallPosition,
-        });
+        }, userId);
 
         // Invalidate React Query cache to update LoadGameModal
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
       }
 
       logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
@@ -1561,7 +1566,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   }, [
     // Data dependencies (values that change the function's behavior)
-    availablePlayers, currentGameId, gameSessionState, t,
+    availablePlayers, currentGameId, gameSessionState, t, userId,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
     setAvailablePlayers, setRosterError, queryClient,
     // fieldCoordination provides playersOnField and setPlayersOnField
@@ -1640,12 +1645,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       if (latestId) {
         logger.log('[Init Fallback] Selecting latest game as current', { latestId });
         setCurrentGameId(latestId);
-        utilSaveCurrentGameIdSetting(latestId).catch((error) => {
+        utilSaveCurrentGameIdSetting(latestId, userId).catch((error) => {
           logger.warn('[Init Fallback] Failed to persist current game ID (non-critical)', { latestId, error });
         });
       }
     }
-  }, [initialLoadComplete, currentGameId, savedGames]);
+  }, [initialLoadComplete, currentGameId, savedGames, userId]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in controlBarProps
   const handleOpenGameSettingsModal = () => {
@@ -1703,7 +1708,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }, {} as SavedGamesCollection);
     try {
       const { getAdjustmentsForPlayer } = await import('@/utils/playerAdjustments');
-      const adjustments = await getAdjustmentsForPlayer(playerId);
+      const adjustments = await getAdjustmentsForPlayer(playerId, userId);
       // Wrap t() to match TranslationFn signature
       const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
       exportPlayerExcel(playerId, playerData, gamesData, gameDataManagement.seasons, gameDataManagement.tournaments, adjustments, translate);
@@ -1711,7 +1716,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       logger.error('[handleExportPlayerExcel] Export failed:', error);
       showToast(t('export.exportPlayerFailed'), 'error');
     }
-  }, [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, t, showToast]);
+  }, [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, t, showToast, userId]);
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 
@@ -1771,6 +1776,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
         canCreate,
         showUpgradePrompt,
+        userId,
       },
       {
         initialSelectedPlayerIds,
@@ -1816,6 +1822,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldCoordination,
     canCreate,
     showUpgradePrompt,
+    userId,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **

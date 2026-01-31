@@ -34,6 +34,8 @@ export interface StartNewGameDependencies {
   // Premium limit checking
   canCreate: (resource: ResourceType, currentCount: number) => boolean;
   showUpgradePrompt: (resource?: ResourceType, currentCount?: number) => void;
+  // User-scoped storage
+  userId?: string;
 }
 
 export interface StartNewGameRequest {
@@ -111,6 +113,7 @@ export async function startNewGameWithSetup(
     defaultSubIntervalMinutes,
     canCreate,
     showUpgradePrompt,
+    userId,
   } = deps;
 
   // Premium limit check: count games in the selected season or tournament
@@ -195,9 +198,9 @@ export async function startNewGameWithSetup(
 
     setSavedGames(updatedSavedGamesCollection);
 
-    await utilSaveGame(newGameId, newGameState);
-    await utilSaveCurrentGameIdSetting(newGameId);
-    await queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+    await utilSaveGame(newGameId, newGameState, userId);
+    await utilSaveCurrentGameIdSetting(newGameId, userId);
+    await queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
     logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
     saveSucceeded = true;

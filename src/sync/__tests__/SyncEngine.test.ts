@@ -54,6 +54,28 @@ async function flushAllAsync(cycles = 50): Promise<void> {
   }
 }
 
+/**
+ * Wait for a condition to be true with timeout.
+ * Uses flush cycles to advance fake timers while checking the condition.
+ * This is more deterministic than using a fixed number of cycles.
+ */
+async function waitForCondition(
+  condition: () => boolean,
+  options: { timeout?: number; interval?: number } = {}
+): Promise<void> {
+  const { timeout = 5000, interval = 10 } = options;
+  const startTime = Date.now();
+
+  while (!condition()) {
+    if (Date.now() - startTime > timeout) {
+      throw new Error(`waitForCondition timed out after ${timeout}ms`);
+    }
+    // Advance fake timers and flush promises
+    await jest.advanceTimersByTimeAsync(interval);
+    await flushAllAsync(10);
+  }
+}
+
 describe('SyncEngine', () => {
   let queue: SyncQueue;
   let engine: SyncEngine;
@@ -252,15 +274,17 @@ describe('SyncEngine', () => {
       }
 
       engine.start();
-      await flushAllAsync();
 
-      // First batch of 5
+      // Wait for first batch to complete (batch size is 5)
+      // Using waitForCondition is more deterministic than fixed flush cycles
+      await waitForCondition(() => mockExecutor.mock.calls.length >= 5);
       expect(mockExecutor).toHaveBeenCalledTimes(5);
 
       // Advance to next interval for second batch
       await jest.advanceTimersByTimeAsync(1000);
-      await flushAllAsync();
 
+      // Wait for second batch to complete
+      await waitForCondition(() => mockExecutor.mock.calls.length >= 10);
       expect(mockExecutor).toHaveBeenCalledTimes(10);
     });
   });

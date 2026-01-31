@@ -17,6 +17,15 @@ jest.mock('@/utils/appSettings', () => ({
   saveCurrentGameIdSetting: jest.fn().mockResolvedValue(undefined),
 }));
 
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 const createAppState = (): AppState => ({
   playersOnField: [],
   opponents: [],

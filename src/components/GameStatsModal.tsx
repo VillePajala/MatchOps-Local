@@ -15,6 +15,7 @@ import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
 import { extractClubSeasonsFromGames, getClubSeasonForDate } from '@/utils/clubSeason';
 import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
+import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
@@ -111,6 +112,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const { userId } = useDataStore();
 
   // Date formatting helper
   const formatDisplayDate = useCallback((isoDate: string): string => {
@@ -208,10 +210,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     resetAllFilters,
   } = handlers;
 
-  // Use React Query for settings management
+  // Use React Query for settings management (user-scoped)
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
-    queryKey: queryKeys.settings.detail(),
-    queryFn: getAppSettings,
+    queryKey: [...queryKeys.settings.detail(), userId],
+    queryFn: () => getAppSettings(userId),
     staleTime: Infinity, // Settings rarely change during session
     refetchOnWindowFocus: true, // Refetch on focus for cross-tab sync
     gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
