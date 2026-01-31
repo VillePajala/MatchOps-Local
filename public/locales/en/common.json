@@ -2241,7 +2241,7 @@
     "subscriptionRequiredDescription": "Your account is active but cloud sync is paused. Subscribe to sync your data across devices.",
     "subscribeButton": "Subscribe Now",
     "notAvailable": "Cloud sync is not available. This feature requires a premium subscription and server configuration.",
-    "notConfigured": "Cloud sync is not configured. Contact support for access.",
+    "notConfigured": "Cloud sync is not configured. Please try again later.",
     "enableButton": "Enable Cloud Sync",
     "disableButton": "Switch to Local Mode",
     "enabling": "Enabling...",
@@ -2446,7 +2446,7 @@
       "description": "An error occurred during migration. Your data has not been changed.",
       "retry": "Try Again",
       "retryIn": "Retry ({{seconds}}s)",
-      "maxRetries": "Maximum retries reached. Please try again later or contact support.",
+      "maxRetries": "Maximum retries reached. Please try again later.",
       "cancel": "Cancel"
     },
     "buttons": {
@@ -2514,7 +2514,10 @@
     "gameDataNotFound": "Error: Could not find game data for {{gameId}}",
     "legacyDataMigrated_one": "Your data has been migrated to your account ({{count}} item)",
     "legacyDataMigrated_other": "Your data has been migrated to your account ({{count}} items)",
-    "legacyMigrationFailed": "Could not migrate your data. Please contact support if this persists."
+    "legacyMigrationFailed": "Could not migrate your data. Please try again later.",
+    "dataLoadedFromCloud": "Your data has been loaded from the cloud.",
+    "failedToLoadCloudData": "Failed to load your cloud data. Please try refreshing.",
+    "partialSyncComplete": "Sync complete. Some cloud data may not have loaded - refresh to retry."
   },
   "positions": {
     "GK": "GK",
