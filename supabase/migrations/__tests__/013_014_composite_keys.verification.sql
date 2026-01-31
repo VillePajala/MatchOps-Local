@@ -146,6 +146,29 @@ WHERE proname = 'save_game_with_relations';
 -- EXPECTED: Should include "WHERE user_id = v_user_id AND id = v_game_id"
 -- If only "WHERE id = v_game_id" is shown, migration 014 was NOT applied correctly!
 
+-- 3d. Functional test: save_game_with_relations updates correct user's game
+-- NOTE: This test requires auth context. Run as authenticated User A.
+-- Setup: Both users have game 'test_version_game' (from 3a above)
+--   User A: version = 5
+--   User B: version = 10
+--
+-- Test (run as User A):
+-- SELECT save_game_with_relations(
+--   '{"id": "test_version_game", "team_name": "Updated by A", "opponent_name": "Test"}'::jsonb,
+--   ARRAY[]::jsonb[],
+--   ARRAY[]::jsonb[],
+--   ARRAY[]::jsonb[],
+--   NULL,
+--   5  -- User A's expected version
+-- );
+-- EXPECTED: Returns 6 (User A's version incremented)
+--
+-- Verify User B's version unchanged:
+-- SELECT user_id, version FROM games WHERE id = 'test_version_game' ORDER BY user_id;
+-- EXPECTED:
+--   User A: version = 6 (updated)
+--   User B: version = 10 (unchanged - RPC only affected User A's row)
+
 -- ============================================================================
 -- TEST 4: Composite Foreign Keys - Nullable References
 -- ============================================================================

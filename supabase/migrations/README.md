@@ -21,6 +21,7 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 | `012_optimistic_locking.sql` | Updates save_game_with_relations for optimistic locking |
 | `013_composite_primary_keys.sql` | Changes PRIMARY KEY (id) → PRIMARY KEY (user_id, id) for user isolation |
 | `014_update_rpc_for_composite_keys.sql` | Updates save_game_with_relations for composite keys |
+| `015_composite_fk_indexes.sql` | Performance indexes for composite FK CASCADE operations (optional) |
 
 ## Deployment Order
 
@@ -41,6 +42,21 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 13. `012_optimistic_locking.sql` - Updates RPC for optimistic locking
 14. `013_composite_primary_keys.sql` - **CRITICAL**: Composite keys for user isolation
 15. `014_update_rpc_for_composite_keys.sql` - Updates RPC for composite keys
+16. `015_composite_fk_indexes.sql` - (Optional) Performance indexes for CASCADE operations
+
+### Migration 013-014 Timing Estimates
+
+These migrations acquire table locks during PK changes. Expected duration:
+
+| Data Volume | Estimated Time | Notes |
+|-------------|----------------|-------|
+| Empty/Small (<100 games) | ~1-2 seconds | Typical for new deployments |
+| Medium (100-500 games) | ~5-10 seconds | Monitor for completion |
+| Large (500+ games) | ~30-60 seconds | Schedule during low-traffic |
+
+If migration appears stalled beyond these times, check for:
+- Active transactions holding locks (check `pg_stat_activity`)
+- Large table requiring index rebuild
 
 ---
 

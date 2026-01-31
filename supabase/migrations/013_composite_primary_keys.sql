@@ -17,15 +17,29 @@
 -- - user_consents: user_id can be NULL for GDPR retention (cannot be part of PK)
 -- - subscriptions: Uses UUID primary key, has UNIQUE(user_id), billing not user content
 --
--- DEPLOYMENT ORDER:
+-- DEPLOYMENT ORDER (CRITICAL - client MUST be deployed first):
 -- 1. Deploy client code first (handles both old and new schemas)
+--    - Client uses RPC save_game_with_relations (schema-agnostic)
+--    - Client queries use RLS which adds user_id filter automatically
+--    - No client changes needed for composite PK transition
 -- 2. Run this migration on STAGING
--- 3. Verify on staging
+-- 3. Verify on staging (see __tests__/013_014_composite_keys.verification.sql)
 -- 4. Run this migration on PRODUCTION
 -- See docs/03-active-plans/user-scoped-storage-plan-v2.md Section 2.2.2
 --
 -- ROLLBACK:
 -- See Section 7.1 of user-scoped-storage-plan-v2.md for rollback script
+--
+-- DOWNTIME NOTE:
+-- ALTER TABLE ... DROP/ADD PRIMARY KEY acquires ACCESS EXCLUSIVE lock.
+-- Estimate ~1-2 seconds write unavailability per table (13 tables total).
+-- Schedule during low-traffic window for production with active users.
+-- Impact: Low for initial release (no production data yet).
+--
+-- NOT VALID NOTE:
+-- Nullable FKs use NOT VALID to allow NULL values without validation errors.
+-- Existing orphaned data (e.g., game with non-existent season_id) will persist.
+-- Client code prevents this; it's a data integrity issue, not security.
 --
 -- ============================================================================
 
