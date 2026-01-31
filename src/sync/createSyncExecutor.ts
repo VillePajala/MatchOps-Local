@@ -177,6 +177,18 @@ export function createSyncExecutor(cloudStore: DataStore): SyncOperationExecutor
         operation,
       });
     } catch (error) {
+      // AbortError is expected during page navigation, hot reload, or user-initiated cancellation
+      // Don't log as error or report to Sentry - just rethrow for normal retry handling
+      const isAbortError = error instanceof Error && error.name === 'AbortError';
+      if (isAbortError) {
+        logger.debug('[SyncExecutor] Sync aborted (expected during navigation/reload)', {
+          entityType,
+          entityId,
+          operation,
+        });
+        throw error;
+      }
+
       // DIAGNOSTIC: Capture full error details to diagnose "one item stuck" issue
       const errorDetails = {
         entityType,

@@ -642,6 +642,7 @@ export class SyncEngine {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const isAbortError = error instanceof Error && error.name === 'AbortError';
 
       // If we never marked as syncing, the operation wasn't ours to process
       // This can happen if another tab/process completed it, or it was deleted
@@ -650,21 +651,27 @@ export class SyncEngine {
         return; // Don't emit failure events for operations we never owned
       }
 
-      logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
+      // AbortError is expected during page navigation, hot reload, or user-initiated cancellation
+      // Log at debug level instead of warn/error to reduce noise
+      if (isAbortError) {
+        logger.debug(`[SyncEngine] Aborted: ${opInfo} (expected during navigation/reload)`);
+      } else {
+        logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
 
-      // DIAGNOSTIC: Log full operation details to help identify why specific operations fail
-      // This helps diagnose the "one item stuck" issue where most ops succeed but one fails
-      logger.error('[SyncEngine] SYNC FAILURE DETAILS', {
-        operationId: op.id,
-        entityType: op.entityType,
-        entityId: op.entityId,
-        operation: op.operation,
-        retryCount: op.retryCount,
-        timestamp: op.timestamp,
-        error: errorMessage,
-        // Include data size to check for timeout issues with large entities
-        dataSize: op.data ? JSON.stringify(op.data).length : 0,
-      });
+        // DIAGNOSTIC: Log full operation details to help identify why specific operations fail
+        // This helps diagnose the "one item stuck" issue where most ops succeed but one fails
+        logger.error('[SyncEngine] SYNC FAILURE DETAILS', {
+          operationId: op.id,
+          entityType: op.entityType,
+          entityId: op.entityId,
+          operation: op.operation,
+          retryCount: op.retryCount,
+          timestamp: op.timestamp,
+          error: errorMessage,
+          // Include data size to check for timeout issues with large entities
+          dataSize: op.data ? JSON.stringify(op.data).length : 0,
+        });
+      }
 
       try {
         // Mark as failed
