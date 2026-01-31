@@ -22,11 +22,12 @@ const isExpectedDataStoreError = (error: unknown): boolean =>
 /**
  * Retrieves all tournaments from IndexedDB.
  * DataStore handles initialization, storage access, and legacy level-to-series migration.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to an array of Tournament objects.
  */
-export const getTournaments = async (): Promise<Tournament[]> => {
+export const getTournaments = async (userId?: string): Promise<Tournament[]> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getTournaments();
   } catch (error) {
     logger.error('[getTournaments] Error getting tournaments:', error);
@@ -68,9 +69,10 @@ export const saveTournaments = async (tournaments: Tournament[]): Promise<boolea
  *
  * @param newTournamentName - The name of the new tournament.
  * @param extra - Optional additional fields for the tournament (excludes id and name).
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the newly created Tournament object, or null if validation/save fails.
  */
-export const addTournament = async (newTournamentName: string, extra: Partial<Omit<Tournament, 'id' | 'name'>> = {}): Promise<Tournament | null> => {
+export const addTournament = async (newTournamentName: string, extra: Partial<Omit<Tournament, 'id' | 'name'>> = {}, userId?: string): Promise<Tournament | null> => {
   const trimmedName = newTournamentName?.trim();
   if (!trimmedName) {
     logger.warn('[addTournament] Validation failed: Tournament name cannot be empty.');
@@ -78,7 +80,7 @@ export const addTournament = async (newTournamentName: string, extra: Partial<Om
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const newTournament = await dataStore.createTournament(trimmedName, extra);
     return newTournament;
   } catch (error) {
@@ -96,16 +98,17 @@ export const addTournament = async (newTournamentName: string, extra: Partial<Om
  * DataStore handles validation and storage.
  *
  * @param updatedTournamentData - The Tournament object with updated details.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the updated Tournament object, or null if not found or save fails.
  */
-export const updateTournament = async (updatedTournamentData: Tournament): Promise<Tournament | null> => {
+export const updateTournament = async (updatedTournamentData: Tournament, userId?: string): Promise<Tournament | null> => {
   if (!updatedTournamentData || !updatedTournamentData.id || !updatedTournamentData.name?.trim()) {
     logger.error('[updateTournament] Invalid tournament data provided for update.');
     return null;
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const updatedTournament = await dataStore.updateTournament(updatedTournamentData);
 
     if (!updatedTournament) {
@@ -132,16 +135,17 @@ export const updateTournament = async (updatedTournamentData: Tournament): Promi
  * DataStore handles storage and atomicity.
  *
  * @param tournamentId - The ID of the tournament to delete.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false if not found or error occurs.
  */
-export const deleteTournament = async (tournamentId: string): Promise<boolean> => {
+export const deleteTournament = async (tournamentId: string, userId?: string): Promise<boolean> => {
   if (!tournamentId) {
     logger.error('[deleteTournament] Invalid tournament ID provided.');
     return false;
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const deleted = await dataStore.deleteTournament(tournamentId);
 
     if (!deleted) {
@@ -164,11 +168,12 @@ export const deleteTournament = async (tournamentId: string): Promise<boolean> =
  * DataStore handles loading saved games.
  *
  * @param tournamentId - The ID of the tournament to count games for.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the number of games associated with this tournament.
  */
-export const countGamesForTournament = async (tournamentId: string): Promise<number> => {
+export const countGamesForTournament = async (tournamentId: string, userId?: string): Promise<number> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const savedGames = await dataStore.getGames();
 
     let count = 0;
@@ -201,6 +206,7 @@ export const countGamesForTournament = async (tournamentId: string): Promise<num
  * @param placement - The team's placement (1 = 1st place, 2 = 2nd place, etc.). Pass null to remove placement.
  * @param award - Optional award label (e.g., "Champion", "Runner-up").
  * @param note - Optional coach note.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false otherwise.
  */
 export const updateTeamPlacement = async (
@@ -208,7 +214,8 @@ export const updateTeamPlacement = async (
   teamId: string,
   placement: number | null,
   award?: string,
-  note?: string
+  note?: string,
+  userId?: string
 ): Promise<boolean> => {
   if (!tournamentId || !teamId) {
     logger.error('[updateTeamPlacement] Invalid tournament ID or team ID provided.');
@@ -216,7 +223,7 @@ export const updateTeamPlacement = async (
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const tournaments = await dataStore.getTournaments();
     const tournament = tournaments.find(t => t.id === tournamentId);
 
@@ -271,14 +278,16 @@ export const updateTeamPlacement = async (
  *
  * @param tournamentId - The ID of the tournament.
  * @param teamId - The ID of the team.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the team's placement data, or null if not found.
  */
 export const getTeamPlacement = async (
   tournamentId: string,
-  teamId: string
+  teamId: string,
+  userId?: string
 ): Promise<{ placement: number; award?: string; note?: string } | null> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const tournaments = await dataStore.getTournaments();
     const tournament = tournaments.find(t => t.id === tournamentId);
 

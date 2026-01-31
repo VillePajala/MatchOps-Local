@@ -176,8 +176,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // This is fine - fresh sessions have no stale cache. Cache clearing only matters
           // for subsequent auth changes (sign out → sign in as different user).
           try {
-            if (isDataStoreInitialized()) {
-              const dataStore = await getDataStore();
+            const userId = newSession?.user?.id;
+            if (isDataStoreInitialized() && userId) {
+              const dataStore = await getDataStore(userId);
               dataStore.clearUserCaches?.();
             }
           } catch (error) {

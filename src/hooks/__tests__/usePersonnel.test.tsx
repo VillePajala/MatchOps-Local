@@ -21,6 +21,16 @@ import type { Personnel } from '@/types/personnel';
 jest.mock('@/utils/personnelManager');
 jest.mock('@/utils/logger');
 
+// Mock useDataStore
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 const createTestPersonnel = (name: string, role: Personnel['role']): Personnel => ({
   id: `personnel_${Date.now()}_${Math.random().toString(16).substring(2, 10)}`,
   name,
@@ -110,7 +120,7 @@ describe('usePersonnel hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockPerson);
-      expect(personnelManager.getPersonnelById).toHaveBeenCalledWith(mockPerson.id);
+      expect(personnelManager.getPersonnelById).toHaveBeenCalledWith(mockPerson.id, TEST_USER_ID);
     });
 
     it('should not fetch when personnelId is null', () => {
@@ -146,7 +156,7 @@ describe('usePersonnel hooks', () => {
 
       expect(result.current.data).toEqual(mockCoaches);
       expect(result.current.data).toHaveLength(2);
-      expect(personnelManager.getPersonnelByRole).toHaveBeenCalledWith('head_coach');
+      expect(personnelManager.getPersonnelByRole).toHaveBeenCalledWith('head_coach', TEST_USER_ID);
     });
 
     it('should return empty array for role with no personnel', async () => {
@@ -183,7 +193,7 @@ describe('usePersonnel hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(personnelManager.addPersonnelMember).toHaveBeenCalled();
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['personnel'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['personnel', TEST_USER_ID] });
     });
 
     it('should handle add errors properly', async () => {
@@ -296,11 +306,12 @@ describe('usePersonnel hooks', () => {
 
       expect(personnelManager.updatePersonnelMember).toHaveBeenCalledWith(
         updatedPersonnel.id,
-        { name: 'Updated Name' }
+        { name: 'Updated Name' },
+        TEST_USER_ID
       );
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['personnel'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['personnel', TEST_USER_ID] });
       expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: ['personnel', 'detail', updatedPersonnel.id],
+        queryKey: ['personnel', 'detail', updatedPersonnel.id, TEST_USER_ID],
       });
     });
 
@@ -342,7 +353,8 @@ describe('usePersonnel hooks', () => {
 
       expect(personnelManager.updatePersonnelMember).toHaveBeenCalledWith(
         personnel.id,
-        { phone: '+1234567890' }
+        { phone: '+1234567890' },
+        TEST_USER_ID
       );
     });
   });
@@ -361,8 +373,8 @@ describe('usePersonnel hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(personnelManager.removePersonnelMember).toHaveBeenCalledWith('personnel_123');
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['personnel'] });
+      expect(personnelManager.removePersonnelMember).toHaveBeenCalledWith('personnel_123', TEST_USER_ID);
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['personnel', TEST_USER_ID] });
     });
 
     it('should handle remove errors properly', async () => {

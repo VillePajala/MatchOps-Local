@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next';
 
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
+import { useDataStore } from '@/hooks/useDataStore';
 import type { AppState, Player, SavedGamesCollection, Team } from '@/types';
 import type { GameSessionAction, GameSessionState } from '@/hooks/useGameSessionReducer';
 import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId } from '@/utils/savedGames';
@@ -60,6 +61,7 @@ export function useSavedGameManager({
   t,
   onCloseLoadGameModal,
 }: UseSavedGameManagerOptions) {
+  const { userId } = useDataStore();
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -90,7 +92,7 @@ export function useSavedGameManager({
     let cancelled = false;
 
     setTeamLoadError(null); // Clear previous errors
-    getTeams()
+    getTeams(userId)
       .then((teams) => {
         if (!cancelled) {
           setAvailableTeams(teams);
@@ -114,7 +116,7 @@ export function useSavedGameManager({
     return () => {
       cancelled = true;
     };
-  }, [orphanedGameInfo, t]);
+  }, [orphanedGameInfo, t, userId]);
 
   const loadGameStateFromData = useCallback(
     async (gameData: AppState | null, isInitialDefaultLoad = false) => {
@@ -122,7 +124,7 @@ export function useSavedGameManager({
 
       if (gameData?.teamId) {
         try {
-          const team = await getTeam(gameData.teamId);
+          const team = await getTeam(gameData.teamId, userId);
           if (!team) {
             setOrphanedGameInfo({
               teamId: gameData.teamId,
@@ -207,6 +209,7 @@ export function useSavedGameManager({
       setTacticalDrawings,
       setIsPlayed,
       resetHistory,
+      userId,
     ],
   );
 
@@ -214,9 +217,9 @@ export function useSavedGameManager({
     async (gameId: string) => {
       logger.log('[LOAD GAME] Attempting to load game', gameId);
 
-      // Clear any existing timer state before loading a new game
+      // Clear any existing timer state before loading a new game (user-scoped)
       // Note: clearTimerState() handles errors internally (non-critical), so no try/catch needed
-      await clearTimerState();
+      await clearTimerState(userId);
 
       if (!isMountedRef.current) return;
 
@@ -244,7 +247,7 @@ export function useSavedGameManager({
         if (!isMountedRef.current) return;
 
         setCurrentGameId(gameId);
-        await utilSaveCurrentGameIdSetting(gameId);
+        await utilSaveCurrentGameIdSetting(gameId, userId);
         onCloseLoadGameModal();
       } catch (error) {
         logger.error('[LOAD GAME] Error processing game load:', error);
@@ -258,7 +261,7 @@ export function useSavedGameManager({
         }
       }
     },
-    [loadGameStateFromData, savedGames, setCurrentGameId, t, onCloseLoadGameModal],
+    [loadGameStateFromData, savedGames, setCurrentGameId, t, onCloseLoadGameModal, userId],
   );
 
   const handleDeleteGame = useCallback(
@@ -276,7 +279,7 @@ export function useSavedGameManager({
       setProcessingGameId(gameId);
 
       try {
-        const deletedGameId = await utilDeleteGame(gameId);
+        const deletedGameId = await utilDeleteGame(gameId, userId);
 
         if (!deletedGameId) {
           setGameDeleteError(
@@ -288,13 +291,13 @@ export function useSavedGameManager({
         const updatedSavedGames = { ...savedGames };
         delete updatedSavedGames[gameId];
         setSavedGames(updatedSavedGames);
-        await queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+        await queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
         if (currentGameId === gameId) {
           const latestId = getLatestGameId(updatedSavedGames);
           if (latestId) {
             setCurrentGameId(latestId);
-            await utilSaveCurrentGameIdSetting(latestId);
+            await utilSaveCurrentGameIdSetting(latestId, userId);
           } else {
             dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
             setPlayersOnField(initialState.playersOnField || []);
@@ -305,7 +308,7 @@ export function useSavedGameManager({
             setTacticalBallPosition(initialState.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
             resetHistory(initialState);
             setCurrentGameId(DEFAULT_GAME_ID);
-            await utilSaveCurrentGameIdSetting(DEFAULT_GAME_ID);
+            await utilSaveCurrentGameIdSetting(DEFAULT_GAME_ID, userId);
           }
         }
       } catch (error) {
@@ -338,6 +341,7 @@ export function useSavedGameManager({
       setTacticalDiscs,
       setTacticalDrawings,
       t,
+      userId,
     ],
   );
 
@@ -360,9 +364,9 @@ export function useSavedGameManager({
           teamId: newTeamId || undefined,
         };
 
-        await utilSaveGame(currentGameId, updatedGame);
+        await utilSaveGame(currentGameId, updatedGame, userId);
         setSavedGames((prev) => ({ ...prev, [currentGameId]: updatedGame }));
-        await queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+        await queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
         if (newTeamId) {
           setOrphanedGameInfo(null);
@@ -373,7 +377,7 @@ export function useSavedGameManager({
         logger.error('[TEAM REASSIGN] Error reassigning team:', error);
       }
     },
-    [currentGameId, queryClient, savedGames, setSavedGames],
+    [currentGameId, queryClient, savedGames, setSavedGames, userId],
   );
 
   return {

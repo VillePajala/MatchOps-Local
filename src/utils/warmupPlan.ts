@@ -12,11 +12,12 @@ const generateId = (): string =>
 
 /**
  * Retrieves the user's warm-up plan from storage.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns The WarmupPlan if it exists, null otherwise.
  */
-export const getWarmupPlan = async (): Promise<WarmupPlan | null> => {
+export const getWarmupPlan = async (userId?: string): Promise<WarmupPlan | null> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getWarmupPlan();
   } catch (error) {
     logger.error('[getWarmupPlan] Error reading warmup plan:', error);
@@ -28,11 +29,12 @@ export const getWarmupPlan = async (): Promise<WarmupPlan | null> => {
  * Saves a warm-up plan to storage.
  * DataStore handles lastModified update and setting isDefault to false.
  * @param plan - The WarmupPlan to save.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns true if successful, false otherwise.
  */
-export const saveWarmupPlan = async (plan: WarmupPlan): Promise<boolean> => {
+export const saveWarmupPlan = async (plan: WarmupPlan, userId?: string): Promise<boolean> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.saveWarmupPlan(plan);
   } catch (error) {
     logger.error('[saveWarmupPlan] Error saving warmup plan:', error);
@@ -42,11 +44,12 @@ export const saveWarmupPlan = async (plan: WarmupPlan): Promise<boolean> => {
 
 /**
  * Deletes the user's custom warm-up plan, resetting to default.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns true if successful, false otherwise.
  */
-export const deleteWarmupPlan = async (): Promise<boolean> => {
+export const deleteWarmupPlan = async (userId?: string): Promise<boolean> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.deleteWarmupPlan();
   } catch (error) {
     logger.error('[deleteWarmupPlan] Error deleting warmup plan:', error);

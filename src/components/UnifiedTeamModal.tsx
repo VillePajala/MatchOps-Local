@@ -20,6 +20,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import logger from '@/utils/logger';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { useToast } from '@/contexts/ToastProvider';
+import { useDataStore } from '@/hooks/useDataStore';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   masterRoster,
 }) => {
   const { t } = useTranslation();
+  const { userId } = useDataStore();
 
   // Team details state
   const [name, setName] = useState('');
@@ -77,22 +79,22 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   // Note: Loading states omitted intentionally - IndexedDB queries complete in <10ms
   // Adding spinners would cause unnecessary UI flicker for no user benefit
   const { data: tournaments = [] } = useQuery<Tournament[]>({
-    queryKey: queryKeys.tournaments,
-    queryFn: getTournaments,
+    queryKey: [...queryKeys.tournaments, userId],
+    queryFn: () => getTournaments(userId),
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
   });
 
   const { data: seasons = [] } = useQuery<Season[]>({
-    queryKey: queryKeys.seasons,
-    queryFn: getSeasons,
+    queryKey: [...queryKeys.seasons, userId],
+    queryFn: () => getSeasons(userId),
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
   });
 
   const { data: savedGames = {} } = useQuery({
-    queryKey: queryKeys.savedGames,
-    queryFn: getSavedGames,
+    queryKey: [...queryKeys.savedGames, userId],
+    queryFn: () => getSavedGames(userId),
     enabled: !!teamId,
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
@@ -261,7 +263,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     }
   };
 
-  // Mutation for updating team placement with optimistic updates
+  // Mutation for updating team placement with optimistic updates (user-scoped)
   const updatePlacementMutation = useMutation({
     mutationFn: async ({
       type,
@@ -275,13 +277,13 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       placement: number | null;
     }) => {
       if (type === 'tournament') {
-        return await updateTournamentTeamPlacement(id, teamId, placement);
+        return await updateTournamentTeamPlacement(id, teamId, placement, undefined, undefined, userId);
       } else {
-        return await updateSeasonTeamPlacement(id, teamId, placement);
+        return await updateSeasonTeamPlacement(id, teamId, placement, undefined, undefined, userId);
       }
     },
     onMutate: async ({ type, id, teamId: mutationTeamId, placement }) => {
-      const queryKey = type === 'tournament' ? queryKeys.tournaments : queryKeys.seasons;
+      const queryKey = type === 'tournament' ? [...queryKeys.tournaments, userId] : [...queryKeys.seasons, userId];
 
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey });
@@ -342,7 +344,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     },
     onSuccess: (data, variables) => {
       // Refetch to ensure we have the latest server data
-      const queryKey = variables.type === 'tournament' ? queryKeys.tournaments : queryKeys.seasons;
+      const queryKey = variables.type === 'tournament' ? [...queryKeys.tournaments, userId] : [...queryKeys.seasons, userId];
       queryClient.invalidateQueries({ queryKey });
 
       showToast(

@@ -10,6 +10,7 @@ import {
 import type { WarmupPlan } from '@/types/warmupPlan';
 import logger from '@/utils/logger';
 import { useToast } from '@/contexts/ToastProvider';
+import { useDataStore } from '@/hooks/useDataStore';
 
 export interface UseWarmupPlanResult {
   /** The current warmup plan (from storage or default) */
@@ -36,12 +37,13 @@ export function useWarmupPlan(): UseWarmupPlanResult {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { userId } = useDataStore();
 
   // Query: Get the warmup plan (or generate default if none exists)
   const query = useQuery<WarmupPlan, Error>({
-    queryKey: queryKeys.warmupPlan,
+    queryKey: [...queryKeys.warmupPlan, userId],
     queryFn: async () => {
-      const storedPlan = await getWarmupPlan();
+      const storedPlan = await getWarmupPlan(userId);
       if (storedPlan) {
         return storedPlan;
       }
@@ -52,9 +54,9 @@ export function useWarmupPlan(): UseWarmupPlanResult {
 
   // Mutation: Save plan
   const saveMutation = useMutation({
-    mutationFn: saveWarmupPlan,
+    mutationFn: (plan: WarmupPlan) => saveWarmupPlan(plan, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.warmupPlan });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.warmupPlan, userId] });
     },
     onError: (error) => {
       logger.error('[useWarmupPlan] Failed to save warmup plan:', error);
@@ -65,11 +67,11 @@ export function useWarmupPlan(): UseWarmupPlanResult {
   // Mutation: Reset to default
   const resetMutation = useMutation({
     mutationFn: async () => {
-      const success = await deleteWarmupPlan();
+      const success = await deleteWarmupPlan(userId);
       return success;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.warmupPlan });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.warmupPlan, userId] });
     },
     onError: (error) => {
       logger.error('[useWarmupPlan] Failed to reset warmup plan:', error);
