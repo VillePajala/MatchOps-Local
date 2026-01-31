@@ -412,8 +412,10 @@ export default function Home() {
               t('page.legacyMigrationFailed', 'Could not migrate your data. Please contact support if this persists.'),
               'error'
             );
-            // Reset ref to allow retry on next effect run
-            legacyMigrationCheckedRef.current = false;
+            // Reset ref to allow retry on next effect run (respect cancelled flag)
+            if (!cancelled) {
+              legacyMigrationCheckedRef.current = false;
+            }
             break;
         }
       } catch (error) {

@@ -168,6 +168,13 @@ describe('legacyMigrationService', () => {
         error: 'Invalid user ID',
       });
 
+      // Non-string userId (cast to test runtime behavior)
+      const nonStringResult = await migrateLegacyData(undefined as unknown as string);
+      expect(nonStringResult).toMatchObject({
+        status: 'migration_error',
+        error: 'Invalid user ID',
+      });
+
       // Verify no database operations attempted
       expect(mockLegacyDatabaseExists).not.toHaveBeenCalled();
     });
@@ -400,6 +407,28 @@ describe('legacyMigrationService', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
       const request = mockDeleteDatabase.mock.results[0].value;
       request.onblocked?.();
+
+      const result = await resultPromise;
+      expect(result).toBe(false);
+    });
+
+    it('should return false when deletion fails with error', async () => {
+      const mockDeleteDatabase = jest.fn().mockReturnValue({
+        onsuccess: null as (() => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        onblocked: null as (() => void) | null,
+      });
+
+      global.indexedDB = {
+        deleteDatabase: mockDeleteDatabase,
+      } as unknown as IDBFactory;
+
+      const resultPromise = deleteLegacyDatabase();
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+      const request = mockDeleteDatabase.mock.results[0].value;
+      // Simulate error event
+      request.onerror?.({ target: { error: new Error('Deletion failed') } });
 
       const result = await resultPromise;
       expect(result).toBe(false);
