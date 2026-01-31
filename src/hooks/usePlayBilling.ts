@@ -107,9 +107,26 @@ async function ensureFreshSession(): Promise<Session | null> {
       return null;
     }
 
+    // If no session found, try refreshSession as recovery attempt
+    // This handles cases where getSession() returns null but refresh token is still valid
+    // (e.g., session state desync between AuthProvider and Supabase client)
     if (!cachedSession) {
-      logger.error('[usePlayBilling] No session found');
-      return null;
+      logger.info('[usePlayBilling] No cached session, attempting refresh recovery...');
+
+      const { data: { session: recoveredSession }, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (refreshError) {
+        logger.error('[usePlayBilling] Session refresh recovery failed:', refreshError.message);
+        return null;
+      }
+
+      if (!recoveredSession) {
+        logger.error('[usePlayBilling] No session after refresh - user needs to re-login');
+        return null;
+      }
+
+      logger.info('[usePlayBilling] Session recovered via refresh');
+      return recoveredSession;
     }
 
     // Check if token is expired or about to expire (within 60 seconds)

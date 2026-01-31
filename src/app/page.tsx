@@ -89,8 +89,10 @@ export default function Home() {
       await runMigration();
 
       // Check for resume capability
+      // CRITICAL: Pass userId for user-scoped storage (cloud mode)
+      // Without userId, DataStore queries anonymous/legacy storage instead of user's data
       const lastId = await getCurrentGameIdSetting();
-      const games = await getSavedGames();
+      const games = await getSavedGames(userId);
 
       if (lastId && games[lastId]) {
         setCanResume(true);
@@ -114,7 +116,8 @@ export default function Home() {
       setHasSavedGames(Object.keys(games).length > 0);
 
       // Check if user has any players in roster
-      const roster = await getMasterRoster();
+      // CRITICAL: Pass userId for user-scoped storage (cloud mode)
+      const roster = await getMasterRoster(userId);
       setHasPlayers(roster.length > 0);
     } catch (error) {
       logger.warn('Failed to check initial game state', { error });
@@ -124,7 +127,7 @@ export default function Home() {
     } finally {
       setIsCheckingState(false);
     }
-  }, []);
+  }, [userId]);
 
   const handleDataImportSuccess = useCallback(() => {
     // Trigger app state refresh after data import
