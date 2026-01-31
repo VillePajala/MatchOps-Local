@@ -52,7 +52,7 @@
         "desc": ""
       },
       "private": {
-        "title": "Data Stored Only on Your Device",
+        "title": "Your Data Stays Private",
         "desc": ""
       },
       "backup": {
@@ -67,12 +67,12 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps Local - Local-First Soccer Coaching App",
-      "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics. No signup required. Your data stays private on your device."
+      "title": "MatchOps - Local-First Soccer Coaching App",
+      "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics. No signup required. Your data stays private and secure."
     },
     "technical": {
-      "title": "Technical Specifications - MatchOps Local",
-      "description": "Technical details of MatchOps Local: Progressive Web App built with React 19, Next.js 15. Offline-first, local-first architecture with data stored on your device."
+      "title": "Technical Specifications - MatchOps",
+      "description": "Technical details of MatchOps: Built with React 19, Next.js 16. Offline-capable architecture with secure data storage."
     }
   },
   "footer": {
@@ -82,7 +82,7 @@
     "legal": "Legal",
     "license": "License",
     "copyright": "© {{year}} Velomo AI. All rights reserved.",
-    "dataStays": "Your data stays on your device. Always.",
+    "dataStays": "Your data stays private and secure.",
     "marketingAssets": "Marketing Assets"
   },
   "technical": {
@@ -156,12 +156,12 @@
     },
     "architecture": {
       "title": "Architecture",
-      "localFirst": "Local-First Design",
-      "localFirstDesc": "All data stored locally on your device. No external servers or databases required.",
+      "localFirst": "Privacy-First Design",
+      "localFirstDesc": "Your data is stored securely and stays private.",
       "offlineFirst": "Offline-First",
-      "offlineFirstDesc": "Full functionality without internet connection. Network only required for PWA updates.",
+      "offlineFirstDesc": "Full functionality without internet connection. Network only required for updates.",
       "singleUser": "Single-User",
-      "singleUserDesc": "Designed for individual coaches. One installation per device, no authentication or user management."
+      "singleUserDesc": "Designed for individual coaches. Simple setup, no complex user management."
     },
     "techStack": {
       "title": "Technology Stack",
@@ -172,7 +172,7 @@
       "styling": "Styling",
       "stylingDesc": "Tailwind CSS 4 for responsive, modern UI",
       "storage": "Data Storage",
-      "storageDesc": "Local device storage with async adapters",
+      "storageDesc": "Secure storage with automatic data management",
       "stateManagement": "State Management",
       "stateManagementDesc": "React Query for server state, useReducer for game session state",
       "pwa": "Progressive Web App",
@@ -182,14 +182,14 @@
     },
     "storage": {
       "title": "Storage & Data",
-      "deviceStorage": "Device Storage",
-      "deviceStorageDesc": "Uses your device's free storage space. Typical usage: under 50MB for 100+ games.",
+      "deviceStorage": "Storage",
+      "deviceStorageDesc": "Efficient storage. Typical usage: under 50MB for 100+ games.",
       "dataScale": "Data Scale",
       "dataScaleDesc": "Optimized for 50-100 players, 50-100 games per season. Small dataset, fast performance.",
       "backup": "Backup & Export",
       "backupDesc": "Full data export to JSON format. Import/restore on any device.",
       "privacy": "Privacy",
-      "privacyDesc": "Zero data transmission. Everything stays on your device."
+      "privacyDesc": "Your data stays private and secure."
     },
     "requirements": {
       "title": "System Requirements",
@@ -218,13 +218,13 @@
   },
   "info": {
     "whatIsThis": {
-      "title": "What is MatchOps Local?",
-      "description": "MatchOps Local replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup and positions before the game. During the match, track substitution intervals, log goals and assists with a tap. Your statistics build automatically—game results, scoring leaders, season trends.",
-      "oneLine": "No signup required. Install once and your data stays private on your device. Works anywhere, even without internet."
+      "title": "What is MatchOps?",
+      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup and positions before the game. During the match, track substitution intervals, log goals and assists with a tap. Your statistics build automatically—game results, scoring leaders, season trends.",
+      "oneLine": "No signup required. Install once and your data stays private and secure. Works anywhere, even without internet."
     },
     "whoIsThisFor": {
       "title": "Who Is This For?",
-      "description": "MatchOps Local is for soccer coaches at any level—from recreational to competitive—who want a simple way to organize games without complex team management software or monthly subscriptions.",
+      "description": "MatchOps is for soccer coaches at any level—from recreational to competitive—who want a simple way to organize games without complex team management software or monthly subscriptions.",
       "item1": "Youth team coaches (U8–U19)",
       "item2": "Recreational and competitive team coaches",
       "item3": "Coaches who value privacy and own their data"
@@ -265,18 +265,18 @@
     },
     "technical": {
       "title": "Technical Details",
-      "desc1": "MatchOps Local is a Progressive Web App (PWA). This means it installs like a native app but runs in your web browser.",
-      "desc2": "All data is stored locally on your device. No internet connection is required to use the app.",
-      "desc3": "Compatible with iOS Safari, Android Chrome, and all major desktop browsers."
+      "desc1": "MatchOps is available on Google Play for Android devices.",
+      "desc2": "Your data is stored securely. The app works offline after installation.",
+      "desc3": "Built with modern web technologies for a fast, reliable experience."
     },
     "faq": {
       "title": "Common Questions",
       "q1": "How do I install the app?",
       "a1": "The app is available on Google Play. We're currently in beta testing - use the contact button below or email hello@match-ops.com to request access.",
       "q2": "Where is my data stored?",
-      "a2": "All data is stored locally on your device. Nothing is sent to external servers.",
+      "a2": "Your data is stored securely and stays private.",
       "q3": "Can I use it on multiple devices?",
-      "a3": "Yes, but you'll need to export your data from one device and import it on another. There's no automatic syncing since everything is stored locally.",
+      "a3": "Yes. You can export your data from one device and import it on another, or use cloud sync to keep devices in sync.",
       "q4": "How do I back up my data?",
       "a4": "Open the Settings menu and use the Export function. This creates a JSON file with all your data that you can save and import later.",
       "q5": "Can I edit game data after it's recorded?",
@@ -369,9 +369,9 @@
     "benefits": {
       "offline": "Works offline",
       "noSignup": "No signup required",
-      "dataOnDevice": "Data stays on your device",
+      "dataOnDevice": "Data stays private",
       "dataStays": "Your data stays",
-      "onYourDevice": "on your device",
+      "onYourDevice": "private and secure",
       "bilingual": "English & Finnish",
       "privacyByDesign": "Privacy by design",
       "statsAutomatic": "Statistics build automatically",
@@ -384,8 +384,8 @@
     "descriptions": {
       "heroSubtitle": "Plan lineups, track games live, build statistics. Works offline. Your data stays private.",
       "planTrackBuild": "Plan lineups, track games live, build statistics.",
-      "localFirst": "Local-first soccer coaching app",
-      "localFirstShort": "Local-first soccer coaching",
+      "localFirst": "Soccer coaching app",
+      "localFirstShort": "Soccer coaching app",
       "madeSimple": "Soccer coaching made simple",
       "forPrivacyCoaches": "For soccer coaches who value privacy",
       "trackDevelopment": "Track player development with data",
@@ -497,20 +497,20 @@
       "quality": "QUALITY",
       "aiPowered": "100% AI-Built",
       "aiPoweredDesc": "Zero handwritten code. Built with Claude Code, Cursor, and Codex. Even these marketing materials.",
-      "linesOfCode": "200,000+ Lines",
-      "linesOfCodeDesc": "66K tests, 60K source, 75K docs. Test-first development at scale.",
-      "testCoverage": "3,200+ Tests",
-      "testCoverageDesc": "182 test suites with 100% pass rate. Quality enforced at every commit.",
+      "linesOfCode": "270,000+ Lines",
+      "linesOfCodeDesc": "96K tests, 86K source, 90K docs. Test-first development at scale.",
+      "testCoverage": "4,400+ Tests",
+      "testCoverageDesc": "222 test suites with 100% pass rate. Quality enforced at every commit.",
       "techStack": "Cutting-Edge Stack",
       "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, installable, auto-updating.",
-      "documentation": "75K Lines of Context",
+      "documentation": "90K Lines of Context",
       "documentationDesc": "AI assistants need context to stay consistent. Documentation serves as the project's persistent memory across sessions.",
       "architecture": "Clean Architecture",
-      "architectureDesc": "71 components, 26 hooks. Clean separation of UI, logic, and data layers.",
+      "architectureDesc": "148 components, 61 hooks. Clean separation of UI, logic, and data layers.",
       "codeQuality": "Enterprise Quality",
       "codeQualityDesc": "ESLint enforced, TypeScript strict mode, Sentry monitoring, accessibility tested.",
       "cicd": "Automated CI/CD",
-      "cicdDesc": "Lint, types, 3200+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge."
+      "cicdDesc": "Lint, types, 4400+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge."
     }
   }
 }
