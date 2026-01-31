@@ -205,6 +205,9 @@ function countEntities(data: LegacyData): number {
  *
  * @param userId - The authenticated user's ID (from Supabase Auth)
  * @returns Migration result with status and optional entity count
+ * @throws Never throws - returns 'migration_error' status on failure
+ * @note Migration is not atomic. On failure, some entities may be migrated.
+ *       Legacy data is preserved for manual recovery.
  *
  * @example
  * ```typescript
@@ -270,6 +273,7 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
     // 3. User can retry migration or manually import from backup
     // 4. Worst case: partial data + error toast prompts support contact
     // 5. Legacy data is preserved (non-destructive) for manual recovery
+    const migrationStartTime = Date.now();
     logger.info('[LegacyMigration] Starting data migration', {
       userId,
       counts: {
@@ -349,6 +353,7 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
     logger.info('[LegacyMigration] Migration completed successfully', {
       userId,
       entityCount,
+      durationMs: Date.now() - migrationStartTime,
     });
 
     return {
