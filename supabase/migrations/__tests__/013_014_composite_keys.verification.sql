@@ -12,6 +12,35 @@
 -- ============================================================================
 
 -- ============================================================================
+-- PRE-MIGRATION CHECKS (Run BEFORE applying migrations 013-014)
+-- ============================================================================
+-- Skip this section if migrations are already applied.
+
+-- A. Verify current PK constraint names match expected
+-- \d games | grep PRIMARY   (or use query below)
+SELECT conname, pg_get_constraintdef(oid)
+FROM pg_constraint
+WHERE conrelid = 'games'::regclass AND contype = 'p';
+-- EXPECTED (before migration): games_pkey with PRIMARY KEY (id)
+-- EXPECTED (after migration): games_pkey with PRIMARY KEY (user_id, id)
+
+-- B. Check for existing ID collisions across users (should return 0 rows)
+-- If any rows returned, investigate before migration!
+SELECT id, COUNT(DISTINCT user_id) as user_count
+FROM games
+GROUP BY id
+HAVING COUNT(DISTINCT user_id) > 1;
+-- EXPECTED: 0 rows (no ID collisions exist in current data)
+
+-- C. Check existing data volume (for migration timing estimate)
+SELECT
+  (SELECT COUNT(*) FROM games) as games,
+  (SELECT COUNT(*) FROM players) as players,
+  (SELECT COUNT(*) FROM game_events) as events,
+  (SELECT COUNT(*) FROM game_players) as game_players;
+-- INFO: Large tables may take longer to migrate
+
+-- ============================================================================
 -- SETUP: Create test users (use service role or bypass RLS temporarily)
 -- ============================================================================
 
@@ -202,6 +231,13 @@ WHERE schemaname = 'public'
 ORDER BY tablename;
 -- EXPECTED: All policies show qual containing "auth.uid() = user_id"
 -- RLS uses user_id COLUMN, not primary key, so composite PK change doesn't affect it
+
+-- 6c. RLS isolation test: User A cannot query User B's data
+-- NOTE: This test requires running as an authenticated user (not service role)
+-- After test data setup above, run this as User A:
+-- SELECT * FROM games WHERE user_id != auth.uid();
+-- EXPECTED: 0 rows (RLS blocks access to other users' data)
+-- If rows returned, RLS is NOT working correctly - DO NOT proceed!
 
 -- ============================================================================
 -- CLEANUP: Remove test data

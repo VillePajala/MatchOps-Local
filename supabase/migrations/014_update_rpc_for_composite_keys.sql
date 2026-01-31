@@ -100,9 +100,13 @@ BEGIN
 
     -- CRITICAL: Check for INTEGER overflow before incrementing
     -- Max INTEGER is 2147483647 (2^31 - 1), column defined as INTEGER
+    -- Logic: We check if current version is already at max (2147483647)
+    --   - If current = 2147483646, next = 2147483647 → OK (max but valid)
+    --   - If current = 2147483647, next = 2147483648 → OVERFLOW!
+    -- So we block when current >= 2147483647 (at max, cannot increment).
     -- This should never happen in practice (~68 years at 1 save/second)
-    -- but prevents silent corruption if it ever does
-    IF v_current_version >= 2147483646 THEN
+    -- but prevents silent corruption if it ever does.
+    IF v_current_version >= 2147483647 THEN
       RAISE EXCEPTION 'Version overflow: game version has reached maximum value. Please contact support.'
         USING ERRCODE = 'numeric_value_out_of_range';
     END IF;
