@@ -48,7 +48,7 @@ interface AuthContextValue {
 
   // Actions
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
-  signUp: (email: string, password: string) => Promise<{ error?: string; confirmationRequired?: boolean }>;
+  signUp: (email: string, password: string) => Promise<{ error?: string; confirmationRequired?: boolean; existingUser?: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
   recordConsent: () => Promise<{ error?: string }>;
@@ -375,7 +375,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(result.user);
         setSession(result.session);
       }
-      return { confirmationRequired: result.confirmationRequired };
+      return { confirmationRequired: result.confirmationRequired, existingUser: result.existingUser };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Sign up failed' };
     }
