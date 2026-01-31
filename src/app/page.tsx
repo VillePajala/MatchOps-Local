@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
 import { usePremium } from '@/hooks/usePremium';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
@@ -67,7 +68,10 @@ export default function Home() {
   const { showToast } = useToast();
   const { t } = useTranslation();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
-  const { isPremium, isLoading: isPremiumLoading } = usePremium();
+  // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
+  const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
+  // Cloud subscription status - fetched from Supabase (NOT local storage)
+  const { isActive: hasActiveSubscription, isLoading: isSubscriptionLoading } = useSubscription();
   const queryClient = useQueryClient();
 
   // Note: Cloud upgrade gate removed - account creation is free
@@ -459,16 +463,16 @@ export default function Home() {
       return;
     }
 
-    // Wait for premium status to load before checking migration
-    // This ensures the post-login premium check runs first
-    if (isPremiumLoading) {
+    // Wait for subscription status to load before checking migration
+    // This ensures the post-login subscription check runs first
+    if (isSubscriptionLoading) {
       return;
     }
 
-    // Skip if there's a pending post-login check (premium check hasn't passed yet)
+    // Skip if there's a pending post-login check (subscription check hasn't passed yet)
     // This ensures we don't show migration wizard until user has verified subscription
     if (hasPendingPostLoginCheck()) {
-      logger.info('[page.tsx] Migration check: waiting for post-login premium check to complete');
+      logger.info('[page.tsx] Migration check: waiting for post-login subscription check to complete');
       return;
     }
 
@@ -477,7 +481,7 @@ export default function Home() {
     // - Sync is paused (CloudSyncSection shows subscription banner)
     // - Migration is pointless (data won't sync until they subscribe)
     // - User can subscribe anytime and migration will be offered then
-    if (!isPremium) {
+    if (!hasActiveSubscription) {
       logger.info('[page.tsx] Migration check: skipping - user has no active subscription');
       return;
     }
@@ -575,7 +579,7 @@ export default function Home() {
 
     checkMigrationNeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isAuthenticated, userId, isPremiumLoading, isPremium]);
+  }, [mode, isAuthenticated, userId, isSubscriptionLoading, hasActiveSubscription]);
 
   // ============================================================================
   // POST-LOGIN CHECK (Cloud Mode Only)
@@ -585,7 +589,7 @@ export default function Home() {
   //
   // This effect triggers when:
   // - User is in cloud mode AND authenticated
-  // - Auth and Premium status are loaded
+  // - Auth and Subscription status are loaded
   // - There's a pending post-login check flag set
   //
   // User flow:
@@ -597,17 +601,17 @@ export default function Home() {
       mode,
       isAuthenticated,
       isAuthLoading,
-      isPremiumLoading,
-      isPremium,
+      isSubscriptionLoading,
+      hasActiveSubscription,
       hasPendingCheck: hasPendingPostLoginCheck(),
     });
 
     // Skip if not in cloud mode, not authenticated, or still loading
-    if (mode !== 'cloud' || !isAuthenticated || isAuthLoading || isPremiumLoading) {
+    if (mode !== 'cloud' || !isAuthenticated || isAuthLoading || isSubscriptionLoading) {
       logger.debug('[page.tsx] Post-login check: skipping (conditions not met)', {
         reason: mode !== 'cloud' ? 'not cloud mode' :
                 !isAuthenticated ? 'not authenticated' :
-                isAuthLoading ? 'auth still loading' : 'premium still loading',
+                isAuthLoading ? 'auth still loading' : 'subscription still loading',
       });
       return;
     }
@@ -624,7 +628,7 @@ export default function Home() {
     clearPendingPostLoginCheck();
 
     // Check subscription status and show upgrade modal if needed
-    if (isPremium) {
+    if (hasActiveSubscription) {
       logger.info('[page.tsx] Post-login check: user has active subscription, sync enabled');
     } else {
       // User has account but no subscription - show upgrade modal
@@ -632,7 +636,7 @@ export default function Home() {
       setShowPostLoginUpgrade(true);
     }
     // Migration check will run (if needed) via the other effect
-  }, [mode, isAuthenticated, isAuthLoading, isPremiumLoading, isPremium]);
+  }, [mode, isAuthenticated, isAuthLoading, isSubscriptionLoading, hasActiveSubscription]);
 
   // Handle post-login upgrade modal close
   const handlePostLoginUpgradeClose = useCallback(() => {
