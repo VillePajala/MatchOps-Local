@@ -134,9 +134,15 @@ export function useDataStore(): UseDataStoreResult {
   // - Cloud not available OR not authenticated: use undefined for legacy database
   //
   // Note: isCloudAvailable() checks env vars, not runtime connectivity.
-  // A user can be signed in while in "local mode" if cloud is configured but
-  // they've chosen local storage. In that case, we still don't use user-scoped
-  // storage since they're in local mode.
+  // We use user-scoped storage whenever:
+  // 1. Supabase is configured (env vars present), AND
+  // 2. User is authenticated
+  //
+  // This applies regardless of the current backend mode (local vs cloud).
+  // Rationale: When a user switches between local and cloud modes, their data
+  // should remain in the same user-specific database. Using user-scoped storage
+  // consistently ensures data persists correctly across mode switches.
+  // The mode only controls whether sync happens, not where local data is stored.
   const cloudAvailable = isCloudAvailable();
   const userId = cloudAvailable && user?.id ? user.id : undefined;
 
