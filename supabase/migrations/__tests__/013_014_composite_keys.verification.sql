@@ -43,6 +43,19 @@ SELECT
 -- ============================================================================
 -- SETUP: Create test users (use service role or bypass RLS temporarily)
 -- ============================================================================
+--
+-- HOW TO RUN THIS SCRIPT:
+--
+-- Supabase Dashboard SQL Editor:
+--   - Automatically runs as service role (bypasses RLS)
+--   - No additional setup needed
+--
+-- psql locally (if connected directly to database):
+--   SET ROLE postgres;  -- Bypass RLS
+--   [run tests]
+--   RESET ROLE;         -- Restore normal role
+--
+-- ============================================================================
 
 -- Note: These UUIDs are for testing only. In production, auth.uid() provides real UUIDs.
 DO $$
@@ -147,6 +160,29 @@ WHERE proname = 'save_game_with_relations';
 -- If only "WHERE id = v_game_id" is shown, migration 014 was NOT applied correctly!
 
 -- 3d. Functional test: save_game_with_relations updates correct user's game
+-- ============================================================================
+-- HOW TO RUN TEST 3d (User Isolation Verification)
+-- ============================================================================
+--
+-- OPTION A: Via Client Application (RECOMMENDED)
+-- 1. Deploy migrations 013-014 to staging
+-- 2. Create two test users (userA@test.com, userB@test.com)
+-- 3. Sign in as User A, create game with specific ID (e.g., 'isolation-test')
+-- 4. Sign in as User B, create game with SAME ID ('isolation-test')
+-- 5. Sign in as User A, save/update their game
+-- 6. Verify: User A's version incremented, User B's version unchanged
+--    (Check Supabase Dashboard: SELECT user_id, version FROM games WHERE id = 'isolation-test')
+--
+-- OPTION B: Via Supabase Dashboard SQL Editor
+-- The Dashboard runs as service role (bypasses RLS), so you cannot directly
+-- test auth.uid() behavior. Use Option A for definitive security verification.
+--
+-- OPTION C: Via psql with JWT simulation (Advanced)
+-- SET LOCAL "request.jwt.claims" = '{"sub": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}';
+-- SELECT save_game_with_relations(...);
+-- (Note: This may not work depending on Supabase version/config)
+--
+-- ============================================================================
 -- NOTE: This test requires auth context. Run as authenticated User A.
 -- Setup: Both users have game 'test_version_game' (from 3a above)
 --   User A: version = 5

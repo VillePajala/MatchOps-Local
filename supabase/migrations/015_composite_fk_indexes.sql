@@ -13,6 +13,26 @@
 -- Can be applied any time after migration 014.
 --
 -- ============================================================================
+-- INDEX STRATEGY: WHY KEEP BOTH SINGLE AND COMPOSITE
+-- ============================================================================
+--
+-- EXISTING INDEXES (from migration 000):
+-- - Single-column: idx_game_events_game_id, idx_games_season_id, etc.
+--
+-- NEW INDEXES (this migration):
+-- - Composite: idx_game_events_user_game (user_id, game_id), etc.
+--
+-- WHY KEEP BOTH:
+-- - Single-column: Optimizes queries filtered only by FK column (rare with RLS)
+-- - Composite: Optimizes CASCADE operations where both user_id and FK are known
+--
+-- PostgreSQL query planner will choose the most selective index per query.
+-- Disk space impact: ~5-10KB per composite index (negligible for this scale).
+--
+-- ALTERNATIVE (not recommended): Drop single-column indexes to save space.
+-- This would slow down any queries that don't filter by user_id first.
+--
+-- ============================================================================
 
 -- Game child tables → games (user_id, game_id)
 -- Used when: DELETE FROM games WHERE user_id = ? AND id = ?

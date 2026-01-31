@@ -44,6 +44,24 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 15. `014_update_rpc_for_composite_keys.sql` - Updates RPC for composite keys
 16. `015_composite_fk_indexes.sql` - (Optional) Performance indexes for CASCADE operations
 
+### Deployment Order - CRITICAL
+
+**Scenario 1: Initial Deployment (No Existing Users)**
+1. Run all migrations 000-015 (no client needed first)
+2. Deploy client application
+3. Verify end-to-end functionality
+
+**Scenario 2: Production Update (Active Users)**
+1. Deploy client code first (handles both old and new schemas)
+2. Run migrations 013-014 during low-traffic window
+3. Verify RPC and RLS still work
+4. Monitor for errors
+
+**Why client-first matters for Scenario 2:**
+- Old client + new schema = broken (client expects single-column PK behavior)
+- New client + old schema = works (client uses RPC which is schema-agnostic)
+- New client + new schema = works (target state)
+
 ### Migration 013-014 Timing Estimates
 
 These migrations acquire table locks during PK changes. Expected duration:
@@ -57,6 +75,16 @@ These migrations acquire table locks during PK changes. Expected duration:
 If migration appears stalled beyond these times, check for:
 - Active transactions holding locks (check `pg_stat_activity`)
 - Large table requiring index rebuild
+
+**Timing Methodology:**
+Estimates based on PostgreSQL `ALTER TABLE` lock duration:
+- Base overhead: ~1-2 seconds per table (13 tables in migration 013)
+- Data-dependent: minimal for typical app scale (<10,000 rows total)
+- Formula approximation: `time ≈ (num_tables × 2s) + (total_rows × 0.0001s)`
+
+For datasets significantly larger than 500 games, consider:
+- Running during maintenance window
+- Monitoring `pg_stat_activity` for lock wait times
 
 ---
 
