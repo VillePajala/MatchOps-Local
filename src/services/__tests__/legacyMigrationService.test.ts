@@ -223,6 +223,41 @@ describe('legacyMigrationService', () => {
       expect(result.status).toBe('migration_error');
       expect(result.error).toBe('DataStore error');
     });
+
+    /**
+     * Tests partial migration failure behavior.
+     * When a save operation fails midway, already-migrated data remains (no rollback).
+     * This documents the current "partial state on failure" behavior.
+     * @edge-case
+     */
+    it('should return migration_error when save fails midway (partial migration)', async () => {
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        soccerMasterRoster: JSON.stringify([mockPlayer]),
+        soccerSeasons: JSON.stringify([mockSeason]),
+        savedSoccerGames: JSON.stringify({ 'game-1': mockGame, 'game-2': mockGame }),
+      }));
+
+      const mockStore = createMockDataStore([]);
+      // saveGame succeeds for first game, fails for second
+      (mockStore.saveGame as jest.Mock)
+        .mockResolvedValueOnce(mockGame)
+        .mockRejectedValueOnce(new Error('Database quota exceeded'));
+      mockGetDataStore.mockResolvedValue(mockStore);
+
+      const result = await migrateLegacyData(TEST_USER_ID);
+
+      // Should return error status
+      expect(result.status).toBe('migration_error');
+      expect(result.error).toBe('Database quota exceeded');
+
+      // Players and seasons were already migrated before games failed
+      // (no rollback - this is documented behavior)
+      expect(mockStore.upsertPlayer).toHaveBeenCalledWith(mockPlayer);
+      expect(mockStore.upsertSeason).toHaveBeenCalledWith(mockSeason);
+      // First game succeeded, second failed
+      expect(mockStore.saveGame).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('isLegacyMigrationNeeded', () => {

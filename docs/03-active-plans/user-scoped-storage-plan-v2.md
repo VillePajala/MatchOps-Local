@@ -502,7 +502,7 @@ Before implementing the SQL migration:
   grep -r "ON CONFLICT" supabase/migrations/ supabase/functions/
   ```
 - [ ] **Verify current PK names**: Run `\d tablename` in Supabase SQL editor to confirm constraint names match the DROP statements.
-- [ ] **Test on staging first**: Run migration on a test database before production.
+- [ ] **Follow staging → production deployment order**: See Section 2.2.2 for detailed checklist. **NEVER run directly on production.**
 
 ### 2.2 Migration Script
 
@@ -646,8 +646,10 @@ COMMIT;
 **Deploy client code BEFORE running SQL migration:**
 
 1. **Deploy new client code** - Code should handle both old schema (single PK) and new schema (composite PK) gracefully during transition
-2. **Run SQL migration** - Apply composite PK changes to Supabase
-3. **Verify** - Both client and database now use composite keys
+2. **Run SQL migration on STAGING first** - Never run directly on production
+3. **Verify on staging** - Test with real data scenarios
+4. **Run SQL migration on PRODUCTION** - Only after staging verification passes
+5. **Verify on production** - Both client and database now use composite keys
 
 **Why this order?**
 - If SQL migration runs first, old client code will fail (expects single-column PK)
@@ -657,6 +659,42 @@ COMMIT;
 **Rollback scenario:**
 - If issues found after SQL migration, run rollback script (Section 7.1)
 - Client code should still work with single-column PKs
+
+### 2.2.2 Staging → Production Deployment Checklist
+
+**⚠️ NEVER run SQL migrations directly on production. Always staging first.**
+
+#### Phase 1: Staging Deployment
+
+| Step | Action | Verification |
+|------|--------|--------------|
+| 1 | Run `013_composite_primary_keys.sql` on **staging** Supabase | Migration completes without errors |
+| 2 | Run `014_update_rpc_for_composite_keys.sql` on **staging** | RPC function updated |
+| 3 | Connect app to staging Supabase | App loads without errors |
+| 4 | Create test user, add players/games | Data saves correctly |
+| 5 | Create second test user, import same backup | Both users have same IDs, no conflict |
+| 6 | Verify RLS policies still work | User A cannot see User B's data |
+
+#### Phase 2: Production Deployment
+
+Only proceed after ALL staging verifications pass.
+
+| Step | Action | Verification |
+|------|--------|--------------|
+| 1 | **Backup production database** | Export via Supabase dashboard |
+| 2 | Schedule maintenance window (if needed) | Notify users if app will be briefly unavailable |
+| 3 | Run `013_composite_primary_keys.sql` on **production** | Migration completes without errors |
+| 4 | Run `014_update_rpc_for_composite_keys.sql` on **production** | RPC function updated |
+| 5 | Verify existing users can still access data | Spot-check a few accounts |
+| 6 | Monitor error logs for 24 hours | No unexpected errors |
+
+#### Rollback Procedure
+
+If production migration fails:
+1. **Do NOT panic** - Data is not lost, only schema changed
+2. Run rollback script (Section 7.1) to restore single-column PKs
+3. Investigate failure cause on staging
+4. Fix and re-test on staging before retrying production
 
 ### 2.3 RPC Function Updates
 
@@ -1030,6 +1068,31 @@ async function cleanupLegacyDatabase(): Promise<void> {
   // ... handle success/error
 }
 ```
+
+### 4.4 Legacy Migration Troubleshooting
+
+**How do I know if migration succeeded?**
+
+| Notification | Meaning |
+|--------------|---------|
+| Toast: "Your data has been migrated to your account (X items)" | ✅ Success - all data migrated |
+| No notification (silent) | Already migrated OR no legacy data found |
+| Toast: "Could not migrate your data..." | ❌ Error occurred |
+
+**What if migration fails?**
+
+1. **Automatic retry**: The app will retry on next sign-in (the error flag is reset)
+2. **Data is safe**: Your original data remains in the legacy `MatchOpsLocal` database (non-destructive)
+3. **Contact support**: If error persists after multiple sign-ins
+
+**What if migration only partially completed?**
+
+If the migration fails midway (e.g., players migrated but games failed):
+- The app detects existing data and skips further migration attempts
+- You may have incomplete data in your new user database
+- **Recovery option**: Export a backup from the legacy database (before signing in) and import it manually
+
+**Technical note**: The migration does NOT rollback on failure. This is intentional - partial data is better than no data, and the user can always manually import a complete backup.
 
 ---
 

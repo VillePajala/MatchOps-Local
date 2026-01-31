@@ -2511,7 +2511,8 @@
     "unableToRefreshApp": "Sovelluksen päivitys epäonnistui. Sulje ja avaa uudelleen.",
     "failedResetAppData": "Sovellustietojen nollaus epäonnistui.",
     "gameDataNotFound": "Virhe: Pelitietoja ei löytynyt pelille {{gameId}}",
-    "legacyDataMigrated": "Tietosi on siirretty tilillesi ({{count}} kohdetta)",
+    "legacyDataMigrated_one": "Tietosi on siirretty tilillesi ({{count}} kohde)",
+    "legacyDataMigrated_other": "Tietosi on siirretty tilillesi ({{count}} kohdetta)",
     "legacyMigrationFailed": "Tietojesi siirto epäonnistui. Ota yhteyttä tukeen, jos ongelma jatkuu."
   },
   "positions": {

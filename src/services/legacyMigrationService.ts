@@ -216,6 +216,12 @@ function countEntities(data: LegacyData): number {
  * ```
  */
 export async function migrateLegacyData(userId: string): Promise<LegacyMigrationResult> {
+  // Defense in depth: validate userId even though auth layer should ensure this
+  if (!userId || typeof userId !== 'string' || userId.length > 255) {
+    logger.error('[LegacyMigration] Invalid userId', { userId: typeof userId === 'string' ? userId.slice(0, 50) : typeof userId });
+    return { status: 'migration_error', error: 'Invalid user ID' };
+  }
+
   logger.info('[LegacyMigration] Starting migration check', { userId });
 
   try {

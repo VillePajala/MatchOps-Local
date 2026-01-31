@@ -2511,7 +2511,8 @@
     "unableToRefreshApp": "Unable to refresh app. Please close and reopen.",
     "failedResetAppData": "Failed to reset application data.",
     "gameDataNotFound": "Error: Could not find game data for {{gameId}}",
-    "legacyDataMigrated": "Your data has been migrated to your account ({{count}} items)",
+    "legacyDataMigrated_one": "Your data has been migrated to your account ({{count}} item)",
+    "legacyDataMigrated_other": "Your data has been migrated to your account ({{count}} items)",
     "legacyMigrationFailed": "Could not migrate your data. Please contact support if this persists."
   },
   "positions": {

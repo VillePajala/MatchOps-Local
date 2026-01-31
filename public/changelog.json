@@ -1,8 +1,8 @@
 {
-  "version": "9d9a31f3",
+  "version": "5917cc3a",
   "date": "2026-01-31",
   "notes": {
-    "en": "Update user-scoped storage progress - Steps 1-7 complete, all tests passing",
-    "fi": "Update user-scoped storage progress - Steps 1-7 complete, all tests passing"
+    "en": "Step 8 - legacy migration MatchOpsLocal → user database",
+    "fi": "Step 8 - legacy migration MatchOpsLocal → user database"
   }
 }
