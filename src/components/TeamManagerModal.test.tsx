@@ -31,6 +31,15 @@ jest.mock('@/hooks/usePremium', () => ({
   }),
 }));
 
+// Mock useDataStore for user-scoped storage
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: 'test-user-123',
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: string, params?: Record<string, string | number>) => {

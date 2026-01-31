@@ -15,6 +15,15 @@ const queryClient = new QueryClient({
   },
 });
 
+// Mock useDataStore for user-scoped storage
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: 'test-user-123',
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 const mockMutation = () => ({
   mutate: jest.fn((data, options) => {
     // Simulate successful mutation by calling onSuccess with the data (non-null)

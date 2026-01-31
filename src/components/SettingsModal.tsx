@@ -18,6 +18,7 @@ import { ModalFooter, primaryButtonStyle, dangerButtonStyle } from '@/styles/mod
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { queryKeys } from '@/config/queryKeys';
+import { useDataStore } from '@/hooks/useDataStore';
 import CloudSyncSection from './CloudSyncSection';
 
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
@@ -55,6 +56,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { userId } = useDataStore();
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
@@ -164,8 +166,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   React.useLayoutEffect(() => {
     if (isOpen) {
-      // Load club season settings
-      getAppSettings().then(settings => {
+      // Load club season settings (user-scoped)
+      getAppSettings(userId).then(settings => {
         setClubSeasonStartDate(settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE);
         setClubSeasonEndDate(settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE);
       }).catch((error) => {
@@ -194,7 +196,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       // Clear reset confirmation when modal closes
       setResetConfirm('');
     }
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   const handleRestore = () => {
     restoreFileInputRef.current?.click();
@@ -371,9 +373,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         clubSeasonStartDate: startDate,
         clubSeasonEndDate: endDate,
         hasConfiguredSeasonDates: true
-      });
-      // Invalidate React Query cache so GameStatsModal sees the update
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
+      }, userId);
+      // Invalidate React Query cache so GameStatsModal sees the update (user-scoped)
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
     } catch (error) {
       logger.error('Failed to save club season dates:', error);
       showToast(

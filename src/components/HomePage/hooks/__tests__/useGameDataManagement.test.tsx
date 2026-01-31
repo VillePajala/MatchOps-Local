@@ -35,6 +35,16 @@ jest.mock('@/hooks/usePersonnelManager');
 jest.mock('@/utils/seasons');
 jest.mock('@/utils/tournaments');
 
+// Mock useDataStore for user-scoped storage
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -491,7 +501,7 @@ describe('useGameDataManagement', () => {
         expect(addedSeason).toEqual(newSeason);
       });
 
-      expect(mockedAddSeason).toHaveBeenCalledWith('New Season', {});
+      expect(mockedAddSeason).toHaveBeenCalledWith('New Season', {}, TEST_USER_ID);
     });
 
     it('should expose updateSeason mutation', async () => {
@@ -507,7 +517,7 @@ describe('useGameDataManagement', () => {
         await result.current.mutationResults.updateSeason.mutateAsync(season);
       });
 
-      expect(mockedUpdateSeason).toHaveBeenCalledWith(season);
+      expect(mockedUpdateSeason).toHaveBeenCalledWith(season, TEST_USER_ID);
     });
 
     it('should expose deleteSeason mutation', async () => {
@@ -523,7 +533,7 @@ describe('useGameDataManagement', () => {
         expect(deleted).toBe(true);
       });
 
-      expect(mockedDeleteSeason).toHaveBeenCalledWith('season-1');
+      expect(mockedDeleteSeason).toHaveBeenCalledWith('season-1', TEST_USER_ID);
     });
 
     it('should handle addSeason returning null', async () => {
@@ -563,7 +573,7 @@ describe('useGameDataManagement', () => {
         expect(addedTournament).toEqual(newTournament);
       });
 
-      expect(mockedAddTournament).toHaveBeenCalledWith('New Cup', {});
+      expect(mockedAddTournament).toHaveBeenCalledWith('New Cup', {}, TEST_USER_ID);
     });
 
     it('should expose updateTournament mutation', async () => {
@@ -579,7 +589,7 @@ describe('useGameDataManagement', () => {
         await result.current.mutationResults.updateTournament.mutateAsync(tournament);
       });
 
-      expect(mockedUpdateTournament).toHaveBeenCalledWith(tournament);
+      expect(mockedUpdateTournament).toHaveBeenCalledWith(tournament, TEST_USER_ID);
     });
 
     it('should expose deleteTournament mutation', async () => {
@@ -595,7 +605,7 @@ describe('useGameDataManagement', () => {
         expect(deleted).toBe(true);
       });
 
-      expect(mockedDeleteTournament).toHaveBeenCalledWith('tournament-1');
+      expect(mockedDeleteTournament).toHaveBeenCalledWith('tournament-1', TEST_USER_ID);
     });
 
     it('should handle addTournament returning null', async () => {

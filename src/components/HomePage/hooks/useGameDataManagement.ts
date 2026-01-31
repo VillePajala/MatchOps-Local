@@ -37,6 +37,7 @@ import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import { queryKeys } from '@/config/queryKeys';
+import { useDataStore } from '@/hooks/useDataStore';
 import {
   addSeason as utilAddSeason,
   updateSeason as utilUpdateSeason,
@@ -137,8 +138,9 @@ export function useGameDataManagement(
 ): UseGameDataManagementReturn {
   const { currentGameId, setAvailablePlayers, setSeasons, setTournaments } = params;
 
-  // --- Initialize React Query client ---
+  // --- Initialize React Query client and user-scoped storage ---
   const queryClient = useQueryClient();
+  const { userId } = useDataStore();
 
   // --- Load game data via hooks ---
   const {
@@ -170,7 +172,7 @@ export function useGameDataManagement(
   const seasonsQueryErrorData = gameDataError;
   const tournamentsQueryErrorData = gameDataError;
 
-  // --- Mutations for Adding a new Season ---
+  // --- Mutations for Adding a new Season (user-scoped) ---
   const addSeasonMutation = useMutation<
     Season | null,
     Error,
@@ -178,12 +180,12 @@ export function useGameDataManagement(
   >({
     mutationFn: async (data) => {
       const { name, ...extra } = data;
-      return utilAddSeason(name, extra);
+      return utilAddSeason(name, extra, userId);
     },
     onSuccess: (newSeason, variables) => {
       if (newSeason) {
         logger.log('[Mutation Success] Season added:', newSeason.name, newSeason.id);
-        queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.seasons, userId] });
       } else {
         logger.warn('[Mutation Non-Success] utilAddSeason returned null for season:', variables.name);
       }
@@ -194,20 +196,20 @@ export function useGameDataManagement(
   });
 
   const updateSeasonMutation = useMutation<Season | null, Error, Season>({
-    mutationFn: async (season) => utilUpdateSeason(season),
+    mutationFn: async (season) => utilUpdateSeason(season, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.seasons, userId] });
     },
   });
 
   const deleteSeasonMutation = useMutation<boolean, Error, string>({
-    mutationFn: async (id) => utilDeleteSeason(id),
+    mutationFn: async (id) => utilDeleteSeason(id, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.seasons, userId] });
     },
   });
 
-  // --- Mutations for Tournaments ---
+  // --- Mutations for Tournaments (user-scoped) ---
   const addTournamentMutation = useMutation<
     Tournament | null,
     Error,
@@ -215,12 +217,12 @@ export function useGameDataManagement(
   >({
     mutationFn: async (data) => {
       const { name, ...extra } = data;
-      return utilAddTournament(name, extra);
+      return utilAddTournament(name, extra, userId);
     },
     onSuccess: (newTournament, variables) => {
       if (newTournament) {
         logger.log('[Mutation Success] Tournament added:', newTournament.name, newTournament.id);
-        queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.tournaments, userId] });
       } else {
         logger.warn('[Mutation Non-Success] utilAddTournament returned null for tournament:', variables.name);
       }
@@ -231,17 +233,17 @@ export function useGameDataManagement(
   });
 
   const updateTournamentMutation = useMutation<Tournament | null, Error, Tournament>({
-    mutationFn: async (tournament) => utilUpdateTournament(tournament),
+    mutationFn: async (tournament) => utilUpdateTournament(tournament, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.tournaments, userId] });
     },
   });
 
   const deleteTournamentMutation = useMutation({
-    mutationFn: (id: string) => utilDeleteTournament(id),
+    mutationFn: (id: string) => utilDeleteTournament(id, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.tournaments, userId] });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
     },
   });
 

@@ -7,6 +7,7 @@ import { Tournament, Player, TournamentSeries, GameType, Gender } from '@/types'
 import { UseMutationResult, useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
+import { useDataStore } from '@/hooks/useDataStore';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { createLogger } from '@/utils/logger';
 import TournamentSeriesManager from './TournamentSeriesManager';
@@ -39,11 +40,12 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   onOpenSettings,
 }) => {
   const { t } = useTranslation();
+  const { userId } = useDataStore();
 
-  // Fetch app settings for club season configuration
+  // Fetch app settings for club season configuration (user-scoped)
   const { data: settings } = useQuery({
-    queryKey: queryKeys.settings.detail(),
-    queryFn: getAppSettings,
+    queryKey: [...queryKeys.settings.detail(), userId],
+    queryFn: () => getAppSettings(userId),
     staleTime: Infinity, // Settings rarely change during session
   });
 

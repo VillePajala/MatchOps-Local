@@ -26,6 +26,7 @@ import { getSeasons } from '@/utils/seasons';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import logger from '@/utils/logger';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
+import { useDataStore } from '@/hooks/useDataStore';
 import UnifiedTeamModal from './UnifiedTeamModal';
 import { useResourceLimit } from '@/hooks/usePremium';
 
@@ -46,6 +47,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { userId } = useDataStore();
 
   // Premium limit check for team creation (count non-archived teams)
   const activeTeamCount = teams.filter(team => !team.archived).length;
@@ -67,11 +69,11 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
 
-  // Mutations
+  // Mutations (user-scoped)
   const deleteTeamMutation = useMutation({
-    mutationFn: deleteTeam,
+    mutationFn: (teamId: string) => deleteTeam(teamId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.teams, userId] });
       setDeleteConfirmTeamId(null);
       logger.log('[TeamManager] Deleted team');
     },
@@ -80,15 +82,15 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     }
   });
 
-  // Queries for tournaments and seasons (for placement badges)
+  // Queries for tournaments and seasons (for placement badges, user-scoped)
   const { data: tournaments = [] } = useQuery<Tournament[]>({
-    queryKey: queryKeys.tournaments,
-    queryFn: getTournaments,
+    queryKey: [...queryKeys.tournaments, userId],
+    queryFn: () => getTournaments(userId),
   });
 
   const { data: seasons = [] } = useQuery<Season[]>({
-    queryKey: queryKeys.seasons,
-    queryFn: getSeasons,
+    queryKey: [...queryKeys.seasons, userId],
+    queryFn: () => getSeasons(userId),
   });
 
   // Lookup maps for O(1) access to seasons/tournaments by ID
@@ -181,12 +183,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     loadRosterCounts();
   }, [isOpen, teams, masterRoster]);
 
-  // Mutations for archive/unarchive
+  // Mutations for archive/unarchive (user-scoped)
   const updateTeamMutation = useMutation({
     mutationFn: ({ teamId, updates }: { teamId: string; updates: Partial<Team> }) =>
-      updateTeam(teamId, updates),
+      updateTeam(teamId, updates, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.teams, userId] });
       logger.log('[TeamManager] Updated team');
     },
     onError: (error) => {

@@ -19,11 +19,12 @@ export interface TeamRostersIndex {
  * DataStore handles initialization and storage access.
  *
  * @internal Used internally for roster operations that need the index format.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to a TeamsIndex object.
  */
-export const getAllTeams = async (): Promise<TeamsIndex> => {
+export const getAllTeams = async (userId?: string): Promise<TeamsIndex> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const teams = await dataStore.getTeams();
     // Convert array to index format for backwards compatibility
     const teamsIndex: TeamsIndex = {};
@@ -40,11 +41,12 @@ export const getAllTeams = async (): Promise<TeamsIndex> => {
 /**
  * Retrieves all teams from IndexedDB as an array.
  * DataStore handles initialization and storage access.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to an array of Team objects.
  */
-export const getTeams = async (): Promise<Team[]> => {
+export const getTeams = async (userId?: string): Promise<Team[]> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getTeams();
   } catch (error) {
     logger.error('[getTeams] Error getting teams:', error);
@@ -56,11 +58,12 @@ export const getTeams = async (): Promise<Team[]> => {
  * Retrieves a single team by ID.
  * DataStore handles storage access.
  * @param teamId - The ID of the team to retrieve.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the Team object, or null if not found.
  */
-export const getTeam = async (teamId: string): Promise<Team | null> => {
+export const getTeam = async (teamId: string, userId?: string): Promise<Team | null> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getTeamById(teamId);
   } catch (error) {
     logger.error('[getTeam] Error getting team:', { teamId, error });
@@ -77,11 +80,12 @@ export const getTeam = async (teamId: string): Promise<Team | null> => {
  * to match the existing contract. Use try/catch in calling code.
  *
  * @param teamData - The team data without id, createdAt, updatedAt.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the newly created Team object.
  * @throws Error if validation fails (empty name, invalid ageGroup, too long notes, duplicate name).
  */
-export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
-  const dataStore = await getDataStore();
+export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>, userId?: string): Promise<Team> => {
+  const dataStore = await getDataStore(userId);
   return await dataStore.createTeam(teamData);
 };
 
@@ -91,16 +95,17 @@ export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updated
  *
  * @param teamId - The ID of the team to update.
  * @param updates - Partial team data to update (excludes id, createdAt).
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the updated Team object, or null if not found.
  * @throws Error if validation fails (empty name, invalid ageGroup, too long notes, duplicate name).
  */
-export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id' | 'createdAt'>>): Promise<Team | null> => {
+export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id' | 'createdAt'>>, userId?: string): Promise<Team | null> => {
   if (!teamId) {
     logger.error('[updateTeam] Invalid team ID provided.');
     return null;
   }
 
-  const dataStore = await getDataStore();
+  const dataStore = await getDataStore(userId);
   return await dataStore.updateTeam(teamId, updates);
 };
 
@@ -110,16 +115,17 @@ export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id
  * Note: Roster data is kept for potential recovery (not deleted).
  *
  * @param teamId - The ID of the team to delete.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false if not found or error occurs.
  */
-export const deleteTeam = async (teamId: string): Promise<boolean> => {
+export const deleteTeam = async (teamId: string, userId?: string): Promise<boolean> => {
   if (!teamId) {
     logger.error('[deleteTeam] Invalid team ID provided.');
     return false;
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const deleted = await dataStore.deleteTeam(teamId);
 
     if (!deleted) {
@@ -143,44 +149,65 @@ export const deleteTeam = async (teamId: string): Promise<boolean> => {
  * Get all team rosters as an index.
  * Used by TeamManagerModal for roster count display.
  *
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to TeamRostersIndex (empty object on error)
  */
-export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
-  const dataStore = await getDataStore();
+export const getAllTeamRosters = async (userId?: string): Promise<TeamRostersIndex> => {
+  const dataStore = await getDataStore(userId);
   return await dataStore.getAllTeamRosters();
 };
 
 // Lock mechanism for atomic roster operations is now handled by lockManager
 // The withRosterLock function is imported from './lockManager'
 
-export const getTeamRoster = async (teamId: string): Promise<TeamPlayer[]> => {
+/**
+ * @param teamId - The team ID to get roster for.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
+ */
+export const getTeamRoster = async (teamId: string, userId?: string): Promise<TeamPlayer[]> => {
   return withRosterLock(async () => {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getTeamRoster(teamId);
   });
 };
 
-export const setTeamRoster = async (teamId: string, roster: TeamPlayer[]): Promise<void> => {
+/**
+ * @param teamId - The team ID to set roster for.
+ * @param roster - The roster to set.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
+ */
+export const setTeamRoster = async (teamId: string, roster: TeamPlayer[], userId?: string): Promise<void> => {
   return withRosterLock(async () => {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     await dataStore.setTeamRoster(teamId, roster);
   });
 };
 
-// Add player to team roster (atomic operation)
-export const addPlayerToRoster = async (teamId: string, player: TeamPlayer): Promise<void> => {
+/**
+ * Add player to team roster (atomic operation).
+ * @param teamId - The team ID to add player to.
+ * @param player - The player to add.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
+ */
+export const addPlayerToRoster = async (teamId: string, player: TeamPlayer, userId?: string): Promise<void> => {
   return withRosterLock(async () => {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const roster = await dataStore.getTeamRoster(teamId);
     const updatedRoster = [...roster, player];
     await dataStore.setTeamRoster(teamId, updatedRoster);
   });
 };
 
-// Update player in team roster (atomic operation)
-export const updatePlayerInRoster = async (teamId: string, playerId: string, updates: Partial<TeamPlayer>): Promise<boolean> => {
+/**
+ * Update player in team roster (atomic operation).
+ * @param teamId - The team ID containing the player.
+ * @param playerId - The player ID to update.
+ * @param updates - Partial player data to update.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
+ */
+export const updatePlayerInRoster = async (teamId: string, playerId: string, updates: Partial<TeamPlayer>, userId?: string): Promise<boolean> => {
   return withRosterLock(async () => {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const roster = await dataStore.getTeamRoster(teamId);
     const playerIndex = roster.findIndex(p => p.id === playerId);
     if (playerIndex === -1) return false;
@@ -191,10 +218,15 @@ export const updatePlayerInRoster = async (teamId: string, playerId: string, upd
   });
 };
 
-// Remove player from team roster (atomic operation)
-export const removePlayerFromRoster = async (teamId: string, playerId: string): Promise<boolean> => {
+/**
+ * Remove player from team roster (atomic operation).
+ * @param teamId - The team ID to remove player from.
+ * @param playerId - The player ID to remove.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
+ */
+export const removePlayerFromRoster = async (teamId: string, playerId: string, userId?: string): Promise<boolean> => {
   return withRosterLock(async () => {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const roster = await dataStore.getTeamRoster(teamId);
     const filteredRoster = roster.filter(p => p.id !== playerId);
     if (filteredRoster.length === roster.length) return false; // Player not found
@@ -204,20 +236,24 @@ export const removePlayerFromRoster = async (teamId: string, playerId: string): 
   });
 };
 
-// Duplicate team (with new player IDs)
-export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
-  const originalTeam = await getTeam(teamId);
+/**
+ * Duplicate team (with new player IDs).
+ * @param teamId - The team ID to duplicate.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
+ */
+export const duplicateTeam = async (teamId: string, userId?: string): Promise<Team | null> => {
+  const originalTeam = await getTeam(teamId, userId);
   if (!originalTeam) return null;
 
-  const originalRoster = await getTeamRoster(teamId);
-  
+  const originalRoster = await getTeamRoster(teamId, userId);
+
   // Create new team with "(Copy)" suffix
   const newTeam = await addTeam({
     name: `${originalTeam.name} (Copy)`,
     color: originalTeam.color,
     ageGroup: originalTeam.ageGroup,
     notes: originalTeam.notes,
-  });
+  }, userId);
 
   // Duplicate roster with new player IDs (per plan: globally unique IDs)
   const newRoster: TeamPlayer[] = originalRoster.map((player, index) => ({
@@ -225,7 +261,7 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
     id: `player_${Date.now()}_${Math.random().toString(36).slice(2, 11)}_${index}`, // More unique ID with index
   }));
 
-  await setTeamRoster(newTeam.id, newRoster);
+  await setTeamRoster(newTeam.id, newRoster, userId);
   return newTeam;
 };
 
@@ -241,12 +277,13 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
  * so we validate each game entry before accessing properties.
  *
  * @param teamId - The ID of the team to count games for.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the number of games associated with this team.
  *          Returns 0 if team has no games OR if an error occurs (logged for debugging).
  */
-export const countGamesForTeam = async (teamId: string): Promise<number> => {
+export const countGamesForTeam = async (teamId: string, userId?: string): Promise<number> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const savedGames = await dataStore.getGames();
 
     let count = 0;

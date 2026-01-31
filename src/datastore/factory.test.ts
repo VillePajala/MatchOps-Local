@@ -125,6 +125,9 @@ const { getDataStore, getAuthService, resetFactory, isDataStoreInitialized, isAu
 const { LocalDataStore } = require('./LocalDataStore');
 const { LocalAuthService } = require('@/auth/LocalAuthService');
 
+// Test user IDs for user-scoped storage tests
+const TEST_USER_ID = 'test-user-123';
+
 describe('Factory', () => {
   beforeEach(() => {
     // Clear all mocks
@@ -154,24 +157,24 @@ describe('Factory', () => {
   // ==========================================================================
   describe('getDataStore', () => {
     it('should return a LocalDataStore instance', async () => {
-      const dataStore = await getDataStore();
+      const dataStore = await getDataStore(TEST_USER_ID);
       expect(dataStore).toBeInstanceOf(LocalDataStore);
     });
 
     it('should return the same instance on subsequent calls (singleton)', async () => {
-      const dataStore1 = await getDataStore();
-      const dataStore2 = await getDataStore();
+      const dataStore1 = await getDataStore(TEST_USER_ID);
+      const dataStore2 = await getDataStore(TEST_USER_ID);
       expect(dataStore1).toBe(dataStore2);
     });
 
     it('should initialize the DataStore', async () => {
-      const dataStore = await getDataStore();
+      const dataStore = await getDataStore(TEST_USER_ID);
       expect(dataStore.getBackendName()).toBe('local');
     });
 
     it('should report initialized state correctly', async () => {
       expect(isDataStoreInitialized()).toBe(false);
-      await getDataStore();
+      await getDataStore(TEST_USER_ID);
       expect(isDataStoreInitialized()).toBe(true);
     });
   });
@@ -208,9 +211,9 @@ describe('Factory', () => {
   // ==========================================================================
   describe('resetFactory', () => {
     it('should reset DataStore instance', async () => {
-      const dataStore1 = await getDataStore();
+      const dataStore1 = await getDataStore(TEST_USER_ID);
       await resetFactory();
-      const dataStore2 = await getDataStore();
+      const dataStore2 = await getDataStore(TEST_USER_ID);
       expect(dataStore1).not.toBe(dataStore2);
     });
 
@@ -222,7 +225,7 @@ describe('Factory', () => {
     });
 
     it('should reset initialized state', async () => {
-      await getDataStore();
+      await getDataStore(TEST_USER_ID);
       await getAuthService();
       expect(isDataStoreInitialized()).toBe(true);
       expect(isAuthServiceInitialized()).toBe(true);
@@ -249,9 +252,9 @@ describe('Factory', () => {
   // - Reset behavior (new instance after resetFactory)
   describe('Mode Behavior', () => {
     it('should keep same instance when mode does not change', async () => {
-      const dataStore1 = await getDataStore();
-      const dataStore2 = await getDataStore();
-      const dataStore3 = await getDataStore();
+      const dataStore1 = await getDataStore(TEST_USER_ID);
+      const dataStore2 = await getDataStore(TEST_USER_ID);
+      const dataStore3 = await getDataStore(TEST_USER_ID);
 
       expect(dataStore1).toBe(dataStore2);
       expect(dataStore2).toBe(dataStore3);
@@ -264,9 +267,9 @@ describe('Factory', () => {
   describe('Concurrent Access', () => {
     it('should handle concurrent getDataStore calls', async () => {
       const [ds1, ds2, ds3] = await Promise.all([
-        getDataStore(),
-        getDataStore(),
-        getDataStore(),
+        getDataStore(TEST_USER_ID),
+        getDataStore(TEST_USER_ID),
+        getDataStore(TEST_USER_ID),
       ]);
 
       expect(ds1).toBe(ds2);
@@ -301,9 +304,9 @@ describe('Factory', () => {
 
       try {
         const [ds1, ds2, ds3] = await Promise.all([
-          getDataStore(),
-          getDataStore(),
-          getDataStore(),
+          getDataStore(TEST_USER_ID),
+          getDataStore(TEST_USER_ID),
+          getDataStore(TEST_USER_ID),
         ]);
 
         expect(ds1).toBe(ds2);
@@ -438,14 +441,14 @@ describe('Factory', () => {
       mockBackendConfig.cloudAvailable = false;
       mockBackendConfig.backendMode = 'local';
 
-      const dataStore1 = await getDataStore();
+      const dataStore1 = await getDataStore(TEST_USER_ID);
 
       // Change mode
       mockBackendConfig.backendMode = 'cloud';
 
       // Need to reset factory to pick up mode change (mode is captured at creation time)
       await resetFactory();
-      const dataStore2 = await getDataStore();
+      const dataStore2 = await getDataStore(TEST_USER_ID);
 
       // Should be DIFFERENT instance (data layer resets on mode change)
       expect(dataStore1).not.toBe(dataStore2);
@@ -483,7 +486,7 @@ describe('Factory', () => {
       mockBackendConfig.backendMode = 'local';
 
       // Get initial instance
-      const dataStore1 = await getDataStore();
+      const dataStore1 = await getDataStore(TEST_USER_ID);
       expect(dataStore1).toBeInstanceOf(LocalDataStore);
 
       // Reset to simulate fresh state but with different mode config
@@ -494,9 +497,9 @@ describe('Factory', () => {
 
       // Concurrent calls should all get the same new instance
       const [ds1, ds2, ds3] = await Promise.all([
-        getDataStore(),
-        getDataStore(),
-        getDataStore(),
+        getDataStore(TEST_USER_ID),
+        getDataStore(TEST_USER_ID),
+        getDataStore(TEST_USER_ID),
       ]);
 
       // All should be the same instance
@@ -540,7 +543,7 @@ describe('Factory', () => {
       mockBackendConfig.backendMode = 'cloud';
       mockBackendConfig.cloudAvailable = false;
 
-      const dataStore = await getDataStore();
+      const dataStore = await getDataStore(TEST_USER_ID);
 
       // Should fall back to LocalDataStore
       expect(dataStore).toBeInstanceOf(LocalDataStore);
@@ -623,7 +626,7 @@ describe('Factory', () => {
      */
     it('should handle transition from anonymous to authenticated user', async () => {
       // Anonymous user (no userId)
-      const anonymousStore = await getDataStore();
+      const anonymousStore = await getDataStore(TEST_USER_ID);
       expect(anonymousStore).toBeInstanceOf(LocalDataStore);
 
       // Sign in as User A
@@ -643,7 +646,7 @@ describe('Factory', () => {
       const userStore = await getDataStore(USER_A);
 
       // Sign out (no userId)
-      const anonymousStore = await getDataStore();
+      const anonymousStore = await getDataStore(TEST_USER_ID);
 
       // Should be different instances
       expect(userStore).not.toBe(anonymousStore);
@@ -686,15 +689,19 @@ describe('Factory', () => {
     });
 
     /**
-     * Verify that anonymous mode (no userId) uses global storage adapter.
+     * Verify that user-scoped storage uses the user storage adapter.
+     * With user-scoped architecture, all getDataStore calls require a userId.
      */
-    it('should use global storage adapter for anonymous mode', async () => {
-      const dataStore = await getDataStore();
+    it('should use user storage adapter for all authenticated users', async () => {
+      const NEW_USER = 'new-user-456';
+      mockGetUserStorageAdapter.mockClear();
+
+      const dataStore = await getDataStore(NEW_USER);
 
       expect(dataStore).toBeInstanceOf(LocalDataStore);
 
-      // When no userId is provided, getStorageAdapter should be called
-      expect(mockGetStorageAdapter).toHaveBeenCalled();
+      // User-scoped storage always uses getUserStorageAdapter
+      expect(mockGetUserStorageAdapter).toHaveBeenCalledWith(NEW_USER);
     });
 
     /**
@@ -857,7 +864,7 @@ describe('Factory', () => {
      * @critical
      */
     it('should report canClose=true in local mode (no sync operations)', async () => {
-      await getDataStore();
+      await getDataStore(TEST_USER_ID);
       const result = await canCloseDataStore();
       expect(result.canClose).toBe(true);
       expect(result.pendingCount).toBe(0);
@@ -869,7 +876,7 @@ describe('Factory', () => {
      * @critical
      */
     it('should close DataStore without force when canClose=true', async () => {
-      await getDataStore();
+      await getDataStore(TEST_USER_ID);
       expect(isDataStoreInitialized()).toBe(true);
 
       // Should succeed without force (local mode has no pending ops)
@@ -883,7 +890,7 @@ describe('Factory', () => {
      * @critical
      */
     it('should close DataStore with force option', async () => {
-      await getDataStore();
+      await getDataStore(TEST_USER_ID);
       expect(isDataStoreInitialized()).toBe(true);
 
       await closeDataStore({ force: true });
@@ -895,7 +902,7 @@ describe('Factory', () => {
      * Verify closeDataStore is idempotent.
      */
     it('should be idempotent (multiple calls without error)', async () => {
-      await getDataStore();
+      await getDataStore(TEST_USER_ID);
       await closeDataStore();
       await closeDataStore(); // Second call should not throw
       await closeDataStore({ force: true }); // Third call should not throw
