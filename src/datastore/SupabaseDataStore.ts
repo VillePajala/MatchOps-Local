@@ -932,6 +932,8 @@ export class SupabaseDataStore implements DataStore {
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
       receivedFairPlayCard: row.received_fair_play_card ?? false,
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
   }
 
@@ -1739,6 +1741,8 @@ export class SupabaseDataStore implements DataStore {
       color: row.color ?? undefined,
       badge: row.badge ?? undefined,
       teamPlacements: parseTeamPlacements(row.team_placements),
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
   }
 
@@ -2083,6 +2087,8 @@ export class SupabaseDataStore implements DataStore {
       badge: row.badge ?? undefined,
       awardedPlayerId: row.awarded_player_id ?? undefined,
       teamPlacements: parseTeamPlacements(row.team_placements),
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
   }
 
@@ -2929,6 +2935,9 @@ export class SupabaseDataStore implements DataStore {
       tacticalBallPosition: (tacticalData?.tactical_ball_position as Point | null) ?? null,
       completedIntervalDurations: (tacticalData?.completed_interval_durations as IntervalLog[] | null) ?? [],
       lastSubConfirmationTimeSeconds: tacticalData?.last_sub_confirmation_time_seconds ?? undefined,
+      // === Timestamps for conflict resolution ===
+      createdAt: game.created_at ?? undefined,
+      updatedAt: game.updated_at ?? undefined,
     };
   }
 

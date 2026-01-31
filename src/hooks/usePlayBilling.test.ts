@@ -628,10 +628,25 @@ describe('grantMockSubscription', () => {
   });
 
   it('returns error when not logged in', async () => {
+    // Mock both getSession and refreshSession to return no session
+    // ensureFreshSession tries refreshSession as recovery when getSession returns null
     mockGetSession.mockResolvedValue({
       data: { session: null },
       error: null,
     });
+    const mockRefreshSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      functions: {
+        invoke: mockFunctionsInvoke,
+      },
+      auth: {
+        getSession: mockGetSession,
+        refreshSession: mockRefreshSession,
+      },
+    } as unknown as ReturnType<typeof getSupabaseClient>);
 
     const result = await grantMockSubscription('test-12345-abc');
 

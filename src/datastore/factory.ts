@@ -426,7 +426,9 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
         // If not, that's a bug in SupabaseDataStore to fix, not work around here.
 
         const { createSyncExecutor } = await import('@/sync');
-        const executor = createSyncExecutor(cloudStore);
+        // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
+        const localStore = syncedStore.getLocalStore();
+        const executor = createSyncExecutor(cloudStore, localStore);
         syncedStore.setExecutor(executor);
         syncedStore.startSync();
 

@@ -712,6 +712,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(MASTER_ROSTER_KEY, async () => {
       const roster = await this.loadPlayers();
       const existingIndex = roster.findIndex((p) => p.id === player.id);
+      const now = new Date().toISOString();
 
       const normalizedPlayer: Player = {
         ...player,
@@ -719,6 +720,9 @@ export class LocalDataStore implements DataStore {
         nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
         receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: player.createdAt ?? (existingIndex !== -1 ? roster[existingIndex].createdAt : now),
+        updatedAt: now,
       };
 
       if (existingIndex !== -1) {
@@ -1171,6 +1175,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(SEASONS_LIST_KEY, async () => {
       const currentSeasons = await this.loadSeasons();
       const existingIndex = currentSeasons.findIndex((s) => s.id === season.id);
+      const now = new Date().toISOString();
 
       const clubSeason = calculateClubSeason(season.startDate, start, end);
 
@@ -1180,6 +1185,9 @@ export class LocalDataStore implements DataStore {
         ageGroup: normalizedAgeGroup ?? undefined,
         notes: normalizeOptionalString(season.notes) ?? undefined,
         clubSeason,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: season.createdAt ?? (existingIndex !== -1 ? currentSeasons[existingIndex].createdAt : now),
+        updatedAt: now,
       };
 
       if (existingIndex !== -1) {
@@ -1396,6 +1404,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
       const currentTournaments = await this.loadTournaments();
       const existingIndex = currentTournaments.findIndex((t) => t.id === tournament.id);
+      const now = new Date().toISOString();
 
       const clubSeason = calculateClubSeason(tournament.startDate, start, end);
 
@@ -1406,6 +1415,9 @@ export class LocalDataStore implements DataStore {
         level: normalizeOptionalString(tournament.level) ?? undefined,
         notes: normalizeOptionalString(tournament.notes) ?? undefined,
         clubSeason,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: tournament.createdAt ?? (existingIndex !== -1 ? currentTournaments[existingIndex].createdAt : now),
+        updatedAt: now,
       };
 
       if (existingIndex !== -1) {
@@ -1734,9 +1746,19 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
       const games = await this.loadSavedGames();
-      games[id] = game;
+      const now = new Date().toISOString();
+      const existingGame = games[id];
+
+      // Set timestamps: preserve createdAt if exists, always update updatedAt
+      const gameWithTimestamps: AppState = {
+        ...game,
+        createdAt: game.createdAt ?? existingGame?.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      games[id] = gameWithTimestamps;
       await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
-      return game;
+      return gameWithTimestamps;
     });
   }
 
