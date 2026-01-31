@@ -979,7 +979,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('players')
       .upsert(this.transformPlayerToDb(playerToUpsert, now, userId) as unknown as never, {
-        onConflict: 'id',
+        onConflict: 'user_id,id',
       });
 
     if (error) {
@@ -1332,7 +1332,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('teams')
       .upsert(this.transformTeamToDb(teamToUpsert, userId) as unknown as never, {
-        onConflict: 'id',
+        onConflict: 'user_id,id',
       });
 
     if (error) {
@@ -1805,7 +1805,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('seasons')
       .upsert(this.transformSeasonToDb(seasonToUpsert, now, userId) as unknown as never, {
-        onConflict: 'id',
+        onConflict: 'user_id,id',
       });
 
     if (error) {
@@ -2151,7 +2151,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('tournaments')
       .upsert(this.transformTournamentToDb(tournamentToUpsert, now, userId) as unknown as never, {
-        onConflict: 'id',
+        onConflict: 'user_id,id',
       });
 
     if (error) {
@@ -2417,7 +2417,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.getClient()
       .from('personnel')
       .upsert(this.transformPersonnelToDb(personnelToUpsert, userId) as unknown as never, {
-        onConflict: 'id',
+        onConflict: 'user_id,id',
       });
 
     if (error) {
@@ -3617,7 +3617,7 @@ export class SupabaseDataStore implements DataStore {
 
     const { error } = await this.getClient()
       .from('player_adjustments')
-      .upsert(dbAdjustment as unknown as never, { onConflict: 'id' });
+      .upsert(dbAdjustment as unknown as never, { onConflict: 'user_id,id' });
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to upsert player adjustment');
