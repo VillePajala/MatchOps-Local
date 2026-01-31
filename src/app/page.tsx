@@ -332,21 +332,30 @@ export default function Home() {
   // - Component mounts (initial load)
   // - refreshTrigger changes (data import, app resume)
   // - isAuthenticated changes (user signs in/out in cloud mode)
-  // In cloud mode, checkAppState() needs auth to access DataStore, so we gate on isAuthenticated
+  // - userId changes (ensures we have user ID for user-scoped storage)
+  // In cloud mode, checkAppState() needs auth AND userId to access DataStore
   useEffect(() => {
     // Skip if auth is still loading
     if (isAuthLoading) return;
 
-    // In cloud mode, only check state when authenticated (DataStore requires auth)
-    // In local mode, always check (no auth required)
-    if (mode === 'cloud' && !isAuthenticated) {
-      // Clear loading state so LoginScreen can render instead of spinner
-      setIsCheckingState(false);
-      return;
+    // In cloud mode, only check state when authenticated AND userId is available
+    // userId is required for user-scoped storage queries
+    if (mode === 'cloud') {
+      if (!isAuthenticated) {
+        // Clear loading state so LoginScreen can render instead of spinner
+        setIsCheckingState(false);
+        return;
+      }
+      // CRITICAL: Wait for userId to be available before checking app state
+      // Without this, getSavedGames(undefined) queries wrong storage
+      if (!userId) {
+        logger.debug('[page.tsx] checkAppState: waiting for userId');
+        return;
+      }
     }
 
     checkAppState();
-  }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode]);
+  }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId]);
 
   // ============================================================================
   // LEGACY DATABASE MIGRATION (MatchOpsLocal → User-Scoped Database)
