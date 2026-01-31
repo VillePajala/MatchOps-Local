@@ -1,8 +1,8 @@
 # User-Scoped Data Architecture Plan v2
 
-**Status:** In Progress - Steps 1-8 Complete ✅
+**Status:** Complete ✅
 **Created:** 2026-01-29
-**Last Updated:** 2026-01-31 (Step 8 complete - legacy migration implemented)
+**Last Updated:** 2026-01-31 (Steps 9-10 complete - SQL migrations created)
 **Branch:** `feature/supabase-cloud-backend`
 
 ### Progress
@@ -13,8 +13,8 @@
 | 5 | useDataStore helper hook | ✅ Complete (PR #346 merged) |
 | 6 | Update ~36 callers to pass userId | ✅ Complete (PR #346 merged) |
 | 7 | Export/import updates | ✅ Complete (PR #347 merged - fullBackup.ts uses DataStore, 51 tests) |
-| 8 | Legacy migration (MatchOpsLocal → user DB) | ✅ Complete (legacyMigrationService.ts, triggered on sign-in, 13 tests) |
-| 9-10 | SQL migrations (composite keys, RPC updates) | ⏳ Not started |
+| 8 | Legacy migration (MatchOpsLocal → user DB) | ✅ Complete (legacyMigrationService.ts, triggered on sign-in, 17 tests) |
+| 9-10 | SQL migrations (composite keys, RPC updates) | ✅ Complete (013_composite_primary_keys.sql, 014_update_rpc_for_composite_keys.sql) |
 | 11 | Tests | ✅ Complete (4481 tests passing) |
 
 **Note:** User isolation is now active. When cloud mode is enabled and user is authenticated, data is stored in user-scoped IndexedDB (`matchops_user_{userId}`).
@@ -1335,6 +1335,7 @@ ALTER TABLE player_adjustments DROP CONSTRAINT IF EXISTS player_adjustments_tour
 ALTER TABLE team_players DROP CONSTRAINT IF EXISTS team_players_team_fkey;
 
 -- Drop composite PKs
+-- NOTE: user_consents is NOT included - it was not migrated (nullable user_id for GDPR)
 ALTER TABLE players DROP CONSTRAINT IF EXISTS players_pkey;
 ALTER TABLE teams DROP CONSTRAINT IF EXISTS teams_pkey;
 ALTER TABLE seasons DROP CONSTRAINT IF EXISTS seasons_pkey;
@@ -1346,7 +1347,6 @@ ALTER TABLE game_players DROP CONSTRAINT IF EXISTS game_players_pkey;
 ALTER TABLE game_tactical_data DROP CONSTRAINT IF EXISTS game_tactical_data_pkey;
 ALTER TABLE player_assessments DROP CONSTRAINT IF EXISTS player_assessments_pkey;
 ALTER TABLE player_adjustments DROP CONSTRAINT IF EXISTS player_adjustments_pkey;
-ALTER TABLE user_consents DROP CONSTRAINT IF EXISTS user_consents_pkey;
 ALTER TABLE warmup_plans DROP CONSTRAINT IF EXISTS warmup_plans_pkey;
 ALTER TABLE team_players DROP CONSTRAINT IF EXISTS team_players_pkey;
 
@@ -1362,7 +1362,6 @@ ALTER TABLE game_players ADD PRIMARY KEY (id);
 ALTER TABLE game_tactical_data ADD PRIMARY KEY (game_id);
 ALTER TABLE player_assessments ADD PRIMARY KEY (id);
 ALTER TABLE player_adjustments ADD PRIMARY KEY (id);
-ALTER TABLE user_consents ADD PRIMARY KEY (id);
 ALTER TABLE warmup_plans ADD PRIMARY KEY (id);
 ALTER TABLE team_players ADD PRIMARY KEY (id);
 
@@ -1389,8 +1388,37 @@ ALTER TABLE team_players ADD CONSTRAINT team_players_team_id_fkey
   FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE;
 -- NOTE: No FK for player_id - intentional for graceful degradation
 
+-- NOTE: Do NOT restore UNIQUE(game_id) on game_tactical_data.
+-- After composite PK migration, multiple users can have the same game_id.
+-- Adding UNIQUE(game_id) would fail if any duplicate game_ids exist across users.
+-- The new schema intentionally allows this for backup sharing.
+
 COMMIT;
 ```
+
+**IMPORTANT: RPC Function Rollback**
+
+After running the schema rollback above, you MUST revert the `save_game_with_relations` RPC function.
+Re-run migration `012_optimistic_locking.sql` to recreate the function with single-column ON CONFLICT clauses.
+
+Alternatively, run this SQL manually:
+
+```sql
+-- Drop the composite-key version
+DROP FUNCTION IF EXISTS save_game_with_relations(jsonb, jsonb[], jsonb[], jsonb[], jsonb, integer);
+
+-- Then re-run 012_optimistic_locking.sql which contains the original function
+-- with ON CONFLICT (id) for games and ON CONFLICT (game_id) for tactical data
+```
+
+**CRITICAL: Data Compatibility Warning**
+
+If users have created data with duplicate IDs (same entity ID for different users), the rollback
+will succeed but the data model will be inconsistent. Before rolling back in this scenario:
+1. Export all user data
+2. Run rollback
+3. Manually resolve ID conflicts (rename duplicates)
+4. Re-import data
 
 ---
 
