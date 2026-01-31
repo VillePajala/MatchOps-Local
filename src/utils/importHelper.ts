@@ -29,11 +29,12 @@ export interface ImportFromFilePickerResult {
  * Wraps the existing importFullBackup function with file picker UI.
  *
  * @param showToast - Optional toast function for user feedback
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to import result
  *
  * @example
  * ```typescript
- * const result = await importFromFilePicker();
+ * const result = await importFromFilePicker(showToast, userId);
  * if (result.success) {
  *   // Import succeeded, proceed to StartScreen
  * } else if (result.cancelled) {
@@ -45,7 +46,8 @@ export interface ImportFromFilePickerResult {
  * ```
  */
 export async function importFromFilePicker(
-  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void
+  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
+  userId?: string
 ): Promise<ImportFromFilePickerResult> {
   return new Promise((resolve) => {
     // Track if we've already resolved to prevent double-resolution
@@ -96,12 +98,14 @@ export async function importFromFilePicker(
         // Import using existing full backup import
         // confirmed=true to skip the confirmation dialog (user already chose to import)
         // delayReload=true so we can handle navigation ourselves
+        // userId for user-scoped storage
         const result = await importFullBackup(
           jsonContent,
           undefined, // onImportSuccess - we'll handle this ourselves
           showToast,
           true, // confirmed
-          true  // delayReload
+          true, // delayReload
+          userId
         );
 
         if (result) {

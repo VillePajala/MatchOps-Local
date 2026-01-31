@@ -14,29 +14,225 @@ import {
 import { DEFAULT_GAME_ID } from "@/config/constants";
 import type { SavedGamesCollection, AppState } from "@/types/game";
 import type { AppSettings } from "./appSettings";
-import type { Season, Tournament, Player } from "@/types";
+import type { Season, Tournament, Player, Team, TeamPlayer, PlayerStatAdjustment } from "@/types";
 import type { TeamsIndex, TeamRostersIndex } from "./teams";
 import type { WarmupPlan } from "@/types/warmupPlan";
+import type { Personnel } from "@/types/personnel";
+import type { DataStore } from "@/interfaces/DataStore";
 
-// Mock the storage module (not localStorage directly!)
+// Mock the DataStore factory
+jest.mock("@/datastore/factory");
+
+// Also mock storage for backward-compatible test assertions
+// (will be removed when tests are fully migrated to DataStore patterns in Step 11)
 jest.mock("./storage");
 
-import { getStorageJSON, setStorageJSON, removeStorageItem } from "./storage";
+import { getDataStore } from "@/datastore/factory";
+import { getStorageJSON, setStorageJSON } from "./storage";
 
-// Create mock store for storage module
+// Create mock store for DataStore data
 const mockStore: Record<string, unknown> = {};
 
-// Setup mock implementations
+// Create a mock DataStore implementation
+function createMockDataStore(): DataStore {
+  return {
+    initialize: jest.fn().mockResolvedValue(undefined),
+    close: jest.fn().mockResolvedValue(undefined),
+    getBackendName: jest.fn().mockReturnValue('local'),
+    isAvailable: jest.fn().mockResolvedValue(true),
+    isInitialized: jest.fn().mockReturnValue(true),
+    clearUserCaches: jest.fn(),
+
+    // Players
+    getPlayers: jest.fn().mockImplementation(async () => {
+      return mockStore[MASTER_ROSTER_KEY] || [];
+    }),
+    createPlayer: jest.fn(),
+    updatePlayer: jest.fn(),
+    deletePlayer: jest.fn(),
+    upsertPlayer: jest.fn().mockImplementation(async (player: Player) => {
+      const players = (mockStore[MASTER_ROSTER_KEY] as Player[]) || [];
+      const existingIndex = players.findIndex(p => p.id === player.id);
+      if (existingIndex >= 0) {
+        players[existingIndex] = player;
+      } else {
+        players.push(player);
+      }
+      mockStore[MASTER_ROSTER_KEY] = players;
+      return player;
+    }),
+
+    // Teams
+    getTeams: jest.fn().mockImplementation(async () => {
+      const teamsIndex = (mockStore[TEAMS_INDEX_KEY] as TeamsIndex) || {};
+      return Object.values(teamsIndex);
+    }),
+    getTeamById: jest.fn(),
+    createTeam: jest.fn(),
+    updateTeam: jest.fn(),
+    deleteTeam: jest.fn(),
+    upsertTeam: jest.fn().mockImplementation(async (team: Team) => {
+      const teamsIndex = (mockStore[TEAMS_INDEX_KEY] as TeamsIndex) || {};
+      teamsIndex[team.id] = team;
+      mockStore[TEAMS_INDEX_KEY] = teamsIndex;
+      return team;
+    }),
+
+    // Team Rosters
+    getTeamRoster: jest.fn(),
+    setTeamRoster: jest.fn().mockImplementation(async (teamId: string, roster: TeamPlayer[]) => {
+      const rosters = (mockStore[TEAM_ROSTERS_KEY] as TeamRostersIndex) || {};
+      rosters[teamId] = roster;
+      mockStore[TEAM_ROSTERS_KEY] = rosters;
+    }),
+    getAllTeamRosters: jest.fn().mockImplementation(async () => {
+      return mockStore[TEAM_ROSTERS_KEY] || {};
+    }),
+
+    // Seasons
+    getSeasons: jest.fn().mockImplementation(async () => {
+      return mockStore[SEASONS_LIST_KEY] || [];
+    }),
+    createSeason: jest.fn(),
+    updateSeason: jest.fn(),
+    deleteSeason: jest.fn(),
+    upsertSeason: jest.fn().mockImplementation(async (season: Season) => {
+      const seasons = (mockStore[SEASONS_LIST_KEY] as Season[]) || [];
+      const existingIndex = seasons.findIndex(s => s.id === season.id);
+      if (existingIndex >= 0) {
+        seasons[existingIndex] = season;
+      } else {
+        seasons.push(season);
+      }
+      mockStore[SEASONS_LIST_KEY] = seasons;
+      return season;
+    }),
+
+    // Tournaments
+    getTournaments: jest.fn().mockImplementation(async () => {
+      return mockStore[TOURNAMENTS_LIST_KEY] || [];
+    }),
+    createTournament: jest.fn(),
+    updateTournament: jest.fn(),
+    deleteTournament: jest.fn(),
+    upsertTournament: jest.fn().mockImplementation(async (tournament: Tournament) => {
+      const tournaments = (mockStore[TOURNAMENTS_LIST_KEY] as Tournament[]) || [];
+      const existingIndex = tournaments.findIndex(t => t.id === tournament.id);
+      if (existingIndex >= 0) {
+        tournaments[existingIndex] = tournament;
+      } else {
+        tournaments.push(tournament);
+      }
+      mockStore[TOURNAMENTS_LIST_KEY] = tournaments;
+      return tournament;
+    }),
+
+    // Personnel
+    getAllPersonnel: jest.fn().mockImplementation(async () => {
+      const personnelCollection = mockStore['matchops_personnel'] as Record<string, Personnel> | undefined;
+      return personnelCollection ? Object.values(personnelCollection) : [];
+    }),
+    getPersonnelById: jest.fn(),
+    addPersonnelMember: jest.fn(),
+    updatePersonnelMember: jest.fn(),
+    removePersonnelMember: jest.fn(),
+    upsertPersonnelMember: jest.fn().mockImplementation(async (personnel: Personnel) => {
+      const collection = (mockStore['matchops_personnel'] as Record<string, Personnel>) || {};
+      collection[personnel.id] = personnel;
+      mockStore['matchops_personnel'] = collection;
+      return personnel;
+    }),
+
+    // Games
+    getGames: jest.fn().mockImplementation(async () => {
+      return mockStore[SAVED_GAMES_KEY] || {};
+    }),
+    getGameById: jest.fn(),
+    createGame: jest.fn(),
+    saveGame: jest.fn(),
+    saveAllGames: jest.fn().mockImplementation(async (games: SavedGamesCollection) => {
+      mockStore[SAVED_GAMES_KEY] = games;
+    }),
+    deleteGame: jest.fn(),
+
+    // Game Events
+    addGameEvent: jest.fn(),
+    updateGameEvent: jest.fn(),
+    removeGameEvent: jest.fn(),
+
+    // Settings
+    getSettings: jest.fn().mockImplementation(async () => {
+      return mockStore[APP_SETTINGS_KEY] || {};
+    }),
+    saveSettings: jest.fn().mockImplementation(async (settings: AppSettings) => {
+      mockStore[APP_SETTINGS_KEY] = settings;
+    }),
+    updateSettings: jest.fn().mockImplementation(async (updates: Partial<AppSettings>) => {
+      const current = (mockStore[APP_SETTINGS_KEY] as AppSettings) || {};
+      const updated = { ...current, ...updates };
+      mockStore[APP_SETTINGS_KEY] = updated;
+      return updated;
+    }),
+
+    // Player Adjustments
+    getPlayerAdjustments: jest.fn().mockResolvedValue([]),
+    getAllPlayerAdjustments: jest.fn().mockImplementation(async () => {
+      return new Map<string, PlayerStatAdjustment[]>();
+    }),
+    addPlayerAdjustment: jest.fn(),
+    upsertPlayerAdjustment: jest.fn(),
+    updatePlayerAdjustment: jest.fn(),
+    deletePlayerAdjustment: jest.fn(),
+
+    // Warmup Plan
+    getWarmupPlan: jest.fn().mockImplementation(async () => {
+      return mockStore[WARMUP_PLAN_KEY] || null;
+    }),
+    saveWarmupPlan: jest.fn().mockImplementation(async (plan: WarmupPlan) => {
+      mockStore[WARMUP_PLAN_KEY] = plan;
+      return true;
+    }),
+    deleteWarmupPlan: jest.fn(),
+
+    // Timer State
+    getTimerState: jest.fn().mockResolvedValue(null),
+    saveTimerState: jest.fn().mockResolvedValue(undefined),
+    clearTimerState: jest.fn().mockResolvedValue(undefined),
+
+    // Data Management
+    clearAllUserData: jest.fn().mockImplementation(async () => {
+      // Clear all app data from mockStore
+      delete mockStore[SAVED_GAMES_KEY];
+      delete mockStore[APP_SETTINGS_KEY];
+      delete mockStore[SEASONS_LIST_KEY];
+      delete mockStore[TOURNAMENTS_LIST_KEY];
+      delete mockStore[MASTER_ROSTER_KEY];
+      delete mockStore[TEAMS_INDEX_KEY];
+      delete mockStore[TEAM_ROSTERS_KEY];
+      delete mockStore['matchops_personnel'];
+      delete mockStore[WARMUP_PLAN_KEY];
+    }),
+  };
+}
+
+// Create a mock DataStore instance for tests
+let mockDataStore: DataStore;
+
+// Setup getDataStore mock
+(getDataStore as jest.Mock).mockImplementation(async () => {
+  if (!mockDataStore) {
+    mockDataStore = createMockDataStore();
+  }
+  return mockDataStore;
+});
+
+// Setup storage mock implementations (for backward-compatible test assertions)
 (getStorageJSON as jest.Mock).mockImplementation(async (key: string) => {
   return mockStore[key] || null;
 });
 
 (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
   mockStore[key] = value;
-});
-
-(removeStorageItem as jest.Mock).mockImplementation(async (key: string) => {
-  delete mockStore[key];
 });
 
 // Mock localStorage for legacy compatibility
@@ -237,6 +433,10 @@ describe("importFullBackup", () => {
     // Clear mock store
     Object.keys(mockStore).forEach(key => delete mockStore[key]);
     jest.clearAllMocks();
+
+    // Reset the mock DataStore to a fresh instance
+    mockDataStore = createMockDataStore();
+    (getDataStore as jest.Mock).mockImplementation(async () => mockDataStore);
 
     // Call the mockClear method we added to reset everything
     localStorageMock.mockClear();

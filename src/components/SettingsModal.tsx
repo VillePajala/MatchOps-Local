@@ -244,7 +244,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
       try {
         // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
-        const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
+        // Pass userId for user-scoped storage
+        const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true, userId);
         if (result) {
           // Show results modal
           setBackupRestoreResult(result);
