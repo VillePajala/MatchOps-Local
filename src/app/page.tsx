@@ -430,6 +430,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
+    // Deps: t, showToast, setRefreshTrigger are stable (from hooks/context) and intentionally omitted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, isAuthLoading]);
 

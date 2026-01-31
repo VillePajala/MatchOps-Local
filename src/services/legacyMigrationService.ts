@@ -287,50 +287,85 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
       },
     });
 
-    // Import players
-    for (const player of legacyData.players) {
-      await userStore.upsertPlayer(player);
-    }
+    // Import each entity type with error logging for support diagnostics
+    // On failure, logs which type failed so support can advise on recovery
 
-    // Import seasons
-    for (const season of legacyData.seasons) {
-      await userStore.upsertSeason(season);
-    }
-
-    // Import tournaments
-    for (const tournament of legacyData.tournaments) {
-      await userStore.upsertTournament(tournament);
-    }
-
-    // Import teams and their rosters
-    for (const [teamId, team] of Object.entries(legacyData.teams)) {
-      await userStore.upsertTeam(team);
-      const roster = legacyData.teamRosters[teamId];
-      if (roster && roster.length > 0) {
-        await userStore.setTeamRoster(teamId, roster);
+    try {
+      for (const player of legacyData.players) {
+        await userStore.upsertPlayer(player);
       }
+    } catch (error) {
+      logger.error('[LegacyMigration] Players migration failed', { count: legacyData.players.length, error });
+      throw error;
     }
 
-    // Import personnel
-    for (const personnel of Object.values(legacyData.personnel)) {
-      await userStore.upsertPersonnelMember(personnel as Personnel);
-    }
-
-    // Import games (SavedGamesCollection keys are game IDs)
-    for (const [gameId, game] of Object.entries(legacyData.games)) {
-      await userStore.saveGame(gameId, game);
-    }
-
-    // Import player adjustments
-    for (const [_playerId, adjustments] of Object.entries(legacyData.playerAdjustments)) {
-      for (const adjustment of adjustments) {
-        await userStore.upsertPlayerAdjustment(adjustment);
+    try {
+      for (const season of legacyData.seasons) {
+        await userStore.upsertSeason(season);
       }
+    } catch (error) {
+      logger.error('[LegacyMigration] Seasons migration failed', { count: legacyData.seasons.length, error });
+      throw error;
     }
 
-    // Import warmup plan
-    if (legacyData.warmupPlan) {
-      await userStore.saveWarmupPlan(legacyData.warmupPlan);
+    try {
+      for (const tournament of legacyData.tournaments) {
+        await userStore.upsertTournament(tournament);
+      }
+    } catch (error) {
+      logger.error('[LegacyMigration] Tournaments migration failed', { count: legacyData.tournaments.length, error });
+      throw error;
+    }
+
+    try {
+      for (const [teamId, team] of Object.entries(legacyData.teams)) {
+        await userStore.upsertTeam(team);
+        const roster = legacyData.teamRosters[teamId];
+        if (roster && roster.length > 0) {
+          await userStore.setTeamRoster(teamId, roster);
+        }
+      }
+    } catch (error) {
+      logger.error('[LegacyMigration] Teams migration failed', { count: Object.keys(legacyData.teams).length, error });
+      throw error;
+    }
+
+    try {
+      for (const personnel of Object.values(legacyData.personnel)) {
+        await userStore.upsertPersonnelMember(personnel as Personnel);
+      }
+    } catch (error) {
+      logger.error('[LegacyMigration] Personnel migration failed', { count: Object.keys(legacyData.personnel).length, error });
+      throw error;
+    }
+
+    try {
+      for (const [gameId, game] of Object.entries(legacyData.games)) {
+        await userStore.saveGame(gameId, game);
+      }
+    } catch (error) {
+      logger.error('[LegacyMigration] Games migration failed', { count: Object.keys(legacyData.games).length, error });
+      throw error;
+    }
+
+    try {
+      for (const [_playerId, adjustments] of Object.entries(legacyData.playerAdjustments)) {
+        for (const adjustment of adjustments) {
+          await userStore.upsertPlayerAdjustment(adjustment);
+        }
+      }
+    } catch (error) {
+      logger.error('[LegacyMigration] Player adjustments migration failed', { error });
+      throw error;
+    }
+
+    try {
+      if (legacyData.warmupPlan) {
+        await userStore.saveWarmupPlan(legacyData.warmupPlan);
+      }
+    } catch (error) {
+      logger.error('[LegacyMigration] Warmup plan migration failed', { error });
+      throw error;
     }
 
     // Import settings

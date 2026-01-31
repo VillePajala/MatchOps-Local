@@ -1094,6 +1094,20 @@ If the migration fails midway (e.g., players migrated but games failed):
 
 **Technical note**: The migration does NOT rollback on failure. This is intentional - partial data is better than no data, and the user can always manually import a complete backup.
 
+### 4.5 Partial Migration Recovery FAQ
+
+**Q: Migration failed - how do I know what was migrated?**
+
+A: Check your roster (Players tab). If you see players, they migrated successfully. Entity types are migrated in this order: players → seasons → tournaments → teams → personnel → games → adjustments → warmup plan → settings. If migration fails at "games", you'll have players/seasons/tournaments but no games. Contact support with the error toast timestamp for detailed assistance.
+
+**Q: Can I re-run the migration?**
+
+A: No - once you have any data, the migration detects "user already has data" and skips. To re-migrate, you would need to clear your user data first (not recommended). Instead, export a backup from the legacy database and import it manually.
+
+**Q: My legacy data is still there after migration - is that normal?**
+
+A: Yes! The migration is non-destructive. Your legacy `MatchOpsLocal` database is preserved until you manually delete it. This allows you to verify the migration worked before cleaning up.
+
 ---
 
 ## 5. Data Management Operations
