@@ -71,7 +71,7 @@ BEGIN
   v_game_id := p_game->>'id';
 
   -- Check if game exists and get current version
-  -- UPDATED: Query now implicitly scoped by RLS, explicit user_id check below
+  -- Note: RLS provides implicit scoping; explicit ownership check follows in IF EXISTS block
   SELECT version INTO v_current_version
   FROM games
   WHERE id = v_game_id;

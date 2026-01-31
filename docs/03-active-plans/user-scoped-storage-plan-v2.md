@@ -1335,6 +1335,7 @@ ALTER TABLE player_adjustments DROP CONSTRAINT IF EXISTS player_adjustments_tour
 ALTER TABLE team_players DROP CONSTRAINT IF EXISTS team_players_team_fkey;
 
 -- Drop composite PKs
+-- NOTE: user_consents is NOT included - it was not migrated (nullable user_id for GDPR)
 ALTER TABLE players DROP CONSTRAINT IF EXISTS players_pkey;
 ALTER TABLE teams DROP CONSTRAINT IF EXISTS teams_pkey;
 ALTER TABLE seasons DROP CONSTRAINT IF EXISTS seasons_pkey;
@@ -1346,7 +1347,6 @@ ALTER TABLE game_players DROP CONSTRAINT IF EXISTS game_players_pkey;
 ALTER TABLE game_tactical_data DROP CONSTRAINT IF EXISTS game_tactical_data_pkey;
 ALTER TABLE player_assessments DROP CONSTRAINT IF EXISTS player_assessments_pkey;
 ALTER TABLE player_adjustments DROP CONSTRAINT IF EXISTS player_adjustments_pkey;
-ALTER TABLE user_consents DROP CONSTRAINT IF EXISTS user_consents_pkey;
 ALTER TABLE warmup_plans DROP CONSTRAINT IF EXISTS warmup_plans_pkey;
 ALTER TABLE team_players DROP CONSTRAINT IF EXISTS team_players_pkey;
 
@@ -1362,7 +1362,6 @@ ALTER TABLE game_players ADD PRIMARY KEY (id);
 ALTER TABLE game_tactical_data ADD PRIMARY KEY (game_id);
 ALTER TABLE player_assessments ADD PRIMARY KEY (id);
 ALTER TABLE player_adjustments ADD PRIMARY KEY (id);
-ALTER TABLE user_consents ADD PRIMARY KEY (id);
 ALTER TABLE warmup_plans ADD PRIMARY KEY (id);
 ALTER TABLE team_players ADD PRIMARY KEY (id);
 

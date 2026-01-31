@@ -53,7 +53,8 @@ ALTER TABLE player_adjustments DROP CONSTRAINT IF EXISTS player_adjustments_tour
 -- Team players → teams
 ALTER TABLE team_players DROP CONSTRAINT IF EXISTS team_players_team_id_fkey;
 
--- Also drop composite FK constraints if they exist (from previous migration attempts)
+-- Drop composite FK constraints if they exist
+-- (Handles case where migration was partially applied or re-run for idempotency)
 ALTER TABLE game_events DROP CONSTRAINT IF EXISTS game_events_game_fkey;
 ALTER TABLE game_players DROP CONSTRAINT IF EXISTS game_players_game_fkey;
 ALTER TABLE game_tactical_data DROP CONSTRAINT IF EXISTS game_tactical_data_game_fkey;
@@ -83,7 +84,9 @@ ALTER TABLE player_adjustments DROP CONSTRAINT IF EXISTS player_adjustments_pkey
 ALTER TABLE warmup_plans DROP CONSTRAINT IF EXISTS warmup_plans_pkey;
 ALTER TABLE team_players DROP CONSTRAINT IF EXISTS team_players_pkey;
 
--- Also drop the UNIQUE constraint on game_tactical_data.game_id (will conflict with new PK)
+-- Drop unique index if exists (may be created implicitly by UNIQUE constraint)
+DROP INDEX IF EXISTS game_tactical_data_game_id_key;
+-- Drop the UNIQUE constraint on game_tactical_data.game_id (will conflict with new PK)
 ALTER TABLE game_tactical_data DROP CONSTRAINT IF EXISTS game_tactical_data_game_id_key;
 
 -- ============================================================================
