@@ -514,28 +514,16 @@ describe("importFullBackup", () => {
           [SEASONS_LIST_KEY]: [{ id: "s1", name: "Test Season" }],
           [TOURNAMENTS_LIST_KEY]: null, // Test null value
           [MASTER_ROSTER_KEY]: [{ id: "p1", name: "Player 1" }],
-          // Key not present in backup constants but exists in source file localStorage
-          someOtherOldKey: "should be removed if present initially",
         },
       };
       const backupJson = JSON.stringify(validBackupData);
 
-      // Pre-populate localStorage with some different data to ensure overwrite
-      localStorageMock.setItem(
-        SAVED_GAMES_KEY,
-        JSON.stringify({ gameX: { id: "gameX" } }),
-      );
-      localStorageMock.setItem(
-        APP_SETTINGS_KEY,
-        JSON.stringify({ currentGameId: "gameX" }),
-      );
-      localStorageMock.setItem("someOtherOldKey", "initial value");
+      // Pre-populate mockStore with some different data to ensure overwrite
+      mockStore[SAVED_GAMES_KEY] = { gameX: { id: "gameX" } };
+      mockStore[APP_SETTINGS_KEY] = { currentGameId: "gameX" };
 
       // Mock window.confirm to return true (user confirms)
       (window.confirm as jest.Mock).mockReturnValue(true);
-
-      // Alert is globally mocked in beforeEach for this test suite now
-      // REMOVE: const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
 
       // Act: Call the import function
       const result = await importFullBackup(backupJson);
@@ -544,7 +532,7 @@ describe("importFullBackup", () => {
       expect(result).not.toBeNull();
       expect(result?.success).toBe(true); // Function should indicate success (before reload)
 
-      // Verify mockStore content matches the backup data (storage module writes to mockStore)
+      // Verify mockStore content matches the backup data (DataStore writes to mockStore)
       expect(mockStore[SAVED_GAMES_KEY]).toEqual(
         validBackupData.localStorage[SAVED_GAMES_KEY],
       );
@@ -554,20 +542,14 @@ describe("importFullBackup", () => {
       expect(mockStore[SEASONS_LIST_KEY]).toEqual(
         validBackupData.localStorage[SEASONS_LIST_KEY],
       );
-      expect(mockStore[TOURNAMENTS_LIST_KEY]).toBeUndefined(); // removeStorageItem deletes the key
+      // Null values in backup are not restored (tournaments list is omitted)
+      expect(mockStore[TOURNAMENTS_LIST_KEY]).toBeUndefined();
       expect(mockStore[MASTER_ROSTER_KEY]).toEqual(
         validBackupData.localStorage[MASTER_ROSTER_KEY],
       );
 
-      // Verify the non-backup key was restored from backup
-      expect(mockStore["someOtherOldKey"]).toEqual(
-        validBackupData.localStorage.someOtherOldKey,
-      );
-
       // Verify confirmation was called
       expect(window.confirm).toHaveBeenCalledTimes(1);
-      // Note: Alert is no longer shown on success when showToast is not provided
-      // Success is indicated via the returned result object
 
       // Verify reload was scheduled via setTimeout
       expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
@@ -818,10 +800,10 @@ describe("importFullBackup", () => {
 
       expect(result).not.toBeNull();
       expect(result?.success).toBe(true);
-      const appSettingsWrites = (setStorageJSON as jest.Mock).mock.calls.filter(
-        ([key]) => key === APP_SETTINGS_KEY
-      );
-      expect(appSettingsWrites).toHaveLength(1);
+      // Verify settings were saved via DataStore (the saveSettings mock)
+      expect(mockDataStore.saveSettings).toHaveBeenCalled();
+      // currentGameId should remain as DEFAULT_GAME_ID since no valid latest game
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: DEFAULT_GAME_ID });
     });
 
     it("continues import when setting currentGameId fails post-restore", async () => {
@@ -839,40 +821,26 @@ describe("importFullBackup", () => {
 
       (window.confirm as jest.Mock).mockReturnValue(true);
 
-      const originalSetStorageJSON = (setStorageJSON as jest.Mock).getMockImplementation();
-      let appSettingsWriteCount = 0;
-
-      (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
-        if (key === APP_SETTINGS_KEY) {
-          appSettingsWriteCount += 1;
-          if (appSettingsWriteCount === 2) {
-            throw new Error('intentional settings failure');
-          }
-        }
-        mockStore[key] = value;
-      });
+      // Mock updateSettings to throw error (simulates failure when updating currentGameId)
+      const originalUpdateSettings = mockDataStore.updateSettings;
+      (mockDataStore.updateSettings as jest.Mock).mockRejectedValueOnce(new Error('intentional settings failure'));
 
       try {
         const result = await importFullBackup(JSON.stringify(backupData));
         expect(result).not.toBeNull();
         expect(result?.success).toBe(true);
-        expect(appSettingsWriteCount).toBe(2);
         // Verify warnings are included in the result object
         expect(result?.warnings).toBeDefined();
         expect(result?.warnings?.length).toBeGreaterThan(0);
         expect(result?.warnings?.[0]).toContain('could not update the current game selection');
       } finally {
-        if (originalSetStorageJSON) {
-          (setStorageJSON as jest.Mock).mockImplementation(originalSetStorageJSON);
-        } else {
-          (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
-            mockStore[key] = value;
-          });
-        }
+        // Restore original mock
+        (mockDataStore.updateSettings as jest.Mock).mockImplementation(originalUpdateSettings);
       }
     });
 
-    it("skips currentGameId reconciliation when savedGames is not an object", async () => {
+    it("rejects backup when savedGames is not an object", async () => {
+      // Backup validation now rejects invalid game formats before import starts
       const backupData = {
         meta: { schema: 1, exportedAt: new Date().toISOString() },
         localStorage: {
@@ -883,13 +851,20 @@ describe("importFullBackup", () => {
 
       (window.confirm as jest.Mock).mockReturnValue(true);
 
-      const result = await importFullBackup(JSON.stringify(backupData));
-      expect(result).not.toBeNull();
-      expect(result?.success).toBe(true);
-      const appSettingsWrites = (setStorageJSON as jest.Mock).mock.calls.filter(
-        ([key]) => key === APP_SETTINGS_KEY
-      );
-      expect(appSettingsWrites).toHaveLength(1);
+      // Mock alert for error handling
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      try {
+        const result = await importFullBackup(JSON.stringify(backupData));
+        // Validation should reject the backup before any data is modified
+        expect(result).toBeNull();
+        // Verify error was shown
+        expect(alertMock).toHaveBeenCalledWith(
+          expect.stringContaining("Games")
+        );
+      } finally {
+        alertMock.mockRestore();
+      }
     });
 
     it("resets currentGameId when it points to a missing game", async () => {
@@ -1027,8 +1002,281 @@ describe("importFullBackup", () => {
     });
   });
 
+  /**
+   * Tests for validateBackupData pre-flight validation.
+   * This function validates backup structure BEFORE clearing existing data,
+   * preventing data loss from partially invalid backups.
+   */
+  describe("Pre-flight Data Validation (validateBackupData)", () => {
+    it("should reject backup when players is not an array", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: { not: "an array" }, // Invalid - object instead of array
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Players (masterRoster) must be an array")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled(); // Data NOT cleared
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup when seasons is not an array", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SEASONS_LIST_KEY]: "not an array", // Invalid - string instead of array
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Seasons must be an array")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup when tournaments is not an array", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [TOURNAMENTS_LIST_KEY]: 123, // Invalid - number instead of array
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Tournaments must be an array")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup when games is an array instead of object", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: [{ id: "game1" }], // Invalid - array instead of object
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Games (savedSoccerGames) must be an object")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup when teams is an array instead of object", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [TEAMS_INDEX_KEY]: [{ id: "team1", name: "Team" }], // Invalid - array
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Teams must be an object")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup with duplicate player IDs", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: [
+            { id: "player-1", name: "Alice" },
+            { id: "player-1", name: "Bob" }, // Duplicate ID
+          ],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Duplicate player ID: player-1")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup with duplicate season IDs", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SEASONS_LIST_KEY]: [
+            { id: "season-1", name: "Spring 2024" },
+            { id: "season-1", name: "Fall 2024" }, // Duplicate ID
+          ],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Duplicate season ID: season-1")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup with duplicate tournament IDs", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [TOURNAMENTS_LIST_KEY]: [
+            { id: "tourney-1", name: "Cup 2024" },
+            { id: "tourney-1", name: "League 2024" }, // Duplicate ID
+          ],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Duplicate tournament ID: tourney-1")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup with player missing required id field", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: [
+            { name: "Alice" }, // Missing id
+          ],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining('Player is missing required "id" field')
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should reject backup with season missing required id field", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SEASONS_LIST_KEY]: [
+            { name: "Spring 2024" }, // Missing id
+          ],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining('Season is missing required "id" field')
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("should accept valid backup and proceed with import", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: [
+            { id: "player-1", name: "Alice", isGoalie: false, jerseyNumber: "10", notes: "" },
+          ],
+          [SEASONS_LIST_KEY]: [
+            { id: "season-1", name: "Spring 2024" },
+          ],
+          [SAVED_GAMES_KEY]: {
+            "game-1": createTestAppState({ teamName: "Test Team" }),
+          },
+        },
+      };
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true);
+      expect(mockDataStore.clearAllUserData).toHaveBeenCalled(); // Data WAS cleared (passed validation)
+    });
+
+    it("should accept backup with null/undefined fields (optional data)", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: null, // Explicitly null - allowed
+          [SEASONS_LIST_KEY]: undefined, // Not present - allowed
+          [SAVED_GAMES_KEY]: {
+            "game-1": createTestAppState({ teamName: "Test Team" }),
+          },
+        },
+      };
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true);
+    });
+
+    it("should collect multiple validation errors", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: "not an array", // Error 1
+          [SEASONS_LIST_KEY]: { not: "array" }, // Error 2
+          [SAVED_GAMES_KEY]: ["wrong type"], // Error 3
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      // Should mention multiple errors in the message
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Backup validation failed")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+  });
+
   describe("Runtime Errors", () => {
-    it("should return false and show error when localStorage quota is exceeded", async () => {
+    it("should return false and show error when storage quota is exceeded", async () => {
       // Arrange: Define valid backup data
       const validBackupData = {
         meta: { schema: 1, exportedAt: new Date().toISOString() },
@@ -1044,14 +1292,11 @@ describe("importFullBackup", () => {
       // Mock window.confirm to return true (user confirms)
       (window.confirm as jest.Mock).mockReturnValue(true);
 
-      // Mock setStorageJSON to throw quota exceeded error for one specific key
-      const originalSetStorageJSON = (setStorageJSON as jest.Mock).getMockImplementation();
-      (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
-        if (key === SAVED_GAMES_KEY) {
-          throw new DOMException('QuotaExceededError', 'QuotaExceededError');
-        }
-        mockStore[key] = value;
-      });
+      // Mock DataStore saveAllGames to throw quota exceeded error
+      const originalSaveAllGames = mockDataStore.saveAllGames;
+      (mockDataStore.saveAllGames as jest.Mock).mockRejectedValueOnce(
+        new DOMException('QuotaExceededError', 'QuotaExceededError')
+      );
 
       // Mock alert
       const alertMock = jest
@@ -1064,7 +1309,7 @@ describe("importFullBackup", () => {
 
         // Assert: Check results
         expect(result).toBeNull(); // Function should indicate failure
-        expect(setStorageJSON).toHaveBeenCalled();
+        expect(mockDataStore.saveAllGames).toHaveBeenCalled();
         // The actual error message from the implementation contains a different text
         expect(alertMock).toHaveBeenCalledWith(
           expect.stringContaining("Failed to restore"),
@@ -1075,15 +1320,8 @@ describe("importFullBackup", () => {
           expect(typeof window.location.reload).toBe('function');
         }
       } finally {
-        // Always restore the mock, even if the test fails
-        if (originalSetStorageJSON) {
-          (setStorageJSON as jest.Mock).mockImplementation(originalSetStorageJSON);
-        } else {
-          // Restore default implementation
-          (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
-            mockStore[key] = value;
-          });
-        }
+        // Always restore the mock
+        (mockDataStore.saveAllGames as jest.Mock).mockImplementation(originalSaveAllGames);
         alertMock.mockRestore();
       }
     });
@@ -1103,6 +1341,10 @@ describe("exportFullBackup", () => {
     // Clear mock store
     Object.keys(mockStore).forEach(key => delete mockStore[key]);
     jest.clearAllMocks();
+
+    // Reset the mock DataStore to a fresh instance for each test
+    mockDataStore = createMockDataStore();
+    (getDataStore as jest.Mock).mockImplementation(async () => mockDataStore);
 
     localStorageMock.mockClear();
     Object.defineProperty(window, "localStorage", {
@@ -1235,8 +1477,8 @@ describe("exportFullBackup", () => {
     expect(backupData.localStorage["someOtherCustomKey"]).toBeUndefined(); // Explicitly check it's not there
   });
 
-  it("should handle missing localStorage keys by setting them to null in backup", async () => {
-    // Store data in mockStore
+  it("should handle missing localStorage keys by setting them to null or empty in backup", async () => {
+    // Store data in mockStore - only games has data
     mockStore[SAVED_GAMES_KEY] = { game1: { id: "game1", opponentName: "Opponent", teamName: "Test" } };
 
     await exportFullBackup();
@@ -1247,57 +1489,39 @@ describe("exportFullBackup", () => {
     const blobText = await blobArgument.text();
     const backupData = JSON.parse(blobText);
 
+    // Games has data, so it should be present
     expect(backupData.localStorage[SAVED_GAMES_KEY]).toEqual({ game1: { id: "game1", opponentName: "Opponent", teamName: "Test" } });
-    expect(backupData.localStorage[APP_SETTINGS_KEY]).toBeNull();
+    // Settings returns {} when empty (DataStore.getSettings() default)
+    expect(backupData.localStorage[APP_SETTINGS_KEY]).toEqual({});
+    // Arrays return null when empty
     expect(backupData.localStorage[MASTER_ROSTER_KEY]).toBeNull();
     expect(backupData.localStorage[SEASONS_LIST_KEY]).toBeNull();
     expect(backupData.localStorage[TOURNAMENTS_LIST_KEY]).toBeNull();
     expect(backupData.localStorage[WARMUP_PLAN_KEY]).toBeNull();
   });
 
-  it("should log an error and set value to null if a localStorage item is malformed JSON", async () => {
+  it("should throw error when DataStore method fails during export", async () => {
     const gamesData = { game1: "valid data" };
-    const rosterDataDb: RosterPlayer[] = [{ id: "p1", name: "Valid Player" }]; // Use defined type
+    const rosterDataDb: RosterPlayer[] = [{ id: "p1", name: "Valid Player" }];
 
     // Store data in mockStore
     mockStore[SAVED_GAMES_KEY] = gamesData;
     mockStore[MASTER_ROSTER_KEY] = rosterDataDb;
 
-    // Mock getStorageJSON to throw error for APP_SETTINGS_KEY
-    const originalGetStorageJSON = (getStorageJSON as jest.Mock).getMockImplementation();
-    (getStorageJSON as jest.Mock).mockImplementation(async (key: string) => {
-      if (key === APP_SETTINGS_KEY) {
-        // Simulate storage error
-        throw new Error('Storage read error');
-      }
-      return mockStore[key] || null;
+    // Mock getSettings to throw an error (once)
+    (mockDataStore.getSettings as jest.Mock).mockRejectedValueOnce(
+      new Error('DataStore read error')
+    );
+
+    // Export should fail when a DataStore method throws
+    await expect(exportFullBackup()).rejects.toThrow('DataStore read error');
+
+    // Restore original mock implementation
+    // Note: mockRejectedValueOnce only affects the next call, so we need to restore
+    // the default implementation for subsequent tests
+    (mockDataStore.getSettings as jest.Mock).mockImplementation(async () => {
+      return mockStore[APP_SETTINGS_KEY] || {};
     });
-
-    try {
-      await exportFullBackup();
-
-      expect(window.URL.createObjectURL).toHaveBeenCalledTimes(1);
-      const blobArgument = (window.URL.createObjectURL as jest.Mock).mock
-        .calls[0][0] as Blob;
-
-      // The test now checks that the error was handled gracefully
-      // The code logs the error and sets the value to null
-      const blobText = await blobArgument.text();
-      const backupData = JSON.parse(blobText);
-
-      expect(backupData.localStorage[SAVED_GAMES_KEY]).toEqual(gamesData);
-      expect(backupData.localStorage[MASTER_ROSTER_KEY]).toEqual(rosterDataDb);
-      expect(backupData.localStorage[APP_SETTINGS_KEY]).toBeNull(); // Error was handled, value set to null
-    } finally {
-      // Restore original mock
-      if (originalGetStorageJSON) {
-        (getStorageJSON as jest.Mock).mockImplementation(originalGetStorageJSON);
-      } else {
-        (getStorageJSON as jest.Mock).mockImplementation(async (key: string) => {
-          return mockStore[key] || null;
-        });
-      }
-    }
   });
 });
 
@@ -1311,6 +1535,11 @@ describe("importFullBackup - Roster-Aware Import", () => {
     // Clear mock store
     Object.keys(mockStore).forEach(key => delete mockStore[key]);
     jest.clearAllMocks();
+
+    // Reset the mock DataStore to a fresh instance for each test
+    mockDataStore = createMockDataStore();
+    (getDataStore as jest.Mock).mockImplementation(async () => mockDataStore);
+
     localStorageMock.mockClear();
 
     // Mock window.confirm to return true by default
