@@ -370,12 +370,16 @@ export default function Home() {
     }
 
     // Mark as checked before async work to prevent re-runs
+    let cancelled = false;
     legacyMigrationCheckedRef.current = true;
 
     const checkLegacyMigration = async () => {
       try {
         logger.info('[page.tsx] Checking for legacy database migration', { userId });
         const result = await migrateLegacyData(userId);
+
+        // Don't update state if effect was cleaned up (component unmounted or deps changed)
+        if (cancelled) return;
 
         switch (result.status) {
           case 'migrated':
@@ -413,6 +417,7 @@ export default function Home() {
             break;
         }
       } catch (error) {
+        if (cancelled) return;
         logger.error('[page.tsx] Legacy migration check failed', { error });
         // Reset ref to allow retry
         legacyMigrationCheckedRef.current = false;
@@ -420,6 +425,11 @@ export default function Home() {
     };
 
     checkLegacyMigration();
+
+    // Cleanup: prevent state updates if effect re-runs or component unmounts
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, isAuthLoading]);
 

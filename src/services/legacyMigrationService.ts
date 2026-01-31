@@ -220,7 +220,8 @@ function countEntities(data: LegacyData): number {
  */
 export async function migrateLegacyData(userId: string): Promise<LegacyMigrationResult> {
   // Defense in depth: validate userId even though auth layer should ensure this
-  if (!userId || typeof userId !== 'string' || userId.length > 255) {
+  const MAX_USER_ID_LENGTH = 255; // Supabase Auth user ID max length
+  if (!userId || typeof userId !== 'string' || userId.length > MAX_USER_ID_LENGTH) {
     // Log reason without exposing userId value (privacy)
     const reason = !userId ? 'empty' : typeof userId !== 'string' ? 'not a string' : 'too long';
     logger.error('[LegacyMigration] Invalid userId', { reason });
