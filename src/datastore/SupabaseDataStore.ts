@@ -286,6 +286,15 @@ const calculateClubSeason = (
 
 /**
  * Composite key for team uniqueness (matches LocalDataStore).
+ *
+ * IMPORTANT: Only the name is normalized (case-insensitive comparison).
+ * IDs (boundSeasonId, boundTournamentId, etc.) are NOT normalized because:
+ * - All IDs are system-generated UUIDs (always lowercase)
+ * - User-provided IDs go through validation before storage
+ * - If ID casing were inconsistent, it would indicate data corruption
+ *
+ * If duplicate teams are created due to ID casing issues, investigate
+ * the source of the inconsistent IDs rather than adding normalization here.
  */
 const createTeamCompositeKey = (
   name: string,
@@ -2616,7 +2625,17 @@ export class SupabaseDataStore implements DataStore {
     }
 
     // Deduplicate events by ID to avoid primary key constraint violations
-    // Keep the last occurrence of each event ID (most recent state)
+    //
+    // STRATEGY: Last-Write-Wins (keep the LAST occurrence of each event ID)
+    // - Chosen because: In array context, later position implies later modification
+    // - Duplicates indicate data corruption (events should have unique IDs)
+    // - Warning logged to Sentry for detection of corruption patterns
+    //
+    // ALTERNATIVE considered: Throw ValidationError on duplicates (fail fast)
+    // - Rejected because: Would block saving valid game data due to one corrupt event
+    // - Migration/recovery scenarios need graceful handling of corrupt data
+    //
+    // If duplicates are frequently logged, investigate the source of corruption.
     const seenEventIds = new Set<string>();
     const deduplicatedEvents = [];
     // Process in reverse to keep last occurrence, then reverse back to maintain order
