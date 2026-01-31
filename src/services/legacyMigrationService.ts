@@ -261,6 +261,13 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
     }
 
     // Step 4: Migrate data to user's database
+    // NOTE: Migration is NOT transactional. On failure, some data may be migrated.
+    // This is acceptable given:
+    // 1. Single-user context (no concurrent writes from other sources)
+    // 2. Small data scale (~100 entities typical for soccer coaching app)
+    // 3. User can retry migration or manually import from backup
+    // 4. Worst case: partial data + error toast prompts support contact
+    // 5. Legacy data is preserved (non-destructive) for manual recovery
     logger.info('[LegacyMigration] Starting data migration', {
       userId,
       counts: {
@@ -319,9 +326,11 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
       await userStore.saveWarmupPlan(legacyData.warmupPlan);
     }
 
-    // Import settings (excluding currentGameId which will be set below)
+    // Import settings
+    // NOTE: Settings are saved AFTER games. If any game save failed above, we would
+    // have thrown and never reached here. Therefore, validating currentGameId against
+    // legacyData.games is sufficient - all those games have been successfully saved.
     if (legacyData.settings) {
-      // Validate that currentGameId points to an existing game
       const currentGameId = legacyData.settings.currentGameId;
       const validGameId = currentGameId && legacyData.games[currentGameId]
         ? currentGameId
