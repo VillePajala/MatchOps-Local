@@ -12,12 +12,13 @@ import logger from '@/utils/logger';
 /**
  * Retrieves the master roster of players.
  * Calls the underlying async utility from masterRoster.ts.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns {Promise<Player[]>} The current roster.
  */
-export const getMasterRoster = async (): Promise<Player[]> => {
+export const getMasterRoster = async (userId?: string): Promise<Player[]> => {
     // logger.log('[masterRosterManager] getMasterRoster called');
     try {
-        const roster = await utilGetMasterRoster();
+        const roster = await utilGetMasterRoster(userId);
         // logger.log('[masterRosterManager] Roster fetched by util:', roster);
         return roster;
     } catch (error) {
@@ -30,14 +31,16 @@ export const getMasterRoster = async (): Promise<Player[]> => {
  * Adds a new player to the master roster.
  * Calls the underlying async utility from masterRoster.ts.
  * @param {Omit<Player, 'id' | 'isGoalie' | 'receivedFairPlayCard'>} playerData Data for the new player.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns {Promise<Player | null>} The newly added player, or null if operation failed.
  */
 export const addPlayer = async (
-    playerData: Omit<Player, 'id' | 'isGoalie' | 'receivedFairPlayCard'>
+    playerData: Omit<Player, 'id' | 'isGoalie' | 'receivedFairPlayCard'>,
+    userId?: string
 ): Promise<Player | null> => {
     // logger.log('[masterRosterManager] addPlayer called with:', playerData);
     try {
-        const newPlayer = await utilAddPlayerToRoster(playerData);
+        const newPlayer = await utilAddPlayerToRoster(playerData, userId);
         // logger.log('[masterRosterManager] Player added by util:', newPlayer);
         return newPlayer;
     } catch (error) {
@@ -51,15 +54,17 @@ export const addPlayer = async (
  * Calls the underlying async utility from masterRoster.ts.
  * @param {string} playerId The ID of the player to update.
  * @param {Partial<Omit<Player, 'id'>>} updates An object containing the fields to update.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns {Promise<Player | null>} The updated player object, or null if player not found or save failed.
  */
 export const updatePlayer = async (
     playerId: string,
-    updates: Partial<Omit<Player, 'id'>>
+    updates: Partial<Omit<Player, 'id'>>,
+    userId?: string
 ): Promise<Player | null> => {
     logger.log('[masterRosterManager] updatePlayer called for ID:', playerId, 'with updates:', updates);
     try {
-        const updatedPlayer = await utilUpdatePlayerInRoster(playerId, updates);
+        const updatedPlayer = await utilUpdatePlayerInRoster(playerId, updates, userId);
         logger.log('[masterRosterManager] Player updated by util:', updatedPlayer);
         return updatedPlayer;
     } catch (error) {
@@ -72,12 +77,13 @@ export const updatePlayer = async (
  * Removes a player from the master roster.
  * Calls the underlying async utility from masterRoster.ts.
  * @param {string} playerId The ID of the player to remove.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns {Promise<boolean>} True if the player was successfully removed, false otherwise.
  */
-export const removePlayer = async (playerId: string): Promise<boolean> => {
+export const removePlayer = async (playerId: string, userId?: string): Promise<boolean> => {
     // logger.log('[masterRosterManager] removePlayer called for ID:', playerId);
     try {
-        const success = await utilRemovePlayerFromRoster(playerId);
+        const success = await utilRemovePlayerFromRoster(playerId, userId);
         // logger.log('[masterRosterManager] Player removal by util status:', success);
         return success;
     } catch (error) {
@@ -91,15 +97,17 @@ export const removePlayer = async (playerId: string): Promise<boolean> => {
  * Calls the underlying async utility from masterRoster.ts.
  * @param {string} playerId The ID of the player to update.
  * @param {boolean} isGoalie Whether the player should be marked as a goalie.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns {Promise<Player | null>} The updated player object, or null if player not found or operation failed.
  */
 export const setGoalieStatus = async (
     playerId: string,
-    isGoalie: boolean
+    isGoalie: boolean,
+    userId?: string
 ): Promise<Player | null> => {
     // logger.log('[masterRosterManager] setGoalieStatus called for ID:', playerId, 'to:', isGoalie);
     try {
-        const updatedPlayer = await utilSetPlayerGoalieStatus(playerId, isGoalie);
+        const updatedPlayer = await utilSetPlayerGoalieStatus(playerId, isGoalie, userId);
         // logger.log('[masterRosterManager] Goalie status updated by util:', updatedPlayer);
         return updatedPlayer;
     } catch (error) {
@@ -113,15 +121,17 @@ export const setGoalieStatus = async (
  * Calls the underlying async utility from masterRoster.ts.
  * @param {string} playerId The ID of the player to update.
  * @param {boolean} receivedFairPlayCard Whether the player has received the card.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns {Promise<Player | null>} The updated player object, or null if player not found or operation failed.
  */
 export const setFairPlayCardStatus = async (
     playerId: string,
-    receivedFairPlayCard: boolean
+    receivedFairPlayCard: boolean,
+    userId?: string
 ): Promise<Player | null> => {
     // logger.log('[masterRosterManager] setFairPlayCardStatus called for ID:', playerId, 'to:', receivedFairPlayCard);
     try {
-        const updatedPlayer = await utilSetPlayerFairPlayCardStatus(playerId, receivedFairPlayCard);
+        const updatedPlayer = await utilSetPlayerFairPlayCardStatus(playerId, receivedFairPlayCard, userId);
         // logger.log('[masterRosterManager] Fair play status updated by util:', updatedPlayer);
         return updatedPlayer;
     } catch (error) {

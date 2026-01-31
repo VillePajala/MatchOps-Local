@@ -36,6 +36,16 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
+// Mock useDataStore for user-scoped storage
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 // Import mocked functions
 import {
   addPlayer,

@@ -68,6 +68,7 @@ import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/util
 import { clearTimerState } from '@/utils/timerStateManager';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
+import { useDataStore } from '@/hooks/useDataStore';
 import logger from '@/utils/logger';
 
 /**
@@ -185,6 +186,8 @@ export function useGamePersistence({
   queryClient,
   handleCloseLoadGameModal,
 }: UseGamePersistenceParams): UseGamePersistenceReturn {
+  // --- User-Scoped Storage ---
+  const { userId } = useDataStore();
 
   // --- Load/Delete Game UI State ---
   const [isGameLoading, setIsGameLoading] = useState(false);
@@ -294,11 +297,11 @@ export function useGamePersistence({
         // Update savedGames state and storage
         const updatedSavedGames = { ...savedGames, [currentGameId]: currentSnapshot };
         setSavedGames(updatedSavedGames);
-        await utilSaveGame(currentGameId, currentSnapshot);
-        await utilSaveCurrentGameIdSetting(currentGameId);
+        await utilSaveGame(currentGameId, currentSnapshot, userId);
+        await utilSaveCurrentGameIdSetting(currentGameId, userId);
 
         // Invalidate React Query cache
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
         // Reset history to reflect saved state (clears undo/redo)
         resetHistory(currentSnapshot);
@@ -338,15 +341,15 @@ export function useGamePersistence({
       try {
         // Use createGame utility (DRY principle)
         // Note: currentSnapshot was already created at the start of handleQuickSaveGame
-        const { gameId: newGameId, gameData } = await utilCreateGame(currentSnapshot);
+        const { gameId: newGameId, gameData } = await utilCreateGame(currentSnapshot, userId);
 
         // Update local state
         setSavedGames(prev => ({ ...prev, [newGameId]: gameData }));
         setCurrentGameId(newGameId);
-        await utilSaveCurrentGameIdSetting(newGameId);
+        await utilSaveCurrentGameIdSetting(newGameId, userId);
 
         // Invalidate React Query cache
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
         // Reset history to new game state
         resetHistory(gameData);
@@ -395,6 +398,7 @@ export function useGamePersistence({
     resetHistory,
     showToast,
     t,
+    userId,
   ]);
 
   // --- Auto-Save Function Ref ---
@@ -503,7 +507,7 @@ export function useGamePersistence({
 
     // Clear any existing timer state before loading a new game
     // Note: clearTimerState() handles errors internally (non-critical), so no try/catch needed
-    await clearTimerState();
+    await clearTimerState(userId);
 
     setProcessingGameId(gameId);
     setIsGameLoading(true);
@@ -523,7 +527,7 @@ export function useGamePersistence({
 
         // Update current game ID and save settings
         setCurrentGameId(gameId);
-        await utilSaveCurrentGameIdSetting(gameId);
+        await utilSaveCurrentGameIdSetting(gameId, userId);
 
         logger.log(`Game ${gameId} load dispatched to reducer.`);
         handleCloseLoadGameModal();
@@ -548,6 +552,7 @@ export function useGamePersistence({
     loadGameStateFromData,
     handleCloseLoadGameModal,
     t,
+    userId,
   ]);
 
   // --- Delete Game Handler ---
@@ -573,7 +578,7 @@ export function useGamePersistence({
     setProcessingGameId(gameId);
 
     try {
-      const deletedGameId = await utilDeleteGame(gameId);
+      const deletedGameId = await utilDeleteGame(gameId, userId);
 
       if (deletedGameId) {
         const updatedSavedGames = { ...savedGames };
@@ -585,7 +590,7 @@ export function useGamePersistence({
 
         // Batch all state updates together to prevent flicker
         // React 18+ batches synchronous setState calls in the same event handler
-        queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, updatedSavedGames);
+        queryClient.setQueryData<SavedGamesCollection>([...queryKeys.savedGames, userId], updatedSavedGames);
         setSavedGames(updatedSavedGames);
 
         if (needsNewCurrentGame) {
@@ -607,7 +612,7 @@ export function useGamePersistence({
 
         // Persist currentGameId setting AFTER state updates (async, non-blocking)
         if (needsNewCurrentGame) {
-          await utilSaveCurrentGameIdSetting(nextGameId || DEFAULT_GAME_ID);
+          await utilSaveCurrentGameIdSetting(nextGameId || DEFAULT_GAME_ID, userId);
         }
       } else {
         logger.warn(`handleDeleteGame: utilDeleteGame returned null for gameId: ${gameId}. Game might not have been found or ID was invalid.`);
@@ -632,6 +637,7 @@ export function useGamePersistence({
     resetHistory,
     queryClient,
     t,
+    userId,
   ]);
 
   // --- Delete Game Event Handler ---
@@ -662,7 +668,7 @@ export function useGamePersistence({
       // Storage FIRST - remove from storage using the index we already found
 
       // Remove from storage
-      const updatedGame = await removeGameEvent(currentGameId, eventIndex);
+      const updatedGame = await removeGameEvent(currentGameId, eventIndex, userId);
 
       if (!updatedGame) {
         logger.error("Failed to remove event from storage:", goalId);
@@ -677,7 +683,7 @@ export function useGamePersistence({
       });
 
       // Invalidate cache to trigger re-fetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
       logger.log("Deleted game event successfully (storage then state):", goalId);
       return true;
@@ -685,7 +691,7 @@ export function useGamePersistence({
       logger.error("Failed to delete game event:", error);
       return false;
     }
-  }, [gameSessionState.gameEvents, currentGameId, queryClient, dispatchGameSession]);
+  }, [gameSessionState.gameEvents, currentGameId, queryClient, dispatchGameSession, userId]);
 
   return {
     // Load game state

@@ -11,11 +11,12 @@ import { getDataStore } from '@/datastore';
 /**
  * Retrieves the master roster of players from IndexedDB.
  * DataStore handles initialization and storage access.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns An array of Player objects.
  */
-export const getMasterRoster = async (): Promise<Player[]> => {
+export const getMasterRoster = async (userId?: string): Promise<Player[]> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getPlayers();
   } catch (error) {
     logger.error('[getMasterRoster] Error getting master roster:', error);
@@ -56,6 +57,7 @@ export const saveMasterRoster = async (players: Player[]): Promise<boolean> => {
  * gracefully rather than expecting exceptions.
  *
  * @param playerData - The player data to add. Must contain at least a name.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns The new Player object with generated ID, or null if operation failed.
  */
 export const addPlayerToRoster = async (playerData: {
@@ -63,7 +65,7 @@ export const addPlayerToRoster = async (playerData: {
   nickname?: string;
   jerseyNumber?: string;
   notes?: string;
-}): Promise<Player | null> => {
+}, userId?: string): Promise<Player | null> => {
   const trimmedName = playerData.name?.trim();
   if (!trimmedName) {
     logger.warn('[addPlayerToRoster] Validation Failed: Player name cannot be empty.');
@@ -71,7 +73,7 @@ export const addPlayerToRoster = async (playerData: {
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const newPlayer = await dataStore.createPlayer({
       name: trimmedName,
       nickname: playerData.nickname,
@@ -95,11 +97,13 @@ export const addPlayerToRoster = async (playerData: {
  * DataStore handles validation and storage.
  * @param playerId - The ID of the player to update.
  * @param updateData - The player data to update.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns The updated Player object, or null if player not found or operation failed.
  */
 export const updatePlayerInRoster = async (
   playerId: string,
-  updateData: Partial<Omit<Player, 'id'>>
+  updateData: Partial<Omit<Player, 'id'>>,
+  userId?: string
 ): Promise<Player | null> => {
   if (!playerId) {
     logger.error('[updatePlayerInRoster] Validation Failed: Player ID cannot be empty.');
@@ -117,7 +121,7 @@ export const updatePlayerInRoster = async (
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const updatedPlayer = await dataStore.updatePlayer(playerId, updateData);
 
     if (!updatedPlayer) {
@@ -140,16 +144,17 @@ export const updatePlayerInRoster = async (
  * Removes a player from the master roster.
  * DataStore handles storage and atomicity.
  * @param playerId - The ID of the player to remove.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns True if player was successfully removed, false otherwise.
  */
-export const removePlayerFromRoster = async (playerId: string): Promise<boolean> => {
+export const removePlayerFromRoster = async (playerId: string, userId?: string): Promise<boolean> => {
   if (!playerId) {
     logger.error('[removePlayerFromRoster] Validation Failed: Player ID cannot be empty.');
     return false;
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const deleted = await dataStore.deletePlayer(playerId);
 
     if (!deleted) {
@@ -184,11 +189,13 @@ export const removePlayerFromRoster = async (playerId: string): Promise<boolean>
  *
  * @param playerId - The ID of the player to update.
  * @param isGoalie - Whether the player should be marked as a goalie.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns The updated Player object, or null if player not found or operation failed.
  */
 export const setPlayerGoalieStatus = async (
   playerId: string,
-  isGoalie: boolean
+  isGoalie: boolean,
+  userId?: string
 ): Promise<Player | null> => {
   if (!playerId) {
     logger.error('[setPlayerGoalieStatus] Validation Failed: Player ID cannot be empty.');
@@ -196,7 +203,7 @@ export const setPlayerGoalieStatus = async (
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const currentRoster = await dataStore.getPlayers();
 
     // Check if target player exists
@@ -245,11 +252,13 @@ export const setPlayerGoalieStatus = async (
  * Delegates to updatePlayerInRoster which routes through DataStore.
  * @param playerId - The ID of the player to update.
  * @param receivedFairPlayCard - Whether the player should be marked as having received the fair play card.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns The updated Player object, or null if player not found or operation failed.
  */
 export const setPlayerFairPlayCardStatus = async (
   playerId: string,
-  receivedFairPlayCard: boolean
+  receivedFairPlayCard: boolean,
+  userId?: string
 ): Promise<Player | null> => {
-  return updatePlayerInRoster(playerId, { receivedFairPlayCard });
+  return updatePlayerInRoster(playerId, { receivedFairPlayCard }, userId);
 }; 

@@ -38,6 +38,15 @@ jest.mock('@/hooks/usePremium', () => ({
   }),
 }));
 
+// Mock useDataStore for user-scoped storage
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: 'test-user-123',
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 const mockMutation = () => ({
   mutate: jest.fn(),
   isPending: false,
