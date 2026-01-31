@@ -174,6 +174,36 @@ ORDER BY tc.table_name;
 -- EXPECTED: All 13 tables should show "user_id, id" (or "user_id, game_id" for game_tactical_data)
 
 -- ============================================================================
+-- TEST 6: RLS Policy Compatibility
+-- ============================================================================
+-- Verify RLS policies still work with composite PKs (they should - RLS is independent)
+
+-- 6a. Verify RLS is enabled on all 13 tables with composite PKs
+SELECT tablename, rowsecurity
+FROM pg_tables
+WHERE schemaname = 'public'
+  AND tablename IN (
+    'players', 'teams', 'seasons', 'tournaments', 'personnel', 'games',
+    'game_events', 'game_players', 'game_tactical_data', 'player_assessments',
+    'player_adjustments', 'warmup_plans', 'team_players'
+  )
+ORDER BY tablename;
+-- EXPECTED: All 13 tables show rowsecurity = true
+
+-- 6b. Verify RLS policies exist and use correct pattern
+SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND tablename IN (
+    'players', 'teams', 'seasons', 'tournaments', 'personnel', 'games',
+    'game_events', 'game_players', 'game_tactical_data', 'player_assessments',
+    'player_adjustments', 'warmup_plans', 'team_players'
+  )
+ORDER BY tablename;
+-- EXPECTED: All policies show qual containing "auth.uid() = user_id"
+-- RLS uses user_id COLUMN, not primary key, so composite PK change doesn't affect it
+
+-- ============================================================================
 -- CLEANUP: Remove test data
 -- ============================================================================
 
@@ -196,6 +226,7 @@ SELECT 'games', COUNT(*) FROM games WHERE id LIKE 'test_%';
 --   ✅ Foreign key cascades work correctly
 --   ✅ User isolation is enforced in RPC function
 --   ✅ Nullable foreign keys work with NOT VALID
+--   ✅ RLS policies compatible with composite PKs
 --   ✅ Safe to proceed to production deployment
 --
 -- If any test fails:
