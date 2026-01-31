@@ -990,12 +990,9 @@ export class LocalDataStore implements DataStore {
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
 
-    const rostersIndex = await this.loadTeamRosters();
-    rostersIndex[teamId] = roster;
-    await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
-
-    // Update parent Team's updatedAt for conflict resolution
-    // This ensures roster changes have their own timestamp for last-write-wins
+    // Update parent Team's updatedAt FIRST for conflict resolution
+    // Order matters: if crash occurs between operations, timestamp is already
+    // updated so subsequent syncs will detect the change. Roster can be retried.
     // Uses withKeyLock to prevent race conditions with other team operations
     await withKeyLock(TEAMS_INDEX_KEY, async () => {
       const teamsIndex = await this.loadTeamsIndex();
@@ -1005,8 +1002,17 @@ export class LocalDataStore implements DataStore {
           updatedAt: new Date().toISOString(),
         };
         await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      } else {
+        // Team not found - will still save roster but log warning
+        // This could indicate orphaned roster data or race condition during team creation
+        logger.warn('[LocalDataStore] Cannot update roster timestamp - team not found', { teamId });
       }
     });
+
+    // Then update the roster
+    const rostersIndex = await this.loadTeamRosters();
+    rostersIndex[teamId] = roster;
+    await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
   }
 
   /**
@@ -2078,7 +2084,12 @@ export class LocalDataStore implements DataStore {
       }
 
       // Preserve cloud timestamp if present (cloud-wins scenario), otherwise generate new
-      const updated = { ...current, ...updates, updatedAt: updates.updatedAt ?? new Date().toISOString() };
+      // Handle explicit undefined: fall back to current.updatedAt, then to now
+      const updated = {
+        ...current,
+        ...updates,
+        updatedAt: updates.updatedAt ?? current.updatedAt ?? new Date().toISOString(),
+      };
 
       // Remove legacy fields before saving
       const toSave = this.removeLegacyMonthFields(updated);

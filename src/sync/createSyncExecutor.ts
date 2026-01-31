@@ -624,7 +624,11 @@ function createCloudFetcher(cloudStore: DataStore): CloudRecordFetcher {
             return null;
           }
 
-          // Fallback: scan all adjustments (expensive but rare)
+          // Fallback: scan all adjustments (expensive O(n*m) - log for diagnostics)
+          logger.warn('[SyncExecutor] PlayerAdjustment fetch: missing playerId context, using slow scan', {
+            entityId,
+            hasContext: context !== null && context !== undefined,
+          });
           const allAdjustments = await cloudStore.getAllPlayerAdjustments();
           for (const [_playerId, adjustments] of allAdjustments) {
             const adj = adjustments.find(a => a.id === entityId);
@@ -645,8 +649,12 @@ function createCloudFetcher(cloudStore: DataStore): CloudRecordFetcher {
           return {
             ...plan,
             id: 'default',
-            // WarmupPlan uses lastModified instead of updatedAt
-            updatedAt: plan.lastModified ?? EPOCH_TIMESTAMP,
+            // WarmupPlan timestamp transition:
+            // - Legacy: lastModified (still populated for backwards compatibility)
+            // - New: updatedAt (added for consistency with other entities)
+            // Both are set to same value by normalizeWarmupPlanForSave()
+            // Prefer updatedAt if present, fall back to lastModified
+            updatedAt: plan.updatedAt ?? plan.lastModified ?? EPOCH_TIMESTAMP,
           };
         }
 
@@ -784,7 +792,7 @@ function createCloudDeleter(cloudStore: DataStore): CloudRecordDeleter {
             hasContext: context !== null && context !== undefined,
           });
           throw new SyncError(
-            SyncErrorCode.INVALID_OPERATION,
+            SyncErrorCode.INVALID_DATA,
             `Cannot delete player adjustment ${entityId}: playerId not provided in context`
           );
         }

@@ -2036,6 +2036,22 @@ describe('LocalDataStore', () => {
         expect(result.updatedAt! <= afterUpdate).toBe(true);
       });
 
+      it('should preserve existing updatedAt when updates contains explicit undefined', async () => {
+        // Scenario: Caller passes { language: 'fi', updatedAt: undefined }
+        // This can happen with spread operators that include undefined values
+        const existingTimestamp = '2026-01-01T00:00:00.000Z';
+        const existing = { ...mockSettings, updatedAt: existingTimestamp };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(existing));
+
+        const result = await dataStore.updateSettings({
+          language: 'fi',
+          updatedAt: undefined, // Explicitly undefined
+        });
+
+        // Should preserve existing timestamp, not generate new one
+        expect(result.updatedAt).toBe(existingTimestamp);
+      });
+
       it('should handle concurrent updateSettings calls safely', async () => {
         // Track storage state with a variable for proper concurrent simulation
         let storedValue = JSON.stringify({

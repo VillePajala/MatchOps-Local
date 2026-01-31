@@ -115,10 +115,24 @@ export interface ResolutionResult {
  * - Both deleted: No conflict (both agree on deletion)
  * - Same timestamp: Local wins (user's most recent action takes priority)
  *
- * Concurrency Note:
- * There is a race window between fetch and write/delete where another client
- * could update cloud. For local-first PWA with single device per user, this
- * is acceptable. Multi-device scenarios may see last-write-wins behavior.
+ * ## Concurrency Note (Multi-Device Sync)
+ *
+ * There is a race window between fetch and write/delete where another device
+ * could update cloud. This is handled via last-write-wins semantics:
+ *
+ * - Single device: No race conditions (typical case)
+ * - Multi-device with coordination: Users typically don't edit same data
+ *   simultaneously on multiple devices
+ * - Multi-device conflict: Last write wins based on timestamp; data is not
+ *   lost (exists on the device that "lost"), just not synced
+ *
+ * For truly concurrent multi-device editing of the same entity, consider:
+ * - PostgreSQL row-level locking via RPC (performance cost)
+ * - Optimistic locking with version fields (complexity cost)
+ * - Operational Transform / CRDTs (significant complexity)
+ *
+ * Current approach is appropriate for coaching app where users rarely edit
+ * the same player/game simultaneously on multiple devices.
  */
 export class ConflictResolver {
   private fetchFromCloud: CloudRecordFetcher;
