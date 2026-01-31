@@ -2241,7 +2241,7 @@
     "subscriptionRequiredDescription": "Tilisi on aktiivinen, mutta pilvisynkronointi on tauolla. Tilaa synkronoidaksesi tiedot laitteiden välillä.",
     "subscribeButton": "Tilaa nyt",
     "notAvailable": "Pilvisynkronointi ei ole käytettävissä. Tämä ominaisuus vaatii premium-tilauksen ja palvelimen määrityksen.",
-    "notConfigured": "Pilvisynkronointia ei ole määritetty. Ota yhteyttä tukeen.",
+    "notConfigured": "Pilvisynkronointia ei ole määritetty. Yritä myöhemmin uudelleen.",
     "enableButton": "Ota pilvisynkronointi käyttöön",
     "disableButton": "Vaihda paikalliseen tilaan",
     "enabling": "Otetaan käyttöön...",
@@ -2446,7 +2446,7 @@
       "description": "Siirron aikana tapahtui virhe. Tietojasi ei ole muutettu.",
       "retry": "Yritä uudelleen",
       "retryIn": "Yritä uudelleen ({{seconds}}s)",
-      "maxRetries": "Uudelleenyritysraja saavutettu. Yritä myöhemmin uudelleen tai ota yhteyttä tukeen.",
+      "maxRetries": "Uudelleenyritysraja saavutettu. Yritä myöhemmin uudelleen.",
       "cancel": "Peruuta"
     },
     "buttons": {
@@ -2514,7 +2514,10 @@
     "gameDataNotFound": "Virhe: Pelitietoja ei löytynyt pelille {{gameId}}",
     "legacyDataMigrated_one": "Tietosi on siirretty tilillesi ({{count}} kohde)",
     "legacyDataMigrated_other": "Tietosi on siirretty tilillesi ({{count}} kohdetta)",
-    "legacyMigrationFailed": "Tietojesi siirto epäonnistui. Ota yhteyttä tukeen, jos ongelma jatkuu."
+    "legacyMigrationFailed": "Tietojesi siirto epäonnistui. Yritä myöhemmin uudelleen.",
+    "dataLoadedFromCloud": "Tietosi on ladattu pilvestä.",
+    "failedToLoadCloudData": "Pilvitietojen lataus epäonnistui. Kokeile päivittää sivu.",
+    "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen."
   },
   "positions": {
     "GK": "GK",

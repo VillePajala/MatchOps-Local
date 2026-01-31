@@ -27,6 +27,53 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 
 // =============================================================================
+// TIMESTAMP COMPARISON HELPERS
+// =============================================================================
+
+/**
+ * Compare two ISO timestamps and determine if source is newer than destination.
+ * Used for timestamp-based conflict resolution (newer version wins).
+ *
+ * @param sourceTimestamp - ISO timestamp of the source entity (e.g., from cloud)
+ * @param destTimestamp - ISO timestamp of the destination entity (e.g., from local)
+ * @returns true if source is newer than dest, false otherwise
+ */
+function isNewer(sourceTimestamp: string | undefined, destTimestamp: string | undefined): boolean {
+  // If source has no timestamp, it's not newer
+  if (!sourceTimestamp) return false;
+  // If dest has no timestamp, source is considered newer
+  if (!destTimestamp) return true;
+
+  const sourceTime = new Date(sourceTimestamp).getTime();
+  const destTime = new Date(destTimestamp).getTime();
+
+  // Handle invalid dates
+  if (isNaN(sourceTime)) return false;
+  if (isNaN(destTime)) return true;
+
+  return sourceTime > destTime;
+}
+
+/**
+ * Check if an entity should be written based on timestamp comparison.
+ * Returns true if:
+ * - Destination doesn't exist (existingTimestamp is undefined)
+ * - Source is newer than destination
+ *
+ * @param sourceTimestamp - ISO timestamp of the source entity
+ * @param existingTimestamp - ISO timestamp of the existing destination entity, or undefined if not exists
+ */
+function shouldWriteBasedOnTimestamp(
+  sourceTimestamp: string | undefined,
+  existingTimestamp: string | undefined
+): boolean {
+  // If destination doesn't exist, always write
+  if (!existingTimestamp) return true;
+  // Otherwise, only write if source is newer
+  return isNewer(sourceTimestamp, existingTimestamp);
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -1206,6 +1253,292 @@ export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
       await cloudStore.close();
     } catch (e) {
       logger.warn('[ReverseMigrationService] Error closing cloudStore in getCloudDataSummary:', e);
+    }
+  }
+}
+
+// =============================================================================
+// HYDRATION FUNCTION (for initial sync in cloud mode)
+// =============================================================================
+
+/**
+ * Result of hydration operation.
+ */
+export interface HydrationResult {
+  success: boolean;
+  counts: ReverseMigrationCounts;
+  errors: string[];
+}
+
+/**
+ * Hydrate local storage from cloud data.
+ *
+ * This is used when a user signs in to cloud mode but has no local data.
+ * Unlike migrateCloudToLocal, this function:
+ * - Does NOT switch modes (stays in cloud mode)
+ * - Does NOT delete cloud data
+ * - Is designed for initial seeding of local storage in local-first sync
+ *
+ * @param userId - The authenticated user's ID (for user-scoped storage)
+ * @param onProgress - Optional callback for progress updates
+ * @returns HydrationResult with counts of imported entities
+ */
+export async function hydrateLocalFromCloud(
+  userId: string,
+  onProgress?: (message: string, progress: number) => void
+): Promise<HydrationResult> {
+  const errors: string[] = [];
+  let cloudStore: SupabaseDataStore | null = null;
+  let localStore: LocalDataStore | null = null;
+
+  const safeProgress = (message: string, progress: number) => {
+    try {
+      onProgress?.(message, progress);
+    } catch {
+      // Progress callback error is non-fatal
+    }
+  };
+
+  const counts: ReverseMigrationCounts = {
+    players: 0,
+    teams: 0,
+    teamRosters: 0,
+    seasons: 0,
+    tournaments: 0,
+    games: 0,
+    personnel: 0,
+    playerAdjustments: 0,
+    warmupPlan: false,
+    settings: false,
+  };
+
+  logger.info('[ReverseMigrationService] Starting hydration from cloud', { userId });
+  safeProgress('Connecting to cloud...', 0);
+
+  try {
+    // Initialize stores
+    cloudStore = new SupabaseDataStore();
+    await cloudStore.initialize();
+
+    localStore = new LocalDataStore(userId);
+    await localStore.initialize();
+
+    safeProgress('Downloading data from cloud...', 10);
+
+    // Download all cloud data
+    const cloudData = {
+      players: await cloudStore.getPlayers(),
+      teams: await cloudStore.getTeams(true),
+      seasons: await cloudStore.getSeasons(true),
+      tournaments: await cloudStore.getTournaments(true),
+      personnel: await cloudStore.getAllPersonnel(),
+      games: await cloudStore.getGames(),
+      warmupPlan: await cloudStore.getWarmupPlan(),
+      settings: await cloudStore.getSettings(),
+      teamRosters: new Map<string, TeamPlayer[]>(),
+      playerAdjustments: new Map<string, PlayerStatAdjustment[]>(),
+    };
+
+    // Download team rosters
+    for (const team of cloudData.teams) {
+      const roster = await cloudStore.getTeamRoster(team.id);
+      cloudData.teamRosters.set(team.id, roster);
+    }
+
+    // Download player adjustments
+    for (const player of cloudData.players) {
+      const adjustments = await cloudStore.getPlayerAdjustments(player.id);
+      if (adjustments.length > 0) {
+        cloudData.playerAdjustments.set(player.id, adjustments);
+      }
+    }
+
+    safeProgress('Saving to local storage...', 40);
+
+    // Save players
+    for (const player of cloudData.players) {
+      try {
+        await localStore.upsertPlayer(player);
+        counts.players++;
+      } catch (err) {
+        const msg = `Failed to save player ${player.name}: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+    safeProgress('Saving players...', 50);
+
+    // Save teams (with timestamp-based conflict resolution)
+    // Teams have updatedAt, so we only overwrite if cloud is newer
+    const existingTeams = await localStore.getTeams(true);
+    const existingTeamMap = new Map(existingTeams.map(t => [t.id, t]));
+
+    for (const team of cloudData.teams) {
+      try {
+        const existingTeam = existingTeamMap.get(team.id);
+        if (shouldWriteBasedOnTimestamp(team.updatedAt, existingTeam?.updatedAt)) {
+          await localStore.upsertTeam(team);
+          counts.teams++;
+        } else {
+          logger.debug('[ReverseMigrationService] Skipping team (local is newer)', {
+            teamId: team.id,
+            cloudUpdatedAt: team.updatedAt,
+            localUpdatedAt: existingTeam?.updatedAt,
+          });
+        }
+      } catch (err) {
+        const msg = `Failed to save team ${team.name}: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+
+    // Save team rosters
+    for (const [teamId, roster] of cloudData.teamRosters) {
+      try {
+        await localStore.setTeamRoster(teamId, roster);
+        counts.teamRosters += roster.length;
+      } catch (err) {
+        const msg = `Failed to save team roster for ${teamId}: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+    safeProgress('Saving teams...', 55);
+
+    // Save seasons
+    for (const season of cloudData.seasons) {
+      try {
+        await localStore.upsertSeason(season);
+        counts.seasons++;
+      } catch (err) {
+        const msg = `Failed to save season ${season.name}: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+
+    // Save tournaments
+    for (const tournament of cloudData.tournaments) {
+      try {
+        await localStore.upsertTournament(tournament);
+        counts.tournaments++;
+      } catch (err) {
+        const msg = `Failed to save tournament ${tournament.name}: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+    safeProgress('Saving seasons and tournaments...', 60);
+
+    // Save personnel (with timestamp-based conflict resolution)
+    // Personnel have updatedAt, so we only overwrite if cloud is newer
+    const existingPersonnel = await localStore.getAllPersonnel();
+    const existingPersonnelMap = new Map(existingPersonnel.map(p => [p.id, p]));
+
+    for (const person of cloudData.personnel) {
+      try {
+        const existingPerson = existingPersonnelMap.get(person.id);
+        if (shouldWriteBasedOnTimestamp(person.updatedAt, existingPerson?.updatedAt)) {
+          await localStore.upsertPersonnelMember(person);
+          counts.personnel++;
+        } else {
+          logger.debug('[ReverseMigrationService] Skipping personnel (local is newer)', {
+            personnelId: person.id,
+            cloudUpdatedAt: person.updatedAt,
+            localUpdatedAt: existingPerson?.updatedAt,
+          });
+        }
+      } catch (err) {
+        const msg = `Failed to save personnel ${person.name}: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+    safeProgress('Saving personnel...', 65);
+
+    // Save games (largest data set, likely)
+    const gameEntries = Object.entries(cloudData.games);
+    for (let i = 0; i < gameEntries.length; i++) {
+      const [gameId, game] = gameEntries[i];
+      try {
+        await localStore.saveGame(gameId, game);
+        counts.games++;
+        // Progress updates for games (65-90%)
+        const gameProgress = 65 + Math.floor((i / gameEntries.length) * 25);
+        safeProgress(`Saving games... (${i + 1}/${gameEntries.length})`, gameProgress);
+      } catch (err) {
+        const msg = `Failed to save game ${gameId}: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+
+    // Save player adjustments
+    for (const [playerId, adjustments] of cloudData.playerAdjustments) {
+      for (const adj of adjustments) {
+        try {
+          await localStore.upsertPlayerAdjustment(adj);
+          counts.playerAdjustments++;
+        } catch (err) {
+          const msg = `Failed to save adjustment for player ${playerId}: ${err instanceof Error ? err.message : 'Unknown error'}`;
+          logger.error('[ReverseMigrationService] ' + msg);
+          errors.push(msg);
+        }
+      }
+    }
+    safeProgress('Saving adjustments...', 92);
+
+    // Save warmup plan
+    if (cloudData.warmupPlan) {
+      try {
+        await localStore.saveWarmupPlan(cloudData.warmupPlan);
+        counts.warmupPlan = true;
+      } catch (err) {
+        const msg = `Failed to save warmup plan: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+
+    // Save settings
+    if (cloudData.settings) {
+      try {
+        await localStore.saveSettings(cloudData.settings);
+        counts.settings = true;
+      } catch (err) {
+        const msg = `Failed to save settings: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        logger.error('[ReverseMigrationService] ' + msg);
+        errors.push(msg);
+      }
+    }
+    safeProgress('Finalizing...', 98);
+
+    const success = errors.length === 0;
+    logger.info('[ReverseMigrationService] Hydration complete', {
+      success,
+      counts,
+      errorCount: errors.length,
+    });
+    safeProgress('Complete', 100);
+
+    return { success, counts, errors };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('[ReverseMigrationService] Hydration failed:', error);
+    errors.push(`Hydration failed: ${errorMsg}`);
+    return { success: false, counts, errors };
+  } finally {
+    // Clean up stores
+    try {
+      if (cloudStore) await cloudStore.close();
+    } catch (e) {
+      logger.warn('[ReverseMigrationService] Error closing cloudStore during hydration:', e);
+    }
+    try {
+      if (localStore) await localStore.close();
+    } catch (e) {
+      logger.warn('[ReverseMigrationService] Error closing localStore during hydration:', e);
     }
   }
 }

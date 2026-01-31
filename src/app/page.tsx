@@ -35,7 +35,7 @@ import {
   clearPendingPostLoginCheck,
 } from '@/config/backendConfig';
 import { hasLocalDataToMigrate } from '@/services/migrationService';
-import { hasCloudData } from '@/services/reverseMigrationService';
+import { hasCloudData, hydrateLocalFromCloud } from '@/services/reverseMigrationService';
 import { migrateLegacyData } from '@/services/legacyMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
@@ -530,12 +530,30 @@ export default function Home() {
             );
             setMigrationCompleted(userId);
           } else if (cloudResult.hasData) {
-            // Cloud has data - trigger refetch to load it into the app
+            // Cloud has data but local is empty - hydrate local storage from cloud
             // This handles the "new device login" scenario where user has
-            // cloud data but empty local device
-            logger.info('[page.tsx] Cloud has data, triggering refetch to load data');
-            await queryClient.refetchQueries();
-            setRefreshTrigger(prev => prev + 1);
+            // cloud data but empty local device. We must download cloud data
+            // to local storage first, then refetch queries to update UI.
+            logger.info('[page.tsx] Cloud has data, hydrating local storage from cloud...');
+            const hydrationResult = await hydrateLocalFromCloud(userId);
+
+            if (hydrationResult.success) {
+              logger.info('[page.tsx] Hydration successful, refreshing queries', {
+                counts: hydrationResult.counts,
+              });
+              await queryClient.refetchQueries();
+              setRefreshTrigger(prev => prev + 1);
+              showToast(
+                t('page.dataLoadedFromCloud', 'Your data has been loaded from the cloud.'),
+                'success'
+              );
+            } else {
+              logger.error('[page.tsx] Hydration failed', { errors: hydrationResult.errors });
+              showToast(
+                t('page.failedToLoadCloudData', 'Failed to load your cloud data. Please try refreshing.'),
+                'error'
+              );
+            }
             setMigrationCompleted(userId);
           } else {
             // Both local and cloud are empty - nothing to migrate now
@@ -649,13 +667,39 @@ export default function Home() {
       logger.warn('[page.tsx] Factory reset failed, continuing with cache invalidation', { error });
     }
 
-    // CRITICAL: Refetch ALL React Query queries to load fresh data from cloud
+    // After migration completes (local → cloud sync), we need to pull any
+    // cloud data that wasn't in local. This handles the scenario where:
+    // - User had local data (e.g., 5 games from testing)
+    // - User also had cloud data (e.g., 81 games from another device)
+    // - Migration pushed local → cloud (now cloud has 86 games)
+    // - But local still only has 5 games!
+    // Hydration pulls cloud → local so local has all 86 games
+    if (userId) {
+      logger.info('[page.tsx] Hydrating local from cloud after migration...');
+      const hydrationResult = await hydrateLocalFromCloud(userId);
+      if (hydrationResult.success) {
+        logger.info('[page.tsx] Post-migration hydration successful', {
+          counts: hydrationResult.counts,
+        });
+      } else {
+        logger.warn('[page.tsx] Post-migration hydration failed', {
+          errors: hydrationResult.errors,
+        });
+        // Non-fatal: user can refresh to retry
+        showToast(
+          t('page.partialSyncComplete', 'Sync complete. Some cloud data may not have loaded - refresh to retry.'),
+          'info'
+        );
+      }
+    }
+
+    // CRITICAL: Refetch ALL React Query queries to load fresh data
     // invalidateQueries() only marks as stale; refetchQueries() forces immediate refetch
     // Without this, the app shows stale/empty data until user manually reloads
     await queryClient.refetchQueries();
     // Also trigger state refresh
     setRefreshTrigger(prev => prev + 1);
-  }, [userId, queryClient]);
+  }, [userId, queryClient, showToast, t]);
 
   // Handle migration wizard cancel - return to local mode
   const handleMigrationCancel = useCallback(() => {
