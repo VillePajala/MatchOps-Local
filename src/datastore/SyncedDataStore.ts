@@ -128,7 +128,16 @@ export class SyncedDataStore implements DataStore {
     // Close local store
     await this.localStore.close();
 
-    // Close sync queue
+    // CRITICAL: Clear the sync queue before closing to prevent stale operations
+    // from being processed when a new user signs in. Without this, operations
+    // queued by User A would be processed when User B signs in, causing:
+    // 1. Auth errors (getSession() returns null or different user's session)
+    // 2. Potential data leakage (User A's data synced to User B's cloud storage)
+    // 3. "Cannot close DataStore: X pending sync operation(s)" blocking user transitions
+    // See: MATCHOPS-LOCAL-23 (186+ settings sync failures)
+    await this.syncQueue.clear();
+
+    // Close sync queue (releases IndexedDB connection)
     await this.syncQueue.close();
 
     this.initialized = false;
