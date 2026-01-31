@@ -428,6 +428,189 @@ describe('isAutoResolvableConflict', () => {
   });
 });
 
+describe('Context Parameter for Efficient Lookups', () => {
+  let mockFetchFromCloud: jest.Mock;
+  let mockWriteToCloud: jest.Mock;
+  let mockDeleteFromCloud: jest.Mock;
+  let mockWriteToLocal: jest.Mock;
+  let resolver: ConflictResolver;
+
+  const NOW = 1700000000000;
+
+  beforeEach(() => {
+    mockFetchFromCloud = jest.fn();
+    mockWriteToCloud = jest.fn().mockResolvedValue(undefined);
+    mockDeleteFromCloud = jest.fn().mockResolvedValue(undefined);
+    mockWriteToLocal = jest.fn().mockResolvedValue(undefined);
+
+    resolver = new ConflictResolver({
+      fetchFromCloud: mockFetchFromCloud,
+      writeToCloud: mockWriteToCloud,
+      deleteFromCloud: mockDeleteFromCloud,
+      writeToLocal: mockWriteToLocal,
+    });
+  });
+
+  it('should pass context (op.data) to fetchFromCloud', async () => {
+    const contextData = { id: 'adj-1', playerId: 'player-123' };
+    const op: SyncOperation = {
+      id: 'op-1',
+      entityType: 'playerAdjustment',
+      entityId: 'adj-1',
+      operation: 'update',
+      data: contextData,
+      timestamp: NOW,
+      status: 'syncing',
+      retryCount: 0,
+      maxRetries: 10,
+      createdAt: NOW,
+    };
+
+    const cloudRecord: CloudRecord = {
+      id: 'adj-1',
+      updatedAt: new Date(NOW - 1000).toISOString(),
+    };
+    mockFetchFromCloud.mockResolvedValue(cloudRecord);
+
+    await resolver.resolve(op);
+
+    // Verify context was passed as third argument
+    expect(mockFetchFromCloud).toHaveBeenCalledWith(
+      'playerAdjustment',
+      'adj-1',
+      contextData // context is the operation data
+    );
+  });
+
+  it('should work correctly without context (backwards compatibility)', async () => {
+    const op: SyncOperation = {
+      id: 'op-1',
+      entityType: 'player',
+      entityId: 'player-1',
+      operation: 'create',
+      data: null, // No data
+      timestamp: NOW,
+      status: 'syncing',
+      retryCount: 0,
+      maxRetries: 10,
+      createdAt: NOW,
+    };
+
+    mockFetchFromCloud.mockResolvedValue(null);
+
+    const result = await resolver.resolve(op);
+
+    expect(result.resolution.winner).toBe('local');
+    expect(mockFetchFromCloud).toHaveBeenCalledWith('player', 'player-1', null);
+  });
+});
+
+describe('Epoch Timestamp Edge Cases', () => {
+  let mockFetchFromCloud: jest.Mock;
+  let mockWriteToCloud: jest.Mock;
+  let mockDeleteFromCloud: jest.Mock;
+  let mockWriteToLocal: jest.Mock;
+  let resolver: ConflictResolver;
+
+  const NOW = 1700000000000;
+  const EPOCH = new Date(0).toISOString(); // 1970-01-01
+
+  beforeEach(() => {
+    mockFetchFromCloud = jest.fn();
+    mockWriteToCloud = jest.fn().mockResolvedValue(undefined);
+    mockDeleteFromCloud = jest.fn().mockResolvedValue(undefined);
+    mockWriteToLocal = jest.fn().mockResolvedValue(undefined);
+
+    resolver = new ConflictResolver({
+      fetchFromCloud: mockFetchFromCloud,
+      writeToCloud: mockWriteToCloud,
+      deleteFromCloud: mockDeleteFromCloud,
+      writeToLocal: mockWriteToLocal,
+    });
+  });
+
+  it('should let local win when cloud has epoch timestamp (no updatedAt)', async () => {
+    const op: SyncOperation = {
+      id: 'op-1',
+      entityType: 'settings',
+      entityId: 'app',
+      operation: 'update',
+      data: { currentGameId: 'game-1' },
+      timestamp: NOW,
+      status: 'syncing',
+      retryCount: 0,
+      maxRetries: 10,
+      createdAt: NOW,
+    };
+
+    // Cloud record with epoch timestamp (simulating missing updatedAt)
+    const cloudRecord: CloudRecord = {
+      id: 'app',
+      updatedAt: EPOCH,
+    };
+    mockFetchFromCloud.mockResolvedValue(cloudRecord);
+
+    const result = await resolver.resolve(op);
+
+    expect(result.resolution.winner).toBe('local');
+    expect(result.resolution.cloudTimestamp).toBe(0);
+    expect(mockWriteToCloud).toHaveBeenCalled();
+  });
+
+  it('should let cloud win when local timestamp is before epoch (edge case)', async () => {
+    // This should not happen in practice, but tests defensive behavior
+    const op: SyncOperation = {
+      id: 'op-1',
+      entityType: 'settings',
+      entityId: 'app',
+      operation: 'update',
+      data: { currentGameId: 'game-1' },
+      timestamp: 0, // Epoch timestamp
+      status: 'syncing',
+      retryCount: 0,
+      maxRetries: 10,
+      createdAt: NOW,
+    };
+
+    const cloudRecord: CloudRecord = {
+      id: 'app',
+      updatedAt: new Date(NOW).toISOString(),
+    };
+    mockFetchFromCloud.mockResolvedValue(cloudRecord);
+
+    const result = await resolver.resolve(op);
+
+    expect(result.resolution.winner).toBe('cloud');
+    expect(mockWriteToLocal).toHaveBeenCalled();
+  });
+
+  it('should handle both sides with epoch timestamp (tie goes to local)', async () => {
+    const op: SyncOperation = {
+      id: 'op-1',
+      entityType: 'warmupPlan',
+      entityId: 'default',
+      operation: 'update',
+      data: { exercises: [] },
+      timestamp: 0, // Epoch
+      status: 'syncing',
+      retryCount: 0,
+      maxRetries: 10,
+      createdAt: NOW,
+    };
+
+    const cloudRecord: CloudRecord = {
+      id: 'default',
+      updatedAt: EPOCH, // Also epoch
+    };
+    mockFetchFromCloud.mockResolvedValue(cloudRecord);
+
+    const result = await resolver.resolve(op);
+
+    // Tie goes to local (>= comparison)
+    expect(result.resolution.winner).toBe('local');
+  });
+});
+
 describe('isNotFoundError', () => {
   it('should detect "not found" in error message', () => {
     expect(isNotFoundError(new Error('Record not found'))).toBe(true);

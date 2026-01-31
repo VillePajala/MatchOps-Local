@@ -1925,12 +1925,21 @@ describe('LocalDataStore', () => {
     });
 
     describe('saveSettings', () => {
-      it('should save settings', async () => {
+      it('should save settings with updatedAt timestamp', async () => {
         await dataStore.saveSettings(mockSettings);
         expect(mockSetStorageItem).toHaveBeenCalledWith(
           'soccerAppSettings',
-          JSON.stringify(mockSettings)
+          expect.any(String)
         );
+        // Verify saved data includes original settings plus updatedAt
+        const savedJson = mockSetStorageItem.mock.calls.find(
+          (call) => call[0] === 'soccerAppSettings'
+        )?.[1];
+        expect(savedJson).toBeDefined();
+        const saved = JSON.parse(savedJson as string);
+        expect(saved).toMatchObject(mockSettings);
+        expect(saved.updatedAt).toBeDefined();
+        expect(new Date(saved.updatedAt).getTime()).not.toBeNaN();
       });
     });
 

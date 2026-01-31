@@ -28,10 +28,15 @@ export interface CloudRecord {
 /**
  * Fetcher function type for retrieving cloud records.
  * Provided by the cloud store implementation.
+ *
+ * @param entityType - The type of entity to fetch
+ * @param entityId - The unique identifier of the entity
+ * @param context - Optional context data (e.g., the full entity data for efficient lookups)
  */
 export type CloudRecordFetcher = (
   entityType: SyncEntityType,
-  entityId: string
+  entityId: string,
+  context?: unknown
 ) => Promise<CloudRecord | null>;
 
 /**
@@ -148,8 +153,8 @@ export class ConflictResolver {
       localTimestamp: timestamp,
     });
 
-    // Fetch current cloud version
-    const cloudRecord = await this.fetchFromCloud(entityType, entityId);
+    // Fetch current cloud version (pass data as context for efficient lookups)
+    const cloudRecord = await this.fetchFromCloud(entityType, entityId, data);
 
     // Handle based on cloud state
     if (!cloudRecord) {

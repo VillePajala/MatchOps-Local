@@ -148,7 +148,7 @@ export function createSyncExecutor(
   }
 
   return async (op: SyncOperation): Promise<void> => {
-    const { entityType, entityId, operation, data } = op;
+    const { entityType, entityId, operation } = op;
 
     logger.debug('[SyncExecutor] Executing sync operation', {
       entityType,
@@ -520,7 +520,7 @@ function createCloudFetcher(cloudStore: DataStore): CloudRecordFetcher {
   // Epoch timestamp for entities without updatedAt (treated as oldest)
   const EPOCH_TIMESTAMP = new Date(0).toISOString();
 
-  return async (entityType: SyncEntityType, entityId: string): Promise<CloudRecord | null> => {
+  return async (entityType: SyncEntityType, entityId: string, context?: unknown): Promise<CloudRecord | null> => {
     try {
       switch (entityType) {
         case 'player': {
@@ -599,18 +599,32 @@ function createCloudFetcher(cloudStore: DataStore): CloudRecordFetcher {
         }
 
         case 'settings': {
-          // Settings don't have updatedAt - use epoch (always loses conflicts)
-          // This is acceptable because settings changes are typically not critical
           const settings = await cloudStore.getSettings();
           return {
             ...settings,
             id: 'app',
-            updatedAt: EPOCH_TIMESTAMP,
+            updatedAt: settings.updatedAt ?? EPOCH_TIMESTAMP,
           };
         }
 
         case 'playerAdjustment': {
-          // Need to scan all adjustments - this is expensive but rare
+          // Optimization: Use playerId from context for O(1) lookup instead of O(n*m) scan
+          const contextData = context as { playerId?: string } | undefined;
+          if (contextData?.playerId) {
+            // Direct lookup using playerId from context
+            const adjustments = await cloudStore.getPlayerAdjustments(contextData.playerId);
+            const adj = adjustments.find(a => a.id === entityId);
+            if (adj) {
+              return {
+                ...adj,
+                id: adj.id,
+                updatedAt: adj.appliedAt, // appliedAt is the timestamp
+              };
+            }
+            return null;
+          }
+
+          // Fallback: scan all adjustments (expensive but rare)
           const allAdjustments = await cloudStore.getAllPlayerAdjustments();
           for (const [_playerId, adjustments] of allAdjustments) {
             const adj = adjustments.find(a => a.id === entityId);
