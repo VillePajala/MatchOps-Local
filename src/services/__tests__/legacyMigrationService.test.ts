@@ -149,6 +149,29 @@ describe('legacyMigrationService', () => {
   });
 
   describe('migrateLegacyData', () => {
+    /**
+     * Tests userId validation (defense in depth).
+     * @edge-case
+     */
+    it('should reject invalid userId', async () => {
+      // Empty string
+      const emptyResult = await migrateLegacyData('');
+      expect(emptyResult).toMatchObject({
+        status: 'migration_error',
+        error: 'Invalid user ID',
+      });
+
+      // Too long (> 255 chars)
+      const longResult = await migrateLegacyData('x'.repeat(256));
+      expect(longResult).toMatchObject({
+        status: 'migration_error',
+        error: 'Invalid user ID',
+      });
+
+      // Verify no database operations attempted
+      expect(mockLegacyDatabaseExists).not.toHaveBeenCalled();
+    });
+
     it('should return no_legacy_data when legacy database does not exist', async () => {
       mockLegacyDatabaseExists.mockResolvedValue(false);
 
@@ -200,6 +223,28 @@ describe('legacyMigrationService', () => {
       expect(result.counts?.games).toBe(1);
       expect(mockStore.upsertPlayer).toHaveBeenCalledWith(mockPlayer);
       expect(mockStore.upsertSeason).toHaveBeenCalledWith(mockSeason);
+    });
+
+    /**
+     * Tests that currentGameId is nullified when it references a non-existent game.
+     * @edge-case
+     */
+    it('should nullify currentGameId if game not in legacy data', async () => {
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        soccerMasterRoster: JSON.stringify([mockPlayer]),
+        soccerAppSettings: JSON.stringify({ currentGameId: 'nonexistent-game-id' }),
+      }));
+      const mockStore = createMockDataStore([]);
+      mockGetDataStore.mockResolvedValue(mockStore);
+
+      const result = await migrateLegacyData(TEST_USER_ID);
+
+      expect(result.status).toBe('migrated');
+      // Settings should be saved with currentGameId: null since the game doesn't exist
+      expect(mockStore.saveSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ currentGameId: null })
+      );
     });
 
     it('should handle errors gracefully', async () => {
