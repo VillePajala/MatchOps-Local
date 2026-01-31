@@ -1366,7 +1366,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertPlayer(player);
           counts.players++;
         } else {
-          logger.debug('[ReverseMigrationService] Skipping player (local is newer)', {
+          logger.info('[ReverseMigrationService] Skipping player (local is newer)', {
             playerId: player.id,
             cloudUpdatedAt: player.updatedAt,
             localUpdatedAt: existingPlayer?.updatedAt,
@@ -1392,7 +1392,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertTeam(team);
           counts.teams++;
         } else {
-          logger.debug('[ReverseMigrationService] Skipping team (local is newer)', {
+          logger.info('[ReverseMigrationService] Skipping team (local is newer)', {
             teamId: team.id,
             cloudUpdatedAt: team.updatedAt,
             localUpdatedAt: existingTeam?.updatedAt,
@@ -1429,7 +1429,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertSeason(season);
           counts.seasons++;
         } else {
-          logger.debug('[ReverseMigrationService] Skipping season (local is newer)', {
+          logger.info('[ReverseMigrationService] Skipping season (local is newer)', {
             seasonId: season.id,
             cloudUpdatedAt: season.updatedAt,
             localUpdatedAt: existingSeason?.updatedAt,
@@ -1453,7 +1453,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertTournament(tournament);
           counts.tournaments++;
         } else {
-          logger.debug('[ReverseMigrationService] Skipping tournament (local is newer)', {
+          logger.info('[ReverseMigrationService] Skipping tournament (local is newer)', {
             tournamentId: tournament.id,
             cloudUpdatedAt: tournament.updatedAt,
             localUpdatedAt: existingTournament?.updatedAt,
@@ -1479,7 +1479,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertPersonnelMember(person);
           counts.personnel++;
         } else {
-          logger.debug('[ReverseMigrationService] Skipping personnel (local is newer)', {
+          logger.info('[ReverseMigrationService] Skipping personnel (local is newer)', {
             personnelId: person.id,
             cloudUpdatedAt: person.updatedAt,
             localUpdatedAt: existingPerson?.updatedAt,
@@ -1504,7 +1504,7 @@ export async function hydrateLocalFromCloud(
           await localStore.saveGame(gameId, game);
           counts.games++;
         } else {
-          logger.debug('[ReverseMigrationService] Skipping game (local is newer)', {
+          logger.info('[ReverseMigrationService] Skipping game (local is newer)', {
             gameId,
             cloudUpdatedAt: game.updatedAt,
             localUpdatedAt: existingGame?.updatedAt,

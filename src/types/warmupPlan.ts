@@ -35,12 +35,14 @@ export interface WarmupPlan {
   version: number;
   /**
    * ISO timestamp of last modification (legacy field).
-   * @deprecated Use updatedAt for new code. Kept for backwards compatibility.
+   * Set to same value as updatedAt by normalizeWarmupPlanForSave().
+   * @deprecated Use updatedAt for conflict resolution in new code.
    */
   lastModified: string;
   /**
    * ISO timestamp of last update - used for conflict resolution in cloud sync.
-   * Added for consistency with other entity types (AppSettings, teams, etc.)
+   * Set to same value as lastModified by normalizeWarmupPlanForSave().
+   * @remarks Prefer this over lastModified for timestamp comparisons.
    */
   updatedAt?: string;
   /** True if this is the unmodified default template */
