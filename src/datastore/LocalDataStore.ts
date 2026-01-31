@@ -27,6 +27,7 @@ import {
 } from '@/interfaces/DataStoreErrors';
 import { validateGame } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
+import { validateUserId } from '@/datastore/userDatabase';
 import {
   APP_SETTINGS_KEY,
   LAST_HOME_TEAM_NAME_KEY,
@@ -45,12 +46,7 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import {
   clearAdapterCacheWithCleanup,
-  getStorageItem,
-  getStorageJSON,
   isIndexedDBAvailable,
-  removeStorageItem,
-  setStorageItem,
-  setStorageJSON,
   getUserStorageAdapter,
   closeUserStorageAdapter,
   getStorageAdapter,
@@ -365,25 +361,10 @@ export class LocalDataStore implements DataStore {
     // Validate userId early if provided (fail fast)
     // This catches invalid userIds at construction time rather than deferring to initialize()
     if (userId !== undefined) {
-      // IMPORTANT: This validation logic is duplicated from userDatabase.ts/validateUserId()
-      // to avoid require() imports (lint error) and potential circular dependencies.
-      // If updating validation rules, update BOTH locations:
-      // - src/datastore/userDatabase.ts (validateUserId function)
-      // - src/datastore/LocalDataStore.ts (this constructor)
-      // Length check BEFORE regex is critical for ReDoS prevention.
-      const trimmedId = userId.trim();
-      if (trimmedId.length === 0) {
-        throw new ValidationError('userId cannot be empty or whitespace');
-      }
-      // Length check BEFORE regex (prevents ReDoS on very long strings)
-      const MAX_USER_ID_LENGTH = 255;
-      if (trimmedId.length > MAX_USER_ID_LENGTH) {
-        throw new ValidationError(`userId exceeds maximum length of ${MAX_USER_ID_LENGTH} characters`);
-      }
-      if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
-        throw new ValidationError(
-          'userId contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.'
-        );
+      // Use shared validation from userDatabase.ts to avoid duplication
+      const validationResult = validateUserId(userId);
+      if (!validationResult.valid) {
+        throw new ValidationError(validationResult.error ?? 'Invalid userId');
       }
     }
     this.userId = userId;
@@ -2311,22 +2292,27 @@ export class LocalDataStore implements DataStore {
   /**
    * Clear all user data from local storage.
    *
-   * Deletes all data from IndexedDB.
+   * Deletes all data from IndexedDB for this user's database.
    * Does NOT clear localStorage settings (backend mode, migration flags).
    *
+   * IMPORTANT: Uses this instance's adapter (user-scoped or legacy) to ensure
+   * the correct database is cleared. Previously this called the global
+   * clearStorage() which would clear the wrong database for user-scoped instances.
+   *
+   * @throws {NotInitializedError} If DataStore not initialized
    * @throws {Error} If deletion fails
    */
   async clearAllUserData(): Promise<void> {
     this.ensureInitialized();
 
-    // Import dynamically to avoid circular dependencies
-    // clearStorage() clears IndexedDB only, NOT localStorage.
-    // This preserves app settings (backend mode, migration flags, etc.)
-    // which is intentional: clearing data shouldn't reset preferences.
-    const { clearStorage } = await import('@/utils/storage');
-    await clearStorage();
+    // Use the instance's adapter to clear the correct database
+    // - User-scoped mode: clears matchops_user_{userId} database
+    // - Legacy mode: clears MatchOpsLocal database
+    await this.storageClear();
 
-    logger.info('[LocalDataStore] All user data cleared from local storage');
+    logger.info('[LocalDataStore] All user data cleared from local storage', {
+      userId: this.userId ?? '(legacy)',
+    });
   }
 
   private ensureInitialized(): void {

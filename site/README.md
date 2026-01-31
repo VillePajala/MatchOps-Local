@@ -1,6 +1,6 @@
-# MatchOps-Local Marketing Website
+# MatchOps Marketing Website
 
-This is the marketing website for MatchOps-Local, a local-first soccer coaching PWA.
+This is the marketing website for MatchOps, a soccer coaching app for Android.
 
 ## Overview
 

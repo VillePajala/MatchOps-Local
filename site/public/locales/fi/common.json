@@ -48,12 +48,12 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps - Jalkapallovalmentajan sovellus, tietosi pysyvät laitteellasi",
-      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Hallitse joukkueita, seuraa pelejä reaaliaikaisesti, kerää tilastoja. Ei rekisteröitymistä. Tietosi pysyvät yksityisinä laitteellasi."
+      "title": "MatchOps - Jalkapallovalmentajan sovellus",
+      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Hallitse joukkueita, seuraa pelejä reaaliaikaisesti, kerää tilastoja. Ei rekisteröitymistä. Tietosi pysyvät yksityisinä ja turvassa."
     },
     "technical": {
       "title": "Tekniset tiedot - MatchOps",
-      "description": "MatchOpsin tekniset tiedot: Progressiivinen nettisovellus (PWA), React 19, Next.js 15. Offline-first ja local-first arkkitehtuuri, data tallentuu laitteellesi."
+      "description": "MatchOpsin tekniset tiedot: React 19, Next.js 16. Offline-yhteensopiva arkkitehtuuri ja turvallinen tietojen tallennus."
     }
   },
   "footer": {
@@ -63,7 +63,7 @@
     "legal": "Juridiikka",
     "license": "Lisenssi",
     "copyright": "© {{year}} Velomo AI. Kaikki oikeudet pidätetään.",
-    "dataStays": "Tietosi pysyvät laitteellasi. Aina.",
+    "dataStays": "Tietosi pysyvät yksityisinä ja turvassa.",
     "marketingAssets": "Markkinointimateriaalit"
   },
   "technical": {
@@ -137,12 +137,12 @@
     },
     "architecture": {
       "title": "Arkkitehtuuri",
-      "localFirst": "Paikallinen tallennusarkkitehtuuri",
-      "localFirstDesc": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Ei ulkoisia palvelimia tai tietokantoja.",
+      "localFirst": "Yksityisyys lähtökohtana",
+      "localFirstDesc": "Tietosi tallennetaan turvallisesti ja pysyvät yksityisinä.",
       "offlineFirst": "Offline-ensin",
-      "offlineFirstDesc": "Täysi toiminnallisuus ilman nettiyhteyttä. Verkko tarvitaan vain PWA-päivityksiin.",
+      "offlineFirstDesc": "Täysi toiminnallisuus ilman nettiyhteyttä. Verkko tarvitaan vain päivityksiin.",
       "singleUser": "Yhden käyttäjän ratkaisu",
-      "singleUserDesc": "Suunniteltu yksittäisille valmentajille. Yksi asennus per laite, ei käyttäjähallintaa."
+      "singleUserDesc": "Suunniteltu yksittäisille valmentajille. Helppo käyttöönotto, ei monimutkaista käyttäjähallintaa."
     },
     "techStack": {
       "title": "Teknologiapino",
@@ -153,7 +153,7 @@
       "styling": "Ulkoasu",
       "stylingDesc": "Tailwind CSS 4 responsiiviseen, moderniin käyttöliittymään",
       "storage": "Tietojen tallennus",
-      "storageDesc": "Paikallinen laitetallennus asynkronisilla adaptereilla",
+      "storageDesc": "Turvallinen tallennus automaattisella tiedonhallinnalla",
       "stateManagement": "Tilanhallinta",
       "stateManagementDesc": "React Query palvelintilalle, useReducer pelisession tilalle",
       "pwa": "Progressiivinen nettisovellus",
@@ -163,14 +163,14 @@
     },
     "storage": {
       "title": "Tallennus ja tiedot",
-      "deviceStorage": "Laitetallennus",
-      "deviceStorageDesc": "Käyttää laitteesi vapaata tallennustilaa. Tyypillinen käyttö: alle 50MB 100+ pelille.",
+      "deviceStorage": "Tallennus",
+      "deviceStorageDesc": "Tehokas tallennus. Tyypillinen käyttö: alle 50MB 100+ pelille.",
       "dataScale": "Tiedon määrä",
       "dataScaleDesc": "Optimoitu 50-100 pelaajalle, 50-100 pelille per kausi. Pieni tietomäärä, nopea suorituskyky.",
       "backup": "Varmuuskopiointi ja vienti",
       "backupDesc": "Täydellinen tietojen vienti JSON-muotoon. Tuo/palauta millä tahansa laitteella.",
       "privacy": "Yksityisyys",
-      "privacyDesc": "Ei tiedonsiirtoa. Kaikki pysyy laitteellasi."
+      "privacyDesc": "Tietosi pysyvät yksityisinä ja turvassa."
     },
     "requirements": {
       "title": "Järjestelmävaatimukset",
@@ -201,7 +201,7 @@
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
       "description": "MatchOps on mobiilisovellus jalkapallon ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano ja pelipaikat ennen peliä. Pelin aikana seuraa vaihtovälejä, kirjaa maalit ja syötöt napautuksella. Tilastosi kertyvät automaattisesti—ottelutulokset, pistepörssi, kauden trendit.",
-      "oneLine": "Ei rekisteröitymistä. Asenna kerran ja tietosi pysyvät yksityisinä laitteellasi. Toimii kaikkialla, jopa ilman nettiä."
+      "oneLine": "Ei rekisteröitymistä. Asenna kerran ja tietosi pysyvät yksityisinä ja turvassa. Toimii kaikkialla, jopa ilman nettiä."
     },
     "whoIsThisFor": {
       "title": "Kenelle tämä on tarkoitettu?",
@@ -246,18 +246,18 @@
     },
     "technical": {
       "title": "Tekniset tiedot",
-      "desc1": "MatchOps on progressiivinen nettisovellus (PWA). Tämä tarkoittaa, että se asentuu kuin tavallinen sovellus mutta toimii selaimessasi.",
-      "desc2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Sovelluksen käyttöön ei tarvita nettiyhteyttä.",
-      "desc3": "Yhteensopiva iOS Safarin, Android Chromen ja kaikkien suurten työpöytäselainten kanssa."
+      "desc1": "MatchOps on saatavilla Google Playsta Android-laitteille.",
+      "desc2": "Tietosi tallennetaan turvallisesti. Sovellus toimii myös offline-tilassa.",
+      "desc3": "Rakennettu moderneilla verkkoteknologioilla nopeaa ja luotettavaa käyttökokemusta varten."
     },
     "faq": {
       "title": "Yleisiä kysymyksiä",
       "q1": "Miten asennan sovelluksen?",
       "a1": "Sovellus on saatavilla Google Playsta. Olemme parhaillaan betatestausvaiheessa - pyydä pääsy alla olevalla yhteydenottopainikkeella tai lähetä kysely osoitteeseen hello@match-ops.com.",
       "q2": "Mihin tietoni tallennetaan?",
-      "a2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Mitään ei lähetetä ulkoisille palvelimille.",
+      "a2": "Tietosi tallennetaan turvallisesti ja pysyvät yksityisinä.",
       "q3": "Voinko käyttää useammalla laitteella?",
-      "a3": "Kyllä, mutta sinun täytyy viedä tietosi yhdeltä laitteelta ja tuoda ne toiselle. Automaattista synkronointia ei ole, koska kaikki tallentuu paikallisesti.",
+      "a3": "Kyllä. Voit viedä tietosi yhdeltä laitteelta ja tuoda ne toiselle, tai käyttää pilvisynkronointia laitteiden synkronoimiseen.",
       "q4": "Miten varmuuskopioin tietoni?",
       "a4": "Avaa Asetukset-valikko ja käytä Vie-toimintoa. Tämä luo JSON-tiedoston, jossa on kaikki tietosi ja jonka voit tallentaa ja tuoda myöhemmin.",
       "q5": "Voinko muokata ottelutietoja jälkikäteen?",
@@ -350,9 +350,9 @@
     "benefits": {
       "offline": "Toimii offline",
       "noSignup": "Ei rekisteröitymistä",
-      "dataOnDevice": "Tietosi pysyvät laitteellasi",
+      "dataOnDevice": "Tietosi pysyvät yksityisinä",
       "dataStays": "Tietosi pysyvät",
-      "onYourDevice": "laitteellasi",
+      "onYourDevice": "yksityisinä ja turvassa",
       "bilingual": "Englanti ja suomi",
       "privacyByDesign": "Yksityisyys lähtökohtana",
       "statsAutomatic": "Tilastot kertyvät automaattisesti",
@@ -365,8 +365,8 @@
     "descriptions": {
       "heroSubtitle": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja. Toimii ilman nettiä. Tietosi pysyvät yksityisinä.",
       "planTrackBuild": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja.",
-      "localFirst": "Jalkapallovalmentajan sovellus — tietosi laitteellasi",
-      "localFirstShort": "Ottelutyökalu valmentajalle",
+      "localFirst": "Jalkapallovalmentajan sovellus",
+      "localFirstShort": "Jalkapallovalmentajan sovellus",
       "madeSimple": "Valmennus ilman säätöä",
       "forPrivacyCoaches": "Valmentajille, jotka arvostavat yksityisyyttä",
       "trackDevelopment": "Seuraa pelaajien kehitystä datalla",
@@ -392,7 +392,7 @@
       "noAccountNeeded": "Ei tiliä tarvita",
       "offline": "Offline",
       "private": "Yksityinen",
-      "dataStaysLocal": "Tiedot pysyvät laitteella",
+      "dataStaysLocal": "Tiedot pysyvät yksityisinä",
       "dataStaysPrivate": "Tiedot pysyvät yksityisinä",
       "playerStats": "Pelaajatilastot",
       "teamStats": "Joukkuetilastot",
@@ -478,20 +478,20 @@
       "quality": "LAATU",
       "aiPowered": "100% tekoälyrakennettu",
       "aiPoweredDesc": "Ei käsin kirjoitettua koodia. Rakennettu Claude Codella, Cursorilla ja Codexilla. Jopa nämä markkinointimateriaalit.",
-      "linesOfCode": "200 000+ riviä",
-      "linesOfCodeDesc": "66K riviä testejä, 60K riviä lähdekoodia, 75K riviä dokumentaatiota.",
-      "testCoverage": "3 200+ testiä",
-      "testCoverageDesc": "182 testisettiä. Toimivuus tarkastetaan testein automaattisesti jokaisen muutoksen yhteydessä.",
+      "linesOfCode": "270 000+ riviä",
+      "linesOfCodeDesc": "96K riviä testejä, 86K riviä lähdekoodia, 90K riviä dokumentaatiota.",
+      "testCoverage": "4 400+ testiä",
+      "testCoverageDesc": "222 testisettiä. Toimivuus tarkastetaan testein automaattisesti jokaisen muutoksen yhteydessä.",
       "techStack": "Uusin teknologia",
       "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, asennettava, automaattipäivitykset.",
-      "documentation": "75K riviä kontekstia",
+      "documentation": "90K riviä kontekstia",
       "documentationDesc": "Tekoälyavustajat tarvitsevat kontekstia pysyäkseen johdonmukaisina. Dokumentaatio toimii projektin pysyvänä muistina istuntojen välillä.",
       "architecture": "Selkeä arkkitehtuuri",
-      "architectureDesc": "71 komponenttia, 26 hookkia. Selkeä erottelu: käyttöliittymä, logiikka ja data.",
+      "architectureDesc": "148 komponenttia, 61 hookkia. Selkeä erottelu: käyttöliittymä, logiikka ja data.",
       "codeQuality": "Yritystason laatu",
       "codeQualityDesc": "ESLint käytössä, TypeScript tiukka tila, Sentry-seuranta, saavutettavuustestattu.",
       "cicd": "Automatisoitu CI/CD",
-      "cicdDesc": "Lint, tyypit, 3200+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Autom. julkaisu."
+      "cicdDesc": "Lint, tyypit, 4400+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Autom. julkaisu."
     }
   }
 }

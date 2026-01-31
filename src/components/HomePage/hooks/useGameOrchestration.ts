@@ -368,8 +368,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
 
   const handleCreateBackup = useCallback(() => {
-    exportFullBackup(showToast);
-  }, [showToast]);
+    exportFullBackup(showToast, userId);
+  }, [showToast, userId]);
 
   const handleManageTeamRosterFromNewGame = (teamId?: string) => {
     closeNewGameViaReducer();

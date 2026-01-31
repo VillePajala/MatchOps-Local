@@ -617,51 +617,51 @@ export async function resetFactory(): Promise<void> {
     dataStoreCreatedForUserId = undefined;
     authServiceCreatedWithCloudAvailable = null;
 
-  // Now perform cleanup operations (best-effort, failures logged but not thrown)
+    // Now perform cleanup operations (best-effort, failures logged but not thrown)
 
-  // Await any in-flight initialization promises
-  for (const promise of pendingPromises) {
+    // Await any in-flight initialization promises
+    for (const promise of pendingPromises) {
+      try {
+        await promise;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error awaiting dataStoreInitPromise during reset: ${msg}`, err);
+      }
+    }
+
+    // Reset sync engine if cloud mode was active (prevents memory leaks in tests)
+    if (wasCloudMode) {
+      try {
+        const { resetSyncEngine } = await import('@/sync');
+        await resetSyncEngine();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error resetting sync engine during factory reset: ${msg}`, err);
+      }
+    }
+
+    // Close the old DataStore instance
+    if (oldDataStoreInstance) {
+      try {
+        await oldDataStoreInstance.close();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error closing DataStore during reset: ${msg}`, err);
+      }
+    }
+
+    // Close all user storage adapters to release IndexedDB connections
     try {
-      await promise;
+      const { closeAllUserStorageAdapters } = await import('@/utils/storage');
+      await closeAllUserStorageAdapters();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error awaiting dataStoreInitPromise during reset: ${msg}`, err);
+      log.warn(`[factory] Error closing user storage adapters during reset: ${msg}`, err);
     }
-  }
-
-  // Reset sync engine if cloud mode was active (prevents memory leaks in tests)
-  if (wasCloudMode) {
-    try {
-      const { resetSyncEngine } = await import('@/sync');
-      await resetSyncEngine();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error resetting sync engine during factory reset: ${msg}`, err);
-    }
-  }
-
-  // Close the old DataStore instance
-  if (oldDataStoreInstance) {
-    try {
-      await oldDataStoreInstance.close();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error closing DataStore during reset: ${msg}`, err);
-    }
-  }
-
-  // Close all user storage adapters to release IndexedDB connections
-  try {
-    const { closeAllUserStorageAdapters } = await import('@/utils/storage');
-    await closeAllUserStorageAdapters();
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const err = e instanceof Error ? e : new Error(msg);
-    log.warn(`[factory] Error closing user storage adapters during reset: ${msg}`, err);
-  }
 
     // Await auth service init promise
     if (oldAuthServiceInitPromise) {

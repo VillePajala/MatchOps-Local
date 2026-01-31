@@ -212,7 +212,9 @@ export default function Home() {
     setIsImportingBackup(true);
 
     try {
-      const result = await importFromFilePicker(showToast);
+      // Note: userId will be undefined for welcome screen imports (user not authenticated yet)
+      // This correctly imports into legacy storage; user can migrate after signing in
+      const result = await importFromFilePicker(showToast, userId);
 
       if (result.success) {
         logger.info('[page.tsx] Welcome: Backup import succeeded');
@@ -252,7 +254,7 @@ export default function Home() {
     } finally {
       setIsImportingBackup(false);
     }
-  }, [showToast, t]);
+  }, [showToast, t, userId]);
 
   // Handle "Back" from LoginScreen - return to WelcomeScreen
   const handleLoginBack = useCallback(() => {
