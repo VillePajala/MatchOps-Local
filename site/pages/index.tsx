@@ -14,7 +14,7 @@ const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
     // Main hero screenshots
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg',
+    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en&fi.jpg',
     timer: isEnglish
       ? '/screenshots/MatchOps_main_timer_en.jpg'
       : '/screenshots/MatchOps_Main_timer_full.jpg',
@@ -56,7 +56,7 @@ const getScreenshots = (locale: string | undefined) => {
     personnel: isEnglish
       ? '/screenshots/MatcOps_main_personnel_en.jpg'
       : '/screenshots/MatchOps_main_personnel_fi.jpg',
-    futsal: '/screenshots/MatchOps_main_futsal_en&fi.jpg',
+    futsal: '/screenshots/MatchOps_main_futsal_new_en&fi.jpg',
     officialRules: isEnglish
       ? '/screenshots/MatchOps_main_rules_en.jpg'
       : '/screenshots/MatchOps_main_rules_fi.jpg',
@@ -174,7 +174,7 @@ export default function HomePage() {
               {t('marketing.cards.forCoaches')}
             </p>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              <span className="text-primary">MatchOps Local</span>
+              <span className="text-primary">MatchOps</span>
             </h1>
             <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
               {t('marketing.taglines.power')}

@@ -84,7 +84,7 @@ const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
     // Main hero screenshots
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_full.jpg', // Language agnostic
+    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en&fi.jpg', // Language agnostic
     timer: isEnglish
       ? '/screenshots/MatchOps_main_timer_en.jpg'
       : '/screenshots/MatchOps_Main_timer_full.jpg',
@@ -318,7 +318,7 @@ function Logo({ size = 60, className = '' }: { size?: number; className?: string
   return (
     <Image
       src="/logos/app-logo-yellow.png"
-      alt="MatchOps Local"
+      alt="MatchOps"
       width={size}
       height={size}
       className={className}
@@ -350,7 +350,7 @@ function TitleText({
     <span
       className={`font-rajdhani font-bold ${dark ? 'text-slate-900' : 'text-primary'} ${sizes[size]} ${className}`}
     >
-      MatchOps Local
+      MatchOps
     </span>
   );
 }
@@ -411,7 +411,7 @@ export default function MarketingAssets() {
   return (
     <>
       <Head>
-        <title>{t('marketing.page.title')} - MatchOps Local</title>
+        <title>{t('marketing.page.title')} - MatchOps</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
@@ -1011,16 +1011,12 @@ export default function MarketingAssets() {
                   {/* 5 phones in uniform row with labels */}
                   <div className="relative z-10 w-full h-full flex items-center justify-center gap-4 pt-12" style={{ transform: 'scale(0.92)' }}>
                     <div className="flex flex-col items-center">
-                      <PhoneMockup screenshot={screenshots.tacticalBoard} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-sm mt-2">Tactics</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-sm mt-2">Stats</span>
-                    </div>
-                    <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={1} />
                       <span className="text-gray-400 text-sm mt-2">Lineup</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.tacticalBoard} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Tactics</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.timer} size="xl" zIndex={1} />
@@ -1028,7 +1024,11 @@ export default function MarketingAssets() {
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.goalTimeline} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-sm mt-2">Events</span>
+                      <span className="text-gray-400 text-sm mt-2">Log Goal</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-sm mt-2">Statistics</span>
                     </div>
                   </div>
 
@@ -2373,7 +2373,7 @@ export default function MarketingAssets() {
                   <div className="w-[55%] flex flex-col justify-center pr-6">
                     <div className="text-primary text-sm font-semibold mb-2 uppercase">{t('marketing.cards.introducing')}</div>
                     <h3 className="text-3xl font-bold mb-3">
-                      <span className="font-rajdhani text-primary">MatchOps Local</span><br />
+                      <span className="font-rajdhani text-primary">MatchOps</span><br />
                       <span className="text-white">{t('marketing.cards.forCoaches')}</span>
                     </h3>
                     <p className="text-gray-400 mb-3">
