@@ -91,7 +91,7 @@ export default function Home() {
       // Check for resume capability
       // CRITICAL: Pass userId for user-scoped storage (cloud mode)
       // Without userId, DataStore queries anonymous/legacy storage instead of user's data
-      const lastId = await getCurrentGameIdSetting();
+      const lastId = await getCurrentGameIdSetting(userId);
       const games = await getSavedGames(userId);
 
       if (lastId && games[lastId]) {
@@ -102,7 +102,7 @@ export default function Home() {
         if (ids.length > 0) {
           const latestId = getLatestGameId(games);
           if (latestId) {
-            await utilSaveCurrentGameIdSetting(latestId);
+            await utilSaveCurrentGameIdSetting(latestId, userId);
             setCanResume(true);
           } else {
             setCanResume(false);
