@@ -1388,8 +1388,20 @@ ALTER TABLE team_players ADD CONSTRAINT team_players_team_id_fkey
   FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE;
 -- NOTE: No FK for player_id - intentional for graceful degradation
 
+-- Restore UNIQUE constraint on game_tactical_data.game_id (was dropped in migration 013)
+ALTER TABLE game_tactical_data ADD CONSTRAINT game_tactical_data_game_id_key UNIQUE (game_id);
+
 COMMIT;
 ```
+
+**IMPORTANT: RPC Function Rollback**
+
+After running the schema rollback above, you must also revert the `save_game_with_relations` RPC function.
+The easiest way is to re-run migration `012_optimistic_locking.sql` which will recreate the function with
+single-column `ON CONFLICT` clauses. Alternatively, manually update the function to use:
+- `ON CONFLICT (id)` instead of `ON CONFLICT (user_id, id)` for games
+- `ON CONFLICT (game_id)` instead of `ON CONFLICT (user_id, game_id)` for tactical data
+- Restore the ownership check that was removed in migration 014
 
 ---
 
