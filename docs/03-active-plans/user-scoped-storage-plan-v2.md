@@ -1,8 +1,8 @@
 # User-Scoped Data Architecture Plan v2
 
-**Status:** In Progress - Steps 1-4 Complete ✅
+**Status:** In Progress - Steps 1-7 Complete ✅
 **Created:** 2026-01-29
-**Last Updated:** 2026-01-30 (Steps 1-4 merged to feature/supabase-cloud-backend)
+**Last Updated:** 2026-01-31 (Steps 5-7 in progress on branch supabase/user-scoped-storage-step7)
 **Branch:** `feature/supabase-cloud-backend`
 
 ### Progress
@@ -10,14 +10,14 @@
 | Step | Description | Status |
 |------|-------------|--------|
 | 1-4 | Storage layer, LocalDataStore, SyncedDataStore, Factory | ✅ Complete |
-| 5 | useDataStore helper hook | ⏳ Not started |
-| 6 | Update ~36 callers to pass userId | ⏳ Not started |
-| 7 | Export/import updates | ⏳ Not started |
+| 5 | useDataStore helper hook | ✅ Complete (PR #326 merged) |
+| 6 | Update ~36 callers to pass userId | ✅ Complete (PR #326 merged) |
+| 7 | Export/import updates | ✅ Complete (fullBackup.ts uses DataStore, callers updated) |
 | 8 | Legacy migration (MatchOpsLocal → user DB) | ⏳ Not started |
 | 9-10 | SQL migrations (composite keys, RPC updates) | ⏳ Not started |
-| 11 | Tests | ⏳ Not started |
+| 11 | Tests | 🔄 Partial (fullBackup.test.ts needs updates - 31/38 pass) |
 
-**Note:** User isolation is NOT active until Step 6 is complete. All users currently share the legacy `MatchOpsLocal` database.
+**Note:** User isolation is now active. When cloud mode is enabled and user is authenticated, data is stored in user-scoped IndexedDB (`matchops_user_{userId}`).
 
 ### Related Documents
 
