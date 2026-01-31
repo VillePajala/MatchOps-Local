@@ -1388,20 +1388,37 @@ ALTER TABLE team_players ADD CONSTRAINT team_players_team_id_fkey
   FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE;
 -- NOTE: No FK for player_id - intentional for graceful degradation
 
--- Restore UNIQUE constraint on game_tactical_data.game_id (was dropped in migration 013)
-ALTER TABLE game_tactical_data ADD CONSTRAINT game_tactical_data_game_id_key UNIQUE (game_id);
+-- NOTE: Do NOT restore UNIQUE(game_id) on game_tactical_data.
+-- After composite PK migration, multiple users can have the same game_id.
+-- Adding UNIQUE(game_id) would fail if any duplicate game_ids exist across users.
+-- The new schema intentionally allows this for backup sharing.
 
 COMMIT;
 ```
 
 **IMPORTANT: RPC Function Rollback**
 
-After running the schema rollback above, you must also revert the `save_game_with_relations` RPC function.
-The easiest way is to re-run migration `012_optimistic_locking.sql` which will recreate the function with
-single-column `ON CONFLICT` clauses. Alternatively, manually update the function to use:
-- `ON CONFLICT (id)` instead of `ON CONFLICT (user_id, id)` for games
-- `ON CONFLICT (game_id)` instead of `ON CONFLICT (user_id, game_id)` for tactical data
-- Restore the ownership check that was removed in migration 014
+After running the schema rollback above, you MUST revert the `save_game_with_relations` RPC function.
+Re-run migration `012_optimistic_locking.sql` to recreate the function with single-column ON CONFLICT clauses.
+
+Alternatively, run this SQL manually:
+
+```sql
+-- Drop the composite-key version
+DROP FUNCTION IF EXISTS save_game_with_relations(jsonb, jsonb[], jsonb[], jsonb[], jsonb, integer);
+
+-- Then re-run 012_optimistic_locking.sql which contains the original function
+-- with ON CONFLICT (id) for games and ON CONFLICT (game_id) for tactical data
+```
+
+**CRITICAL: Data Compatibility Warning**
+
+If users have created data with duplicate IDs (same entity ID for different users), the rollback
+will succeed but the data model will be inconsistent. Before rolling back in this scenario:
+1. Export all user data
+2. Run rollback
+3. Manually resolve ID conflicts (rename duplicates)
+4. Re-import data
 
 ---
 
