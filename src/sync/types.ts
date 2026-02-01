@@ -134,6 +134,12 @@ export interface SyncStatusInfo {
    * True once cloud store is initialized and executor is set on the engine.
    */
   cloudConnected?: boolean;
+
+  /**
+   * Whether sync is manually paused by the user.
+   * When paused, operations are still queued but not processed until resumed.
+   */
+  isPaused?: boolean;
 }
 
 /**
