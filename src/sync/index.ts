@@ -35,6 +35,7 @@ export { SyncQueue } from './SyncQueue';
 export {
   SyncEngine,
   getSyncEngine,
+  isSyncEngineInitialized,
   resetSyncEngine,
   type SyncOperationExecutor,
 } from './SyncEngine';
