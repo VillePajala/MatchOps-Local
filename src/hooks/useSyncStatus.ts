@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getBackendMode } from '@/config/backendConfig';
+import { useAuth } from '@/contexts/AuthProvider';
 import type { SyncStatusInfo, SyncStatusState } from '@/sync/types';
 import logger from '@/utils/logger';
 
@@ -78,14 +79,20 @@ export function useSyncStatus(): UseSyncStatusResult {
   const [mode] = useState(() => getBackendMode());
   const [status, setStatus] = useState<SyncStatusInfo | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const { user } = useAuth();
 
   // Initialize and subscribe to status changes
+  // Re-initialize when user changes to connect to the new SyncEngine
   useEffect(() => {
     // Only subscribe in cloud mode
     if (mode !== 'cloud') {
       setIsInitialized(true);
       return;
     }
+
+    // Reset state when user changes
+    setStatus(null);
+    setIsInitialized(false);
 
     let unsubscribe: (() => void) | null = null;
     let mounted = true;
@@ -124,7 +131,7 @@ export function useSyncStatus(): UseSyncStatusResult {
         unsubscribe();
       }
     };
-  }, [mode]);
+  }, [mode, user?.id]);
 
   // Sync now action - forces immediate sync, ignoring backoff delays
   // When user clicks "Sync Now", they expect it to happen NOW

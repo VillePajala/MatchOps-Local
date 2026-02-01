@@ -34,6 +34,11 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
+// Mock AuthProvider
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: jest.fn(() => ({ user: null })),
+}));
+
 // Import modules after mocks are set up
 import { useSyncStatus } from '../useSyncStatus';
 import { getSyncEngine } from '@/sync';
@@ -52,6 +57,7 @@ describe('useSyncStatus', () => {
   let mockProcessQueue: jest.Mock;
   let mockRetryFailed: jest.Mock;
   let mockClearFailed: jest.Mock;
+  let mockForceRetryAll: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,6 +68,7 @@ describe('useSyncStatus', () => {
     mockProcessQueue = jest.fn();
     mockRetryFailed = jest.fn();
     mockClearFailed = jest.fn();
+    mockForceRetryAll = jest.fn();
 
     // Configure getSyncEngine to return our mocks
     mockGetSyncEngine.mockReturnValue({
@@ -70,6 +77,7 @@ describe('useSyncStatus', () => {
       processQueue: mockProcessQueue,
       retryFailed: mockRetryFailed,
       clearFailed: mockClearFailed,
+      forceRetryAll: mockForceRetryAll,
     } as unknown as ReturnType<typeof getSyncEngine>);
 
     // Default to local mode
@@ -104,7 +112,7 @@ describe('useSyncStatus', () => {
       });
 
       // Sync module should not be called in local mode
-      expect(mockProcessQueue).not.toHaveBeenCalled();
+      expect(mockForceRetryAll).not.toHaveBeenCalled();
       expect(mockRetryFailed).not.toHaveBeenCalled();
       expect(mockClearFailed).not.toHaveBeenCalled();
     });
@@ -262,7 +270,7 @@ describe('useSyncStatus', () => {
       });
     });
 
-    it('should call processQueue on syncNow', async () => {
+    it('should call forceRetryAll on syncNow', async () => {
       const { result } = renderHook(() => useSyncStatus());
 
       await waitFor(() => {
@@ -273,7 +281,7 @@ describe('useSyncStatus', () => {
         await result.current.syncNow();
       });
 
-      expect(mockProcessQueue).toHaveBeenCalled();
+      expect(mockForceRetryAll).toHaveBeenCalled();
     });
 
     it('should call retryFailed on retry', async () => {
@@ -305,7 +313,7 @@ describe('useSyncStatus', () => {
     });
 
     it('should handle errors in manual operations gracefully', async () => {
-      mockProcessQueue.mockRejectedValue(new Error('Sync failed'));
+      mockForceRetryAll.mockRejectedValue(new Error('Sync failed'));
 
       const { result } = renderHook(() => useSyncStatus());
 
