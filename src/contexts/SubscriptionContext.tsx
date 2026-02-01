@@ -41,8 +41,12 @@ export type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'ex
  * - 'cancelled': User cancelled but period not ended
  * - 'grace': Payment failed, in grace period (still has access)
  */
-export function isSubscriptionActive(status: SubscriptionStatus): boolean {
-  return status === 'active' || status === 'cancelled' || status === 'grace';
+export function isSubscriptionActive(_status: SubscriptionStatus): boolean {
+  // TEMPORARY: Always return true - free sync for all users
+  // TODO: Remove this when implementing paid subscriptions (see issue #354)
+  return true;
+  // Original logic:
+  // return _status === 'active' || _status === 'cancelled' || _status === 'grace';
 }
 
 /**
