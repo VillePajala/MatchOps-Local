@@ -90,10 +90,11 @@ export default function Home() {
 
   // Compute post-login loading state synchronously (not via effect) to avoid race conditions
   // This ensures the loading screen shows immediately when conditions are met, not one render cycle later
+  // NOTE: Do NOT require !!userId here - user/session might be set at slightly different times
+  // and we need to show loading screen as soon as isAuthenticated is true
   const isPostLoginLoading =
     mode === 'cloud' &&
     isAuthenticated &&
-    !!userId &&
     !isAuthLoading &&
     !postLoginCheckComplete;
 
