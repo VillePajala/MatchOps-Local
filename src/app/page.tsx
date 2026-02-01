@@ -98,6 +98,22 @@ export default function Home() {
     !isAuthLoading &&
     !postLoginCheckComplete;
 
+  // DEBUG: Log loading state computation to diagnose post-login loading screen issues
+  // This runs on every render to show the state progression
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    logger.info('[page.tsx] Loading state debug', {
+      mode,
+      isAuthenticated,
+      isAuthLoading,
+      postLoginCheckComplete,
+      isPostLoginLoading,
+      isCheckingState,
+      isSigningOut,
+      willShowLoadingScreen: isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut,
+    });
+  }, [mode, isAuthenticated, isAuthLoading, postLoginCheckComplete, isPostLoginLoading, isCheckingState, isSigningOut]);
+
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
   const isFirstTimeUser = !hasPlayers || !hasSavedGames;
