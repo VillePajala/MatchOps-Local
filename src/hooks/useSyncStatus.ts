@@ -98,27 +98,44 @@ export function useSyncStatus(): UseSyncStatusResult {
     let mounted = true;
 
     const initSync = async () => {
-      try {
-        const { getSyncEngine } = await import('@/sync');
-        const engine = getSyncEngine();
+      // Retry logic: engine may not exist yet if DataStore hasn't been initialized
+      const MAX_RETRIES = 10;
+      const RETRY_DELAY_MS = 500;
 
-        // Get initial status
-        const initialStatus = await engine.getStatus();
-        if (mounted) {
-          setStatus(initialStatus);
-          setIsInitialized(true);
-        }
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        if (!mounted) return;
 
-        // Subscribe to status changes
-        unsubscribe = engine.onStatusChange((newStatus) => {
+        try {
+          const { getSyncEngine } = await import('@/sync');
+          const engine = getSyncEngine();
+
+          // Get initial status
+          const initialStatus = await engine.getStatus();
           if (mounted) {
-            setStatus(newStatus);
+            setStatus(initialStatus);
+            setIsInitialized(true);
           }
-        });
-      } catch (error) {
-        logger.warn('[useSyncStatus] Failed to initialize sync status:', error);
-        if (mounted) {
-          setIsInitialized(true);
+
+          // Subscribe to status changes
+          unsubscribe = engine.onStatusChange((newStatus) => {
+            if (mounted) {
+              setStatus(newStatus);
+            }
+          });
+
+          // Success - exit retry loop
+          return;
+        } catch (error) {
+          // Engine not ready yet - retry after delay
+          if (attempt < MAX_RETRIES - 1) {
+            logger.debug('[useSyncStatus] Engine not ready, retrying...', { attempt: attempt + 1 });
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+          } else {
+            logger.warn('[useSyncStatus] Failed to initialize sync status after retries:', error);
+            if (mounted) {
+              setIsInitialized(true);
+            }
+          }
         }
       }
     };
