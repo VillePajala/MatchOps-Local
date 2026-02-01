@@ -20,6 +20,7 @@ import {
   SyncError,
   SyncErrorCode,
 } from './types';
+import { AuthError } from '@/interfaces/DataStoreErrors';
 
 /**
  * Callback type for sync operations.
@@ -675,7 +676,35 @@ export class SyncEngine {
         }
         // Don't emit failure events for aborts - they're not real failures
         return;
-      } else {
+      }
+
+      // AuthError is expected during app startup when sync engine starts before auth is ready
+      // CRITICAL FIX: Don't count AuthError as a retry failure - reset to pending without penalty.
+      // The session will be established soon, so the operation should retry fresh.
+      // This prevents operations from failing permanently due to auth timing issues.
+      // See Sentry MATCHOPS-LOCAL-3J
+      const isAuthError = error instanceof AuthError ||
+        (error instanceof Error && error.name === 'AuthError');
+      if (isAuthError) {
+        logger.debug(`[SyncEngine] Auth not ready: ${opInfo} - resetting to pending (will retry when auth is available)`);
+        try {
+          // Reset to pending WITHOUT incrementing retry count
+          // Auth timing issues are not real failures - session just isn't ready yet
+          const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
+          if (reset) {
+            logger.debug(`[SyncEngine] Successfully reset auth-blocked operation ${opInfo} to pending`);
+          } else {
+            logger.debug(`[SyncEngine] Auth-blocked operation ${opInfo} not found (may be already processed)`);
+          }
+        } catch (resetError) {
+          logger.debug(`[SyncEngine] Could not reset auth-blocked operation ${opInfo}:`, resetError);
+        }
+        // Don't emit failure events for auth timing issues - they're temporary
+        return;
+      }
+
+      // All other errors are real failures
+      {
         logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
 
         // DIAGNOSTIC: Log full operation details to help identify why specific operations fail
