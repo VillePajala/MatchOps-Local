@@ -26,8 +26,8 @@ import {
   DEFAULT_SYNC_CONFIG,
 } from './types';
 
-/** Database name for sync queue (separate from main app data) */
-const SYNC_DB_NAME = 'matchops_sync_queue';
+/** Base database name for sync queue (user ID is appended for user-scoped storage) */
+const SYNC_DB_NAME_PREFIX = 'matchops_sync_queue';
 
 /** Database version */
 const SYNC_DB_VERSION = 1;
@@ -100,7 +100,24 @@ export class SyncQueue {
   private statsCache: { stats: SyncQueueStats; timestamp: number } | null = null;
   private static readonly STATS_CACHE_TTL_MS = 1000; // 1 second TTL
 
-  constructor(config?: Partial<typeof DEFAULT_SYNC_CONFIG>) {
+  /** User ID for user-scoped database. Operations from different users are isolated. */
+  private readonly userId?: string;
+
+  /** Full database name (includes userId if provided) */
+  private readonly dbName: string;
+
+  /**
+   * Creates a new SyncQueue instance.
+   *
+   * @param userId - User ID for user-scoped storage. Each user gets their own queue database.
+   *                 If omitted, uses a global queue (legacy behavior, not recommended).
+   * @param config - Optional configuration overrides.
+   */
+  constructor(userId?: string, config?: Partial<typeof DEFAULT_SYNC_CONFIG>) {
+    this.userId = userId;
+    // User-scoped database name prevents cross-user data leakage and stale operations
+    // from previous users appearing in the current user's queue.
+    this.dbName = userId ? `${SYNC_DB_NAME_PREFIX}_${userId}` : SYNC_DB_NAME_PREFIX;
     this.maxRetries = config?.maxRetries ?? DEFAULT_SYNC_CONFIG.maxRetries;
     this.backoffBaseMs = config?.backoffBaseMs ?? DEFAULT_SYNC_CONFIG.backoffBaseMs;
     this.backoffMaxMs = config?.backoffMaxMs ?? DEFAULT_SYNC_CONFIG.backoffMaxMs;
@@ -150,9 +167,9 @@ export class SyncQueue {
         return;
       }
 
-      logger.debug('[SyncQueue] Opening database...');
+      logger.debug('[SyncQueue] Opening database...', { dbName: this.dbName, userId: this.userId });
 
-      const request = window.indexedDB.open(SYNC_DB_NAME, SYNC_DB_VERSION);
+      const request = window.indexedDB.open(this.dbName, SYNC_DB_VERSION);
 
       request.onerror = () => {
         logger.error('[SyncQueue] Failed to open database:', request.error);
