@@ -422,27 +422,24 @@ export default function Home() {
   //   2. checkAppState() calls setIsCheckingState(true) - but state update is BATCHED
   //   3. This effect runs in the SAME cycle, isCheckingState is still FALSE from before!
   //   4. Without the transition check, postLoginCheckComplete would be set immediately (BUG!)
-  // By tracking the previous value and requiring a true→false transition, we ensure this
-  // effect only fires AFTER checkAppState() has actually completed.
+  // Track isCheckingState transitions for debugging
+  // NOTE: In cloud mode, postLoginCheckComplete is set by the migration check effect,
+  // NOT here. This is because checkAppState reads from LOCAL storage (which may be empty),
+  // but we need to wait for cloud data to be HYDRATED before showing the app.
+  // The migration check effect handles:
+  // - Checking if cloud has data
+  // - Hydrating local storage from cloud if needed
+  // - Setting postLoginCheckComplete(true) when data is ready
   useEffect(() => {
     // Capture previous value and update ref for next render
     const wasChecking = prevIsCheckingStateRef.current;
     prevIsCheckingStateRef.current = isCheckingState;
 
-    // Only set postLoginCheckComplete when isCheckingState transitions from true to false
-    // This ensures checkAppState() has actually started AND finished
-    if (
-      mode === 'cloud' &&
-      checkAppStateTriggeredRef.current &&
-      isAuthenticated &&
-      !isAuthLoading &&
-      wasChecking && !isCheckingState && // CRITICAL: true→false transition
-      !postLoginCheckComplete
-    ) {
-      logger.info('[page.tsx] checkAppState completed (true→false transition), marking post-login check complete');
-      setPostLoginCheckComplete(true);
+    // Log the transition for debugging
+    if (wasChecking && !isCheckingState && mode === 'cloud') {
+      logger.info('[page.tsx] checkAppState completed - waiting for migration/hydration check to set postLoginCheckComplete');
     }
-  }, [mode, isAuthenticated, isAuthLoading, isCheckingState, postLoginCheckComplete]);
+  }, [mode, isCheckingState]);
 
   // ============================================================================
   // LEGACY DATABASE MIGRATION (MatchOpsLocal → User-Scoped Database)
@@ -957,43 +954,11 @@ export default function Home() {
   // Compute whether to show loading screen
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
 
-  // DEBUG: Detect the exact scenario where login completes but loading screen doesn't show
-  // This should NEVER happen - if it does, there's a bug in our logic
-  const debugShouldShowLoadingButDoesnt =
-    mode === 'cloud' &&
-    isAuthenticated &&
-    !showLoadingScreen &&
-    !postLoginCheckComplete;
-
-  // Log to window for debugging in production
-  if (typeof window !== 'undefined') {
-    (window as unknown as { __authDebug?: object }).__authDebug = {
-      mode,
-      isAuthenticated,
-      isAuthLoading,
-      isCheckingState,
-      isPostLoginLoading,
-      isSigningOut,
-      postLoginCheckComplete,
-      showLoadingScreen,
-      debugShouldShowLoadingButDoesnt,
-      userId: userId ? userId.slice(0, 8) : null,
-    };
-  }
-
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
-        {/* DEBUG: Show red banner if we detect the bug condition */}
-        {debugShouldShowLoadingButDoesnt && (
-          <div className="fixed top-0 left-0 right-0 bg-red-600 text-white p-2 z-50 text-xs font-mono">
-            BUG DETECTED: mode={mode}, auth={String(isAuthenticated)}, authLoading={String(isAuthLoading)},
-            checking={String(isCheckingState)}, postLogin={String(isPostLoginLoading)},
-            complete={String(postLoginCheckComplete)}, show={String(showLoadingScreen)}
-          </div>
-        )}
         {showLoadingScreen ? (
           // Loading state while checking auth, data, or during sign-out
           <LoadingScreen message={getLoadingMessage()} />
