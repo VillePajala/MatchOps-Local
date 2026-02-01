@@ -53,6 +53,7 @@ describe('useDataStore', () => {
     mode: 'local' as const,
     needsReConsent: false,
     initTimedOut: false,
+    isSigningOut: false,
     signIn: jest.fn(),
     signUp: jest.fn(),
     signOut: jest.fn(),
