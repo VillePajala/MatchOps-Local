@@ -879,12 +879,16 @@ export function getSyncEngine(queue?: SyncQueue): SyncEngine {
 }
 
 /**
- * Reset the singleton (for testing).
+ * Reset the singleton (for testing and user transitions).
  * Calls dispose() to stop engine AND clear all listeners, preventing memory leaks.
  */
 export async function resetSyncEngine(): Promise<void> {
   if (syncEngineInstance) {
-    await syncEngineInstance.dispose();
+    // CRITICAL: Null the singleton FIRST, then dispose.
+    // This prevents race conditions where getSyncEngine() is called during disposal
+    // and returns the old (disposing) engine with a closed queue.
+    const engineToDispose = syncEngineInstance;
     syncEngineInstance = null;
+    await engineToDispose.dispose();
   }
 }
