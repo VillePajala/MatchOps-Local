@@ -86,6 +86,7 @@ export class SyncedDataStore implements DataStore {
     // Pass userId to SyncQueue for user-scoped queue database.
     // This prevents stale operations from other users appearing in the queue.
     this.syncQueue = new SyncQueue(userId);
+    logger.info('[SyncedDataStore] Created', { userId: userId || '(none)' });
   }
 
   // ==========================================================================

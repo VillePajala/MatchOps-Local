@@ -155,13 +155,13 @@ export function useSyncStatus(): UseSyncStatusResult {
   const syncNow = useCallback(async () => {
     if (mode !== 'cloud') return;
 
+    logger.info('[useSyncStatus] Sync Now clicked');
     try {
       const { getSyncEngine } = await import('@/sync');
       const engine = getSyncEngine();
-      // Use forceRetryAll instead of processQueue to ignore backoff timing
-      // This ensures pending operations that failed and are waiting for retry
-      // will be attempted immediately when user explicitly requests sync
+      logger.info('[useSyncStatus] Calling forceRetryAll on engine');
       await engine.forceRetryAll();
+      logger.info('[useSyncStatus] forceRetryAll completed');
     } catch (error) {
       logger.error('[useSyncStatus] Sync now failed:', error);
     }

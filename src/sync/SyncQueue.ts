@@ -121,6 +121,8 @@ export class SyncQueue {
     this.maxRetries = config?.maxRetries ?? DEFAULT_SYNC_CONFIG.maxRetries;
     this.backoffBaseMs = config?.backoffBaseMs ?? DEFAULT_SYNC_CONFIG.backoffBaseMs;
     this.backoffMaxMs = config?.backoffMaxMs ?? DEFAULT_SYNC_CONFIG.backoffMaxMs;
+
+    logger.info('[SyncQueue] Created', { userId: userId || '(none)', dbName: this.dbName });
   }
 
   /**
@@ -831,9 +833,11 @@ export class SyncQueue {
     // Check cache first
     const now = Date.now();
     if (this.statsCache && now - this.statsCache.timestamp < SyncQueue.STATS_CACHE_TTL_MS) {
+      logger.debug('[SyncQueue] getStats: returning cached', { dbName: this.dbName, stats: this.statsCache.stats });
       return this.statsCache.stats;
     }
 
+    logger.info('[SyncQueue] getStats: reading from database', { dbName: this.dbName, userId: this.userId });
     const db = this.ensureInitialized();
 
     return new Promise((resolve, reject) => {
