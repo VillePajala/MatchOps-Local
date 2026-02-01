@@ -969,6 +969,14 @@ export class SyncEngine {
 let syncEngineInstance: SyncEngine | null = null;
 
 /**
+ * Check if the SyncEngine singleton has been initialized.
+ * Use this to guard operations that require the engine without throwing.
+ */
+export function isSyncEngineInitialized(): boolean {
+  return syncEngineInstance !== null;
+}
+
+/**
  * Get or create the singleton SyncEngine instance.
  */
 export function getSyncEngine(queue?: SyncQueue): SyncEngine {

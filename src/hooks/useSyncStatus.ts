@@ -223,7 +223,12 @@ export function useSyncStatus(): UseSyncStatusResult {
     if (mode !== 'cloud') return;
 
     try {
-      const { getSyncEngine } = await import('@/sync');
+      const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
+      // Guard: Only pause if engine is initialized (prevents error during startup)
+      if (!isSyncEngineInitialized()) {
+        logger.debug('[useSyncStatus] Pause skipped - engine not initialized yet');
+        return;
+      }
       const engine = getSyncEngine();
       engine.pause();
     } catch (error) {
@@ -236,7 +241,12 @@ export function useSyncStatus(): UseSyncStatusResult {
     if (mode !== 'cloud') return;
 
     try {
-      const { getSyncEngine } = await import('@/sync');
+      const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
+      // Guard: Only resume if engine is initialized (prevents error during startup)
+      if (!isSyncEngineInitialized()) {
+        logger.debug('[useSyncStatus] Resume skipped - engine not initialized yet');
+        return;
+      }
       const engine = getSyncEngine();
       engine.resume();
     } catch (error) {

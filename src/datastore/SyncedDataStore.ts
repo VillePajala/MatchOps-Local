@@ -305,6 +305,18 @@ export class SyncedDataStore implements DataStore {
     operation: SyncOperationType,
     data: unknown
   ): Promise<void> {
+    // Guard: Skip queueing if not initialized (e.g., during startup race conditions)
+    // This prevents "SyncQueue not initialized" errors when saves happen before
+    // the DataStore is fully ready. The local write still succeeds, but won't sync.
+    if (!this.initialized) {
+      logger.warn('[SyncedDataStore] queueSync called before initialization, skipping', {
+        entityType,
+        entityId,
+        operation,
+      });
+      return;
+    }
+
     try {
       await this.syncQueue.enqueue({
         entityType,
