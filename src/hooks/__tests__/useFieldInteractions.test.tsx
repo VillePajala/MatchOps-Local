@@ -19,8 +19,17 @@ const mockGetDrawingModeEnabled = jest.fn();
 const mockSaveDrawingModeEnabled = jest.fn();
 
 jest.mock('@/utils/appSettings', () => ({
-  getDrawingModeEnabled: () => mockGetDrawingModeEnabled(),
-  saveDrawingModeEnabled: (value: boolean) => mockSaveDrawingModeEnabled(value),
+  getDrawingModeEnabled: (userId?: string) => mockGetDrawingModeEnabled(userId),
+  saveDrawingModeEnabled: (value: boolean, userId?: string) => mockSaveDrawingModeEnabled(value, userId),
+}));
+
+// Mock useAuth
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id' },
+    isAuthenticated: true,
+    isLoading: false,
+  }),
 }));
 
 describe('useFieldInteractions', () => {
@@ -125,9 +134,9 @@ describe('useFieldInteractions', () => {
       result.current.toggleDrawingMode();
     });
 
-    // Wait for persistence
+    // Wait for persistence (userId is passed from auth context)
     await waitFor(() => {
-      expect(mockSaveDrawingModeEnabled).toHaveBeenCalledWith(true);
+      expect(mockSaveDrawingModeEnabled).toHaveBeenCalledWith(true, 'test-user-id');
     });
   });
 
@@ -304,7 +313,7 @@ describe('useFieldInteractions', () => {
 
     // Should persist false (not true, which was the new previous value)
     await waitFor(() => {
-      expect(mockSaveDrawingModeEnabled).toHaveBeenCalledWith(false);
+      expect(mockSaveDrawingModeEnabled).toHaveBeenCalledWith(false, 'test-user-id');
     });
   });
 
