@@ -957,11 +957,43 @@ export default function Home() {
   // Compute whether to show loading screen
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
 
+  // DEBUG: Detect the exact scenario where login completes but loading screen doesn't show
+  // This should NEVER happen - if it does, there's a bug in our logic
+  const debugShouldShowLoadingButDoesnt =
+    mode === 'cloud' &&
+    isAuthenticated &&
+    !showLoadingScreen &&
+    !postLoginCheckComplete;
+
+  // Log to window for debugging in production
+  if (typeof window !== 'undefined') {
+    (window as unknown as { __authDebug?: object }).__authDebug = {
+      mode,
+      isAuthenticated,
+      isAuthLoading,
+      isCheckingState,
+      isPostLoginLoading,
+      isSigningOut,
+      postLoginCheckComplete,
+      showLoadingScreen,
+      debugShouldShowLoadingButDoesnt,
+      userId: userId ? userId.slice(0, 8) : null,
+    };
+  }
+
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
+        {/* DEBUG: Show red banner if we detect the bug condition */}
+        {debugShouldShowLoadingButDoesnt && (
+          <div className="fixed top-0 left-0 right-0 bg-red-600 text-white p-2 z-50 text-xs font-mono">
+            BUG DETECTED: mode={mode}, auth={String(isAuthenticated)}, authLoading={String(isAuthLoading)},
+            checking={String(isCheckingState)}, postLogin={String(isPostLoginLoading)},
+            complete={String(postLoginCheckComplete)}, show={String(showLoadingScreen)}
+          </div>
+        )}
         {showLoadingScreen ? (
           // Loading state while checking auth, data, or during sign-out
           <LoadingScreen message={getLoadingMessage()} />
