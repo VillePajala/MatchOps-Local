@@ -362,7 +362,10 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     });
     // Clear pending init promises to prevent stale completions from interfering
     dataStoreInitPromises.clear();
-    await closeDataStoreInternal('user change');
+    // Force close on user change - sync operations were for a different user
+    // and blocking the new user's login would be a worse UX than losing the
+    // previous user's pending operations
+    await closeDataStoreInternal('user change', { force: true });
   }
 
   // Check if mode changed since the DataStore was created
