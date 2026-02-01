@@ -455,38 +455,59 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       const syncedStore = new SyncedDataStore(initUserId);
       await syncedStore.initialize();
 
-      try {
-        // Set up the sync executor to sync to Supabase
-        const { SupabaseDataStore } = await import('./SupabaseDataStore');
-        const cloudStore = new SupabaseDataStore();
-        await cloudStore.initialize();
-        // Note: If initialize() succeeds, isInitialized() should return true.
-        // If not, that's a bug in SupabaseDataStore to fix, not work around here.
+      // TRUE LOCAL-FIRST: Start sync engine immediately (can run without executor)
+      // Engine will process queue once executor is set (see SyncEngine.setExecutor)
+      log.info('[factory] Starting sync engine (local-first, cloud setup in background)', { userId: initUserId });
+      syncedStore.startSync();
 
-        const { createSyncExecutor } = await import('@/sync');
-        // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
-        const localStore = syncedStore.getLocalStore();
-        const executor = createSyncExecutor(cloudStore, localStore);
-        log.info('[factory] Setting executor on SyncedDataStore', { userId: initUserId });
-        syncedStore.setExecutor(executor);
-        log.info('[factory] Starting sync engine', { userId: initUserId });
-        syncedStore.startSync();
+      // Set up cloud in background - DON'T BLOCK the return
+      // This eliminates the long loading time after login
+      const setupCloudInBackground = async () => {
+        try {
+          // Set up the sync executor to sync to Supabase
+          const { SupabaseDataStore } = await import('./SupabaseDataStore');
+          const cloudStore = new SupabaseDataStore();
+          await cloudStore.initialize();
+          // Note: If initialize() succeeds, isInitialized() should return true.
+          // If not, that's a bug in SupabaseDataStore to fix, not work around here.
 
-        instance = syncedStore;
-        log.info('[factory] Using SyncedDataStore (local-first cloud mode)', {
-          userId: initUserId,
-          explicitMode: mode,
-        });
-      } catch (error) {
-        // Clean up syncedStore if cloud setup fails
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const err = error instanceof Error ? error : new Error(errorMessage);
-        log.warn(`[factory] Cloud setup failed: ${errorMessage}, cleaning up SyncedDataStore`, err);
-        await syncedStore.close();
-        // SECURITY: Throw generic message to prevent technical detail exposure
-        // Full details already logged above for debugging
-        throw new Error('Cloud mode initialization failed. Please try again or switch to local mode.');
-      }
+          const { createSyncExecutor } = await import('@/sync');
+          // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
+          const localStore = syncedStore.getLocalStore();
+          const executor = createSyncExecutor(cloudStore, localStore);
+          log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId });
+          syncedStore.setExecutor(executor);
+          // Note: SyncEngine.setExecutor() triggers queue processing automatically
+          // if the engine is already running (which it is - we started it above)
+        } catch (error) {
+          // Cloud setup failed in background - log error but don't crash the app
+          // The DataStore still works in local-only mode. Queued operations will
+          // remain pending until the next app restart or manual retry.
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const err = error instanceof Error ? error : new Error(errorMessage);
+          log.error(`[factory] Background cloud setup failed: ${errorMessage}`, err);
+
+          // Report to Sentry for production tracking
+          try {
+            const Sentry = await import('@sentry/nextjs');
+            Sentry.captureException(error, {
+              tags: { component: 'factory', action: 'backgroundCloudSetup' },
+              extra: { userId: initUserId },
+            });
+          } catch {
+            // Sentry failure must not propagate
+          }
+        }
+      };
+
+      // Fire and forget - don't await
+      setupCloudInBackground();
+
+      instance = syncedStore;
+      log.info('[factory] Using SyncedDataStore (local-first cloud mode, cloud connecting...)', {
+        userId: initUserId,
+        explicitMode: mode,
+      });
     } else if (mode === 'cloud' && !isCloudAvailable()) {
       // Cloud mode requested but Supabase not configured
       log.warn(

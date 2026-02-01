@@ -863,17 +863,18 @@ describe('SyncQueue', () => {
   });
 
   describe('edge cases', () => {
-    it('should throw SyncError when marking non-existent operation as syncing', async () => {
-      // Suppress expected console.error from logger when operation not found
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    it('should gracefully handle marking non-existent operation as syncing', async () => {
+      // Suppress debug log from updateStatus when operation not found
+      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
       try {
-        // Should throw SyncError for consistency with markFailed
-        await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(SyncError);
-        await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(
-          'Operation non_existent_id not found in queue'
-        );
+        // Should NOT throw - this handles race conditions where:
+        // 1. CREATE + DELETE deduplication removes operation while sync is picking it up
+        // 2. Another tab/process completed and removed it
+        // 3. Operation was cleared by user
+        // See: MATCHOPS-LOCAL-1M
+        await expect(queue.markSyncing('non_existent_id')).resolves.toBeUndefined();
       } finally {
-        errorSpy.mockRestore();
+        debugSpy.mockRestore();
       }
     });
 
