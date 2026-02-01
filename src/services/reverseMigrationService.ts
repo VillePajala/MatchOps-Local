@@ -1174,20 +1174,100 @@ function createEmptyCounts(): ReverseMigrationCounts {
  * Check if user has any data in Supabase.
  * Works even in local mode (uses stored auth session).
  *
+ * This is an optimized existence check that only queries record counts (not full data).
+ * For full data counts, use getCloudDataSummary() instead.
+ *
  * @returns CloudDataCheckResult that distinguishes "no data" from "check failed"
  */
 export async function hasCloudData(): Promise<CloudDataCheckResult> {
+  logger.info('[ReverseMigrationService] hasCloudData: starting quick existence check');
+
   try {
-    const summary = await getCloudDataSummary();
-    const hasData = (
-      summary.players > 0 ||
-      summary.teams > 0 ||
-      summary.games > 0 ||
-      summary.seasons > 0 ||
-      summary.tournaments > 0 ||
-      summary.personnel > 0
-    );
-    return { hasData, checkFailed: false };
+    // Check network connectivity first
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new NetworkError('Cannot check cloud data while offline.');
+    }
+
+    // Get Supabase client and verify session
+    const { getSupabaseClient } = await import('@/datastore/supabase');
+    const supabase = getSupabaseClient();
+
+    logger.info('[ReverseMigrationService] hasCloudData: checking session');
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      throw new AuthError(`Session error: ${sessionError.message}`);
+    }
+    if (!sessionData.session) {
+      throw new AuthError('No active session. Please sign in again.');
+    }
+
+    // Quick existence check: query each table with limit 1, count only
+    // This is MUCH faster than fetching all data
+    logger.info('[ReverseMigrationService] hasCloudData: checking tables for any data');
+
+    // Check games (most important for hydration)
+    const { count: gamesCount, error: gamesError } = await supabase
+      .from('games')
+      .select('*', { count: 'exact', head: true });
+
+    if (gamesError) {
+      logger.warn('[ReverseMigrationService] hasCloudData: games check error', { error: gamesError.message });
+      throw new NetworkError(`Failed to check games: ${gamesError.message}`);
+    }
+
+    if (gamesCount && gamesCount > 0) {
+      logger.info('[ReverseMigrationService] hasCloudData: found games', { count: gamesCount });
+      return { hasData: true, checkFailed: false };
+    }
+
+    // Check players
+    const { count: playersCount, error: playersError } = await supabase
+      .from('players')
+      .select('*', { count: 'exact', head: true });
+
+    if (playersError) {
+      logger.warn('[ReverseMigrationService] hasCloudData: players check error', { error: playersError.message });
+      throw new NetworkError(`Failed to check players: ${playersError.message}`);
+    }
+
+    if (playersCount && playersCount > 0) {
+      logger.info('[ReverseMigrationService] hasCloudData: found players', { count: playersCount });
+      return { hasData: true, checkFailed: false };
+    }
+
+    // Check teams
+    const { count: teamsCount, error: teamsError } = await supabase
+      .from('teams')
+      .select('*', { count: 'exact', head: true });
+
+    if (teamsError) {
+      logger.warn('[ReverseMigrationService] hasCloudData: teams check error', { error: teamsError.message });
+      throw new NetworkError(`Failed to check teams: ${teamsError.message}`);
+    }
+
+    if (teamsCount && teamsCount > 0) {
+      logger.info('[ReverseMigrationService] hasCloudData: found teams', { count: teamsCount });
+      return { hasData: true, checkFailed: false };
+    }
+
+    // Check seasons
+    const { count: seasonsCount, error: seasonsError } = await supabase
+      .from('seasons')
+      .select('*', { count: 'exact', head: true });
+
+    if (seasonsError) {
+      logger.warn('[ReverseMigrationService] hasCloudData: seasons check error', { error: seasonsError.message });
+      throw new NetworkError(`Failed to check seasons: ${seasonsError.message}`);
+    }
+
+    if (seasonsCount && seasonsCount > 0) {
+      logger.info('[ReverseMigrationService] hasCloudData: found seasons', { count: seasonsCount });
+      return { hasData: true, checkFailed: false };
+    }
+
+    logger.info('[ReverseMigrationService] hasCloudData: no data found in cloud');
+    return { hasData: false, checkFailed: false };
+
   } catch (err) {
     // Log the actual error for debugging
     const errorMsg = err instanceof Error ? err.message : 'Unknown error';
@@ -1219,20 +1299,49 @@ export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
     throw new NetworkError('Cannot check cloud data while offline. Please check your connection.');
   }
 
+  logger.info('[ReverseMigrationService] getCloudDataSummary: starting');
+
   const cloudStore = new SupabaseDataStore();
   try {
+    logger.info('[ReverseMigrationService] getCloudDataSummary: initializing SupabaseDataStore');
     await cloudStore.initialize();
 
+    // Verify there's an authenticated session before making requests
+    // The Supabase client loads the session from localStorage asynchronously,
+    // and isAvailable() only checks for errors, not session presence.
+    // We need to explicitly check for a valid session to avoid 406 errors.
+    logger.info('[ReverseMigrationService] getCloudDataSummary: checking session');
+    const { getSupabaseClient } = await import('@/datastore/supabase');
+    const supabase = getSupabaseClient();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      throw new AuthError(`Session error: ${sessionError.message}`);
+    }
+    if (!sessionData.session) {
+      throw new AuthError('No active session. Please sign in again.');
+    }
+    logger.info('[ReverseMigrationService] getCloudDataSummary: session valid, fetching data');
+
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching players');
     const players = await cloudStore.getPlayers();
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching teams');
     const teams = await cloudStore.getTeams(true);
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching seasons');
     const seasons = await cloudStore.getSeasons(true);
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching tournaments');
     const tournaments = await cloudStore.getTournaments(true);
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching personnel');
     const personnel = await cloudStore.getAllPersonnel();
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching games');
     const games = await cloudStore.getGames();
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching warmupPlan');
     const warmupPlan = await cloudStore.getWarmupPlan();
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching settings');
     const settings = await cloudStore.getSettings();
+    logger.info('[ReverseMigrationService] getCloudDataSummary: all core data fetched');
 
     // Count team rosters
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching team rosters', { teamCount: teams.length });
     let teamRostersCount = 0;
     for (const team of teams) {
       const roster = await cloudStore.getTeamRoster(team.id);
@@ -1240,11 +1349,18 @@ export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
     }
 
     // Count player adjustments
+    logger.info('[ReverseMigrationService] getCloudDataSummary: fetching player adjustments', { playerCount: players.length });
     let adjustmentCount = 0;
     for (const player of players) {
       const adjustments = await cloudStore.getPlayerAdjustments(player.id);
       adjustmentCount += adjustments.length;
     }
+
+    logger.info('[ReverseMigrationService] getCloudDataSummary: complete', {
+      players: players.length,
+      teams: teams.length,
+      games: Object.keys(games).length,
+    });
 
     return {
       players: players.length,
@@ -1358,6 +1474,24 @@ export async function hydrateLocalFromCloud(
     // Initialize stores
     cloudStore = new SupabaseDataStore();
     await cloudStore.initialize();
+
+    // Verify there's an authenticated session before making requests
+    // The Supabase client loads the session from localStorage asynchronously,
+    // and isAvailable() only checks for errors, not session presence.
+    // We need to explicitly check for a valid session to avoid 406 errors.
+    const { getSupabaseClient } = await import('@/datastore/supabase');
+    const supabase = getSupabaseClient();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      logger.warn('[ReverseMigrationService] Hydration aborted: session error', { error: sessionError.message });
+      errors.push(`Session error: ${sessionError.message}`);
+      return { success: false, counts, skipped, errors };
+    }
+    if (!sessionData.session) {
+      logger.warn('[ReverseMigrationService] Hydration aborted: no active session');
+      errors.push('No active session. Please sign in again.');
+      return { success: false, counts, skipped, errors };
+    }
 
     localStore = new LocalDataStore(userId);
     await localStore.initialize();

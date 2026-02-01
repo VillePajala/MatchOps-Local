@@ -78,18 +78,20 @@ export function resetSupabaseClient(): void {
 }
 
 /**
- * Clean up the Supabase client for hot mode switching.
+ * Clean up the Supabase client for DataStore user switches.
  *
- * This function properly cleans up the Supabase client when switching
- * from cloud mode to local mode without a page reload:
- * 1. Signs out the user (clears session from localStorage)
- * 2. Removes all realtime subscriptions
- * 3. Nulls the singleton reference
+ * This function cleans up the Supabase client's realtime resources when switching
+ * between users or DataStore instances:
+ * 1. Removes all realtime subscriptions
  *
- * Call this before switching to local mode to prevent:
- * - Stale auth subscriptions firing
+ * IMPORTANT: This does NOT reset the client singleton or sign out the user!
+ * - The user's auth session persists across DataStore switches
+ * - The client singleton is preserved to avoid session loading delays
+ * - Sign out only happens when the user explicitly calls signOut() via AuthProvider
+ *
+ * Call this before switching users/modes to prevent:
  * - Memory leaks from realtime channels
- * - Orphaned session data
+ * - Stale subscriptions
  *
  * @returns Promise that resolves when cleanup is complete
  */
@@ -99,22 +101,21 @@ export async function cleanupSupabaseClient(): Promise<void> {
   }
 
   try {
-    // Sign out to clear session and stop token refresh
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) {
-      logger.warn('[Supabase] Error during sign out cleanup:', error.message);
-    }
-
     // Remove all realtime subscriptions
+    // NOTE: We do NOT sign out here - user session must persist across DataStore switches!
+    // NOTE: We do NOT reset the singleton - this preserves the authenticated session
+    //       and avoids delays when the next request needs to load session from localStorage.
     await supabaseClient.removeAllChannels();
 
-    logger.info('[Supabase] Client cleaned up for mode switch');
+    logger.info('[Supabase] Client cleaned up (session preserved, singleton kept)');
   } catch (err) {
     // Log but don't throw - cleanup is best-effort
     logger.warn('[Supabase] Error during client cleanup:', err);
-  } finally {
-    supabaseClient = null;
   }
+  // NOTE: We intentionally do NOT set supabaseClient = null here.
+  // Resetting the singleton would cause the next getSupabaseClient() call to create
+  // a new client, which needs time to load the session from localStorage. This causes
+  // race conditions where requests are made before the session is ready (406 errors).
 }
 
 /**

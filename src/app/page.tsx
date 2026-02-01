@@ -592,10 +592,37 @@ export default function Home() {
 
     const checkMigrationNeeded = async () => {
       try {
-        // Migration already completed for this user - skip wizard but still refetch data
-        // This handles the sign out → sign in flow where React Query caches may be stale
+        // Migration already completed for this user - but we still need to check
+        // if local data exists. On a new device or after clearing IndexedDB,
+        // the localStorage flag may be set but local data is empty.
         if (hasMigrationCompleted(userId)) {
-          logger.info('[page.tsx] Migration already completed for this user, refetching queries');
+          logger.info('[page.tsx] Migration already completed for this user, checking if local has data...');
+
+          // Check if local actually has data (user-scoped storage)
+          const localResult = await hasLocalDataToMigrate(userId);
+          if (!localResult.checkFailed && !localResult.hasData) {
+            // Local is empty - need to hydrate from cloud even though migration was "completed"
+            logger.info('[page.tsx] Local is empty despite migration completed, checking cloud...');
+            const cloudResult = await hasCloudData();
+
+            if (!cloudResult.checkFailed && cloudResult.hasData) {
+              // Cloud has data, local is empty - hydrate
+              logger.info('[page.tsx] Hydrating from cloud (local was empty after previous migration)...');
+              const hydrationResult = await hydrateLocalFromCloud(userId);
+
+              if (hydrationResult.success) {
+                logger.info('[page.tsx] Hydration successful', { counts: hydrationResult.counts });
+                showToast(
+                  t('page.dataLoadedFromCloud', 'Your data has been loaded from the cloud.'),
+                  'success'
+                );
+              } else {
+                logger.warn('[page.tsx] Hydration failed', { errors: hydrationResult.errors });
+              }
+            }
+          }
+
+          // Refetch queries to load whatever data we have
           try {
             await queryClient.refetchQueries();
           } catch (refetchError) {
@@ -610,8 +637,8 @@ export default function Home() {
           return;
         }
 
-        // Check if there's local data to migrate
-        const result = await hasLocalDataToMigrate();
+        // Check if there's local data to migrate (user-scoped storage)
+        const result = await hasLocalDataToMigrate(userId);
         if (result.checkFailed) {
           // Storage check failed - notify user and allow retry on next effect cycle
           logger.warn('[page.tsx] Failed to check local data:', result.error);

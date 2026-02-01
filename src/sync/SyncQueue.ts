@@ -1227,8 +1227,5 @@ export class SyncQueue {
   }
 }
 
-/**
- * Default SyncQueue instance.
- * Initialize before use: `await syncQueue.initialize()`
- */
-export const syncQueue = new SyncQueue();
+// NOTE: No global singleton here! SyncQueue must be instantiated with a userId
+// for user-scoped storage. SyncedDataStore creates its own SyncQueue instance.
