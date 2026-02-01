@@ -15,7 +15,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
-import i18n from '@/i18n';
+import i18n, { saveLanguagePreference } from '@/i18n';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import logger from '@/utils/logger';
@@ -76,8 +76,11 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
   // Save language preference when changed
   useEffect(() => {
     i18n.changeLanguage(language);
+    // Save to localStorage first (always works, used by i18n on load)
+    saveLanguagePreference(language);
+    // Also save to DataStore for sync (best effort, may fail during user transitions)
     updateAppSettings({ language }).catch((err) => {
-      logger.warn('[LoginScreen] Failed to save language preference (non-critical)', { language, error: err });
+      logger.warn('[LoginScreen] Failed to save language to DataStore (non-critical)', { language, error: err });
     });
   }, [language]);
 
