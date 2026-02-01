@@ -20,7 +20,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getAuthService, getDataStore, isDataStoreInitialized } from '@/datastore/factory';
 import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
 import { POLICY_VERSION } from '@/config/constants';
@@ -108,6 +108,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Trigger for re-running auth initialization (increments to force useEffect re-run)
   const [initRetryTrigger, setInitRetryTrigger] = useState(0);
 
+  // Track if user has explicitly signed in during this session
+  // This prevents auth state flickering from clearing the session after successful login
+  // Only explicit signOut() resets this flag
+  const hasSignedInThisSessionRef = useRef(false);
+
   // Initialize auth service
   useEffect(() => {
     let mounted = true;
@@ -146,6 +151,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // 1. Unexpected events with null session (e.g., AbortError during token refresh)
           // 2. New Supabase events we don't recognize
           // 3. Race conditions during sign-in flow
+          //
+          // Additional protection: If user has successfully signed in this session,
+          // NEVER clear the session unless explicit signOut() is called.
+          // This prevents flickering even if Supabase fires a signed_out event unexpectedly.
           if (!newSession && state !== 'signed_out') {
             logger.warn('[AuthProvider] Received null session for non-signout event:', state, '- preserving current session');
             // Track in Sentry for debugging (PWA can't access console)
@@ -160,6 +169,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             // Don't clear the session - let the current auth state persist
             // If there's a real auth issue, the next API call will fail and we'll handle it then
+            return;
+          }
+
+          // EXTRA PROTECTION: If user signed in this session but we get signed_out event,
+          // this might be a false positive. Only clear if signed_out event has no session.
+          // Legitimate sign-out will come from our signOut() function which sets the ref to false.
+          if (state === 'signed_out' && hasSignedInThisSessionRef.current) {
+            logger.warn('[AuthProvider] Ignoring signed_out event - user signed in this session and has not called signOut()');
+            try {
+              Sentry.addBreadcrumb({
+                category: 'auth',
+                message: 'Ignored spurious signed_out event (user still signed in)',
+                level: 'warning',
+              });
+            } catch {
+              // Sentry failure acceptable
+            }
             return;
           }
 
@@ -348,6 +374,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(result.user);
       setSession(result.session);
 
+      // Mark that user has signed in this session - prevents spurious sign-out events
+      // from clearing the session (login loop protection)
+      hasSignedInThisSessionRef.current = true;
+      logger.info('[AuthProvider] Sign-in successful, session locked');
+
       return {};
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Sign in failed' };
@@ -397,6 +428,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Set user/session after consent attempt
         setUser(result.user);
         setSession(result.session);
+
+        // Mark that user has signed in this session - prevents spurious sign-out events
+        hasSignedInThisSessionRef.current = true;
+        logger.info('[AuthProvider] Sign-up successful (no confirmation needed), session locked');
       }
       return { confirmationRequired: result.confirmationRequired, existingUser: result.existingUser };
     } catch (error) {
@@ -448,6 +483,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
+
+    // Reset session lock BEFORE clearing state - allows onAuthStateChange to process signed_out
+    hasSignedInThisSessionRef.current = false;
+    logger.info('[AuthProvider] Sign-out initiated, session lock released');
 
     // Always clear local state, even if API call failed
     setUser(null);
@@ -545,6 +584,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       await authService.deleteAccount();
+
+      // Reset session lock BEFORE clearing state
+      hasSignedInThisSessionRef.current = false;
 
       // Clear local state after successful deletion
       setUser(null);
