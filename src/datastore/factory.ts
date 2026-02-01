@@ -402,6 +402,28 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     return existingPromise;
   }
 
+  // RACE CONDITION FIX: If there's a pending initialization for a DIFFERENT userId,
+  // wait for it to complete first. This prevents the scenario where:
+  // 1. Component mounts before auth, calls getDataStore(undefined)
+  // 2. Auth completes, calls getDataStore(realUserId)
+  // 3. Both race and one throws "concurrent initialization conflict"
+  //
+  // By waiting for any pending init to complete, we serialize the operations
+  // and let the user switch logic handle the transition cleanly.
+  const pendingPromises = Array.from(dataStoreInitPromises.entries());
+  for (const [pendingUserId, pendingPromise] of pendingPromises) {
+    if (pendingUserId !== userId) {
+      log.info(`[factory] Waiting for pending initialization (user: ${pendingUserId || '(anonymous)'}) before starting new init (user: ${userId || '(anonymous)'})`);
+      try {
+        await pendingPromise;
+      } catch {
+        // If the pending init failed, that's fine - we'll proceed with ours
+      }
+      // After waiting, recurse to re-check state (the pending init may have set dataStoreInstance)
+      return getDataStore(userId);
+    }
+  }
+
   // Capture userId for the initialization closure
   const initUserId = userId;
 
