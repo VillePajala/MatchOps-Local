@@ -66,10 +66,9 @@ export default function Home() {
   const migrationCheckInitiatedRef = useRef(false);
   // Ref to track if legacy database migration has been checked this session
   const legacyMigrationCheckedRef = useRef(false);
-  // Ref to track if post-login data loading has completed (migration/hydration check)
-  const postLoginCheckCompleteRef = useRef(false);
-  // Post-login loading state - prevents user from seeing stale UI during data loading
-  const [isPostLoginLoading, setIsPostLoginLoading] = useState(false);
+  // State to track if post-login data loading has completed (migration/hydration check)
+  // Using state instead of ref so changes trigger re-renders
+  const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut } = useAuth();
@@ -85,6 +84,15 @@ export default function Home() {
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
+
+  // Compute post-login loading state synchronously (not via effect) to avoid race conditions
+  // This ensures the loading screen shows immediately when conditions are met, not one render cycle later
+  const isPostLoginLoading =
+    mode === 'cloud' &&
+    isAuthenticated &&
+    !!userId &&
+    !isAuthLoading &&
+    !postLoginCheckComplete;
 
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
@@ -366,29 +374,11 @@ export default function Home() {
     checkAppState();
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId]);
 
-  // ============================================================================
-  // POST-LOGIN LOADING STATE
-  // ============================================================================
-  // Track when post-login loading should start/end. This ensures we show a
-  // loading screen until data is ready after login, preventing users from
-  // seeing StartScreen with incorrect "Resume" button state.
-  useEffect(() => {
-    // Only in cloud mode after authentication completes
-    if (mode === 'cloud' && isAuthenticated && userId && !isAuthLoading) {
-      // Check if migration/hydration check hasn't completed yet
-      if (!postLoginCheckCompleteRef.current) {
-        setIsPostLoginLoading(true);
-      }
-    } else {
-      // Not in post-login state (local mode or not authenticated)
-      setIsPostLoginLoading(false);
-    }
-  }, [mode, isAuthenticated, userId, isAuthLoading]);
-
-  // Reset the post-login check ref when user signs out
+  // Reset post-login check state when user signs out
+  // This ensures the loading screen shows again on next sign-in
   useEffect(() => {
     if (!userId) {
-      postLoginCheckCompleteRef.current = false;
+      setPostLoginCheckComplete(false);
     }
   }, [userId]);
 
@@ -515,8 +505,7 @@ export default function Home() {
     if (!hasActiveSubscription) {
       logger.info('[page.tsx] Migration check: skipping - user has no active subscription');
       // Mark post-login check complete so user can proceed to app
-      postLoginCheckCompleteRef.current = true;
-      setIsPostLoginLoading(false);
+      setPostLoginCheckComplete(true);
       return;
     }
 
@@ -535,8 +524,7 @@ export default function Home() {
           await queryClient.refetchQueries();
           setRefreshTrigger(prev => prev + 1);
           // Mark post-login check complete and clear loading state
-          postLoginCheckCompleteRef.current = true;
-          setIsPostLoginLoading(false);
+          setPostLoginCheckComplete(true);
           return;
         }
 
@@ -552,16 +540,14 @@ export default function Home() {
           // Reset to allow retry on next effect run
           migrationCheckInitiatedRef.current = false;
           // Mark post-login check complete even on failure (user can use app)
-          postLoginCheckCompleteRef.current = true;
-          setIsPostLoginLoading(false);
+          setPostLoginCheckComplete(true);
         } else if (result.hasData) {
           // Local data found - show simplified migration wizard
           // (No need to fetch cloud counts - wizard always uses merge mode)
           logger.info('[page.tsx] Local data found, showing migration wizard');
           setShowMigrationWizard(true);
           // Mark post-login check complete - wizard handles its own loading
-          postLoginCheckCompleteRef.current = true;
-          setIsPostLoginLoading(false);
+          setPostLoginCheckComplete(true);
         } else {
           // No local data - check if cloud has data that needs to be loaded
           logger.info('[page.tsx] No local data, checking if cloud has data...');
@@ -577,8 +563,7 @@ export default function Home() {
             );
             setMigrationCompleted(userId);
             // Mark post-login check complete
-            postLoginCheckCompleteRef.current = true;
-            setIsPostLoginLoading(false);
+            setPostLoginCheckComplete(true);
           } else if (cloudResult.hasData) {
             // Cloud has data but local is empty - hydrate local storage from cloud
             // This handles the "new device login" scenario where user has
@@ -606,16 +591,14 @@ export default function Home() {
             }
             setMigrationCompleted(userId);
             // Mark post-login check complete
-            postLoginCheckCompleteRef.current = true;
-            setIsPostLoginLoading(false);
+            setPostLoginCheckComplete(true);
           } else {
             // Both local and cloud are empty - nothing to migrate now
             // Don't mark complete: if local data appears later (via backup import),
             // migration check should run again and show the wizard
             logger.info('[page.tsx] No local or cloud data to migrate currently');
             // Mark post-login check complete
-            postLoginCheckCompleteRef.current = true;
-            setIsPostLoginLoading(false);
+            setPostLoginCheckComplete(true);
           }
         }
       } catch (error) {
@@ -627,8 +610,7 @@ export default function Home() {
         );
         migrationCheckInitiatedRef.current = false;
         // Mark post-login check complete even on error (user can use app)
-        postLoginCheckCompleteRef.current = true;
-        setIsPostLoginLoading(false);
+        setPostLoginCheckComplete(true);
       }
     };
 
