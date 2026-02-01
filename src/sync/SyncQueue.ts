@@ -1172,15 +1172,13 @@ export class SyncQueue {
         const op = getRequest.result as SyncOperation | undefined;
 
         if (!op) {
-          // CRITICAL: Throw error for consistency with markFailed().
-          // If operation doesn't exist when trying to mark as syncing, something is wrong.
-          // This could indicate a race condition or bug in queue management.
-          logger.error('[SyncQueue] Operation not found for status update:', id);
-          reject(new SyncError(
-            SyncErrorCode.QUEUE_ERROR,
-            `Operation ${id} not found in queue - cannot update status to ${status}`
-          ));
-          return;
+          // Operation not found - this is expected in certain race conditions:
+          // 1. CREATE + DELETE deduplication removed the operation while sync was picking it up
+          // 2. Another tab/process completed and removed it
+          // 3. Operation was cleared by user
+          // This is not an error - just skip the status update.
+          logger.debug('[SyncQueue] Operation not found for status update (expected in some race conditions):', id);
+          return; // Resolve successfully - nothing to update
         }
 
         const updated: SyncOperation = {

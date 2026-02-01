@@ -99,7 +99,11 @@ export class SyncEngine {
       return;
     }
 
-    logger.info('[SyncEngine] Starting sync engine');
+    logger.info('[SyncEngine] Starting sync engine', {
+      hasExecutor: this.executor !== null,
+      isOnline: this.isOnline,
+      queueInitialized: this.queue?.isInitialized() ?? false,
+    });
     this.isRunning = true;
 
     // Refresh online state - browser may have come online after construction
@@ -413,6 +417,20 @@ export class SyncEngine {
    * Use this when user wants immediate sync without waiting for backoff.
    */
   async forceRetryAll(): Promise<void> {
+    // DIAGNOSTIC: Log full engine state to help diagnose sync issues
+    logger.info('[SyncEngine] Force retry all - ENGINE STATE', {
+      isRunning: this.isRunning,
+      isSyncing: this.isSyncing,
+      isResettingStale: this.isResettingStale,
+      staleResetFailed: this.staleResetFailed,
+      isDisposing: this.isDisposing,
+      isOnline: this.isOnline,
+      hasExecutor: this.executor !== null,
+      hasQueue: this.queue !== null,
+      queueInitialized: this.queue?.isInitialized() ?? false,
+      hasInterval: this.intervalId !== null,
+    });
+
     // First, get all operations for diagnostics
     const allOps = await this.queue.getAllOperations();
     logger.info('[SyncEngine] Force retry all - current queue state', {
@@ -485,6 +503,18 @@ export class SyncEngine {
   };
 
   private async doProcessQueue(): Promise<void> {
+    // DIAGNOSTIC: Log entry point to track why processing might not happen
+    logger.debug('[SyncEngine] doProcessQueue called - checking guards', {
+      isRunning: this.isRunning,
+      isDisposing: this.isDisposing,
+      isResettingStale: this.isResettingStale,
+      staleResetFailed: this.staleResetFailed,
+      isSyncing: this.isSyncing,
+      isOnline: this.isOnline,
+      hasExecutor: this.executor !== null,
+      queueInitialized: this.queue?.isInitialized() ?? false,
+    });
+
     // Block processing if engine is being disposed (prevents race with interval)
     if (this.isDisposing) {
       logger.debug('[SyncEngine] Disposing, skipping queue processing');
