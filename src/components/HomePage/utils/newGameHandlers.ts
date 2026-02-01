@@ -223,7 +223,55 @@ export async function startNewGameWithSetup(
   }
 
   resetHistory(newGameState);
-  dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: selectedPersonnelIds });
+
+  // CRITICAL: Update gameSessionState BEFORE setCurrentGameId to prevent auto-save race condition.
+  // When setCurrentGameId triggers a re-render, auto-save may run and createGameSnapshot() reads
+  // from gameSessionState. Without this dispatch, gameSessionState still has OLD game data,
+  // causing auto-save to overwrite the new game with old data.
+  // See: https://github.com/... (race condition investigation)
+  dispatchGameSession({
+    type: 'LOAD_GAME_SESSION_STATE',
+    payload: {
+      teamName: homeTeamName,
+      opponentName,
+      gameDate,
+      gameLocation,
+      gameTime,
+      homeScore: 0,
+      awayScore: 0,
+      gameNotes: '',
+      homeOrAway,
+      numberOfPeriods: numPeriods,
+      periodDurationMinutes: periodDuration,
+      currentPeriod: 1,
+      gameStatus: 'notStarted',
+      selectedPlayerIds: finalSelectedPlayerIds,
+      gamePersonnel: selectedPersonnelIds,
+      seasonId: seasonId || '',
+      tournamentId: tournamentId || '',
+      leagueId: leagueId || undefined,
+      customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined,
+      teamId: teamId || undefined,
+      gameType,
+      gender,
+      ageGroup,
+      tournamentLevel,
+      tournamentSeriesId: tournamentSeriesId || undefined,
+      demandFactor,
+      gameEvents: [],
+      // Timer state - fresh game starts with timer at zero
+      timeElapsedInSeconds: 0,
+      startTimestamp: null,
+      isTimerRunning: false,
+      subIntervalMinutes: defaultSubIntervalMinutes,
+      nextSubDueTimeSeconds: defaultSubIntervalMinutes * 60,
+      subAlertLevel: 'none',
+      lastSubConfirmationTimeSeconds: 0,
+      completedIntervalDurations: [],
+      showPlayerNames: true,
+    },
+  });
+
   setIsPlayed(isPlayed);
   setCurrentGameId(newGameId);
   logger.log(`Set current game ID to: ${newGameId}. Loading useEffect will sync component state.`);
