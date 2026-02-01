@@ -436,7 +436,10 @@ export class SyncEngine {
     this.emitStatusChange();
 
     // Trigger immediate processing
-    if ((failedCount > 0 || pendingCount > 0) && this.isRunning) {
+    // ALWAYS call doProcessQueue when user clicks "Sync Now", not just when resets happen.
+    // New operations have retryCount=0 and don't get counted by forceRetryPending(),
+    // but they still need to be processed.
+    if (this.isRunning) {
       this.doProcessQueue().catch((e) => {
         logger.error('[SyncEngine] Error processing queue after force retry:', e);
         try {
