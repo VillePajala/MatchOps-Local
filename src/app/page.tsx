@@ -69,6 +69,8 @@ export default function Home() {
   const migrationCheckInitiatedRef = useRef(false);
   // Ref to track if legacy database migration has been checked this session
   const legacyMigrationCheckedRef = useRef(false);
+  // Ref to track if checkAppState has been triggered post-login (prevents premature postLoginCheckComplete)
+  const checkAppStateTriggeredRef = useRef(false);
   // State to track if post-login data loading has completed (migration/hydration check)
   // Using state instead of ref so changes trigger re-renders
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
@@ -389,6 +391,9 @@ export default function Home() {
         logger.debug('[page.tsx] checkAppState: waiting for userId');
         return;
       }
+      // Mark that checkAppState is being triggered post-login
+      // This allows the postLoginCheckComplete effect to know it's safe to proceed
+      checkAppStateTriggeredRef.current = true;
     }
 
     checkAppState();
@@ -399,8 +404,29 @@ export default function Home() {
   useEffect(() => {
     if (!userId) {
       setPostLoginCheckComplete(false);
+      checkAppStateTriggeredRef.current = false;
     }
   }, [userId]);
+
+  // Mark post-login check complete when checkAppState finishes
+  // This ensures we don't clear the loading screen until data is actually loaded
+  // The migration check effect may trigger checkAppState via refreshTrigger,
+  // and we need to wait for that to complete before showing the app
+  useEffect(() => {
+    // Only relevant in cloud mode when authenticated and checkAppState has finished
+    // AND checkAppState has actually been triggered (ref guards against premature completion)
+    if (
+      mode === 'cloud' &&
+      checkAppStateTriggeredRef.current &&
+      isAuthenticated &&
+      !isAuthLoading &&
+      !isCheckingState &&
+      !postLoginCheckComplete
+    ) {
+      logger.info('[page.tsx] checkAppState completed, marking post-login check complete');
+      setPostLoginCheckComplete(true);
+    }
+  }, [mode, isAuthenticated, isAuthLoading, isCheckingState, postLoginCheckComplete]);
 
   // ============================================================================
   // LEGACY DATABASE MIGRATION (MatchOpsLocal → User-Scoped Database)
@@ -543,8 +569,10 @@ export default function Home() {
           logger.info('[page.tsx] Migration already completed for this user, refetching queries');
           await queryClient.refetchQueries();
           setRefreshTrigger(prev => prev + 1);
-          // Mark post-login check complete and clear loading state
-          setPostLoginCheckComplete(true);
+          // NOTE: Do NOT set postLoginCheckComplete(true) here!
+          // The refreshTrigger change will cause checkAppState() to run, which sets isCheckingState.
+          // We must wait for checkAppState() to complete before clearing the loading screen.
+          // A separate effect will set postLoginCheckComplete(true) when isCheckingState becomes false.
           return;
         }
 
