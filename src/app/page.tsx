@@ -602,7 +602,21 @@ export default function Home() {
 
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
-            // Cloud check failed - notify user but don't block them
+            // Cloud check failed - check if it's an auth error
+            const isAuthError = cloudResult.error?.includes('Not authenticated') ||
+                               cloudResult.error?.includes('auth') ||
+                               cloudResult.error?.includes('sign in');
+
+            if (isAuthError) {
+              // Auth not ready yet - don't proceed, allow retry on next effect cycle
+              // This happens when the migration check runs before Supabase session is established
+              logger.info('[page.tsx] Cloud check failed due to auth - will retry when auth is ready');
+              migrationCheckInitiatedRef.current = false; // Allow retry
+              // Don't set postLoginCheckComplete - keep loading screen visible
+              return;
+            }
+
+            // Non-auth failure (network, etc) - notify user but don't block them
             // They can use the app, data will load when queries run
             logger.warn('[page.tsx] Failed to check cloud data:', cloudResult.error);
             showToast(
@@ -630,16 +644,31 @@ export default function Home() {
                 t('page.dataLoadedFromCloud', 'Your data has been loaded from the cloud.'),
                 'success'
               );
+              setMigrationCompleted(userId);
+              // Mark post-login check complete
+              setPostLoginCheckComplete(true);
             } else {
+              // Check if failure was due to auth
+              const hasAuthError = hydrationResult.errors?.some(err =>
+                err.includes('Not authenticated') || err.includes('auth') || err.includes('sign in')
+              );
+
+              if (hasAuthError) {
+                // Auth not ready - allow retry
+                logger.info('[page.tsx] Hydration failed due to auth - will retry when auth is ready');
+                migrationCheckInitiatedRef.current = false;
+                return;
+              }
+
               logger.error('[page.tsx] Hydration failed', { errors: hydrationResult.errors });
               showToast(
                 t('page.failedToLoadCloudData', 'Failed to load your cloud data. Please try refreshing.'),
                 'error'
               );
+              setMigrationCompleted(userId);
+              // Mark post-login check complete
+              setPostLoginCheckComplete(true);
             }
-            setMigrationCompleted(userId);
-            // Mark post-login check complete
-            setPostLoginCheckComplete(true);
           } else {
             // Both local and cloud are empty - nothing to migrate now
             // Don't mark complete: if local data appears later (via backup import),
@@ -650,8 +679,22 @@ export default function Home() {
           }
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        const isAuthError = errorMsg.includes('Not authenticated') ||
+                           errorMsg.includes('auth') ||
+                           errorMsg.includes('sign in') ||
+                           (error instanceof Error && error.name === 'AuthError');
+
+        if (isAuthError) {
+          // Auth not ready yet - don't proceed, allow retry on next effect cycle
+          logger.info('[page.tsx] Migration check failed due to auth - will retry when auth is ready', { error: errorMsg });
+          migrationCheckInitiatedRef.current = false; // Allow retry
+          // Don't set postLoginCheckComplete - keep loading screen visible
+          return;
+        }
+
+        // Non-auth error - notify user and allow retry
         logger.warn('[page.tsx] Failed to check migration status', { error });
-        // Notify user and allow retry on next effect run
         showToast(
           t('page.unableToCheckSync', 'Unable to check data for sync. Please refresh if you have data to sync.'),
           'info'
