@@ -49,7 +49,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   const smallIconClass = isField ? 'w-5 h-5' : (isSmall ? 'w-3 h-3' : 'w-5 h-5');
   const badgeIconClass = isSmall ? 'w-2 h-2' : 'w-3 h-3';
   const { t } = useTranslation();
-  const { mode, state, pendingCount, failedCount, isPaused } = useSyncStatus();
+  const { mode, state, pendingCount, failedCount, isPaused, isLoading: syncLoading } = useSyncStatus();
   const subscription = useSubscriptionOptional();
   const { openSettingsToTab } = useModalContext();
 
@@ -78,6 +78,26 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
         aria-label={t('syncStatus.localTitle', 'Data stored locally on device')}
       >
         <HiOutlineDevicePhoneMobile className={`${iconClass} ${isField ? 'text-slate-300' : 'text-slate-400'}`} />
+      </button>
+    );
+  }
+
+  // Cloud mode: show loading state while sync status is initializing
+  // This prevents showing misleading 'synced' (green) when actual status is unknown
+  if (syncLoading) {
+    const loadingContainerClass = isField
+      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+      : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-sky-500/20 border-sky-500/40 hover:opacity-80 cursor-pointer`;
+
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className={loadingContainerClass}
+        title={t('syncStatus.loadingTitle', 'Checking sync status...')}
+        aria-label={t('syncStatus.loadingTitle', 'Checking sync status...')}
+      >
+        <HiOutlineArrowPath className={`${iconClass} text-sky-400 animate-spin`} />
       </button>
     );
   }
