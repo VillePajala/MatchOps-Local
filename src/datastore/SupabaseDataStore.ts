@@ -2182,27 +2182,42 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('personnel')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Use withRetry for transient network error resilience
+    const result = await this.withRetry(async () => {
+      return throwIfTransient(
+        await this.getClient()
+          .from('personnel')
+          .select('*')
+          .order('created_at', { ascending: false })
+      );
+    }, 'getAllPersonnel');
 
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch personnel');
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to fetch personnel');
     }
 
-    return (data || []).map(this.transformPersonnelFromDb);
+    return (result.data || []).map(this.transformPersonnelFromDb);
   }
 
   async getPersonnelById(id: string): Promise<Personnel | null> {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('personnel')
-      .select('*')
-      .eq('id', id)
-      .single();
+    // Use withRetry for transient network error resilience
+    // Note: PGRST116 (no row found) is not transient and handled below
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('personnel')
+        .select('*')
+        .eq('id', id)
+        .single();
+      // Only throw if it's a transient error (for retry)
+      // PGRST116 (not found) is expected and should not be retried
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'getPersonnelById');
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -2448,10 +2463,20 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('user_settings')
-      .select('*')
-      .single();
+    // Use withRetry for transient network error resilience
+    // Note: PGRST116 (no row found) is not transient and handled below
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('user_settings')
+        .select('*')
+        .single();
+      // Only throw if it's a transient error (for retry)
+      // PGRST116 (no settings exist) is expected and should not be retried
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'getSettings');
 
     if (error) {
       if (error.code === 'PGRST116') {

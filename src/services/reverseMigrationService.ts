@@ -47,9 +47,32 @@ function isNewer(sourceTimestamp: string | undefined, destTimestamp: string | un
   const sourceTime = new Date(sourceTimestamp).getTime();
   const destTime = new Date(destTimestamp).getTime();
 
-  // Handle invalid dates
-  if (isNaN(sourceTime)) return false;
-  if (isNaN(destTime)) return true;
+  // Handle invalid/corrupted timestamps safely
+  const sourceInvalid = isNaN(sourceTime);
+  const destInvalid = isNaN(destTime);
+
+  if (sourceInvalid && destInvalid) {
+    // Both timestamps corrupted - keep local version (safer tie-break)
+    logger.warn('[reverseMigration] Both timestamps invalid, keeping local version', {
+      sourceTimestamp,
+      destTimestamp,
+    });
+    return false;
+  }
+  if (sourceInvalid) {
+    // Cloud timestamp corrupted - keep local version
+    logger.warn('[reverseMigration] Source timestamp invalid, keeping local version', {
+      sourceTimestamp,
+    });
+    return false;
+  }
+  if (destInvalid) {
+    // Local timestamp corrupted - use cloud version
+    logger.warn('[reverseMigration] Destination timestamp invalid, using source version', {
+      destTimestamp,
+    });
+    return true;
+  }
 
   return sourceTime > destTime;
 }
@@ -1267,6 +1290,8 @@ export async function getCloudDataSummary(): Promise<ReverseMigrationCounts> {
 export interface HydrationResult {
   success: boolean;
   counts: ReverseMigrationCounts;
+  /** Counts of entities skipped because local version was newer */
+  skipped: ReverseMigrationCounts;
   errors: string[];
 }
 
@@ -1300,6 +1325,20 @@ export async function hydrateLocalFromCloud(
   };
 
   const counts: ReverseMigrationCounts = {
+    players: 0,
+    teams: 0,
+    teamRosters: 0,
+    seasons: 0,
+    tournaments: 0,
+    games: 0,
+    personnel: 0,
+    playerAdjustments: 0,
+    warmupPlan: false,
+    settings: false,
+  };
+
+  // Track entities skipped because local version was newer
+  const skipped: ReverseMigrationCounts = {
     players: 0,
     teams: 0,
     teamRosters: 0,
@@ -1366,6 +1405,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertPlayer(player);
           counts.players++;
         } else {
+          skipped.players++;
           logger.info('[ReverseMigrationService] Skipping player (local is newer)', {
             playerId: player.id,
             cloudUpdatedAt: player.updatedAt,
@@ -1392,6 +1432,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertTeam(team);
           counts.teams++;
         } else {
+          skipped.teams++;
           logger.info('[ReverseMigrationService] Skipping team (local is newer)', {
             teamId: team.id,
             cloudUpdatedAt: team.updatedAt,
@@ -1429,6 +1470,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertSeason(season);
           counts.seasons++;
         } else {
+          skipped.seasons++;
           logger.info('[ReverseMigrationService] Skipping season (local is newer)', {
             seasonId: season.id,
             cloudUpdatedAt: season.updatedAt,
@@ -1453,6 +1495,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertTournament(tournament);
           counts.tournaments++;
         } else {
+          skipped.tournaments++;
           logger.info('[ReverseMigrationService] Skipping tournament (local is newer)', {
             tournamentId: tournament.id,
             cloudUpdatedAt: tournament.updatedAt,
@@ -1479,6 +1522,7 @@ export async function hydrateLocalFromCloud(
           await localStore.upsertPersonnelMember(person);
           counts.personnel++;
         } else {
+          skipped.personnel++;
           logger.info('[ReverseMigrationService] Skipping personnel (local is newer)', {
             personnelId: person.id,
             cloudUpdatedAt: person.updatedAt,
@@ -1504,6 +1548,7 @@ export async function hydrateLocalFromCloud(
           await localStore.saveGame(gameId, game);
           counts.games++;
         } else {
+          skipped.games++;
           logger.info('[ReverseMigrationService] Skipping game (local is newer)', {
             gameId,
             cloudUpdatedAt: game.updatedAt,
@@ -1564,16 +1609,17 @@ export async function hydrateLocalFromCloud(
     logger.info('[ReverseMigrationService] Hydration complete', {
       success,
       counts,
+      skipped,
       errorCount: errors.length,
     });
     safeProgress('Complete', 100);
 
-    return { success, counts, errors };
+    return { success, counts, skipped, errors };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ReverseMigrationService] Hydration failed:', error);
     errors.push(`Hydration failed: ${errorMsg}`);
-    return { success: false, counts, errors };
+    return { success: false, counts, skipped, errors };
   } finally {
     // Clean up stores
     try {

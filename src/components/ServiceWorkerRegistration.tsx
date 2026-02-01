@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import UpdateBanner from './UpdateBanner';
 import logger from '@/utils/logger';
-import { getAppSettings } from '@/utils/appSettings';
+import i18n from '@/i18n';
 
 interface ChangelogData {
   version: string;
@@ -30,9 +30,9 @@ export default function ServiceWorkerRegistration() {
       if (res.ok) {
         const data: ChangelogData = await res.json();
         if (data.notes) {
-          // Get user's language preference from IndexedDB (default to Finnish)
-          const settings = await getAppSettings();
-          const lang = settings?.language || 'fi';
+          // Get language directly from i18n (already loaded from localStorage)
+          // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
+          const lang = i18n.language || 'fi';
           const note = data.notes[lang as keyof typeof data.notes] || data.notes.fi;
           setReleaseNotes(note);
         }

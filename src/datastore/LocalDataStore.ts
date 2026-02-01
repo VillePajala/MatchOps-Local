@@ -990,29 +990,30 @@ export class LocalDataStore implements DataStore {
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
 
-    // Update parent Team's updatedAt FIRST for conflict resolution
-    // Order matters: if crash occurs between operations, timestamp is already
-    // updated so subsequent syncs will detect the change. Roster can be retried.
-    // Uses withKeyLock to prevent race conditions with other team operations
+    // Update both team timestamp and roster under the SAME lock to prevent race conditions.
+    // Without this, another operation could modify the team between releasing the teams lock
+    // and saving the roster, causing the timestamp to not reflect the actual roster state.
     await withKeyLock(TEAMS_INDEX_KEY, async () => {
       const teamsIndex = await this.loadTeamsIndex();
+      const rostersIndex = await this.loadTeamRosters();
+
       if (teamsIndex[teamId]) {
         teamsIndex[teamId] = {
           ...teamsIndex[teamId],
           updatedAt: new Date().toISOString(),
         };
-        await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       } else {
         // Team not found - will still save roster but log warning
         // This could indicate orphaned roster data or race condition during team creation
         logger.warn('[LocalDataStore] Cannot update roster timestamp - team not found', { teamId });
       }
-    });
 
-    // Then update the roster
-    const rostersIndex = await this.loadTeamRosters();
-    rostersIndex[teamId] = roster;
-    await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+      rostersIndex[teamId] = roster;
+
+      // Save both atomically under the same lock
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    });
   }
 
   /**
@@ -2084,11 +2085,13 @@ export class LocalDataStore implements DataStore {
       }
 
       // Preserve cloud timestamp if present (cloud-wins scenario), otherwise generate new
-      // Handle explicit undefined: fall back to current.updatedAt, then to now
+      // Destructure updatedAt to handle explicit undefined from spread operators
+      // (e.g., updates = { ...obj, updatedAt: undefined } would overwrite before nullish coalescing)
+      const { updatedAt: newUpdatedAt, ...restUpdates } = updates;
       const updated = {
         ...current,
-        ...updates,
-        updatedAt: updates.updatedAt ?? current.updatedAt ?? new Date().toISOString(),
+        ...restUpdates,
+        updatedAt: newUpdatedAt ?? current.updatedAt ?? new Date().toISOString(),
       };
 
       // Remove legacy fields before saving

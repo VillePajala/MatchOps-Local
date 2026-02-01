@@ -468,8 +468,11 @@ describe('LocalDataStore', () => {
 
         await dataStore.createTeam({ name: 'New Team', color: '#00FF00' });
 
-        // setStorageItem called for teams AND rosters
-        expect(mockSetStorageItem).toHaveBeenCalledTimes(2);
+        // setStorageItem called 3 times:
+        // 1. teams index saved in createTeam
+        // 2. teams index saved again in setTeamRoster (timestamp update for race condition fix)
+        // 3. team rosters saved in setTeamRoster
+        expect(mockSetStorageItem).toHaveBeenCalledTimes(3);
       });
 
       it('should allow duplicate name with different boundSeasonId', async () => {

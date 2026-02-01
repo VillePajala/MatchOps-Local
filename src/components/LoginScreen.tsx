@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import i18n, { saveLanguagePreference } from '@/i18n';
 import { useAuth } from '@/contexts/AuthProvider';
-import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
+import { updateAppSettings } from '@/utils/appSettings';
 import logger from '@/utils/logger';
 
 type AuthMode = 'signIn' | 'signUp' | 'resetPassword';
@@ -64,14 +64,9 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
   // GDPR consent checkbox for sign up
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
 
-  // Load saved language preference
-  useEffect(() => {
-    getAppSettings().then((settings) => {
-      if (settings.language) {
-        setLanguage(settings.language);
-      }
-    });
-  }, []);
+  // Language is already loaded from localStorage by i18n on initialization.
+  // i18n.language is the source of truth - no need to call getAppSettings().
+  // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N).
 
   // Save language preference when changed
   useEffect(() => {
