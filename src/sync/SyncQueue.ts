@@ -701,12 +701,19 @@ export class SyncQueue {
 
   /**
    * Reset a single operation to pending status.
-   * Used for recovery when markFailed() itself fails (e.g., after timeout).
+   * Used for recovery when markFailed() itself fails (e.g., after timeout),
+   * or when an operation is aborted (e.g., page navigation).
    *
+   * @param id - Operation ID to reset
+   * @param options - Reset options
+   * @param options.incrementRetry - If true (default), increments retryCount to prevent infinite loops.
+   *                                 Set to false for AbortError recovery where the request was cancelled,
+   *                                 not actually failed.
    * @returns true if operation was found and reset, false if not found
    */
-  async resetOperationToPending(id: string): Promise<boolean> {
+  async resetOperationToPending(id: string, options?: { incrementRetry?: boolean }): Promise<boolean> {
     const db = this.ensureInitialized();
+    const incrementRetry = options?.incrementRetry ?? true;
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
@@ -724,27 +731,33 @@ export class SyncQueue {
         }
 
         found = true;
-        // Increment retryCount to prevent infinite loops.
-        // The operation failed to mark as failed, which counts as a retry attempt.
-        const newRetryCount = op.retryCount + 1;
+
+        // Optionally increment retryCount to prevent infinite loops.
+        // For emergency resets (markFailed failure), we increment.
+        // For AbortError recovery, we don't increment - the request was cancelled, not failed.
+        const newRetryCount = incrementRetry ? op.retryCount + 1 : op.retryCount;
         const newStatus: SyncOperationStatus = newRetryCount >= op.maxRetries ? 'failed' : 'pending';
+
+        const resetReason = incrementRetry
+          ? 'Emergency reset after markFailed failure'
+          : 'Reset after request abort (navigation/reload)';
 
         const updated: SyncOperation = {
           ...op,
           status: newStatus,
           retryCount: newRetryCount,
-          lastError: op.lastError
-            ? `${op.lastError} (emergency reset after markFailed failure)`
-            : 'Emergency reset after markFailed failure',
+          lastError: incrementRetry
+            ? (op.lastError ? `${op.lastError} (${resetReason})` : resetReason)
+            : op.lastError, // Don't update lastError for abort recovery
           lastAttempt: Date.now(),
         };
 
         store.put(updated);
 
         if (newStatus === 'failed') {
-          logger.warn('[SyncQueue] Emergency reset exhausted retries, marking as permanently failed', { id, retryCount: newRetryCount });
+          logger.warn('[SyncQueue] Reset exhausted retries, marking as permanently failed', { id, retryCount: newRetryCount });
         } else {
-          logger.info('[SyncQueue] Emergency reset operation to pending', { id, retryCount: newRetryCount });
+          logger.info('[SyncQueue] Reset operation to pending', { id, retryCount: newRetryCount, incrementRetry });
         }
       };
 

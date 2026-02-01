@@ -652,9 +652,29 @@ export class SyncEngine {
       }
 
       // AbortError is expected during page navigation, hot reload, or user-initiated cancellation
-      // Log at debug level instead of warn/error to reduce noise
+      // CRITICAL FIX: Don't count AbortError as a retry failure - just reset to pending.
+      // The request was cancelled before completion, so it should be retried fresh.
+      // This prevents operations from getting stuck when users navigate/refresh.
+      // See Sentry MATCHOPS-LOCAL-24, MATCHOPS-LOCAL-1E
       if (isAbortError) {
-        logger.debug(`[SyncEngine] Aborted: ${opInfo} (expected during navigation/reload)`);
+        logger.debug(`[SyncEngine] Aborted: ${opInfo} (expected during navigation/reload) - resetting to pending`);
+        try {
+          // Reset to pending WITHOUT incrementing retry count
+          // AbortError means the request was cancelled, not that it failed
+          // Use incrementRetry: false so the operation gets a fresh retry
+          const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
+          if (reset) {
+            logger.debug(`[SyncEngine] Successfully reset aborted operation ${opInfo} to pending`);
+          } else {
+            // Operation not found - may have been deleted during abort, that's fine
+            logger.debug(`[SyncEngine] Aborted operation ${opInfo} not found (may be already processed)`);
+          }
+        } catch (resetError) {
+          // Best effort - if reset fails, the stale syncing recovery will catch it on next start
+          logger.debug(`[SyncEngine] Could not reset aborted operation ${opInfo}:`, resetError);
+        }
+        // Don't emit failure events for aborts - they're not real failures
+        return;
       } else {
         logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
 

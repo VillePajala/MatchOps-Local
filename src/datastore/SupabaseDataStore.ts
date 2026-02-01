@@ -1496,18 +1496,17 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    let query = this.getClient().from('seasons').select('*');
-    if (!includeArchived) {
-      query = query.eq('archived', false);
-    }
+    // Use withRetry for transient error resilience (matches getTeams pattern)
+    // Fixes Sentry issues where seasons fail to load on transient network errors
+    const result = await this.withRetry(async () => {
+      let query = this.getClient().from('seasons').select('*');
+      if (!includeArchived) {
+        query = query.eq('archived', false);
+      }
+      return throwIfTransient(await query.order('created_at', { ascending: false }));
+    }, 'getSeasons');
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch seasons');
-    }
-
-    const rows = (data || []) as SeasonRow[];
+    const rows = (result.data || []) as SeasonRow[];
     const { start, end } = await this.getSeasonDates();
     return rows.map((row) => ({
       ...this.transformSeasonFromDb(row),
@@ -1836,18 +1835,17 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    let query = this.getClient().from('tournaments').select('*');
-    if (!includeArchived) {
-      query = query.eq('archived', false);
-    }
+    // Use withRetry for transient error resilience (matches getTeams pattern)
+    // Fixes Sentry issues where tournaments fail to load on transient network errors
+    const result = await this.withRetry(async () => {
+      let query = this.getClient().from('tournaments').select('*');
+      if (!includeArchived) {
+        query = query.eq('archived', false);
+      }
+      return throwIfTransient(await query.order('created_at', { ascending: false }));
+    }, 'getTournaments');
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch tournaments');
-    }
-
-    const rows = (data || []) as TournamentRow[];
+    const rows = (result.data || []) as TournamentRow[];
     const { start, end } = await this.getSeasonDates();
     return rows.map((row) =>
       migrateTournamentLevel({
