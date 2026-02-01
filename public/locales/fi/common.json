@@ -2517,7 +2517,9 @@
     "legacyMigrationFailed": "Tietojesi siirto epäonnistui. Yritä myöhemmin uudelleen.",
     "dataLoadedFromCloud": "Tietosi on ladattu pilvestä.",
     "failedToLoadCloudData": "Pilvitietojen lataus epäonnistui. Kokeile päivittää sivu.",
-    "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen."
+    "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen.",
+    "signingOut": "Kirjaudutaan ulos...",
+    "loadingYourData": "Ladataan tietojasi..."
   },
   "positions": {
     "GK": "GK",
