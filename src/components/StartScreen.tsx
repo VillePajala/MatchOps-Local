@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { saveLanguagePreference } from '@/i18n';
-import { updateAppSettings } from '@/utils/appSettings';
+// Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
+// and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import InstructionsModal from '@/components/InstructionsModal';
 import logger from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -51,12 +52,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   useEffect(() => {
     i18n.changeLanguage(language);
-    // Save to localStorage first (always works, used by i18n on load)
+    // Save to localStorage (i18n loads from here on init).
+    // DO NOT call updateAppSettings here - StartScreen is shown in local mode,
+    // so calling it could cause DataStore initialization conflicts if user switches modes.
     saveLanguagePreference(language);
-    // Also save to DataStore for sync (best effort, may fail during user transitions)
-    updateAppSettings({ language }).catch((error) => {
-      logger.warn('[StartScreen] Failed to save language to DataStore (non-critical)', { language, error });
-    });
   }, [language]);
 
   const isEnglish = language === 'en';

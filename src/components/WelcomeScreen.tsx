@@ -19,7 +19,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { saveLanguagePreference } from '@/i18n';
-import { updateAppSettings } from '@/utils/appSettings';
+// Note: Do NOT import updateAppSettings here. WelcomeScreen is pre-login,
+// so there's no userId and calling updateAppSettings would cause DataStore conflicts.
 import logger from '@/utils/logger';
 
 interface WelcomeScreenProps {
@@ -52,12 +53,10 @@ export default function WelcomeScreen({
   // Save language preference when changed
   useEffect(() => {
     i18n.changeLanguage(language);
-    // Save to localStorage first (always works, used by i18n on load)
+    // Save to localStorage (i18n loads from here on init).
+    // DO NOT call updateAppSettings here - WelcomeScreen is shown before login,
+    // so there's no userId and it would cause DataStore initialization conflicts.
     saveLanguagePreference(language);
-    // Also save to DataStore for sync (best effort, may fail during user transitions)
-    updateAppSettings({ language }).catch((error) => {
-      logger.warn('[WelcomeScreen] Failed to save language to DataStore (non-critical)', { language, error });
-    });
   }, [language]);
 
   return (
