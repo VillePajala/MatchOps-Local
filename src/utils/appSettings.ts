@@ -63,6 +63,12 @@ export const getAppSettings = async (userId?: string): Promise<AppSettings> => {
     const dataStore = await getDataStore(userId);
     return await dataStore.getSettings();
   } catch (error) {
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Don't log as error to avoid Sentry noise
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('Settings read skipped - DataStore closed during transition');
+      return DEFAULT_APP_SETTINGS;
+    }
     logger.error('Error getting app settings:', error);
     return DEFAULT_APP_SETTINGS;
   }
@@ -117,6 +123,12 @@ export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>, us
     // AuthError is expected during sign out - don't log as error (prevents Sentry noise)
     if (error && typeof error === 'object' && 'code' in error && error.code === 'AUTH_ERROR') {
       logger.info('Settings update skipped - user signed out:', error);
+      return DEFAULT_APP_SETTINGS;
+    }
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Graceful degradation - return defaults instead of crashing
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('Settings update skipped - DataStore closed during transition:', error);
       return DEFAULT_APP_SETTINGS;
     }
     // Graceful degradation for unexpected errors (storage failures, etc.)

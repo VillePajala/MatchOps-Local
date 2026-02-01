@@ -434,7 +434,20 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
 
     let instance: DataStore;
 
-    if (mode === 'cloud' && isCloudAvailable()) {
+    // CRITICAL FIX: Use SyncedDataStore when user is authenticated AND cloud is available.
+    // This fixes the bug where:
+    // 1. User session is restored (auto-signin from cookies)
+    // 2. But localStorage mode setting was cleared or never set
+    // 3. getBackendMode() returns 'local' (default)
+    // 4. LocalDataStore is created instead of SyncedDataStore
+    // 5. Operations aren't queued for sync
+    //
+    // The fix: If user is authenticated (userId exists) AND cloud is available,
+    // use SyncedDataStore regardless of the mode setting. An authenticated user
+    // clearly went through the sign-in flow and expects cloud sync.
+    const shouldUseCloudSync = isCloudAvailable() && !!initUserId;
+
+    if (shouldUseCloudSync) {
       // Cloud mode uses SyncedDataStore (local-first with background sync)
       // - SyncedDataStore wraps LocalDataStore for instant local writes
       // - Operations queue and sync to SupabaseDataStore in background
@@ -458,7 +471,10 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
         syncedStore.startSync();
 
         instance = syncedStore;
-        log.info('[factory] Using SyncedDataStore (local-first cloud mode)');
+        log.info('[factory] Using SyncedDataStore (local-first cloud mode)', {
+          userId: initUserId,
+          explicitMode: mode,
+        });
       } catch (error) {
         // Clean up syncedStore if cloud setup fails
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -469,13 +485,20 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
         // Full details already logged above for debugging
         throw new Error('Cloud mode initialization failed. Please try again or switch to local mode.');
       }
-    } else if (mode === 'cloud') {
+    } else if (mode === 'cloud' && !isCloudAvailable()) {
+      // Cloud mode requested but Supabase not configured
       log.warn(
         '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'
       );
       instance = new LocalDataStore(initUserId);
       await instance.initialize();
     } else {
+      // Local mode (explicit choice or anonymous user)
+      log.info('[factory] Using LocalDataStore', {
+        mode,
+        userId: initUserId || '(anonymous)',
+        cloudAvailable: isCloudAvailable(),
+      });
       instance = new LocalDataStore(initUserId);
       await instance.initialize();
     }
@@ -517,7 +540,9 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     }
 
     dataStoreInstance = instance;
-    dataStoreCreatedForMode = mode;
+    // Track the ACTUAL mode used (not the raw setting) to ensure sync engine cleanup works correctly.
+    // If we created SyncedDataStore (shouldUseCloudSync was true), track as 'cloud'.
+    dataStoreCreatedForMode = shouldUseCloudSync ? 'cloud' : mode;
     dataStoreCreatedForUserId = initUserId;
     return instance;
   })().finally(() => {
