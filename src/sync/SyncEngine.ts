@@ -485,6 +485,12 @@ export class SyncEngine {
   };
 
   private async doProcessQueue(): Promise<void> {
+    // Block processing if engine is being disposed (prevents race with interval)
+    if (this.isDisposing) {
+      logger.debug('[SyncEngine] Disposing, skipping queue processing');
+      return;
+    }
+
     // Block processing until stale reset completes (prevents race with interval)
     if (this.isResettingStale) {
       logger.debug('[SyncEngine] Waiting for stale reset to complete, skipping');
@@ -541,6 +547,12 @@ export class SyncEngine {
     // Check executor
     if (!this.executor) {
       logger.warn('[SyncEngine] No executor set, skipping sync');
+      return;
+    }
+
+    // Check queue is initialized (guards against race condition during dispose)
+    if (!this.queue.isInitialized()) {
+      logger.warn('[SyncEngine] Queue not initialized, skipping sync');
       return;
     }
 
