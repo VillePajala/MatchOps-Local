@@ -2517,7 +2517,9 @@
     "legacyMigrationFailed": "Could not migrate your data. Please try again later.",
     "dataLoadedFromCloud": "Your data has been loaded from the cloud.",
     "failedToLoadCloudData": "Failed to load your cloud data. Please try refreshing.",
-    "partialSyncComplete": "Sync complete. Some cloud data may not have loaded - refresh to retry."
+    "partialSyncComplete": "Sync complete. Some cloud data may not have loaded - refresh to retry.",
+    "signingOut": "Signing out...",
+    "loadingYourData": "Loading your data..."
   },
   "positions": {
     "GK": "GK",
