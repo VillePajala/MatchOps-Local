@@ -233,6 +233,7 @@ export class SyncedDataStore implements DataStore {
         failedCount: 0,
         lastSyncedAt: null,
         isOnline: false,
+        cloudConnected: false,
       };
     }
     return this.syncEngine.getStatus();

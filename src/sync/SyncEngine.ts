@@ -83,10 +83,22 @@ export class SyncEngine {
 
   /**
    * Set the executor function that performs actual cloud sync.
-   * Must be called before start().
+   * Can be called before or after start().
+   * If engine is already running, triggers immediate queue processing.
    */
   setExecutor(executor: SyncOperationExecutor): void {
+    const hadExecutor = this.executor !== null;
     this.executor = executor;
+    logger.info('[SyncEngine] Executor set', { hadExecutor, isRunning: this.isRunning });
+
+    // If engine is already running and we just got an executor, process queue immediately
+    // This handles the case where start() was called before setExecutor() (background cloud init)
+    if (this.isRunning && !hadExecutor) {
+      logger.info('[SyncEngine] Executor now available, triggering queue processing');
+      this.doProcessQueue().catch((e) => {
+        logger.error('[SyncEngine] Error processing queue after executor set:', e);
+      });
+    }
   }
 
   /**
@@ -319,6 +331,7 @@ export class SyncEngine {
       lastSyncedAt: this.lastSyncedAt,
       isOnline: this.isOnline,
       hasStaleResetFailure: this.staleResetFailed,
+      cloudConnected: this.executor !== null,
     };
   }
 
