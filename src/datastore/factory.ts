@@ -49,6 +49,12 @@ let dataStoreCreatedForUserId: string | undefined = undefined;
 const dataStoreInitPromises = new Map<string | undefined, Promise<DataStore>>();
 let authServiceInitPromise: Promise<AuthService> | null = null;
 
+// Global serialization lock for DataStore initialization
+// This ensures only one initialization can run at a time, preventing race conditions
+// where anonymous and authenticated initializations race each other
+let globalInitLock: Promise<void> | null = null;
+let globalInitLockResolve: (() => void) | null = null;
+
 // Guard flag to prevent getDataStore() calls during resetFactory() cleanup
 // This prevents creating a new instance while the old one is still closing
 let isResetting = false;
@@ -402,27 +408,30 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     return existingPromise;
   }
 
-  // RACE CONDITION FIX: If there's a pending initialization for a DIFFERENT userId,
-  // wait for it to complete first. This prevents the scenario where:
+  // RACE CONDITION FIX: Use global serialization lock to prevent race conditions
+  // This prevents the scenario where:
   // 1. Component mounts before auth, calls getDataStore(undefined)
   // 2. Auth completes, calls getDataStore(realUserId)
   // 3. Both race and one throws "concurrent initialization conflict"
   //
-  // By waiting for any pending init to complete, we serialize the operations
-  // and let the user switch logic handle the transition cleanly.
-  const pendingPromises = Array.from(dataStoreInitPromises.entries());
-  for (const [pendingUserId, pendingPromise] of pendingPromises) {
-    if (pendingUserId !== userId) {
-      log.info(`[factory] Waiting for pending initialization (user: ${pendingUserId || '(anonymous)'}) before starting new init (user: ${userId || '(anonymous)'})`);
-      try {
-        await pendingPromise;
-      } catch {
-        // If the pending init failed, that's fine - we'll proceed with ours
-      }
-      // After waiting, recurse to re-check state (the pending init may have set dataStoreInstance)
-      return getDataStore(userId);
+  // With the global lock, only one initialization runs at a time. The second
+  // caller waits for the first to complete, then re-checks state.
+  if (globalInitLock) {
+    log.info(`[factory] Waiting for global init lock before starting init for user: ${userId || '(anonymous)'}`);
+    try {
+      await globalInitLock;
+    } catch {
+      // If the pending init failed, that's fine - we'll proceed with ours
     }
+    // After waiting, recurse to re-check state (the pending init may have set dataStoreInstance
+    // or the user switch logic will handle the transition)
+    return getDataStore(userId);
   }
+
+  // Acquire global init lock
+  globalInitLock = new Promise<void>((resolve) => {
+    globalInitLockResolve = resolve;
+  });
 
   // Capture userId for the initialization closure
   const initUserId = userId;
@@ -572,6 +581,13 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     // Allow retry on failure, and keep the steady state as `dataStoreInstance !== null`.
     // Remove this specific userId's promise (not all promises)
     dataStoreInitPromises.delete(initUserId);
+
+    // Release global init lock
+    if (globalInitLockResolve) {
+      globalInitLockResolve();
+      globalInitLockResolve = null;
+    }
+    globalInitLock = null;
   });
 
   // Store promise for this specific userId
@@ -691,6 +707,13 @@ export async function resetFactory(): Promise<void> {
     dataStoreCreatedForMode = null;
     dataStoreCreatedForUserId = undefined;
     authServiceCreatedWithCloudAvailable = null;
+
+    // Release global init lock if held
+    if (globalInitLockResolve) {
+      globalInitLockResolve();
+      globalInitLockResolve = null;
+    }
+    globalInitLock = null;
 
     // Now perform cleanup operations (best-effort, failures logged but not thrown)
 

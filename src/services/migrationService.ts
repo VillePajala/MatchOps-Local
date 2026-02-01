@@ -1582,9 +1582,13 @@ function normalizePersonnelArray(
  * - Check failed due to error (checkFailed: true)
  *
  * This prevents silent failures where storage errors are mistaken for "no data".
+ *
+ * @param userId - Optional user ID for user-scoped storage. If not provided,
+ *                 checks global/legacy storage. For cloud mode hydration checks,
+ *                 always pass the authenticated user's ID.
  */
-export async function hasLocalDataToMigrate(): Promise<LocalDataCheckResult> {
-  const localStore = new LocalDataStore();
+export async function hasLocalDataToMigrate(userId?: string): Promise<LocalDataCheckResult> {
+  const localStore = new LocalDataStore(userId);
   try {
     await localStore.initialize();
 

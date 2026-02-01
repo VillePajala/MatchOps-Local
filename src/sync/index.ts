@@ -29,7 +29,7 @@ export {
 } from './types';
 
 // SyncQueue
-export { SyncQueue, syncQueue } from './SyncQueue';
+export { SyncQueue } from './SyncQueue';
 
 // SyncEngine
 export {
