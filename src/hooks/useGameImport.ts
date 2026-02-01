@@ -39,7 +39,7 @@ export const useGameImport = (): UseGameImportResult => {
     { jsonData: string; overwrite: boolean }
   >({
     mutationFn: async ({ jsonData, overwrite }) => {
-      return importGamesWithMapping(jsonData, overwrite, invalidateAllQueries);
+      return importGamesWithMapping(jsonData, overwrite, invalidateAllQueries, userId);
     },
     onSuccess: (result) => {
       logger.log('Game import mutation completed:', result);
@@ -55,7 +55,7 @@ export const useGameImport = (): UseGameImportResult => {
     { file: File; overwrite: boolean }
   >({
     mutationFn: async ({ file, overwrite }) => {
-      return importGamesFromFile(file, overwrite, invalidateAllQueries);
+      return importGamesFromFile(file, overwrite, invalidateAllQueries, userId);
     },
     onSuccess: (result) => {
       logger.log('Game file import mutation completed:', result);

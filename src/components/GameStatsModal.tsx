@@ -270,9 +270,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       if (isOpen) {
         try {
           const [loadedSeasons, loadedTournaments, loadedTeams] = await Promise.all([
-            utilGetSeasons(),
-            utilGetTournaments(),
-            utilGetTeams(),
+            utilGetSeasons(userId),
+            utilGetTournaments(userId),
+            utilGetTeams(userId),
           ]);
           setSeasons(loadedSeasons);
           setTournaments(loadedTournaments);
@@ -287,7 +287,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       }
     };
     loadData();
-  }, [isOpen, showToast, t]);
+  }, [isOpen, showToast, t, userId]);
 
   // Sync local game events with props
   useEffect(() => {
