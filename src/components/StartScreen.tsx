@@ -3,10 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { saveLanguagePreference } from '@/i18n';
-import {
-  updateAppSettings,
-  getAppSettings,
-} from '@/utils/appSettings';
+import { updateAppSettings } from '@/utils/appSettings';
 import InstructionsModal from '@/components/InstructionsModal';
 import logger from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -48,13 +45,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   const isCloudMode = mode === 'cloud' && user;
 
-  useEffect(() => {
-    getAppSettings().then((settings) => {
-      if (settings.language) {
-        setLanguage(settings.language);
-      }
-    });
-  }, []);
+  // Language is already loaded from localStorage by i18n on initialization.
+  // i18n.language is the source of truth - no need to call getAppSettings().
+  // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N).
 
   useEffect(() => {
     i18n.changeLanguage(language);

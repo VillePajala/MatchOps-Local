@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
+import { useAuth } from '@/contexts/AuthProvider';
 import type { TranslationKey } from '@/i18n-types';
 import { Player, Season, Tournament } from '@/types';
 import { AppState } from '@/types';
@@ -42,6 +43,7 @@ interface PlayerStatsViewProps {
 const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all' }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   const [showRatings, setShowRatings] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
@@ -81,14 +83,15 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [showExternalGames, setShowExternalGames] = useState(false);
 
   React.useLayoutEffect(() => {
-    getAppSettings().then(s => {
+    // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
+    getAppSettings(user?.id).then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
     });
     // Set default date to today
     if (!adjGameDate) {
       setAdjGameDate(new Date().toISOString().split('T')[0]);
     }
-  }, [adjGameDate]);
+  }, [adjGameDate, user?.id]);
 
   // Helper function to format dates consistently
   const formatDisplayDate = (dateStr: string) => {
@@ -919,7 +922,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   onChange={(e) => {
                     const val = e.target.checked;
                     setUseDemandCorrection(val);
-                    updateAppSettings({ useDemandCorrection: val }).catch((error) => {
+                    // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
+                    updateAppSettings({ useDemandCorrection: val }, user?.id).catch((error) => {
                       logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
                     });
                   }}

@@ -68,6 +68,13 @@ jest.mock('@/utils/logger', () => ({
     warn: jest.fn(),
     debug: jest.fn(),
   },
+  createLogger: jest.fn(() => ({
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+  })),
 }));
 
 // Mock ModalProvider context (required by SyncStatusIndicator used in children)

@@ -31,6 +31,12 @@ jest.mock('@/utils/logger', () => ({
     warn: jest.fn(),
     error: jest.fn(),
   },
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  })),
 }));
 
 describe('SyncedDataStore', () => {

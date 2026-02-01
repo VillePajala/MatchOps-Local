@@ -13,15 +13,15 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import WelcomeScreen from '../WelcomeScreen';
 
-// Mock i18n
+// Mock i18n - both default export properties and named exports
 jest.mock('@/i18n', () => ({
   language: 'en',
   changeLanguage: jest.fn(),
+  saveLanguagePreference: jest.fn(),
 }));
 
 // Mock appSettings
 jest.mock('@/utils/appSettings', () => ({
-  getAppSettings: jest.fn().mockResolvedValue({ language: 'en' }),
   updateAppSettings: jest.fn().mockResolvedValue(undefined),
 }));
 
