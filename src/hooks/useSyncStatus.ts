@@ -38,6 +38,9 @@ export interface UseSyncStatusResult {
   /** Whether sync is currently in progress */
   isSyncing: boolean;
 
+  /** Whether sync is manually paused by user */
+  isPaused: boolean;
+
   /** Whether sync status is still initializing (state may not reflect actual status yet) */
   isLoading: boolean;
 
@@ -52,6 +55,12 @@ export interface UseSyncStatusResult {
 
   /** Force retry ALL stuck operations (ignores backoff) */
   forceRetryAll: () => Promise<void>;
+
+  /** Pause sync processing (operations still queued but not processed) */
+  pause: () => Promise<void>;
+
+  /** Resume sync processing after pause */
+  resume: () => Promise<void>;
 }
 
 // Default status for local mode
@@ -63,11 +72,14 @@ const LOCAL_MODE_STATUS: UseSyncStatusResult = {
   lastSyncedAt: null,
   isOnline: true,
   isSyncing: false,
+  isPaused: false,
   isLoading: false,
   syncNow: async () => {},
   retryFailed: async () => {},
   clearFailed: async () => {},
   forceRetryAll: async () => {},
+  pause: async () => {},
+  resume: async () => {},
 };
 
 /**
@@ -206,6 +218,32 @@ export function useSyncStatus(): UseSyncStatusResult {
     }
   }, [mode]);
 
+  // Pause sync processing
+  const pause = useCallback(async () => {
+    if (mode !== 'cloud') return;
+
+    try {
+      const { getSyncEngine } = await import('@/sync');
+      const engine = getSyncEngine();
+      engine.pause();
+    } catch (error) {
+      logger.error('[useSyncStatus] Pause failed:', error);
+    }
+  }, [mode]);
+
+  // Resume sync processing
+  const resume = useCallback(async () => {
+    if (mode !== 'cloud') return;
+
+    try {
+      const { getSyncEngine } = await import('@/sync');
+      const engine = getSyncEngine();
+      engine.resume();
+    } catch (error) {
+      logger.error('[useSyncStatus] Resume failed:', error);
+    }
+  }, [mode]);
+
   // Return local mode status
   if (mode !== 'cloud') {
     return LOCAL_MODE_STATUS;
@@ -222,11 +260,14 @@ export function useSyncStatus(): UseSyncStatusResult {
       lastSyncedAt: null,
       isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
       isSyncing: false,
+      isPaused: false,
       isLoading: true,
       syncNow,
       retryFailed,
       clearFailed,
       forceRetryAll,
+      pause,
+      resume,
     };
   }
 
@@ -238,10 +279,13 @@ export function useSyncStatus(): UseSyncStatusResult {
     lastSyncedAt: status.lastSyncedAt,
     isOnline: status.isOnline,
     isSyncing: status.state === 'syncing',
+    isPaused: status.isPaused ?? false,
     isLoading: false,
     syncNow,
     retryFailed,
     clearFailed,
     forceRetryAll,
+    pause,
+    resume,
   };
 }

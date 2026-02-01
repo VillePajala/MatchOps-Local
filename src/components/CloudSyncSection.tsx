@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard, HiOutlineArrowUpTray } from 'react-icons/hi2';
+import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard, HiOutlineArrowUpTray, HiOutlinePause, HiOutlinePlay } from 'react-icons/hi2';
 import {
   getBackendMode,
   isCloudAvailable,
@@ -605,24 +605,61 @@ export default function CloudSyncSection({
             </div>
           )}
 
-          {/* Sync Now Button */}
-          <button
-            onClick={syncStatus.syncNow}
-            disabled={!syncStatus.isOnline || syncStatus.pendingCount === 0 || syncStatus.isSyncing}
-            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
-          >
-            {syncStatus.isSyncing ? (
-              <>
-                <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
-                {t('cloudSync.syncDetails.syncing', 'Syncing...')}
-              </>
-            ) : (
-              <>
-                <HiOutlineArrowPath className="h-4 w-4" />
-                {t('cloudSync.syncDetails.syncNow', 'Sync Now')}
-              </>
-            )}
-          </button>
+          {/* Sync Control Buttons */}
+          <div className="flex gap-2">
+            {/* Sync Now Button */}
+            <button
+              onClick={syncStatus.syncNow}
+              disabled={!syncStatus.isOnline || syncStatus.pendingCount === 0 || syncStatus.isSyncing || syncStatus.isPaused}
+              className={`${secondaryButtonStyle} flex-1 flex items-center justify-center gap-2 py-2 text-sm`}
+            >
+              {syncStatus.isSyncing ? (
+                <>
+                  <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                  {t('cloudSync.syncDetails.syncing', 'Syncing...')}
+                </>
+              ) : (
+                <>
+                  <HiOutlineArrowPath className="h-4 w-4" />
+                  {t('cloudSync.syncDetails.syncNow', 'Sync Now')}
+                </>
+              )}
+            </button>
+
+            {/* Pause/Resume Button */}
+            <button
+              onClick={syncStatus.isPaused ? syncStatus.resume : syncStatus.pause}
+              disabled={syncStatus.isSyncing}
+              className={`${secondaryButtonStyle} flex items-center justify-center gap-2 px-4 py-2 text-sm ${
+                syncStatus.isPaused ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : ''
+              }`}
+              title={syncStatus.isPaused
+                ? t('cloudSync.syncDetails.resumeTitle', 'Resume automatic sync')
+                : t('cloudSync.syncDetails.pauseTitle', 'Pause automatic sync')
+              }
+            >
+              {syncStatus.isPaused ? (
+                <>
+                  <HiOutlinePlay className="h-4 w-4" />
+                  {t('cloudSync.syncDetails.resume', 'Resume')}
+                </>
+              ) : (
+                <>
+                  <HiOutlinePause className="h-4 w-4" />
+                  {t('cloudSync.syncDetails.pause', 'Pause')}
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Paused Warning */}
+          {syncStatus.isPaused && (
+            <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30">
+              <p className="text-xs text-amber-300">
+                {t('cloudSync.syncDetails.pausedWarning', 'Sync is paused. Changes are saved locally and will sync when you resume.')}
+              </p>
+            </div>
+          )}
 
           {/* Failed Operations Warning */}
           {syncStatus.failedCount > 0 && (

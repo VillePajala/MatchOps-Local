@@ -49,7 +49,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   const smallIconClass = isField ? 'w-5 h-5' : (isSmall ? 'w-3 h-3' : 'w-5 h-5');
   const badgeIconClass = isSmall ? 'w-2 h-2' : 'w-3 h-3';
   const { t } = useTranslation();
-  const { mode, state, pendingCount, failedCount } = useSyncStatus();
+  const { mode, state, pendingCount, failedCount, isPaused } = useSyncStatus();
   const subscription = useSubscriptionOptional();
   const { openSettingsToTab } = useModalContext();
 
@@ -82,7 +82,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
     );
   }
 
-  // Cloud mode without subscription: show paused state
+  // Cloud mode without subscription: show paused state (subscription required)
   // Don't show confusing pending/error counts when sync is effectively disabled
   if (!subscriptionLoading && !hasSubscription) {
     const pausedContainerClass = isField
@@ -98,6 +98,35 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
         aria-label={t('syncStatus.pausedTitle', 'Sync paused - subscription required')}
       >
         <HiOutlinePause className={`${iconClass} text-amber-400`} />
+      </button>
+    );
+  }
+
+  // Cloud mode with user-initiated pause: show paused state with pending count
+  if (isPaused) {
+    const pausedContainerClass = isField
+      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+      : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-amber-500/20 border-amber-500/40 hover:opacity-80 cursor-pointer`;
+
+    const pauseTitle = pendingCount > 0
+      ? t('syncStatus.pausedWithPending', 'Sync paused - {{count}} changes waiting', { count: pendingCount })
+      : t('syncStatus.pausedByUser', 'Sync paused');
+
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className={pausedContainerClass}
+        title={pauseTitle}
+        aria-label={pauseTitle}
+      >
+        <HiOutlinePause className={`${iconClass} text-amber-400`} />
+        {/* Show pending count badge if there are pending operations */}
+        {!isField && pendingCount > 0 && (
+          <span className="text-[10px] font-bold leading-none text-amber-400">
+            {pendingCount}
+          </span>
+        )}
       </button>
     );
   }

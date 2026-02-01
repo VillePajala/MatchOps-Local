@@ -69,11 +69,14 @@ describe('SyncStatusIndicator', () => {
     lastSyncedAt: null,
     isOnline: true,
     isSyncing: false,
+    isPaused: false,
     isLoading: false,
     syncNow: jest.fn(),
     retryFailed: jest.fn(),
     clearFailed: jest.fn(),
     forceRetryAll: jest.fn(),
+    pause: jest.fn(),
+    resume: jest.fn(),
   };
 
   // Default subscription state (active subscription)

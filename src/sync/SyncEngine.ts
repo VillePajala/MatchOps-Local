@@ -52,6 +52,7 @@ export class SyncEngine {
 
   private isRunning = false;
   private isSyncing = false;
+  private isPaused = false; // User-initiated pause - operations queued but not processed
   private isResettingStale = false; // Blocks processing until stale reset completes
   private staleResetFailed = false; // True if stale reset failed - operations may be stuck
   private staleResetRetryCount = 0; // Counter for periodic retry attempts
@@ -284,25 +285,77 @@ export class SyncEngine {
   /**
    * Trigger an immediate sync attempt.
    * Use this after enqueuing an operation to sync sooner than the next interval.
+   * Always emits status change so UI reflects pending operations immediately.
    */
   nudge(): void {
+    // ALWAYS emit status change when nudged - this ensures UI shows pending
+    // operations immediately, even if we can't process them right now
+    this.emitStatusChange();
+
     if (!this.isRunning) {
-      logger.debug('[SyncEngine] Not running, nudge ignored');
+      logger.debug('[SyncEngine] Not running, nudge ignored (status emitted)');
+      return;
+    }
+
+    if (this.isPaused) {
+      logger.debug('[SyncEngine] Paused, nudge ignored (status emitted)');
       return;
     }
 
     if (this.isResettingStale) {
-      logger.debug('[SyncEngine] Stale reset in progress, nudge ignored');
+      logger.debug('[SyncEngine] Stale reset in progress, nudge ignored (status emitted)');
       return;
     }
 
     if (!this.isOnline) {
-      logger.debug('[SyncEngine] Offline, nudge ignored');
+      logger.debug('[SyncEngine] Offline, nudge ignored (status emitted)');
       return;
     }
 
     logger.debug('[SyncEngine] Nudge received, processing queue');
     this.doProcessQueue();
+  }
+
+  /**
+   * Pause sync processing. Operations continue to be queued but won't be
+   * processed until resume() is called. Use for user-initiated pause.
+   */
+  pause(): void {
+    if (this.isPaused) {
+      logger.debug('[SyncEngine] Already paused');
+      return;
+    }
+
+    logger.info('[SyncEngine] Pausing sync');
+    this.isPaused = true;
+    this.emitStatusChange();
+  }
+
+  /**
+   * Resume sync processing after a pause.
+   * Immediately processes any queued operations.
+   */
+  resume(): void {
+    if (!this.isPaused) {
+      logger.debug('[SyncEngine] Not paused');
+      return;
+    }
+
+    logger.info('[SyncEngine] Resuming sync');
+    this.isPaused = false;
+    this.emitStatusChange();
+
+    // Process queue immediately if conditions allow
+    if (this.isRunning && this.isOnline && !this.isResettingStale) {
+      this.doProcessQueue();
+    }
+  }
+
+  /**
+   * Check if sync is currently paused.
+   */
+  getIsPaused(): boolean {
+    return this.isPaused;
   }
 
   /**
@@ -332,6 +385,7 @@ export class SyncEngine {
       isOnline: this.isOnline,
       hasStaleResetFailure: this.staleResetFailed,
       cloudConnected: this.executor !== null,
+      isPaused: this.isPaused,
     };
   }
 
@@ -434,6 +488,7 @@ export class SyncEngine {
     logger.info('[SyncEngine] Force retry all - ENGINE STATE', {
       isRunning: this.isRunning,
       isSyncing: this.isSyncing,
+      isPaused: this.isPaused,
       isResettingStale: this.isResettingStale,
       staleResetFailed: this.staleResetFailed,
       isDisposing: this.isDisposing,
@@ -521,6 +576,7 @@ export class SyncEngine {
     logger.info('[SyncEngine] doProcessQueue called', {
       isRunning: this.isRunning,
       isDisposing: this.isDisposing,
+      isPaused: this.isPaused,
       isResettingStale: this.isResettingStale,
       staleResetFailed: this.staleResetFailed,
       isSyncing: this.isSyncing,
@@ -532,6 +588,12 @@ export class SyncEngine {
     // Block processing if engine is being disposed (prevents race with interval)
     if (this.isDisposing) {
       logger.debug('[SyncEngine] Disposing, skipping queue processing');
+      return;
+    }
+
+    // Block processing if user has paused sync
+    if (this.isPaused) {
+      logger.debug('[SyncEngine] Paused by user, skipping queue processing');
       return;
     }
 
