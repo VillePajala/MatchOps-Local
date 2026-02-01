@@ -1,8 +1,8 @@
 {
-  "version": "5917cc3a",
-  "date": "2026-01-31",
+  "version": "69671b04",
+  "date": "2026-02-01",
   "notes": {
-    "en": "Step 8 - legacy migration MatchOpsLocal → user database",
-    "fi": "Step 8 - legacy migration MatchOpsLocal → user database"
+    "en": "Temporarily enable free sync for all users",
+    "fi": "Ilmainen pilvisynkronointi käytössä väliaikaisesti"
   }
 }
