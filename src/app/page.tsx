@@ -102,6 +102,22 @@ export default function Home() {
     !isAuthLoading &&
     !postLoginCheckComplete;
 
+  // Safety timeout: If post-login check doesn't complete within 15 seconds, force completion
+  // This prevents users from getting stuck on the loading screen indefinitely due to:
+  // - Network issues during migration check
+  // - Race conditions during user transitions
+  // - Unexpected errors that aren't caught
+  useEffect(() => {
+    if (!isPostLoginLoading) return;
+
+    const timeoutId = setTimeout(() => {
+      logger.warn('[page.tsx] Post-login check safety timeout - forcing completion to unblock user');
+      setPostLoginCheckComplete(true);
+    }, 15000); // 15 seconds
+
+    return () => clearTimeout(timeoutId);
+  }, [isPostLoginLoading]);
+
   // DEBUG: Log loading state computation to diagnose post-login loading screen issues
   // This runs on every render to show the state progression
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -580,12 +596,17 @@ export default function Home() {
         // This handles the sign out → sign in flow where React Query caches may be stale
         if (hasMigrationCompleted(userId)) {
           logger.info('[page.tsx] Migration already completed for this user, refetching queries');
-          await queryClient.refetchQueries();
+          try {
+            await queryClient.refetchQueries();
+          } catch (refetchError) {
+            // Refetch errors shouldn't block the user - queries will retry on their own
+            logger.warn('[page.tsx] Query refetch failed (non-blocking):', refetchError);
+          }
           setRefreshTrigger(prev => prev + 1);
-          // NOTE: Do NOT set postLoginCheckComplete(true) here!
-          // The refreshTrigger change will cause checkAppState() to run, which sets isCheckingState.
-          // We must wait for checkAppState() to complete before clearing the loading screen.
-          // A separate effect will set postLoginCheckComplete(true) when isCheckingState becomes false.
+          // Mark post-login check complete so user can proceed to the app.
+          // The refreshTrigger will cause checkAppState() to run and update canResume,
+          // but we don't need to block the user waiting for that.
+          setPostLoginCheckComplete(true);
           return;
         }
 
