@@ -543,7 +543,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     let isMounted = true;
 
     if (orphanedGameInfo) {
-      getTeams().then(teams => {
+      getTeams(userId).then(teams => {
         if (isMounted) {
           setAvailableTeams(teams);
         }
@@ -558,7 +558,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     return () => {
       isMounted = false;
     };
-  }, [orphanedGameInfo]);
+  }, [orphanedGameInfo, userId]);
 
   // Handle team reassignment for orphaned games
   const handleTeamReassignment = async (newTeamId: string | null) => {
