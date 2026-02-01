@@ -71,6 +71,8 @@ export default function Home() {
   const legacyMigrationCheckedRef = useRef(false);
   // Ref to track if checkAppState has been triggered post-login (prevents premature postLoginCheckComplete)
   const checkAppStateTriggeredRef = useRef(false);
+  // Ref to track previous value of isCheckingState (for detecting true→false transitions)
+  const prevIsCheckingStateRef = useRef(false);
   // State to track if post-login data loading has completed (migration/hydration check)
   // Using state instead of ref so changes trigger re-renders
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
@@ -412,18 +414,32 @@ export default function Home() {
   // This ensures we don't clear the loading screen until data is actually loaded
   // The migration check effect may trigger checkAppState via refreshTrigger,
   // and we need to wait for that to complete before showing the app
+  //
+  // CRITICAL: We must detect the transition from isCheckingState=true to isCheckingState=false,
+  // not just isCheckingState=false. This is because in React 18+, state updates are batched,
+  // so during the first effect cycle after login:
+  //   1. Effect at line ~376 runs, sets checkAppStateTriggeredRef=true, calls checkAppState()
+  //   2. checkAppState() calls setIsCheckingState(true) - but state update is BATCHED
+  //   3. This effect runs in the SAME cycle, isCheckingState is still FALSE from before!
+  //   4. Without the transition check, postLoginCheckComplete would be set immediately (BUG!)
+  // By tracking the previous value and requiring a true→false transition, we ensure this
+  // effect only fires AFTER checkAppState() has actually completed.
   useEffect(() => {
-    // Only relevant in cloud mode when authenticated and checkAppState has finished
-    // AND checkAppState has actually been triggered (ref guards against premature completion)
+    // Capture previous value and update ref for next render
+    const wasChecking = prevIsCheckingStateRef.current;
+    prevIsCheckingStateRef.current = isCheckingState;
+
+    // Only set postLoginCheckComplete when isCheckingState transitions from true to false
+    // This ensures checkAppState() has actually started AND finished
     if (
       mode === 'cloud' &&
       checkAppStateTriggeredRef.current &&
       isAuthenticated &&
       !isAuthLoading &&
-      !isCheckingState &&
+      wasChecking && !isCheckingState && // CRITICAL: true→false transition
       !postLoginCheckComplete
     ) {
-      logger.info('[page.tsx] checkAppState completed, marking post-login check complete');
+      logger.info('[page.tsx] checkAppState completed (true→false transition), marking post-login check complete');
       setPostLoginCheckComplete(true);
     }
   }, [mode, isAuthenticated, isAuthLoading, isCheckingState, postLoginCheckComplete]);
@@ -938,12 +954,15 @@ export default function Home() {
     return t('page.loading', 'Loading...');
   };
 
+  // Compute whether to show loading screen
+  const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
+
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
-        {isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut ? (
+        {showLoadingScreen ? (
           // Loading state while checking auth, data, or during sign-out
           <LoadingScreen message={getLoadingMessage()} />
         ) : showWelcome ? (
