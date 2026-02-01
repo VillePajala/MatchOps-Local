@@ -29,7 +29,7 @@ import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore } from '@/interfaces/DataStore';
 import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
-import { SyncQueue, SyncEngine, getSyncEngine, type SyncOperationExecutor } from '@/sync';
+import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
 import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
@@ -117,9 +117,17 @@ export class SyncedDataStore implements DataStore {
   async close(): Promise<void> {
     logger.info('[SyncedDataStore] Closing');
 
-    // Dispose the sync engine (waits for in-flight ops, clears listeners)
+    // CRITICAL: Reset the sync engine singleton so a new engine is created for the next user.
+    // Without this, the new SyncedDataStore's getSyncEngine() would return the OLD
+    // instance that still references the OLD SyncQueue, causing:
+    // - User B's operations go to SyncQueue B
+    // - But SyncEngine processes SyncQueue A (closed/empty)
+    // - Result: operations never sync
+    // Note: resetSyncEngine() calls dispose() internally, which waits for in-flight ops
+    // and clears listeners.
     if (this.syncEngine) {
-      await this.syncEngine.dispose();
+      await resetSyncEngine();
+      this.syncEngine = null;
     }
 
     // Clear queue error listeners to prevent memory leaks on mode switch
