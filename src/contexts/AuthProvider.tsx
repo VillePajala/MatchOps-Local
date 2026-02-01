@@ -139,7 +139,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Subscribe to auth changes (cloud mode fires events, local mode is no-op)
         unsubscribe = service.onAuthStateChange(async (state: AuthState, newSession: Session | null) => {
-          logger.debug('[AuthProvider] Auth state changed:', state);
+          logger.debug('[AuthProvider] Auth state changed:', state, { hasSession: !!newSession });
+
+          // DEFENSIVE: Only clear session on explicit signed_out event
+          // This prevents login loops caused by:
+          // 1. Unexpected events with null session (e.g., AbortError during token refresh)
+          // 2. New Supabase events we don't recognize
+          // 3. Race conditions during sign-in flow
+          if (!newSession && state !== 'signed_out') {
+            logger.warn('[AuthProvider] Received null session for non-signout event:', state, '- preserving current session');
+            // Track in Sentry for debugging (PWA can't access console)
+            try {
+              Sentry.addBreadcrumb({
+                category: 'auth',
+                message: `Preserved session on ${state} event with null session`,
+                level: 'warning',
+              });
+            } catch {
+              // Sentry failure acceptable
+            }
+            // Don't clear the session - let the current auth state persist
+            // If there's a real auth issue, the next API call will fail and we'll handle it then
+            return;
+          }
+
           setSession(newSession);
           setUser(newSession?.user ?? null);
 

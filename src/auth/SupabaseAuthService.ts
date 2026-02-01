@@ -48,6 +48,19 @@ const PASSWORD_MIN_LENGTH = 12;
 
 /**
  * Map Supabase auth events to our AuthState type.
+ *
+ * IMPORTANT: Handle ALL Supabase events explicitly to prevent unexpected sign-outs.
+ * Unknown events should NOT default to signed_out - this causes login loops when
+ * Supabase adds new events or fires events we don't expect.
+ *
+ * Supabase AuthChangeEvent types (as of v2):
+ * - INITIAL_SESSION: First session load (from localStorage)
+ * - SIGNED_IN: User signed in
+ * - SIGNED_OUT: User signed out
+ * - PASSWORD_RECOVERY: User clicked password reset link
+ * - TOKEN_REFRESHED: Access token was refreshed
+ * - USER_UPDATED: User profile was updated
+ * - MFA_CHALLENGE_VERIFIED: MFA challenge completed
  */
 function mapAuthEvent(event: AuthChangeEvent): AuthState {
   switch (event) {
@@ -60,11 +73,34 @@ function mapAuthEvent(event: AuthChangeEvent): AuthState {
       return 'token_refreshed';
     case 'USER_UPDATED':
       return 'user_updated';
+    // Handle additional Supabase events that shouldn't trigger sign-out
+    case 'PASSWORD_RECOVERY':
+      // Password recovery link clicked - user is going through reset flow
+      // Don't sign them out, let the reset flow complete
+      logger.info('[SupabaseAuthService] Password recovery event received');
+      return 'signed_in'; // Treat as signed in to prevent logout during reset
+    case 'MFA_CHALLENGE_VERIFIED':
+      // MFA challenge completed successfully - user is authenticated
+      logger.info('[SupabaseAuthService] MFA challenge verified');
+      return 'signed_in';
     default:
-      // Log unknown events - use signed_out as safer default to force re-verification
-      // This prevents assuming user is authenticated when they might not be
-      logger.warn(`[SupabaseAuthService] Unknown auth event "${event}", defaulting to signed_out for safety`);
-      return 'signed_out';
+      // Log unknown events but DON'T default to signed_out
+      // Defaulting to signed_out causes login loops when Supabase adds new events
+      // Instead, preserve current auth state (don't change anything)
+      logger.warn(`[SupabaseAuthService] Unknown auth event "${event}" - preserving current auth state`);
+      // Track in Sentry for debugging (PWA can't access console)
+      try {
+        Sentry.addBreadcrumb({
+          category: 'auth',
+          message: `Unknown Supabase auth event: ${event}`,
+          level: 'warning',
+        });
+      } catch {
+        // Sentry failure acceptable
+      }
+      // Return 'user_updated' as a neutral state that won't trigger sign-out
+      // The session from the event will determine actual auth state
+      return 'user_updated';
   }
 }
 
@@ -637,6 +673,18 @@ export class SupabaseAuthService implements AuthService {
     const { data: { subscription } } = this.client!.auth.onAuthStateChange(
       (event, session) => {
         const authState = mapAuthEvent(event);
+
+        // Track auth events in Sentry (PWA can't access console)
+        try {
+          Sentry.addBreadcrumb({
+            category: 'auth',
+            message: `Auth event: ${event} → ${authState}`,
+            level: 'info',
+            data: { hasSession: !!session, userId: session?.user?.id?.slice(0, 8) },
+          });
+        } catch {
+          // Sentry failure acceptable
+        }
 
         // Update internal state
         if (session) {
