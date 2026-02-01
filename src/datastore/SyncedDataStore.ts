@@ -184,6 +184,7 @@ export class SyncedDataStore implements DataStore {
       logger.warn('[SyncedDataStore] Cannot set executor - sync engine not initialized');
       return;
     }
+    logger.info('[SyncedDataStore] Setting executor on sync engine');
     this.syncEngine.setExecutor(executor);
   }
 
@@ -206,6 +207,7 @@ export class SyncedDataStore implements DataStore {
       logger.warn('[SyncedDataStore] Cannot start sync - sync engine not initialized');
       return;
     }
+    logger.info('[SyncedDataStore] Starting sync engine');
     this.syncEngine.start();
   }
 

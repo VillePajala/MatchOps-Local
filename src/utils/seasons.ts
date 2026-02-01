@@ -30,6 +30,12 @@ export const getSeasons = async (userId?: string): Promise<Season[]> => {
     const dataStore = await getDataStore(userId);
     return await dataStore.getSeasons();
   } catch (error) {
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Don't log as error to avoid Sentry noise
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('[getSeasons] Read skipped - DataStore closed during transition');
+      return [];
+    }
     logger.error('[getSeasons] Error getting seasons:', error);
     return [];
   }

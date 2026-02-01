@@ -467,7 +467,9 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
         // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
         const localStore = syncedStore.getLocalStore();
         const executor = createSyncExecutor(cloudStore, localStore);
+        log.info('[factory] Setting executor on SyncedDataStore', { userId: initUserId });
         syncedStore.setExecutor(executor);
+        log.info('[factory] Starting sync engine', { userId: initUserId });
         syncedStore.startSync();
 
         instance = syncedStore;
