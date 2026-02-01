@@ -95,8 +95,8 @@ describe('SyncEngine', () => {
       configurable: true,
     });
 
-    // Create fresh queue
-    queue = new SyncQueue({
+    // Create fresh queue with test userId for isolation
+    queue = new SyncQueue('test-user-id', {
       maxRetries: 3,
       backoffBaseMs: 100,
       backoffMaxMs: 1000,

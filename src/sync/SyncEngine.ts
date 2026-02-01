@@ -517,7 +517,8 @@ export class SyncEngine {
 
   private async doProcessQueue(): Promise<void> {
     // DIAGNOSTIC: Log entry point to track why processing might not happen
-    logger.debug('[SyncEngine] doProcessQueue called - checking guards', {
+    // INFO level logging for production visibility - helps diagnose sync issues
+    logger.info('[SyncEngine] doProcessQueue called', {
       isRunning: this.isRunning,
       isDisposing: this.isDisposing,
       isResettingStale: this.isResettingStale,

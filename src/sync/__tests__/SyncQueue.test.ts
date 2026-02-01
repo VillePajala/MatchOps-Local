@@ -35,8 +35,8 @@ describe('SyncQueue', () => {
   let queue: SyncQueue;
 
   beforeEach(async () => {
-    // Create fresh queue for each test
-    queue = new SyncQueue({
+    // Create fresh queue for each test with test userId for isolation
+    queue = new SyncQueue('test-user-id', {
       maxRetries: 3,
       backoffBaseMs: 100,
       backoffMaxMs: 1000,
