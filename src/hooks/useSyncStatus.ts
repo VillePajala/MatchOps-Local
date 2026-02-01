@@ -126,14 +126,18 @@ export function useSyncStatus(): UseSyncStatusResult {
     };
   }, [mode]);
 
-  // Sync now action
+  // Sync now action - forces immediate sync, ignoring backoff delays
+  // When user clicks "Sync Now", they expect it to happen NOW
   const syncNow = useCallback(async () => {
     if (mode !== 'cloud') return;
 
     try {
       const { getSyncEngine } = await import('@/sync');
       const engine = getSyncEngine();
-      await engine.processQueue();
+      // Use forceRetryAll instead of processQueue to ignore backoff timing
+      // This ensures pending operations that failed and are waiting for retry
+      // will be attempted immediately when user explicitly requests sync
+      await engine.forceRetryAll();
     } catch (error) {
       logger.error('[useSyncStatus] Sync now failed:', error);
     }
