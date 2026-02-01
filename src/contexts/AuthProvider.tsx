@@ -45,6 +45,8 @@ interface AuthContextValue {
   needsReConsent: boolean;
   /** True when auth initialization timed out (user may need to retry sign-in) */
   initTimedOut: boolean;
+  /** True when sign-out is in progress (prevents UI interaction during logout) */
+  isSigningOut: boolean;
 
   // Actions
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
@@ -105,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<'local' | 'cloud'>('local');
   const [needsReConsent, setNeedsReConsent] = useState(false);
   const [initTimedOut, setInitTimedOut] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   // Trigger for re-running auth initialization (increments to force useEffect re-run)
   const [initRetryTrigger, setInitRetryTrigger] = useState(0);
 
@@ -446,6 +449,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Show loading state during sign-out to prevent UI interaction
+    setIsSigningOut(true);
+
     try {
       await authService.signOut();
     } catch (error) {
@@ -492,6 +498,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setNeedsReConsent(false);  // Clear re-consent flag so modal doesn't persist
+    setIsSigningOut(false);  // Clear signing out state
   }, [authService, user]);
 
   const resetPassword = useCallback(async (email: string) => {
@@ -625,6 +632,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mode,
     needsReConsent,
     initTimedOut,
+    isSigningOut,
     signIn,
     signUp,
     signOut,
@@ -633,7 +641,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     acceptReConsent,
     deleteAccount,
     retryAuthInit,
-  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit]);
+  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit]);
 
   return (
     <AuthContext.Provider value={value}>
