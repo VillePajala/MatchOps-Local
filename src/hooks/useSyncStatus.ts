@@ -44,6 +44,9 @@ export interface UseSyncStatusResult {
   /** Whether sync status is still initializing (state may not reflect actual status yet) */
   isLoading: boolean;
 
+  /** Whether cloud backend is connected (executor set). If false, sync won't work. */
+  cloudConnected: boolean;
+
   /** Trigger a manual sync */
   syncNow: () => Promise<void>;
 
@@ -74,6 +77,7 @@ const LOCAL_MODE_STATUS: UseSyncStatusResult = {
   isSyncing: false,
   isPaused: false,
   isLoading: false,
+  cloudConnected: true, // N/A for local mode, but true to avoid warnings
   syncNow: async () => {},
   retryFailed: async () => {},
   clearFailed: async () => {},
@@ -272,6 +276,7 @@ export function useSyncStatus(): UseSyncStatusResult {
       isSyncing: false,
       isPaused: false,
       isLoading: true,
+      cloudConnected: false, // Unknown while loading
       syncNow,
       retryFailed,
       clearFailed,
@@ -291,6 +296,7 @@ export function useSyncStatus(): UseSyncStatusResult {
     isSyncing: status.state === 'syncing',
     isPaused: status.isPaused ?? false,
     isLoading: false,
+    cloudConnected: status.cloudConnected ?? false,
     syncNow,
     retryFailed,
     clearFailed,

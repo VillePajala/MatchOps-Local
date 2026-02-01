@@ -686,6 +686,18 @@ export default function CloudSyncSection({
               </div>
             </div>
           )}
+
+          {/* Cloud Not Connected Warning - pending items but cloud backend not ready */}
+          {!syncStatus.cloudConnected && syncStatus.pendingCount > 0 && !syncStatus.isLoading && (
+            <div className="p-3 rounded-md bg-amber-900/20 border border-amber-700">
+              <div className="flex items-center gap-2">
+                <HiOutlineExclamationTriangle className="h-4 w-4 text-amber-400" />
+                <p className="text-sm text-amber-300">
+                  {t('cloudSync.syncDetails.cloudNotConnected', 'Cloud connection initializing... Changes will sync automatically when ready.')}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
