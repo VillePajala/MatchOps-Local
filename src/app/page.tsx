@@ -62,6 +62,9 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   // Post-login upgrade modal (shown when user authenticates without subscription)
   const [showPostLoginUpgrade, setShowPostLoginUpgrade] = useState(false);
+  // Track pending post-login check in state (initialized from localStorage)
+  // Using state so clearing it triggers re-render and migration check can re-run
+  const [pendingPostLoginCheckState, setPendingPostLoginCheckState] = useState(() => hasPendingPostLoginCheck());
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
   // Ref to track if legacy database migration has been checked this session
@@ -492,7 +495,7 @@ export default function Home() {
 
     // Skip if there's a pending post-login check (subscription check hasn't passed yet)
     // This ensures we don't show migration wizard until user has verified subscription
-    if (hasPendingPostLoginCheck()) {
+    if (pendingPostLoginCheckState) {
       logger.info('[page.tsx] Migration check: waiting for post-login subscription check to complete');
       return;
     }
@@ -616,7 +619,7 @@ export default function Home() {
 
     checkMigrationNeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isAuthenticated, userId, isSubscriptionLoading, hasActiveSubscription]);
+  }, [mode, isAuthenticated, userId, isSubscriptionLoading, hasActiveSubscription, pendingPostLoginCheckState]);
 
   // ============================================================================
   // POST-LOGIN CHECK (Cloud Mode Only)
@@ -640,7 +643,7 @@ export default function Home() {
       isAuthLoading,
       isSubscriptionLoading,
       hasActiveSubscription,
-      hasPendingCheck: hasPendingPostLoginCheck(),
+      hasPendingCheck: pendingPostLoginCheckState,
     });
 
     // Skip if not in cloud mode, not authenticated, or still loading
@@ -654,7 +657,7 @@ export default function Home() {
     }
 
     // Check if there's a pending post-login check
-    if (!hasPendingPostLoginCheck()) {
+    if (!pendingPostLoginCheckState) {
       logger.debug('[page.tsx] Post-login check: skipping (no pending flag)');
       return; // No pending check - user is returning to the app, not newly signing in
     }
@@ -662,18 +665,23 @@ export default function Home() {
     logger.info('[page.tsx] Post-login check: verifying subscription status');
 
     // Clear the pending flag - user is now logged in
+    // Clear both state (triggers re-render for migration check) and localStorage (persistence)
+    setPendingPostLoginCheckState(false);
     clearPendingPostLoginCheck();
 
     // Check subscription status and show upgrade modal if needed
     if (hasActiveSubscription) {
       logger.info('[page.tsx] Post-login check: user has active subscription, sync enabled');
+      // Migration check will re-run now that pendingPostLoginCheck is false (it's a dep)
     } else {
       // User has account but no subscription - show upgrade modal
       logger.info('[page.tsx] Post-login check: user has no subscription, showing upgrade modal');
       setShowPostLoginUpgrade(true);
+      // Mark post-login check complete so loading screen clears
+      // (migration check won't run because no subscription)
+      setPostLoginCheckComplete(true);
     }
-    // Migration check will run (if needed) via the other effect
-  }, [mode, isAuthenticated, isAuthLoading, isSubscriptionLoading, hasActiveSubscription]);
+  }, [mode, isAuthenticated, isAuthLoading, isSubscriptionLoading, hasActiveSubscription, pendingPostLoginCheckState]);
 
   // Handle post-login upgrade modal close
   const handlePostLoginUpgradeClose = useCallback(() => {
