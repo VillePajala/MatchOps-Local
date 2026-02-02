@@ -552,9 +552,11 @@ export class LocalDataStore implements DataStore {
    * @see ensureInitialized() - throws NotInitializedError if not initialized
    */
   private async storageGetItem(key: string): Promise<string | null> {
-    if (!this.adapter) {
-      // SECURITY: Fail fast to prevent cross-user data access
-      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
     }
     return this.adapter.getItem(key);
   }
@@ -562,10 +564,22 @@ export class LocalDataStore implements DataStore {
   /**
    * Set an item in storage.
    * Uses user-scoped adapter if available, otherwise falls back to global.
+   *
+   * Note: Checks both `initialized` and `adapter` because there's a race condition
+   * where operations can start before close() but complete after:
+   * 1. Operation starts, passes ensureInitialized() (initialized=true, adapter exists)
+   * 2. Operation waits for key lock
+   * 3. User logout triggers close() - sets initialized=false, adapter=null
+   * 4. Operation gets lock, tries to use adapter - null!
+   *
+   * This is expected behavior during user transitions, not a bug.
    */
   private async storageSetItem(key: string, value: string): Promise<void> {
-    if (!this.adapter) {
-      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
     }
     return this.adapter.setItem(key, value);
   }
@@ -575,8 +589,11 @@ export class LocalDataStore implements DataStore {
    * Uses user-scoped adapter if available, otherwise falls back to global.
    */
   private async storageRemoveItem(key: string): Promise<void> {
-    if (!this.adapter) {
-      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
     }
     return this.adapter.removeItem(key);
   }
