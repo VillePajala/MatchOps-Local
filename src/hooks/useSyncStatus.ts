@@ -100,8 +100,12 @@ export function useSyncStatus(): UseSyncStatusResult {
   // Initialize and subscribe to status changes
   // Re-initialize when user changes to connect to the new SyncEngine
   useEffect(() => {
+    const effectUserId = user?.id;
+    logger.info('[useSyncStatus] Effect starting', { mode, userId: effectUserId || '(none)' });
+
     // Only subscribe in cloud mode
     if (mode !== 'cloud') {
+      logger.debug('[useSyncStatus] Not cloud mode, skipping subscription');
       setIsInitialized(true);
       return;
     }
@@ -109,6 +113,7 @@ export function useSyncStatus(): UseSyncStatusResult {
     // Reset state when user changes
     setStatus(null);
     setIsInitialized(false);
+    logger.debug('[useSyncStatus] State reset, starting fresh connection');
 
     let unsubscribe: (() => void) | null = null;
     let mounted = true;
@@ -152,7 +157,10 @@ export function useSyncStatus(): UseSyncStatusResult {
     };
 
     const tryConnectToEngine = async (): Promise<boolean> => {
-      if (!mounted) return false;
+      if (!mounted) {
+        logger.debug('[useSyncStatus] tryConnectToEngine: not mounted, aborting');
+        return false;
+      }
 
       try {
         const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
@@ -163,19 +171,32 @@ export function useSyncStatus(): UseSyncStatusResult {
           return false;
         }
 
+        logger.debug('[useSyncStatus] Engine exists, getting instance');
         const engine = getSyncEngine();
 
         // Get initial status
+        logger.debug('[useSyncStatus] Getting initial status');
         const initialStatus = await engine.getStatus();
+        logger.info('[useSyncStatus] Got initial status', {
+          state: initialStatus.state,
+          pendingCount: initialStatus.pendingCount,
+          cloudConnected: initialStatus.cloudConnected,
+        });
+
         if (mounted) {
           setStatus(initialStatus);
           setIsInitialized(true);
+          logger.debug('[useSyncStatus] Status and isInitialized set');
+        } else {
+          logger.debug('[useSyncStatus] Not mounted after getStatus, aborting');
+          return false;
         }
 
         // Subscribe to status changes
         // Note: onStatusChange already emits current status to new subscribers
         unsubscribe = engine.onStatusChange((newStatus) => {
           if (mounted) {
+            logger.debug('[useSyncStatus] Status update received', { state: newStatus.state });
             setStatus(newStatus);
           }
         });
@@ -260,6 +281,12 @@ export function useSyncStatus(): UseSyncStatusResult {
     startPolling();
 
     return () => {
+      logger.info('[useSyncStatus] Effect cleanup', {
+        userId: effectUserId || '(none)',
+        wasConnected: isConnected,
+        hadPollInterval: pollIntervalId !== null,
+        hadHealthCheck: healthCheckIntervalId !== null,
+      });
       mounted = false;
       if (pollIntervalId !== null) {
         clearInterval(pollIntervalId);
