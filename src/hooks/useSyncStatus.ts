@@ -115,6 +115,9 @@ export function useSyncStatus(): UseSyncStatusResult {
     let pollIntervalId: ReturnType<typeof setInterval> | null = null;
     let healthCheckIntervalId: ReturnType<typeof setInterval> | null = null;
     let isConnected = false;
+    // Store reference to the engine we subscribed to, for detecting replacement
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let subscribedEngineRef: any = null;
 
     // Polling interval - keeps checking until engine is available
     // This handles the case where DataStore is initialized much later
@@ -126,6 +129,27 @@ export function useSyncStatus(): UseSyncStatusResult {
     // our subscription dies silently because dispose() clears all listeners.
     // This health check detects that scenario and re-subscribes.
     const HEALTH_CHECK_INTERVAL_MS = 2000;
+
+    const reconnect = () => {
+      logger.info('[useSyncStatus] Reconnecting to sync engine');
+      isConnected = false;
+      subscribedEngineRef = null;
+
+      // Clean up old subscription (it's already dead, but clear our reference)
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+
+      // Reset state
+      if (mounted) {
+        setStatus(null);
+        setIsInitialized(false);
+      }
+
+      // Restart polling to reconnect when new engine is created
+      startPolling();
+    };
 
     const tryConnectToEngine = async (): Promise<boolean> => {
       if (!mounted) return false;
@@ -156,6 +180,8 @@ export function useSyncStatus(): UseSyncStatusResult {
           }
         });
 
+        // Store reference to detect if engine gets replaced
+        subscribedEngineRef = engine;
         isConnected = true;
         logger.info('[useSyncStatus] Successfully connected to sync engine');
         return true;
@@ -172,32 +198,30 @@ export function useSyncStatus(): UseSyncStatusResult {
     // - Mode changes (cloud ↔ local)
     // - DataStore re-initialization
     // When reset, dispose() clears all listeners, leaving us subscribed to nothing.
+    // CRITICAL: Must check if the SAME engine we subscribed to is still the singleton,
+    // not just if AN engine exists. Engine A can be disposed and Engine B created,
+    // making isSyncEngineInitialized() return true while we're subscribed to dead Engine A.
     const startHealthCheck = () => {
       healthCheckIntervalId = setInterval(async () => {
         if (!mounted || !isConnected) return;
 
         try {
-          const { isSyncEngineInitialized } = await import('@/sync');
+          const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
 
           if (!isSyncEngineInitialized()) {
             // Engine was disposed! Our subscription is dead.
             logger.info('[useSyncStatus] Health check: engine was disposed, re-connecting');
-            isConnected = false;
+            reconnect();
+            return;
+          }
 
-            // Clean up old subscription (it's already dead, but clear our reference)
-            if (unsubscribe) {
-              unsubscribe();
-              unsubscribe = null;
-            }
-
-            // Reset state
-            if (mounted) {
-              setStatus(null);
-              setIsInitialized(false);
-            }
-
-            // Restart polling to reconnect when new engine is created
-            startPolling();
+          // Engine exists - but is it the same one we subscribed to?
+          const currentEngine = getSyncEngine();
+          if (currentEngine !== subscribedEngineRef) {
+            // Engine was replaced! Our subscription is to the old (dead) engine.
+            logger.info('[useSyncStatus] Health check: engine was replaced, re-connecting');
+            reconnect();
+            return;
           }
         } catch (error) {
           logger.warn('[useSyncStatus] Health check error:', error);
