@@ -391,9 +391,25 @@ export class SyncEngine {
 
   /**
    * Subscribe to status changes.
+   * Immediately emits current status to new subscriber to prevent stale state.
    */
   onStatusChange(listener: StatusChangeListener): () => void {
     this.statusListeners.add(listener);
+
+    // Emit current status immediately to new subscriber
+    // This prevents race condition where subscriber gets initial status via getStatus(),
+    // then status changes before subscription is active, leaving subscriber with stale state
+    this.getStatus()
+      .then((status) => {
+        // Check listener is still subscribed (might have unsubscribed synchronously)
+        if (this.statusListeners.has(listener)) {
+          listener(status);
+        }
+      })
+      .catch((e) => {
+        logger.warn('[SyncEngine] Failed to emit initial status to new subscriber:', e);
+      });
+
     return () => this.statusListeners.delete(listener);
   }
 
