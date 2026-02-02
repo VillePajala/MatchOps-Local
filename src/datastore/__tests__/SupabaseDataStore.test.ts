@@ -3234,12 +3234,6 @@ describe('SupabaseDataStore', () => {
                   single: jest.fn().mockResolvedValue({ data: mockGameRow, error: null }),
                 }),
               }),
-              // For ensureGameCreatedAt in saveGame
-              update: jest.fn().mockReturnValue({
-                eq: jest.fn().mockReturnValue({
-                  is: jest.fn().mockResolvedValue({ error: null }),
-                }),
-              }),
             };
           }
           if (table === 'game_tactical_data') {
