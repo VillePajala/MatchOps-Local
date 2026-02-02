@@ -189,6 +189,39 @@ export function useSyncStatus(): UseSyncStatusResult {
     };
   }, [mode, user?.id]);
 
+  // Refresh status when app resumes from background
+  // This fixes state inconsistency between multiple hook instances (e.g., field indicator vs settings modal)
+  // when the app returns from background - some instances may have stale state
+  useEffect(() => {
+    if (mode !== 'cloud') return;
+
+    const handleAppResume = async () => {
+      logger.debug('[useSyncStatus] App resumed - refreshing sync status');
+      try {
+        const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
+
+        if (!isSyncEngineInitialized()) {
+          logger.debug('[useSyncStatus] Engine not initialized on resume');
+          return;
+        }
+
+        const engine = getSyncEngine();
+        const currentStatus = await engine.getStatus();
+        setStatus(currentStatus);
+        logger.debug('[useSyncStatus] Status refreshed on app resume', { state: currentStatus.state });
+      } catch (error) {
+        logger.warn('[useSyncStatus] Failed to refresh status on resume:', error);
+      }
+    };
+
+    // Listen for custom 'app-resume' event dispatched by useAppResume hook
+    window.addEventListener('app-resume', handleAppResume);
+
+    return () => {
+      window.removeEventListener('app-resume', handleAppResume);
+    };
+  }, [mode]);
+
   // Sync now action - forces immediate sync, ignoring backoff delays
   // When user clicks "Sync Now", they expect it to happen NOW
   const syncNow = useCallback(async () => {
