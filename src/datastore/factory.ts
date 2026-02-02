@@ -441,6 +441,19 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     const mode = getBackendMode();
     log.info(`[factory] Initializing DataStore in ${mode} mode for user: ${initUserId || '(anonymous)'}`);
 
+    // Add Sentry breadcrumb for debugging DataStore initialization issues
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.addBreadcrumb({
+        category: 'datastore',
+        message: 'DataStore initialization started',
+        level: 'info',
+        data: { mode, userId: initUserId || '(anonymous)', cloudAvailable: isCloudAvailable() },
+      });
+    } catch {
+      // Sentry not available - continue without breadcrumb
+    }
+
     let instance: DataStore;
 
     // CRITICAL FIX: Use SyncedDataStore when user is authenticated AND cloud is available.
@@ -576,6 +589,24 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     // If we created SyncedDataStore (shouldUseCloudSync was true), track as 'cloud'.
     dataStoreCreatedForMode = shouldUseCloudSync ? 'cloud' : mode;
     dataStoreCreatedForUserId = initUserId;
+
+    // Add Sentry breadcrumb for successful initialization
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.addBreadcrumb({
+        category: 'datastore',
+        message: 'DataStore initialization completed',
+        level: 'info',
+        data: {
+          mode: dataStoreCreatedForMode,
+          userId: initUserId || '(anonymous)',
+          backendName: instance.getBackendName(),
+        },
+      });
+    } catch {
+      // Sentry not available - continue
+    }
+
     return instance;
   })().finally(() => {
     // Allow retry on failure, and keep the steady state as `dataStoreInstance !== null`.
