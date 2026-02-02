@@ -303,8 +303,20 @@ export class SupabaseAuthService implements AuthService {
           // getSession() only reads from localStorage and doesn't validate with the server.
           // This prevents using stale/revoked sessions that were stored before sign-out failed
           // or from a previous user who deleted their account.
+          //
+          // TIMEOUT: Use 5s timeout to prevent blocking auth init on slow mobile networks.
+          // If validation times out, trust the cached session (better UX than blocking).
+          const VALIDATION_TIMEOUT_MS = 5000;
           try {
-            const { data: { user: validatedUser }, error: userError } = await this.client.auth.getUser();
+            const validationPromise = this.client.auth.getUser();
+            const timeoutPromise = new Promise<never>((_, reject) => {
+              setTimeout(() => reject(new Error('Session validation timeout')), VALIDATION_TIMEOUT_MS);
+            });
+
+            const { data: { user: validatedUser }, error: userError } = await Promise.race([
+              validationPromise,
+              timeoutPromise,
+            ]);
 
             if (userError || !validatedUser) {
               // Session is invalid on server - clear it locally
@@ -324,10 +336,12 @@ export class SupabaseAuthService implements AuthService {
               logger.info('[SupabaseAuthService] Initialized with validated session');
             }
           } catch (validationError) {
-            // Network error during validation - trust the cached session
-            // (user might be offline, and session could still be valid)
-            if (isNetworkError(validationError)) {
-              logger.warn('[SupabaseAuthService] Network error validating session, trusting cached session');
+            // Network error or timeout during validation - trust the cached session
+            // (user might be offline or on slow network, session could still be valid)
+            const isTimeout = validationError instanceof Error && validationError.message === 'Session validation timeout';
+            if (isNetworkError(validationError) || isTimeout) {
+              const reason = isTimeout ? 'timeout' : 'network error';
+              logger.warn(`[SupabaseAuthService] ${reason} validating session, trusting cached session`);
               this.currentSession = transformSession(session);
               this.currentUser = this.currentSession.user;
             } else {
