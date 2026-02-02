@@ -796,18 +796,25 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // Master Roster, Seasons, Tournaments are handled by their own useEffects reacting to useQuery.
 
       // 4. Update local savedGames state from useQuery for allSavedGames
-      if (gameDataManagement.isLoading) {
-        setIsLoadingGamesList(true);
-      }
-      if (gameDataManagement.savedGames) {
-        setSavedGames(gameDataManagement.savedGames || {});
-        setIsLoadingGamesList(false);
-      }
-      if (gameDataManagement.error) {
-        logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', gameDataManagement.error);
-        setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
-      setSavedGames({});
-        setIsLoadingGamesList(false);
+      // IMPORTANT: Only sync on initial load to prevent race conditions.
+      // After initial load, local state is the source of truth for savedGames.
+      // React Query refetches (e.g., from app-resume invalidation) could complete with stale data
+      // that doesn't include recent optimistic updates (new games, saves in progress).
+      // See: "new game becomes copy of old game" bug investigation.
+      if (!initialLoadComplete) {
+        if (gameDataManagement.isLoading) {
+          setIsLoadingGamesList(true);
+        }
+        if (gameDataManagement.savedGames) {
+          setSavedGames(gameDataManagement.savedGames || {});
+          setIsLoadingGamesList(false);
+        }
+        if (gameDataManagement.error) {
+          logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', gameDataManagement.error);
+          setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
+          setSavedGames({});
+          setIsLoadingGamesList(false);
+        }
       }
 
       // 5. Determine and set current game ID and related state from useQuery data
