@@ -22,6 +22,7 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 | `013_composite_primary_keys.sql` | Changes PRIMARY KEY (id) → PRIMARY KEY (user_id, id) for user isolation |
 | `014_update_rpc_for_composite_keys.sql` | Updates save_game_with_relations for composite keys |
 | `015_composite_fk_indexes.sql` | Performance indexes for composite FK CASCADE operations (optional) |
+| `016_optimize_rls_policies_initplan.sql` | **PERFORMANCE**: Optimizes RLS policies to cache auth.uid() once per query |
 
 ## Deployment Order
 
@@ -43,6 +44,7 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 14. `013_composite_primary_keys.sql` - **CRITICAL**: Composite keys for user isolation
 15. `014_update_rpc_for_composite_keys.sql` - Updates RPC for composite keys
 16. `015_composite_fk_indexes.sql` - (Optional) Performance indexes for CASCADE operations
+17. `016_optimize_rls_policies_initplan.sql` - **RECOMMENDED**: Fixes RLS performance (10x+ faster)
 
 ### Deployment Order - CRITICAL
 
