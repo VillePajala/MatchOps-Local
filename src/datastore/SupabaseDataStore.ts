@@ -3413,53 +3413,13 @@ export class SupabaseDataStore implements DataStore {
       });
     }
 
-    const backfillStartTime = Date.now();
-    await this.ensureGameCreatedAt(id);
-    const backfillDuration = Date.now() - backfillStartTime;
-
     const totalDuration = Date.now() - saveStartTime;
     logger.info('[SupabaseDataStore] saveGame COMPLETE', {
       gameId: id.slice(0, 20),
       totalMs: totalDuration,
-      backfillMs: backfillDuration,
     });
 
     return game;
-  }
-
-  /**
-   * Backfill created_at for legacy rows where it was left null.
-   *
-   * INTENTIONAL SILENT FAILURE: This is a best-effort backfill for legacy data.
-   * We log failures but don't propagate errors because:
-   * 1. The game data is already saved successfully at this point
-   * 2. created_at is used for sorting/display, not critical functionality
-   * 3. Failing the entire save for a backfill would be worse UX
-   * 4. The update is idempotent - will be retried on next save if needed
-   */
-  private async ensureGameCreatedAt(gameId: string): Promise<void> {
-    const { error } = await this.getClient()
-      .from('games')
-      .update({ created_at: new Date().toISOString() })
-      .eq('id', gameId)
-      .is('created_at', null);
-
-    if (error) {
-      logger.warn('[SupabaseDataStore] Failed to backfill created_at for game', {
-        gameId,
-        message: error.message,
-      });
-      // Track in Sentry for production monitoring - not critical but worth tracking
-      try {
-        Sentry.captureMessage('Game created_at backfill failed', {
-          level: 'warning',
-          tags: { flow: 'game-created-at-backfill' },
-          extra: { gameId, error: error.message },
-        });
-      } catch {
-        // Sentry failure must not affect game save success
-      }
-    }
   }
 
   /**
