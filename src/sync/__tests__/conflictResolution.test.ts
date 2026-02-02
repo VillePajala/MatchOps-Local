@@ -10,7 +10,7 @@ import {
   type ConflictResolverOptions,
   type CloudRecord,
 } from '../conflictResolution';
-import { ConflictError } from '@/interfaces/DataStoreErrors';
+import { ConflictError, AlreadyExistsError } from '@/interfaces/DataStoreErrors';
 import type { SyncOperation } from '../types';
 
 describe('ConflictResolver', () => {
@@ -646,5 +646,132 @@ describe('isNotFoundError', () => {
     expect(isNotFoundError('not found')).toBe(false);
     expect(isNotFoundError({ message: 'not found' })).toBe(false);
     expect(isNotFoundError(null)).toBe(false);
+  });
+});
+
+describe('AlreadyExistsError Handling', () => {
+  // Mock functions
+  let mockFetchFromCloud: jest.Mock;
+  let mockWriteToCloud: jest.Mock;
+  let mockDeleteFromCloud: jest.Mock;
+  let mockWriteToLocal: jest.Mock;
+  let resolver: ConflictResolver;
+
+  // Test timestamps
+  const NOW = 1700000000000;
+  const OLDER = NOW - 10000;
+
+  beforeEach(() => {
+    mockFetchFromCloud = jest.fn();
+    mockWriteToCloud = jest.fn();
+    mockDeleteFromCloud = jest.fn().mockResolvedValue(undefined);
+    mockWriteToLocal = jest.fn().mockResolvedValue(undefined);
+
+    const options: ConflictResolverOptions = {
+      fetchFromCloud: mockFetchFromCloud,
+      writeToCloud: mockWriteToCloud,
+      deleteFromCloud: mockDeleteFromCloud,
+      writeToLocal: mockWriteToLocal,
+    };
+
+    resolver = new ConflictResolver(options);
+  });
+
+  // Helper to create a sync operation
+  const createOperation = (
+    overrides: Partial<SyncOperation> = {}
+  ): SyncOperation => ({
+    id: 'op-1',
+    entityType: 'player',
+    entityId: 'player-1',
+    operation: 'update',
+    data: { id: 'player-1', name: 'Test' },
+    timestamp: NOW,
+    status: 'pending',
+    retryCount: 0,
+    ...overrides,
+  });
+
+  describe('handleMissingCloudRecord', () => {
+    it('should treat AlreadyExistsError as success (race condition)', async () => {
+      // Simulate: cloud record missing on fetch, but writeToCloud fails with AlreadyExistsError
+      // This happens when another process creates the record between our fetch and write
+      mockFetchFromCloud.mockResolvedValue(null);
+      mockWriteToCloud.mockRejectedValue(new AlreadyExistsError('player', 'player-1'));
+
+      const op = createOperation({ operation: 'create' });
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('local');
+      expect(result.actionTaken).toBe(true);
+      expect(mockWriteToCloud).toHaveBeenCalledTimes(1);
+      // No error should propagate - treated as success
+    });
+
+    it('should still propagate non-AlreadyExistsError errors', async () => {
+      mockFetchFromCloud.mockResolvedValue(null);
+      mockWriteToCloud.mockRejectedValue(new Error('Network timeout'));
+
+      const op = createOperation({ operation: 'create' });
+
+      await expect(resolver.resolve(op)).rejects.toThrow('Network timeout');
+    });
+  });
+
+  describe('handleLocalWrite', () => {
+    it('should treat AlreadyExistsError as success when local wins (RPC UPSERT issue)', async () => {
+      // Simulate: cloud record exists, local timestamp is newer, but writeToCloud fails
+      // This happens when RPC doesn't properly support UPSERT semantics
+      const cloudRecord: CloudRecord = {
+        id: 'player-1',
+        updatedAt: new Date(OLDER).toISOString(),
+      };
+      mockFetchFromCloud.mockResolvedValue(cloudRecord);
+      mockWriteToCloud.mockRejectedValue(new AlreadyExistsError('player', 'player-1'));
+
+      // Expect the warning log about RPC UPSERT issue
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const op = createOperation({ timestamp: NOW }); // Local is newer than OLDER
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('local');
+      expect(result.actionTaken).toBe(true);
+      expect(mockWriteToCloud).toHaveBeenCalledTimes(1);
+      // No error should propagate - treated as success
+
+      // Verify warning was logged
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it('should still propagate non-AlreadyExistsError errors when local wins', async () => {
+      const cloudRecord: CloudRecord = {
+        id: 'player-1',
+        updatedAt: new Date(OLDER).toISOString(),
+      };
+      mockFetchFromCloud.mockResolvedValue(cloudRecord);
+      mockWriteToCloud.mockRejectedValue(new Error('Connection reset'));
+
+      const op = createOperation({ timestamp: NOW });
+
+      await expect(resolver.resolve(op)).rejects.toThrow('Connection reset');
+    });
+
+    it('should not call writeToCloud when cloud wins (no AlreadyExistsError possible)', async () => {
+      // When cloud is newer, we write to local, not to cloud
+      const cloudRecord: CloudRecord = {
+        id: 'player-1',
+        updatedAt: new Date(NOW + 10000).toISOString(), // Cloud is newer
+      };
+      mockFetchFromCloud.mockResolvedValue(cloudRecord);
+
+      const op = createOperation({ timestamp: NOW });
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('cloud');
+      expect(mockWriteToCloud).not.toHaveBeenCalled();
+      expect(mockWriteToLocal).toHaveBeenCalledTimes(1);
+    });
   });
 });
