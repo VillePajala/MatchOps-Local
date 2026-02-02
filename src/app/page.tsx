@@ -102,18 +102,19 @@ export default function Home() {
     !isAuthLoading &&
     !postLoginCheckComplete;
 
-  // Safety timeout: If post-login check doesn't complete within 15 seconds, force completion
+  // Safety timeout: If post-login check doesn't complete within 90 seconds, force completion
   // This prevents users from getting stuck on the loading screen indefinitely due to:
   // - Network issues during migration check
   // - Race conditions during user transitions
   // - Unexpected errors that aren't caught
+  // Note: 90 seconds is needed for large data sets (100+ games) to download from cloud
   useEffect(() => {
     if (!isPostLoginLoading) return;
 
     const timeoutId = setTimeout(() => {
       logger.warn('[page.tsx] Post-login check safety timeout - forcing completion to unblock user');
       setPostLoginCheckComplete(true);
-    }, 15000); // 15 seconds
+    }, 90000); // 90 seconds (was 15 seconds - too short for large hydrations)
 
     return () => clearTimeout(timeoutId);
   }, [isPostLoginLoading]);
@@ -593,36 +594,66 @@ export default function Home() {
     const checkMigrationNeeded = async () => {
       try {
         // Migration already completed for this user - but we still need to check
-        // if local data exists. On a new device or after clearing IndexedDB,
-        // the localStorage flag may be set but local data is empty.
+        // if local data is complete. On a new device, after clearing IndexedDB,
+        // or when cloud has more data than local (e.g., synced from another device),
+        // we need to hydrate from cloud.
         if (hasMigrationCompleted(userId)) {
-          logger.info('[page.tsx] Migration already completed for this user, checking if local has data...');
+          logger.info('[page.tsx] Migration already completed for this user, checking data completeness...');
 
-          // Check if local actually has data (user-scoped storage)
-          const localResult = await hasLocalDataToMigrate(userId);
-          if (!localResult.checkFailed && !localResult.hasData) {
-            // Local is empty - need to hydrate from cloud even though migration was "completed"
-            logger.info('[page.tsx] Local is empty despite migration completed, checking cloud...');
-            const cloudResult = await hasCloudData();
+          // Check cloud data counts to see if hydration is needed
+          const cloudResult = await hasCloudData();
+          if (cloudResult.checkFailed) {
+            // Cloud check failed - proceed with whatever local data we have
+            logger.warn('[page.tsx] Could not check cloud data:', cloudResult.error);
+          } else if (cloudResult.hasData) {
+            // Cloud has data - run hydration in BACKGROUND (non-blocking)
+            // User already has local data from previous session, so show them that immediately
+            // while we sync newer data from cloud. This is important because:
+            // 1. Large data sets (100+ games) can take 30+ seconds to download
+            // 2. User shouldn't wait on loading screen - they can use their local data
+            // 3. When hydration completes, we'll refresh queries and notify them
+            logger.info('[page.tsx] Cloud has data, running BACKGROUND hydration to ensure local is up-to-date...');
 
-            if (!cloudResult.checkFailed && cloudResult.hasData) {
-              // Cloud has data, local is empty - hydrate
-              logger.info('[page.tsx] Hydrating from cloud (local was empty after previous migration)...');
-              const hydrationResult = await hydrateLocalFromCloud(userId);
-
+            // Run hydration in background - don't await
+            hydrateLocalFromCloud(userId).then(hydrationResult => {
               if (hydrationResult.success) {
-                logger.info('[page.tsx] Hydration successful', { counts: hydrationResult.counts });
-                showToast(
-                  t('page.dataLoadedFromCloud', 'Your data has been loaded from the cloud.'),
-                  'success'
-                );
+                const totalImported = hydrationResult.counts.games +
+                  hydrationResult.counts.players +
+                  hydrationResult.counts.teams;
+                const totalSkipped = (hydrationResult.skipped?.games || 0) +
+                  (hydrationResult.skipped?.players || 0) +
+                  (hydrationResult.skipped?.teams || 0);
+
+                logger.info('[page.tsx] Background hydration complete', {
+                  imported: hydrationResult.counts,
+                  skipped: hydrationResult.skipped,
+                });
+
+                // Refresh queries if we imported something - but don't show toast
+                // Background sync should be seamless; the user doesn't need to be notified
+                // about routine data synchronization. This avoids confusing messages like
+                // "data loaded from cloud" which sounds like local changes were overwritten.
+                if (totalImported > 0) {
+                  logger.info('[page.tsx] Background hydration: imported data, refreshing queries silently');
+                  // Refresh queries to show newly downloaded data
+                  queryClient.refetchQueries().catch(err => {
+                    logger.warn('[page.tsx] Background hydration refetch failed:', err);
+                  });
+                  setRefreshTrigger(prev => prev + 1);
+                } else if (totalSkipped > 0) {
+                  logger.info('[page.tsx] Background hydration: no new data (local was already up-to-date)');
+                }
               } else {
-                logger.warn('[page.tsx] Hydration failed', { errors: hydrationResult.errors });
+                logger.warn('[page.tsx] Background hydration failed', { errors: hydrationResult.errors });
               }
-            }
+            }).catch(err => {
+              logger.error('[page.tsx] Background hydration exception:', err);
+            });
+          } else {
+            logger.info('[page.tsx] Cloud has no data, nothing to hydrate');
           }
 
-          // Refetch queries to load whatever data we have
+          // Refetch queries to load LOCAL data immediately (don't wait for cloud hydration)
           try {
             await queryClient.refetchQueries();
           } catch (refetchError) {
@@ -630,9 +661,8 @@ export default function Home() {
             logger.warn('[page.tsx] Query refetch failed (non-blocking):', refetchError);
           }
           setRefreshTrigger(prev => prev + 1);
-          // Mark post-login check complete so user can proceed to the app.
-          // The refreshTrigger will cause checkAppState() to run and update canResume,
-          // but we don't need to block the user waiting for that.
+          // Mark post-login check complete so user can proceed to the app with their LOCAL data.
+          // Background hydration will pull cloud data and refresh UI when done.
           setPostLoginCheckComplete(true);
           return;
         }
@@ -873,15 +903,18 @@ export default function Home() {
     // - But local still only has 5 games!
     // Hydration pulls cloud → local so local has all 86 games
     if (userId) {
-      logger.info('[page.tsx] Hydrating local from cloud after migration...');
+      logger.info('[page.tsx] POST-MIGRATION HYDRATION: Starting cloud→local pull', { userId });
       const hydrationResult = await hydrateLocalFromCloud(userId);
       if (hydrationResult.success) {
-        logger.info('[page.tsx] Post-migration hydration successful', {
-          counts: hydrationResult.counts,
+        logger.info('[page.tsx] POST-MIGRATION HYDRATION: Success', {
+          imported: hydrationResult.counts,
+          skipped: hydrationResult.skipped,
         });
       } else {
-        logger.warn('[page.tsx] Post-migration hydration failed', {
+        logger.warn('[page.tsx] POST-MIGRATION HYDRATION: Failed', {
           errors: hydrationResult.errors,
+          imported: hydrationResult.counts,
+          skipped: hydrationResult.skipped,
         });
         // Non-fatal: user can refresh to retry
         showToast(

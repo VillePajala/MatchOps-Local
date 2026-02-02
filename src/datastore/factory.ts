@@ -356,7 +356,29 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   // 3. Clearing any pending init promises to prevent stale promises from completing
   // 4. Allowing a new instance to be created for the new user below
   // This check only runs when an instance EXISTS - if null, we skip to creation
-  if (dataStoreInstance && dataStoreCreatedForUserId !== userId) {
+  //
+  // IMPORTANT: If caller passes undefined but we have an authenticated DataStore,
+  // return the existing one. This handles the common case where utility functions
+  // (like getGame, getPlayerAssessments) don't have access to userId context.
+  // Only treat as a real user switch when:
+  // - Both are defined and different (switching between authenticated users)
+  // - We had an authenticated user and now explicitly have none (sign-out)
+  // - We had no user and now have one (sign-in) - this case creates a new DataStore below
+  const isRealUserSwitch = dataStoreCreatedForUserId !== userId &&
+    // Not a "caller forgot to pass userId" situation
+    !(userId === undefined && dataStoreCreatedForUserId !== undefined);
+
+  // Log when returning existing DataStore for undefined userId caller
+  if (dataStoreInstance && !isRealUserSwitch && userId === undefined && dataStoreCreatedForUserId !== undefined) {
+    // Caller didn't pass userId but we have an authenticated DataStore - use it
+    // This is expected behavior for utility functions that don't have userId context
+    log.info(`[factory] Returning existing authenticated DataStore for undefined userId caller`, {
+      existingUserId: dataStoreCreatedForUserId,
+    });
+    return dataStoreInstance;
+  }
+
+  if (dataStoreInstance && isRealUserSwitch) {
     // Capture metrics BEFORE close for production diagnostics
     const closeCheck = await canCloseDataStore();
     log.info(`[factory] User switch`, {
@@ -376,12 +398,20 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
 
   // Check if mode changed since the DataStore was created
   // This handles the case where user enables/disables cloud sync
-  if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
+  //
+  // IMPORTANT: Don't trigger mode switch if authenticated user should use cloud.
+  // The shouldUseCloudSync logic (line ~470) creates SyncedDataStore for authenticated
+  // users even when getBackendMode() returns 'local'. We must use the same logic here
+  // to avoid false mode switches that would throw "pending sync operations" errors.
+  const effectiveMode = (isCloudAvailable() && !!userId) ? 'cloud' : currentMode;
+
+  if (dataStoreInstance && dataStoreCreatedForMode !== effectiveMode) {
     // Capture metrics BEFORE close for production diagnostics
     const closeCheck = await canCloseDataStore();
     log.info(`[factory] Mode switch`, {
       previousMode: dataStoreCreatedForMode,
-      newMode: currentMode,
+      newMode: effectiveMode,
+      rawMode: currentMode,
       userId: userId || '(anonymous)',
       hadPendingOps: closeCheck.pendingCount > 0,
       pendingCount: closeCheck.pendingCount,
@@ -861,6 +891,58 @@ export function isAuthServiceInitialized(): boolean {
  */
 export async function closeDataStore(options?: CloseDataStoreOptions): Promise<void> {
   await closeDataStoreInternal('explicit close', options);
+}
+
+/**
+ * Run Supabase performance diagnostics.
+ *
+ * Tests basic connectivity, read operations, and provides timing information
+ * to help diagnose slow sync operations.
+ *
+ * Call this from the browser console:
+ * ```js
+ * const { runSupabaseDiagnostics } = await import('/src/datastore/factory');
+ * await runSupabaseDiagnostics();
+ * ```
+ *
+ * @returns Diagnostic results with timing for each operation, or null if not in cloud mode
+ */
+export async function runSupabaseDiagnostics(): Promise<{
+  connectivity: { ok: boolean; durationMs: number; error?: string };
+  simpleRead: { ok: boolean; durationMs: number; count?: number; error?: string };
+  indexedRead: { ok: boolean; durationMs: number; error?: string };
+  settingsRead: { ok: boolean; durationMs: number; error?: string };
+  summary: string;
+} | null> {
+  if (!isCloudAvailable()) {
+    log.warn('[factory] runSupabaseDiagnostics: Cloud not available');
+    return null;
+  }
+
+  try {
+    // Import SupabaseDataStore directly for diagnostics (bypasses SyncedDataStore wrapper)
+    const { SupabaseDataStore } = await import('./SupabaseDataStore');
+    const store = new SupabaseDataStore();
+    await store.initialize();
+
+    const results = await store.runDiagnostics();
+
+    // Log a nice summary for console viewing
+    log.info('[factory] Supabase Diagnostics Results:', results);
+    console.log('\n=== Supabase Performance Diagnostics ===');
+    console.log(`Connectivity:  ${results.connectivity.durationMs}ms ${results.connectivity.ok ? '✓' : '✗'}`);
+    console.log(`Simple Read:   ${results.simpleRead.durationMs}ms ${results.simpleRead.ok ? '✓' : '✗'} (${results.simpleRead.count ?? 0} games)`);
+    console.log(`Indexed Read:  ${results.indexedRead.durationMs}ms ${results.indexedRead.ok ? '✓' : '✗'}`);
+    console.log(`Settings Read: ${results.settingsRead.durationMs}ms ${results.settingsRead.ok ? '✓' : '✗'}`);
+    console.log(`\n${results.summary}`);
+    console.log('=========================================\n');
+
+    return results;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    log.error(`[factory] runSupabaseDiagnostics failed: ${msg}`);
+    return null;
+  }
 }
 
 /**

@@ -487,6 +487,9 @@ export class SyncQueue {
 
       const request = index.openCursor();
 
+      // DIAGNOSTIC: Track skipped operations to debug sync issues
+      const skippedOps: { id: string; status: string; reason: string }[] = [];
+
       request.onsuccess = () => {
         const cursor = request.result;
 
@@ -496,6 +499,25 @@ export class SyncQueue {
           // Only return pending operations that are ready for retry
           if (op.status === 'pending' && this.isReadyForRetry(op, now)) {
             results.push(op);
+          } else if (op.status !== 'pending') {
+            // Track non-pending operations for diagnostics
+            skippedOps.push({
+              id: op.id.slice(0, 8),
+              status: op.status,
+              reason: `status is '${op.status}', not 'pending'`,
+            });
+          } else if (!this.isReadyForRetry(op, now)) {
+            // Track operations in backoff
+            const backoffDelay = Math.min(
+              this.backoffBaseMs * Math.pow(2, op.retryCount - 1),
+              this.backoffMaxMs
+            );
+            const readyAt = (op.lastAttempt || 0) + backoffDelay;
+            skippedOps.push({
+              id: op.id.slice(0, 8),
+              status: op.status,
+              reason: `in backoff, ready in ${Math.round((readyAt - now) / 1000)}s`,
+            });
           }
 
           cursor.continue();
@@ -503,7 +525,16 @@ export class SyncQueue {
       };
 
       transaction.oncomplete = () => {
-        logger.debug('[SyncQueue] Got pending operations', { count: results.length });
+        // Log with more detail if operations were skipped
+        if (skippedOps.length > 0) {
+          logger.info('[SyncQueue] getPending result', {
+            returned: results.length,
+            skipped: skippedOps.length,
+            skippedDetails: skippedOps,
+          });
+        } else {
+          logger.debug('[SyncQueue] Got pending operations', { count: results.length });
+        }
         resolve(results);
       };
 
@@ -671,20 +702,29 @@ export class SyncQueue {
         if (cursor) {
           const op = cursor.value as SyncOperation;
 
-          // Reset to pending for retry, incrementing retry count
-          // The interrupted sync attempt counts against max retries to prevent
-          // infinite loops if an operation keeps crashing mid-sync.
-          const newRetryCount = op.retryCount + 1;
-          const newStatus: SyncOperationStatus = newRetryCount >= op.maxRetries ? 'failed' : 'pending';
-
+          // Reset to pending for retry WITHOUT incrementing retry count or setting lastAttempt.
+          //
+          // CRITICAL FIX: Previously we incremented retryCount and set lastAttempt = Date.now(),
+          // which immediately put operations into backoff. This caused a cascade issue:
+          // 1. Engine starts, resetStaleSyncing() runs, operations go into 1-second backoff
+          // 2. User transition triggers DataStore recreation before backoff expires
+          // 3. New engine starts, resetStaleSyncing() runs AGAIN, extending backoff
+          // 4. Operations are perpetually stuck in backoff
+          //
+          // The original rationale was "interrupted sync counts against max retries to prevent
+          // infinite loops if an operation keeps crashing mid-sync". However:
+          // - If an operation truly crashes mid-sync, it will fail properly on the next attempt
+          // - The normal markFailed() path will then increment retryCount correctly
+          // - There's no need to penalize operations for clean interruptions (user transitions,
+          //   page navigation, mode switches)
+          //
+          // Now we just reset status to 'pending' so operations are immediately ready for retry.
           const updated: SyncOperation = {
             ...op,
-            status: newStatus,
-            retryCount: newRetryCount,
-            lastError: op.lastError
-              ? `${op.lastError} (reset from stale syncing)`
-              : 'Reset from stale syncing state',
-            lastAttempt: Date.now(),
+            status: 'pending',
+            // Keep existing retryCount - don't penalize for interruption
+            // Keep existing lastAttempt - allows immediate retry (no backoff)
+            // Keep existing lastError - preserve diagnostic info
           };
 
           cursor.update(updated);
@@ -693,6 +733,7 @@ export class SyncQueue {
             id: op.id,
             entityType: op.entityType,
             entityId: op.entityId,
+            retryCount: op.retryCount,
           });
 
           cursor.continue();

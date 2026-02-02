@@ -1526,6 +1526,18 @@ export async function hydrateLocalFromCloud(
       }
     }
 
+    // DIAGNOSTIC: Log what was downloaded from cloud
+    logger.info('[ReverseMigrationService] Downloaded cloud data', {
+      players: cloudData.players.length,
+      teams: cloudData.teams.length,
+      seasons: cloudData.seasons.length,
+      tournaments: cloudData.tournaments.length,
+      personnel: cloudData.personnel.length,
+      games: Object.keys(cloudData.games).length,
+      hasWarmupPlan: !!cloudData.warmupPlan,
+      hasSettings: !!cloudData.settings,
+    });
+
     safeProgress('Saving to local storage...', 40);
 
     // Save players (with timestamp-based conflict resolution)
@@ -1674,6 +1686,13 @@ export async function hydrateLocalFromCloud(
     // Save games (with timestamp-based conflict resolution)
     const existingGames = await localStore.getGames();
     const gameEntries = Object.entries(cloudData.games);
+
+    // DIAGNOSTIC: Log game counts to help debug hydration issues
+    logger.info('[ReverseMigrationService] Game hydration starting', {
+      cloudGamesCount: gameEntries.length,
+      localGamesCount: Object.keys(existingGames).length,
+    });
+
     for (let i = 0; i < gameEntries.length; i++) {
       const [gameId, game] = gameEntries[i];
       try {

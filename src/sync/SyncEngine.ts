@@ -686,16 +686,55 @@ export class SyncEngine {
       const pending = await this.queue.getPending(this.config.batchSize);
 
       if (pending.length === 0) {
-        logger.debug('[SyncEngine] No pending operations');
+        // DIAGNOSTIC: Check why no operations are ready when we expected some
+        // This helps debug "sync spinning but nothing happens" issues
+        const stats = await this.queue.getStats();
+        if (stats.total > 0) {
+          // There ARE operations, but none are ready - check why
+          const allOps = await this.queue.getAllOperations();
+          const now = Date.now();
+          logger.info('[SyncEngine] No pending operations ready, but queue is not empty', {
+            total: stats.total,
+            pending: stats.pending,
+            syncing: stats.syncing,
+            failed: stats.failed,
+            operations: allOps.map(op => ({
+              id: op.id.slice(0, 8),
+              entityType: op.entityType,
+              status: op.status,
+              retryCount: op.retryCount,
+              lastAttempt: op.lastAttempt,
+              // Show time until ready if in backoff
+              ...(op.status === 'pending' && op.retryCount > 0 && op.lastAttempt ? {
+                backoffRemaining: Math.max(0, Math.round((op.lastAttempt + Math.min(1000 * Math.pow(2, op.retryCount - 1), 300000) - now) / 1000)) + 's',
+              } : {}),
+            })),
+          });
+        } else {
+          logger.debug('[SyncEngine] No pending operations (queue empty)');
+        }
         this.lastSyncedAt = Date.now();
         return;
       }
 
-      logger.debug('[SyncEngine] Processing batch', { count: pending.length });
+      logger.info('[SyncEngine] Processing batch', {
+        count: pending.length,
+        operations: pending.map(op => ({
+          id: op.id.slice(0, 8),
+          entityType: op.entityType,
+          operation: op.operation,
+        })),
+      });
 
       // Process each operation - executor is guaranteed non-null by guard above
       const executor = this.executor;
       for (const op of pending) {
+        logger.info('[SyncEngine] Starting operation', {
+          id: op.id.slice(0, 8),
+          entityType: op.entityType,
+          entityId: op.entityId.slice(0, 8),
+          operation: op.operation,
+        });
         await this.processOperation(op, executor);
 
         // Emit status change after each operation
@@ -739,17 +778,33 @@ export class SyncEngine {
       markedSyncing = true;
 
       // Execute the sync with timeout to prevent hung operations blocking all syncing
-      const SYNC_TIMEOUT_MS = 30000; // 30 seconds per operation
-      logger.debug(`[SyncEngine] Syncing: ${opInfo}`);
+      // Note: 90 seconds needed for large games with many events/players/related data
+      // and to account for potential cold starts on first request after inactivity.
+      // TODO: Future improvement - use AbortController to actually abort the HTTP request
+      // when timeout fires. Currently the request continues in background, which means:
+      // - If it completes after timeout, data is saved but SyncEngine thinks it failed
+      // - Retry then succeeds quickly because data already exists (upsert behavior)
+      // This is safe for data integrity but causes misleading error messages.
+      const SYNC_TIMEOUT_MS = 90000; // 90 seconds per operation
+      const execStartTime = Date.now();
+      logger.info(`[SyncEngine] Marked syncing, executing: ${opInfo}`, {
+        operationId: op.id.slice(0, 8),
+        dataSize: op.data ? JSON.stringify(op.data).length : 0,
+      });
 
       // Use a timer ID to clear the timeout after executor completes (prevents memory leak)
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
       const timeoutPromise = new Promise<never>((_resolve, reject) => {
-        timeoutId = setTimeout(() => reject(new Error(`Sync operation timed out after ${SYNC_TIMEOUT_MS}ms`)), SYNC_TIMEOUT_MS);
+        timeoutId = setTimeout(() => {
+          const elapsed = Date.now() - execStartTime;
+          reject(new Error(`Sync operation timed out after ${elapsed}ms (limit: ${SYNC_TIMEOUT_MS}ms)`));
+        }, SYNC_TIMEOUT_MS);
       });
 
       try {
         await Promise.race([executor(op), timeoutPromise]);
+        const execDuration = Date.now() - execStartTime;
+        logger.info(`[SyncEngine] Executor completed in ${execDuration}ms: ${opInfo}`);
       } finally {
         // Clear timeout to prevent memory leak when executor completes before timeout
         if (timeoutId !== null) {
@@ -759,7 +814,7 @@ export class SyncEngine {
 
       // Mark as completed (removes from queue)
       await this.queue.markCompleted(op.id);
-      logger.debug(`[SyncEngine] Completed: ${opInfo}`);
+      logger.info(`[SyncEngine] Completed successfully: ${opInfo}`);
 
       // Emit completion event
       for (const listener of this.completeListeners) {
@@ -785,7 +840,7 @@ export class SyncEngine {
       // If we never marked as syncing, the operation wasn't ours to process
       // This can happen if another tab/process completed it, or it was deleted
       if (!markedSyncing) {
-        logger.debug(`[SyncEngine] Skipping ${opInfo} - could not mark as syncing (may be processed elsewhere): ${errorMessage}`);
+        logger.info(`[SyncEngine] Skipping ${opInfo} - could not mark as syncing (may be processed elsewhere): ${errorMessage}`);
         return; // Don't emit failure events for operations we never owned
       }
 
@@ -795,21 +850,21 @@ export class SyncEngine {
       // This prevents operations from getting stuck when users navigate/refresh.
       // See Sentry MATCHOPS-LOCAL-24, MATCHOPS-LOCAL-1E
       if (isAbortError) {
-        logger.debug(`[SyncEngine] Aborted: ${opInfo} (expected during navigation/reload) - resetting to pending`);
+        logger.info(`[SyncEngine] Aborted: ${opInfo} (expected during navigation/reload) - resetting to pending`);
         try {
           // Reset to pending WITHOUT incrementing retry count
           // AbortError means the request was cancelled, not that it failed
           // Use incrementRetry: false so the operation gets a fresh retry
           const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
           if (reset) {
-            logger.debug(`[SyncEngine] Successfully reset aborted operation ${opInfo} to pending`);
+            logger.info(`[SyncEngine] Successfully reset aborted operation ${opInfo} to pending`);
           } else {
             // Operation not found - may have been deleted during abort, that's fine
-            logger.debug(`[SyncEngine] Aborted operation ${opInfo} not found (may be already processed)`);
+            logger.info(`[SyncEngine] Aborted operation ${opInfo} not found (may be already processed)`);
           }
         } catch (resetError) {
           // Best effort - if reset fails, the stale syncing recovery will catch it on next start
-          logger.debug(`[SyncEngine] Could not reset aborted operation ${opInfo}:`, resetError);
+          logger.info(`[SyncEngine] Could not reset aborted operation ${opInfo}:`, resetError);
         }
         // Don't emit failure events for aborts - they're not real failures
         return;
@@ -823,18 +878,18 @@ export class SyncEngine {
       const isAuthError = error instanceof AuthError ||
         (error instanceof Error && error.name === 'AuthError');
       if (isAuthError) {
-        logger.debug(`[SyncEngine] Auth not ready: ${opInfo} - resetting to pending (will retry when auth is available)`);
+        logger.info(`[SyncEngine] Auth not ready: ${opInfo} - resetting to pending (will retry when auth is available)`);
         try {
           // Reset to pending WITHOUT incrementing retry count
           // Auth timing issues are not real failures - session just isn't ready yet
           const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
           if (reset) {
-            logger.debug(`[SyncEngine] Successfully reset auth-blocked operation ${opInfo} to pending`);
+            logger.info(`[SyncEngine] Successfully reset auth-blocked operation ${opInfo} to pending`);
           } else {
-            logger.debug(`[SyncEngine] Auth-blocked operation ${opInfo} not found (may be already processed)`);
+            logger.info(`[SyncEngine] Auth-blocked operation ${opInfo} not found (may be already processed)`);
           }
         } catch (resetError) {
-          logger.debug(`[SyncEngine] Could not reset auth-blocked operation ${opInfo}:`, resetError);
+          logger.info(`[SyncEngine] Could not reset auth-blocked operation ${opInfo}:`, resetError);
         }
         // Don't emit failure events for auth timing issues - they're temporary
         return;
