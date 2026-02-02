@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next';
 import { queryKeys } from '@/config/queryKeys';
 import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 import type { AppState, Player, SavedGamesCollection, GameType, Gender } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { ResourceType } from '@/config/premiumLimits';
@@ -142,6 +143,22 @@ export async function startNewGameWithSetup(
       ? initialSelectedPlayerIds
       : availablePlayers.map((player) => player.id);
 
+  // Sentry breadcrumb: Game creation started
+  const newGameId = `game_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  Sentry.addBreadcrumb({
+    category: 'game',
+    message: 'New game creation started',
+    level: 'info',
+    data: {
+      gameId: newGameId,
+      seasonId: seasonId || undefined,
+      tournamentId: tournamentId || undefined,
+      teamId: teamId || undefined,
+      userId: userId || '(anonymous)',
+      playersCount: finalSelectedPlayerIds.length,
+    },
+  });
+
   const newGameState: AppState = {
     opponentName,
     gameDate,
@@ -187,7 +204,7 @@ export async function startNewGameWithSetup(
     gamePersonnel: selectedPersonnelIds,
   };
 
-  const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  // newGameId is already defined above (with Sentry breadcrumb)
 
   let saveSucceeded = false;
   try {
@@ -273,8 +290,25 @@ export async function startNewGameWithSetup(
   });
 
   setIsPlayed(isPlayed);
+
+  // Sentry breadcrumb: About to set current game ID (triggers auto-save)
+  Sentry.addBreadcrumb({
+    category: 'game',
+    message: 'Setting currentGameId (may trigger auto-save)',
+    level: 'info',
+    data: { gameId: newGameId },
+  });
+
   setCurrentGameId(newGameId);
   logger.log(`Set current game ID to: ${newGameId}. Loading useEffect will sync component state.`);
+
+  // Sentry breadcrumb: Game creation completed
+  Sentry.addBreadcrumb({
+    category: 'game',
+    message: 'New game creation completed',
+    level: 'info',
+    data: { gameId: newGameId },
+  });
 
   closeNewGameSetupModal();
   setNewGameDemandFactor(1);
