@@ -1785,8 +1785,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldCoordination.setDrawings([]);
     fieldCoordination.setTacticalDiscs([]);
     fieldCoordination.setTacticalDrawings([]);
-    // Reset loaded game tracker so the effect will load the new game
-    loadedGameIdRef.current = null;
+    // DO NOT reset loadedGameIdRef.current = null here!
+    // When savedGames changes (new game added), the effect fires while currentGameId
+    // is still the OLD game. If loadedGameIdRef.current is null, the effect will
+    // load the old game's players onto the field.
+    // By keeping loadedGameIdRef.current as the old game ID, the effect will skip
+    // loading (oldId === oldId), and only load when currentGameId changes to newGameId.
 
     await startNewGameWithSetup(
       {
