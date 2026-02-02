@@ -112,54 +112,77 @@ export function useSyncStatus(): UseSyncStatusResult {
 
     let unsubscribe: (() => void) | null = null;
     let mounted = true;
+    let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
-    const initSync = async () => {
-      // Retry logic: engine may not exist yet if DataStore hasn't been initialized
-      const MAX_RETRIES = 10;
-      const RETRY_DELAY_MS = 500;
+    // Polling interval - keeps checking until engine is available
+    // This handles the case where DataStore is initialized much later
+    // (e.g., when React Query hooks first run)
+    const POLL_INTERVAL_MS = 1000;
 
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        if (!mounted) return;
+    const tryConnectToEngine = async (): Promise<boolean> => {
+      if (!mounted) return false;
 
-        try {
-          const { getSyncEngine } = await import('@/sync');
-          const engine = getSyncEngine();
+      try {
+        const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
 
-          // Get initial status
-          const initialStatus = await engine.getStatus();
-          if (mounted) {
-            setStatus(initialStatus);
-            setIsInitialized(true);
-          }
-
-          // Subscribe to status changes
-          unsubscribe = engine.onStatusChange((newStatus) => {
-            if (mounted) {
-              setStatus(newStatus);
-            }
-          });
-
-          // Success - exit retry loop
-          return;
-        } catch (error) {
-          // Engine not ready yet - retry after delay
-          if (attempt < MAX_RETRIES - 1) {
-            logger.debug('[useSyncStatus] Engine not ready, retrying...', { attempt: attempt + 1 });
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-          } else {
-            logger.warn('[useSyncStatus] Failed to initialize sync status after retries:', error);
-            if (mounted) {
-              setIsInitialized(true);
-            }
-          }
+        // Check if engine exists without throwing
+        if (!isSyncEngineInitialized()) {
+          logger.debug('[useSyncStatus] Engine not initialized yet, will retry');
+          return false;
         }
+
+        const engine = getSyncEngine();
+
+        // Get initial status
+        const initialStatus = await engine.getStatus();
+        if (mounted) {
+          setStatus(initialStatus);
+          setIsInitialized(true);
+        }
+
+        // Subscribe to status changes
+        // Note: onStatusChange already emits current status to new subscribers
+        unsubscribe = engine.onStatusChange((newStatus) => {
+          if (mounted) {
+            setStatus(newStatus);
+          }
+        });
+
+        logger.info('[useSyncStatus] Successfully connected to sync engine');
+        return true;
+      } catch (error) {
+        // Unexpected error - log but keep trying
+        logger.warn('[useSyncStatus] Error connecting to sync engine:', error);
+        return false;
       }
     };
 
-    initSync();
+    const startPolling = async () => {
+      // Try immediately first
+      const connected = await tryConnectToEngine();
+
+      // If not connected, start polling interval
+      if (!connected && mounted) {
+        logger.debug('[useSyncStatus] Starting poll interval for sync engine');
+        pollIntervalId = setInterval(async () => {
+          const success = await tryConnectToEngine();
+          if (success && pollIntervalId !== null) {
+            // Successfully connected - stop polling
+            clearInterval(pollIntervalId);
+            pollIntervalId = null;
+          }
+        }, POLL_INTERVAL_MS);
+      }
+    };
+
+    startPolling();
 
     return () => {
       mounted = false;
+      if (pollIntervalId !== null) {
+        clearInterval(pollIntervalId);
+        pollIntervalId = null;
+      }
       if (unsubscribe) {
         unsubscribe();
       }
