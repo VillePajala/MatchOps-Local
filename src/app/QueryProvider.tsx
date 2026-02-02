@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getBackendMode } from '@/config/backendConfig';
+import { exposeSupabaseDiagnostics } from '@/utils/debug';
 
 // Time constants for cloud mode configuration
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -94,6 +95,11 @@ export default function QueryProvider({ children }: QueryProviderProps) {
   // Use useState initializer to create QueryClient once
   // This ensures stable client reference and avoids recreation on re-renders
   const [queryClient] = useState(() => createQueryClient());
+
+  // Expose Supabase diagnostics on window for console debugging
+  useEffect(() => {
+    exposeSupabaseDiagnostics();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

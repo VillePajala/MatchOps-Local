@@ -1015,6 +1015,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Position-based detection is for: (1) formation picker, (2) player movement.
     // Saved games already have correct isGoalie status stored - preserve it.
     const loadedPlayers = gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []);
+    logger.info('[LOAD GAME STATE] Setting playersOnField', {
+      loadedPlayersCount: loadedPlayers.length,
+      isInitialDefaultLoad,
+      gameDataPlayersOnFieldCount: gameData?.playersOnField?.length ?? 'undefined',
+      playerIds: loadedPlayers.slice(0, 5).map(p => p.id?.slice(0, 8)),
+    });
     setPlayersOnField(loadedPlayers);
     setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
     setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
@@ -1130,6 +1136,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           return;
         }
         logger.log(`[EFFECT game load] Found game data for ${currentGameId}`);
+        logger.info('[EFFECT game load] Game data details', {
+          gameId: currentGameId?.slice(0, 20),
+          playersOnFieldCount: gameToLoad.playersOnField?.length ?? 0,
+          selectedPlayerIdsCount: gameToLoad.selectedPlayerIds?.length ?? 0,
+          availablePlayersCount: gameToLoad.availablePlayers?.length ?? 0,
+          hasPlayersOnField: (gameToLoad.playersOnField?.length ?? 0) > 0,
+        });
+
+        // DEFENSIVE: If game has no players on field, explicitly clear the field first
+        // This ensures players from previous game don't persist due to state update timing
+        if (!gameToLoad.playersOnField || gameToLoad.playersOnField.length === 0) {
+          logger.info('[EFFECT game load] Game has empty playersOnField - clearing field explicitly');
+          fieldCoordination.setPlayersOnField([]);
+        }
+
         await loadGameStateFromData(gameToLoad);
         loadedGameIdRef.current = currentGameId; // Mark as loaded
         return;
@@ -1754,6 +1775,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gender: import('@/types').Gender | undefined
   ) => {
     // Clear field state before creating new game to prevent stale data
+    logger.info('[NEW GAME] Clearing field state BEFORE game creation', {
+      previousPlayersOnFieldCount: fieldCoordination.playersOnField.length,
+      newGameTeamId: teamId,
+      newGameSelectedPlayersCount: initialSelectedPlayerIds.length,
+    });
     fieldCoordination.setPlayersOnField([]);
     fieldCoordination.setOpponents([]);
     fieldCoordination.setDrawings([]);

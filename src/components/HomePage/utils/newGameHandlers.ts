@@ -159,6 +159,15 @@ export async function startNewGameWithSetup(
     },
   });
 
+  // Log new game state for debugging field population issues
+  logger.info('[NEW GAME] Creating game state', {
+    gameId: newGameId.slice(0, 20),
+    teamId: teamId || '(none)',
+    selectedPlayersCount: finalSelectedPlayerIds.length,
+    availablePlayersCount: availablePlayersForGame.length,
+    playersOnFieldCount: 0, // Always 0 for new games
+  });
+
   const newGameState: AppState = {
     opponentName,
     gameDate,

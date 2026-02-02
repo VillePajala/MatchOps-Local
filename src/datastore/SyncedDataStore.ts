@@ -35,6 +35,30 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 
 /**
+ * Compare two objects excluding timestamps to detect actual data changes.
+ * Used to avoid unnecessary sync operations when data hasn't changed.
+ *
+ * @param a - First object
+ * @param b - Second object
+ * @returns true if the objects are equal (excluding timestamps)
+ */
+function isDataEqual<T extends { createdAt?: string; updatedAt?: string }>(a: T, b: T): boolean {
+  // Strip timestamps for comparison
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { createdAt: _ca, updatedAt: _ua, ...restA } = a;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { createdAt: _cb, updatedAt: _ub, ...restB } = b;
+
+  // JSON.stringify comparison - fast for typical data sizes
+  try {
+    return JSON.stringify(restA) === JSON.stringify(restB);
+  } catch {
+    // If serialization fails (circular ref), assume different
+    return false;
+  }
+}
+
+/**
  * Error info passed to queue error listeners
  */
 export interface SyncQueueErrorInfo {
@@ -210,7 +234,15 @@ export class SyncedDataStore implements DataStore {
       logger.warn('[SyncedDataStore] Cannot start sync - sync engine not initialized');
       return;
     }
-    logger.info('[SyncedDataStore] Starting sync engine');
+    // DIAGNOSTIC: Log queue state before starting to help debug sync issues
+    this.syncQueue.getStats().then(stats => {
+      logger.info('[SyncedDataStore] Starting sync engine', {
+        userId: this.userId || '(none)',
+        queueStats: stats,
+      });
+    }).catch(e => {
+      logger.warn('[SyncedDataStore] Could not get queue stats before start:', e);
+    });
     this.syncEngine.start();
   }
 
@@ -610,6 +642,25 @@ export class SyncedDataStore implements DataStore {
   }
 
   async saveGame(id: string, game: AppState): Promise<AppState> {
+    // Get existing game to detect if data actually changed.
+    // This prevents unnecessary saves AND preserves correct timestamps for conflict resolution.
+    const existing = await this.localStore.getGameById(id);
+
+    // If data is unchanged (excluding timestamps), skip save entirely.
+    // This is critical because:
+    // 1. LocalDataStore.saveGame() always updates updatedAt to "now"
+    // 2. If we save unchanged data, local gets artificially newer timestamp
+    // 3. Future conflict resolution would incorrectly favor local (newer timestamp wins)
+    // 4. By skipping, we preserve the original timestamp from cloud/last real change
+    if (existing && isDataEqual(game, existing)) {
+      logger.debug('[SyncedDataStore] Skipping save - game data unchanged (preserving timestamp)', {
+        gameId: id.slice(0, 20),
+        existingUpdatedAt: existing.updatedAt,
+      });
+      return existing; // Return existing game with correct timestamp
+    }
+
+    // Data changed (or new game) - save and queue for sync
     const saved = await this.localStore.saveGame(id, game);
     await this.queueSync('game', id, 'update', saved);
     return saved;
@@ -688,11 +739,34 @@ export class SyncedDataStore implements DataStore {
   }
 
   async saveSettings(settings: AppSettings): Promise<void> {
+    // Get existing settings to detect if data actually changed
+    const existing = await this.localStore.getSettings();
+
+    // Skip save if data unchanged - preserves timestamp for correct conflict resolution
+    if (isDataEqual(settings, existing)) {
+      logger.debug('[SyncedDataStore] Skipping save - settings unchanged (preserving timestamp)');
+      return;
+    }
+
+    // Data changed - save and queue for sync
     await this.localStore.saveSettings(settings);
     await this.queueSync('settings', 'app', 'update', settings);
   }
 
   async updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
+    // Get existing settings to detect if data actually changed
+    const existing = await this.localStore.getSettings();
+
+    // Apply updates to check if result would be different
+    const merged = { ...existing, ...updates };
+
+    // Skip save if data unchanged - preserves timestamp for correct conflict resolution
+    if (isDataEqual(merged, existing)) {
+      logger.debug('[SyncedDataStore] Skipping save - settings unchanged (preserving timestamp)');
+      return existing;
+    }
+
+    // Data changed - save and queue for sync
     const updated = await this.localStore.updateSettings(updates);
     await this.queueSync('settings', 'app', 'update', updated);
     return updated;

@@ -1,8 +1,8 @@
 {
-  "version": "69671b04",
-  "date": "2026-02-01",
+  "version": "8e8670ca",
+  "date": "2026-02-02",
   "notes": {
-    "en": "Temporarily enable free sync for all users",
-    "fi": "Ilmainen pilvisynkronointi käytössä väliaikaisesti"
+    "en": "Emit current status immediately to new subscribers",
+    "fi": "Emit current status immediately to new subscribers"
   }
 }
