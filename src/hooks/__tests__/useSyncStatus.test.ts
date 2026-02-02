@@ -16,6 +16,7 @@ jest.mock('@/sync', () => ({
     retryFailed: jest.fn(),
     clearFailed: jest.fn(),
   })),
+  isSyncEngineInitialized: jest.fn(() => true),
 }));
 
 // Mock backendConfig
@@ -41,13 +42,14 @@ jest.mock('@/contexts/AuthProvider', () => ({
 
 // Import modules after mocks are set up
 import { useSyncStatus } from '../useSyncStatus';
-import { getSyncEngine } from '@/sync';
+import { getSyncEngine, isSyncEngineInitialized } from '@/sync';
 import { getBackendMode } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
 // Get typed references to mocks
 const mockGetBackendMode = getBackendMode as jest.MockedFunction<typeof getBackendMode>;
 const mockGetSyncEngine = getSyncEngine as jest.MockedFunction<typeof getSyncEngine>;
+const mockIsSyncEngineInitialized = isSyncEngineInitialized as jest.MockedFunction<typeof isSyncEngineInitialized>;
 const mockLogger = logger as jest.Mocked<typeof logger>;
 
 describe('useSyncStatus', () => {
@@ -80,8 +82,9 @@ describe('useSyncStatus', () => {
       forceRetryAll: mockForceRetryAll,
     } as unknown as ReturnType<typeof getSyncEngine>);
 
-    // Default to local mode
+    // Default to local mode with engine initialized
     mockGetBackendMode.mockReturnValue('local');
+    mockIsSyncEngineInitialized.mockReturnValue(true);
   });
 
   describe('local mode', () => {

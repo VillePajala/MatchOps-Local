@@ -113,11 +113,19 @@ export function useSyncStatus(): UseSyncStatusResult {
     let unsubscribe: (() => void) | null = null;
     let mounted = true;
     let pollIntervalId: ReturnType<typeof setInterval> | null = null;
+    let healthCheckIntervalId: ReturnType<typeof setInterval> | null = null;
+    let isConnected = false;
 
     // Polling interval - keeps checking until engine is available
     // This handles the case where DataStore is initialized much later
     // (e.g., when React Query hooks first run)
     const POLL_INTERVAL_MS = 1000;
+
+    // Health check interval - slower check to detect engine replacement
+    // If the SyncEngine singleton is reset (e.g., during user transitions or mode changes),
+    // our subscription dies silently because dispose() clears all listeners.
+    // This health check detects that scenario and re-subscribes.
+    const HEALTH_CHECK_INTERVAL_MS = 2000;
 
     const tryConnectToEngine = async (): Promise<boolean> => {
       if (!mounted) return false;
@@ -148,6 +156,7 @@ export function useSyncStatus(): UseSyncStatusResult {
           }
         });
 
+        isConnected = true;
         logger.info('[useSyncStatus] Successfully connected to sync engine');
         return true;
       } catch (error) {
@@ -157,7 +166,52 @@ export function useSyncStatus(): UseSyncStatusResult {
       }
     };
 
+    // Health check to detect engine replacement
+    // The SyncEngine singleton can be reset during:
+    // - User sign-out/sign-in transitions
+    // - Mode changes (cloud ↔ local)
+    // - DataStore re-initialization
+    // When reset, dispose() clears all listeners, leaving us subscribed to nothing.
+    const startHealthCheck = () => {
+      healthCheckIntervalId = setInterval(async () => {
+        if (!mounted || !isConnected) return;
+
+        try {
+          const { isSyncEngineInitialized } = await import('@/sync');
+
+          if (!isSyncEngineInitialized()) {
+            // Engine was disposed! Our subscription is dead.
+            logger.info('[useSyncStatus] Health check: engine was disposed, re-connecting');
+            isConnected = false;
+
+            // Clean up old subscription (it's already dead, but clear our reference)
+            if (unsubscribe) {
+              unsubscribe();
+              unsubscribe = null;
+            }
+
+            // Reset state
+            if (mounted) {
+              setStatus(null);
+              setIsInitialized(false);
+            }
+
+            // Restart polling to reconnect when new engine is created
+            startPolling();
+          }
+        } catch (error) {
+          logger.warn('[useSyncStatus] Health check error:', error);
+        }
+      }, HEALTH_CHECK_INTERVAL_MS);
+    };
+
     const startPolling = async () => {
+      // Stop health check while polling (will restart after connection)
+      if (healthCheckIntervalId !== null) {
+        clearInterval(healthCheckIntervalId);
+        healthCheckIntervalId = null;
+      }
+
       // Try immediately first
       const connected = await tryConnectToEngine();
 
@@ -167,11 +221,15 @@ export function useSyncStatus(): UseSyncStatusResult {
         pollIntervalId = setInterval(async () => {
           const success = await tryConnectToEngine();
           if (success && pollIntervalId !== null) {
-            // Successfully connected - stop polling
+            // Successfully connected - stop polling, start health check
             clearInterval(pollIntervalId);
             pollIntervalId = null;
+            startHealthCheck();
           }
         }, POLL_INTERVAL_MS);
+      } else if (connected && mounted) {
+        // Connected immediately - start health check
+        startHealthCheck();
       }
     };
 
@@ -182,6 +240,10 @@ export function useSyncStatus(): UseSyncStatusResult {
       if (pollIntervalId !== null) {
         clearInterval(pollIntervalId);
         pollIntervalId = null;
+      }
+      if (healthCheckIntervalId !== null) {
+        clearInterval(healthCheckIntervalId);
+        healthCheckIntervalId = null;
       }
       if (unsubscribe) {
         unsubscribe();
