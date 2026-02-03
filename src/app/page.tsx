@@ -78,7 +78,7 @@ export default function Home() {
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit } = useAuth();
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
@@ -1061,6 +1061,43 @@ export default function Home() {
                 allowRegistration={true}
               />
             )}
+          </ErrorBoundary>
+        ) : initTimedOut && mode === 'cloud' ? (
+          // Cloud mode: auth initialization timed out - show retry screen
+          // This prevents users from being stuck in a login loop when PWA resumes from background
+          <ErrorBoundary>
+            <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
+              {/* Ambient background */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+                <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+              </div>
+              <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
+                <h1 className="text-5xl font-bold tracking-tight text-amber-400 mb-4">MatchOps</h1>
+                <div className="max-w-sm text-center">
+                  <h2 className="text-xl font-semibold text-white mb-2">
+                    {t('page.connectionTimeout', 'Connection Timeout')}
+                  </h2>
+                  <p className="text-slate-400 mb-6">
+                    {t('page.connectionTimeoutDesc', 'Unable to connect to the server. This can happen after the app has been in the background for a while.')}
+                  </p>
+                  <div className="space-y-3">
+                    <button
+                      onClick={retryAuthInit}
+                      className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 transition-all"
+                    >
+                      {t('page.tryAgain', 'Try Again')}
+                    </button>
+                    <button
+                      onClick={handleLoginUseLocalMode}
+                      className="w-full h-12 px-4 py-2 rounded-md text-base font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
+                    >
+                      {t('page.useLocalModeInstead', 'Use Local Mode Instead')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </ErrorBoundary>
         ) : needsAuth ? (
           // Cloud mode: show login screen when not authenticated

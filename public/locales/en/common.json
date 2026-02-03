@@ -2519,7 +2519,11 @@
     "failedToLoadCloudData": "Failed to load your cloud data. Please try refreshing.",
     "partialSyncComplete": "Sync complete. Some cloud data may not have loaded - refresh to retry.",
     "signingOut": "Signing out...",
-    "loadingYourData": "Loading your data..."
+    "loadingYourData": "Loading your data...",
+    "connectionTimeout": "Connection Timeout",
+    "connectionTimeoutDesc": "Unable to connect to the server. This can happen after the app has been in the background for a while.",
+    "tryAgain": "Try Again",
+    "useLocalModeInstead": "Use Local Mode Instead"
   },
   "positions": {
     "GK": "GK",
