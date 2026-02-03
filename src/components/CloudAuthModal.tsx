@@ -20,33 +20,33 @@ import logger from '@/utils/logger';
  * Sanitize error messages to prevent information leakage.
  * Maps internal error details to user-friendly messages.
  */
-function sanitizeErrorMessage(error: unknown): string {
+function sanitizeErrorMessage(error: unknown, t: (key: string, fallback: string) => string): string {
   if (!(error instanceof Error)) {
-    return 'An unexpected error occurred. Please try again.';
+    return t('cloudAuth.errors.unexpected', 'An unexpected error occurred. Please try again.');
   }
 
   const message = error.message.toLowerCase();
 
   // Network/connectivity errors
   if (message.includes('network') || message.includes('fetch') || message.includes('offline')) {
-    return 'Network error. Please check your connection and try again.';
+    return t('cloudAuth.errors.network', 'Network error. Please check your connection and try again.');
   }
 
   // Authentication errors (keep user-friendly auth errors)
   if (message.includes('invalid email or password') || message.includes('invalid login credentials')) {
-    return 'Invalid email or password.';
+    return t('cloudAuth.errors.invalidCredentials', 'Invalid email or password.');
   }
   if (message.includes('email not confirmed')) {
-    return 'Please confirm your email address before signing in.';
+    return t('cloudAuth.errors.emailNotConfirmed', 'Please confirm your email address before signing in.');
   }
 
   // Rate limiting
   if (message.includes('too many requests') || message.includes('rate limit')) {
-    return 'Too many attempts. Please wait a moment and try again.';
+    return t('cloudAuth.errors.rateLimit', 'Too many attempts. Please wait a moment and try again.');
   }
 
   // Generic fallback - don't expose internal details
-  return 'An error occurred. Please try again.';
+  return t('cloudAuth.errors.generic', 'An error occurred. Please try again.');
 }
 
 // Dynamic imports for Supabase services to avoid bundling in local mode
@@ -188,7 +188,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       }
       setHasPassword(false);
       // SECURITY: Sanitize error message to prevent information leakage
-      setError(sanitizeErrorMessage(err));
+      setError(sanitizeErrorMessage(err, t));
     } finally {
       setIsAuthenticating(false);
     }
@@ -224,7 +224,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     } catch (err) {
       logger.error('[CloudAuthModal] Password reset failed:', err);
       // SECURITY: Sanitize error message
-      setError(sanitizeErrorMessage(err));
+      setError(sanitizeErrorMessage(err, t));
     } finally {
       setIsSendingReset(false);
     }
@@ -312,7 +312,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     } catch (err) {
       logger.error('[CloudAuthModal] Delete failed:', err);
       // SECURITY: Sanitize error message to prevent information leakage
-      setError(sanitizeErrorMessage(err));
+      setError(sanitizeErrorMessage(err, t));
       setStep('error');
     } finally {
       if (cloudStore) {

@@ -24,7 +24,10 @@ const I18nInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   if (!isI18nInitialized) {
     // Show a minimal loading state
-    return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading...</div>;
+    // Use navigator.language to show localized loading text before i18n initializes
+    const isFinnish = typeof navigator !== 'undefined' && navigator.language?.startsWith('fi');
+    const loadingText = isFinnish ? 'Ladataan...' : 'Loading...';
+    return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">{loadingText}</div>;
   }
 
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;

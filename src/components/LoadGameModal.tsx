@@ -424,7 +424,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                         <button
                           onClick={(e) => handleActionsMenuToggle(e, gameId)}
                           className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
-                          aria-label="Game actions"
+                          aria-label={t('loadGameModal.gameActions', 'Game actions')}
                           disabled={disableActions}
                         >
                           {isLoadActionActive ? (
