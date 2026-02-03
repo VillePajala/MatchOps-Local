@@ -10,11 +10,13 @@
 'use client';
 
 import React, { useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useMigrationStatus, MigrationProgress } from '@/hooks/useMigrationStatus';
 import { HiOutlineExclamationTriangle, HiOutlineCheckCircle, HiOutlineXMark } from 'react-icons/hi2';
 
 // Throttled progress component to prevent excessive re-renders
-const ThrottledProgress = React.memo(({ progress }: { progress: MigrationProgress | null }) => {
+const ThrottledProgress = React.memo(({ progress, t }: { progress: MigrationProgress | null; t: TFunction }) => {
   const throttledProgress = useMemo(() => {
     if (!progress) return null;
 
@@ -29,7 +31,7 @@ const ThrottledProgress = React.memo(({ progress }: { progress: MigrationProgres
 
   if (!throttledProgress) return null;
 
-  const percentageText = `${throttledProgress.percentage.toFixed(1)}% complete`;
+  const percentageText = t('migrationStatus.percentComplete', '{{percent}}% complete', { percent: throttledProgress.percentage.toFixed(1) });
 
   return (
     <>
@@ -41,16 +43,16 @@ const ThrottledProgress = React.memo(({ progress }: { progress: MigrationProgres
           aria-valuenow={Math.round(throttledProgress.percentage)}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={`Migration progress: ${throttledProgress.percentage.toFixed(1)}% complete`}
+          aria-label={t('migrationStatus.progressLabel', 'Migration progress: {{percent}}% complete', { percent: throttledProgress.percentage.toFixed(1) })}
         ></div>
       </div>
 
       <div className="text-sm text-slate-400 space-y-1" aria-live="polite">
         <div>{percentageText}</div>
         {throttledProgress.estimatedTimeRemainingText && (
-          <div>Estimated time: {throttledProgress.estimatedTimeRemainingText}</div>
+          <div>{t('migrationStatus.estimatedTime', 'Estimated time: {{time}}', { time: throttledProgress.estimatedTimeRemainingText })}</div>
         )}
-        <div>{throttledProgress.processedKeys}/{throttledProgress.totalKeys} items processed</div>
+        <div>{t('migrationStatus.itemsProcessed', '{{processed}}/{{total}} items processed', { processed: throttledProgress.processedKeys, total: throttledProgress.totalKeys })}</div>
       </div>
     </>
   );
@@ -59,6 +61,7 @@ const ThrottledProgress = React.memo(({ progress }: { progress: MigrationProgres
 ThrottledProgress.displayName = 'ThrottledProgress';
 
 function MigrationStatusComponent() {
+  const { t } = useTranslation();
   const { isRunning, progress, error, showNotification, dismissNotification } = useMigrationStatus();
 
   // Memoize dismissNotification to prevent re-renders
@@ -68,8 +71,8 @@ function MigrationStatusComponent() {
 
   // Memoize currentStep to prevent unnecessary re-renders
   const currentStep = useMemo(() => {
-    return progress?.currentStep || 'Preparing migration...';
-  }, [progress?.currentStep]);
+    return progress?.currentStep || t('migrationStatus.preparingMigration', 'Preparing migration...');
+  }, [progress?.currentStep, t]);
 
   // Don't render anything if no migration activity
   if (!isRunning && !showNotification) {
@@ -91,19 +94,19 @@ function MigrationStatusComponent() {
             <div
               className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-4"
               role="status"
-              aria-label="Migration in progress"
+              aria-label={t('migrationStatus.inProgress', 'Migration in progress')}
             ></div>
             <h3 id="migration-title" className="text-lg font-semibold text-slate-100 mb-2">
-              Upgrading Storage
+              {t('migrationStatus.upgradingStorage', 'Upgrading Storage')}
             </h3>
             <p id="migration-description" className="text-slate-300 mb-4">
               {currentStep}
             </p>
 
-            <ThrottledProgress progress={progress} />
+            <ThrottledProgress progress={progress} t={t} />
 
             <p className="text-xs text-slate-500 mt-4">
-              Please don&apos;t close the app during this process.
+              {t('migrationStatus.dontCloseApp', "Please don't close the app during this process.")}
             </p>
           </div>
         </div>
@@ -114,8 +117,10 @@ function MigrationStatusComponent() {
   // Show notification (success or error)
   if (showNotification) {
     const notificationType = error ? 'warning' : 'success';
-    const notificationTitle = error ? 'Storage Upgrade Warning' : 'Storage Upgraded Successfully';
-    const notificationMessage = error || 'Your data has been migrated to improved storage for better performance.';
+    const notificationTitle = error
+      ? t('migrationStatus.warningTitle', 'Storage Upgrade Warning')
+      : t('migrationStatus.successTitle', 'Storage Upgraded Successfully');
+    const notificationMessage = error || t('migrationStatus.successMessage', 'Your data has been migrated to improved storage for better performance.');
 
     return (
       <div className="fixed top-4 right-4 z-50">
@@ -156,9 +161,9 @@ function MigrationStatusComponent() {
                     : 'text-green-400 hover:text-green-300 hover:bg-green-800/50'}
                 `}
                 onClick={memoizedDismissNotification}
-                aria-label={`Dismiss ${notificationType} notification`}
+                aria-label={t('migrationStatus.dismissNotification', 'Dismiss {{type}} notification', { type: notificationType })}
               >
-                <span className="sr-only">Dismiss notification</span>
+                <span className="sr-only">{t('migrationStatus.dismissNotification', 'Dismiss notification')}</span>
                 <HiOutlineXMark className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>

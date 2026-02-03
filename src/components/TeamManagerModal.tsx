@@ -400,7 +400,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                             <button
                               onClick={(e) => handleActionsMenuToggle(e, team.id)}
                               className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
-                              aria-label="Team actions"
+                              aria-label={t('teamManager.teamActions', 'Team actions')}
                             >
                               <HiOutlineEllipsisVertical className="w-4 h-4" />
                             </button>

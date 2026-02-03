@@ -52,49 +52,49 @@ import logger from '@/utils/logger';
 /**
  * Sanitize error string to prevent information leakage.
  */
-function sanitizeErrorString(message: string): string {
+function sanitizeErrorString(message: string, t: (key: string, fallback: string) => string): string {
   const lowerMessage = message.toLowerCase();
 
   if (lowerMessage.includes('network') || lowerMessage.includes('fetch') || lowerMessage.includes('offline')) {
-    return 'Network error. Please check your connection and try again.';
+    return t('migration.errors.network', 'Network error. Please check your connection and try again.');
   }
 
   if (lowerMessage.includes('not authenticated') || lowerMessage.includes('session') || lowerMessage.includes('unauthorized')) {
-    return 'Session expired. Please sign in again.';
+    return t('migration.errors.sessionExpired', 'Session expired. Please sign in again.');
   }
 
   if (lowerMessage.includes('too many requests') || lowerMessage.includes('rate limit')) {
-    return 'Too many attempts. Please wait a moment and try again.';
+    return t('migration.errors.rateLimit', 'Too many attempts. Please wait a moment and try again.');
   }
 
   if (lowerMessage.includes('database') || lowerMessage.includes('storage') || lowerMessage.includes('quota')) {
-    return 'Storage error. Please try again or contact support.';
+    return t('migration.errors.storage', 'Storage error. Please try again or contact support.');
   }
 
   if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
-    return 'Request timed out. Please try again with a stable connection.';
+    return t('migration.errors.timeout', 'Request timed out. Please try again with a stable connection.');
   }
 
   if (lowerMessage.includes('policy') || lowerMessage.includes('permission') || lowerMessage.includes('denied')) {
-    return 'Permission error. Please try signing out and back in.';
+    return t('migration.errors.permission', 'Permission error. Please try signing out and back in.');
   }
 
   if (lowerMessage.includes('validation') || lowerMessage.includes('invalid')) {
-    return 'Data validation failed. Please check your data and try again.';
+    return t('migration.errors.validation', 'Data validation failed. Please check your data and try again.');
   }
 
-  return 'Sync failed. Please try again.';
+  return t('migration.errors.syncFailed', 'Sync failed. Please try again.');
 }
 
 /**
  * Sanitize error messages to prevent information leakage.
  */
-function sanitizeErrorMessage(error: unknown): string {
+function sanitizeErrorMessage(error: unknown, t: (key: string, fallback: string) => string): string {
   if (!(error instanceof Error)) {
-    return 'An unexpected error occurred. Please try again.';
+    return t('migration.errors.unexpected', 'An unexpected error occurred. Please try again.');
   }
 
-  return sanitizeErrorString(error.message);
+  return sanitizeErrorString(error.message, t);
 }
 
 type WizardStep = 'preview' | 'syncing' | 'complete' | 'error';
@@ -217,14 +217,14 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         }
         // Sanitize error message to prevent information leakage
         const errorMsg = result.errors[0]
-          ? sanitizeErrorString(result.errors[0])
+          ? sanitizeErrorString(result.errors[0], t)
           : t('migration.syncFailedUnknown', 'Sync failed due to an unknown error. Please try again.');
         setErrorMessage(errorMsg);
         setStep('error');
       }
     } catch (error) {
       logger.error('[MigrationWizard] Sync failed:', error);
-      setErrorMessage(sanitizeErrorMessage(error));
+      setErrorMessage(sanitizeErrorMessage(error, t));
       setStep('error');
     } finally {
       syncLockRef.current = false;

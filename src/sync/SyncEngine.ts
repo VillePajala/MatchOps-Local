@@ -762,6 +762,41 @@ export class SyncEngine {
     } finally {
       this.isSyncing = false;
       this.emitStatusChange();
+
+      // Check if new operations were queued during processing.
+      // This handles the case where nudge() was called while isSyncing=true,
+      // which would have been skipped. Without this, those operations would
+      // wait for the next interval (up to 30 seconds).
+      if (
+        this.isRunning &&
+        this.isOnline &&
+        !this.isPaused &&
+        !this.isDisposing &&
+        !this.isResettingStale &&
+        !this.staleResetFailed
+      ) {
+        // Use queueMicrotask to:
+        // 1. Avoid deep recursion / stack overflow
+        // 2. Allow event loop to process other tasks
+        // 3. Ensure isSyncing=false is visible before re-check
+        queueMicrotask(() => {
+          this.queue
+            .getStats()
+            .then((stats) => {
+              if (stats.pending > 0) {
+                logger.debug('[SyncEngine] Operations queued during processing, re-processing', {
+                  pending: stats.pending,
+                });
+                this.doProcessQueue().catch((e) => {
+                  logger.error('[SyncEngine] Error re-processing queue:', e);
+                });
+              }
+            })
+            .catch(() => {
+              // Ignore stats errors in re-check - not critical
+            });
+        });
+      }
     }
   }
 
