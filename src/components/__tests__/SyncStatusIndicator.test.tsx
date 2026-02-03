@@ -71,6 +71,7 @@ describe('SyncStatusIndicator', () => {
     isSyncing: false,
     isPaused: false,
     isLoading: false,
+    cloudConnected: true,
     syncNow: jest.fn(),
     retryFailed: jest.fn(),
     clearFailed: jest.fn(),

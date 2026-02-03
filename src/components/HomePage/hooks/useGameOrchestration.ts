@@ -17,7 +17,6 @@ import {
   saveHasSeenAppGuide,
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
-  getHasSeenFirstGameGuide,
 } from '@/utils/appSettings';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
@@ -365,8 +364,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
    
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
 
-  const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
-
   const handleCreateBackup = useCallback(() => {
     exportFullBackup(showToast, userId);
   }, [showToast, userId]);
@@ -461,9 +458,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const gameContainerVM = useMemo(() => buildGameContainerViewModel(gameContainerVMInput), [gameContainerVMInput]);
   const playerBarViewModel = gameContainerVM.playerBar;
   const gameInfoViewModel = gameContainerVM.gameInfo;
-  const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
-  // Initialize as true for experienced users to prevent any flash
-  const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(!isFirstTimeUser);
 
   useEffect(() => {
     if (!initialAction) return;
@@ -882,56 +876,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     userId, // User-scoped storage
     // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
   ]);
-
-  // Check if we should show first game interface guide
-  useEffect(() => {
-    // If not a first-time user (experienced user), mark as checked and don't show guide
-    if (!isFirstTimeUser) {
-      setHasCheckedFirstGameGuide(true);
-      return;
-    }
-
-    if (!initialLoadComplete) return;
-
-    const checkFirstGameGuide = async () => {
-      try {
-        const firstGameGuideShown = await getHasSeenFirstGameGuide();
-
-        // Also check if user has any saved games (imported or created)
-        const savedGames = await utilGetSavedGames(userId);
-        const hasMultipleGames = Object.keys(savedGames).length > 1; // More than just default game
-
-        logger.log('[FirstGameGuide] Checking conditions:', {
-          isFirstTimeUser,
-          firstGameGuideShown,
-          currentGameId,
-          hasMultipleGames,
-          isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
-          shouldShow: isFirstTimeUser && !firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID
-        });
-
-        // Only show guide for first-time users who:
-        // 1. Haven't seen it before, AND
-        // 2. Don't have multiple games (imported or created), AND
-        // 3. Have a current game that's not the default game
-        if (!firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-          // Show immediately without delay to prevent flash
-          logger.log('[FirstGameGuide] Showing first game guide');
-          setShowFirstGameGuide(true);
-        }
-
-        // Mark that we've completed the check
-        setHasCheckedFirstGameGuide(true);
-      } catch (error) {
-        // Silent fail - guide check is not critical
-        logger.error('[FirstGameGuide] Error checking first game guide:', error);
-        // Still mark as checked even on error to prevent blocking
-        setHasCheckedFirstGameGuide(true);
-      }
-    };
-
-    checkFirstGameGuide();
-  }, [initialLoadComplete, currentGameId, isFirstTimeUser, userId]);
 
   // --- NEW: Robust Visibility Change Handling ---
   // --- Wake Lock Effect ---
@@ -2064,16 +2008,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     teams: gameDataManagement.teams,
     seasons: gameDataManagement.seasons,
     tournaments: gameDataManagement.tournaments,
-    showFirstGameGuide,
-    hasCheckedFirstGameGuide,
-    firstGameGuideStep,
     orphanedGameInfo,
     onOpenNewGameSetup: reducerDrivenModals.newGameSetup.open,
     onOpenRosterModal: reducerDrivenModals.roster.open,
     onOpenSeasonTournamentModal: reducerDrivenModals.seasonTournament.open,
     onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
-    onGuideStepChange: setFirstGameGuideStep,
-    onGuideClose: () => setShowFirstGameGuide(false),
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
     onOpenRulesModal: handleToggleRulesDirectory,
     onTeamNameChange: handleTeamNameChange,

@@ -11,7 +11,6 @@ import {
   TEAM_ROSTERS_KEY,
   APP_DATA_VERSION_KEY,
   INSTALL_PROMPT_DISMISSED_KEY,
-  HAS_SEEN_FIRST_GAME_GUIDE_KEY,
 } from '@/config/storageKeys';
 import {
   getStorageItem,
@@ -316,43 +315,6 @@ export const setInstallPromptDismissed = async (): Promise<void> => {
   }
 };
 
-// ============================================
-// First Game Guide Utilities
-// ============================================
-// These manage the first-time user game guide display
-// Key: HAS_SEEN_FIRST_GAME_GUIDE_KEY (stored as 'true' string)
-
-/**
- * Gets whether the user has seen the first game guide
- * @returns A promise that resolves to true if seen, false otherwise
- */
-export const getHasSeenFirstGameGuide = async (): Promise<boolean> => {
-  try {
-    const value = await getStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
-    return value === 'true';
-  } catch (error) {
-    logger.debug('Failed to get first game guide status (non-critical)', { error });
-    return false;
-  }
-};
-
-/**
- * Sets the first game guide as seen
- * @param value - Whether the guide has been seen
- * @returns A promise that resolves when complete
- */
-export const setHasSeenFirstGameGuide = async (value: boolean): Promise<void> => {
-  try {
-    if (value) {
-      await setStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY, 'true');
-    } else {
-      await removeStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
-    }
-  } catch (error) {
-    logger.debug('Failed to set first game guide status (non-critical)', { error });
-  }
-};
-
 /**
  * Clears all application settings, resetting to defaults
  * Uses clearStorage() to completely wipe IndexedDB for a clean reset
@@ -377,7 +339,6 @@ export const resetAppSettings = async (): Promise<boolean> => {
       removeStorageItem(TEAM_ROSTERS_KEY),
       removeStorageItem(APP_DATA_VERSION_KEY),
       removeStorageItem(LAST_HOME_TEAM_NAME_KEY),
-      removeStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY),
       removeStorageItem(INSTALL_PROMPT_DISMISSED_KEY),
       removeStorageItem('storage-mode'),
       removeStorageItem('storage-version'),

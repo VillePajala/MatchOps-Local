@@ -29,9 +29,6 @@ jest.mock('@/components/SoccerField', () => {
   SoccerField.displayName = 'SoccerField';
   return { __esModule: true, default: SoccerField };
 });
-jest.mock('@/components/HomePage/components/FirstGameGuide', () => ({
-  FirstGameGuide: () => <div data-testid="first-game-guide" />,
-}));
 jest.mock('@/components/ErrorBoundary', () => ({
   __esModule: true,
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -156,16 +153,11 @@ const baseProps = () => ({
   teams: [],
   seasons: [],
   tournaments: [],
-  showFirstGameGuide: false,
-  hasCheckedFirstGameGuide: false,
-  firstGameGuideStep: 0,
   orphanedGameInfo: null,
   onOpenNewGameSetup: jest.fn(),
   onOpenRosterModal: jest.fn(),
   onOpenSeasonTournamentModal: jest.fn(),
   onOpenTeamManagerModal: jest.fn(),
-  onGuideStepChange: jest.fn(),
-  onGuideClose: jest.fn(),
   onOpenTeamReassignModal: jest.fn(),
   onTeamNameChange: jest.fn(),
   onOpponentNameChange: jest.fn(),
@@ -218,19 +210,6 @@ describe('FieldContainer', () => {
   it('suggests roster creation when no players exist', () => {
     render(<FieldContainer {...baseProps()} />);
     expect(screen.getByText('Set Up Team Roster')).toBeInTheDocument();
-  });
-
-  it('shows first game guide when configured for non-default game', () => {
-    render(
-      <FieldContainer
-        {...baseProps()}
-        currentGameId="game-123"
-        showFirstGameGuide
-        hasCheckedFirstGameGuide
-      />,
-    );
-
-    expect(screen.getByTestId('first-game-guide')).toBeInTheDocument();
   });
 
   it('invokes roster callback when CTA is used without a roster', () => {

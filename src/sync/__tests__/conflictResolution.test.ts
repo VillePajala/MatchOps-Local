@@ -689,6 +689,8 @@ describe('AlreadyExistsError Handling', () => {
     timestamp: NOW,
     status: 'pending',
     retryCount: 0,
+    maxRetries: 10,
+    createdAt: NOW,
     ...overrides,
   });
 

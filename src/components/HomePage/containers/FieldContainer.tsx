@@ -6,8 +6,6 @@ import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
-import { FirstGameGuide } from '@/components/HomePage/components/FirstGameGuide';
-import { DEFAULT_GAME_ID } from '@/config/constants';
 import { exportFieldAsImage, isExportSupported } from '@/utils/export';
 import { useExportMetadata } from '@/hooks/useExportMetadata';
 import { useToast } from '@/contexts/ToastProvider';
@@ -22,6 +20,7 @@ import type {
 } from '@/types';
 import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -126,16 +125,11 @@ export interface FieldContainerProps {
   teams: Team[];
   seasons: Season[];
   tournaments: Tournament[];
-  showFirstGameGuide: boolean;
-  hasCheckedFirstGameGuide: boolean;
-  firstGameGuideStep: number;
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   onOpenNewGameSetup?: () => void;
   onOpenRosterModal?: () => void;
   onOpenSeasonTournamentModal?: () => void;
   onOpenTeamManagerModal: () => void;
-  onGuideStepChange?: (step: number) => void;
-  onGuideClose: () => void;
   onOpenTeamReassignModal?: () => void;
   onOpenRulesModal?: () => void;
   onTeamNameChange: (name: string) => void;
@@ -153,16 +147,11 @@ export function FieldContainer({
   teams,
   seasons,
   tournaments,
-  showFirstGameGuide,
-  hasCheckedFirstGameGuide,
-  firstGameGuideStep,
   orphanedGameInfo: _orphanedGameInfo,
   onOpenNewGameSetup,
   onOpenRosterModal,
   onOpenSeasonTournamentModal,
   onOpenTeamManagerModal,
-  onGuideStepChange,
-  onGuideClose,
   onOpenTeamReassignModal: _onOpenTeamReassignModal,
   onOpenRulesModal,
   onTeamNameChange,
@@ -219,10 +208,6 @@ export function FieldContainer({
     startPauseTimer,
     resetTimer,
   } = timerInteractions;
-
-  const handleGuideStepChange = (step: number) => {
-    onGuideStepChange?.(step);
-  };
 
   // Consolidated locals (prefer VMs when provided)
   const fcPlayersOnField = fieldVM.playersOnField;
@@ -458,14 +443,6 @@ export function FieldContainer({
             </div>
           </div>
         )}
-
-      {hasCheckedFirstGameGuide && showFirstGameGuide && currentGameId !== DEFAULT_GAME_ID && (
-        <FirstGameGuide
-          step={firstGameGuideStep}
-          onStepChange={handleGuideStepChange}
-          onClose={onGuideClose}
-        />
-      )}
 
       {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
           Functionality (orphanedGameInfo, TeamReassignModal) kept for potential future use. */}

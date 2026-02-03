@@ -36,7 +36,6 @@ jest.mock('@/utils/appSettings', () => ({
   saveHasSeenAppGuide: jest.fn().mockResolvedValue(undefined),
   getLastHomeTeamName: jest.fn().mockResolvedValue('Test Team'),
   updateAppSettings: jest.fn().mockResolvedValue(undefined),
-  getHasSeenFirstGameGuide: jest.fn().mockResolvedValue(true),
   getDrawingModeEnabled: jest.fn().mockResolvedValue(false),
   saveDrawingModeEnabled: jest.fn().mockResolvedValue(undefined),
   getAppSettings: jest.fn().mockResolvedValue({}),

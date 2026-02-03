@@ -149,7 +149,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   // Roster modal setter (no anti-flash guard needed)
-  // Rationale: Triggered from static buttons (FirstGameGuide CTAs, ControlBar),
+  // Rationale: Triggered from static buttons (ControlBar CTAs),
   // not from closing menus/overlays. Lower risk of click-through timing issues.
   const setIsRosterModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((valueOrUpdater) => {
     const prev = rosterOpenRef.current;
