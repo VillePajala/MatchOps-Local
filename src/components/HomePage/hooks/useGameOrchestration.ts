@@ -397,20 +397,24 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     timerInteractions,
   } = timerManagement;
 
-  // Merge goalie status from playersOnField into playersForCurrentGame
-  // This ensures the PlayerBar reflects the current goalie based on field position
+  // Merge goalie status from playersOnField into players for the PlayerBar.
+  // When on DEFAULT_GAME_ID (no real game), show all availablePlayers so users can explore.
+  // When on a real game, show only playersForCurrentGame (selected players).
   const playersWithFieldGoalieStatus = useMemo(() => {
+    // Show all roster players when exploring (no game created yet)
+    const basePlayers = currentGameId === DEFAULT_GAME_ID ? availablePlayers : playersForCurrentGame;
+
     const fieldPlayerMap = new Map(
       fieldCoordination.playersOnField.map(p => [p.id, p])
     );
-    return playersForCurrentGame.map(player => {
+    return basePlayers.map(player => {
       const fieldPlayer = fieldPlayerMap.get(player.id);
       if (fieldPlayer && fieldPlayer.isGoalie !== player.isGoalie) {
         return { ...player, isGoalie: fieldPlayer.isGoalie };
       }
       return player;
     });
-  }, [playersForCurrentGame, fieldCoordination.playersOnField]);
+  }, [currentGameId, availablePlayers, playersForCurrentGame, fieldCoordination.playersOnField]);
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVMInput = useMemo<BuildGameContainerVMInput>(() => ({

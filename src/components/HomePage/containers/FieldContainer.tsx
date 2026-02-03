@@ -1,7 +1,7 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
-import { HiOutlineCamera, HiOutlineBookOpen } from 'react-icons/hi2';
+import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark } from 'react-icons/hi2';
 import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
@@ -162,6 +162,9 @@ export function FieldContainer({
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const fieldRef = useRef<SoccerFieldHandle>(null);
+
+  // Track if user has dismissed the first-game setup overlay
+  const [isSetupOverlayDismissed, setIsSetupOverlayDismissed] = useState(false);
 
   // Assemble export metadata using dedicated hook
   const exportMetadata = useExportMetadata({
@@ -343,13 +346,23 @@ export function FieldContainer({
         )}
       </div>
 
-      {/* First game setup guidance */}
+      {/* First game setup guidance - dismissible overlay */}
       {tmInitialLoad &&
         currentGameId === DEFAULT_GAME_ID &&
+        !isSetupOverlayDismissed &&
         fcPlayersOnField.length === 0 &&
         fcDrawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-            <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+            <div className="relative bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+              {/* Dismiss button */}
+              <button
+                onClick={() => setIsSetupOverlayDismissed(true)}
+                className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                aria-label={t('common.dismiss', 'Dismiss')}
+              >
+                <HiOutlineXMark className="w-5 h-5" />
+              </button>
+
               <div className="text-center">
                 <div className="mb-4">
                   <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
@@ -363,8 +376,8 @@ export function FieldContainer({
                   <p className="text-slate-300 text-sm leading-relaxed mb-6">
                     {availablePlayers.length === 0
                       ? t(
-                          'firstGame.descNoPlayers',
-                          'First, set up your team roster, then create your first game to start tracking player positions, goals, and performance.'
+                          'firstGame.descNoPlayersSimple',
+                          'Set up your team roster to start tracking games.'
                         )
                       : t(
                           'firstGame.desc',
@@ -373,76 +386,48 @@ export function FieldContainer({
                   </p>
                 </div>
 
-                <div className="space-y-3">
-                  {availablePlayers.length === 0 ? (
-                    <button
-                      onClick={() => onOpenRosterModal?.()}
-                      className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
-                    >
-                      {t('firstGame.setupRoster', 'Set Up Team Roster')}
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => onOpenNewGameSetup?.()}
-                        className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
-                      >
-                        {t('firstGame.createGame', 'Create Your First Match')}
-                      </button>
-
-                      <button
-                      onClick={onOpenTeamManagerModal}
-                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg ${
-                          teams.length > 0
-                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border border-slate-500'
-                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                        }`}
-                      >
-                        {teams.length > 0
-                          ? t('firstGame.manageTeams', 'Manage Teams')
-                          : t('firstGame.createTeam', 'Create First Team')}
-                      </button>
-
-                      <button
-                      onClick={() => onOpenSeasonTournamentModal?.()}
-                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border ${
-                          seasons.length > 0 || tournaments.length > 0
-                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border-slate-500'
-                            : 'bg-amber-700 hover:bg-amber-600 text-amber-100 border-amber-600'
-                        }`}
-                      >
-                        {seasons.length > 0 || tournaments.length > 0
-                          ? t('firstGame.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')
-                          : t('firstGame.createSeasonFirst', 'Create Season/Tournament First')}
-                      </button>
-                    </>
-                  )}
-                </div>
+                {/* Single primary CTA */}
+                {availablePlayers.length === 0 ? (
+                  <button
+                    onClick={() => onOpenRosterModal?.()}
+                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                  >
+                    {t('firstGame.setupRoster', 'Set Up Team Roster')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onOpenNewGameSetup?.()}
+                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                  >
+                    {t('firstGame.createGame', 'Create Your First Match')}
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
 
-      {tmInitialLoad &&
-        currentGameId === DEFAULT_GAME_ID &&
-        (fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
-            <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-3 h-3 bg-amber-200 rounded-full animate-pulse flex-shrink-0"></div>
-                <span className="text-amber-100 font-medium flex-1">
-                  {t('firstGame.workspaceWarning', "Temporary workspace - changes won't be saved")}
-                </span>
-                <button
-                  onClick={() => onOpenNewGameSetup?.()}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-900 rounded-md text-xs font-semibold transition-colors shadow-sm flex-shrink-0"
-                >
-                  {t('firstGame.createRealGame', 'Create real game')}
-                </button>
-              </div>
+      {/* Persistent banner when on default game - always visible for easy access to create game */}
+      {tmInitialLoad && currentGameId === DEFAULT_GAME_ID && (isSetupOverlayDismissed || fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
+          <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
+            <div className="flex items-center gap-3 text-sm">
+              <div className="w-3 h-3 bg-amber-200 rounded-full animate-pulse flex-shrink-0"></div>
+              <span className="text-amber-100 font-medium flex-1">
+                {fcPlayersOnField.length > 0 || fcDrawings.length > 0
+                  ? t('firstGame.workspaceWarning', "Temporary workspace - changes won't be saved")
+                  : t('firstGame.noGameCreated', 'No game created yet')}
+              </span>
+              <button
+                onClick={() => onOpenNewGameSetup?.()}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-900 rounded-md text-xs font-semibold transition-colors shadow-sm flex-shrink-0"
+              >
+                {t('firstGame.createGame', 'Create game')}
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
           Functionality (orphanedGameInfo, TeamReassignModal) kept for potential future use. */}

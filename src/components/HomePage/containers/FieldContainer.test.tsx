@@ -220,19 +220,33 @@ describe('FieldContainer', () => {
     expect(props.onOpenRosterModal).toHaveBeenCalledTimes(1);
   });
 
-  it('invokes new game and season callbacks when roster exists', () => {
+  it('invokes new game callback when roster exists', () => {
     const props = {
       ...baseProps(),
       availablePlayers: [TestFixtures.players.fieldPlayer()],
-      seasons: [TestFixtures.seasons.current()],
     };
     render(<FieldContainer {...props} />);
 
     fireEvent.click(screen.getByRole('button', { name: /create your first match/i }));
     expect(props.onOpenNewGameSetup).toHaveBeenCalledTimes(1);
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: /manage seasons & tournaments/i }));
-    expect(props.onOpenSeasonTournamentModal).toHaveBeenCalledTimes(1);
+  it('allows dismissing the setup overlay', () => {
+    const props = {
+      ...baseProps(),
+      availablePlayers: [TestFixtures.players.fieldPlayer()],
+    };
+    render(<FieldContainer {...props} />);
+
+    // Overlay should be visible
+    expect(screen.getByText(/Ready to track your first game/i)).toBeInTheDocument();
+
+    // Click dismiss button
+    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
+
+    // Overlay should be gone, banner should appear
+    expect(screen.queryByText(/Ready to track your first game/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/No game created yet/i)).toBeInTheDocument();
   });
 
   describe('Export Button', () => {
