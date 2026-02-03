@@ -2519,7 +2519,11 @@
     "failedToLoadCloudData": "Pilvitietojen lataus epäonnistui. Kokeile päivittää sivu.",
     "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen.",
     "signingOut": "Kirjaudutaan ulos...",
-    "loadingYourData": "Ladataan tietojasi..."
+    "loadingYourData": "Ladataan tietojasi...",
+    "connectionTimeout": "Yhteys aikakatkaistiin",
+    "connectionTimeoutDesc": "Palvelimeen ei saatu yhteyttä. Tämä voi tapahtua, kun sovellus on ollut taustalla pitkään.",
+    "tryAgain": "Yritä uudelleen",
+    "useLocalModeInstead": "Käytä paikallista tilaa"
   },
   "positions": {
     "GK": "GK",
