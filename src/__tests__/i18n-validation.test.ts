@@ -271,8 +271,9 @@ describe('Translation File Validation', () => {
       // Legacy migration keys: legacyDataMigrated, legacyMigrationFailed (Step 8)
       // Legacy migration pluralization: legacyDataMigrated_one, legacyDataMigrated_other (Step 8)
       // Cloud hydration keys: dataLoadedFromCloud, failedToLoadCloudData, partialSyncComplete, genericError (Timestamp Conflict Resolution)
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172
-      expect(enKeys.length).toBe(2172);
+      // Auth timeout UI: connectionTimeout, connectionTimeoutDesc, tryAgain, useLocalModeInstead, plus 2 additional keys
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178
+      expect(enKeys.length).toBe(2178);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -291,8 +292,9 @@ describe('Translation File Validation', () => {
       // Legacy migration keys: legacyDataMigrated, legacyMigrationFailed (Step 8)
       // Legacy migration pluralization: legacyDataMigrated_one, legacyDataMigrated_other (Step 8)
       // Cloud hydration keys: dataLoadedFromCloud, failedToLoadCloudData, partialSyncComplete, genericError (Timestamp Conflict Resolution)
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172
-      expect(fiKeys.length).toBe(2172);
+      // Auth timeout UI: connectionTimeout, connectionTimeoutDesc, tryAgain, useLocalModeInstead, plus 2 additional keys
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178
+      expect(fiKeys.length).toBe(2178);
     });
   });
 });

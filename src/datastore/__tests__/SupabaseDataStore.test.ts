@@ -33,6 +33,7 @@ interface MockQueryBuilder {
   eq: jest.Mock;
   is: jest.Mock;
   single: jest.Mock;
+  maybeSingle: jest.Mock;
   order: jest.Mock;
   limit: jest.Mock;
   contains: jest.Mock;
@@ -48,6 +49,7 @@ const createMockQueryBuilder = (): MockQueryBuilder => {
     eq: jest.fn().mockReturnThis(),
     is: jest.fn().mockResolvedValue({ data: null, error: null }),
     single: jest.fn().mockReturnThis(),
+    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     contains: jest.fn().mockResolvedValue({ data: [], error: null }),
@@ -4338,9 +4340,10 @@ describe('SupabaseDataStore', () => {
   describe('Warmup Plan', () => {
     describe('getWarmupPlan', () => {
       it('should return null when no plan exists', async () => {
-        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+        // maybeSingle returns null for 0 rows (no error)
+        mockQueryBuilder.maybeSingle = jest.fn().mockResolvedValue({
           data: null,
-          error: { code: 'PGRST116', message: 'Not found' },
+          error: null,
         });
 
         const plan = await dataStore.getWarmupPlan();
@@ -4348,7 +4351,7 @@ describe('SupabaseDataStore', () => {
       });
 
       it('should throw NetworkError on fetch failure (non-PGRST116)', async () => {
-        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+        mockQueryBuilder.maybeSingle = jest.fn().mockResolvedValue({
           data: null,
           error: { code: 'OTHER_ERROR', message: 'Database error' },
         });

@@ -24,7 +24,6 @@ import {
   titleStyle,
   cardStyle,
   primaryButtonStyle,
-  secondaryButtonStyle,
   iconButtonBaseStyle,
 } from '@/styles/modalStyles';
 

@@ -1148,7 +1148,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // This ensures players from previous game don't persist due to state update timing
         if (!gameToLoad.playersOnField || gameToLoad.playersOnField.length === 0) {
           logger.info('[EFFECT game load] Game has empty playersOnField - clearing field explicitly');
-          fieldCoordination.setPlayersOnField([]);
+          setPlayersOnField([]);
         }
 
         await loadGameStateFromData(gameToLoad);
@@ -1164,7 +1164,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     loadGame();
   // loadGameStateFromData is now properly memoized with useCallback.
   // The loadedGameIdRef guard prevents duplicate loads for the same game.
-  }, [currentGameId, initialLoadComplete, savedGames, loadGameStateFromData]);
+  // setPlayersOnField is a stable React setter used for defensive field clearing.
+  }, [currentGameId, initialLoadComplete, savedGames, loadGameStateFromData, setPlayersOnField]);
 
   // Effect to prompt for setup if default game ID is loaded
   useEffect(() => {

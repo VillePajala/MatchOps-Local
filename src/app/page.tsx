@@ -121,7 +121,6 @@ export default function Home() {
 
   // DEBUG: Log loading state computation to diagnose post-login loading screen issues
   // This runs on every render to show the state progression
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     logger.info('[page.tsx] Loading state debug', {
       mode,

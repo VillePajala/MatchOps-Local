@@ -867,6 +867,8 @@ describe('SyncedDataStore', () => {
     });
 
     it('should update settings and queue sync', async () => {
+      // Mock getSettings so the skip-unchanged check sees existing settings
+      localStoreSpy.getSettings.mockResolvedValue(mockSettings);
       const updated = { ...mockSettings, language: 'fi' as const };
       localStoreSpy.updateSettings.mockResolvedValue(updated);
 

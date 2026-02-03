@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  getPremiumLicense,
   grantPremium,
   revokePremium,
   canCreateResource,
@@ -11,7 +10,6 @@ import {
   type ResourceCounts,
 } from '@/utils/premiumManager';
 import { FREE_LIMITS, ResourceType, PREMIUM_PRICE } from '@/config/premiumLimits';
-import { getBackendMode } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
 interface PremiumContextValue {
