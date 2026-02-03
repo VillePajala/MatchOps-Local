@@ -300,18 +300,48 @@ export class SupabaseAuthService implements AuthService {
           const isAbort = getSessionError instanceof Error &&
             (getSessionError.name === 'AbortError' || getSessionError.message?.includes('aborted'));
           if (isAbort) {
-            logger.warn('[SupabaseAuthService] AbortError during getSession - continuing without session. User can sign in fresh.');
-            // Track for debugging - AbortErrors are expected but frequent occurrences indicate issues
+            logger.warn('[SupabaseAuthService] AbortError during getSession - attempting localStorage fallback');
+
+            // FALLBACK: Try to read session directly from localStorage
+            // Supabase stores sessions with key: sb-<project-ref>-auth-token
+            // This bypasses the failing lock mechanism while still recovering the session
             try {
-              Sentry.captureException(getSessionError, {
-                tags: { flow: 'auth-init-getSession-abort' },
-                level: 'warning',
-                extra: { recoverable: true },
-              });
-            } catch {
-              // Sentry failure acceptable
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+              if (supabaseUrl && typeof localStorage !== 'undefined') {
+                // Extract project ref from URL (e.g., "abc123" from "https://abc123.supabase.co")
+                const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+                const storageKey = `sb-${projectRef}-auth-token`;
+                const storedData = localStorage.getItem(storageKey);
+
+                if (storedData) {
+                  const parsed = JSON.parse(storedData);
+                  // Supabase stores session in different formats depending on version
+                  // Check for both direct session and nested currentSession
+                  const recoveredSession = parsed.currentSession || parsed;
+
+                  if (recoveredSession?.access_token && recoveredSession?.user) {
+                    session = recoveredSession;
+                    logger.info('[SupabaseAuthService] Successfully recovered session from localStorage fallback');
+                  }
+                }
+              }
+            } catch (fallbackError) {
+              // Fallback failed - log but continue without session
+              logger.warn('[SupabaseAuthService] localStorage fallback failed:', fallbackError);
             }
-            // Continue initialization without session - sign-in will still work
+
+            // If we still don't have a session, track the original error
+            if (!session) {
+              try {
+                Sentry.captureException(getSessionError, {
+                  tags: { flow: 'auth-init-getSession-abort' },
+                  level: 'warning',
+                  extra: { recoverable: true, fallbackAttempted: true },
+                });
+              } catch {
+                // Sentry failure acceptable
+              }
+            }
           } else {
             // Re-throw non-AbortErrors
             throw getSessionError;
