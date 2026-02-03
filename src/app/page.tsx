@@ -598,24 +598,38 @@ export default function Home() {
         // or when cloud has more data than local (e.g., synced from another device),
         // we need to hydrate from cloud.
         if (hasMigrationCompleted(userId)) {
-          logger.info('[page.tsx] Migration already completed for this user, checking data completeness...');
+          logger.info('[page.tsx] Migration already completed for this user, letting user proceed immediately');
 
-          // Check cloud data counts to see if hydration is needed
-          const cloudResult = await hasCloudData();
-          if (cloudResult.checkFailed) {
-            // Cloud check failed - proceed with whatever local data we have
-            logger.warn('[page.tsx] Could not check cloud data:', cloudResult.error);
-          } else if (cloudResult.hasData) {
-            // Cloud has data - run hydration in BACKGROUND (non-blocking)
-            // User already has local data from previous session, so show them that immediately
-            // while we sync newer data from cloud. This is important because:
-            // 1. Large data sets (100+ games) can take 30+ seconds to download
-            // 2. User shouldn't wait on loading screen - they can use their local data
-            // 3. When hydration completes, we'll refresh queries and notify them
-            logger.info('[page.tsx] Cloud has data, running BACKGROUND hydration to ensure local is up-to-date...');
+          // PERFORMANCE FIX: Let user proceed IMMEDIATELY with local data.
+          // Run cloud check + hydration entirely in background (non-blocking).
+          // This eliminates the startup delay from hasCloudData() network call.
+          //
+          // The tradeoff: if local is empty (new device), user briefly sees empty state
+          // before data loads. But this is rare and better than making ALL users wait.
+          setPostLoginCheckComplete(true);
 
-            // Run hydration in background - don't await
-            hydrateLocalFromCloud(userId).then(hydrationResult => {
+          // Refetch queries to load LOCAL data immediately
+          queryClient.refetchQueries().catch(refetchError => {
+            logger.warn('[page.tsx] Query refetch failed (non-blocking):', refetchError);
+          });
+          setRefreshTrigger(prev => prev + 1);
+
+          // Run cloud check + hydration entirely in background (fire and forget)
+          (async () => {
+            try {
+              const cloudResult = await hasCloudData();
+              if (cloudResult.checkFailed) {
+                logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
+                return;
+              }
+              if (!cloudResult.hasData) {
+                logger.info('[page.tsx] Background cloud check: no cloud data');
+                return;
+              }
+
+              logger.info('[page.tsx] Background cloud check: cloud has data, starting hydration...');
+              const hydrationResult = await hydrateLocalFromCloud(userId);
+
               if (hydrationResult.success) {
                 const totalImported = hydrationResult.counts.games +
                   hydrationResult.counts.players +
@@ -631,11 +645,8 @@ export default function Home() {
 
                 // Refresh queries if we imported something - but don't show toast
                 // Background sync should be seamless; the user doesn't need to be notified
-                // about routine data synchronization. This avoids confusing messages like
-                // "data loaded from cloud" which sounds like local changes were overwritten.
                 if (totalImported > 0) {
                   logger.info('[page.tsx] Background hydration: imported data, refreshing queries silently');
-                  // Refresh queries to show newly downloaded data
                   queryClient.refetchQueries().catch(err => {
                     logger.warn('[page.tsx] Background hydration refetch failed:', err);
                   });
@@ -646,24 +657,11 @@ export default function Home() {
               } else {
                 logger.warn('[page.tsx] Background hydration failed', { errors: hydrationResult.errors });
               }
-            }).catch(err => {
-              logger.error('[page.tsx] Background hydration exception:', err);
-            });
-          } else {
-            logger.info('[page.tsx] Cloud has no data, nothing to hydrate');
-          }
+            } catch (err) {
+              logger.error('[page.tsx] Background cloud sync exception:', err);
+            }
+          })();
 
-          // Refetch queries to load LOCAL data immediately (don't wait for cloud hydration)
-          try {
-            await queryClient.refetchQueries();
-          } catch (refetchError) {
-            // Refetch errors shouldn't block the user - queries will retry on their own
-            logger.warn('[page.tsx] Query refetch failed (non-blocking):', refetchError);
-          }
-          setRefreshTrigger(prev => prev + 1);
-          // Mark post-login check complete so user can proceed to the app with their LOCAL data.
-          // Background hydration will pull cloud data and refresh UI when done.
-          setPostLoginCheckComplete(true);
           return;
         }
 
