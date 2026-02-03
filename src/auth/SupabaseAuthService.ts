@@ -285,7 +285,38 @@ export class SupabaseAuthService implements AuthService {
         this.client = getSupabaseClient();
 
         // Get initial session from localStorage
-        const { data: { session }, error } = await this.client.auth.getSession();
+        // IMPORTANT: getSession() can throw AbortError due to Supabase's internal lock mechanism
+        // (especially on app restart, PWA resume, or rapid sign-in/sign-out cycles).
+        // We catch this specifically to allow initialization to succeed without a session,
+        // enabling fresh sign-in to work.
+        let session = null;
+        let error = null;
+        try {
+          const result = await this.client.auth.getSession();
+          session = result.data?.session;
+          error = result.error;
+        } catch (getSessionError) {
+          // Check if this is an AbortError (from Supabase locks)
+          const isAbort = getSessionError instanceof Error &&
+            (getSessionError.name === 'AbortError' || getSessionError.message?.includes('aborted'));
+          if (isAbort) {
+            logger.warn('[SupabaseAuthService] AbortError during getSession - continuing without session. User can sign in fresh.');
+            // Track for debugging - AbortErrors are expected but frequent occurrences indicate issues
+            try {
+              Sentry.captureException(getSessionError, {
+                tags: { flow: 'auth-init-getSession-abort' },
+                level: 'warning',
+                extra: { recoverable: true },
+              });
+            } catch {
+              // Sentry failure acceptable
+            }
+            // Continue initialization without session - sign-in will still work
+          } else {
+            // Re-throw non-AbortErrors
+            throw getSessionError;
+          }
+        }
 
         if (error) {
           // Distinguish between network errors and other session errors
