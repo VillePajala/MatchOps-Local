@@ -146,7 +146,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenGameSettingsModal,
   isGameLoaded,
   onOpenSeasonTournamentModal,
-  _onToggleInstructionsModal,
+  onToggleInstructionsModal: _onToggleInstructionsModal,
   onOpenSettingsModal,
   onOpenPlayerAssessmentModal,
   onOpenTeamManagerModal,
