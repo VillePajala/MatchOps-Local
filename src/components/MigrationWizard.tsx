@@ -134,7 +134,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [_isSyncing, setIsSyncing] = useState(false);
 
   // Focus trap
   useFocusTrap(modalRef, true);

@@ -22,6 +22,32 @@ import type { AppState } from '@/types';
 jest.mock('@/datastore/LocalDataStore');
 jest.mock('@/datastore/SupabaseDataStore');
 
+// Mock the Supabase client for getCloudCounts (uses direct client access)
+// Each migration cycle = 12 calls (6 pre-migration + 6 post-migration)
+// Pre-migration returns 0 (fresh), post-migration returns 1 (uploaded data)
+let cloudCountsCallCount = 0;
+const mockSupabaseClient = {
+  auth: {
+    getSession: jest.fn().mockResolvedValue({
+      data: { session: { user: { id: 'test-user-id' } } },
+      error: null,
+    }),
+  },
+  from: jest.fn(() => ({
+    select: jest.fn().mockImplementation(() => {
+      cloudCountsCallCount++;
+      // Each migration cycle has 12 calls: first 6 (pre) return 0, next 6 (post) return 1
+      const positionInCycle = ((cloudCountsCallCount - 1) % 12);
+      const count = positionInCycle < 6 ? 0 : 1;
+      return Promise.resolve({ count, error: null });
+    }),
+  })),
+};
+jest.mock('@/datastore/supabase/client', () => ({
+  getSupabaseClient: jest.fn(() => mockSupabaseClient),
+}));
+
+
 // Mock the factory to provide a mock auth service
 jest.mock('@/datastore/factory', () => ({
   getAuthService: jest.fn().mockResolvedValue({
@@ -184,6 +210,17 @@ function createMockCloudStore() {
 describe('migrationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    cloudCountsCallCount = 0; // Reset Supabase client call counter
+    // Restore default mock implementation (tests may override it)
+    mockSupabaseClient.from.mockImplementation(() => ({
+      select: jest.fn().mockImplementation(() => {
+        cloudCountsCallCount++;
+        // Each migration cycle has 12 calls: first 6 (pre) return 0, next 6 (post) return 1
+        const positionInCycle = ((cloudCountsCallCount - 1) % 12);
+        const count = positionInCycle < 6 ? 0 : 1;
+        return Promise.resolve({ count, error: null });
+      }),
+    }));
   });
 
   describe('migrateLocalToCloud', () => {
@@ -304,10 +341,13 @@ describe('migrationService', () => {
 
     it('should fail verification when counts do not match', async () => {
       createMockLocalStore();
-      const mockCloud = createMockCloudStore();
+      createMockCloudStore();
 
-      // Verification returns fewer players than expected
-      mockCloud.getPlayers.mockResolvedValue([]);
+      // Make post-migration counts return 0 (simulating failed uploads)
+      // by making the Supabase client always return count: 0
+      mockSupabaseClient.from.mockImplementation(() => ({
+        select: jest.fn().mockResolvedValue({ count: 0, error: null }),
+      }));
 
       const result = await migrateLocalToCloud(() => {});
 
@@ -545,10 +585,19 @@ describe('migrationService', () => {
   describe('verification with pre-existing cloud data', () => {
     it('should add warning when cloud has pre-existing data', async () => {
       createMockLocalStore();
-      const mockCloud = createMockCloudStore();
+      createMockCloudStore();
 
-      // Cloud has more players than local (indicates pre-existing data)
-      mockCloud.getPlayers.mockResolvedValue([mockPlayer, { ...mockPlayer, id: 'player-2' }]);
+      // Pre-migration counts return 1 (simulating pre-existing cloud data)
+      // Post-migration counts return 2 (1 pre-existing + 1 uploaded)
+      let callCount = 0;
+      mockSupabaseClient.from.mockImplementation(() => ({
+        select: jest.fn().mockImplementation(() => {
+          callCount++;
+          // First 6 calls (pre-migration) return 1, next 6 (post-migration) return 2
+          const count = callCount <= 6 ? 1 : 2;
+          return Promise.resolve({ count, error: null });
+        }),
+      }));
 
       const result = await migrateLocalToCloud(() => {});
 

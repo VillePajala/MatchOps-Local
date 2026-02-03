@@ -77,6 +77,31 @@ jest.mock('@/utils/logger', () => ({
   })),
 }));
 
+// Mock AuthProvider context (required by useSyncStatus used in SyncStatusIndicator)
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: () => ({
+    isAuthenticated: false,
+    isLoading: false,
+    mode: 'local' as const,
+    user: null,
+    isSigningOut: false,
+    initTimedOut: false,
+    retryAuthInit: jest.fn(),
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+    switchToLocalMode: jest.fn(),
+    switchToCloudMode: jest.fn(),
+  }),
+}));
+
+// Mock useSyncStatus hook (used by SyncStatusIndicator)
+jest.mock('@/hooks/useSyncStatus', () => ({
+  useSyncStatus: () => ({
+    status: null,
+    isInitialized: false,
+  }),
+}));
+
 // Mock ModalProvider context (required by SyncStatusIndicator used in children)
 jest.mock('@/contexts/ModalProvider', () => ({
   useModalContext: () => ({

@@ -21,7 +21,6 @@ import { useTranslation } from 'react-i18next';
 import i18n, { saveLanguagePreference } from '@/i18n';
 // Note: Do NOT import updateAppSettings here. WelcomeScreen is pre-login,
 // so there's no userId and calling updateAppSettings would cause DataStore conflicts.
-import logger from '@/utils/logger';
 
 interface WelcomeScreenProps {
   /** Called when user chooses "Start Fresh" (local mode) */

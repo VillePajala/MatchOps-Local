@@ -65,7 +65,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
     'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
   const buttonBaseStyle =
     'px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed';
-  const secondaryButtonStyle =
+  const _secondaryButtonStyle =
     `${buttonBaseStyle} bg-gradient-to-b from-slate-600 to-slate-700 text-slate-200 hover:from-slate-700 hover:to-slate-600`;
 
   const getPlayer = (id: string) => availablePlayers.find(p => p.id === id);

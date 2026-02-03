@@ -123,13 +123,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let timeoutId: NodeJS.Timeout | null = null;
 
     async function initAuth() {
+      // CRITICAL: Set mode FIRST, before any async operations that might fail.
+      // If getAuthService() fails (e.g., AbortError), mode must still be set correctly
+      // so the UI shows LoginScreen (cloud) instead of StartScreen (local).
+      const currentMode = getBackendMode();
+      if (mounted) {
+        setMode(currentMode);
+      }
+
       try {
-        const currentMode = getBackendMode();
         const service = await getAuthService();
 
         if (!mounted) return;
 
-        setMode(currentMode);
         setAuthService(service);
 
         // Note: service.initialize() already called by factory

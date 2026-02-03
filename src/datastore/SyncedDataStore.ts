@@ -43,10 +43,8 @@ import * as Sentry from '@sentry/nextjs';
  * @returns true if the objects are equal (excluding timestamps)
  */
 function isDataEqual<T extends { createdAt?: string; updatedAt?: string }>(a: T, b: T): boolean {
-  // Strip timestamps for comparison
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // Strip timestamps for comparison (underscore-prefixed vars are intentionally unused)
   const { createdAt: _ca, updatedAt: _ua, ...restA } = a;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { createdAt: _cb, updatedAt: _ub, ...restB } = b;
 
   // JSON.stringify comparison - fast for typical data sizes

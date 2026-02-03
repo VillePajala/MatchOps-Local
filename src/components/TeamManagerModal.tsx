@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle, ModalFooter } from '@/styles/modalStyles';
+import { secondaryButtonStyle, dangerButtonStyle, ModalFooter } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {

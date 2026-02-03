@@ -927,8 +927,9 @@ export async function runSupabaseDiagnostics(): Promise<{
 
     const results = await store.runDiagnostics();
 
-    // Log a nice summary for console viewing
+    // Log a nice summary for console viewing (eslint-disable needed for formatted diagnostic output)
     log.info('[factory] Supabase Diagnostics Results:', results);
+    /* eslint-disable no-console */
     console.log('\n=== Supabase Performance Diagnostics ===');
     console.log(`Connectivity:  ${results.connectivity.durationMs}ms ${results.connectivity.ok ? '✓' : '✗'}`);
     console.log(`Simple Read:   ${results.simpleRead.durationMs}ms ${results.simpleRead.ok ? '✓' : '✗'} (${results.simpleRead.count ?? 0} games)`);
@@ -936,6 +937,7 @@ export async function runSupabaseDiagnostics(): Promise<{
     console.log(`Settings Read: ${results.settingsRead.durationMs}ms ${results.settingsRead.ok ? '✓' : '✗'}`);
     console.log(`\n${results.summary}`);
     console.log('=========================================\n');
+    /* eslint-enable no-console */
 
     return results;
   } catch (error) {
