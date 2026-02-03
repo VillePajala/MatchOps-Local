@@ -1,8 +1,8 @@
 {
-  "version": "8e8670ca",
-  "date": "2026-02-02",
+  "version": "acc4783d",
+  "date": "2026-02-03",
   "notes": {
-    "en": "Emit current status immediately to new subscribers",
-    "fi": "Emit current status immediately to new subscribers"
+    "en": "Add localStorage fallback for session recovery on AbortError",
+    "fi": "Add localStorage fallback for session recovery on AbortError"
   }
 }

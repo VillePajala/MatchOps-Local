@@ -278,8 +278,8 @@ export function FieldContainer({
         fallback={
           <div className="flex items-center justify-center h-full bg-red-900/20 border border-red-700 text-red-300">
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">Soccer Field Crashed</h3>
-              <p className="text-sm">Please refresh the page to continue.</p>
+              <h3 className="text-lg font-semibold mb-2">{t('errors.soccerFieldCrashed', 'Soccer Field Crashed')}</h3>
+              <p className="text-sm">{t('errors.pleaseRefreshPage', 'Please refresh the page to continue.')}</p>
             </div>
           </div>
         }
