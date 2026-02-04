@@ -1908,8 +1908,15 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   }, [handleTouchStart, handleTouchMove, finalizeTouchEnd]); // Stable listener; uses refs for touch id
 
   // --- Render Canvas ---
+  // Use field-specific background color to prevent flash when loading futsal games
+  const fieldBackgroundColor = getFieldConfig(gameType).style.fieldColor;
+
   return (
-    <div className={`w-full h-full relative bg-green-700`} data-testid="soccer-field">
+    <div
+      className="w-full h-full relative"
+      style={{ backgroundColor: fieldBackgroundColor }}
+      data-testid="soccer-field"
+    >
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 w-full h-full touch-none" // Added touch-none
