@@ -140,7 +140,8 @@ export class SyncedDataStore implements DataStore {
   }
 
   async close(): Promise<void> {
-    logger.info('[SyncedDataStore] Closing');
+    const closeStartTime = Date.now();
+    logger.info('[SyncedDataStore] Closing', { userId: this.userId });
 
     // CRITICAL: Reset the sync engine singleton so a new engine is created for the next user.
     // Without this, the new SyncedDataStore's getSyncEngine() would return the OLD
@@ -151,15 +152,19 @@ export class SyncedDataStore implements DataStore {
     // Note: resetSyncEngine() calls dispose() internally, which waits for in-flight ops
     // and clears listeners.
     if (this.syncEngine) {
+      logger.info('[SyncedDataStore] Resetting sync engine...');
       await resetSyncEngine();
       this.syncEngine = null;
+      logger.info('[SyncedDataStore] Sync engine reset', { elapsedMs: Date.now() - closeStartTime });
     }
 
     // Clear queue error listeners to prevent memory leaks on mode switch
     this.queueErrorListeners.clear();
 
     // Close local store
+    logger.info('[SyncedDataStore] Closing local store...');
     await this.localStore.close();
+    logger.info('[SyncedDataStore] Local store closed', { elapsedMs: Date.now() - closeStartTime });
 
     // CRITICAL: Clear the sync queue before closing to prevent stale operations
     // from being processed when a new user signs in. Without this, operations
@@ -168,13 +173,15 @@ export class SyncedDataStore implements DataStore {
     // 2. Potential data leakage (User A's data synced to User B's cloud storage)
     // 3. "Cannot close DataStore: X pending sync operation(s)" blocking user transitions
     // See: MATCHOPS-LOCAL-23 (186+ settings sync failures)
+    logger.info('[SyncedDataStore] Clearing sync queue...');
     await this.syncQueue.clear();
+    logger.info('[SyncedDataStore] Sync queue cleared', { elapsedMs: Date.now() - closeStartTime });
 
     // Close sync queue (releases IndexedDB connection)
     await this.syncQueue.close();
 
     this.initialized = false;
-    logger.info('[SyncedDataStore] Closed');
+    logger.info('[SyncedDataStore] Closed', { totalDurationMs: Date.now() - closeStartTime });
   }
 
   getBackendName(): string {
