@@ -10,14 +10,17 @@ import i18n from '@/i18n';
 import { useFieldCoordination } from './useFieldCoordination';
 import { useTimerManagement } from './useTimerManagement';
 import { GameSessionState } from '@/hooks/useGameSessionReducer';
-import { saveGame as utilSaveGame, getGame as utilGetGame, getLatestGameId, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, getGame as utilGetGame, getLatestGameId } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
+  resetUserAppSettings as utilResetUserAppSettings,
   saveHasSeenAppGuide,
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
 } from '@/utils/appSettings';
+import { getDataStore } from '@/datastore';
+import { setMigrationCompleted } from '@/config/backendConfig';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
@@ -109,7 +112,7 @@ export interface UseGameOrchestrationReturn {
   isResetting: boolean;
 }
 
-export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser = false, onGoToStartScreen }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
+export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
@@ -1248,8 +1251,78 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   }, [showToast, t]);
 
+  // Handler for Re-sync from Cloud (cloud mode)
+  // Clears local data and migration flag - on reload, migration wizard will reimport from cloud
+  const handleResyncFromCloud = useCallback(async () => {
+    if (!userId) {
+      showToast(t('page.noUserForResync', 'No user logged in'), 'error');
+      return;
+    }
 
-  
+    try {
+      logger.log('[handleResyncFromCloud] Starting re-sync...');
+      setIsResetting(true);
+
+      // Clear user's local IndexedDB data and migration flag
+      await utilResetUserAppSettings(userId, { clearMigrationFlag: true });
+
+      logger.log('[handleResyncFromCloud] Local data cleared, reloading...');
+      window.location.reload();
+    } catch (error) {
+      logger.error('[handleResyncFromCloud] Failed:', error);
+      setIsResetting(false);
+      showToast(t('page.resyncFailed', 'Failed to re-sync. Please try again.'), 'error');
+    }
+  }, [userId, showToast, t]);
+
+  // Handler for Factory Reset (cloud mode - clears local + cloud)
+  // Clears both local and cloud data, sets migration flag as complete (both are empty)
+  const handleFactoryReset = useCallback(async () => {
+    if (!userId) {
+      showToast(t('page.noUserForFactoryReset', 'No user logged in'), 'error');
+      return;
+    }
+
+    try {
+      logger.log('[handleFactoryReset] Starting factory reset...');
+      setIsResetting(true);
+
+      // 1. Clear all data (cloud + local) via SyncedDataStore
+      // SyncedDataStore.clearAllUserData() clears cloud FIRST, then local
+      const dataStore = await getDataStore(userId);
+      await dataStore.clearAllUserData();
+      logger.log('[handleFactoryReset] Cloud and local data cleared');
+
+      // 2. Also close the storage adapter to ensure clean state
+      await utilResetUserAppSettings(userId, { clearMigrationFlag: false });
+
+      // 3. Set migration flag to skip cloud check (both local and cloud are empty now)
+      setMigrationCompleted(userId);
+
+      logger.log('[handleFactoryReset] Factory reset complete, reloading...');
+      window.location.reload();
+    } catch (error) {
+      logger.error('[handleFactoryReset] Failed:', error);
+      setIsResetting(false);
+
+      // Provide specific error message for network issues
+      const isNetworkError = error && typeof error === 'object' &&
+        ('code' in error && error.code === 'NETWORK_ERROR' ||
+         'name' in error && error.name === 'NetworkError');
+
+      if (isNetworkError) {
+        showToast(
+          t('page.factoryResetOffline', 'Cannot delete cloud data while offline. Please check your connection and try again.'),
+          'error'
+        );
+      } else {
+        showToast(t('page.factoryResetFailed', 'Failed to reset. Please try again.'), 'error');
+      }
+    }
+  }, [userId, showToast, t]);
+
+
+
   // Placeholder handlers for Save/Load Modals
 
   // Modal open/close handlers moved to useModalOrchestration
@@ -2173,6 +2246,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetGamePersonnel,
       handleShowAppGuide,
       handleHardResetApp,
+      handleResyncFromCloud,
+      handleFactoryReset,
       handleSavePlayerAssessment,
       handleDeletePlayerAssessment,
       handleTeamReassignment,

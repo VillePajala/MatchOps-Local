@@ -154,6 +154,8 @@ export interface ModalHandlers {
   handleSetGamePersonnel: (personnelIds: string[]) => void;
   handleShowAppGuide: () => void;
   handleHardResetApp: () => void;
+  handleResyncFromCloud: () => void;
+  handleFactoryReset: () => void;
   handleSavePlayerAssessment: (playerId: string, assessment: Partial<import('@/types').PlayerAssessment>) => void;
   handleDeletePlayerAssessment: (playerId: string) => void;
   handleTeamReassignment: (teamId: string | null) => void;
@@ -295,6 +297,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetGamePersonnel,
     handleShowAppGuide,
     handleHardResetApp,
+    handleResyncFromCloud,
+    handleFactoryReset,
     handleSavePlayerAssessment,
     handleDeletePlayerAssessment,
     handleTeamReassignment,
@@ -610,6 +614,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setDefaultTeamName: setDefaultTeamNameSetting,
       showAppGuide: handleShowAppGuide,
       hardResetApp: handleHardResetApp,
+      resyncFromCloud: handleResyncFromCloud,
+      factoryReset: handleFactoryReset,
       closePlayerAssessmentModal,
       savePlayerAssessment: handleSavePlayerAssessment,
       deletePlayerAssessment: handleDeletePlayerAssessment,

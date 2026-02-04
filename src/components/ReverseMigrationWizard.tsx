@@ -169,7 +169,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   // Retry cooldown timer
   useEffect(() => {
