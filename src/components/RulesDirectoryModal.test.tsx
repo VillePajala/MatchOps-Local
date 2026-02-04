@@ -78,7 +78,7 @@ describe('RulesDirectoryModal', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
     // Check all 4 link buttons are present
-    expect(screen.getByText('Jalkapallosäännöt 2025')).toBeInTheDocument();
+    expect(screen.getByText('Jalkapallosäännöt 2026')).toBeInTheDocument();
     expect(screen.getByText('Futsalsäännöt 2025-2026')).toBeInTheDocument();
     expect(screen.getByText('Kaikki Pelaa 2025')).toBeInTheDocument();
     expect(screen.getByText('Kaikki säännöt ja määräykset')).toBeInTheDocument();
@@ -91,11 +91,11 @@ describe('RulesDirectoryModal', () => {
   it('should call window.open with correct parameters for Soccer Rules', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    const soccerRulesButton = screen.getByText('Jalkapallosäännöt 2025').closest('button');
+    const soccerRulesButton = screen.getByText('Jalkapallosäännöt 2026').closest('button');
     fireEvent.click(soccerRulesButton!);
 
     expect(mockWindowOpen).toHaveBeenCalledWith(
-      'https://www-assets.palloliitto.fi/62562/1739435685-jalkapallosaannot-2025.pdf',
+      'https://www-assets.palloliitto.fi/62562/1767775686-jalkapallosaannot-2026.pdf',
       '_blank',
       'noopener,noreferrer'
     );
