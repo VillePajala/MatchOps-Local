@@ -15,7 +15,6 @@ import {
 import {
   getStorageItem,
   setStorageItem,
-  removeStorageItem,
 } from './storage';
 import logger from '@/utils/logger';
 import { storageConfigManager } from './storageConfigManager';
@@ -363,6 +362,50 @@ export const resetAppSettings = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     logger.error('[resetAppSettings] Error resetting app:', error);
+    return false;
+  }
+};
+
+/**
+ * Clears all data for a specific authenticated user.
+ * Used for user-scoped reset (cloud mode) - "Re-sync from Cloud" or local data clear.
+ *
+ * @param userId - The authenticated user's ID
+ * @param options - Configuration options
+ * @param options.clearMigrationFlag - Whether to clear migration flag (default: true)
+ *   - true: Migration wizard will appear on reload (for re-sync scenario)
+ *   - false: Migration wizard won't appear (for factory reset scenario)
+ * @returns A promise that resolves to true if successful, false otherwise
+ */
+export const resetUserAppSettings = async (
+  userId: string,
+  options: { clearMigrationFlag?: boolean } = {}
+): Promise<boolean> => {
+  const { clearMigrationFlag = true } = options;
+
+  try {
+    const { getUserStorageAdapter, closeUserStorageAdapter } = await import('./storage');
+
+    logger.log(`[resetUserAppSettings] Clearing data for user ${userId.slice(0, 8)}...`);
+
+    // Get user's storage adapter and clear it
+    const adapter = await getUserStorageAdapter(userId);
+    await adapter.clear();
+
+    // Close the adapter connection
+    await closeUserStorageAdapter(userId);
+
+    // Optionally clear migration flag (triggers re-check on reload)
+    if (clearMigrationFlag) {
+      const { clearMigrationCompleted } = await import('@/config/backendConfig');
+      clearMigrationCompleted(userId);
+      logger.log('[resetUserAppSettings] Migration flag cleared');
+    }
+
+    logger.log('[resetUserAppSettings] User data cleared successfully');
+    return true;
+  } catch (error) {
+    logger.error('[resetUserAppSettings] Failed to clear user data:', error);
     return false;
   }
 };

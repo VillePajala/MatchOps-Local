@@ -90,6 +90,13 @@ export class SyncedDataStore implements DataStore {
   private queueErrorListeners: Set<SyncQueueErrorListener> = new Set();
 
   /**
+   * Reference to the remote (cloud) DataStore for operations that need direct cloud access.
+   * Set by the factory after cloud store is initialized.
+   * Used by clearAllUserData() to clear both local AND cloud data.
+   */
+  private remoteStore: DataStore | null = null;
+
+  /**
    * User ID for user-scoped storage.
    * If set, the underlying LocalDataStore uses a user-specific IndexedDB database.
    */
@@ -218,6 +225,18 @@ export class SyncedDataStore implements DataStore {
     }
     logger.info('[SyncedDataStore] Setting executor on sync engine');
     this.syncEngine.setExecutor(executor);
+  }
+
+  /**
+   * Set the remote (cloud) DataStore reference.
+   * Called by the factory after cloud store is available.
+   * This allows clearAllUserData() to clear both local AND cloud data.
+   *
+   * @param store - The SupabaseDataStore instance for direct cloud operations
+   */
+  setRemoteStore(store: DataStore): void {
+    this.remoteStore = store;
+    logger.info('[SyncedDataStore] Remote store set');
   }
 
   /**
@@ -902,9 +921,17 @@ export class SyncedDataStore implements DataStore {
     // Clear the sync queue (pending operations will be discarded)
     await this.syncQueue.clear();
 
+    // Clear cloud data FIRST (while we still have auth/connection)
+    // This ensures cloud data is deleted even if local clear fails
+    if (this.remoteStore) {
+      logger.info('[SyncedDataStore] Clearing remote (cloud) data...');
+      await this.remoteStore.clearAllUserData();
+      logger.info('[SyncedDataStore] Remote data cleared');
+    }
+
     // Clear local data
     await this.localStore.clearAllUserData();
 
-    logger.info('[SyncedDataStore] All user data cleared');
+    logger.info('[SyncedDataStore] All user data cleared (local and cloud)');
   }
 }

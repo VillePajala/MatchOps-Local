@@ -307,10 +307,12 @@ export class SupabaseAuthService implements AuthService {
             // This bypasses the failing lock mechanism while still recovering the session
             try {
               const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+              // eslint-disable-next-line no-restricted-globals -- Supabase stores auth tokens in localStorage, not IndexedDB
               if (supabaseUrl && typeof localStorage !== 'undefined') {
                 // Extract project ref from URL (e.g., "abc123" from "https://abc123.supabase.co")
                 const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
                 const storageKey = `sb-${projectRef}-auth-token`;
+                // eslint-disable-next-line no-restricted-globals -- Reading Supabase's auth token storage
                 const storedData = localStorage.getItem(storageKey);
 
                 if (storedData) {

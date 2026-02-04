@@ -604,6 +604,8 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           const totalDurationMs = Date.now() - cloudSetupStartTime;
           log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId, totalDurationMs });
           syncedStore.setExecutor(executor);
+          // Store reference to cloud store for direct operations (e.g., clearAllUserData)
+          syncedStore.setRemoteStore(cloudStore);
 
           // Add Sentry breadcrumb for successful setup
           try {
