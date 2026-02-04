@@ -224,15 +224,18 @@ export class SyncEngine {
    *
    * Uses promise deduplication to ensure concurrent dispose() calls wait for
    * the same disposal operation rather than returning immediately.
+   *
+   * @param options.skipWait - If true, don't wait for in-flight sync to complete.
+   *                           Use during force-close scenarios (user switch) for faster cleanup.
    */
-  async dispose(): Promise<void> {
+  async dispose(options: { skipWait?: boolean } = {}): Promise<void> {
     // Promise deduplication: concurrent callers wait for the same dispose operation
     if (this.disposePromise) {
       logger.debug('[SyncEngine] Already disposing, waiting for completion');
       return this.disposePromise;
     }
 
-    this.disposePromise = this.performDispose();
+    this.disposePromise = this.performDispose(options);
     try {
       return await this.disposePromise;
     } finally {
@@ -243,7 +246,7 @@ export class SyncEngine {
   /**
    * Internal dispose implementation.
    */
-  private async performDispose(): Promise<void> {
+  private async performDispose(options: { skipWait?: boolean } = {}): Promise<void> {
     if (this.isDisposing) {
       logger.debug('[SyncEngine] Already in dispose process');
       return;
@@ -254,25 +257,30 @@ export class SyncEngine {
     this.stop();
 
     // Wait for any in-flight sync operations to complete (max 5 seconds)
-    const MAX_WAIT_MS = 5000;
-    const POLL_INTERVAL_MS = 100;
-    let waited = 0;
-    while (this.isSyncing && waited < MAX_WAIT_MS) {
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-      waited += POLL_INTERVAL_MS;
-    }
-
-    if (this.isSyncing) {
-      logger.warn('[SyncEngine] Dispose timeout - sync operation still in progress');
-      // Track in Sentry - timeout during dispose could indicate hung operations
-      try {
-        Sentry.captureMessage('SyncEngine dispose timeout - sync still in progress', {
-          tags: { component: 'SyncEngine', action: 'dispose-timeout' },
-          level: 'warning',
-        });
-      } catch {
-        // Sentry failure must not prevent dispose completion
+    // Skip waiting during force-close scenarios (user switch) for faster UX
+    if (!options.skipWait) {
+      const MAX_WAIT_MS = 5000;
+      const POLL_INTERVAL_MS = 100;
+      let waited = 0;
+      while (this.isSyncing && waited < MAX_WAIT_MS) {
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+        waited += POLL_INTERVAL_MS;
       }
+
+      if (this.isSyncing) {
+        logger.warn('[SyncEngine] Dispose timeout - sync operation still in progress');
+        // Track in Sentry - timeout during dispose could indicate hung operations
+        try {
+          Sentry.captureMessage('SyncEngine dispose timeout - sync still in progress', {
+            tags: { component: 'SyncEngine', action: 'dispose-timeout' },
+            level: 'warning',
+          });
+        } catch {
+          // Sentry failure must not prevent dispose completion
+        }
+      }
+    } else if (this.isSyncing) {
+      logger.info('[SyncEngine] Force dispose - skipping wait for in-flight sync');
     }
 
     // Clear all listeners
@@ -1119,13 +1127,19 @@ export function getSyncEngine(queue?: SyncQueue): SyncEngine {
  * Reset the singleton (for testing and user transitions).
  * Calls dispose() to stop engine AND clear all listeners, preventing memory leaks.
  */
-export async function resetSyncEngine(): Promise<void> {
+/**
+ * Reset the SyncEngine singleton.
+ *
+ * @param options.skipWait - If true, don't wait for in-flight sync to complete.
+ *                           Use during force-close scenarios (user switch) for faster cleanup.
+ */
+export async function resetSyncEngine(options: { skipWait?: boolean } = {}): Promise<void> {
   if (syncEngineInstance) {
     // CRITICAL: Null the singleton FIRST, then dispose.
     // This prevents race conditions where getSyncEngine() is called during disposal
     // and returns the old (disposing) engine with a closed queue.
     const engineToDispose = syncEngineInstance;
     syncEngineInstance = null;
-    await engineToDispose.dispose();
+    await engineToDispose.dispose(options);
   }
 }
