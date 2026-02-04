@@ -604,16 +604,16 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           // - Memory leaks from orphaned cloudStore
           // - Race conditions between old and new user's sync operations
           if (dataStoreInstance !== syncedStore) {
-            log.warn('[factory] User switch detected during cloud setup - aborting stale setup', {
-              originalUserId: initUserId,
-              currentUserId: dataStoreCreatedForUserId || '(anonymous)',
-              elapsedMs: Date.now() - cloudSetupStartTime,
-            });
+            const elapsedMs = Date.now() - cloudSetupStartTime;
+            log.warn(
+              `[factory] User switch detected during cloud setup - aborting stale setup ` +
+              `(original: ${initUserId?.slice(0, 8) ?? 'none'}, current: ${dataStoreCreatedForUserId?.slice(0, 8) ?? 'anonymous'}, elapsed: ${elapsedMs}ms)`
+            );
             // Clean up the orphaned cloudStore
             try {
               await cloudStore.close();
             } catch (closeErr) {
-              log.warn('[factory] Error closing orphaned cloudStore:', closeErr);
+              log.warn('[factory] Error closing orphaned cloudStore');
             }
             return;
           }
