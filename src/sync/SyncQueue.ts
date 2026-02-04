@@ -219,7 +219,7 @@ export class SyncQueue {
                   status: op.status,
                   retryCount: op.retryCount,
                   lastAttempt: op.lastAttempt,
-                  error: op.error,
+                  lastError: op.lastError,
                 })),
               });
             };

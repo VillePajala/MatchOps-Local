@@ -360,8 +360,25 @@ export class SyncEngine {
 
   /**
    * Get the current sync status.
+   * Returns a safe default if queue is not yet initialized.
    */
   async getStatus(): Promise<SyncStatusInfo> {
+    // Check if queue is initialized to avoid throwing during early lifecycle
+    // (e.g., when doEmitStatus is called via queueMicrotask during engine creation)
+    if (!this.queue.isInitialized()) {
+      logger.debug('[SyncEngine] getStatus called before queue initialized, returning initializing state');
+      return {
+        state: 'synced', // Safe default - no operations yet
+        pendingCount: 0,
+        failedCount: 0,
+        lastSyncedAt: this.lastSyncedAt,
+        isOnline: this.isOnline,
+        hasStaleResetFailure: false,
+        cloudConnected: this.executor !== null,
+        isPaused: this.isPaused,
+      };
+    }
+
     const stats = await this.queue.getStats();
 
     let state: SyncStatusState;
