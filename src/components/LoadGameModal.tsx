@@ -390,8 +390,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                 data-testid={`game-item-${gameId}`}
                 onClick={() => {
                   if (!disableActions && !isLoadActionActive) {
+                    // Note: Don't call onClose() here - the handler closes the modal
+                    // after the game loads successfully. Calling it here causes a flash
+                    // where the old field is briefly visible before the new game renders.
                     onLoad(gameId);
-                    onClose();
                   }
                 }}
               >
