@@ -690,15 +690,25 @@ export default function Home() {
 
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
-            // Cloud check failed - check if it's an auth error
+            // Cloud check failed - check if it's a transient error that should retry
             const isAuthError = cloudResult.error?.includes('Not authenticated') ||
                                cloudResult.error?.includes('auth') ||
                                cloudResult.error?.includes('sign in');
+            // AbortError happens during account switch when previous requests are cancelled
+            // Treat it as transient - the new auth state will be ready soon
+            // Build: 2026-02-04-v2
+            const isAbortError = cloudResult.error?.includes('AbortError') ||
+                                cloudResult.error?.includes('signal is aborted');
 
-            if (isAuthError) {
-              // Auth not ready yet - don't proceed, allow retry on next effect cycle
-              // This happens when the migration check runs before Supabase session is established
-              logger.info('[page.tsx] Cloud check failed due to auth - will retry when auth is ready');
+            if (isAuthError || isAbortError) {
+              // Auth not ready or request aborted - don't proceed, allow retry on next effect cycle
+              // This happens when the migration check runs before Supabase session is established,
+              // or during account switch when old requests are being cancelled
+              logger.info('[page.tsx] Cloud check failed (transient) - will retry when ready', {
+                isAuthError,
+                isAbortError,
+                error: cloudResult.error,
+              });
               migrationCheckInitiatedRef.current = false; // Allow retry
               // Don't set postLoginCheckComplete - keep loading screen visible
               return;
