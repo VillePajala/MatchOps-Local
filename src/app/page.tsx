@@ -42,6 +42,7 @@ import { migrateLegacyData } from '@/services/legacyMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 // Toast display duration before force reload - allows user to see the notification
 const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
@@ -596,7 +597,19 @@ export default function Home() {
         // if local data is complete. On a new device, after clearing IndexedDB,
         // or when cloud has more data than local (e.g., synced from another device),
         // we need to hydrate from cloud.
-        if (hasMigrationCompleted(userId)) {
+        const migrationFlagSet = hasMigrationCompleted(userId);
+        logger.info('[page.tsx] Migration flag check', {
+          userId: userId?.slice(0, 8) + '...',
+          migrationFlagSet,
+        });
+        Sentry.addBreadcrumb({
+          category: 'migration',
+          message: `Migration flag check: ${migrationFlagSet ? 'SET' : 'NOT SET'}`,
+          level: migrationFlagSet ? 'info' : 'warning',
+          data: { userId: userId?.slice(0, 8), migrationFlagSet },
+        });
+
+        if (migrationFlagSet) {
           logger.info('[page.tsx] Migration already completed for this user, letting user proceed immediately');
 
           // PERFORMANCE FIX: Let user proceed IMMEDIATELY with local data.
@@ -738,7 +751,16 @@ export default function Home() {
               });
               await queryClient.refetchQueries();
               setRefreshTrigger(prev => prev + 1);
-              setMigrationCompleted(userId);
+              logger.info('[page.tsx] Setting migration completed flag after successful hydration', {
+                userId: userId?.slice(0, 8) + '...',
+              });
+              const flagSetSuccess = setMigrationCompleted(userId);
+              Sentry.addBreadcrumb({
+                category: 'migration',
+                message: `Migration flag SET after hydration: ${flagSetSuccess ? 'success' : 'FAILED'}`,
+                level: flagSetSuccess ? 'info' : 'error',
+                data: { userId: userId?.slice(0, 8), flagSetSuccess },
+              });
               // Mark post-login check complete
               setPostLoginCheckComplete(true);
             } else {
@@ -764,10 +786,12 @@ export default function Home() {
               setPostLoginCheckComplete(true);
             }
           } else {
-            // Both local and cloud are empty - nothing to migrate now
-            // Don't mark complete: if local data appears later (via backup import),
-            // migration check should run again and show the wizard
-            logger.info('[page.tsx] No local or cloud data to migrate currently');
+            // Both local and cloud are empty - new/fresh account
+            // Mark migration completed so future logins skip the blocking hasCloudData() call.
+            // Note: If user imports a backup later, the backup import code should
+            // clear this flag (clearMigrationCompleted) to trigger migration wizard.
+            logger.info('[page.tsx] No local or cloud data - new account, skipping migration check on future logins');
+            setMigrationCompleted(userId);
             // Mark post-login check complete
             setPostLoginCheckComplete(true);
           }
