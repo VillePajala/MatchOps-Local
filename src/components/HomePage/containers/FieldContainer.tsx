@@ -407,22 +407,21 @@ export function FieldContainer({
           </div>
         )}
 
-      {/* Persistent banner when on default game - always visible for easy access to create game */}
+      {/* Persistent banner when on default game - minimal bottom pill for field visibility */}
       {tmInitialLoad && currentGameId === DEFAULT_GAME_ID && (isSetupOverlayDismissed || fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
-          <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40">
+          <div className="bg-black/70 border border-white/10 rounded-full px-4 py-2 shadow-lg backdrop-blur-sm">
             <div className="flex items-center gap-3 text-sm">
-              <div className="w-3 h-3 bg-amber-200 rounded-full animate-pulse flex-shrink-0"></div>
-              <span className="text-amber-100 font-medium flex-1">
+              <span className="text-white/90 font-medium">
                 {fcPlayersOnField.length > 0 || fcDrawings.length > 0
-                  ? t('firstGame.workspaceWarning', "Temporary workspace - changes won't be saved")
-                  : t('firstGame.noGameCreated', 'No game created yet')}
+                  ? t('firstGame.workspaceWarning', "Temporary workspace - won't be saved")
+                  : t('firstGame.noGameCreated', 'No game created')}
               </span>
               <button
                 onClick={() => onOpenNewGameSetup?.()}
-                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-900 rounded-md text-xs font-semibold transition-colors shadow-sm flex-shrink-0"
+                className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
               >
-                {t('firstGame.createGame', 'Create game')}
+                + {t('firstGame.createGameShort', 'Create')}
               </button>
             </div>
           </div>
