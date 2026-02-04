@@ -20,7 +20,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getAuthService, getDataStore, isDataStoreInitialized } from '@/datastore/factory';
 import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
 import { POLICY_VERSION } from '@/config/constants';
@@ -45,6 +45,8 @@ interface AuthContextValue {
   needsReConsent: boolean;
   /** True when auth initialization timed out (user may need to retry sign-in) */
   initTimedOut: boolean;
+  /** True when sign-out is in progress (prevents UI interaction during logout) */
+  isSigningOut: boolean;
 
   // Actions
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
@@ -105,8 +107,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<'local' | 'cloud'>('local');
   const [needsReConsent, setNeedsReConsent] = useState(false);
   const [initTimedOut, setInitTimedOut] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   // Trigger for re-running auth initialization (increments to force useEffect re-run)
   const [initRetryTrigger, setInitRetryTrigger] = useState(0);
+
+  // Track if user has explicitly signed in during this session
+  // This prevents auth state flickering from clearing the session after successful login
+  // Only explicit signOut() resets this flag
+  const hasSignedInThisSessionRef = useRef(false);
 
   // Initialize auth service
   useEffect(() => {
@@ -115,13 +123,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let timeoutId: NodeJS.Timeout | null = null;
 
     async function initAuth() {
+      // CRITICAL: Set mode FIRST, before any async operations that might fail.
+      // If getAuthService() fails (e.g., AbortError), mode must still be set correctly
+      // so the UI shows LoginScreen (cloud) instead of StartScreen (local).
+      const currentMode = getBackendMode();
+      if (mounted) {
+        setMode(currentMode);
+      }
+
       try {
-        const currentMode = getBackendMode();
         const service = await getAuthService();
 
         if (!mounted) return;
 
-        setMode(currentMode);
         setAuthService(service);
 
         // Note: service.initialize() already called by factory
@@ -139,7 +153,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Subscribe to auth changes (cloud mode fires events, local mode is no-op)
         unsubscribe = service.onAuthStateChange(async (state: AuthState, newSession: Session | null) => {
-          logger.debug('[AuthProvider] Auth state changed:', state);
+          logger.debug('[AuthProvider] Auth state changed:', state, { hasSession: !!newSession });
+
+          // DEFENSIVE: Only clear session on explicit signed_out event
+          // This prevents login loops caused by:
+          // 1. Unexpected events with null session (e.g., AbortError during token refresh)
+          // 2. New Supabase events we don't recognize
+          // 3. Race conditions during sign-in flow
+          //
+          // Additional protection: If user has successfully signed in this session,
+          // NEVER clear the session unless explicit signOut() is called.
+          // This prevents flickering even if Supabase fires a signed_out event unexpectedly.
+          if (!newSession && state !== 'signed_out') {
+            logger.warn('[AuthProvider] Received null session for non-signout event:', state, '- preserving current session');
+            // Track in Sentry for debugging (PWA can't access console)
+            try {
+              Sentry.addBreadcrumb({
+                category: 'auth',
+                message: `Preserved session on ${state} event with null session`,
+                level: 'warning',
+              });
+            } catch {
+              // Sentry failure acceptable
+            }
+            // Don't clear the session - let the current auth state persist
+            // If there's a real auth issue, the next API call will fail and we'll handle it then
+            return;
+          }
+
+          // EXTRA PROTECTION: If user signed in this session but we get signed_out event,
+          // this might be a false positive. Only clear if signed_out event has no session.
+          // Legitimate sign-out will come from our signOut() function which sets the ref to false.
+          if (state === 'signed_out' && hasSignedInThisSessionRef.current) {
+            logger.warn('[AuthProvider] Ignoring signed_out event - user signed in this session and has not called signOut()');
+            try {
+              Sentry.addBreadcrumb({
+                category: 'auth',
+                message: 'Ignored spurious signed_out event (user still signed in)',
+                level: 'warning',
+              });
+            } catch {
+              // Sentry failure acceptable
+            }
+            return;
+          }
+
           setSession(newSession);
           setUser(newSession?.user ?? null);
 
@@ -325,6 +383,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(result.user);
       setSession(result.session);
 
+      // Mark that user has signed in this session - prevents spurious sign-out events
+      // from clearing the session (login loop protection)
+      hasSignedInThisSessionRef.current = true;
+      logger.info('[AuthProvider] Sign-in successful, session locked');
+
       return {};
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Sign in failed' };
@@ -374,6 +437,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Set user/session after consent attempt
         setUser(result.user);
         setSession(result.session);
+
+        // Mark that user has signed in this session - prevents spurious sign-out events
+        hasSignedInThisSessionRef.current = true;
+        logger.info('[AuthProvider] Sign-up successful (no confirmation needed), session locked');
       }
       return { confirmationRequired: result.confirmationRequired, existingUser: result.existingUser };
     } catch (error) {
@@ -387,6 +454,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logger.warn('[AuthProvider] signOut called but authService is null');
       return;
     }
+
+    // Show loading state during sign-out to prevent UI interaction
+    setIsSigningOut(true);
 
     try {
       await authService.signOut();
@@ -426,10 +496,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Reset session lock BEFORE clearing state - allows onAuthStateChange to process signed_out
+    hasSignedInThisSessionRef.current = false;
+    logger.info('[AuthProvider] Sign-out initiated, session lock released');
+
     // Always clear local state, even if API call failed
     setUser(null);
     setSession(null);
     setNeedsReConsent(false);  // Clear re-consent flag so modal doesn't persist
+    setIsSigningOut(false);  // Clear signing out state
   }, [authService, user]);
 
   const resetPassword = useCallback(async (email: string) => {
@@ -523,6 +598,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authService.deleteAccount();
 
+      // Reset session lock BEFORE clearing state
+      hasSignedInThisSessionRef.current = false;
+
       // Clear local state after successful deletion
       setUser(null);
       setSession(null);
@@ -560,6 +638,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mode,
     needsReConsent,
     initTimedOut,
+    isSigningOut,
     signIn,
     signUp,
     signOut,
@@ -568,7 +647,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     acceptReConsent,
     deleteAccount,
     retryAuthInit,
-  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit]);
+  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit]);
 
   return (
     <AuthContext.Provider value={value}>

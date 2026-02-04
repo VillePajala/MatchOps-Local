@@ -10,11 +10,13 @@ import AuthModal from '@/components/AuthModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
 import { usePremium } from '@/hooks/usePremium';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
@@ -40,6 +42,7 @@ import { migrateLegacyData } from '@/services/legacyMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 // Toast display duration before force reload - allows user to see the notification
 const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
@@ -60,14 +63,27 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   // Post-login upgrade modal (shown when user authenticates without subscription)
   const [showPostLoginUpgrade, setShowPostLoginUpgrade] = useState(false);
+  // Track pending post-login check in state (initialized from localStorage)
+  // Using state so clearing it triggers re-render and migration check can re-run
+  const [pendingPostLoginCheckState, setPendingPostLoginCheckState] = useState(() => hasPendingPostLoginCheck());
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
   // Ref to track if legacy database migration has been checked this session
   const legacyMigrationCheckedRef = useRef(false);
+  // Ref to track if checkAppState has been triggered post-login (prevents premature postLoginCheckComplete)
+  const checkAppStateTriggeredRef = useRef(false);
+  // Ref to track previous value of isCheckingState (for detecting true→false transitions)
+  const prevIsCheckingStateRef = useRef(false);
+  // State to track if post-login data loading has completed (migration/hydration check)
+  // Using state instead of ref so changes trigger re-renders
+  const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const { isAuthenticated, isLoading: isAuthLoading, mode, user } = useAuth();
-  const { isPremium, isLoading: isPremiumLoading } = usePremium();
+  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit } = useAuth();
+  // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
+  const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
+  // Cloud subscription status - fetched from Supabase (NOT local storage)
+  const { isActive: hasActiveSubscription, isLoading: isSubscriptionLoading } = useSubscription();
   const queryClient = useQueryClient();
 
   // Note: Cloud upgrade gate removed - account creation is free
@@ -76,6 +92,48 @@ export default function Home() {
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
+
+  // Compute post-login loading state synchronously (not via effect) to avoid race conditions
+  // This ensures the loading screen shows immediately when conditions are met, not one render cycle later
+  // NOTE: Do NOT require !!userId here - user/session might be set at slightly different times
+  // and we need to show loading screen as soon as isAuthenticated is true
+  const isPostLoginLoading =
+    mode === 'cloud' &&
+    isAuthenticated &&
+    !isAuthLoading &&
+    !postLoginCheckComplete;
+
+  // Safety timeout: If post-login check doesn't complete within 90 seconds, force completion
+  // This prevents users from getting stuck on the loading screen indefinitely due to:
+  // - Network issues during migration check
+  // - Race conditions during user transitions
+  // - Unexpected errors that aren't caught
+  // Note: 90 seconds is needed for large data sets (100+ games) to download from cloud
+  useEffect(() => {
+    if (!isPostLoginLoading) return;
+
+    const timeoutId = setTimeout(() => {
+      logger.warn('[page.tsx] Post-login check safety timeout - forcing completion to unblock user');
+      setPostLoginCheckComplete(true);
+    }, 90000); // 90 seconds (was 15 seconds - too short for large hydrations)
+
+    return () => clearTimeout(timeoutId);
+  }, [isPostLoginLoading]);
+
+  // DEBUG: Log loading state computation to diagnose post-login loading screen issues
+  // This runs on every render to show the state progression
+  useEffect(() => {
+    logger.info('[page.tsx] Loading state debug', {
+      mode,
+      isAuthenticated,
+      isAuthLoading,
+      postLoginCheckComplete,
+      isPostLoginLoading,
+      isCheckingState,
+      isSigningOut,
+      willShowLoadingScreen: isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut,
+    });
+  }, [mode, isAuthenticated, isAuthLoading, postLoginCheckComplete, isPostLoginLoading, isCheckingState, isSigningOut]);
 
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
@@ -352,10 +410,53 @@ export default function Home() {
         logger.debug('[page.tsx] checkAppState: waiting for userId');
         return;
       }
+      // Mark that checkAppState is being triggered post-login
+      // This allows the postLoginCheckComplete effect to know it's safe to proceed
+      checkAppStateTriggeredRef.current = true;
     }
 
     checkAppState();
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId]);
+
+  // Reset post-login check state when user signs out
+  // This ensures the loading screen shows again on next sign-in
+  useEffect(() => {
+    if (!userId) {
+      setPostLoginCheckComplete(false);
+      checkAppStateTriggeredRef.current = false;
+    }
+  }, [userId]);
+
+  // Mark post-login check complete when checkAppState finishes
+  // This ensures we don't clear the loading screen until data is actually loaded
+  // The migration check effect may trigger checkAppState via refreshTrigger,
+  // and we need to wait for that to complete before showing the app
+  //
+  // CRITICAL: We must detect the transition from isCheckingState=true to isCheckingState=false,
+  // not just isCheckingState=false. This is because in React 18+, state updates are batched,
+  // so during the first effect cycle after login:
+  //   1. Effect at line ~376 runs, sets checkAppStateTriggeredRef=true, calls checkAppState()
+  //   2. checkAppState() calls setIsCheckingState(true) - but state update is BATCHED
+  //   3. This effect runs in the SAME cycle, isCheckingState is still FALSE from before!
+  //   4. Without the transition check, postLoginCheckComplete would be set immediately (BUG!)
+  // Track isCheckingState transitions for debugging
+  // NOTE: In cloud mode, postLoginCheckComplete is set by the migration check effect,
+  // NOT here. This is because checkAppState reads from LOCAL storage (which may be empty),
+  // but we need to wait for cloud data to be HYDRATED before showing the app.
+  // The migration check effect handles:
+  // - Checking if cloud has data
+  // - Hydrating local storage from cloud if needed
+  // - Setting postLoginCheckComplete(true) when data is ready
+  useEffect(() => {
+    // Capture previous value and update ref for next render
+    const wasChecking = prevIsCheckingStateRef.current;
+    prevIsCheckingStateRef.current = isCheckingState;
+
+    // Log the transition for debugging
+    if (wasChecking && !isCheckingState && mode === 'cloud') {
+      logger.info('[page.tsx] checkAppState completed - waiting for migration/hydration check to set postLoginCheckComplete');
+    }
+  }, [mode, isCheckingState]);
 
   // ============================================================================
   // LEGACY DATABASE MIGRATION (MatchOpsLocal → User-Scoped Database)
@@ -459,16 +560,16 @@ export default function Home() {
       return;
     }
 
-    // Wait for premium status to load before checking migration
-    // This ensures the post-login premium check runs first
-    if (isPremiumLoading) {
+    // Wait for subscription status to load before checking migration
+    // This ensures the post-login subscription check runs first
+    if (isSubscriptionLoading) {
       return;
     }
 
-    // Skip if there's a pending post-login check (premium check hasn't passed yet)
+    // Skip if there's a pending post-login check (subscription check hasn't passed yet)
     // This ensures we don't show migration wizard until user has verified subscription
-    if (hasPendingPostLoginCheck()) {
-      logger.info('[page.tsx] Migration check: waiting for post-login premium check to complete');
+    if (pendingPostLoginCheckState) {
+      logger.info('[page.tsx] Migration check: waiting for post-login subscription check to complete');
       return;
     }
 
@@ -477,8 +578,10 @@ export default function Home() {
     // - Sync is paused (CloudSyncSection shows subscription banner)
     // - Migration is pointless (data won't sync until they subscribe)
     // - User can subscribe anytime and migration will be offered then
-    if (!isPremium) {
+    if (!hasActiveSubscription) {
       logger.info('[page.tsx] Migration check: skipping - user has no active subscription');
+      // Mark post-login check complete so user can proceed to app
+      setPostLoginCheckComplete(true);
       return;
     }
 
@@ -490,17 +593,94 @@ export default function Home() {
 
     const checkMigrationNeeded = async () => {
       try {
-        // Migration already completed for this user - skip wizard but still refetch data
-        // This handles the sign out → sign in flow where React Query caches may be stale
-        if (hasMigrationCompleted(userId)) {
-          logger.info('[page.tsx] Migration already completed for this user, refetching queries');
-          await queryClient.refetchQueries();
-          setRefreshTrigger(prev => prev + 1);
+        // Migration already completed for this user - but we still need to check
+        // if local data is complete. On a new device, after clearing IndexedDB,
+        // or when cloud has more data than local (e.g., synced from another device),
+        // we need to hydrate from cloud.
+        const migrationFlagSet = hasMigrationCompleted(userId);
+        logger.info('[page.tsx] Migration flag check', {
+          userId: userId?.slice(0, 8) + '...',
+          migrationFlagSet,
+        });
+        Sentry.addBreadcrumb({
+          category: 'migration',
+          message: `Migration flag check: ${migrationFlagSet ? 'SET' : 'NOT SET'}`,
+          level: migrationFlagSet ? 'info' : 'warning',
+          data: { userId: userId?.slice(0, 8), migrationFlagSet },
+        });
+
+        if (migrationFlagSet) {
+          logger.info('[page.tsx] Migration already completed for this user, letting user proceed immediately');
+
+          // PERFORMANCE FIX: Let user proceed IMMEDIATELY with local data.
+          // Run cloud check + hydration entirely in background (non-blocking).
+          // This eliminates the startup delay from hasCloudData() network call.
+          //
+          // The tradeoff: if local is empty (new device), user briefly sees empty state
+          // before data loads. But this is rare and better than making ALL users wait.
+          setPostLoginCheckComplete(true);
+
+          // Refetch queries to load LOCAL data immediately
+          // NOTE: Only call refetchQueries(), NOT setRefreshTrigger() - the latter
+          // triggers checkAppState which sets isCheckingState=true, bringing back the loading screen
+          queryClient.refetchQueries().catch(refetchError => {
+            logger.warn('[page.tsx] Query refetch failed (non-blocking):', refetchError);
+          });
+
+          // Run cloud check + hydration entirely in background (fire and forget)
+          (async () => {
+            try {
+              const cloudResult = await hasCloudData();
+              if (cloudResult.checkFailed) {
+                logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
+                return;
+              }
+              if (!cloudResult.hasData) {
+                logger.info('[page.tsx] Background cloud check: no cloud data');
+                return;
+              }
+
+              logger.info('[page.tsx] Background cloud check: cloud has data, starting hydration...');
+              const hydrationResult = await hydrateLocalFromCloud(userId);
+
+              if (hydrationResult.success) {
+                const totalImported = hydrationResult.counts.games +
+                  hydrationResult.counts.players +
+                  hydrationResult.counts.teams;
+                const totalSkipped = (hydrationResult.skipped?.games || 0) +
+                  (hydrationResult.skipped?.players || 0) +
+                  (hydrationResult.skipped?.teams || 0);
+
+                logger.info('[page.tsx] Background hydration complete', {
+                  imported: hydrationResult.counts,
+                  skipped: hydrationResult.skipped,
+                });
+
+                // Refresh queries if we imported something - but don't show toast
+                // Background sync should be seamless; the user doesn't need to be notified
+                // NOTE: Only call refetchQueries(), NOT setRefreshTrigger() - the latter
+                // triggers checkAppState which shows a loading screen, breaking the seamless UX
+                if (totalImported > 0) {
+                  logger.info('[page.tsx] Background hydration: imported data, refreshing queries silently');
+                  queryClient.refetchQueries().catch(err => {
+                    logger.warn('[page.tsx] Background hydration refetch failed:', err);
+                  });
+                } else if (totalSkipped > 0) {
+                  logger.info('[page.tsx] Background hydration: no new data (local was already up-to-date)');
+                }
+              } else {
+                logger.warn('[page.tsx] Background hydration failed', { errors: hydrationResult.errors });
+              }
+            } catch (err) {
+              logger.error('[page.tsx] Background cloud sync exception:', err);
+            }
+          })();
+
           return;
         }
 
-        // Check if there's local data to migrate
-        const result = await hasLocalDataToMigrate();
+        // Check if there's local data to migrate (user-scoped storage)
+        const result = await hasLocalDataToMigrate(userId);
         if (result.checkFailed) {
           // Storage check failed - notify user and allow retry on next effect cycle
           logger.warn('[page.tsx] Failed to check local data:', result.error);
@@ -510,18 +690,46 @@ export default function Home() {
           );
           // Reset to allow retry on next effect run
           migrationCheckInitiatedRef.current = false;
+          // Mark post-login check complete even on failure (user can use app)
+          setPostLoginCheckComplete(true);
         } else if (result.hasData) {
           // Local data found - show simplified migration wizard
           // (No need to fetch cloud counts - wizard always uses merge mode)
           logger.info('[page.tsx] Local data found, showing migration wizard');
           setShowMigrationWizard(true);
+          // Mark post-login check complete - wizard handles its own loading
+          setPostLoginCheckComplete(true);
         } else {
           // No local data - check if cloud has data that needs to be loaded
           logger.info('[page.tsx] No local data, checking if cloud has data...');
 
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
-            // Cloud check failed - notify user but don't block them
+            // Cloud check failed - check if it's a transient error that should retry
+            const isAuthError = cloudResult.error?.includes('Not authenticated') ||
+                               cloudResult.error?.includes('auth') ||
+                               cloudResult.error?.includes('sign in');
+            // AbortError happens during account switch when previous requests are cancelled
+            // Treat it as transient - the new auth state will be ready soon
+            // Build: 2026-02-04-v2
+            const isAbortError = cloudResult.error?.includes('AbortError') ||
+                                cloudResult.error?.includes('signal is aborted');
+
+            if (isAuthError || isAbortError) {
+              // Auth not ready or request aborted - don't proceed, allow retry on next effect cycle
+              // This happens when the migration check runs before Supabase session is established,
+              // or during account switch when old requests are being cancelled
+              logger.info('[page.tsx] Cloud check failed (transient) - will retry when ready', {
+                isAuthError,
+                isAbortError,
+                error: cloudResult.error,
+              });
+              migrationCheckInitiatedRef.current = false; // Allow retry
+              // Don't set postLoginCheckComplete - keep loading screen visible
+              return;
+            }
+
+            // Non-auth failure (network, etc) - notify user but don't block them
             // They can use the app, data will load when queries run
             logger.warn('[page.tsx] Failed to check cloud data:', cloudResult.error);
             showToast(
@@ -529,6 +737,8 @@ export default function Home() {
               'info'
             );
             setMigrationCompleted(userId);
+            // Mark post-login check complete
+            setPostLoginCheckComplete(true);
           } else if (cloudResult.hasData) {
             // Cloud has data but local is empty - hydrate local storage from cloud
             // This handles the "new device login" scenario where user has
@@ -543,39 +753,81 @@ export default function Home() {
               });
               await queryClient.refetchQueries();
               setRefreshTrigger(prev => prev + 1);
-              showToast(
-                t('page.dataLoadedFromCloud', 'Your data has been loaded from the cloud.'),
-                'success'
-              );
+              logger.info('[page.tsx] Setting migration completed flag after successful hydration', {
+                userId: userId?.slice(0, 8) + '...',
+              });
+              const flagSetSuccess = setMigrationCompleted(userId);
+              Sentry.addBreadcrumb({
+                category: 'migration',
+                message: `Migration flag SET after hydration: ${flagSetSuccess ? 'success' : 'FAILED'}`,
+                level: flagSetSuccess ? 'info' : 'error',
+                data: { userId: userId?.slice(0, 8), flagSetSuccess },
+              });
+              // Mark post-login check complete
+              setPostLoginCheckComplete(true);
             } else {
+              // Check if failure was due to auth
+              const hasAuthError = hydrationResult.errors?.some(err =>
+                err.includes('Not authenticated') || err.includes('auth') || err.includes('sign in')
+              );
+
+              if (hasAuthError) {
+                // Auth not ready - allow retry
+                logger.info('[page.tsx] Hydration failed due to auth - will retry when auth is ready');
+                migrationCheckInitiatedRef.current = false;
+                return;
+              }
+
               logger.error('[page.tsx] Hydration failed', { errors: hydrationResult.errors });
               showToast(
                 t('page.failedToLoadCloudData', 'Failed to load your cloud data. Please try refreshing.'),
                 'error'
               );
+              setMigrationCompleted(userId);
+              // Mark post-login check complete
+              setPostLoginCheckComplete(true);
             }
-            setMigrationCompleted(userId);
           } else {
-            // Both local and cloud are empty - nothing to migrate now
-            // Don't mark complete: if local data appears later (via backup import),
-            // migration check should run again and show the wizard
-            logger.info('[page.tsx] No local or cloud data to migrate currently');
+            // Both local and cloud are empty - new/fresh account
+            // Mark migration completed so future logins skip the blocking hasCloudData() call.
+            // Note: If user imports a backup later, the backup import code should
+            // clear this flag (clearMigrationCompleted) to trigger migration wizard.
+            logger.info('[page.tsx] No local or cloud data - new account, skipping migration check on future logins');
+            setMigrationCompleted(userId);
+            // Mark post-login check complete
+            setPostLoginCheckComplete(true);
           }
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        const isAuthError = errorMsg.includes('Not authenticated') ||
+                           errorMsg.includes('auth') ||
+                           errorMsg.includes('sign in') ||
+                           (error instanceof Error && error.name === 'AuthError');
+
+        if (isAuthError) {
+          // Auth not ready yet - don't proceed, allow retry on next effect cycle
+          logger.info('[page.tsx] Migration check failed due to auth - will retry when auth is ready', { error: errorMsg });
+          migrationCheckInitiatedRef.current = false; // Allow retry
+          // Don't set postLoginCheckComplete - keep loading screen visible
+          return;
+        }
+
+        // Non-auth error - notify user and allow retry
         logger.warn('[page.tsx] Failed to check migration status', { error });
-        // Notify user and allow retry on next effect run
         showToast(
           t('page.unableToCheckSync', 'Unable to check data for sync. Please refresh if you have data to sync.'),
           'info'
         );
         migrationCheckInitiatedRef.current = false;
+        // Mark post-login check complete even on error (user can use app)
+        setPostLoginCheckComplete(true);
       }
     };
 
     checkMigrationNeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isAuthenticated, userId, isPremiumLoading, isPremium]);
+  }, [mode, isAuthenticated, userId, isSubscriptionLoading, hasActiveSubscription, pendingPostLoginCheckState]);
 
   // ============================================================================
   // POST-LOGIN CHECK (Cloud Mode Only)
@@ -585,7 +837,7 @@ export default function Home() {
   //
   // This effect triggers when:
   // - User is in cloud mode AND authenticated
-  // - Auth and Premium status are loaded
+  // - Auth and Subscription status are loaded
   // - There's a pending post-login check flag set
   //
   // User flow:
@@ -597,23 +849,23 @@ export default function Home() {
       mode,
       isAuthenticated,
       isAuthLoading,
-      isPremiumLoading,
-      isPremium,
-      hasPendingCheck: hasPendingPostLoginCheck(),
+      isSubscriptionLoading,
+      hasActiveSubscription,
+      hasPendingCheck: pendingPostLoginCheckState,
     });
 
     // Skip if not in cloud mode, not authenticated, or still loading
-    if (mode !== 'cloud' || !isAuthenticated || isAuthLoading || isPremiumLoading) {
+    if (mode !== 'cloud' || !isAuthenticated || isAuthLoading || isSubscriptionLoading) {
       logger.debug('[page.tsx] Post-login check: skipping (conditions not met)', {
         reason: mode !== 'cloud' ? 'not cloud mode' :
                 !isAuthenticated ? 'not authenticated' :
-                isAuthLoading ? 'auth still loading' : 'premium still loading',
+                isAuthLoading ? 'auth still loading' : 'subscription still loading',
       });
       return;
     }
 
     // Check if there's a pending post-login check
-    if (!hasPendingPostLoginCheck()) {
+    if (!pendingPostLoginCheckState) {
       logger.debug('[page.tsx] Post-login check: skipping (no pending flag)');
       return; // No pending check - user is returning to the app, not newly signing in
     }
@@ -621,18 +873,23 @@ export default function Home() {
     logger.info('[page.tsx] Post-login check: verifying subscription status');
 
     // Clear the pending flag - user is now logged in
+    // Clear both state (triggers re-render for migration check) and localStorage (persistence)
+    setPendingPostLoginCheckState(false);
     clearPendingPostLoginCheck();
 
     // Check subscription status and show upgrade modal if needed
-    if (isPremium) {
+    if (hasActiveSubscription) {
       logger.info('[page.tsx] Post-login check: user has active subscription, sync enabled');
+      // Migration check will re-run now that pendingPostLoginCheck is false (it's a dep)
     } else {
       // User has account but no subscription - show upgrade modal
       logger.info('[page.tsx] Post-login check: user has no subscription, showing upgrade modal');
       setShowPostLoginUpgrade(true);
+      // Mark post-login check complete so loading screen clears
+      // (migration check won't run because no subscription)
+      setPostLoginCheckComplete(true);
     }
-    // Migration check will run (if needed) via the other effect
-  }, [mode, isAuthenticated, isAuthLoading, isPremiumLoading, isPremium]);
+  }, [mode, isAuthenticated, isAuthLoading, isSubscriptionLoading, hasActiveSubscription, pendingPostLoginCheckState]);
 
   // Handle post-login upgrade modal close
   const handlePostLoginUpgradeClose = useCallback(() => {
@@ -675,15 +932,18 @@ export default function Home() {
     // - But local still only has 5 games!
     // Hydration pulls cloud → local so local has all 86 games
     if (userId) {
-      logger.info('[page.tsx] Hydrating local from cloud after migration...');
+      logger.info('[page.tsx] POST-MIGRATION HYDRATION: Starting cloud→local pull', { userId });
       const hydrationResult = await hydrateLocalFromCloud(userId);
       if (hydrationResult.success) {
-        logger.info('[page.tsx] Post-migration hydration successful', {
-          counts: hydrationResult.counts,
+        logger.info('[page.tsx] POST-MIGRATION HYDRATION: Success', {
+          imported: hydrationResult.counts,
+          skipped: hydrationResult.skipped,
         });
       } else {
-        logger.warn('[page.tsx] Post-migration hydration failed', {
+        logger.warn('[page.tsx] POST-MIGRATION HYDRATION: Failed', {
           errors: hydrationResult.errors,
+          imported: hydrationResult.counts,
+          skipped: hydrationResult.skipped,
         });
         // Non-fatal: user can refresh to retry
         showToast(
@@ -794,22 +1054,24 @@ export default function Home() {
   // Show login screen in cloud mode when not authenticated
   const needsAuth = mode === 'cloud' && !isAuthenticated;
 
+  // Determine loading message based on state
+  const getLoadingMessage = () => {
+    if (isSigningOut) return t('page.signingOut', 'Signing out...');
+    if (isPostLoginLoading) return t('page.loadingYourData', 'Loading your data...');
+    return t('page.loading', 'Loading...');
+  };
+
+  // Compute whether to show loading screen
+  const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
+
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
-        {isAuthLoading || isCheckingState ? (
-          // Loading state while checking auth or data
-          <div className="flex flex-col items-center justify-center h-screen bg-slate-900">
-            <div className="flex flex-col items-center gap-6">
-              {/* Spinner */}
-              <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
-
-              {/* Optional loading text */}
-              <p className="text-slate-400 text-sm">Loading...</p>
-            </div>
-          </div>
+        {showLoadingScreen ? (
+          // Loading state while checking auth, data, or during sign-out
+          <LoadingScreen message={getLoadingMessage()} />
         ) : showWelcome ? (
           // First install: show welcome screen for onboarding choice
           <ErrorBoundary>
@@ -828,6 +1090,43 @@ export default function Home() {
                 allowRegistration={true}
               />
             )}
+          </ErrorBoundary>
+        ) : initTimedOut && mode === 'cloud' ? (
+          // Cloud mode: auth initialization timed out - show retry screen
+          // This prevents users from being stuck in a login loop when PWA resumes from background
+          <ErrorBoundary>
+            <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
+              {/* Ambient background */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+                <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+              </div>
+              <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
+                <h1 className="text-5xl font-bold tracking-tight text-amber-400 mb-4">MatchOps</h1>
+                <div className="max-w-sm text-center">
+                  <h2 className="text-xl font-semibold text-white mb-2">
+                    {t('page.connectionTimeout', 'Connection Timeout')}
+                  </h2>
+                  <p className="text-slate-400 mb-6">
+                    {t('page.connectionTimeoutDesc', 'Unable to connect to the server. This can happen after the app has been in the background for a while.')}
+                  </p>
+                  <div className="space-y-3">
+                    <button
+                      onClick={retryAuthInit}
+                      className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 transition-all"
+                    >
+                      {t('page.tryAgain', 'Try Again')}
+                    </button>
+                    <button
+                      onClick={handleLoginUseLocalMode}
+                      className="w-full h-12 px-4 py-2 rounded-md text-base font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
+                    >
+                      {t('page.useLocalModeInstead', 'Use Local Mode Instead')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </ErrorBoundary>
         ) : needsAuth ? (
           // Cloud mode: show login screen when not authenticated

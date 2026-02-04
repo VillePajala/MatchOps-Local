@@ -11,12 +11,10 @@ import {
   TEAM_ROSTERS_KEY,
   APP_DATA_VERSION_KEY,
   INSTALL_PROMPT_DISMISSED_KEY,
-  HAS_SEEN_FIRST_GAME_GUIDE_KEY,
 } from '@/config/storageKeys';
 import {
   getStorageItem,
   setStorageItem,
-  removeStorageItem,
 } from './storage';
 import logger from '@/utils/logger';
 import { storageConfigManager } from './storageConfigManager';
@@ -63,6 +61,12 @@ export const getAppSettings = async (userId?: string): Promise<AppSettings> => {
     const dataStore = await getDataStore(userId);
     return await dataStore.getSettings();
   } catch (error) {
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Don't log as error to avoid Sentry noise
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('Settings read skipped - DataStore closed during transition');
+      return DEFAULT_APP_SETTINGS;
+    }
     logger.error('Error getting app settings:', error);
     return DEFAULT_APP_SETTINGS;
   }
@@ -117,6 +121,12 @@ export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>, us
     // AuthError is expected during sign out - don't log as error (prevents Sentry noise)
     if (error && typeof error === 'object' && 'code' in error && error.code === 'AUTH_ERROR') {
       logger.info('Settings update skipped - user signed out:', error);
+      return DEFAULT_APP_SETTINGS;
+    }
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Graceful degradation - return defaults instead of crashing
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('Settings update skipped - DataStore closed during transition:', error);
       return DEFAULT_APP_SETTINGS;
     }
     // Graceful degradation for unexpected errors (storage failures, etc.)
@@ -304,43 +314,6 @@ export const setInstallPromptDismissed = async (): Promise<void> => {
   }
 };
 
-// ============================================
-// First Game Guide Utilities
-// ============================================
-// These manage the first-time user game guide display
-// Key: HAS_SEEN_FIRST_GAME_GUIDE_KEY (stored as 'true' string)
-
-/**
- * Gets whether the user has seen the first game guide
- * @returns A promise that resolves to true if seen, false otherwise
- */
-export const getHasSeenFirstGameGuide = async (): Promise<boolean> => {
-  try {
-    const value = await getStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
-    return value === 'true';
-  } catch (error) {
-    logger.debug('Failed to get first game guide status (non-critical)', { error });
-    return false;
-  }
-};
-
-/**
- * Sets the first game guide as seen
- * @param value - Whether the guide has been seen
- * @returns A promise that resolves when complete
- */
-export const setHasSeenFirstGameGuide = async (value: boolean): Promise<void> => {
-  try {
-    if (value) {
-      await setStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY, 'true');
-    } else {
-      await removeStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
-    }
-  } catch (error) {
-    logger.debug('Failed to set first game guide status (non-critical)', { error });
-  }
-};
-
 /**
  * Clears all application settings, resetting to defaults
  * Uses clearStorage() to completely wipe IndexedDB for a clean reset
@@ -365,7 +338,6 @@ export const resetAppSettings = async (): Promise<boolean> => {
       removeStorageItem(TEAM_ROSTERS_KEY),
       removeStorageItem(APP_DATA_VERSION_KEY),
       removeStorageItem(LAST_HOME_TEAM_NAME_KEY),
-      removeStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY),
       removeStorageItem(INSTALL_PROMPT_DISMISSED_KEY),
       removeStorageItem('storage-mode'),
       removeStorageItem('storage-version'),
@@ -390,6 +362,50 @@ export const resetAppSettings = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     logger.error('[resetAppSettings] Error resetting app:', error);
+    return false;
+  }
+};
+
+/**
+ * Clears all data for a specific authenticated user.
+ * Used for user-scoped reset (cloud mode) - "Re-sync from Cloud" or local data clear.
+ *
+ * @param userId - The authenticated user's ID
+ * @param options - Configuration options
+ * @param options.clearMigrationFlag - Whether to clear migration flag (default: true)
+ *   - true: Migration wizard will appear on reload (for re-sync scenario)
+ *   - false: Migration wizard won't appear (for factory reset scenario)
+ * @returns A promise that resolves to true if successful, false otherwise
+ */
+export const resetUserAppSettings = async (
+  userId: string,
+  options: { clearMigrationFlag?: boolean } = {}
+): Promise<boolean> => {
+  const { clearMigrationFlag = true } = options;
+
+  try {
+    const { getUserStorageAdapter, closeUserStorageAdapter } = await import('./storage');
+
+    logger.log(`[resetUserAppSettings] Clearing data for user ${userId.slice(0, 8)}...`);
+
+    // Get user's storage adapter and clear it
+    const adapter = await getUserStorageAdapter(userId);
+    await adapter.clear();
+
+    // Close the adapter connection
+    await closeUserStorageAdapter(userId);
+
+    // Optionally clear migration flag (triggers re-check on reload)
+    if (clearMigrationFlag) {
+      const { clearMigrationCompleted } = await import('@/config/backendConfig');
+      clearMigrationCompleted(userId);
+      logger.log('[resetUserAppSettings] Migration flag cleared');
+    }
+
+    logger.log('[resetUserAppSettings] User data cleared successfully');
+    return true;
+  } catch (error) {
+    logger.error('[resetUserAppSettings] Failed to clear user data:', error);
     return false;
   }
 };

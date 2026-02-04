@@ -19,6 +19,12 @@ export const getMasterRoster = async (userId?: string): Promise<Player[]> => {
     const dataStore = await getDataStore(userId);
     return await dataStore.getPlayers();
   } catch (error) {
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Don't log as error to avoid Sentry noise
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('[getMasterRoster] Read skipped - DataStore closed during transition');
+      return [];
+    }
     logger.error('[getMasterRoster] Error getting master roster:', error);
     return [];
   }

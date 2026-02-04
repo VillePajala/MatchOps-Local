@@ -17,6 +17,7 @@
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import { getAuthService } from '@/datastore/factory';
+import { getSupabaseClient } from '@/datastore/supabase/client';
 import type { AuthService } from '@/interfaces/AuthService';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import { validateGame } from '@/datastore/validation';
@@ -433,6 +434,7 @@ async function performMigration(
 
     // Step 2: Validate data integrity
     safeProgress({ stage: 'validating', progress: PROGRESS_RANGES.VALIDATING.start, message: MIGRATION_MESSAGES.VALIDATING });
+    logger.info('[MigrationService] Step 2: Validating data integrity');
 
     const validationWarnings = validateLocalData(localData);
     if (validationWarnings.length > 0) {
@@ -442,6 +444,7 @@ async function performMigration(
       });
       logger.warn('[MigrationService] Validation warnings:', validationWarnings);
     }
+    logger.info('[MigrationService] Validation complete, proceeding to sanitization');
 
     // Step 3: Sanitize orphaned references in games
     // Games may reference seasons/tournaments/teams that no longer exist
@@ -514,7 +517,10 @@ async function performMigration(
 
     // Step 5: Get pre-migration cloud counts (for verification)
     // This allows us to detect partial upload failures by comparing (post - pre) vs expected
+    safeProgress({ stage: 'uploading', progress: PROGRESS_RANGES.UPLOADING.start, message: 'Checking cloud status...' });
+    logger.info('[MigrationService] Step 5: Getting pre-migration cloud counts');
     const preCounts = await getCloudCounts(cloudStore);
+    logger.info('[MigrationService] Pre-migration cloud counts retrieved', preCounts);
 
     // Step 6: Upload to cloud (uses upserts - safe to retry)
     // In replace mode, add 5% offset to account for clearing step time
@@ -1428,27 +1434,89 @@ async function uploadToCloud(
 // =============================================================================
 
 /**
- * Get current cloud entity counts.
- * Used for pre/post migration comparison to detect partial upload failures.
+ * Timeout wrapper for async operations.
+ * Rejects with a TimeoutError if the operation takes longer than the specified time.
  */
-async function getCloudCounts(cloudStore: SupabaseDataStore): Promise<CloudCounts> {
-  const [players, teams, seasons, tournaments, games, personnel] = await Promise.all([
-    cloudStore.getPlayers(),
-    cloudStore.getTeams(true),
-    cloudStore.getSeasons(true),
-    cloudStore.getTournaments(true),
-    cloudStore.getGames(),
-    cloudStore.getAllPersonnel(),
-  ]);
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${operation} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
 
-  return {
-    players: players.length,
-    teams: teams.length,
-    seasons: seasons.length,
-    tournaments: tournaments.length,
-    games: Object.keys(games).length,
-    personnel: normalizePersonnelArray(personnel).length,
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutId!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId!);
+    throw error;
+  }
+}
+
+// Timeout for cloud count queries (30 seconds should be plenty)
+const CLOUD_COUNT_TIMEOUT_MS = 30000;
+
+/**
+ * Get current cloud entity counts using efficient COUNT queries.
+ * Used for pre/post migration comparison to detect partial upload failures.
+ *
+ * NOTE: Uses direct Supabase COUNT queries instead of DataStore.get*() methods
+ * because the latter fetch ALL data which is extremely slow for large datasets.
+ * For example, getGames() fetches all game data including related tables,
+ * which can timeout with 80+ games.
+ */
+async function getCloudCounts(_cloudStore: SupabaseDataStore): Promise<CloudCounts> {
+  // Use direct Supabase count queries - MUCH faster than fetching all data
+  const fetchCounts = async () => {
+    const client = getSupabaseClient();
+
+    // Supabase count queries - returns {count: number} when using count: 'exact'
+    const [
+      playersResult,
+      teamsResult,
+      seasonsResult,
+      tournamentsResult,
+      gamesResult,
+      personnelResult,
+    ] = await Promise.all([
+      client.from('players').select('*', { count: 'exact', head: true }),
+      client.from('teams').select('*', { count: 'exact', head: true }),
+      client.from('seasons').select('*', { count: 'exact', head: true }),
+      client.from('tournaments').select('*', { count: 'exact', head: true }),
+      client.from('games').select('*', { count: 'exact', head: true }),
+      client.from('personnel').select('*', { count: 'exact', head: true }),
+    ]);
+
+    // Check for errors
+    const results = [
+      { name: 'players', result: playersResult },
+      { name: 'teams', result: teamsResult },
+      { name: 'seasons', result: seasonsResult },
+      { name: 'tournaments', result: tournamentsResult },
+      { name: 'games', result: gamesResult },
+      { name: 'personnel', result: personnelResult },
+    ];
+
+    for (const { name, result } of results) {
+      if (result.error) {
+        logger.error(`[MigrationService] Error counting ${name}:`, result.error);
+        throw new Error(`Failed to count ${name}: ${result.error.message}`);
+      }
+    }
+
+    return {
+      players: playersResult.count ?? 0,
+      teams: teamsResult.count ?? 0,
+      seasons: seasonsResult.count ?? 0,
+      tournaments: tournamentsResult.count ?? 0,
+      games: gamesResult.count ?? 0,
+      personnel: personnelResult.count ?? 0,
+    };
   };
+
+  return withTimeout(fetchCounts(), CLOUD_COUNT_TIMEOUT_MS, 'getCloudCounts');
 }
 
 /**
@@ -1582,9 +1650,13 @@ function normalizePersonnelArray(
  * - Check failed due to error (checkFailed: true)
  *
  * This prevents silent failures where storage errors are mistaken for "no data".
+ *
+ * @param userId - Optional user ID for user-scoped storage. If not provided,
+ *                 checks global/legacy storage. For cloud mode hydration checks,
+ *                 always pass the authenticated user's ID.
  */
-export async function hasLocalDataToMigrate(): Promise<LocalDataCheckResult> {
-  const localStore = new LocalDataStore();
+export async function hasLocalDataToMigrate(userId?: string): Promise<LocalDataCheckResult> {
+  const localStore = new LocalDataStore(userId);
   try {
     await localStore.initialize();
 

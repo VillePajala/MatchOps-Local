@@ -127,6 +127,19 @@ export interface SyncStatusInfo {
 
   /** True if failed to reset stale operations on startup - some operations may be stuck */
   hasStaleResetFailure?: boolean;
+
+  /**
+   * Whether the cloud executor is connected and ready to sync.
+   * False during initial load (local-first: cloud setup is async/background).
+   * True once cloud store is initialized and executor is set on the engine.
+   */
+  cloudConnected?: boolean;
+
+  /**
+   * Whether sync is manually paused by the user.
+   * When paused, operations are still queued but not processed until resumed.
+   */
+  isPaused?: boolean;
 }
 
 /**

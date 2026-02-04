@@ -2,13 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from '@/i18n';
-import {
-  updateAppSettings,
-  getAppSettings,
-} from '@/utils/appSettings';
+import i18n, { saveLanguagePreference } from '@/i18n';
+// Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
+// and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import InstructionsModal from '@/components/InstructionsModal';
-import logger from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isAndroid } from '@/utils/platform';
 
@@ -48,19 +45,16 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   const isCloudMode = mode === 'cloud' && user;
 
-  useEffect(() => {
-    getAppSettings().then((settings) => {
-      if (settings.language) {
-        setLanguage(settings.language);
-      }
-    });
-  }, []);
+  // Language is already loaded from localStorage by i18n on initialization.
+  // i18n.language is the source of truth - no need to call getAppSettings().
+  // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N).
 
   useEffect(() => {
     i18n.changeLanguage(language);
-    updateAppSettings({ language }).catch((error) => {
-      logger.warn('[StartScreen] Failed to save language preference (non-critical)', { language, error });
-    });
+    // Save to localStorage (i18n loads from here on init).
+    // DO NOT call updateAppSettings here - StartScreen is shown in local mode,
+    // so calling it could cause DataStore initialization conflicts if user switches modes.
+    saveLanguagePreference(language);
   }, [language]);
 
   const isEnglish = language === 'en';

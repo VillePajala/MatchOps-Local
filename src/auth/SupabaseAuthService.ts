@@ -48,6 +48,19 @@ const PASSWORD_MIN_LENGTH = 12;
 
 /**
  * Map Supabase auth events to our AuthState type.
+ *
+ * IMPORTANT: Handle ALL Supabase events explicitly to prevent unexpected sign-outs.
+ * Unknown events should NOT default to signed_out - this causes login loops when
+ * Supabase adds new events or fires events we don't expect.
+ *
+ * Supabase AuthChangeEvent types (as of v2):
+ * - INITIAL_SESSION: First session load (from localStorage)
+ * - SIGNED_IN: User signed in
+ * - SIGNED_OUT: User signed out
+ * - PASSWORD_RECOVERY: User clicked password reset link
+ * - TOKEN_REFRESHED: Access token was refreshed
+ * - USER_UPDATED: User profile was updated
+ * - MFA_CHALLENGE_VERIFIED: MFA challenge completed
  */
 function mapAuthEvent(event: AuthChangeEvent): AuthState {
   switch (event) {
@@ -60,11 +73,34 @@ function mapAuthEvent(event: AuthChangeEvent): AuthState {
       return 'token_refreshed';
     case 'USER_UPDATED':
       return 'user_updated';
+    // Handle additional Supabase events that shouldn't trigger sign-out
+    case 'PASSWORD_RECOVERY':
+      // Password recovery link clicked - user is going through reset flow
+      // Don't sign them out, let the reset flow complete
+      logger.info('[SupabaseAuthService] Password recovery event received');
+      return 'signed_in'; // Treat as signed in to prevent logout during reset
+    case 'MFA_CHALLENGE_VERIFIED':
+      // MFA challenge completed successfully - user is authenticated
+      logger.info('[SupabaseAuthService] MFA challenge verified');
+      return 'signed_in';
     default:
-      // Log unknown events - use signed_out as safer default to force re-verification
-      // This prevents assuming user is authenticated when they might not be
-      logger.warn(`[SupabaseAuthService] Unknown auth event "${event}", defaulting to signed_out for safety`);
-      return 'signed_out';
+      // Log unknown events but DON'T default to signed_out
+      // Defaulting to signed_out causes login loops when Supabase adds new events
+      // Instead, preserve current auth state (don't change anything)
+      logger.warn(`[SupabaseAuthService] Unknown auth event "${event}" - preserving current auth state`);
+      // Track in Sentry for debugging (PWA can't access console)
+      try {
+        Sentry.addBreadcrumb({
+          category: 'auth',
+          message: `Unknown Supabase auth event: ${event}`,
+          level: 'warning',
+        });
+      } catch {
+        // Sentry failure acceptable
+      }
+      // Return 'user_updated' as a neutral state that won't trigger sign-out
+      // The session from the event will determine actual auth state
+      return 'user_updated';
   }
 }
 
@@ -249,7 +285,70 @@ export class SupabaseAuthService implements AuthService {
         this.client = getSupabaseClient();
 
         // Get initial session from localStorage
-        const { data: { session }, error } = await this.client.auth.getSession();
+        // IMPORTANT: getSession() can throw AbortError due to Supabase's internal lock mechanism
+        // (especially on app restart, PWA resume, or rapid sign-in/sign-out cycles).
+        // We catch this specifically to allow initialization to succeed without a session,
+        // enabling fresh sign-in to work.
+        let session = null;
+        let error = null;
+        try {
+          const result = await this.client.auth.getSession();
+          session = result.data?.session;
+          error = result.error;
+        } catch (getSessionError) {
+          // Check if this is an AbortError (from Supabase locks)
+          const isAbort = getSessionError instanceof Error &&
+            (getSessionError.name === 'AbortError' || getSessionError.message?.includes('aborted'));
+          if (isAbort) {
+            logger.warn('[SupabaseAuthService] AbortError during getSession - attempting localStorage fallback');
+
+            // FALLBACK: Try to read session directly from localStorage
+            // Supabase stores sessions with key: sb-<project-ref>-auth-token
+            // This bypasses the failing lock mechanism while still recovering the session
+            try {
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+              // eslint-disable-next-line no-restricted-globals -- Supabase stores auth tokens in localStorage, not IndexedDB
+              if (supabaseUrl && typeof localStorage !== 'undefined') {
+                // Extract project ref from URL (e.g., "abc123" from "https://abc123.supabase.co")
+                const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+                const storageKey = `sb-${projectRef}-auth-token`;
+                // eslint-disable-next-line no-restricted-globals -- Reading Supabase's auth token storage
+                const storedData = localStorage.getItem(storageKey);
+
+                if (storedData) {
+                  const parsed = JSON.parse(storedData);
+                  // Supabase stores session in different formats depending on version
+                  // Check for both direct session and nested currentSession
+                  const recoveredSession = parsed.currentSession || parsed;
+
+                  if (recoveredSession?.access_token && recoveredSession?.user) {
+                    session = recoveredSession;
+                    logger.info('[SupabaseAuthService] Successfully recovered session from localStorage fallback');
+                  }
+                }
+              }
+            } catch (fallbackError) {
+              // Fallback failed - log but continue without session
+              logger.warn('[SupabaseAuthService] localStorage fallback failed:', fallbackError);
+            }
+
+            // If we still don't have a session, track the original error
+            if (!session) {
+              try {
+                Sentry.captureException(getSessionError, {
+                  tags: { flow: 'auth-init-getSession-abort' },
+                  level: 'warning',
+                  extra: { recoverable: true, fallbackAttempted: true },
+                });
+              } catch {
+                // Sentry failure acceptable
+              }
+            }
+          } else {
+            // Re-throw non-AbortErrors
+            throw getSessionError;
+          }
+        }
 
         if (error) {
           // Distinguish between network errors and other session errors
@@ -267,8 +366,20 @@ export class SupabaseAuthService implements AuthService {
           // getSession() only reads from localStorage and doesn't validate with the server.
           // This prevents using stale/revoked sessions that were stored before sign-out failed
           // or from a previous user who deleted their account.
+          //
+          // TIMEOUT: Use 5s timeout to prevent blocking auth init on slow mobile networks.
+          // If validation times out, trust the cached session (better UX than blocking).
+          const VALIDATION_TIMEOUT_MS = 5000;
           try {
-            const { data: { user: validatedUser }, error: userError } = await this.client.auth.getUser();
+            const validationPromise = this.client.auth.getUser();
+            const timeoutPromise = new Promise<never>((_, reject) => {
+              setTimeout(() => reject(new Error('Session validation timeout')), VALIDATION_TIMEOUT_MS);
+            });
+
+            const { data: { user: validatedUser }, error: userError } = await Promise.race([
+              validationPromise,
+              timeoutPromise,
+            ]);
 
             if (userError || !validatedUser) {
               // Session is invalid on server - clear it locally
@@ -288,10 +399,12 @@ export class SupabaseAuthService implements AuthService {
               logger.info('[SupabaseAuthService] Initialized with validated session');
             }
           } catch (validationError) {
-            // Network error during validation - trust the cached session
-            // (user might be offline, and session could still be valid)
-            if (isNetworkError(validationError)) {
-              logger.warn('[SupabaseAuthService] Network error validating session, trusting cached session');
+            // Network error or timeout during validation - trust the cached session
+            // (user might be offline or on slow network, session could still be valid)
+            const isTimeout = validationError instanceof Error && validationError.message === 'Session validation timeout';
+            if (isNetworkError(validationError) || isTimeout) {
+              const reason = isTimeout ? 'timeout' : 'network error';
+              logger.warn(`[SupabaseAuthService] ${reason} validating session, trusting cached session`);
               this.currentSession = transformSession(session);
               this.currentUser = this.currentSession.user;
             } else {
@@ -637,6 +750,18 @@ export class SupabaseAuthService implements AuthService {
     const { data: { subscription } } = this.client!.auth.onAuthStateChange(
       (event, session) => {
         const authState = mapAuthEvent(event);
+
+        // Track auth events in Sentry (PWA can't access console)
+        try {
+          Sentry.addBreadcrumb({
+            category: 'auth',
+            message: `Auth event: ${event} → ${authState}`,
+            level: 'info',
+            data: { hasSession: !!session, userId: session?.user?.id?.slice(0, 8) },
+          });
+        } catch {
+          // Sentry failure acceptable
+        }
 
         // Update internal state
         if (session) {

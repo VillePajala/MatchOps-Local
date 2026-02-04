@@ -41,8 +41,12 @@ export type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'ex
  * - 'cancelled': User cancelled but period not ended
  * - 'grace': Payment failed, in grace period (still has access)
  */
-export function isSubscriptionActive(status: SubscriptionStatus): boolean {
-  return status === 'active' || status === 'cancelled' || status === 'grace';
+export function isSubscriptionActive(_status: SubscriptionStatus): boolean {
+  // TEMPORARY: Always return true - free sync for all users
+  // TODO: Remove this when implementing paid subscriptions (see issue #354)
+  return true;
+  // Original logic:
+  // return _status === 'active' || _status === 'cancelled' || _status === 'grace';
 }
 
 /**
@@ -166,6 +170,28 @@ export async function clearSubscriptionCache(userId: string): Promise<void> {
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [state, setState] = useState<SubscriptionState>(DEFAULT_STATE);
+
+  // Track previous user ID to detect user changes
+  const prevUserIdRef = React.useRef<string | null>(null);
+  const currentUserId = user?.id ?? null;
+
+  // CRITICAL: Reset to loading state immediately when user changes
+  // This must happen synchronously (during render) to prevent race conditions where:
+  // 1. User logs in
+  // 2. page.tsx re-renders with stale subscription state (isLoading: false, isActive: false)
+  // 3. Migration check sees !hasActiveSubscription and sets postLoginCheckComplete(true)
+  // 4. Then fetchSubscription runs but it's too late!
+  // By setting isLoading: true synchronously when user changes, we ensure the migration
+  // check waits for the new subscription data to be fetched.
+  if (currentUserId !== prevUserIdRef.current) {
+    prevUserIdRef.current = currentUserId;
+    // Only set loading if we have a user (login), not when user becomes null (logout)
+    if (currentUserId && state.isLoading === false) {
+      // This is a synchronous state update during render - React handles this specially
+      // It will cause a re-render with the new loading state before effects run
+      setState(prev => ({ ...prev, isLoading: true }));
+    }
+  }
 
   // Fetch subscription from Supabase
   const fetchSubscription = useCallback(async (skipCache = false) => {

@@ -159,6 +159,17 @@ export interface AppState {
    * Used for filtering and organizing games.
    */
   gender?: Gender;
+  /**
+   * ISO timestamp when the game was created.
+   * Optional for backwards compatibility with legacy data.
+   */
+  createdAt?: string;
+  /**
+   * ISO timestamp when the game was last updated.
+   * Optional for backwards compatibility with legacy data.
+   * Used for conflict resolution in multi-device sync.
+   */
+  updatedAt?: string;
 }
 
 export interface SavedGamesCollection {

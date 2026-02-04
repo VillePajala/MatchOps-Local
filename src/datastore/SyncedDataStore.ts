@@ -29,10 +29,32 @@ import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore } from '@/interfaces/DataStore';
 import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
-import { SyncQueue, SyncEngine, getSyncEngine, type SyncOperationExecutor } from '@/sync';
+import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
 import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
+
+/**
+ * Compare two objects excluding timestamps to detect actual data changes.
+ * Used to avoid unnecessary sync operations when data hasn't changed.
+ *
+ * @param a - First object
+ * @param b - Second object
+ * @returns true if the objects are equal (excluding timestamps)
+ */
+function isDataEqual<T extends { createdAt?: string; updatedAt?: string }>(a: T, b: T): boolean {
+  // Strip timestamps for comparison (underscore-prefixed vars are intentionally unused)
+  const { createdAt: _ca, updatedAt: _ua, ...restA } = a;
+  const { createdAt: _cb, updatedAt: _ub, ...restB } = b;
+
+  // JSON.stringify comparison - fast for typical data sizes
+  try {
+    return JSON.stringify(restA) === JSON.stringify(restB);
+  } catch {
+    // If serialization fails (circular ref), assume different
+    return false;
+  }
+}
 
 /**
  * Error info passed to queue error listeners
@@ -68,6 +90,13 @@ export class SyncedDataStore implements DataStore {
   private queueErrorListeners: Set<SyncQueueErrorListener> = new Set();
 
   /**
+   * Reference to the remote (cloud) DataStore for operations that need direct cloud access.
+   * Set by the factory after cloud store is initialized.
+   * Used by clearAllUserData() to clear both local AND cloud data.
+   */
+  private remoteStore: DataStore | null = null;
+
+  /**
    * User ID for user-scoped storage.
    * If set, the underlying LocalDataStore uses a user-specific IndexedDB database.
    */
@@ -83,7 +112,10 @@ export class SyncedDataStore implements DataStore {
   constructor(userId?: string) {
     this.userId = userId;
     this.localStore = new LocalDataStore(userId);
-    this.syncQueue = new SyncQueue();
+    // Pass userId to SyncQueue for user-scoped queue database.
+    // This prevents stale operations from other users appearing in the queue.
+    this.syncQueue = new SyncQueue(userId);
+    logger.info('[SyncedDataStore] Created', { userId: userId || '(none)' });
   }
 
   // ==========================================================================
@@ -115,18 +147,31 @@ export class SyncedDataStore implements DataStore {
   }
 
   async close(): Promise<void> {
-    logger.info('[SyncedDataStore] Closing');
+    const closeStartTime = Date.now();
+    logger.info('[SyncedDataStore] Closing', { userId: this.userId });
 
-    // Dispose the sync engine (waits for in-flight ops, clears listeners)
+    // CRITICAL: Reset the sync engine singleton so a new engine is created for the next user.
+    // Without this, the new SyncedDataStore's getSyncEngine() would return the OLD
+    // instance that still references the OLD SyncQueue, causing:
+    // - User B's operations go to SyncQueue B
+    // - But SyncEngine processes SyncQueue A (closed/empty)
+    // - Result: operations never sync
+    // Note: resetSyncEngine() calls dispose() internally, which waits for in-flight ops
+    // and clears listeners.
     if (this.syncEngine) {
-      await this.syncEngine.dispose();
+      logger.info('[SyncedDataStore] Resetting sync engine...');
+      await resetSyncEngine();
+      this.syncEngine = null;
+      logger.info('[SyncedDataStore] Sync engine reset', { elapsedMs: Date.now() - closeStartTime });
     }
 
     // Clear queue error listeners to prevent memory leaks on mode switch
     this.queueErrorListeners.clear();
 
     // Close local store
+    logger.info('[SyncedDataStore] Closing local store...');
     await this.localStore.close();
+    logger.info('[SyncedDataStore] Local store closed', { elapsedMs: Date.now() - closeStartTime });
 
     // CRITICAL: Clear the sync queue before closing to prevent stale operations
     // from being processed when a new user signs in. Without this, operations
@@ -135,13 +180,15 @@ export class SyncedDataStore implements DataStore {
     // 2. Potential data leakage (User A's data synced to User B's cloud storage)
     // 3. "Cannot close DataStore: X pending sync operation(s)" blocking user transitions
     // See: MATCHOPS-LOCAL-23 (186+ settings sync failures)
+    logger.info('[SyncedDataStore] Clearing sync queue...');
     await this.syncQueue.clear();
+    logger.info('[SyncedDataStore] Sync queue cleared', { elapsedMs: Date.now() - closeStartTime });
 
     // Close sync queue (releases IndexedDB connection)
     await this.syncQueue.close();
 
     this.initialized = false;
-    logger.info('[SyncedDataStore] Closed');
+    logger.info('[SyncedDataStore] Closed', { totalDurationMs: Date.now() - closeStartTime });
   }
 
   getBackendName(): string {
@@ -176,7 +223,30 @@ export class SyncedDataStore implements DataStore {
       logger.warn('[SyncedDataStore] Cannot set executor - sync engine not initialized');
       return;
     }
+    logger.info('[SyncedDataStore] Setting executor on sync engine');
     this.syncEngine.setExecutor(executor);
+  }
+
+  /**
+   * Set the remote (cloud) DataStore reference.
+   * Called by the factory after cloud store is available.
+   * This allows clearAllUserData() to clear both local AND cloud data.
+   *
+   * @param store - The SupabaseDataStore instance for direct cloud operations
+   */
+  setRemoteStore(store: DataStore): void {
+    this.remoteStore = store;
+    logger.info('[SyncedDataStore] Remote store set');
+  }
+
+  /**
+   * Get the underlying local store for direct writes.
+   * Used by conflict resolution to update local without re-queueing for sync.
+   *
+   * @returns The LocalDataStore instance
+   */
+  getLocalStore(): DataStore {
+    return this.localStore;
   }
 
   /**
@@ -188,6 +258,15 @@ export class SyncedDataStore implements DataStore {
       logger.warn('[SyncedDataStore] Cannot start sync - sync engine not initialized');
       return;
     }
+    // DIAGNOSTIC: Log queue state before starting to help debug sync issues
+    this.syncQueue.getStats().then(stats => {
+      logger.info('[SyncedDataStore] Starting sync engine', {
+        userId: this.userId || '(none)',
+        queueStats: stats,
+      });
+    }).catch(e => {
+      logger.warn('[SyncedDataStore] Could not get queue stats before start:', e);
+    });
     this.syncEngine.start();
   }
 
@@ -213,6 +292,7 @@ export class SyncedDataStore implements DataStore {
         failedCount: 0,
         lastSyncedAt: null,
         isOnline: false,
+        cloudConnected: false,
       };
     }
     return this.syncEngine.getStatus();
@@ -281,6 +361,18 @@ export class SyncedDataStore implements DataStore {
     operation: SyncOperationType,
     data: unknown
   ): Promise<void> {
+    // Guard: Skip queueing if not initialized (e.g., during startup race conditions)
+    // This prevents "SyncQueue not initialized" errors when saves happen before
+    // the DataStore is fully ready. The local write still succeeds, but won't sync.
+    if (!this.initialized) {
+      logger.warn('[SyncedDataStore] queueSync called before initialization, skipping', {
+        entityType,
+        entityId,
+        operation,
+      });
+      return;
+    }
+
     try {
       await this.syncQueue.enqueue({
         entityType,
@@ -574,6 +666,25 @@ export class SyncedDataStore implements DataStore {
   }
 
   async saveGame(id: string, game: AppState): Promise<AppState> {
+    // Get existing game to detect if data actually changed.
+    // This prevents unnecessary saves AND preserves correct timestamps for conflict resolution.
+    const existing = await this.localStore.getGameById(id);
+
+    // If data is unchanged (excluding timestamps), skip save entirely.
+    // This is critical because:
+    // 1. LocalDataStore.saveGame() always updates updatedAt to "now"
+    // 2. If we save unchanged data, local gets artificially newer timestamp
+    // 3. Future conflict resolution would incorrectly favor local (newer timestamp wins)
+    // 4. By skipping, we preserve the original timestamp from cloud/last real change
+    if (existing && isDataEqual(game, existing)) {
+      logger.debug('[SyncedDataStore] Skipping save - game data unchanged (preserving timestamp)', {
+        gameId: id.slice(0, 20),
+        existingUpdatedAt: existing.updatedAt,
+      });
+      return existing; // Return existing game with correct timestamp
+    }
+
+    // Data changed (or new game) - save and queue for sync
     const saved = await this.localStore.saveGame(id, game);
     await this.queueSync('game', id, 'update', saved);
     return saved;
@@ -652,11 +763,34 @@ export class SyncedDataStore implements DataStore {
   }
 
   async saveSettings(settings: AppSettings): Promise<void> {
+    // Get existing settings to detect if data actually changed
+    const existing = await this.localStore.getSettings();
+
+    // Skip save if data unchanged - preserves timestamp for correct conflict resolution
+    if (isDataEqual(settings, existing)) {
+      logger.debug('[SyncedDataStore] Skipping save - settings unchanged (preserving timestamp)');
+      return;
+    }
+
+    // Data changed - save and queue for sync
     await this.localStore.saveSettings(settings);
     await this.queueSync('settings', 'app', 'update', settings);
   }
 
   async updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
+    // Get existing settings to detect if data actually changed
+    const existing = await this.localStore.getSettings();
+
+    // Apply updates to check if result would be different
+    const merged = { ...existing, ...updates };
+
+    // Skip save if data unchanged - preserves timestamp for correct conflict resolution
+    if (isDataEqual(merged, existing)) {
+      logger.debug('[SyncedDataStore] Skipping save - settings unchanged (preserving timestamp)');
+      return existing;
+    }
+
+    // Data changed - save and queue for sync
     const updated = await this.localStore.updateSettings(updates);
     await this.queueSync('settings', 'app', 'update', updated);
     return updated;
@@ -787,9 +921,17 @@ export class SyncedDataStore implements DataStore {
     // Clear the sync queue (pending operations will be discarded)
     await this.syncQueue.clear();
 
+    // Clear cloud data FIRST (while we still have auth/connection)
+    // This ensures cloud data is deleted even if local clear fails
+    if (this.remoteStore) {
+      logger.info('[SyncedDataStore] Clearing remote (cloud) data...');
+      await this.remoteStore.clearAllUserData();
+      logger.info('[SyncedDataStore] Remote data cleared');
+    }
+
     // Clear local data
     await this.localStore.clearAllUserData();
 
-    logger.info('[SyncedDataStore] All user data cleared');
+    logger.info('[SyncedDataStore] All user data cleared (local and cloud)');
   }
 }

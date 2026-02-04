@@ -1,7 +1,6 @@
 import {
   LAST_HOME_TEAM_NAME_KEY,
   INSTALL_PROMPT_DISMISSED_KEY,
-  HAS_SEEN_FIRST_GAME_GUIDE_KEY,
 } from '@/config/storageKeys';
 import type { AppSettings } from './appSettings';
 import type { DataStore } from '@/interfaces/DataStore';
@@ -120,8 +119,6 @@ const {
   resetAppSettings,
   getInstallPromptDismissedTime,
   setInstallPromptDismissed,
-  getHasSeenFirstGameGuide,
-  setHasSeenFirstGameGuide,
 } = appSettingsModule;
 
 // Setup mock implementations - refresh after each test
@@ -562,71 +559,6 @@ describe('App Settings Utilities', () => {
       mockSetStorageItem.mockRejectedValue(new Error('Storage error'));
 
       await expect(setInstallPromptDismissed()).resolves.toBeUndefined();
-    });
-  });
-
-  describe('getHasSeenFirstGameGuide', () => {
-    it('should return false when nothing is stored', async () => {
-      mockGetStorageItem.mockResolvedValue(null);
-
-      const result = await getHasSeenFirstGameGuide();
-
-      expect(mockGetStorageItem).toHaveBeenCalledWith(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
-      expect(result).toBe(false);
-    });
-
-    it('should return true when "true" is stored', async () => {
-      mockGetStorageItem.mockResolvedValue('true');
-
-      const result = await getHasSeenFirstGameGuide();
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false for any value other than "true"', async () => {
-      mockGetStorageItem.mockResolvedValue('false');
-      expect(await getHasSeenFirstGameGuide()).toBe(false);
-
-      mockGetStorageItem.mockResolvedValue('1');
-      expect(await getHasSeenFirstGameGuide()).toBe(false);
-
-      mockGetStorageItem.mockResolvedValue('yes');
-      expect(await getHasSeenFirstGameGuide()).toBe(false);
-    });
-
-    it('should return false on storage errors', async () => {
-      mockGetStorageItem.mockRejectedValue(new Error('Storage error'));
-
-      const result = await getHasSeenFirstGameGuide();
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('setHasSeenFirstGameGuide', () => {
-    it('should save "true" to storage when setting to true', async () => {
-      await setHasSeenFirstGameGuide(true);
-
-      expect(mockSetStorageItem).toHaveBeenCalledWith(HAS_SEEN_FIRST_GAME_GUIDE_KEY, 'true');
-    });
-
-    it('should remove storage key when setting to false', async () => {
-      await setHasSeenFirstGameGuide(false);
-
-      expect(mockRemoveStorageItem).toHaveBeenCalledWith(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
-    });
-
-    it('should not throw on storage errors when setting true', async () => {
-      mockSetStorageItem.mockRejectedValue(new Error('Storage error'));
-
-      await expect(setHasSeenFirstGameGuide(true)).resolves.toBeUndefined();
-    });
-
-    it('should not throw on storage errors when setting false', async () => {
-      mockRemoveStorageItem.mockRejectedValue(new Error('Storage error'));
-
-      await expect(setHasSeenFirstGameGuide(false)).resolves.toBeUndefined();
     });
   });
 

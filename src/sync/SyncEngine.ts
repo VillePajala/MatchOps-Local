@@ -20,6 +20,7 @@ import {
   SyncError,
   SyncErrorCode,
 } from './types';
+import { AuthError } from '@/interfaces/DataStoreErrors';
 
 /**
  * Callback type for sync operations.
@@ -51,6 +52,7 @@ export class SyncEngine {
 
   private isRunning = false;
   private isSyncing = false;
+  private isPaused = false; // User-initiated pause - operations queued but not processed
   private isResettingStale = false; // Blocks processing until stale reset completes
   private staleResetFailed = false; // True if stale reset failed - operations may be stuck
   private staleResetRetryCount = 0; // Counter for periodic retry attempts
@@ -82,10 +84,22 @@ export class SyncEngine {
 
   /**
    * Set the executor function that performs actual cloud sync.
-   * Must be called before start().
+   * Can be called before or after start().
+   * If engine is already running, triggers immediate queue processing.
    */
   setExecutor(executor: SyncOperationExecutor): void {
+    const hadExecutor = this.executor !== null;
     this.executor = executor;
+    logger.info('[SyncEngine] Executor set', { hadExecutor, isRunning: this.isRunning });
+
+    // If engine is already running and we just got an executor, process queue immediately
+    // This handles the case where start() was called before setExecutor() (background cloud init)
+    if (this.isRunning && !hadExecutor) {
+      logger.info('[SyncEngine] Executor now available, triggering queue processing');
+      this.doProcessQueue().catch((e) => {
+        logger.error('[SyncEngine] Error processing queue after executor set:', e);
+      });
+    }
   }
 
   /**
@@ -98,7 +112,11 @@ export class SyncEngine {
       return;
     }
 
-    logger.info('[SyncEngine] Starting sync engine');
+    logger.info('[SyncEngine] Starting sync engine', {
+      hasExecutor: this.executor !== null,
+      isOnline: this.isOnline,
+      queueInitialized: this.queue?.isInitialized() ?? false,
+    });
     this.isRunning = true;
 
     // Refresh online state - browser may have come online after construction
@@ -267,20 +285,30 @@ export class SyncEngine {
   /**
    * Trigger an immediate sync attempt.
    * Use this after enqueuing an operation to sync sooner than the next interval.
+   * Always emits status change so UI reflects pending operations immediately.
    */
   nudge(): void {
+    // ALWAYS emit status change when nudged - this ensures UI shows pending
+    // operations immediately, even if we can't process them right now
+    this.emitStatusChange();
+
     if (!this.isRunning) {
-      logger.debug('[SyncEngine] Not running, nudge ignored');
+      logger.debug('[SyncEngine] Not running, nudge ignored (status emitted)');
+      return;
+    }
+
+    if (this.isPaused) {
+      logger.debug('[SyncEngine] Paused, nudge ignored (status emitted)');
       return;
     }
 
     if (this.isResettingStale) {
-      logger.debug('[SyncEngine] Stale reset in progress, nudge ignored');
+      logger.debug('[SyncEngine] Stale reset in progress, nudge ignored (status emitted)');
       return;
     }
 
     if (!this.isOnline) {
-      logger.debug('[SyncEngine] Offline, nudge ignored');
+      logger.debug('[SyncEngine] Offline, nudge ignored (status emitted)');
       return;
     }
 
@@ -289,9 +317,68 @@ export class SyncEngine {
   }
 
   /**
+   * Pause sync processing. Operations continue to be queued but won't be
+   * processed until resume() is called. Use for user-initiated pause.
+   */
+  pause(): void {
+    if (this.isPaused) {
+      logger.debug('[SyncEngine] Already paused');
+      return;
+    }
+
+    logger.info('[SyncEngine] Pausing sync');
+    this.isPaused = true;
+    this.emitStatusChange();
+  }
+
+  /**
+   * Resume sync processing after a pause.
+   * Immediately processes any queued operations.
+   */
+  resume(): void {
+    if (!this.isPaused) {
+      logger.debug('[SyncEngine] Not paused');
+      return;
+    }
+
+    logger.info('[SyncEngine] Resuming sync');
+    this.isPaused = false;
+    this.emitStatusChange();
+
+    // Process queue immediately if conditions allow
+    if (this.isRunning && this.isOnline && !this.isResettingStale) {
+      this.doProcessQueue();
+    }
+  }
+
+  /**
+   * Check if sync is currently paused.
+   */
+  getIsPaused(): boolean {
+    return this.isPaused;
+  }
+
+  /**
    * Get the current sync status.
+   * Returns a safe default if queue is not yet initialized.
    */
   async getStatus(): Promise<SyncStatusInfo> {
+    // Check if queue is initialized to avoid throwing during early lifecycle
+    // (e.g., when doEmitStatus is called via queueMicrotask during engine creation)
+    if (!this.queue.isInitialized()) {
+      logger.debug('[SyncEngine] getStatus called before queue initialized, returning initializing state');
+      return {
+        state: 'synced', // Safe default - no operations yet
+        pendingCount: 0,
+        failedCount: 0,
+        lastSyncedAt: this.lastSyncedAt,
+        isOnline: this.isOnline,
+        hasStaleResetFailure: false,
+        cloudConnected: this.executor !== null,
+        isPaused: this.isPaused,
+      };
+    }
+
     const stats = await this.queue.getStats();
 
     let state: SyncStatusState;
@@ -314,14 +401,32 @@ export class SyncEngine {
       lastSyncedAt: this.lastSyncedAt,
       isOnline: this.isOnline,
       hasStaleResetFailure: this.staleResetFailed,
+      cloudConnected: this.executor !== null,
+      isPaused: this.isPaused,
     };
   }
 
   /**
    * Subscribe to status changes.
+   * Immediately emits current status to new subscriber to prevent stale state.
    */
   onStatusChange(listener: StatusChangeListener): () => void {
     this.statusListeners.add(listener);
+
+    // Emit current status immediately to new subscriber
+    // This prevents race condition where subscriber gets initial status via getStatus(),
+    // then status changes before subscription is active, leaving subscriber with stale state
+    this.getStatus()
+      .then((status) => {
+        // Check listener is still subscribed (might have unsubscribed synchronously)
+        if (this.statusListeners.has(listener)) {
+          listener(status);
+        }
+      })
+      .catch((e) => {
+        logger.warn('[SyncEngine] Failed to emit initial status to new subscriber:', e);
+      });
+
     return () => this.statusListeners.delete(listener);
   }
 
@@ -412,6 +517,21 @@ export class SyncEngine {
    * Use this when user wants immediate sync without waiting for backoff.
    */
   async forceRetryAll(): Promise<void> {
+    // DIAGNOSTIC: Log full engine state to help diagnose sync issues
+    logger.info('[SyncEngine] Force retry all - ENGINE STATE', {
+      isRunning: this.isRunning,
+      isSyncing: this.isSyncing,
+      isPaused: this.isPaused,
+      isResettingStale: this.isResettingStale,
+      staleResetFailed: this.staleResetFailed,
+      isDisposing: this.isDisposing,
+      isOnline: this.isOnline,
+      hasExecutor: this.executor !== null,
+      hasQueue: this.queue !== null,
+      queueInitialized: this.queue?.isInitialized() ?? false,
+      hasInterval: this.intervalId !== null,
+    });
+
     // First, get all operations for diagnostics
     const allOps = await this.queue.getAllOperations();
     logger.info('[SyncEngine] Force retry all - current queue state', {
@@ -435,7 +555,10 @@ export class SyncEngine {
     this.emitStatusChange();
 
     // Trigger immediate processing
-    if ((failedCount > 0 || pendingCount > 0) && this.isRunning) {
+    // ALWAYS call doProcessQueue when user clicks "Sync Now", not just when resets happen.
+    // New operations have retryCount=0 and don't get counted by forceRetryPending(),
+    // but they still need to be processed.
+    if (this.isRunning) {
       this.doProcessQueue().catch((e) => {
         logger.error('[SyncEngine] Error processing queue after force retry:', e);
         try {
@@ -481,6 +604,32 @@ export class SyncEngine {
   };
 
   private async doProcessQueue(): Promise<void> {
+    // DIAGNOSTIC: Log entry point to track why processing might not happen
+    // INFO level logging for production visibility - helps diagnose sync issues
+    logger.info('[SyncEngine] doProcessQueue called', {
+      isRunning: this.isRunning,
+      isDisposing: this.isDisposing,
+      isPaused: this.isPaused,
+      isResettingStale: this.isResettingStale,
+      staleResetFailed: this.staleResetFailed,
+      isSyncing: this.isSyncing,
+      isOnline: this.isOnline,
+      hasExecutor: this.executor !== null,
+      queueInitialized: this.queue?.isInitialized() ?? false,
+    });
+
+    // Block processing if engine is being disposed (prevents race with interval)
+    if (this.isDisposing) {
+      logger.debug('[SyncEngine] Disposing, skipping queue processing');
+      return;
+    }
+
+    // Block processing if user has paused sync
+    if (this.isPaused) {
+      logger.debug('[SyncEngine] Paused by user, skipping queue processing');
+      return;
+    }
+
     // Block processing until stale reset completes (prevents race with interval)
     if (this.isResettingStale) {
       logger.debug('[SyncEngine] Waiting for stale reset to complete, skipping');
@@ -540,6 +689,12 @@ export class SyncEngine {
       return;
     }
 
+    // Check queue is initialized (guards against race condition during dispose)
+    if (!this.queue.isInitialized()) {
+      logger.warn('[SyncEngine] Queue not initialized, skipping sync');
+      return;
+    }
+
     this.isSyncing = true;
     this.emitStatusChange();
 
@@ -548,16 +703,55 @@ export class SyncEngine {
       const pending = await this.queue.getPending(this.config.batchSize);
 
       if (pending.length === 0) {
-        logger.debug('[SyncEngine] No pending operations');
+        // DIAGNOSTIC: Check why no operations are ready when we expected some
+        // This helps debug "sync spinning but nothing happens" issues
+        const stats = await this.queue.getStats();
+        if (stats.total > 0) {
+          // There ARE operations, but none are ready - check why
+          const allOps = await this.queue.getAllOperations();
+          const now = Date.now();
+          logger.info('[SyncEngine] No pending operations ready, but queue is not empty', {
+            total: stats.total,
+            pending: stats.pending,
+            syncing: stats.syncing,
+            failed: stats.failed,
+            operations: allOps.map(op => ({
+              id: op.id.slice(0, 8),
+              entityType: op.entityType,
+              status: op.status,
+              retryCount: op.retryCount,
+              lastAttempt: op.lastAttempt,
+              // Show time until ready if in backoff
+              ...(op.status === 'pending' && op.retryCount > 0 && op.lastAttempt ? {
+                backoffRemaining: Math.max(0, Math.round((op.lastAttempt + Math.min(1000 * Math.pow(2, op.retryCount - 1), 300000) - now) / 1000)) + 's',
+              } : {}),
+            })),
+          });
+        } else {
+          logger.debug('[SyncEngine] No pending operations (queue empty)');
+        }
         this.lastSyncedAt = Date.now();
         return;
       }
 
-      logger.debug('[SyncEngine] Processing batch', { count: pending.length });
+      logger.info('[SyncEngine] Processing batch', {
+        count: pending.length,
+        operations: pending.map(op => ({
+          id: op.id.slice(0, 8),
+          entityType: op.entityType,
+          operation: op.operation,
+        })),
+      });
 
       // Process each operation - executor is guaranteed non-null by guard above
       const executor = this.executor;
       for (const op of pending) {
+        logger.info('[SyncEngine] Starting operation', {
+          id: op.id.slice(0, 8),
+          entityType: op.entityType,
+          entityId: op.entityId.slice(0, 8),
+          operation: op.operation,
+        });
         await this.processOperation(op, executor);
 
         // Emit status change after each operation
@@ -585,6 +779,41 @@ export class SyncEngine {
     } finally {
       this.isSyncing = false;
       this.emitStatusChange();
+
+      // Check if new operations were queued during processing.
+      // This handles the case where nudge() was called while isSyncing=true,
+      // which would have been skipped. Without this, those operations would
+      // wait for the next interval (up to 30 seconds).
+      if (
+        this.isRunning &&
+        this.isOnline &&
+        !this.isPaused &&
+        !this.isDisposing &&
+        !this.isResettingStale &&
+        !this.staleResetFailed
+      ) {
+        // Use queueMicrotask to:
+        // 1. Avoid deep recursion / stack overflow
+        // 2. Allow event loop to process other tasks
+        // 3. Ensure isSyncing=false is visible before re-check
+        queueMicrotask(() => {
+          this.queue
+            .getStats()
+            .then((stats) => {
+              if (stats.pending > 0) {
+                logger.debug('[SyncEngine] Operations queued during processing, re-processing', {
+                  pending: stats.pending,
+                });
+                this.doProcessQueue().catch((e) => {
+                  logger.error('[SyncEngine] Error re-processing queue:', e);
+                });
+              }
+            })
+            .catch(() => {
+              // Ignore stats errors in re-check - not critical
+            });
+        });
+      }
     }
   }
 
@@ -601,17 +830,33 @@ export class SyncEngine {
       markedSyncing = true;
 
       // Execute the sync with timeout to prevent hung operations blocking all syncing
-      const SYNC_TIMEOUT_MS = 30000; // 30 seconds per operation
-      logger.debug(`[SyncEngine] Syncing: ${opInfo}`);
+      // Note: 90 seconds needed for large games with many events/players/related data
+      // and to account for potential cold starts on first request after inactivity.
+      // TODO: Future improvement - use AbortController to actually abort the HTTP request
+      // when timeout fires. Currently the request continues in background, which means:
+      // - If it completes after timeout, data is saved but SyncEngine thinks it failed
+      // - Retry then succeeds quickly because data already exists (upsert behavior)
+      // This is safe for data integrity but causes misleading error messages.
+      const SYNC_TIMEOUT_MS = 90000; // 90 seconds per operation
+      const execStartTime = Date.now();
+      logger.info(`[SyncEngine] Marked syncing, executing: ${opInfo}`, {
+        operationId: op.id.slice(0, 8),
+        dataSize: op.data ? JSON.stringify(op.data).length : 0,
+      });
 
       // Use a timer ID to clear the timeout after executor completes (prevents memory leak)
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
       const timeoutPromise = new Promise<never>((_resolve, reject) => {
-        timeoutId = setTimeout(() => reject(new Error(`Sync operation timed out after ${SYNC_TIMEOUT_MS}ms`)), SYNC_TIMEOUT_MS);
+        timeoutId = setTimeout(() => {
+          const elapsed = Date.now() - execStartTime;
+          reject(new Error(`Sync operation timed out after ${elapsed}ms (limit: ${SYNC_TIMEOUT_MS}ms)`));
+        }, SYNC_TIMEOUT_MS);
       });
 
       try {
         await Promise.race([executor(op), timeoutPromise]);
+        const execDuration = Date.now() - execStartTime;
+        logger.info(`[SyncEngine] Executor completed in ${execDuration}ms: ${opInfo}`);
       } finally {
         // Clear timeout to prevent memory leak when executor completes before timeout
         if (timeoutId !== null) {
@@ -621,7 +866,7 @@ export class SyncEngine {
 
       // Mark as completed (removes from queue)
       await this.queue.markCompleted(op.id);
-      logger.debug(`[SyncEngine] Completed: ${opInfo}`);
+      logger.info(`[SyncEngine] Completed successfully: ${opInfo}`);
 
       // Emit completion event
       for (const listener of this.completeListeners) {
@@ -647,15 +892,63 @@ export class SyncEngine {
       // If we never marked as syncing, the operation wasn't ours to process
       // This can happen if another tab/process completed it, or it was deleted
       if (!markedSyncing) {
-        logger.debug(`[SyncEngine] Skipping ${opInfo} - could not mark as syncing (may be processed elsewhere): ${errorMessage}`);
+        logger.info(`[SyncEngine] Skipping ${opInfo} - could not mark as syncing (may be processed elsewhere): ${errorMessage}`);
         return; // Don't emit failure events for operations we never owned
       }
 
       // AbortError is expected during page navigation, hot reload, or user-initiated cancellation
-      // Log at debug level instead of warn/error to reduce noise
+      // CRITICAL FIX: Don't count AbortError as a retry failure - just reset to pending.
+      // The request was cancelled before completion, so it should be retried fresh.
+      // This prevents operations from getting stuck when users navigate/refresh.
+      // See Sentry MATCHOPS-LOCAL-24, MATCHOPS-LOCAL-1E
       if (isAbortError) {
-        logger.debug(`[SyncEngine] Aborted: ${opInfo} (expected during navigation/reload)`);
-      } else {
+        logger.info(`[SyncEngine] Aborted: ${opInfo} (expected during navigation/reload) - resetting to pending`);
+        try {
+          // Reset to pending WITHOUT incrementing retry count
+          // AbortError means the request was cancelled, not that it failed
+          // Use incrementRetry: false so the operation gets a fresh retry
+          const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
+          if (reset) {
+            logger.info(`[SyncEngine] Successfully reset aborted operation ${opInfo} to pending`);
+          } else {
+            // Operation not found - may have been deleted during abort, that's fine
+            logger.info(`[SyncEngine] Aborted operation ${opInfo} not found (may be already processed)`);
+          }
+        } catch (resetError) {
+          // Best effort - if reset fails, the stale syncing recovery will catch it on next start
+          logger.info(`[SyncEngine] Could not reset aborted operation ${opInfo}:`, resetError);
+        }
+        // Don't emit failure events for aborts - they're not real failures
+        return;
+      }
+
+      // AuthError is expected during app startup when sync engine starts before auth is ready
+      // CRITICAL FIX: Don't count AuthError as a retry failure - reset to pending without penalty.
+      // The session will be established soon, so the operation should retry fresh.
+      // This prevents operations from failing permanently due to auth timing issues.
+      // See Sentry MATCHOPS-LOCAL-3J
+      const isAuthError = error instanceof AuthError ||
+        (error instanceof Error && error.name === 'AuthError');
+      if (isAuthError) {
+        logger.info(`[SyncEngine] Auth not ready: ${opInfo} - resetting to pending (will retry when auth is available)`);
+        try {
+          // Reset to pending WITHOUT incrementing retry count
+          // Auth timing issues are not real failures - session just isn't ready yet
+          const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
+          if (reset) {
+            logger.info(`[SyncEngine] Successfully reset auth-blocked operation ${opInfo} to pending`);
+          } else {
+            logger.info(`[SyncEngine] Auth-blocked operation ${opInfo} not found (may be already processed)`);
+          }
+        } catch (resetError) {
+          logger.info(`[SyncEngine] Could not reset auth-blocked operation ${opInfo}:`, resetError);
+        }
+        // Don't emit failure events for auth timing issues - they're temporary
+        return;
+      }
+
+      // All other errors are real failures
+      {
         logger.warn(`[SyncEngine] Failed: ${opInfo} - ${errorMessage}`);
 
         // DIAGNOSTIC: Log full operation details to help identify why specific operations fail
@@ -799,6 +1092,14 @@ export class SyncEngine {
 let syncEngineInstance: SyncEngine | null = null;
 
 /**
+ * Check if the SyncEngine singleton has been initialized.
+ * Use this to guard operations that require the engine without throwing.
+ */
+export function isSyncEngineInitialized(): boolean {
+  return syncEngineInstance !== null;
+}
+
+/**
  * Get or create the singleton SyncEngine instance.
  */
 export function getSyncEngine(queue?: SyncQueue): SyncEngine {
@@ -815,12 +1116,16 @@ export function getSyncEngine(queue?: SyncQueue): SyncEngine {
 }
 
 /**
- * Reset the singleton (for testing).
+ * Reset the singleton (for testing and user transitions).
  * Calls dispose() to stop engine AND clear all listeners, preventing memory leaks.
  */
 export async function resetSyncEngine(): Promise<void> {
   if (syncEngineInstance) {
-    await syncEngineInstance.dispose();
+    // CRITICAL: Null the singleton FIRST, then dispose.
+    // This prevents race conditions where getSyncEngine() is called during disposal
+    // and returns the old (disposing) engine with a closed queue.
+    const engineToDispose = syncEngineInstance;
     syncEngineInstance = null;
+    await engineToDispose.dispose();
   }
 }

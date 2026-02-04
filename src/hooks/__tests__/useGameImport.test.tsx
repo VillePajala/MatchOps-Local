@@ -150,7 +150,8 @@ describe('useGameImport', () => {
       expect(importGamesWithMapping).toHaveBeenCalledWith(
         jsonData,
         false,
-        expect.any(Function)
+        expect.any(Function),
+        TEST_USER_ID
       );
     });
 
@@ -172,7 +173,8 @@ describe('useGameImport', () => {
       expect(importGamesWithMapping).toHaveBeenCalledWith(
         jsonData,
         true,
-        expect.any(Function)
+        expect.any(Function),
+        TEST_USER_ID
       );
     });
 
@@ -238,7 +240,8 @@ describe('useGameImport', () => {
       expect(importGamesFromFile).toHaveBeenCalledWith(
         mockFile,
         false,
-        expect.any(Function)
+        expect.any(Function),
+        TEST_USER_ID
       );
       // Wait for state update to propagate
       await waitFor(() => {
@@ -264,7 +267,8 @@ describe('useGameImport', () => {
       expect(importGamesFromFile).toHaveBeenCalledWith(
         mockFile,
         true,
-        expect.any(Function)
+        expect.any(Function),
+        TEST_USER_ID
       );
     });
 

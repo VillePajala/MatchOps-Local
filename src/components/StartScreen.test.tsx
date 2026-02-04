@@ -11,11 +11,11 @@ jest.mock('@/i18n', () => ({
     on: jest.fn(),
     off: jest.fn(),
   },
+  saveLanguagePreference: jest.fn(),
 }));
 
 jest.mock('@/utils/appSettings', () => ({
   __esModule: true,
-  getAppSettings: jest.fn().mockResolvedValue({ language: 'en' }),
   updateAppSettings: jest.fn().mockResolvedValue({}),
 }));
 

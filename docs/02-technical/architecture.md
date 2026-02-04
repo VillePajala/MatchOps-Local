@@ -72,7 +72,8 @@ The app supports two operating modes, selectable at first launch:
 - **Factory**: `src/datastore/factory.ts` — Mode-aware singleton that returns the correct implementation
 - **Migration Service**: Bidirectional data transfer between local and cloud modes
 
-See **[Dual-Backend Architecture](./architecture/dual-backend-architecture.md)** for complete details.
+See **[Dual-Backend Architecture](./architecture/dual-backend-architecture.md)** for design details.
+See **[Auth/Data/Sync Runtime Architecture](./architecture/auth-data-sync-architecture.md)** for implementation details, debugging guide, and known issues.
 
 ## Technology Stack & Rationale
 

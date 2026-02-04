@@ -120,6 +120,7 @@
     "saving": "Tallennetaan...",
     "deleting": "Poistetaan...",
     "loading": "Ladataan...",
+    "moreOptions": "Lisää vaihtoehtoja",
     "closeMenu": "Sulje valikko",
     "assist": "Syöttö",
     "assistsShort": "S",
@@ -284,7 +285,9 @@
     "subIntervalLabel": "Vaihdon Aikaväli:",
     "disabledWhenPaused": "Pois käytöstä tauon aikana",
     "periodShort": "E",
-    "fullTime": "LP"
+    "fullTime": "LP",
+    "decreaseInterval": "Lyhennä aikaväliä",
+    "increaseInterval": "Pidennä aikaväliä"
   },
   "instructionsModal": {
     "title": "Näin se toimii",
@@ -635,6 +638,7 @@
   },
   "loadGameModal": {
     "title": "Tallennetut pelit",
+    "gameActions": "Pelitoiminnot",
     "gamesCount": "Pelejä",
     "gameSingular": "Peli",
     "gamePlural": "Peliä",
@@ -698,7 +702,15 @@
   },
   "errors": {
     "failedToSaveDrawingMode": "Piirtotilan asetuksen tallennus epäonnistui. Muutokset eivät välttämättä pysy.",
-    "failedToLoadData": "Tietojen lataus epäonnistui. Osa toiminnoista ei välttämättä ole käytettävissä."
+    "failedToLoadData": "Tietojen lataus epäonnistui. Osa toiminnoista ei välttämättä ole käytettävissä.",
+    "somethingWentWrong": "Jotain meni pieleen",
+    "unexpectedError": "Odottamaton virhe tapahtui. Tämä on kirjattu ja tutkitaan.",
+    "tryAgain": "Yritä uudelleen",
+    "refreshPage": "Päivitä sivu",
+    "showErrorDetails": "Näytä virhetiedot (vain kehityksessä)",
+    "soccerFieldCrashed": "Kenttänäkymä kaatui",
+    "pleaseRefreshPage": "Päivitä sivu jatkaaksesi.",
+    "playerBarCrashed": "Pelaajapalkki kaatui. Päivitä sivu."
   },
   "newGameSetupModal": {
     "title": "Uuden pelin asetukset",
@@ -774,7 +786,8 @@
     "gameConfigLabel": "Pelin asetukset",
     "leagueLabel": "Sarja",
     "selectLeague": "-- Valitse sarja --",
-    "customLeaguePlaceholder": "Kirjoita sarjan nimi"
+    "customLeaguePlaceholder": "Kirjoita sarjan nimi",
+    "createGame": "Luo ottelu"
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
@@ -1077,6 +1090,7 @@
   },
   "teamManager": {
     "title": "Joukkueet",
+    "teamActions": "Joukkuetoiminnot",
     "createNewTeam": "Luo uusi joukkue",
     "newTeam": "Uusi joukkue",
     "addTeam": "Lisää joukkue",
@@ -1364,6 +1378,7 @@
       "season": "Kausi",
       "data": "Tiedot",
       "premium": "Premium",
+      "account": "Tili",
       "about": "Tietoja"
     },
     "languageLabel": "Kieli",
@@ -1442,7 +1457,15 @@
     "deleteAccountButton": "Poista tili",
     "deletingAccount": "Poistetaan...",
     "deleteAccountSuccess": "Tili poistettu onnistuneesti",
-    "deleteAccountFailed": "Tilin poistaminen epäonnistui"
+    "deleteAccountFailed": "Tilin poistaminen epäonnistui",
+    "resyncTitle": "Synkronoi pilvestä uudelleen",
+    "resyncDescription": "Tyhjennä paikalliset tiedot ja lataa uudelleen pilvestä. Pilvivarmuuskopio palautetaan.",
+    "confirmResyncLabel": "Kirjoita RESYNC vahvistaaksesi",
+    "resyncButton": "Synkronoi pilvestä uudelleen",
+    "factoryResetTitle": "Tehdaspalautus",
+    "factoryResetDescription": "Poista KAIKKI tiedot pysyvästi - sekä paikalliset että pilvitiedot. Tätä ei voi perua.",
+    "confirmFactoryResetLabel": "Kirjoita FACTORY RESET vahvistaaksesi",
+    "factoryResetButton": "Tehdaspalautus (Poista kaikki)"
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",
@@ -2037,6 +2060,7 @@
     "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!",
     "grantSuccess": "Premium aktivoitu! Voit nollata Asetuksissa.",
     "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
+    "subscriptionFailed": "Tilaus epäonnistui: {{error}}",
     "processing": "Käsitellään...",
     "billingNotAvailable": "Play Billing ei ole käytettävissä. Yritä uudelleen.",
     "purchaseFailed": "Osto epäonnistui. Yritä uudelleen.",
@@ -2118,6 +2142,20 @@
     "accepting": "Hyväksytään...",
     "decline": "Hylkää ja kirjaudu ulos"
   },
+  "migrationStatus": {
+    "percentComplete": "{{percent}}% valmis",
+    "progressLabel": "Siirron edistyminen: {{percent}}% valmis",
+    "estimatedTime": "Arvioitu aika: {{time}}",
+    "itemsProcessed": "{{processed}}/{{total}} kohdetta käsitelty",
+    "preparingMigration": "Valmistellaan siirtoa...",
+    "inProgress": "Siirto käynnissä",
+    "upgradingStorage": "Päivitetään tallennustilaa",
+    "dontCloseApp": "Älä sulje sovellusta tämän prosessin aikana.",
+    "warningTitle": "Tallennustilan päivitysvaroitus",
+    "successTitle": "Tallennustila päivitetty onnistuneesti",
+    "successMessage": "Tietosi on siirretty parannettuun tallennustilaan parempaa suorituskykyä varten.",
+    "dismissNotification": "Sulje ilmoitus"
+  },
   "migration": {
     "title": "Siirrä pilveen",
     "description": "Siirrä paikalliset tietosi pilvitilillesi varmuuskopiointia ja synkronointia varten.",
@@ -2172,7 +2210,20 @@
     },
     "warnings": {
       "cloudCleared": "Olemassa olevat pilvitiedot tyhjennettiin ennen siirtoa (korvaustila)",
-      "andMore": "...ja {{count}} lisää"
+      "andMore": "...ja {{count}} lisää",
+      "title": "Varoitukset"
+    },
+    "errors": {
+      "unexpected": "Tapahtui odottamaton virhe. Yritä uudelleen.",
+      "network": "Verkkovirhe. Tarkista yhteys ja yritä uudelleen.",
+      "sessionExpired": "Istunto vanhentunut. Kirjaudu sisään uudelleen.",
+      "rateLimit": "Liian monta yritystä. Odota hetki ja yritä uudelleen.",
+      "storage": "Tallennusvirhe. Yritä uudelleen tai ota yhteyttä tukeen.",
+      "timeout": "Pyyntö aikakatkaistiin. Yritä uudelleen vakaalla yhteydellä.",
+      "permission": "Käyttöoikeusvirhe. Kirjaudu ulos ja takaisin sisään.",
+      "validation": "Tietojen tarkistus epäonnistui. Tarkista tiedot ja yritä uudelleen.",
+      "syncFailed": "Synkronointi epäonnistui. Yritä uudelleen.",
+      "downloadFailed": "Lataus epäonnistui. Yritä uudelleen."
     },
     "modeTitle": "Siirtotapa",
     "modeMerge": "Lisää pilveen",
@@ -2345,7 +2396,14 @@
     "errors": {
       "passwordRequired": "Salasana vaaditaan",
       "signInFailed": "Kirjautuminen epäonnistui. Yritä uudelleen.",
-      "deleteFailed": "Poisto epäonnistui"
+      "deleteFailed": "Poisto epäonnistui",
+      "unexpected": "Odottamaton virhe tapahtui. Yritä uudelleen.",
+      "network": "Verkkovirhe. Tarkista yhteys ja yritä uudelleen.",
+      "invalidCredentials": "Virheellinen sähköposti tai salasana.",
+      "emailNotConfirmed": "Vahvista sähköpostiosoitteesi ennen kirjautumista.",
+      "rateLimit": "Liian monta yritystä. Odota hetki ja yritä uudelleen.",
+      "generic": "Virhe tapahtui. Yritä uudelleen.",
+      "moduleLoadFailed": "Pilvipalveluiden lataus epäonnistui. Tarkista yhteys ja yritä uudelleen."
     },
     "confirm": {
       "title": "Vahvista poisto",
@@ -2517,7 +2575,18 @@
     "legacyMigrationFailed": "Tietojesi siirto epäonnistui. Yritä myöhemmin uudelleen.",
     "dataLoadedFromCloud": "Tietosi on ladattu pilvestä.",
     "failedToLoadCloudData": "Pilvitietojen lataus epäonnistui. Kokeile päivittää sivu.",
-    "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen."
+    "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen.",
+    "signingOut": "Kirjaudutaan ulos...",
+    "loadingYourData": "Ladataan tietojasi...",
+    "connectionTimeout": "Yhteys aikakatkaistiin",
+    "connectionTimeoutDesc": "Palvelimeen ei saatu yhteyttä. Tämä voi tapahtua, kun sovellus on ollut taustalla pitkään.",
+    "tryAgain": "Yritä uudelleen",
+    "useLocalModeInstead": "Käytä paikallista tilaa",
+    "noUserForResync": "Käyttäjä ei ole kirjautunut",
+    "resyncFailed": "Synkronointi epäonnistui. Yritä uudelleen.",
+    "noUserForFactoryReset": "Käyttäjä ei ole kirjautunut",
+    "factoryResetFailed": "Palautus epäonnistui. Yritä uudelleen.",
+    "factoryResetOffline": "Pilvitietoja ei voi poistaa offline-tilassa. Tarkista yhteys ja yritä uudelleen."
   },
   "positions": {
     "GK": "GK",

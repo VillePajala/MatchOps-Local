@@ -11,6 +11,8 @@ export interface Player {
   jerseyNumber?: string; // Optional: Player's jersey number
   notes?: string; // Optional: Notes specific to this player
   receivedFairPlayCard?: boolean; // Optional: Did this player receive the fair play card?
+  createdAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
+  updatedAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
 }
 
 export interface PlayerStatRow extends Player {
@@ -127,6 +129,8 @@ export interface Season {
    * - Can be "off-season" if date falls outside season boundaries
    */
   clubSeason?: string;
+  createdAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
+  updatedAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
   // Note: teamId removed - seasons are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }
@@ -216,6 +220,8 @@ export interface Tournament {
    * - Can be "off-season" if date falls outside season boundaries
    */
   clubSeason?: string;
+  createdAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
+  updatedAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
   // Note: teamId removed - tournaments are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }

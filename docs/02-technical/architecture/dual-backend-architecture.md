@@ -3,7 +3,7 @@
 **Status**: ✅ **Phase 1-4 Implemented** (Local + Cloud backends complete, Local-First Sync added)
 **Last Updated**: 2026-01-28
 **Purpose**: Comprehensive architectural plan for supporting both IndexedDB (free/local) and Supabase (premium/cloud) backends
-**Related**: [DataStore Interface](./datastore-interface.md) | [AuthService Interface](./auth-service-interface.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md)
+**Related**: [DataStore Interface](./datastore-interface.md) | [AuthService Interface](./auth-service-interface.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md) | [Auth/Data/Sync Runtime Architecture](./auth-data-sync-architecture.md)
 
 ## Executive Summary
 

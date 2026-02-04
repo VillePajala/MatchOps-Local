@@ -9,9 +9,12 @@ jest.mock('@/utils/logger', () => ({
   debug: jest.fn(),
 }));
 
-// Mock appSettings to avoid IndexedDB dependency in tests
-jest.mock('@/utils/appSettings', () => ({
-  getAppSettings: jest.fn().mockResolvedValue({ language: 'fi' }),
+// Mock i18n - language is used directly for changelog notes
+jest.mock('@/i18n', () => ({
+  __esModule: true,
+  default: {
+    language: 'en',  // Test environment defaults to English
+  },
 }));
 
 // Mock UpdateBanner - capture props for testing
@@ -180,9 +183,9 @@ describe('ServiceWorkerRegistration', () => {
       expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/changelog.json'));
     });
 
-    // Verify notes are passed to UpdateBanner
+    // Verify notes are passed to UpdateBanner (uses i18n.language which defaults to 'en' in tests)
     await waitFor(() => {
-      expect(mockUpdateBannerProps.notes).toBe('Test release notes');
+      expect(mockUpdateBannerProps.notes).toBe('Test release notes EN');
     });
   });
 

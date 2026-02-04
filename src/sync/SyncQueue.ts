@@ -26,8 +26,8 @@ import {
   DEFAULT_SYNC_CONFIG,
 } from './types';
 
-/** Database name for sync queue (separate from main app data) */
-const SYNC_DB_NAME = 'matchops_sync_queue';
+/** Base database name for sync queue (user ID is appended for user-scoped storage) */
+const SYNC_DB_NAME_PREFIX = 'matchops_sync_queue';
 
 /** Database version */
 const SYNC_DB_VERSION = 1;
@@ -100,10 +100,29 @@ export class SyncQueue {
   private statsCache: { stats: SyncQueueStats; timestamp: number } | null = null;
   private static readonly STATS_CACHE_TTL_MS = 1000; // 1 second TTL
 
-  constructor(config?: Partial<typeof DEFAULT_SYNC_CONFIG>) {
+  /** User ID for user-scoped database. Operations from different users are isolated. */
+  private readonly userId?: string;
+
+  /** Full database name (includes userId if provided) */
+  private readonly dbName: string;
+
+  /**
+   * Creates a new SyncQueue instance.
+   *
+   * @param userId - User ID for user-scoped storage. Each user gets their own queue database.
+   *                 If omitted, uses a global queue (legacy behavior, not recommended).
+   * @param config - Optional configuration overrides.
+   */
+  constructor(userId?: string, config?: Partial<typeof DEFAULT_SYNC_CONFIG>) {
+    this.userId = userId;
+    // User-scoped database name prevents cross-user data leakage and stale operations
+    // from previous users appearing in the current user's queue.
+    this.dbName = userId ? `${SYNC_DB_NAME_PREFIX}_${userId}` : SYNC_DB_NAME_PREFIX;
     this.maxRetries = config?.maxRetries ?? DEFAULT_SYNC_CONFIG.maxRetries;
     this.backoffBaseMs = config?.backoffBaseMs ?? DEFAULT_SYNC_CONFIG.backoffBaseMs;
     this.backoffMaxMs = config?.backoffMaxMs ?? DEFAULT_SYNC_CONFIG.backoffMaxMs;
+
+    logger.info('[SyncQueue] Created', { userId: userId || '(none)', dbName: this.dbName });
   }
 
   /**
@@ -150,9 +169,9 @@ export class SyncQueue {
         return;
       }
 
-      logger.debug('[SyncQueue] Opening database...');
+      logger.debug('[SyncQueue] Opening database...', { dbName: this.dbName, userId: this.userId });
 
-      const request = window.indexedDB.open(SYNC_DB_NAME, SYNC_DB_VERSION);
+      const request = window.indexedDB.open(this.dbName, SYNC_DB_VERSION);
 
       request.onerror = () => {
         logger.error('[SyncQueue] Failed to open database:', request.error);
@@ -175,6 +194,39 @@ export class SyncQueue {
       request.onsuccess = () => {
         this.db = request.result;
         logger.info('[SyncQueue] Database opened successfully');
+
+        // DIAGNOSTIC: Log existing operations in the queue to debug account switching issues
+        // This helps identify if old operations are persisting across user switches
+        const txn = this.db.transaction(SYNC_STORE_NAME, 'readonly');
+        const store = txn.objectStore(SYNC_STORE_NAME);
+        const countRequest = store.count();
+        countRequest.onsuccess = () => {
+          if (countRequest.result > 0) {
+            logger.warn('[SyncQueue] DIAGNOSTIC: Queue has existing operations on open', {
+              count: countRequest.result,
+              dbName: this.dbName,
+              userId: this.userId,
+            });
+            // Get details of existing operations
+            const allRequest = store.getAll();
+            allRequest.onsuccess = () => {
+              const ops = allRequest.result as SyncOperation[];
+              logger.warn('[SyncQueue] DIAGNOSTIC: Existing operations:', {
+                operations: ops.map(op => ({
+                  id: op.id.slice(0, 8),
+                  entityType: op.entityType,
+                  entityId: op.entityId.slice(0, 8),
+                  status: op.status,
+                  retryCount: op.retryCount,
+                  lastAttempt: op.lastAttempt,
+                  lastError: op.lastError,
+                })),
+              });
+            };
+          } else {
+            logger.info('[SyncQueue] Queue is empty on open (expected for clean state)');
+          }
+        };
 
         // Handle unexpected close
         this.db.onclose = () => {
@@ -468,6 +520,9 @@ export class SyncQueue {
 
       const request = index.openCursor();
 
+      // DIAGNOSTIC: Track skipped operations to debug sync issues
+      const skippedOps: { id: string; status: string; reason: string }[] = [];
+
       request.onsuccess = () => {
         const cursor = request.result;
 
@@ -477,6 +532,25 @@ export class SyncQueue {
           // Only return pending operations that are ready for retry
           if (op.status === 'pending' && this.isReadyForRetry(op, now)) {
             results.push(op);
+          } else if (op.status !== 'pending') {
+            // Track non-pending operations for diagnostics
+            skippedOps.push({
+              id: op.id.slice(0, 8),
+              status: op.status,
+              reason: `status is '${op.status}', not 'pending'`,
+            });
+          } else if (!this.isReadyForRetry(op, now)) {
+            // Track operations in backoff
+            const backoffDelay = Math.min(
+              this.backoffBaseMs * Math.pow(2, op.retryCount - 1),
+              this.backoffMaxMs
+            );
+            const readyAt = (op.lastAttempt || 0) + backoffDelay;
+            skippedOps.push({
+              id: op.id.slice(0, 8),
+              status: op.status,
+              reason: `in backoff, ready in ${Math.round((readyAt - now) / 1000)}s`,
+            });
           }
 
           cursor.continue();
@@ -484,7 +558,16 @@ export class SyncQueue {
       };
 
       transaction.oncomplete = () => {
-        logger.debug('[SyncQueue] Got pending operations', { count: results.length });
+        // Log with more detail if operations were skipped
+        if (skippedOps.length > 0) {
+          logger.info('[SyncQueue] getPending result', {
+            returned: results.length,
+            skipped: skippedOps.length,
+            skippedDetails: skippedOps,
+          });
+        } else {
+          logger.debug('[SyncQueue] Got pending operations', { count: results.length });
+        }
         resolve(results);
       };
 
@@ -503,12 +586,23 @@ export class SyncQueue {
    * Check if an operation is ready for retry based on exponential backoff.
    */
   private isReadyForRetry(op: SyncOperation, now: number): boolean {
-    // Never tried yet - ready
-    if (!op.lastAttempt || op.retryCount === 0) {
+    // Never tried yet - ready immediately
+    if (!op.lastAttempt) {
       return true;
     }
 
-    // Calculate backoff delay
+    // If retryCount is 0 but lastAttempt exists (e.g., after abort recovery),
+    // apply a minimum 2-second delay to prevent tight retry loops during
+    // auth state changes or rapid navigation. Without this delay, aborted
+    // operations would retry immediately and abort again, causing infinite loops.
+    // See: MATCHOPS-LOCAL-18, MATCHOPS-LOCAL-1N (AbortError during account switch)
+    // Build trigger: 2026-02-04
+    if (op.retryCount === 0) {
+      const MIN_ABORT_RETRY_DELAY_MS = 2000; // 2 seconds
+      return now >= op.lastAttempt + MIN_ABORT_RETRY_DELAY_MS;
+    }
+
+    // Calculate exponential backoff delay for retries
     const backoffDelay = Math.min(
       this.backoffBaseMs * Math.pow(2, op.retryCount - 1),
       this.backoffMaxMs
@@ -652,20 +746,29 @@ export class SyncQueue {
         if (cursor) {
           const op = cursor.value as SyncOperation;
 
-          // Reset to pending for retry, incrementing retry count
-          // The interrupted sync attempt counts against max retries to prevent
-          // infinite loops if an operation keeps crashing mid-sync.
-          const newRetryCount = op.retryCount + 1;
-          const newStatus: SyncOperationStatus = newRetryCount >= op.maxRetries ? 'failed' : 'pending';
-
+          // Reset to pending for retry WITHOUT incrementing retry count or setting lastAttempt.
+          //
+          // CRITICAL FIX: Previously we incremented retryCount and set lastAttempt = Date.now(),
+          // which immediately put operations into backoff. This caused a cascade issue:
+          // 1. Engine starts, resetStaleSyncing() runs, operations go into 1-second backoff
+          // 2. User transition triggers DataStore recreation before backoff expires
+          // 3. New engine starts, resetStaleSyncing() runs AGAIN, extending backoff
+          // 4. Operations are perpetually stuck in backoff
+          //
+          // The original rationale was "interrupted sync counts against max retries to prevent
+          // infinite loops if an operation keeps crashing mid-sync". However:
+          // - If an operation truly crashes mid-sync, it will fail properly on the next attempt
+          // - The normal markFailed() path will then increment retryCount correctly
+          // - There's no need to penalize operations for clean interruptions (user transitions,
+          //   page navigation, mode switches)
+          //
+          // Now we just reset status to 'pending' so operations are immediately ready for retry.
           const updated: SyncOperation = {
             ...op,
-            status: newStatus,
-            retryCount: newRetryCount,
-            lastError: op.lastError
-              ? `${op.lastError} (reset from stale syncing)`
-              : 'Reset from stale syncing state',
-            lastAttempt: Date.now(),
+            status: 'pending',
+            // Keep existing retryCount - don't penalize for interruption
+            // Keep existing lastAttempt - allows immediate retry (no backoff)
+            // Keep existing lastError - preserve diagnostic info
           };
 
           cursor.update(updated);
@@ -674,6 +777,7 @@ export class SyncQueue {
             id: op.id,
             entityType: op.entityType,
             entityId: op.entityId,
+            retryCount: op.retryCount,
           });
 
           cursor.continue();
@@ -701,12 +805,19 @@ export class SyncQueue {
 
   /**
    * Reset a single operation to pending status.
-   * Used for recovery when markFailed() itself fails (e.g., after timeout).
+   * Used for recovery when markFailed() itself fails (e.g., after timeout),
+   * or when an operation is aborted (e.g., page navigation).
    *
+   * @param id - Operation ID to reset
+   * @param options - Reset options
+   * @param options.incrementRetry - If true (default), increments retryCount to prevent infinite loops.
+   *                                 Set to false for AbortError recovery where the request was cancelled,
+   *                                 not actually failed.
    * @returns true if operation was found and reset, false if not found
    */
-  async resetOperationToPending(id: string): Promise<boolean> {
+  async resetOperationToPending(id: string, options?: { incrementRetry?: boolean }): Promise<boolean> {
     const db = this.ensureInitialized();
+    const incrementRetry = options?.incrementRetry ?? true;
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
@@ -724,27 +835,33 @@ export class SyncQueue {
         }
 
         found = true;
-        // Increment retryCount to prevent infinite loops.
-        // The operation failed to mark as failed, which counts as a retry attempt.
-        const newRetryCount = op.retryCount + 1;
+
+        // Optionally increment retryCount to prevent infinite loops.
+        // For emergency resets (markFailed failure), we increment.
+        // For AbortError recovery, we don't increment - the request was cancelled, not failed.
+        const newRetryCount = incrementRetry ? op.retryCount + 1 : op.retryCount;
         const newStatus: SyncOperationStatus = newRetryCount >= op.maxRetries ? 'failed' : 'pending';
+
+        const resetReason = incrementRetry
+          ? 'Emergency reset after markFailed failure'
+          : 'Reset after request abort (navigation/reload)';
 
         const updated: SyncOperation = {
           ...op,
           status: newStatus,
           retryCount: newRetryCount,
-          lastError: op.lastError
-            ? `${op.lastError} (emergency reset after markFailed failure)`
-            : 'Emergency reset after markFailed failure',
+          lastError: incrementRetry
+            ? (op.lastError ? `${op.lastError} (${resetReason})` : resetReason)
+            : op.lastError, // Don't update lastError for abort recovery
           lastAttempt: Date.now(),
         };
 
         store.put(updated);
 
         if (newStatus === 'failed') {
-          logger.warn('[SyncQueue] Emergency reset exhausted retries, marking as permanently failed', { id, retryCount: newRetryCount });
+          logger.warn('[SyncQueue] Reset exhausted retries, marking as permanently failed', { id, retryCount: newRetryCount });
         } else {
-          logger.info('[SyncQueue] Emergency reset operation to pending', { id, retryCount: newRetryCount });
+          logger.info('[SyncQueue] Reset operation to pending', { id, retryCount: newRetryCount, incrementRetry });
         }
       };
 
@@ -801,9 +918,11 @@ export class SyncQueue {
     // Check cache first
     const now = Date.now();
     if (this.statsCache && now - this.statsCache.timestamp < SyncQueue.STATS_CACHE_TTL_MS) {
+      logger.debug('[SyncQueue] getStats: returning cached', { dbName: this.dbName, stats: this.statsCache.stats });
       return this.statsCache.stats;
     }
 
+    logger.info('[SyncQueue] getStats: reading from database', { dbName: this.dbName, userId: this.userId });
     const db = this.ensureInitialized();
 
     return new Promise((resolve, reject) => {
@@ -1159,15 +1278,13 @@ export class SyncQueue {
         const op = getRequest.result as SyncOperation | undefined;
 
         if (!op) {
-          // CRITICAL: Throw error for consistency with markFailed().
-          // If operation doesn't exist when trying to mark as syncing, something is wrong.
-          // This could indicate a race condition or bug in queue management.
-          logger.error('[SyncQueue] Operation not found for status update:', id);
-          reject(new SyncError(
-            SyncErrorCode.QUEUE_ERROR,
-            `Operation ${id} not found in queue - cannot update status to ${status}`
-          ));
-          return;
+          // Operation not found - this is expected in certain race conditions:
+          // 1. CREATE + DELETE deduplication removed the operation while sync was picking it up
+          // 2. Another tab/process completed and removed it
+          // 3. Operation was cleared by user
+          // This is not an error - just skip the status update.
+          logger.debug('[SyncQueue] Operation not found for status update (expected in some race conditions):', id);
+          return; // Resolve successfully - nothing to update
         }
 
         const updated: SyncOperation = {
@@ -1195,8 +1312,5 @@ export class SyncQueue {
   }
 }
 
-/**
- * Default SyncQueue instance.
- * Initialize before use: `await syncQueue.initialize()`
- */
-export const syncQueue = new SyncQueue();
+// NOTE: No global singleton here! SyncQueue must be instantiated with a userId
+// for user-scoped storage. SyncedDataStore creates its own SyncQueue instance.

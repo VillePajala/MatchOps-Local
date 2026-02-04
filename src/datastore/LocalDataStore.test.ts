@@ -468,8 +468,11 @@ describe('LocalDataStore', () => {
 
         await dataStore.createTeam({ name: 'New Team', color: '#00FF00' });
 
-        // setStorageItem called for teams AND rosters
-        expect(mockSetStorageItem).toHaveBeenCalledTimes(2);
+        // setStorageItem called 3 times:
+        // 1. teams index saved in createTeam
+        // 2. teams index saved again in setTeamRoster (timestamp update for race condition fix)
+        // 3. team rosters saved in setTeamRoster
+        expect(mockSetStorageItem).toHaveBeenCalledTimes(3);
       });
 
       it('should allow duplicate name with different boundSeasonId', async () => {
@@ -1627,7 +1630,10 @@ describe('LocalDataStore', () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
 
         const saved = await dataStore.saveGame('game_1', mockGame);
-        expect(saved).toEqual(mockGame);
+        // saveGame now adds createdAt/updatedAt timestamps for conflict resolution
+        expect(saved).toMatchObject(mockGame);
+        expect(saved.createdAt).toBeDefined();
+        expect(saved.updatedAt).toBeDefined();
         expect(mockSetStorageItem).toHaveBeenCalled();
       });
 
@@ -1922,12 +1928,21 @@ describe('LocalDataStore', () => {
     });
 
     describe('saveSettings', () => {
-      it('should save settings', async () => {
+      it('should save settings with updatedAt timestamp', async () => {
         await dataStore.saveSettings(mockSettings);
         expect(mockSetStorageItem).toHaveBeenCalledWith(
           'soccerAppSettings',
-          JSON.stringify(mockSettings)
+          expect.any(String)
         );
+        // Verify saved data includes original settings plus updatedAt
+        const savedJson = mockSetStorageItem.mock.calls.find(
+          (call) => call[0] === 'soccerAppSettings'
+        )?.[1];
+        expect(savedJson).toBeDefined();
+        const saved = JSON.parse(savedJson as string);
+        expect(saved).toMatchObject(mockSettings);
+        expect(saved.updatedAt).toBeDefined();
+        expect(new Date(saved.updatedAt).getTime()).not.toBeNaN();
       });
     });
 
@@ -1986,6 +2001,58 @@ describe('LocalDataStore', () => {
         // Should fall back to defaults and apply update
         expect(result.language).toBe('en');
         expect(result.currentGameId).toBe(null); // from defaults
+      });
+
+      it('should preserve cloud timestamp during conflict resolution (cloud-wins)', async () => {
+        // Scenario: Cloud has newer settings, sync writes them locally with cloud timestamp
+        const cloudTimestamp = '2026-01-15T12:00:00.000Z';
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSettings));
+
+        // When cloud wins, updateSettings is called with updatedAt from cloud
+        const result = await dataStore.updateSettings({
+          language: 'fi',
+          updatedAt: cloudTimestamp,
+        });
+
+        // Should preserve the cloud timestamp, NOT generate a new one
+        expect(result.updatedAt).toBe(cloudTimestamp);
+
+        // Verify saved data also has cloud timestamp
+        const savedCall = mockSetStorageItem.mock.calls.find(
+          call => call[0] === 'soccerAppSettings'
+        );
+        expect(savedCall).toBeDefined();
+        const savedData = JSON.parse(savedCall![1]);
+        expect(savedData.updatedAt).toBe(cloudTimestamp);
+      });
+
+      it('should generate new timestamp when no updatedAt provided', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSettings));
+
+        const beforeUpdate = new Date().toISOString();
+        const result = await dataStore.updateSettings({ language: 'fi' });
+        const afterUpdate = new Date().toISOString();
+
+        // Should have generated a new timestamp
+        expect(result.updatedAt).toBeDefined();
+        expect(result.updatedAt! >= beforeUpdate).toBe(true);
+        expect(result.updatedAt! <= afterUpdate).toBe(true);
+      });
+
+      it('should preserve existing updatedAt when updates contains explicit undefined', async () => {
+        // Scenario: Caller passes { language: 'fi', updatedAt: undefined }
+        // This can happen with spread operators that include undefined values
+        const existingTimestamp = '2026-01-01T00:00:00.000Z';
+        const existing = { ...mockSettings, updatedAt: existingTimestamp };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(existing));
+
+        const result = await dataStore.updateSettings({
+          language: 'fi',
+          updatedAt: undefined, // Explicitly undefined
+        });
+
+        // Should preserve existing timestamp, not generate new one
+        expect(result.updatedAt).toBe(existingTimestamp);
       });
 
       it('should handle concurrent updateSettings calls safely', async () => {
