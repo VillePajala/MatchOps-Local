@@ -62,6 +62,7 @@ export class SyncEngine {
   private isOnline = true;
   private lastSyncedAt: number | null = null;
   private isDisposing = false; // True when dispose() is in progress
+  private isDisposed = false;  // True after dispose() completes - permanent, prevents reuse
 
   // Event listener references for cleanup
   private boundOnlineHandler: (() => void) | null = null;
@@ -88,6 +89,11 @@ export class SyncEngine {
    * If engine is already running, triggers immediate queue processing.
    */
   setExecutor(executor: SyncOperationExecutor): void {
+    // Guard: Reject operations on disposed engine
+    if (this.isDisposed) {
+      logger.warn('[SyncEngine] Cannot set executor - engine is disposed');
+      return;
+    }
     const hadExecutor = this.executor !== null;
     this.executor = executor;
     logger.info('[SyncEngine] Executor set', { hadExecutor, isRunning: this.isRunning });
@@ -107,6 +113,11 @@ export class SyncEngine {
    * Begins periodic sync and listens for online/offline events.
    */
   start(): void {
+    // Guard: Reject starting a disposed engine
+    if (this.isDisposed) {
+      logger.warn('[SyncEngine] Cannot start - engine is disposed');
+      return;
+    }
     if (this.isRunning) {
       logger.debug('[SyncEngine] Already running');
       return;
@@ -288,6 +299,8 @@ export class SyncEngine {
     this.completeListeners.clear();
     this.failedListeners.clear();
     this.isDisposing = false;
+    this.isDisposed = true;  // Mark permanently disposed - engine cannot be reused
+    logger.info('[SyncEngine] Disposed');
   }
 
   /**
