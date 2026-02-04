@@ -621,10 +621,11 @@ export default function Home() {
           setPostLoginCheckComplete(true);
 
           // Refetch queries to load LOCAL data immediately
+          // NOTE: Only call refetchQueries(), NOT setRefreshTrigger() - the latter
+          // triggers checkAppState which sets isCheckingState=true, bringing back the loading screen
           queryClient.refetchQueries().catch(refetchError => {
             logger.warn('[page.tsx] Query refetch failed (non-blocking):', refetchError);
           });
-          setRefreshTrigger(prev => prev + 1);
 
           // Run cloud check + hydration entirely in background (fire and forget)
           (async () => {
@@ -657,12 +658,13 @@ export default function Home() {
 
                 // Refresh queries if we imported something - but don't show toast
                 // Background sync should be seamless; the user doesn't need to be notified
+                // NOTE: Only call refetchQueries(), NOT setRefreshTrigger() - the latter
+                // triggers checkAppState which shows a loading screen, breaking the seamless UX
                 if (totalImported > 0) {
                   logger.info('[page.tsx] Background hydration: imported data, refreshing queries silently');
                   queryClient.refetchQueries().catch(err => {
                     logger.warn('[page.tsx] Background hydration refetch failed:', err);
                   });
-                  setRefreshTrigger(prev => prev + 1);
                 } else if (totalSkipped > 0) {
                   logger.info('[page.tsx] Background hydration: no new data (local was already up-to-date)');
                 }
