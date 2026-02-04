@@ -187,6 +187,18 @@ export class SyncedDataStore implements DataStore {
     // Close sync queue (releases IndexedDB connection)
     await this.syncQueue.close();
 
+    // Close remote store if set (releases Supabase connections)
+    // Without this, SupabaseDataStore instances leak on each account switch
+    if (this.remoteStore) {
+      logger.info('[SyncedDataStore] Closing remote store...');
+      try {
+        await this.remoteStore.close();
+      } catch (e) {
+        logger.warn('[SyncedDataStore] Error closing remote store:', e);
+      }
+      this.remoteStore = null;
+    }
+
     this.initialized = false;
     logger.info('[SyncedDataStore] Closed', { totalDurationMs: Date.now() - closeStartTime });
   }
