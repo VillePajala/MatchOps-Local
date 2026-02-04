@@ -195,6 +195,39 @@ export class SyncQueue {
         this.db = request.result;
         logger.info('[SyncQueue] Database opened successfully');
 
+        // DIAGNOSTIC: Log existing operations in the queue to debug account switching issues
+        // This helps identify if old operations are persisting across user switches
+        const txn = this.db.transaction(SYNC_STORE_NAME, 'readonly');
+        const store = txn.objectStore(SYNC_STORE_NAME);
+        const countRequest = store.count();
+        countRequest.onsuccess = () => {
+          if (countRequest.result > 0) {
+            logger.warn('[SyncQueue] DIAGNOSTIC: Queue has existing operations on open', {
+              count: countRequest.result,
+              dbName: this.dbName,
+              userId: this.userId,
+            });
+            // Get details of existing operations
+            const allRequest = store.getAll();
+            allRequest.onsuccess = () => {
+              const ops = allRequest.result as SyncOperation[];
+              logger.warn('[SyncQueue] DIAGNOSTIC: Existing operations:', {
+                operations: ops.map(op => ({
+                  id: op.id.slice(0, 8),
+                  entityType: op.entityType,
+                  entityId: op.entityId.slice(0, 8),
+                  status: op.status,
+                  retryCount: op.retryCount,
+                  lastAttempt: op.lastAttempt,
+                  error: op.error,
+                })),
+              });
+            };
+          } else {
+            logger.info('[SyncQueue] Queue is empty on open (expected for clean state)');
+          }
+        };
+
         // Handle unexpected close
         this.db.onclose = () => {
           logger.warn('[SyncQueue] Database connection closed unexpectedly');

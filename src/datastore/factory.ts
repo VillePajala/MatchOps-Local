@@ -176,8 +176,9 @@ async function closeDataStoreInternal(
     resetCompleteResolve = resolve;
   });
 
+  const closeStartTime = Date.now();
   try {
-    log.info(`[factory] Closing DataStore due to: ${reason}`);
+    log.info(`[factory] Closing DataStore due to: ${reason}`, { startTime: closeStartTime });
 
     // Save references for cleanup, then immediately null to prevent race conditions
     const oldDataStore = dataStoreInstance;
@@ -281,6 +282,7 @@ async function closeDataStoreInternal(
       resetCompleteResolve = null;
     }
     resetCompletePromise = null;
+    log.info(`[factory] CloseDataStore completed`, { durationMs: Date.now() - closeStartTime });
   }
 }
 
@@ -367,8 +369,10 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   // the old one is still closing (e.g., during account switching).
   // See: MATCHOPS-LOCAL-18, MATCHOPS-LOCAL-1N (infinite sync spinner)
   if (isResetting && resetCompletePromise) {
+    const waitStartTime = Date.now();
     log.info(`[factory] Waiting for reset to complete before getting DataStore for user: ${userId || '(anonymous)'}`);
     await resetCompletePromise;
+    log.info(`[factory] Reset wait completed`, { waitDurationMs: Date.now() - waitStartTime });
     // After waiting, recurse to re-check state (in case of nested resets)
     return getDataStore(userId);
   }
@@ -541,11 +545,15 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       // Set up cloud in background - DON'T BLOCK the return
       // This eliminates the long loading time after login
       const setupCloudInBackground = async () => {
+        const cloudSetupStartTime = Date.now();
+        log.info('[factory] Background cloud setup starting', { userId: initUserId });
         try {
           // Set up the sync executor to sync to Supabase
           const { SupabaseDataStore } = await import('./SupabaseDataStore');
           const cloudStore = new SupabaseDataStore();
+          log.info('[factory] SupabaseDataStore created, initializing...', { elapsedMs: Date.now() - cloudSetupStartTime });
           await cloudStore.initialize();
+          log.info('[factory] SupabaseDataStore initialized', { elapsedMs: Date.now() - cloudSetupStartTime });
           // Note: If initialize() succeeds, isInitialized() should return true.
           // If not, that's a bug in SupabaseDataStore to fix, not work around here.
 
@@ -553,7 +561,7 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
           const localStore = syncedStore.getLocalStore();
           const executor = createSyncExecutor(cloudStore, localStore);
-          log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId });
+          log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId, totalDurationMs: Date.now() - cloudSetupStartTime });
           syncedStore.setExecutor(executor);
           // Note: SyncEngine.setExecutor() triggers queue processing automatically
           // if the engine is already running (which it is - we started it above)
