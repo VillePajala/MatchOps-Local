@@ -30,6 +30,12 @@ export const getTournaments = async (userId?: string): Promise<Tournament[]> => 
     const dataStore = await getDataStore(userId);
     return await dataStore.getTournaments();
   } catch (error) {
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Don't log as error to avoid Sentry noise
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('[getTournaments] Read skipped - DataStore closed during transition');
+      return [];
+    }
     logger.error('[getTournaments] Error getting tournaments:', error);
     return [];
   }

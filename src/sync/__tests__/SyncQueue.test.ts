@@ -35,8 +35,8 @@ describe('SyncQueue', () => {
   let queue: SyncQueue;
 
   beforeEach(async () => {
-    // Create fresh queue for each test
-    queue = new SyncQueue({
+    // Create fresh queue for each test with test userId for isolation
+    queue = new SyncQueue('test-user-id', {
       maxRetries: 3,
       backoffBaseMs: 100,
       backoffMaxMs: 1000,
@@ -647,10 +647,12 @@ describe('SyncQueue', () => {
 
       op = await queue.getById(id);
       expect(op?.status).toBe('pending');
-      expect(op?.lastError).toContain('Reset from stale syncing');
+      // Note: resetStaleSyncing no longer modifies lastError (preserves existing value)
+      // This allows operations to retry immediately without artificial backoff
+      expect(op?.lastError).toBeUndefined();
     });
 
-    it('should append to existing lastError when resetting', async () => {
+    it('should preserve existing lastError when resetting', async () => {
       const id = await queue.enqueue({
         entityType: 'game',
         entityId: 'game_1',
@@ -664,11 +666,12 @@ describe('SyncQueue', () => {
       // Mark as syncing again
       await queue.markSyncing(id);
 
-      // Reset stale syncing
+      // Reset stale syncing - should preserve existing lastError
       await queue.resetStaleSyncing();
 
       const op = await queue.getById(id);
-      expect(op?.lastError).toBe('Network error (reset from stale syncing)');
+      // Note: resetStaleSyncing no longer appends to lastError, just preserves it
+      expect(op?.lastError).toBe('Network error');
     });
 
     it('should return 0 when no syncing operations exist', async () => {
@@ -744,46 +747,44 @@ describe('SyncQueue', () => {
       expect(failedOp?.status).toBe('failed');
     });
 
-    it('should increment retryCount when resetting stale operations', async () => {
-      // Suppress expected console.warn when max retries reached
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      try {
-        // Using main queue with maxRetries: 3 (set in beforeEach)
-        const id = await queue.enqueue({
-          entityType: 'game',
-          entityId: 'game_retry_stale',
-          operation: 'update',
-          data: {},
-          timestamp: Date.now(),
-        });
+    it('should NOT increment retryCount when resetting stale operations (prevents cascade backoff)', async () => {
+      // IMPORTANT: resetStaleSyncing() intentionally does NOT increment retryCount.
+      // This was a deliberate change to fix a cascade bug where operations would get
+      // stuck in perpetual backoff due to repeated resets during user transitions.
+      // See SyncQueue.ts resetStaleSyncing() for the full rationale.
+      const id = await queue.enqueue({
+        entityType: 'game',
+        entityId: 'game_retry_stale',
+        operation: 'update',
+        data: {},
+        timestamp: Date.now(),
+      });
 
-        // Mark as syncing
-        await queue.markSyncing(id);
-        let op = await queue.getById(id);
-        expect(op?.retryCount).toBe(0);
+      // Mark as syncing
+      await queue.markSyncing(id);
+      let op = await queue.getById(id);
+      expect(op?.retryCount).toBe(0);
 
-        // Reset stale - should increment retryCount
-        await queue.resetStaleSyncing();
-        op = await queue.getById(id);
-        expect(op?.retryCount).toBe(1);
-        expect(op?.status).toBe('pending');
+      // Reset stale - should NOT increment retryCount
+      await queue.resetStaleSyncing();
+      op = await queue.getById(id);
+      expect(op?.retryCount).toBe(0); // Unchanged
+      expect(op?.status).toBe('pending');
 
-        // Mark as syncing again and reset - retryCount should be 2
-        await queue.markSyncing(id);
-        await queue.resetStaleSyncing();
-        op = await queue.getById(id);
-        expect(op?.retryCount).toBe(2);
-        expect(op?.status).toBe('pending'); // Not failed yet (maxRetries=3)
+      // Mark as syncing again and reset - retryCount should still be 0
+      await queue.markSyncing(id);
+      await queue.resetStaleSyncing();
+      op = await queue.getById(id);
+      expect(op?.retryCount).toBe(0); // Still unchanged
+      expect(op?.status).toBe('pending');
 
-        // Mark as syncing one more time and reset - should reach failed
-        await queue.markSyncing(id);
-        await queue.resetStaleSyncing();
-        op = await queue.getById(id);
-        expect(op?.retryCount).toBe(3);
-        expect(op?.status).toBe('failed'); // maxRetries reached
-      } finally {
-        warnSpy.mockRestore();
-      }
+      // Even after multiple resets, retryCount stays 0 and operation never fails
+      // Operations only fail via markFailed(), not via resetStaleSyncing()
+      await queue.markSyncing(id);
+      await queue.resetStaleSyncing();
+      op = await queue.getById(id);
+      expect(op?.retryCount).toBe(0);
+      expect(op?.status).toBe('pending'); // Never reaches 'failed' from reset alone
     });
   });
 
@@ -863,17 +864,18 @@ describe('SyncQueue', () => {
   });
 
   describe('edge cases', () => {
-    it('should throw SyncError when marking non-existent operation as syncing', async () => {
-      // Suppress expected console.error from logger when operation not found
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    it('should gracefully handle marking non-existent operation as syncing', async () => {
+      // Suppress debug log from updateStatus when operation not found
+      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
       try {
-        // Should throw SyncError for consistency with markFailed
-        await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(SyncError);
-        await expect(queue.markSyncing('non_existent_id')).rejects.toThrow(
-          'Operation non_existent_id not found in queue'
-        );
+        // Should NOT throw - this handles race conditions where:
+        // 1. CREATE + DELETE deduplication removes operation while sync is picking it up
+        // 2. Another tab/process completed and removed it
+        // 3. Operation was cleared by user
+        // See: MATCHOPS-LOCAL-1M
+        await expect(queue.markSyncing('non_existent_id')).resolves.toBeUndefined();
       } finally {
-        errorSpy.mockRestore();
+        debugSpy.mockRestore();
       }
     });
 

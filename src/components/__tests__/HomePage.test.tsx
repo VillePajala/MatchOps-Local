@@ -102,8 +102,6 @@ jest.mock('@/utils/appSettings', () => ({
   saveHasSeenAppGuide: jest.fn().mockResolvedValue(true),
   getDrawingModeEnabled: jest.fn().mockResolvedValue(false),
   saveDrawingModeEnabled: jest.fn().mockResolvedValue(true),
-  getHasSeenFirstGameGuide: jest.fn().mockResolvedValue(true),
-  setHasSeenFirstGameGuide: jest.fn().mockResolvedValue(undefined),
   getInstallPromptDismissedTime: jest.fn().mockResolvedValue(null),
   setInstallPromptDismissed: jest.fn().mockResolvedValue(undefined),
   resetAppSettings: jest.fn().mockResolvedValue(true),

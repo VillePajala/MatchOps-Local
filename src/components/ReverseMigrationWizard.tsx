@@ -42,35 +42,35 @@ import logger from '@/utils/logger';
  * Sanitize error messages to prevent information leakage.
  * Maps internal error details to user-friendly messages.
  */
-function sanitizeErrorMessage(error: unknown): string {
+function sanitizeErrorMessage(error: unknown, t: (key: string, fallback: string) => string): string {
   if (!(error instanceof Error)) {
-    return 'An unexpected error occurred. Please try again.';
+    return t('migration.errors.unexpected', 'An unexpected error occurred. Please try again.');
   }
 
   const message = error.message.toLowerCase();
 
   // Network/connectivity errors
   if (message.includes('network') || message.includes('fetch') || message.includes('offline')) {
-    return 'Network error. Please check your connection and try again.';
+    return t('migration.errors.network', 'Network error. Please check your connection and try again.');
   }
 
   // Authentication/session errors
   if (message.includes('not authenticated') || message.includes('session') || message.includes('unauthorized')) {
-    return 'Session expired. Please sign in again.';
+    return t('migration.errors.sessionExpired', 'Session expired. Please sign in again.');
   }
 
   // Rate limiting
   if (message.includes('too many requests') || message.includes('rate limit')) {
-    return 'Too many attempts. Please wait a moment and try again.';
+    return t('migration.errors.rateLimit', 'Too many attempts. Please wait a moment and try again.');
   }
 
   // Database/storage errors
   if (message.includes('database') || message.includes('storage') || message.includes('quota')) {
-    return 'Storage error. Please try again or contact support.';
+    return t('migration.errors.storage', 'Storage error. Please try again or contact support.');
   }
 
   // Generic fallback - don't expose internal details
-  return 'Download failed. Please try again.';
+  return t('migration.errors.downloadFailed', 'Download failed. Please try again.');
 }
 
 type WizardStep = 'preview' | 'choose' | 'confirm' | 'progress' | 'complete' | 'error';
@@ -158,7 +158,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
         logger.error('[ReverseMigrationWizard] Failed to load cloud data summary:', error);
         if (isMounted) {
           // SECURITY: Sanitize error message to prevent information leakage
-          setSummaryError(sanitizeErrorMessage(error));
+          setSummaryError(sanitizeErrorMessage(error, t));
           setIsLoadingSummary(false);
         }
       }
@@ -169,7 +169,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   // Retry cooldown timer
   useEffect(() => {
@@ -212,7 +212,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
       // SECURITY: Sanitize error message to prevent information leakage
       setMigrationResult({
         success: false,
-        errors: [sanitizeErrorMessage(error)],
+        errors: [sanitizeErrorMessage(error, t)],
         warnings: [],
         downloaded: {
           players: 0,
@@ -276,11 +276,11 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
     } catch (error) {
       logger.error('[ReverseMigrationWizard] Failed to load cloud data summary:', error);
       // SECURITY: Sanitize error message to prevent information leakage
-      setSummaryError(sanitizeErrorMessage(error));
+      setSummaryError(sanitizeErrorMessage(error, t));
     } finally {
       setIsLoadingSummary(false);
     }
-  }, []);
+  }, [t]);
 
   // Render data summary table
   const renderDataSummary = (counts: ReverseMigrationCounts) => {

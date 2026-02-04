@@ -10,15 +10,17 @@ import i18n from '@/i18n';
 import { useFieldCoordination } from './useFieldCoordination';
 import { useTimerManagement } from './useTimerManagement';
 import { GameSessionState } from '@/hooks/useGameSessionReducer';
-import { saveGame as utilSaveGame, getGame as utilGetGame, getLatestGameId, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, getGame as utilGetGame, getLatestGameId } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
+  resetUserAppSettings as utilResetUserAppSettings,
   saveHasSeenAppGuide,
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
-  getHasSeenFirstGameGuide,
 } from '@/utils/appSettings';
+import { getDataStore } from '@/datastore';
+import { setMigrationCompleted } from '@/config/backendConfig';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
@@ -110,7 +112,7 @@ export interface UseGameOrchestrationReturn {
   isResetting: boolean;
 }
 
-export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser = false, onGoToStartScreen }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
+export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
@@ -365,8 +367,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
    
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
 
-  const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
-
   const handleCreateBackup = useCallback(() => {
     exportFullBackup(showToast, userId);
   }, [showToast, userId]);
@@ -400,20 +400,24 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     timerInteractions,
   } = timerManagement;
 
-  // Merge goalie status from playersOnField into playersForCurrentGame
-  // This ensures the PlayerBar reflects the current goalie based on field position
+  // Merge goalie status from playersOnField into players for the PlayerBar.
+  // When on DEFAULT_GAME_ID (no real game), show all availablePlayers so users can explore.
+  // When on a real game, show only playersForCurrentGame (selected players).
   const playersWithFieldGoalieStatus = useMemo(() => {
+    // Show all roster players when exploring (no game created yet)
+    const basePlayers = currentGameId === DEFAULT_GAME_ID ? availablePlayers : playersForCurrentGame;
+
     const fieldPlayerMap = new Map(
       fieldCoordination.playersOnField.map(p => [p.id, p])
     );
-    return playersForCurrentGame.map(player => {
+    return basePlayers.map(player => {
       const fieldPlayer = fieldPlayerMap.get(player.id);
       if (fieldPlayer && fieldPlayer.isGoalie !== player.isGoalie) {
         return { ...player, isGoalie: fieldPlayer.isGoalie };
       }
       return player;
     });
-  }, [playersForCurrentGame, fieldCoordination.playersOnField]);
+  }, [currentGameId, availablePlayers, playersForCurrentGame, fieldCoordination.playersOnField]);
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVMInput = useMemo<BuildGameContainerVMInput>(() => ({
@@ -461,9 +465,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const gameContainerVM = useMemo(() => buildGameContainerViewModel(gameContainerVMInput), [gameContainerVMInput]);
   const playerBarViewModel = gameContainerVM.playerBar;
   const gameInfoViewModel = gameContainerVM.gameInfo;
-  const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
-  // Initialize as true for experienced users to prevent any flash
-  const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(!isFirstTimeUser);
 
   useEffect(() => {
     if (!initialAction) return;
@@ -543,7 +544,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     let isMounted = true;
 
     if (orphanedGameInfo) {
-      getTeams().then(teams => {
+      getTeams(userId).then(teams => {
         if (isMounted) {
           setAvailableTeams(teams);
         }
@@ -558,7 +559,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     return () => {
       isMounted = false;
     };
-  }, [orphanedGameInfo]);
+  }, [orphanedGameInfo, userId]);
 
   // Handle team reassignment for orphaned games
   const handleTeamReassignment = async (newTeamId: string | null) => {
@@ -796,18 +797,25 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // Master Roster, Seasons, Tournaments are handled by their own useEffects reacting to useQuery.
 
       // 4. Update local savedGames state from useQuery for allSavedGames
-      if (gameDataManagement.isLoading) {
-        setIsLoadingGamesList(true);
-      }
-      if (gameDataManagement.savedGames) {
-        setSavedGames(gameDataManagement.savedGames || {});
-        setIsLoadingGamesList(false);
-      }
-      if (gameDataManagement.error) {
-        logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', gameDataManagement.error);
-        setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
-      setSavedGames({});
-        setIsLoadingGamesList(false);
+      // IMPORTANT: Only sync on initial load to prevent race conditions.
+      // After initial load, local state is the source of truth for savedGames.
+      // React Query refetches (e.g., from app-resume invalidation) could complete with stale data
+      // that doesn't include recent optimistic updates (new games, saves in progress).
+      // See: "new game becomes copy of old game" bug investigation.
+      if (!initialLoadComplete) {
+        if (gameDataManagement.isLoading) {
+          setIsLoadingGamesList(true);
+        }
+        if (gameDataManagement.savedGames) {
+          setSavedGames(gameDataManagement.savedGames || {});
+          setIsLoadingGamesList(false);
+        }
+        if (gameDataManagement.error) {
+          logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', gameDataManagement.error);
+          setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
+          setSavedGames({});
+          setIsLoadingGamesList(false);
+        }
       }
 
       // 5. Determine and set current game ID and related state from useQuery data
@@ -875,56 +883,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     userId, // User-scoped storage
     // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
   ]);
-
-  // Check if we should show first game interface guide
-  useEffect(() => {
-    // If not a first-time user (experienced user), mark as checked and don't show guide
-    if (!isFirstTimeUser) {
-      setHasCheckedFirstGameGuide(true);
-      return;
-    }
-
-    if (!initialLoadComplete) return;
-
-    const checkFirstGameGuide = async () => {
-      try {
-        const firstGameGuideShown = await getHasSeenFirstGameGuide();
-
-        // Also check if user has any saved games (imported or created)
-        const savedGames = await utilGetSavedGames(userId);
-        const hasMultipleGames = Object.keys(savedGames).length > 1; // More than just default game
-
-        logger.log('[FirstGameGuide] Checking conditions:', {
-          isFirstTimeUser,
-          firstGameGuideShown,
-          currentGameId,
-          hasMultipleGames,
-          isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
-          shouldShow: isFirstTimeUser && !firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID
-        });
-
-        // Only show guide for first-time users who:
-        // 1. Haven't seen it before, AND
-        // 2. Don't have multiple games (imported or created), AND
-        // 3. Have a current game that's not the default game
-        if (!firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-          // Show immediately without delay to prevent flash
-          logger.log('[FirstGameGuide] Showing first game guide');
-          setShowFirstGameGuide(true);
-        }
-
-        // Mark that we've completed the check
-        setHasCheckedFirstGameGuide(true);
-      } catch (error) {
-        // Silent fail - guide check is not critical
-        logger.error('[FirstGameGuide] Error checking first game guide:', error);
-        // Still mark as checked even on error to prevent blocking
-        setHasCheckedFirstGameGuide(true);
-      }
-    };
-
-    checkFirstGameGuide();
-  }, [initialLoadComplete, currentGameId, isFirstTimeUser, userId]);
 
   // --- NEW: Robust Visibility Change Handling ---
   // --- Wake Lock Effect ---
@@ -1008,6 +966,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Position-based detection is for: (1) formation picker, (2) player movement.
     // Saved games already have correct isGoalie status stored - preserve it.
     const loadedPlayers = gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []);
+    logger.info('[LOAD GAME STATE] Setting playersOnField', {
+      loadedPlayersCount: loadedPlayers.length,
+      isInitialDefaultLoad,
+      gameDataPlayersOnFieldCount: gameData?.playersOnField?.length ?? 'undefined',
+      playerIds: loadedPlayers.slice(0, 5).map(p => p.id?.slice(0, 8)),
+    });
     setPlayersOnField(loadedPlayers);
     setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
     setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
@@ -1123,6 +1087,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           return;
         }
         logger.log(`[EFFECT game load] Found game data for ${currentGameId}`);
+        logger.info('[EFFECT game load] Game data details', {
+          gameId: currentGameId?.slice(0, 20),
+          playersOnFieldCount: gameToLoad.playersOnField?.length ?? 0,
+          selectedPlayerIdsCount: gameToLoad.selectedPlayerIds?.length ?? 0,
+          availablePlayersCount: gameToLoad.availablePlayers?.length ?? 0,
+          hasPlayersOnField: (gameToLoad.playersOnField?.length ?? 0) > 0,
+        });
+
+        // DEFENSIVE: If game has no players on field, explicitly clear the field first
+        // This ensures players from previous game don't persist due to state update timing
+        if (!gameToLoad.playersOnField || gameToLoad.playersOnField.length === 0) {
+          logger.info('[EFFECT game load] Game has empty playersOnField - clearing field explicitly');
+          setPlayersOnField([]);
+        }
+
         await loadGameStateFromData(gameToLoad);
         loadedGameIdRef.current = currentGameId; // Mark as loaded
         return;
@@ -1136,7 +1115,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     loadGame();
   // loadGameStateFromData is now properly memoized with useCallback.
   // The loadedGameIdRef guard prevents duplicate loads for the same game.
-  }, [currentGameId, initialLoadComplete, savedGames, loadGameStateFromData]);
+  // setPlayersOnField is a stable React setter used for defensive field clearing.
+  }, [currentGameId, initialLoadComplete, savedGames, loadGameStateFromData, setPlayersOnField]);
 
   // Effect to prompt for setup if default game ID is loaded
   useEffect(() => {
@@ -1271,8 +1251,78 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   }, [showToast, t]);
 
+  // Handler for Re-sync from Cloud (cloud mode)
+  // Clears local data and migration flag - on reload, migration wizard will reimport from cloud
+  const handleResyncFromCloud = useCallback(async () => {
+    if (!userId) {
+      showToast(t('page.noUserForResync', 'No user logged in'), 'error');
+      return;
+    }
 
-  
+    try {
+      logger.log('[handleResyncFromCloud] Starting re-sync...');
+      setIsResetting(true);
+
+      // Clear user's local IndexedDB data and migration flag
+      await utilResetUserAppSettings(userId, { clearMigrationFlag: true });
+
+      logger.log('[handleResyncFromCloud] Local data cleared, reloading...');
+      window.location.reload();
+    } catch (error) {
+      logger.error('[handleResyncFromCloud] Failed:', error);
+      setIsResetting(false);
+      showToast(t('page.resyncFailed', 'Failed to re-sync. Please try again.'), 'error');
+    }
+  }, [userId, showToast, t]);
+
+  // Handler for Factory Reset (cloud mode - clears local + cloud)
+  // Clears both local and cloud data, sets migration flag as complete (both are empty)
+  const handleFactoryReset = useCallback(async () => {
+    if (!userId) {
+      showToast(t('page.noUserForFactoryReset', 'No user logged in'), 'error');
+      return;
+    }
+
+    try {
+      logger.log('[handleFactoryReset] Starting factory reset...');
+      setIsResetting(true);
+
+      // 1. Clear all data (cloud + local) via SyncedDataStore
+      // SyncedDataStore.clearAllUserData() clears cloud FIRST, then local
+      const dataStore = await getDataStore(userId);
+      await dataStore.clearAllUserData();
+      logger.log('[handleFactoryReset] Cloud and local data cleared');
+
+      // 2. Also close the storage adapter to ensure clean state
+      await utilResetUserAppSettings(userId, { clearMigrationFlag: false });
+
+      // 3. Set migration flag to skip cloud check (both local and cloud are empty now)
+      setMigrationCompleted(userId);
+
+      logger.log('[handleFactoryReset] Factory reset complete, reloading...');
+      window.location.reload();
+    } catch (error) {
+      logger.error('[handleFactoryReset] Failed:', error);
+      setIsResetting(false);
+
+      // Provide specific error message for network issues
+      const isNetworkError = error && typeof error === 'object' &&
+        ('code' in error && error.code === 'NETWORK_ERROR' ||
+         'name' in error && error.name === 'NetworkError');
+
+      if (isNetworkError) {
+        showToast(
+          t('page.factoryResetOffline', 'Cannot delete cloud data while offline. Please check your connection and try again.'),
+          'error'
+        );
+      } else {
+        showToast(t('page.factoryResetFailed', 'Failed to reset. Please try again.'), 'error');
+      }
+    }
+  }, [userId, showToast, t]);
+
+
+
   // Placeholder handlers for Save/Load Modals
 
   // Modal open/close handlers moved to useModalOrchestration
@@ -1747,13 +1797,22 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gender: import('@/types').Gender | undefined
   ) => {
     // Clear field state before creating new game to prevent stale data
+    logger.info('[NEW GAME] Clearing field state BEFORE game creation', {
+      previousPlayersOnFieldCount: fieldCoordination.playersOnField.length,
+      newGameTeamId: teamId,
+      newGameSelectedPlayersCount: initialSelectedPlayerIds.length,
+    });
     fieldCoordination.setPlayersOnField([]);
     fieldCoordination.setOpponents([]);
     fieldCoordination.setDrawings([]);
     fieldCoordination.setTacticalDiscs([]);
     fieldCoordination.setTacticalDrawings([]);
-    // Reset loaded game tracker so the effect will load the new game
-    loadedGameIdRef.current = null;
+    // DO NOT reset loadedGameIdRef.current = null here!
+    // When savedGames changes (new game added), the effect fires while currentGameId
+    // is still the OLD game. If loadedGameIdRef.current is null, the effect will
+    // load the old game's players onto the field.
+    // By keeping loadedGameIdRef.current as the old game ID, the effect will skip
+    // loading (oldId === oldId), and only load when currentGameId changes to newGameId.
 
     await startNewGameWithSetup(
       {
@@ -2026,16 +2085,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     teams: gameDataManagement.teams,
     seasons: gameDataManagement.seasons,
     tournaments: gameDataManagement.tournaments,
-    showFirstGameGuide,
-    hasCheckedFirstGameGuide,
-    firstGameGuideStep,
     orphanedGameInfo,
     onOpenNewGameSetup: reducerDrivenModals.newGameSetup.open,
     onOpenRosterModal: reducerDrivenModals.roster.open,
     onOpenSeasonTournamentModal: reducerDrivenModals.seasonTournament.open,
     onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
-    onGuideStepChange: setFirstGameGuideStep,
-    onGuideClose: () => setShowFirstGameGuide(false),
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
     onOpenRulesModal: handleToggleRulesDirectory,
     onTeamNameChange: handleTeamNameChange,
@@ -2192,6 +2246,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetGamePersonnel,
       handleShowAppGuide,
       handleHardResetApp,
+      handleResyncFromCloud,
+      handleFactoryReset,
       handleSavePlayerAssessment,
       handleDeletePlayerAssessment,
       handleTeamReassignment,

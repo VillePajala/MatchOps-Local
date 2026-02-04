@@ -23,6 +23,22 @@ import type { AppState } from '@/types';
 jest.mock('@/datastore/LocalDataStore');
 jest.mock('@/datastore/SupabaseDataStore');
 
+// Mock the Supabase client for hasCloudData (uses direct client access)
+const mockSupabaseClient = {
+  auth: {
+    getSession: jest.fn().mockResolvedValue({
+      data: { session: { user: { id: 'test-user-id' } } },
+      error: null,
+    }),
+  },
+  from: jest.fn(() => ({
+    select: jest.fn().mockResolvedValue({ count: 0, error: null }),
+  })),
+};
+jest.mock('@/datastore/supabase', () => ({
+  getSupabaseClient: jest.fn(() => mockSupabaseClient),
+}));
+
 // Mock the factory to provide a mock auth service
 jest.mock('@/datastore/factory', () => ({
   getAuthService: jest.fn().mockResolvedValue({
@@ -249,10 +265,16 @@ describe('reverseMigrationService', () => {
 
   // =============================================================================
   // hasCloudData tests
+  // Note: hasCloudData uses Supabase client directly, not SupabaseDataStore
   // =============================================================================
 
   describe('hasCloudData', () => {
     it('should return hasData: true when cloud has data', async () => {
+      // Mock the client's from().select() to return count > 0 for games
+      mockSupabaseClient.from.mockReturnValue({
+        select: jest.fn().mockResolvedValue({ count: 5, error: null }),
+      });
+
       const result = await hasCloudData();
 
       expect(result.hasData).toBe(true);
@@ -261,13 +283,10 @@ describe('reverseMigrationService', () => {
     });
 
     it('should return hasData: false when cloud is empty', async () => {
-      mockSupabaseDataStore.getPlayers.mockResolvedValue([]);
-      mockSupabaseDataStore.getTeams.mockResolvedValue([]);
-      mockSupabaseDataStore.getSeasons.mockResolvedValue([]);
-      mockSupabaseDataStore.getTournaments.mockResolvedValue([]);
-      mockSupabaseDataStore.getAllPersonnel.mockResolvedValue([]);
-      mockSupabaseDataStore.getGames.mockResolvedValue({});
-      mockSupabaseDataStore.getTeamRoster.mockResolvedValue([]);
+      // Mock the client's from().select() to return count = 0 for all tables
+      mockSupabaseClient.from.mockReturnValue({
+        select: jest.fn().mockResolvedValue({ count: 0, error: null }),
+      });
 
       const result = await hasCloudData();
 
@@ -276,13 +295,16 @@ describe('reverseMigrationService', () => {
     });
 
     it('should return checkFailed: true on error', async () => {
-      mockSupabaseDataStore.getPlayers.mockRejectedValue(new Error('Network error'));
+      // Mock the client's from().select() to return an error
+      mockSupabaseClient.from.mockReturnValue({
+        select: jest.fn().mockResolvedValue({ count: null, error: { message: 'Network error' } }),
+      });
 
       const result = await hasCloudData();
 
       expect(result.checkFailed).toBe(true);
-      // Error message is wrapped by hasCloudData with prefix
-      expect(result.error).toBe('Failed to check cloud data: Network error');
+      // Error message includes the table name
+      expect(result.error).toBe('Failed to check games: Network error');
     });
   });
 

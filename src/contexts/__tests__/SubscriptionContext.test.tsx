@@ -77,11 +77,13 @@ describe('SubscriptionContext', () => {
       expect(isSubscriptionActive('grace')).toBe(true);
     });
 
-    it('should return false for none status', () => {
+    // TEMPORARY: These tests are skipped while subscription is always active (free sync)
+    // TODO: Restore when implementing paid subscriptions (see issue #354)
+    it.skip('should return false for none status', () => {
       expect(isSubscriptionActive('none')).toBe(false);
     });
 
-    it('should return false for expired status', () => {
+    it.skip('should return false for expired status', () => {
       expect(isSubscriptionActive('expired')).toBe(false);
     });
   });

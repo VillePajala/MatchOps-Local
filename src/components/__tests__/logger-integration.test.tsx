@@ -40,23 +40,6 @@ describe('Logger Integration Tests', () => {
       );
     });
 
-    it('should verify logger.log is called correctly for FirstGameGuide', () => {
-      // Simulate the exact call made in HomePage
-      const mockConditions = {
-        firstGameGuideShown: false,
-        currentGameId: 'test-game-id',
-        isNotDefaultGame: true,
-        shouldShow: true
-      };
-
-      logger.log('[FirstGameGuide] Checking conditions:', mockConditions);
-
-      expect(mockLogger.log).toHaveBeenCalledWith(
-        '[FirstGameGuide] Checking conditions:',
-        mockConditions
-      );
-    });
-
     it('should verify logger.error is called correctly for app-level errors', () => {
       // Simulate the exact call made in app/page.tsx
       const mockError = new Error('Test error');
@@ -116,36 +99,6 @@ describe('Logger Integration Tests', () => {
     });
   });
 
-  describe('HomePage Logger Integration', () => {
-    it('should call logger.log for FirstGameGuide functionality', () => {
-      // Mock localStorage to simulate FirstGameGuide conditions
-      mockLocalStorage.getItem.mockImplementation((key) => {
-        if (key === 'hasSeenFirstGameGuide') return null; // Not seen yet
-        if (key === 'currentGameId') return 'test-game-id';
-        return null;
-      });
-
-      // This would require more complex setup to test HomePage directly
-      // For now, we verify the logger calls are properly typed and work
-      expect(() => {
-        logger.log('[FirstGameGuide] Checking conditions:', {
-          firstGameGuideShown: false,
-          currentGameId: 'test-game-id',
-          shouldShow: true
-        });
-      }).not.toThrow();
-
-      expect(mockLogger.log).toHaveBeenCalledWith(
-        '[FirstGameGuide] Checking conditions:',
-        {
-          firstGameGuideShown: false,
-          currentGameId: 'test-game-id',
-          shouldShow: true
-        }
-      );
-    });
-  });
-
   describe('Logger Type Safety in Components', () => {
     it('should enforce string message requirement', () => {
       // These should work (string first argument)
@@ -167,14 +120,14 @@ describe('Logger Integration Tests', () => {
       };
 
       logger.error('Game import issues:', { warnings: ['warn1'], failed: ['fail1'] });
-      logger.log('[FirstGameGuide] Checking conditions:', complexData);
+      logger.log('[GameState] Checking conditions:', complexData);
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Game import issues:',
         { warnings: ['warn1'], failed: ['fail1'] }
       );
       expect(mockLogger.log).toHaveBeenCalledWith(
-        '[FirstGameGuide] Checking conditions:',
+        '[GameState] Checking conditions:',
         complexData
       );
     });

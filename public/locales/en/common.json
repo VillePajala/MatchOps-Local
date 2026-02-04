@@ -120,6 +120,7 @@
     "saving": "Saving...",
     "deleting": "Deleting...",
     "loading": "Loading...",
+    "moreOptions": "More options",
     "closeMenu": "Close Menu",
     "assist": "Assist",
     "assistsShort": "Assists Short",
@@ -354,7 +355,9 @@
     "disabledWhenPaused": "Disabled while paused",
     "periodShort": "P",
     "fullTime": "FT",
-    "editOpponentNameTitle": "Click to edit opponent name"
+    "editOpponentNameTitle": "Click to edit opponent name",
+    "decreaseInterval": "Decrease interval",
+    "increaseInterval": "Increase interval"
   },
   "instructionsModal": {
     "title": "How It Works",
@@ -635,6 +638,7 @@
   },
   "loadGameModal": {
     "title": "Load Game",
+    "gameActions": "Game actions",
     "gamesCount": "Games",
     "gameSingular": "Game",
     "gamePlural": "Games",
@@ -770,7 +774,8 @@
     "gameConfigLabel": "Game Configuration",
     "leagueLabel": "League",
     "selectLeague": "-- Select League --",
-    "customLeaguePlaceholder": "Enter league name"
+    "customLeaguePlaceholder": "Enter league name",
+    "createGame": "Create Game"
   },
   "gameSettingsModal": {
     "gameTypeLabel": "Link to Competition",
@@ -871,7 +876,15 @@
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",
-    "failedToLoadData": "Failed to load data. Some features may not be available."
+    "failedToLoadData": "Failed to load data. Some features may not be available.",
+    "somethingWentWrong": "Something went wrong",
+    "unexpectedError": "An unexpected error occurred. This has been logged and will be investigated.",
+    "tryAgain": "Try Again",
+    "refreshPage": "Refresh Page",
+    "showErrorDetails": "Show error details (dev only)",
+    "soccerFieldCrashed": "Soccer Field Crashed",
+    "pleaseRefreshPage": "Please refresh the page to continue.",
+    "playerBarCrashed": "Player bar crashed. Please refresh the page."
   },
   "gameStats": {
     "personnelSectionTitle": "Game Personnel",
@@ -1178,6 +1191,7 @@
   },
   "teamManager": {
     "title": "Teams",
+    "teamActions": "Team actions",
     "createNewTeam": "Create new team",
     "newTeam": "New Team",
     "addTeam": "Add Team",
@@ -1364,6 +1378,7 @@
       "season": "Season",
       "data": "Data",
       "premium": "Premium",
+      "account": "Account",
       "about": "About"
     },
     "languageLabel": "Language",
@@ -1442,7 +1457,15 @@
     "deleteAccountButton": "Delete Account",
     "deletingAccount": "Deleting...",
     "deleteAccountSuccess": "Account deleted successfully",
-    "deleteAccountFailed": "Failed to delete account"
+    "deleteAccountFailed": "Failed to delete account",
+    "resyncTitle": "Re-sync from Cloud",
+    "resyncDescription": "Clear local data and re-download from cloud. Your cloud backup will be restored.",
+    "confirmResyncLabel": "Type RESYNC to confirm",
+    "resyncButton": "Re-sync from Cloud",
+    "factoryResetTitle": "Factory Reset",
+    "factoryResetDescription": "Permanently delete ALL data - both local and cloud. This cannot be undone.",
+    "confirmFactoryResetLabel": "Type FACTORY RESET to confirm",
+    "factoryResetButton": "Factory Reset (Delete All)"
   },
   "playerAssessmentModal": {
     "title": "Assess Performance",
@@ -2037,6 +2060,7 @@
     "purchaseComingSoon": "In-app purchase coming soon!",
     "grantSuccess": "Premium activated! You can reset in Settings.",
     "grantError": "Failed to activate premium. Please try again.",
+    "subscriptionFailed": "Subscription failed: {{error}}",
     "processing": "Processing...",
     "billingNotAvailable": "Play Billing not available. Please try again.",
     "purchaseFailed": "Purchase failed. Please try again.",
@@ -2118,6 +2142,20 @@
     "accepting": "Accepting...",
     "decline": "Decline & Sign Out"
   },
+  "migrationStatus": {
+    "percentComplete": "{{percent}}% complete",
+    "progressLabel": "Migration progress: {{percent}}% complete",
+    "estimatedTime": "Estimated time: {{time}}",
+    "itemsProcessed": "{{processed}}/{{total}} items processed",
+    "preparingMigration": "Preparing migration...",
+    "inProgress": "Migration in progress",
+    "upgradingStorage": "Upgrading Storage",
+    "dontCloseApp": "Please don't close the app during this process.",
+    "warningTitle": "Storage Upgrade Warning",
+    "successTitle": "Storage Upgraded Successfully",
+    "successMessage": "Your data has been migrated to improved storage for better performance.",
+    "dismissNotification": "Dismiss notification"
+  },
   "migration": {
     "title": "Migrate to Cloud",
     "description": "Transfer your local data to your cloud account for backup and sync across devices.",
@@ -2172,7 +2210,20 @@
     },
     "warnings": {
       "cloudCleared": "Existing cloud data was cleared before migration (replace mode)",
-      "andMore": "...and {{count}} more"
+      "andMore": "...and {{count}} more",
+      "title": "Warnings"
+    },
+    "errors": {
+      "unexpected": "An unexpected error occurred. Please try again.",
+      "network": "Network error. Please check your connection and try again.",
+      "sessionExpired": "Session expired. Please sign in again.",
+      "rateLimit": "Too many attempts. Please wait a moment and try again.",
+      "storage": "Storage error. Please try again or contact support.",
+      "timeout": "Request timed out. Please try again with a stable connection.",
+      "permission": "Permission error. Please try signing out and back in.",
+      "validation": "Data validation failed. Please check your data and try again.",
+      "syncFailed": "Sync failed. Please try again.",
+      "downloadFailed": "Download failed. Please try again."
     },
     "modeTitle": "Migration Mode",
     "modeMerge": "Add to cloud",
@@ -2345,7 +2396,14 @@
     "errors": {
       "passwordRequired": "Password is required",
       "signInFailed": "Sign in failed. Please try again.",
-      "deleteFailed": "Delete failed"
+      "deleteFailed": "Delete failed",
+      "unexpected": "An unexpected error occurred. Please try again.",
+      "network": "Network error. Please check your connection and try again.",
+      "invalidCredentials": "Invalid email or password.",
+      "emailNotConfirmed": "Please confirm your email address before signing in.",
+      "rateLimit": "Too many attempts. Please wait a moment and try again.",
+      "generic": "An error occurred. Please try again.",
+      "moduleLoadFailed": "Failed to load cloud services. Please check your connection and try again."
     },
     "confirm": {
       "title": "Confirm Deletion",
@@ -2517,7 +2575,18 @@
     "legacyMigrationFailed": "Could not migrate your data. Please try again later.",
     "dataLoadedFromCloud": "Your data has been loaded from the cloud.",
     "failedToLoadCloudData": "Failed to load your cloud data. Please try refreshing.",
-    "partialSyncComplete": "Sync complete. Some cloud data may not have loaded - refresh to retry."
+    "partialSyncComplete": "Sync complete. Some cloud data may not have loaded - refresh to retry.",
+    "signingOut": "Signing out...",
+    "loadingYourData": "Loading your data...",
+    "connectionTimeout": "Connection Timeout",
+    "connectionTimeoutDesc": "Unable to connect to the server. This can happen after the app has been in the background for a while.",
+    "tryAgain": "Try Again",
+    "useLocalModeInstead": "Use Local Mode Instead",
+    "noUserForResync": "No user logged in",
+    "resyncFailed": "Failed to re-sync. Please try again.",
+    "noUserForFactoryReset": "No user logged in",
+    "factoryResetFailed": "Failed to reset. Please try again.",
+    "factoryResetOffline": "Cannot delete cloud data while offline. Please check your connection and try again."
   },
   "positions": {
     "GK": "GK",

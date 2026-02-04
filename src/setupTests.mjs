@@ -5,6 +5,7 @@ import 'jest-canvas-mock';
 jest.mock('@sentry/nextjs', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
+  addBreadcrumb: jest.fn(),
   withScope: jest.fn((callback) => callback({ setTag: jest.fn(), setContext: jest.fn() })),
 }));
 

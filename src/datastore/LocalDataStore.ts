@@ -329,6 +329,19 @@ type ParsedSettingsWithLegacy = AppSettings & {
   clubSeasonEndMonth?: number;
 };
 
+/**
+ * LocalDataStore - IndexedDB-backed implementation of DataStore.
+ *
+ * ## Immutability Contract
+ *
+ * Methods that accept entity objects (upsertPlayer, upsertTeam, saveGame, etc.)
+ * perform shallow copies of the input data. Callers MUST NOT mutate input objects
+ * after method calls return, as this could corrupt stored data.
+ *
+ * This is a deliberate design choice for performance - deep cloning large game
+ * objects (with hundreds of events) would be expensive. The current usage in
+ * the codebase is safe as callers create fresh objects or use spread operators.
+ */
 export class LocalDataStore implements DataStore {
   private initialized = false;
   private settingsMigrated = false;
@@ -539,9 +552,11 @@ export class LocalDataStore implements DataStore {
    * @see ensureInitialized() - throws NotInitializedError if not initialized
    */
   private async storageGetItem(key: string): Promise<string | null> {
-    if (!this.adapter) {
-      // SECURITY: Fail fast to prevent cross-user data access
-      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
     }
     return this.adapter.getItem(key);
   }
@@ -549,10 +564,22 @@ export class LocalDataStore implements DataStore {
   /**
    * Set an item in storage.
    * Uses user-scoped adapter if available, otherwise falls back to global.
+   *
+   * Note: Checks both `initialized` and `adapter` because there's a race condition
+   * where operations can start before close() but complete after:
+   * 1. Operation starts, passes ensureInitialized() (initialized=true, adapter exists)
+   * 2. Operation waits for key lock
+   * 3. User logout triggers close() - sets initialized=false, adapter=null
+   * 4. Operation gets lock, tries to use adapter - null!
+   *
+   * This is expected behavior during user transitions, not a bug.
    */
   private async storageSetItem(key: string, value: string): Promise<void> {
-    if (!this.adapter) {
-      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
     }
     return this.adapter.setItem(key, value);
   }
@@ -562,8 +589,11 @@ export class LocalDataStore implements DataStore {
    * Uses user-scoped adapter if available, otherwise falls back to global.
    */
   private async storageRemoveItem(key: string): Promise<void> {
-    if (!this.adapter) {
-      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
     }
     return this.adapter.removeItem(key);
   }
@@ -700,6 +730,10 @@ export class LocalDataStore implements DataStore {
   /**
    * Upsert a player (insert or update if exists).
    * Used by reverse migration to preserve IDs from cloud.
+   *
+   * @param player - Player data to upsert. Caller must not mutate this object
+   *   after the call returns, as timestamp fields are shallow-copied.
+   * @returns The upserted player with normalized fields
    */
   async upsertPlayer(player: Player): Promise<Player> {
     this.ensureInitialized();
@@ -712,6 +746,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(MASTER_ROSTER_KEY, async () => {
       const roster = await this.loadPlayers();
       const existingIndex = roster.findIndex((p) => p.id === player.id);
+      const now = new Date().toISOString();
 
       const normalizedPlayer: Player = {
         ...player,
@@ -719,6 +754,9 @@ export class LocalDataStore implements DataStore {
         nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
         receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: player.createdAt ?? (existingIndex !== -1 ? roster[existingIndex].createdAt : now),
+        updatedAt: now,
       };
 
       if (existingIndex !== -1) {
@@ -959,15 +997,40 @@ export class LocalDataStore implements DataStore {
   }
 
   /**
-   * Set team roster. Raw storage operation - no locking.
-   * Callers (teams.ts) are responsible for atomicity via withRosterLock.
+   * Set team roster. Raw storage operation - no locking for roster key.
+   * Callers (teams.ts) are responsible for roster atomicity via withRosterLock.
+   *
+   * Also updates the parent Team's updatedAt timestamp for conflict resolution.
+   * The teams index update IS locked to prevent race conditions with other
+   * operations that modify the teams index.
    */
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
 
-    const rostersIndex = await this.loadTeamRosters();
-    rostersIndex[teamId] = roster;
-    await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    // Update both team timestamp and roster under the SAME lock to prevent race conditions.
+    // Without this, another operation could modify the team between releasing the teams lock
+    // and saving the roster, causing the timestamp to not reflect the actual roster state.
+    await withKeyLock(TEAMS_INDEX_KEY, async () => {
+      const teamsIndex = await this.loadTeamsIndex();
+      const rostersIndex = await this.loadTeamRosters();
+
+      if (teamsIndex[teamId]) {
+        teamsIndex[teamId] = {
+          ...teamsIndex[teamId],
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        // Team not found - will still save roster but log warning
+        // This could indicate orphaned roster data or race condition during team creation
+        logger.warn('[LocalDataStore] Cannot update roster timestamp - team not found', { teamId });
+      }
+
+      rostersIndex[teamId] = roster;
+
+      // Save both atomically under the same lock
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    });
   }
 
   /**
@@ -1171,6 +1234,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(SEASONS_LIST_KEY, async () => {
       const currentSeasons = await this.loadSeasons();
       const existingIndex = currentSeasons.findIndex((s) => s.id === season.id);
+      const now = new Date().toISOString();
 
       const clubSeason = calculateClubSeason(season.startDate, start, end);
 
@@ -1180,6 +1244,9 @@ export class LocalDataStore implements DataStore {
         ageGroup: normalizedAgeGroup ?? undefined,
         notes: normalizeOptionalString(season.notes) ?? undefined,
         clubSeason,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: season.createdAt ?? (existingIndex !== -1 ? currentSeasons[existingIndex].createdAt : now),
+        updatedAt: now,
       };
 
       if (existingIndex !== -1) {
@@ -1396,6 +1463,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
       const currentTournaments = await this.loadTournaments();
       const existingIndex = currentTournaments.findIndex((t) => t.id === tournament.id);
+      const now = new Date().toISOString();
 
       const clubSeason = calculateClubSeason(tournament.startDate, start, end);
 
@@ -1406,6 +1474,9 @@ export class LocalDataStore implements DataStore {
         level: normalizeOptionalString(tournament.level) ?? undefined,
         notes: normalizeOptionalString(tournament.notes) ?? undefined,
         clubSeason,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: tournament.createdAt ?? (existingIndex !== -1 ? currentTournaments[existingIndex].createdAt : now),
+        updatedAt: now,
       };
 
       if (existingIndex !== -1) {
@@ -1734,9 +1805,19 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
       const games = await this.loadSavedGames();
-      games[id] = game;
+      const now = new Date().toISOString();
+      const existingGame = games[id];
+
+      // Set timestamps: preserve createdAt if exists, always update updatedAt
+      const gameWithTimestamps: AppState = {
+        ...game,
+        createdAt: game.createdAt ?? existingGame?.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      games[id] = gameWithTimestamps;
       await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
-      return game;
+      return gameWithTimestamps;
     });
   }
 
@@ -1975,7 +2056,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     await withKeyLock(APP_SETTINGS_KEY, async () => {
-      await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+      // Set updatedAt for conflict resolution
+      const toSave = { ...settings, updatedAt: new Date().toISOString() };
+      await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
     });
 
     // Invalidate season dates cache in case dates were changed
@@ -2018,7 +2101,15 @@ export class LocalDataStore implements DataStore {
         current = this.migrateSeasonDates(parsed).settings;
       }
 
-      const updated = { ...current, ...updates };
+      // Preserve cloud timestamp if present (cloud-wins scenario), otherwise generate new
+      // Destructure updatedAt to handle explicit undefined from spread operators
+      // (e.g., updates = { ...obj, updatedAt: undefined } would overwrite before nullish coalescing)
+      const { updatedAt: newUpdatedAt, ...restUpdates } = updates;
+      const updated = {
+        ...current,
+        ...restUpdates,
+        updatedAt: newUpdatedAt ?? current.updatedAt ?? new Date().toISOString(),
+      };
 
       // Remove legacy fields before saving
       const toSave = this.removeLegacyMonthFields(updated);

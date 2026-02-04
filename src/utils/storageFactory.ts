@@ -783,6 +783,39 @@ export class StorageFactory {
 
       this.logger.error('Failed to create user-scoped adapter', { userId, error });
 
+      // Capture detailed error info to Sentry for debugging
+      try {
+        // Dynamic import to avoid circular dependencies
+        import('@sentry/nextjs').then((Sentry) => {
+          Sentry.addBreadcrumb({
+            category: 'storage',
+            message: 'User-scoped adapter creation failed',
+            level: 'error',
+            data: {
+              userId,
+              errorMessage: error instanceof Error ? error.message : String(error),
+              errorName: error instanceof Error ? error.name : 'Unknown',
+              errorStack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
+            },
+          });
+          Sentry.captureException(error, {
+            tags: { component: 'storageFactory', action: 'createUserAdapter' },
+            extra: {
+              userId,
+              errorDetails: error instanceof Error ? {
+                message: error.message,
+                name: error.name,
+                stack: error.stack,
+              } : String(error),
+            },
+          });
+        }).catch(() => {
+          // Sentry import failed - continue without reporting
+        });
+      } catch {
+        // Sentry not available - continue
+      }
+
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
         `Failed to create user-scoped storage: ${error instanceof Error ? error.message : 'Unknown error'}`,

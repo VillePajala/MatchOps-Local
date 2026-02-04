@@ -187,7 +187,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
             // Always show the actual error message for debugging
             const errorMsg = result.error || 'Unknown error';
             logger.error('[UpgradePromptModal] Mock subscription failed:', errorMsg);
-            showToast(`Subscription failed: ${errorMsg}`, 'error');
+            showToast(t('premium.subscriptionFailed', 'Subscription failed: {{error}}', { error: errorMsg }), 'error');
             return;
           }
         }

@@ -194,6 +194,8 @@ interface ModalManagerHandlers {
   setDefaultTeamName: (name: string) => void;
   showAppGuide: () => void;
   hardResetApp: () => void;
+  resyncFromCloud: () => void;
+  factoryReset: () => void;
   closePlayerAssessmentModal: () => void;
   savePlayerAssessment: (playerId: string, assessment: Partial<PlayerAssessment>) => void;
   deletePlayerAssessment: (playerId: string) => void;
@@ -460,6 +462,8 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onCreateBackup={handlers.onCreateBackup}
           onDataImportSuccess={handlers.onDataImportSuccess}
           initialTab={state.settingsInitialTab}
+          onResyncFromCloud={handlers.resyncFromCloud}
+          onFactoryReset={handlers.factoryReset}
         />
 
         <PlayerAssessmentModal

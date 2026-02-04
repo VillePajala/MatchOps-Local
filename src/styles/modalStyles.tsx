@@ -80,7 +80,7 @@ export const selectStyle =
 // ============================================================================
 
 // Button padding: py-3 provides ~44px touch target (iOS guideline minimum)
-const buttonBaseStyle =
+const _buttonBaseStyle =
   "px-4 py-3 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const primaryButtonStyle =

@@ -34,3 +34,27 @@ export const debug = {
     return enabledCategories.has(category);
   },
 };
+
+/**
+ * Expose Supabase diagnostics on window for easy console access.
+ *
+ * After calling this, you can run diagnostics from the browser console:
+ * ```js
+ * await window.runSupabaseDiagnostics()
+ * ```
+ *
+ * Call this once during app initialization (e.g., in a useEffect).
+ */
+export function exposeSupabaseDiagnostics(): void {
+  if (typeof window === 'undefined') return;
+
+  // Define the global function
+  (window as unknown as { runSupabaseDiagnostics?: () => Promise<unknown> }).runSupabaseDiagnostics = async () => {
+    const { runSupabaseDiagnostics } = await import('@/datastore/factory');
+    return runSupabaseDiagnostics();
+  };
+
+  // Log instructions to console (eslint-disable needed for user-facing debug instruction)
+  // eslint-disable-next-line no-console
+  console.log('[Debug] Supabase diagnostics available. Run: await window.runSupabaseDiagnostics()');
+}

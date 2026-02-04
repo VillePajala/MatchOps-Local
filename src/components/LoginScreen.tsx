@@ -15,9 +15,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
-import i18n from '@/i18n';
+import i18n, { saveLanguagePreference } from '@/i18n';
 import { useAuth } from '@/contexts/AuthProvider';
-import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
+// Note: Do NOT import updateAppSettings here. LoginScreen is pre-login,
+// so there's no userId and calling updateAppSettings would cause DataStore conflicts.
 import logger from '@/utils/logger';
 
 type AuthMode = 'signIn' | 'signUp' | 'resetPassword';
@@ -64,21 +65,17 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
   // GDPR consent checkbox for sign up
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
 
-  // Load saved language preference
-  useEffect(() => {
-    getAppSettings().then((settings) => {
-      if (settings.language) {
-        setLanguage(settings.language);
-      }
-    });
-  }, []);
+  // Language is already loaded from localStorage by i18n on initialization.
+  // i18n.language is the source of truth - no need to call getAppSettings().
+  // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N).
 
   // Save language preference when changed
   useEffect(() => {
     i18n.changeLanguage(language);
-    updateAppSettings({ language }).catch((err) => {
-      logger.warn('[LoginScreen] Failed to save language preference (non-critical)', { language, error: err });
-    });
+    // Save to localStorage (i18n loads from here on init).
+    // DO NOT call updateAppSettings here - LoginScreen is shown before login,
+    // so there's no userId and it would cause DataStore initialization conflicts.
+    saveLanguagePreference(language);
   }, [language]);
 
   const handleSubmit = async (e: React.FormEvent) => {

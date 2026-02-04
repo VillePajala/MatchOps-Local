@@ -1,8 +1,8 @@
 {
-  "version": "5917cc3a",
-  "date": "2026-01-31",
+  "version": "acc4783d",
+  "date": "2026-02-03",
   "notes": {
-    "en": "Step 8 - legacy migration MatchOpsLocal → user database",
-    "fi": "Step 8 - legacy migration MatchOpsLocal → user database"
+    "en": "Add localStorage fallback for session recovery on AbortError",
+    "fi": "Add localStorage fallback for session recovery on AbortError"
   }
 }

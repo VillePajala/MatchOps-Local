@@ -708,18 +708,16 @@ describe('Factory', () => {
      * Verify that concurrent calls with DIFFERENT userIds throw errors for losers.
      *
      * SECURITY: When concurrent initialization with different userIds occurs:
-     * 1. The first caller's initialization wins and sets the singleton
-     * 2. Other callers detect the conflict and throw an error
-     * 3. Callers must retry - the factory never returns wrong user's DataStore
+     * 1. Calls are serialized - each waits for pending inits to complete
+     * 2. After waiting, each call does a user switch (close old, init new)
+     * 3. All calls succeed with their own DataStore instance
      *
-     * This prevents a race condition where User B could accidentally get User A's DataStore.
-     * In normal app usage, only one user should be active at a time, so this scenario
-     * indicates a bug in the calling code. The factory safely handles it by:
-     * - Logging an error about the conflict
-     * - Throwing an error for conflicting callers
-     * - Callers must retry to get their own DataStore
+     * This prevents cross-user data exposure by serializing operations.
+     * In normal app usage, only one user should be active at a time.
+     * This scenario (concurrent calls with different userIds) indicates a bug
+     * in the calling code, but the factory handles it safely.
      *
-     * @critical - Prevents cross-user data exposure
+     * @critical - Prevents cross-user data exposure via serialization
      */
     it('should handle concurrent getDataStore calls with different users safely', async () => {
       const USER_C = 'user-c-789';
@@ -729,38 +727,31 @@ describe('Factory', () => {
 
       // Concurrent calls with different userIds
       // This simulates a race condition - should NOT happen in normal app usage
-      // SECURITY: The factory throws an error for the "losers" to prevent data leakage
+      // The factory serializes these calls to prevent cross-user data leakage
       const results = await Promise.allSettled([
         getDataStore(USER_A),
         getDataStore(USER_B),
         getDataStore(USER_C),
       ]);
 
-      // At least one should succeed (the "winner")
+      // All should succeed (serialization prevents conflicts)
       const successResults = results.filter(r => r.status === 'fulfilled');
       const errorResults = results.filter(r => r.status === 'rejected');
 
-      expect(successResults.length).toBeGreaterThanOrEqual(1);
+      // With serialization, all calls succeed
+      expect(successResults.length).toBe(3);
+      expect(errorResults.length).toBe(0);
 
-      // Error results should have the conflict error message
-      for (const result of errorResults) {
-        expect((result as PromiseRejectedResult).reason.message).toContain(
-          'DataStore initialization conflict'
-        );
+      // Each result is a valid LocalDataStore instance
+      for (const result of successResults) {
+        const instance = (result as PromiseFulfilledResult<DataStore>).value;
+        expect(instance).toBeInstanceOf(LocalDataStore);
+        // Note: earlier instances may be closed by subsequent user switches,
+        // but they were valid DataStore instances when returned
       }
 
-      // All successful results should return the same instance (the winner's)
-      if (successResults.length > 1) {
-        const instances = successResults.map(r => (r as PromiseFulfilledResult<DataStore>).value);
-        for (let i = 1; i < instances.length; i++) {
-          expect(instances[i]).toBe(instances[0]);
-        }
-      }
-
-      // The winning instance should be valid and initialized
-      const winningInstance = (successResults[0] as PromiseFulfilledResult<DataStore>).value;
-      expect(winningInstance).toBeInstanceOf(LocalDataStore);
-      expect(winningInstance.isInitialized()).toBe(true);
+      // The final singleton should be for the last user
+      expect(isDataStoreInitialized()).toBe(true);
     });
 
     /**

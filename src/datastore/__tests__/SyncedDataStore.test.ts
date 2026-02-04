@@ -31,6 +31,12 @@ jest.mock('@/utils/logger', () => ({
     warn: jest.fn(),
     error: jest.fn(),
   },
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  })),
 }));
 
 describe('SyncedDataStore', () => {
@@ -861,6 +867,8 @@ describe('SyncedDataStore', () => {
     });
 
     it('should update settings and queue sync', async () => {
+      // Mock getSettings so the skip-unchanged check sees existing settings
+      localStoreSpy.getSettings.mockResolvedValue(mockSettings);
       const updated = { ...mockSettings, language: 'fi' as const };
       localStoreSpy.updateSettings.mockResolvedValue(updated);
 

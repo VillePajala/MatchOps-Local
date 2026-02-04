@@ -48,7 +48,7 @@ import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 import logger from '@/utils/logger';
-import { setStorageItem, getStorageItem, removeStorageItem, getAllStorageData } from '@/utils/storage';
+import { setStorageItem, removeStorageItem, getAllStorageData } from '@/utils/storage';
 import * as Sentry from '@sentry/nextjs';
 import { withRetry, throwIfTransient, TransientSupabaseError, type RetryConfig } from '@/datastore/supabase/retry';
 
@@ -932,6 +932,8 @@ export class SupabaseDataStore implements DataStore {
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
       receivedFairPlayCard: row.received_fair_play_card ?? false,
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
   }
 
@@ -1494,18 +1496,17 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    let query = this.getClient().from('seasons').select('*');
-    if (!includeArchived) {
-      query = query.eq('archived', false);
-    }
+    // Use withRetry for transient error resilience (matches getTeams pattern)
+    // Fixes Sentry issues where seasons fail to load on transient network errors
+    const result = await this.withRetry(async () => {
+      let query = this.getClient().from('seasons').select('*');
+      if (!includeArchived) {
+        query = query.eq('archived', false);
+      }
+      return throwIfTransient(await query.order('created_at', { ascending: false }));
+    }, 'getSeasons');
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch seasons');
-    }
-
-    const rows = (data || []) as SeasonRow[];
+    const rows = (result.data || []) as SeasonRow[];
     const { start, end } = await this.getSeasonDates();
     return rows.map((row) => ({
       ...this.transformSeasonFromDb(row),
@@ -1739,6 +1740,8 @@ export class SupabaseDataStore implements DataStore {
       color: row.color ?? undefined,
       badge: row.badge ?? undefined,
       teamPlacements: parseTeamPlacements(row.team_placements),
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
   }
 
@@ -1832,18 +1835,17 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    let query = this.getClient().from('tournaments').select('*');
-    if (!includeArchived) {
-      query = query.eq('archived', false);
-    }
+    // Use withRetry for transient error resilience (matches getTeams pattern)
+    // Fixes Sentry issues where tournaments fail to load on transient network errors
+    const result = await this.withRetry(async () => {
+      let query = this.getClient().from('tournaments').select('*');
+      if (!includeArchived) {
+        query = query.eq('archived', false);
+      }
+      return throwIfTransient(await query.order('created_at', { ascending: false }));
+    }, 'getTournaments');
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch tournaments');
-    }
-
-    const rows = (data || []) as TournamentRow[];
+    const rows = (result.data || []) as TournamentRow[];
     const { start, end } = await this.getSeasonDates();
     return rows.map((row) =>
       migrateTournamentLevel({
@@ -2083,6 +2085,8 @@ export class SupabaseDataStore implements DataStore {
       badge: row.badge ?? undefined,
       awardedPlayerId: row.awarded_player_id ?? undefined,
       teamPlacements: parseTeamPlacements(row.team_placements),
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
   }
 
@@ -2178,27 +2182,42 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('personnel')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Use withRetry for transient network error resilience
+    const result = await this.withRetry(async () => {
+      return throwIfTransient(
+        await this.getClient()
+          .from('personnel')
+          .select('*')
+          .order('created_at', { ascending: false })
+      );
+    }, 'getAllPersonnel');
 
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch personnel');
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to fetch personnel');
     }
 
-    return (data || []).map(this.transformPersonnelFromDb);
+    return (result.data || []).map(this.transformPersonnelFromDb);
   }
 
   async getPersonnelById(id: string): Promise<Personnel | null> {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('personnel')
-      .select('*')
-      .eq('id', id)
-      .single();
+    // Use withRetry for transient network error resilience
+    // Note: PGRST116 (no row found) is not transient and handled below
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('personnel')
+        .select('*')
+        .eq('id', id)
+        .single();
+      // Only throw if it's a transient error (for retry)
+      // PGRST116 (not found) is expected and should not be retried
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'getPersonnelById');
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -2444,10 +2463,20 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('user_settings')
-      .select('*')
-      .single();
+    // Use withRetry for transient network error resilience
+    // Note: PGRST116 (no row found) is not transient and handled below
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('user_settings')
+        .select('*')
+        .single();
+      // Only throw if it's a transient error (for retry)
+      // PGRST116 (no settings exist) is expected and should not be retried
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'getSettings');
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -2929,6 +2958,9 @@ export class SupabaseDataStore implements DataStore {
       tacticalBallPosition: (tacticalData?.tactical_ball_position as Point | null) ?? null,
       completedIntervalDurations: (tacticalData?.completed_interval_durations as IntervalLog[] | null) ?? [],
       lastSubConfirmationTimeSeconds: tacticalData?.last_sub_confirmation_time_seconds ?? undefined,
+      // === Timestamps for conflict resolution ===
+      createdAt: game.created_at ?? undefined,
+      updatedAt: game.updated_at ?? undefined,
     };
   }
 
@@ -3214,14 +3246,32 @@ export class SupabaseDataStore implements DataStore {
    * @see supabase/migrations/001_rpc_functions.sql
    */
   async saveGame(id: string, game: AppState): Promise<AppState> {
+    const saveStartTime = Date.now();
+    logger.info('[SupabaseDataStore] saveGame START', { gameId: id.slice(0, 20) });
+
     this.ensureInitialized();
     checkOnline();
 
     // Validate using shared helper (Rule #14 - same validation as LocalDataStore)
     validateGame(game);
+    const validateTime = Date.now() - saveStartTime;
 
     const userId = await this.getUserId();
+    const getUserIdTime = Date.now() - saveStartTime;
+
     const tables = this.transformGameToTables(id, game, userId);
+    const transformTime = Date.now() - saveStartTime;
+
+    logger.info('[SupabaseDataStore] saveGame preparation complete', {
+      gameId: id.slice(0, 20),
+      validateMs: validateTime,
+      getUserIdMs: getUserIdTime - validateTime,
+      transformMs: transformTime - getUserIdTime,
+      totalPrepMs: transformTime,
+      eventsCount: tables.events.length,
+      playersCount: tables.players.length,
+      assessmentsCount: tables.assessments.length,
+    });
 
     // Get expected version for optimistic locking (Issue #330)
     // undefined = new game or version not yet cached (skip version check)
@@ -3236,7 +3286,11 @@ export class SupabaseDataStore implements DataStore {
     //   2. 40001 indicates real concurrent modification, not a transient network issue
     //   3. User intervention required - they must refresh to see latest changes
     const client = this.getClient();
+    const rpcStartTime = Date.now();
+    logger.info('[SupabaseDataStore] saveGame RPC START', { gameId: id.slice(0, 20) });
+
     const rpcResult = await this.withRetry(async () => {
+      const attemptStartTime = Date.now();
       const result = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ data: number | null; error: { message: string; code?: string } | null }>)(
         'save_game_with_relations',
         {
@@ -3248,8 +3302,23 @@ export class SupabaseDataStore implements DataStore {
           p_expected_version: expectedVersion ?? null,
         }
       );
+      const attemptDuration = Date.now() - attemptStartTime;
+      logger.info('[SupabaseDataStore] saveGame RPC attempt complete', {
+        gameId: id.slice(0, 20),
+        durationMs: attemptDuration,
+        hasError: result.error !== null,
+        errorCode: result.error?.code,
+      });
       return throwIfTransient(result);
     }, 'saveGame');
+
+    const rpcTotalDuration = Date.now() - rpcStartTime;
+    logger.info('[SupabaseDataStore] saveGame RPC DONE', {
+      gameId: id.slice(0, 20),
+      totalRpcMs: rpcTotalDuration,
+      hasError: rpcResult.error !== null,
+    });
+
     const { data: newVersion, error } = rpcResult;
 
     if (error) {
@@ -3344,44 +3413,13 @@ export class SupabaseDataStore implements DataStore {
       });
     }
 
-    await this.ensureGameCreatedAt(id);
+    const totalDuration = Date.now() - saveStartTime;
+    logger.info('[SupabaseDataStore] saveGame COMPLETE', {
+      gameId: id.slice(0, 20),
+      totalMs: totalDuration,
+    });
 
     return game;
-  }
-
-  /**
-   * Backfill created_at for legacy rows where it was left null.
-   *
-   * INTENTIONAL SILENT FAILURE: This is a best-effort backfill for legacy data.
-   * We log failures but don't propagate errors because:
-   * 1. The game data is already saved successfully at this point
-   * 2. created_at is used for sorting/display, not critical functionality
-   * 3. Failing the entire save for a backfill would be worse UX
-   * 4. The update is idempotent - will be retried on next save if needed
-   */
-  private async ensureGameCreatedAt(gameId: string): Promise<void> {
-    const { error } = await this.getClient()
-      .from('games')
-      .update({ created_at: new Date().toISOString() })
-      .eq('id', gameId)
-      .is('created_at', null);
-
-    if (error) {
-      logger.warn('[SupabaseDataStore] Failed to backfill created_at for game', {
-        gameId,
-        message: error.message,
-      });
-      // Track in Sentry for production monitoring - not critical but worth tracking
-      try {
-        Sentry.captureMessage('Game created_at backfill failed', {
-          level: 'warning',
-          tags: { flow: 'game-created-at-backfill' },
-          extra: { gameId, error: error.message },
-        });
-      } catch {
-        // Sentry failure must not affect game save success
-      }
-    }
   }
 
   /**
@@ -3409,6 +3447,9 @@ export class SupabaseDataStore implements DataStore {
   }
 
   async deleteGame(id: string): Promise<boolean> {
+    const deleteStartTime = Date.now();
+    logger.info('[SupabaseDataStore] deleteGame START', { gameId: id.slice(0, 20) });
+
     this.ensureInitialized();
     checkOnline();
 
@@ -3417,6 +3458,14 @@ export class SupabaseDataStore implements DataStore {
       .from('games')
       .delete({ count: 'exact' })
       .eq('id', id);
+
+    const deleteDuration = Date.now() - deleteStartTime;
+    logger.info('[SupabaseDataStore] deleteGame COMPLETE', {
+      gameId: id.slice(0, 20),
+      durationMs: deleteDuration,
+      hasError: error !== null,
+      deletedCount: count,
+    });
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete game');
@@ -3781,15 +3830,29 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     // Each user has at most one warmup plan
+    // Note: Using .maybeSingle() instead of .single() to avoid 406 errors when no rows exist.
+    // .single() requires exactly 1 row and returns 406 on certain edge cases.
+    // .maybeSingle() returns null for 0 rows and errors on >1 rows.
     const { data, error } = await this.getClient()
       .from('warmup_plans')
       .select('*')
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    // PGRST116 = row not found - this is expected if no plan exists
-    if (error && error.code !== 'PGRST116') {
-      this.classifyAndThrowError(error, 'Failed to fetch warmup plan');
+    if (error) {
+      // DIAGNOSTIC: Log full error details to help debug 406 errors
+      logger.warn('[SupabaseDataStore] getWarmupPlan error', {
+        code: error.code,
+        message: error.message,
+        details: (error as { details?: string }).details,
+        hint: (error as { hint?: string }).hint,
+        status: (error as { status?: number }).status,
+      });
+
+      // PGRST116 = row not found - this is expected if no plan exists
+      if (error.code !== 'PGRST116') {
+        this.classifyAndThrowError(error, 'Failed to fetch warmup plan');
+      }
     }
 
     if (!data) {
@@ -4060,5 +4123,134 @@ export class SupabaseDataStore implements DataStore {
     } catch (err) {
       logger.warn('[SupabaseDataStore] Failed to clear all conflict backups:', err);
     }
+  }
+
+  // ==========================================================================
+  // DIAGNOSTICS
+  // ==========================================================================
+
+  /**
+   * Run diagnostic tests to identify Supabase performance issues.
+   *
+   * Tests performed:
+   * 1. Simple SELECT (count games) - baseline read performance
+   * 2. Simple SELECT with filter (single game by ID) - indexed read
+   * 3. Settings read - typical DataStore operation
+   *
+   * Results help identify:
+   * - Infrastructure slowness (all queries slow) → Supabase tier/region issue
+   * - Write-only slowness (reads fast, writes slow) → Connection pooling issue
+   * - RPC-only slowness (direct queries fast, RPC slow) → RPC configuration issue
+   *
+   * @returns Diagnostic results with timing for each operation
+   */
+  async runDiagnostics(): Promise<{
+    connectivity: { ok: boolean; durationMs: number; error?: string };
+    simpleRead: { ok: boolean; durationMs: number; count?: number; error?: string };
+    indexedRead: { ok: boolean; durationMs: number; error?: string };
+    settingsRead: { ok: boolean; durationMs: number; error?: string };
+    summary: string;
+  }> {
+    this.ensureInitialized();
+    const client = this.getClient();
+
+    logger.info('[SupabaseDataStore] Running diagnostics...');
+
+    // Test 1: Basic connectivity - simple count
+    const connectivityStart = Date.now();
+    let connectivity: { ok: boolean; durationMs: number; error?: string };
+    try {
+      const { error } = await client.from('games').select('id', { count: 'exact', head: true });
+      connectivity = {
+        ok: !error,
+        durationMs: Date.now() - connectivityStart,
+        error: error?.message,
+      };
+    } catch (err) {
+      connectivity = {
+        ok: false,
+        durationMs: Date.now() - connectivityStart,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+    logger.info('[SupabaseDataStore] Diagnostic: connectivity', connectivity);
+
+    // Test 2: Simple read - count games
+    const simpleReadStart = Date.now();
+    let simpleRead: { ok: boolean; durationMs: number; count?: number; error?: string };
+    try {
+      const { count, error } = await client.from('games').select('*', { count: 'exact', head: true });
+      simpleRead = {
+        ok: !error,
+        durationMs: Date.now() - simpleReadStart,
+        count: count ?? 0,
+        error: error?.message,
+      };
+    } catch (err) {
+      simpleRead = {
+        ok: false,
+        durationMs: Date.now() - simpleReadStart,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+    logger.info('[SupabaseDataStore] Diagnostic: simpleRead', simpleRead);
+
+    // Test 3: Indexed read - get first game by ID (uses primary key index)
+    const indexedReadStart = Date.now();
+    let indexedRead: { ok: boolean; durationMs: number; error?: string };
+    try {
+      const { error } = await client.from('games').select('id, team_name').limit(1);
+      indexedRead = {
+        ok: !error,
+        durationMs: Date.now() - indexedReadStart,
+        error: error?.message,
+      };
+    } catch (err) {
+      indexedRead = {
+        ok: false,
+        durationMs: Date.now() - indexedReadStart,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+    logger.info('[SupabaseDataStore] Diagnostic: indexedRead', indexedRead);
+
+    // Test 4: Settings read - typical DataStore operation
+    const settingsReadStart = Date.now();
+    let settingsRead: { ok: boolean; durationMs: number; error?: string };
+    try {
+      const userId = await this.getUserId();
+      const { error } = await client.from('user_settings').select('*').eq('user_id', userId).maybeSingle();
+      settingsRead = {
+        ok: !error,
+        durationMs: Date.now() - settingsReadStart,
+        error: error?.message,
+      };
+    } catch (err) {
+      settingsRead = {
+        ok: false,
+        durationMs: Date.now() - settingsReadStart,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+    logger.info('[SupabaseDataStore] Diagnostic: settingsRead', settingsRead);
+
+    // Generate summary
+    const avgDuration = Math.round(
+      (connectivity.durationMs + simpleRead.durationMs + indexedRead.durationMs + settingsRead.durationMs) / 4
+    );
+    let summary: string;
+    if (avgDuration > 10000) {
+      summary = `CRITICAL: Average query time ${avgDuration}ms - severe infrastructure issue. Check Supabase project status and region.`;
+    } else if (avgDuration > 3000) {
+      summary = `WARNING: Average query time ${avgDuration}ms - slow infrastructure. May be free tier cold start or high latency region.`;
+    } else if (avgDuration > 1000) {
+      summary = `MODERATE: Average query time ${avgDuration}ms - acceptable but could be improved. Check region proximity.`;
+    } else {
+      summary = `GOOD: Average query time ${avgDuration}ms - infrastructure is responsive.`;
+    }
+
+    const result = { connectivity, simpleRead, indexedRead, settingsRead, summary };
+    logger.info('[SupabaseDataStore] Diagnostics complete', { summary, avgDurationMs: avgDuration });
+    return result;
   }
 }

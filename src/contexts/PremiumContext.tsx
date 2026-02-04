@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  getPremiumLicense,
   grantPremium,
   revokePremium,
   canCreateResource,
@@ -11,7 +10,6 @@ import {
   type ResourceCounts,
 } from '@/utils/premiumManager';
 import { FREE_LIMITS, ResourceType, PREMIUM_PRICE } from '@/config/premiumLimits';
-import { getBackendMode } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
 interface PremiumContextValue {
@@ -54,22 +52,27 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
 
-      // In local mode, premium is always granted (no limits)
-      // Cloud mode requires actual premium license check
-      const mode = getBackendMode();
-      if (mode === 'local') {
-        setIsPremium(true);
-        logger.debug('Premium status: local mode = always premium');
-        return;
-      }
+      // LIMITS DISABLED: Always grant premium (no resource limits enforced)
+      // The limit infrastructure is preserved for potential future use.
+      // To re-enable limits in cloud mode, restore the mode check and license lookup below.
+      setIsPremium(true);
+      logger.debug('Premium status: limits disabled - always premium');
 
-      // Cloud mode: check actual license
-      const license = await getPremiumLicense();
-      setIsPremium(license.isPremium);
-      logger.debug('Premium status loaded', { isPremium: license.isPremium, mode });
+      // --- COMMENTED OUT: Original cloud mode limit enforcement ---
+      // const mode = getBackendMode();
+      // if (mode === 'local') {
+      //   setIsPremium(true);
+      //   logger.debug('Premium status: local mode = always premium');
+      //   return;
+      // }
+      // // Cloud mode: check actual license
+      // const license = await getPremiumLicense();
+      // setIsPremium(license.isPremium);
+      // logger.debug('Premium status loaded', { isPremium: license.isPremium, mode });
     } catch (error) {
       logger.error('Failed to load premium status', error);
-      setIsPremium(false);
+      // Even on error, grant premium since limits are disabled
+      setIsPremium(true);
     } finally {
       setIsLoading(false);
     }

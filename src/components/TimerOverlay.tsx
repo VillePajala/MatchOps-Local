@@ -269,7 +269,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         <div className="mb-3 text-center flex items-center justify-center gap-3">
           {gameStatus !== 'notStarted' && (
             <span className="text-sm font-medium text-slate-400">
-              {t('timerOverlay.timeSinceLastSubCombined', 'Viim. vaihto:')}{' '}
+              {t('timerOverlay.timeSinceLastSubCombined', 'Last sub:')}{' '}
               <span className="tabular-nums text-slate-300 font-semibold">{formatTime(timeSinceLastSub)}</span>
             </span>
           )}
@@ -314,7 +314,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 <button
                   onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
                   disabled={subIntervalMinutes <= 0.5}
-                  className={controlButtonStyle} aria-label="Decrease interval">
+                  className={controlButtonStyle} aria-label={t('timerOverlay.decreaseInterval', 'Decrease interval')}>
                   -
                 </button>
                 <span className={controlValueStyle}>
@@ -322,7 +322,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 </span>
                 <button
                   onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}
-                  className={controlButtonStyle} aria-label="Increase interval">
+                  className={controlButtonStyle} aria-label={t('timerOverlay.increaseInterval', 'Increase interval')}>
                   +
                 </button>
               </div>

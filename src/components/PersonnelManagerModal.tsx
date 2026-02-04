@@ -24,7 +24,6 @@ import {
   titleStyle,
   cardStyle,
   primaryButtonStyle,
-  secondaryButtonStyle,
   iconButtonBaseStyle,
 } from '@/styles/modalStyles';
 
@@ -334,7 +333,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                             onClick={(e) => handleActionsMenuToggle(e, person.id)}
                             className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                             disabled={isUpdating}
-                            aria-label="More options"
+                            aria-label={t('common.moreOptions', 'More options')}
                           >
                             <HiOutlineEllipsisVertical className="h-5 w-5" />
                           </button>

@@ -49,9 +49,18 @@ let dataStoreCreatedForUserId: string | undefined = undefined;
 const dataStoreInitPromises = new Map<string | undefined, Promise<DataStore>>();
 let authServiceInitPromise: Promise<AuthService> | null = null;
 
+// Global serialization lock for DataStore initialization
+// This ensures only one initialization can run at a time, preventing race conditions
+// where anonymous and authenticated initializations race each other
+let globalInitLock: Promise<void> | null = null;
+let globalInitLockResolve: (() => void) | null = null;
+
 // Guard flag to prevent getDataStore() calls during resetFactory() cleanup
 // This prevents creating a new instance while the old one is still closing
 let isResetting = false;
+// Promise that resolves when isResetting becomes false (for waiting instead of throwing)
+let resetCompletePromise: Promise<void> | null = null;
+let resetCompleteResolve: (() => void) | null = null;
 
 /**
  * Result of checking if DataStore can be safely closed.
@@ -157,100 +166,136 @@ async function closeDataStoreInternal(
     return;
   }
 
-  log.info(`[factory] Closing DataStore due to: ${reason}`);
+  // CRITICAL: Block concurrent getDataStore() calls during cleanup.
+  // Without this, a new DataStore could be created while SyncEngine disposal
+  // is still in progress, causing race conditions during account switching.
+  // See: MATCHOPS-LOCAL-18, MATCHOPS-LOCAL-1N (infinite sync spinner spreading between accounts)
+  isResetting = true;
+  // Create a promise that getDataStore() can wait on
+  resetCompletePromise = new Promise<void>((resolve) => {
+    resetCompleteResolve = resolve;
+  });
 
-  // Save references for cleanup, then immediately null to prevent race conditions
-  const oldDataStore = dataStoreInstance;
-  const oldMode = dataStoreCreatedForMode;
-  const oldUserId = dataStoreCreatedForUserId;
+  const closeStartTime = Date.now();
+  try {
+    log.info(`[factory] Closing DataStore due to: ${reason}`, { startTime: closeStartTime });
 
-  // CRITICAL: Check for pending sync operations BEFORE nulling references
-  // If not forced and there are pending ops, throw to prevent data loss
-  if (oldMode === 'cloud' && !force) {
-    const check = await canCloseDataStore();
-    if (!check.canClose) {
-      throw new Error(
-        `Cannot close DataStore: ${check.pendingCount} pending sync operation(s). ` +
-        `Either wait for sync to complete, or call closeDataStore({ force: true }) ` +
-        `after showing user confirmation.`
-      );
-    }
-  }
+    // Save references for cleanup, then immediately null to prevent race conditions
+    const oldDataStore = dataStoreInstance;
+    const oldMode = dataStoreCreatedForMode;
+    const oldUserId = dataStoreCreatedForUserId;
 
-  // Now safe to null references
-  dataStoreInstance = null;
-  dataStoreCreatedForMode = null;
-  dataStoreCreatedForUserId = undefined;
-
-  // If closing from cloud mode, clean up sync engine and Supabase resources
-  if (oldMode === 'cloud') {
-    // Log if force-closing with pending ops (for monitoring/debugging)
-    if (force) {
-      try {
-        const { getSyncEngine } = await import('@/sync');
-        const engine = getSyncEngine();
-        const status = await engine.getStatus();
-        if (status.pendingCount > 0) {
-          log.warn(`[factory] Force-closing DataStore with ${status.pendingCount} pending sync operations (user confirmed data loss).`);
-        }
-      } catch (e) {
-        // Check for "not initialized" error using SyncError type and error code
-        // This is expected during early close (before sync engine was set up)
-        const { SyncError, SyncErrorCode } = await import('@/sync');
-        const isSyncError = e instanceof SyncError;
-        const isNotInitialized = isSyncError && e.code === SyncErrorCode.NOT_INITIALIZED;
-
-        if (!isNotInitialized) {
-          const msg = e instanceof Error ? e.message : String(e);
-          const err = e instanceof Error ? e : new Error(msg);
-          log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
-        }
-        // "not initialized" is expected - sync engine wasn't started yet, no pending ops
+    // CRITICAL: Check for pending sync operations BEFORE nulling references
+    // If not forced and there are pending ops, throw to prevent data loss
+    if (oldMode === 'cloud' && !force) {
+      const check = await canCloseDataStore();
+      if (!check.canClose) {
+        throw new Error(
+          `Cannot close DataStore: ${check.pendingCount} pending sync operation(s). ` +
+          `Either wait for sync to complete, or call closeDataStore({ force: true }) ` +
+          `after showing user confirmation.`
+        );
       }
     }
 
-    // Stop the sync engine singleton
+    // Now safe to null references
+    dataStoreInstance = null;
+    dataStoreCreatedForMode = null;
+    dataStoreCreatedForUserId = undefined;
+
+    // If closing from cloud mode, clean up sync engine and Supabase resources
+    if (oldMode === 'cloud') {
+      // Log if force-closing with pending ops (for monitoring/debugging)
+      if (force) {
+        try {
+          const { getSyncEngine } = await import('@/sync');
+          const engine = getSyncEngine();
+          const status = await engine.getStatus();
+          if (status.pendingCount > 0) {
+            log.warn(`[factory] Force-closing DataStore with ${status.pendingCount} pending sync operations (user confirmed data loss).`);
+          }
+        } catch (e) {
+          // Check for "not initialized" error using SyncError type and error code
+          // This is expected during early close (before sync engine was set up)
+          const { SyncError, SyncErrorCode } = await import('@/sync');
+          const isSyncError = e instanceof SyncError;
+          const isNotInitialized = isSyncError && e.code === SyncErrorCode.NOT_INITIALIZED;
+
+          if (!isNotInitialized) {
+            const msg = e instanceof Error ? e.message : String(e);
+            const err = e instanceof Error ? e : new Error(msg);
+            log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
+          }
+          // "not initialized" is expected - sync engine wasn't started yet, no pending ops
+        }
+      }
+
+      // Stop the sync engine singleton
+      try {
+        const { resetSyncEngine } = await import('@/sync');
+        await resetSyncEngine();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error resetting sync engine: ${msg}`, err);
+      }
+
+      // Clean up Supabase client
+      try {
+        const { cleanupSupabaseClient } = await import('./supabase/client');
+        await cleanupSupabaseClient();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error cleaning up Supabase client: ${msg}`, err);
+      }
+    }
+
+    // Close the old instance
     try {
-      const { resetSyncEngine } = await import('@/sync');
-      await resetSyncEngine();
+      await oldDataStore.close();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error resetting sync engine: ${msg}`, err);
+      log.warn(`[factory] Error closing DataStore: ${msg}`, err);
     }
 
-    // Clean up Supabase client
-    try {
-      const { cleanupSupabaseClient } = await import('./supabase/client');
-      await cleanupSupabaseClient();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error cleaning up Supabase client: ${msg}`, err);
+    // Close the user storage adapter to release IndexedDB connection
+    // This prevents memory leaks when switching users
+    if (oldUserId) {
+      try {
+        const { closeUserStorageAdapter } = await import('@/utils/storage');
+        await closeUserStorageAdapter(oldUserId);
+        log.info(`[factory] Closed user storage adapter for: ${oldUserId}`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error closing user storage adapter: ${msg}`, err);
+      }
     }
-  }
-
-  // Close the old instance
-  try {
-    await oldDataStore.close();
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const err = e instanceof Error ? e : new Error(msg);
-    log.warn(`[factory] Error closing DataStore: ${msg}`, err);
-  }
-
-  // Close the user storage adapter to release IndexedDB connection
-  // This prevents memory leaks when switching users
-  if (oldUserId) {
-    try {
-      const { closeUserStorageAdapter } = await import('@/utils/storage');
-      await closeUserStorageAdapter(oldUserId);
-      log.info(`[factory] Closed user storage adapter for: ${oldUserId}`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error closing user storage adapter: ${msg}`, err);
+  } finally {
+    // Always clear the resetting flag, even if cleanup fails
+    isResetting = false;
+    // Resolve the promise so waiters can continue
+    if (resetCompleteResolve) {
+      resetCompleteResolve();
+      resetCompleteResolve = null;
     }
+    resetCompletePromise = null;
+
+    // DEFENSIVE: Also clear globalInitLock if it's somehow still held
+    // This prevents deadlocks if a previous init was interrupted during user switch.
+    // The lock should normally be released by initPromise.finally(), but clearing
+    // it here as a safety net ensures user switching doesn't leave stale locks.
+    // See: MATCHOPS-LOCAL-34 (infinite spinner when switching B → A)
+    if (globalInitLockResolve) {
+      log.warn('[factory] Clearing stale globalInitLock during close');
+      globalInitLockResolve();
+      globalInitLockResolve = null;
+    }
+    globalInitLock = null;
+
+    log.info(`[factory] CloseDataStore completed`, { durationMs: Date.now() - closeStartTime });
   }
 }
 
@@ -332,13 +377,17 @@ async function closeDataStoreInternal(
  * ```
  */
 export async function getDataStore(userId?: string): Promise<DataStore> {
-  // Guard: Block calls during resetFactory() cleanup to prevent race conditions
-  // where a new instance is created while the old one is still closing
-  if (isResetting) {
-    throw new Error(
-      'Cannot get DataStore while factory reset is in progress. ' +
-      'Wait for resetFactory() to complete before calling getDataStore().'
-    );
+  // Guard: Wait for reset/close to complete before proceeding.
+  // This prevents race conditions where a new instance is created while
+  // the old one is still closing (e.g., during account switching).
+  // See: MATCHOPS-LOCAL-18, MATCHOPS-LOCAL-1N (infinite sync spinner)
+  if (isResetting && resetCompletePromise) {
+    const waitStartTime = Date.now();
+    log.info(`[factory] Waiting for reset to complete before getting DataStore for user: ${userId || '(anonymous)'}`);
+    await resetCompletePromise;
+    log.info(`[factory] Reset wait completed`, { waitDurationMs: Date.now() - waitStartTime });
+    // After waiting, recurse to re-check state (in case of nested resets)
+    return getDataStore(userId);
   }
 
   const currentMode = getBackendMode();
@@ -350,7 +399,29 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   // 3. Clearing any pending init promises to prevent stale promises from completing
   // 4. Allowing a new instance to be created for the new user below
   // This check only runs when an instance EXISTS - if null, we skip to creation
-  if (dataStoreInstance && dataStoreCreatedForUserId !== userId) {
+  //
+  // IMPORTANT: If caller passes undefined but we have an authenticated DataStore,
+  // return the existing one. This handles the common case where utility functions
+  // (like getGame, getPlayerAssessments) don't have access to userId context.
+  // Only treat as a real user switch when:
+  // - Both are defined and different (switching between authenticated users)
+  // - We had an authenticated user and now explicitly have none (sign-out)
+  // - We had no user and now have one (sign-in) - this case creates a new DataStore below
+  const isRealUserSwitch = dataStoreCreatedForUserId !== userId &&
+    // Not a "caller forgot to pass userId" situation
+    !(userId === undefined && dataStoreCreatedForUserId !== undefined);
+
+  // Log when returning existing DataStore for undefined userId caller
+  if (dataStoreInstance && !isRealUserSwitch && userId === undefined && dataStoreCreatedForUserId !== undefined) {
+    // Caller didn't pass userId but we have an authenticated DataStore - use it
+    // This is expected behavior for utility functions that don't have userId context
+    log.info(`[factory] Returning existing authenticated DataStore for undefined userId caller`, {
+      existingUserId: dataStoreCreatedForUserId,
+    });
+    return dataStoreInstance;
+  }
+
+  if (dataStoreInstance && isRealUserSwitch) {
     // Capture metrics BEFORE close for production diagnostics
     const closeCheck = await canCloseDataStore();
     log.info(`[factory] User switch`, {
@@ -362,17 +433,28 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     });
     // Clear pending init promises to prevent stale completions from interfering
     dataStoreInitPromises.clear();
-    await closeDataStoreInternal('user change');
+    // Force close on user change - sync operations were for a different user
+    // and blocking the new user's login would be a worse UX than losing the
+    // previous user's pending operations
+    await closeDataStoreInternal('user change', { force: true });
   }
 
   // Check if mode changed since the DataStore was created
   // This handles the case where user enables/disables cloud sync
-  if (dataStoreInstance && dataStoreCreatedForMode !== currentMode) {
+  //
+  // IMPORTANT: Don't trigger mode switch if authenticated user should use cloud.
+  // The shouldUseCloudSync logic (line ~470) creates SyncedDataStore for authenticated
+  // users even when getBackendMode() returns 'local'. We must use the same logic here
+  // to avoid false mode switches that would throw "pending sync operations" errors.
+  const effectiveMode = (isCloudAvailable() && !!userId) ? 'cloud' : currentMode;
+
+  if (dataStoreInstance && dataStoreCreatedForMode !== effectiveMode) {
     // Capture metrics BEFORE close for production diagnostics
     const closeCheck = await canCloseDataStore();
     log.info(`[factory] Mode switch`, {
       previousMode: dataStoreCreatedForMode,
-      newMode: currentMode,
+      newMode: effectiveMode,
+      rawMode: currentMode,
       userId: userId || '(anonymous)',
       hadPendingOps: closeCheck.pendingCount > 0,
       pendingCount: closeCheck.pendingCount,
@@ -399,6 +481,46 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     return existingPromise;
   }
 
+  // RACE CONDITION FIX: Use global serialization lock to prevent race conditions
+  // This prevents the scenario where:
+  // 1. Component mounts before auth, calls getDataStore(undefined)
+  // 2. Auth completes, calls getDataStore(realUserId)
+  // 3. Both race and one throws "concurrent initialization conflict"
+  //
+  // With the global lock, only one initialization runs at a time. The second
+  // caller waits for the first to complete, then re-checks state.
+  if (globalInitLock) {
+    const waitStartTime = Date.now();
+    log.info(`[factory] Waiting for global init lock before starting init for user: ${userId || '(anonymous)'}`);
+
+    // Add Sentry breadcrumb for tracking potential deadlocks
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.addBreadcrumb({
+        category: 'datastore',
+        message: 'Waiting for global init lock',
+        level: 'warning',
+        data: { userId: userId || '(anonymous)' },
+      });
+    } catch { /* Sentry optional */ }
+
+    try {
+      await globalInitLock;
+      log.info(`[factory] Global init lock released`, { waitDurationMs: Date.now() - waitStartTime });
+    } catch {
+      // If the pending init failed, that's fine - we'll proceed with ours
+      log.info(`[factory] Global init lock failed, proceeding`, { waitDurationMs: Date.now() - waitStartTime });
+    }
+    // After waiting, recurse to re-check state (the pending init may have set dataStoreInstance
+    // or the user switch logic will handle the transition)
+    return getDataStore(userId);
+  }
+
+  // Acquire global init lock
+  globalInitLock = new Promise<void>((resolve) => {
+    globalInitLockResolve = resolve;
+  });
+
   // Capture userId for the initialization closure
   const initUserId = userId;
 
@@ -407,9 +529,35 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     const mode = getBackendMode();
     log.info(`[factory] Initializing DataStore in ${mode} mode for user: ${initUserId || '(anonymous)'}`);
 
+    // Add Sentry breadcrumb for debugging DataStore initialization issues
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.addBreadcrumb({
+        category: 'datastore',
+        message: 'DataStore initialization started',
+        level: 'info',
+        data: { mode, userId: initUserId || '(anonymous)', cloudAvailable: isCloudAvailable() },
+      });
+    } catch {
+      // Sentry not available - continue without breadcrumb
+    }
+
     let instance: DataStore;
 
-    if (mode === 'cloud' && isCloudAvailable()) {
+    // CRITICAL FIX: Use SyncedDataStore when user is authenticated AND cloud is available.
+    // This fixes the bug where:
+    // 1. User session is restored (auto-signin from cookies)
+    // 2. But localStorage mode setting was cleared or never set
+    // 3. getBackendMode() returns 'local' (default)
+    // 4. LocalDataStore is created instead of SyncedDataStore
+    // 5. Operations aren't queued for sync
+    //
+    // The fix: If user is authenticated (userId exists) AND cloud is available,
+    // use SyncedDataStore regardless of the mode setting. An authenticated user
+    // clearly went through the sign-in flow and expects cloud sync.
+    const shouldUseCloudSync = isCloudAvailable() && !!initUserId;
+
+    if (shouldUseCloudSync) {
       // Cloud mode uses SyncedDataStore (local-first with background sync)
       // - SyncedDataStore wraps LocalDataStore for instant local writes
       // - Operations queue and sync to SupabaseDataStore in background
@@ -417,38 +565,103 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       const syncedStore = new SyncedDataStore(initUserId);
       await syncedStore.initialize();
 
-      try {
-        // Set up the sync executor to sync to Supabase
-        const { SupabaseDataStore } = await import('./SupabaseDataStore');
-        const cloudStore = new SupabaseDataStore();
-        await cloudStore.initialize();
-        // Note: If initialize() succeeds, isInitialized() should return true.
-        // If not, that's a bug in SupabaseDataStore to fix, not work around here.
+      // TRUE LOCAL-FIRST: Start sync engine immediately (can run without executor)
+      // Engine will process queue once executor is set (see SyncEngine.setExecutor)
+      log.info('[factory] Starting sync engine (local-first, cloud setup in background)', { userId: initUserId });
+      syncedStore.startSync();
 
-        const { createSyncExecutor } = await import('@/sync');
-        const executor = createSyncExecutor(cloudStore);
-        syncedStore.setExecutor(executor);
-        syncedStore.startSync();
+      // Set up cloud in background - DON'T BLOCK the return
+      // This eliminates the long loading time after login
+      const setupCloudInBackground = async () => {
+        const cloudSetupStartTime = Date.now();
+        log.info('[factory] Background cloud setup starting', { userId: initUserId });
 
-        instance = syncedStore;
-        log.info('[factory] Using SyncedDataStore (local-first cloud mode)');
-      } catch (error) {
-        // Clean up syncedStore if cloud setup fails
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const err = error instanceof Error ? error : new Error(errorMessage);
-        log.warn(`[factory] Cloud setup failed: ${errorMessage}, cleaning up SyncedDataStore`, err);
-        await syncedStore.close();
-        // SECURITY: Throw generic message to prevent technical detail exposure
-        // Full details already logged above for debugging
-        throw new Error('Cloud mode initialization failed. Please try again or switch to local mode.');
-      }
-    } else if (mode === 'cloud') {
+        // Add Sentry breadcrumb for tracking in production (visible without console)
+        try {
+          const Sentry = await import('@sentry/nextjs');
+          Sentry.addBreadcrumb({
+            category: 'sync',
+            message: 'Background cloud setup starting',
+            level: 'info',
+            data: { userId: initUserId },
+          });
+        } catch { /* Sentry optional */ }
+
+        try {
+          // Set up the sync executor to sync to Supabase
+          const { SupabaseDataStore } = await import('./SupabaseDataStore');
+          const cloudStore = new SupabaseDataStore();
+          log.info('[factory] SupabaseDataStore created, initializing...', { elapsedMs: Date.now() - cloudSetupStartTime });
+          await cloudStore.initialize();
+          log.info('[factory] SupabaseDataStore initialized', { elapsedMs: Date.now() - cloudSetupStartTime });
+          // Note: If initialize() succeeds, isInitialized() should return true.
+          // If not, that's a bug in SupabaseDataStore to fix, not work around here.
+
+          const { createSyncExecutor } = await import('@/sync');
+          // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
+          const localStore = syncedStore.getLocalStore();
+          const executor = createSyncExecutor(cloudStore, localStore);
+          const totalDurationMs = Date.now() - cloudSetupStartTime;
+          log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId, totalDurationMs });
+          syncedStore.setExecutor(executor);
+          // Store reference to cloud store for direct operations (e.g., clearAllUserData)
+          syncedStore.setRemoteStore(cloudStore);
+
+          // Add Sentry breadcrumb for successful setup
+          try {
+            const Sentry = await import('@sentry/nextjs');
+            Sentry.addBreadcrumb({
+              category: 'sync',
+              message: 'Cloud setup complete',
+              level: 'info',
+              data: { userId: initUserId, durationMs: totalDurationMs },
+            });
+          } catch { /* Sentry optional */ }
+          // Note: SyncEngine.setExecutor() triggers queue processing automatically
+          // if the engine is already running (which it is - we started it above)
+        } catch (error) {
+          // Cloud setup failed in background - log error but don't crash the app
+          // The DataStore still works in local-only mode. Queued operations will
+          // remain pending until the next app restart or manual retry.
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const err = error instanceof Error ? error : new Error(errorMessage);
+          log.error(`[factory] Background cloud setup failed: ${errorMessage}`, err);
+
+          // Report to Sentry for production tracking
+          try {
+            const Sentry = await import('@sentry/nextjs');
+            Sentry.captureException(error, {
+              tags: { component: 'factory', action: 'backgroundCloudSetup' },
+              extra: { userId: initUserId },
+            });
+          } catch {
+            // Sentry failure must not propagate
+          }
+        }
+      };
+
+      // Fire and forget - don't await
+      setupCloudInBackground();
+
+      instance = syncedStore;
+      log.info('[factory] Using SyncedDataStore (local-first cloud mode, cloud connecting...)', {
+        userId: initUserId,
+        explicitMode: mode,
+      });
+    } else if (mode === 'cloud' && !isCloudAvailable()) {
+      // Cloud mode requested but Supabase not configured
       log.warn(
         '[factory] Cloud mode requested but Supabase not configured - using LocalDataStore'
       );
       instance = new LocalDataStore(initUserId);
       await instance.initialize();
     } else {
+      // Local mode (explicit choice or anonymous user)
+      log.info('[factory] Using LocalDataStore', {
+        mode,
+        userId: initUserId || '(anonymous)',
+        cloudAvailable: isCloudAvailable(),
+      });
       instance = new LocalDataStore(initUserId);
       await instance.initialize();
     }
@@ -462,14 +675,20 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     // CRITICAL: Double-check for concurrent initialization race condition
     // If another concurrent call finished first with a DIFFERENT userId,
     // we must NOT return that instance as it would leak data between users.
-    // This can happen if User A and User B both call getDataStore() before
-    // either completes.
+    // This can happen during account switching when:
+    // 1. User A's init was in progress
+    // 2. User switch to B triggered closeDataStoreInternal
+    // 3. User B's init completed and set the singleton
+    // 4. User A's stale init now completes
+    //
+    // FIX: Instead of throwing (which causes endless spinner), discard the
+    // stale instance and return the current valid singleton. This is safe
+    // because the singleton is already correctly set for the active user.
     if (dataStoreInstance && dataStoreCreatedForUserId !== initUserId) {
-      // SECURITY: Log as error for monitoring - this indicates a potential race condition
-      // attack or bug in calling code.
-      log.error(`[factory] SECURITY: Concurrent initialization conflict detected: ` +
+      // Log as warning (not error) - this is expected during user switching
+      log.warn(`[factory] Stale initialization detected during user switch: ` +
         `initialized for '${initUserId}' but singleton is for '${dataStoreCreatedForUserId}'. ` +
-        `Rejecting to prevent cross-user data access.`);
+        `Discarding stale instance and returning current singleton.`);
       await instance.close();
       // Close the user adapter we created to prevent resource leak
       if (initUserId) {
@@ -480,23 +699,46 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           // Best effort cleanup - ignore errors
         }
       }
-      // SECURITY FIX: Throw error instead of returning wrong user's instance
-      // Caller must retry - returning dataStoreInstance would leak User A's data to User B
-      throw new Error(
-        `DataStore initialization conflict: Multiple users tried to initialize simultaneously. ` +
-        `This is a bug in the calling code - getDataStore() should only be called for one user at a time. ` +
-        `Current user: '${dataStoreCreatedForUserId ?? '(anonymous)'}', Requested user: '${initUserId ?? '(anonymous)'}'.`
-      );
+      // Return the current valid singleton instead of throwing
+      // The singleton is correctly set for the active user (who completed init first)
+      return dataStoreInstance;
     }
 
     dataStoreInstance = instance;
-    dataStoreCreatedForMode = mode;
+    // Track the ACTUAL mode used (not the raw setting) to ensure sync engine cleanup works correctly.
+    // If we created SyncedDataStore (shouldUseCloudSync was true), track as 'cloud'.
+    dataStoreCreatedForMode = shouldUseCloudSync ? 'cloud' : mode;
     dataStoreCreatedForUserId = initUserId;
+
+    // Add Sentry breadcrumb for successful initialization
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.addBreadcrumb({
+        category: 'datastore',
+        message: 'DataStore initialization completed',
+        level: 'info',
+        data: {
+          mode: dataStoreCreatedForMode,
+          userId: initUserId || '(anonymous)',
+          backendName: instance.getBackendName(),
+        },
+      });
+    } catch {
+      // Sentry not available - continue
+    }
+
     return instance;
   })().finally(() => {
     // Allow retry on failure, and keep the steady state as `dataStoreInstance !== null`.
     // Remove this specific userId's promise (not all promises)
     dataStoreInitPromises.delete(initUserId);
+
+    // Release global init lock
+    if (globalInitLockResolve) {
+      globalInitLockResolve();
+      globalInitLockResolve = null;
+    }
+    globalInitLock = null;
   });
 
   // Store promise for this specific userId
@@ -598,6 +840,10 @@ export async function resetFactory(): Promise<void> {
   // Guard: Set resetting flag to block concurrent getDataStore() calls
   // This prevents creating a new instance while cleanup is in progress
   isResetting = true;
+  // Create a promise that getDataStore() can wait on
+  resetCompletePromise = new Promise<void>((resolve) => {
+    resetCompleteResolve = resolve;
+  });
 
   try {
     // IMPORTANT: Capture and clear tracking variables FIRST to prevent
@@ -616,6 +862,13 @@ export async function resetFactory(): Promise<void> {
     dataStoreCreatedForMode = null;
     dataStoreCreatedForUserId = undefined;
     authServiceCreatedWithCloudAvailable = null;
+
+    // Release global init lock if held
+    if (globalInitLockResolve) {
+      globalInitLockResolve();
+      globalInitLockResolve = null;
+    }
+    globalInitLock = null;
 
     // Now perform cleanup operations (best-effort, failures logged but not thrown)
 
@@ -676,6 +929,12 @@ export async function resetFactory(): Promise<void> {
   } finally {
     // Always clear the resetting flag, even if cleanup fails
     isResetting = false;
+    // Resolve the promise so waiters can continue
+    if (resetCompleteResolve) {
+      resetCompleteResolve();
+      resetCompleteResolve = null;
+    }
+    resetCompletePromise = null;
   }
 }
 
@@ -732,6 +991,60 @@ export function isAuthServiceInitialized(): boolean {
  */
 export async function closeDataStore(options?: CloseDataStoreOptions): Promise<void> {
   await closeDataStoreInternal('explicit close', options);
+}
+
+/**
+ * Run Supabase performance diagnostics.
+ *
+ * Tests basic connectivity, read operations, and provides timing information
+ * to help diagnose slow sync operations.
+ *
+ * Call this from the browser console:
+ * ```js
+ * const { runSupabaseDiagnostics } = await import('/src/datastore/factory');
+ * await runSupabaseDiagnostics();
+ * ```
+ *
+ * @returns Diagnostic results with timing for each operation, or null if not in cloud mode
+ */
+export async function runSupabaseDiagnostics(): Promise<{
+  connectivity: { ok: boolean; durationMs: number; error?: string };
+  simpleRead: { ok: boolean; durationMs: number; count?: number; error?: string };
+  indexedRead: { ok: boolean; durationMs: number; error?: string };
+  settingsRead: { ok: boolean; durationMs: number; error?: string };
+  summary: string;
+} | null> {
+  if (!isCloudAvailable()) {
+    log.warn('[factory] runSupabaseDiagnostics: Cloud not available');
+    return null;
+  }
+
+  try {
+    // Import SupabaseDataStore directly for diagnostics (bypasses SyncedDataStore wrapper)
+    const { SupabaseDataStore } = await import('./SupabaseDataStore');
+    const store = new SupabaseDataStore();
+    await store.initialize();
+
+    const results = await store.runDiagnostics();
+
+    // Log a nice summary for console viewing (eslint-disable needed for formatted diagnostic output)
+    log.info('[factory] Supabase Diagnostics Results:', results);
+    /* eslint-disable no-console */
+    console.log('\n=== Supabase Performance Diagnostics ===');
+    console.log(`Connectivity:  ${results.connectivity.durationMs}ms ${results.connectivity.ok ? '✓' : '✗'}`);
+    console.log(`Simple Read:   ${results.simpleRead.durationMs}ms ${results.simpleRead.ok ? '✓' : '✗'} (${results.simpleRead.count ?? 0} games)`);
+    console.log(`Indexed Read:  ${results.indexedRead.durationMs}ms ${results.indexedRead.ok ? '✓' : '✗'}`);
+    console.log(`Settings Read: ${results.settingsRead.durationMs}ms ${results.settingsRead.ok ? '✓' : '✗'}`);
+    console.log(`\n${results.summary}`);
+    console.log('=========================================\n');
+    /* eslint-enable no-console */
+
+    return results;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    log.error(`[factory] runSupabaseDiagnostics failed: ${msg}`);
+    return null;
+  }
 }
 
 /**

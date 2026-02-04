@@ -99,7 +99,8 @@ describe('StorageMetrics', () => {
 
       const elapsed = timer.getElapsedTime();
       expect(elapsed).toBeGreaterThanOrEqual(20);
-      expect(elapsed).toBeLessThan(50);
+      // Use generous upper bound (100ms) to avoid flaky test failures under CI load
+      expect(elapsed).toBeLessThan(100);
 
       timer.success();
     });

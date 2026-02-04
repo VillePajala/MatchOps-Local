@@ -18,9 +18,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from '@/i18n';
-import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
-import logger from '@/utils/logger';
+import i18n, { saveLanguagePreference } from '@/i18n';
+// Note: Do NOT import updateAppSettings here. WelcomeScreen is pre-login,
+// so there's no userId and calling updateAppSettings would cause DataStore conflicts.
 
 interface WelcomeScreenProps {
   /** Called when user chooses "Start Fresh" (local mode) */
@@ -45,21 +45,17 @@ export default function WelcomeScreen({
   const { t } = useTranslation();
   const [language, setLanguage] = useState<string>(i18n.language);
 
-  // Load saved language preference
-  useEffect(() => {
-    getAppSettings().then((settings) => {
-      if (settings.language) {
-        setLanguage(settings.language);
-      }
-    });
-  }, []);
+  // Language is already loaded from localStorage by i18n on initialization.
+  // i18n.language is the source of truth - no need to call getAppSettings().
+  // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N).
 
   // Save language preference when changed
   useEffect(() => {
     i18n.changeLanguage(language);
-    updateAppSettings({ language }).catch((error) => {
-      logger.warn('[WelcomeScreen] Failed to save language preference (non-critical)', { language, error });
-    });
+    // Save to localStorage (i18n loads from here on init).
+    // DO NOT call updateAppSettings here - WelcomeScreen is shown before login,
+    // so there's no userId and it would cause DataStore initialization conflicts.
+    saveLanguagePreference(language);
   }, [language]);
 
   return (

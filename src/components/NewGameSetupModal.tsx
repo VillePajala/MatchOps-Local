@@ -16,7 +16,7 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter } from '@/styles/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;

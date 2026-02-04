@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next';
 import { queryKeys } from '@/config/queryKeys';
 import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 import type { AppState, Player, SavedGamesCollection, GameType, Gender } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { ResourceType } from '@/config/premiumLimits';
@@ -142,6 +143,31 @@ export async function startNewGameWithSetup(
       ? initialSelectedPlayerIds
       : availablePlayers.map((player) => player.id);
 
+  // Sentry breadcrumb: Game creation started
+  const newGameId = `game_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  Sentry.addBreadcrumb({
+    category: 'game',
+    message: 'New game creation started',
+    level: 'info',
+    data: {
+      gameId: newGameId,
+      seasonId: seasonId || undefined,
+      tournamentId: tournamentId || undefined,
+      teamId: teamId || undefined,
+      userId: userId || '(anonymous)',
+      playersCount: finalSelectedPlayerIds.length,
+    },
+  });
+
+  // Log new game state for debugging field population issues
+  logger.info('[NEW GAME] Creating game state', {
+    gameId: newGameId.slice(0, 20),
+    teamId: teamId || '(none)',
+    selectedPlayersCount: finalSelectedPlayerIds.length,
+    availablePlayersCount: availablePlayersForGame.length,
+    playersOnFieldCount: 0, // Always 0 for new games
+  });
+
   const newGameState: AppState = {
     opponentName,
     gameDate,
@@ -187,7 +213,7 @@ export async function startNewGameWithSetup(
     gamePersonnel: selectedPersonnelIds,
   };
 
-  const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  // newGameId is already defined above (with Sentry breadcrumb)
 
   let saveSucceeded = false;
   try {
@@ -223,10 +249,75 @@ export async function startNewGameWithSetup(
   }
 
   resetHistory(newGameState);
-  dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: selectedPersonnelIds });
+
+  // CRITICAL: Update gameSessionState BEFORE setCurrentGameId to prevent auto-save race condition.
+  // When setCurrentGameId triggers a re-render, auto-save may run and createGameSnapshot() reads
+  // from gameSessionState. Without this dispatch, gameSessionState still has OLD game data,
+  // causing auto-save to overwrite the new game with old data.
+  // See: https://github.com/... (race condition investigation)
+  dispatchGameSession({
+    type: 'LOAD_GAME_SESSION_STATE',
+    payload: {
+      teamName: homeTeamName,
+      opponentName,
+      gameDate,
+      gameLocation,
+      gameTime,
+      homeScore: 0,
+      awayScore: 0,
+      gameNotes: '',
+      homeOrAway,
+      numberOfPeriods: numPeriods,
+      periodDurationMinutes: periodDuration,
+      currentPeriod: 1,
+      gameStatus: 'notStarted',
+      selectedPlayerIds: finalSelectedPlayerIds,
+      gamePersonnel: selectedPersonnelIds,
+      seasonId: seasonId || '',
+      tournamentId: tournamentId || '',
+      leagueId: leagueId || undefined,
+      customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined,
+      teamId: teamId || undefined,
+      gameType,
+      gender,
+      ageGroup,
+      tournamentLevel,
+      tournamentSeriesId: tournamentSeriesId || undefined,
+      demandFactor,
+      gameEvents: [],
+      // Timer state - fresh game starts with timer at zero
+      timeElapsedInSeconds: 0,
+      startTimestamp: null,
+      isTimerRunning: false,
+      subIntervalMinutes: defaultSubIntervalMinutes,
+      nextSubDueTimeSeconds: defaultSubIntervalMinutes * 60,
+      subAlertLevel: 'none',
+      lastSubConfirmationTimeSeconds: 0,
+      completedIntervalDurations: [],
+      showPlayerNames: true,
+    },
+  });
+
   setIsPlayed(isPlayed);
+
+  // Sentry breadcrumb: About to set current game ID (triggers auto-save)
+  Sentry.addBreadcrumb({
+    category: 'game',
+    message: 'Setting currentGameId (may trigger auto-save)',
+    level: 'info',
+    data: { gameId: newGameId },
+  });
+
   setCurrentGameId(newGameId);
   logger.log(`Set current game ID to: ${newGameId}. Loading useEffect will sync component state.`);
+
+  // Sentry breadcrumb: Game creation completed
+  Sentry.addBreadcrumb({
+    category: 'game',
+    message: 'New game creation completed',
+    level: 'info',
+    data: { gameId: newGameId },
+  });
 
   closeNewGameSetupModal();
   setNewGameDemandFactor(1);
