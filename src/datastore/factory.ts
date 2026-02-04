@@ -547,6 +547,18 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       const setupCloudInBackground = async () => {
         const cloudSetupStartTime = Date.now();
         log.info('[factory] Background cloud setup starting', { userId: initUserId });
+
+        // Add Sentry breadcrumb for tracking in production (visible without console)
+        try {
+          const Sentry = await import('@sentry/nextjs');
+          Sentry.addBreadcrumb({
+            category: 'sync',
+            message: 'Background cloud setup starting',
+            level: 'info',
+            data: { userId: initUserId },
+          });
+        } catch { /* Sentry optional */ }
+
         try {
           // Set up the sync executor to sync to Supabase
           const { SupabaseDataStore } = await import('./SupabaseDataStore');
@@ -561,8 +573,20 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
           const localStore = syncedStore.getLocalStore();
           const executor = createSyncExecutor(cloudStore, localStore);
-          log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId, totalDurationMs: Date.now() - cloudSetupStartTime });
+          const totalDurationMs = Date.now() - cloudSetupStartTime;
+          log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId, totalDurationMs });
           syncedStore.setExecutor(executor);
+
+          // Add Sentry breadcrumb for successful setup
+          try {
+            const Sentry = await import('@sentry/nextjs');
+            Sentry.addBreadcrumb({
+              category: 'sync',
+              message: 'Cloud setup complete',
+              level: 'info',
+              data: { userId: initUserId, durationMs: totalDurationMs },
+            });
+          } catch { /* Sentry optional */ }
           // Note: SyncEngine.setExecutor() triggers queue processing automatically
           // if the engine is already running (which it is - we started it above)
         } catch (error) {
