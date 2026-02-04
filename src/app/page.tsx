@@ -728,10 +728,6 @@ export default function Home() {
               });
               await queryClient.refetchQueries();
               setRefreshTrigger(prev => prev + 1);
-              showToast(
-                t('page.dataLoadedFromCloud', 'Your data has been loaded from the cloud.'),
-                'success'
-              );
               setMigrationCompleted(userId);
               // Mark post-login check complete
               setPostLoginCheckComplete(true);
