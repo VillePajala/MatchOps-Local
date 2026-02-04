@@ -1512,18 +1512,34 @@ export async function hydrateLocalFromCloud(
       playerAdjustments: new Map<string, PlayerStatAdjustment[]>(),
     };
 
-    // Download team rosters
+    // Download team rosters (non-critical - continue if some fail)
     for (const team of cloudData.teams) {
-      const roster = await cloudStore.getTeamRoster(team.id);
-      cloudData.teamRosters.set(team.id, roster);
+      try {
+        const roster = await cloudStore.getTeamRoster(team.id);
+        cloudData.teamRosters.set(team.id, roster);
+      } catch (err) {
+        logger.warn('[ReverseMigrationService] Failed to fetch team roster, continuing', {
+          teamId: team.id,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+        // Continue with other teams - don't abort entire hydration
+      }
     }
 
-    // Download player adjustments
-    for (const player of cloudData.players) {
-      const adjustments = await cloudStore.getPlayerAdjustments(player.id);
-      if (adjustments.length > 0) {
-        cloudData.playerAdjustments.set(player.id, adjustments);
+    // Download player adjustments (non-critical - continue if fails)
+    // Use batch method (1 API call) instead of loop (N calls) for efficiency
+    try {
+      const allAdjustments = await cloudStore.getAllPlayerAdjustments();
+      for (const [playerId, adjustments] of allAdjustments) {
+        if (adjustments.length > 0) {
+          cloudData.playerAdjustments.set(playerId, adjustments);
+        }
       }
+    } catch (err) {
+      logger.warn('[ReverseMigrationService] Failed to fetch player adjustments, continuing', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      // Continue without adjustments - don't abort entire hydration
     }
 
     // DIAGNOSTIC: Log what was downloaded from cloud
