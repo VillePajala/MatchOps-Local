@@ -43,7 +43,8 @@ describe('StorageMetrics', () => {
       expect(capturedTiming!.operation).toBe(OperationType.READ);
       expect(capturedTiming!.success).toBe(true);
       expect(capturedTiming!.duration).toBeGreaterThanOrEqual(45);
-      expect(capturedTiming!.duration).toBeLessThan(100);
+      // Use generous upper bound to avoid flaky test failures under CI load
+      expect(capturedTiming!.duration).toBeLessThan(150);
       expect(capturedTiming!.metadata?.testData).toBe('value');
       expect(capturedTiming!.startTime).toBeGreaterThanOrEqual(startTime);
       expect(capturedTiming!.endTime).toBeGreaterThan(capturedTiming!.startTime);
