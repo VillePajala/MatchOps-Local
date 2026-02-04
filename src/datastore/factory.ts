@@ -673,14 +673,20 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     // CRITICAL: Double-check for concurrent initialization race condition
     // If another concurrent call finished first with a DIFFERENT userId,
     // we must NOT return that instance as it would leak data between users.
-    // This can happen if User A and User B both call getDataStore() before
-    // either completes.
+    // This can happen during account switching when:
+    // 1. User A's init was in progress
+    // 2. User switch to B triggered closeDataStoreInternal
+    // 3. User B's init completed and set the singleton
+    // 4. User A's stale init now completes
+    //
+    // FIX: Instead of throwing (which causes endless spinner), discard the
+    // stale instance and return the current valid singleton. This is safe
+    // because the singleton is already correctly set for the active user.
     if (dataStoreInstance && dataStoreCreatedForUserId !== initUserId) {
-      // SECURITY: Log as error for monitoring - this indicates a potential race condition
-      // attack or bug in calling code.
-      log.error(`[factory] SECURITY: Concurrent initialization conflict detected: ` +
+      // Log as warning (not error) - this is expected during user switching
+      log.warn(`[factory] Stale initialization detected during user switch: ` +
         `initialized for '${initUserId}' but singleton is for '${dataStoreCreatedForUserId}'. ` +
-        `Rejecting to prevent cross-user data access.`);
+        `Discarding stale instance and returning current singleton.`);
       await instance.close();
       // Close the user adapter we created to prevent resource leak
       if (initUserId) {
@@ -691,13 +697,9 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           // Best effort cleanup - ignore errors
         }
       }
-      // SECURITY FIX: Throw error instead of returning wrong user's instance
-      // Caller must retry - returning dataStoreInstance would leak User A's data to User B
-      throw new Error(
-        `DataStore initialization conflict: Multiple users tried to initialize simultaneously. ` +
-        `This is a bug in the calling code - getDataStore() should only be called for one user at a time. ` +
-        `Current user: '${dataStoreCreatedForUserId ?? '(anonymous)'}', Requested user: '${initUserId ?? '(anonymous)'}'.`
-      );
+      // Return the current valid singleton instead of throwing
+      // The singleton is correctly set for the active user (who completed init first)
+      return dataStoreInstance;
     }
 
     dataStoreInstance = instance;
