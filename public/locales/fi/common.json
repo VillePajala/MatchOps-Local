@@ -1457,7 +1457,15 @@
     "deleteAccountButton": "Poista tili",
     "deletingAccount": "Poistetaan...",
     "deleteAccountSuccess": "Tili poistettu onnistuneesti",
-    "deleteAccountFailed": "Tilin poistaminen epäonnistui"
+    "deleteAccountFailed": "Tilin poistaminen epäonnistui",
+    "resyncTitle": "Synkronoi pilvestä uudelleen",
+    "resyncDescription": "Tyhjennä paikalliset tiedot ja lataa uudelleen pilvestä. Pilvivarmuuskopio palautetaan.",
+    "confirmResyncLabel": "Kirjoita RESYNC vahvistaaksesi",
+    "resyncButton": "Synkronoi pilvestä uudelleen",
+    "factoryResetTitle": "Tehdaspalautus",
+    "factoryResetDescription": "Poista KAIKKI tiedot pysyvästi - sekä paikalliset että pilvitiedot. Tätä ei voi perua.",
+    "confirmFactoryResetLabel": "Kirjoita FACTORY RESET vahvistaaksesi",
+    "factoryResetButton": "Tehdaspalautus (Poista kaikki)"
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",
@@ -2573,7 +2581,12 @@
     "connectionTimeout": "Yhteys aikakatkaistiin",
     "connectionTimeoutDesc": "Palvelimeen ei saatu yhteyttä. Tämä voi tapahtua, kun sovellus on ollut taustalla pitkään.",
     "tryAgain": "Yritä uudelleen",
-    "useLocalModeInstead": "Käytä paikallista tilaa"
+    "useLocalModeInstead": "Käytä paikallista tilaa",
+    "noUserForResync": "Käyttäjä ei ole kirjautunut",
+    "resyncFailed": "Synkronointi epäonnistui. Yritä uudelleen.",
+    "noUserForFactoryReset": "Käyttäjä ei ole kirjautunut",
+    "factoryResetFailed": "Palautus epäonnistui. Yritä uudelleen.",
+    "factoryResetOffline": "Pilvitietoja ei voi poistaa offline-tilassa. Tarkista yhteys ja yritä uudelleen."
   },
   "positions": {
     "GK": "GK",
