@@ -597,6 +597,27 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           // Note: If initialize() succeeds, isInitialized() should return true.
           // If not, that's a bug in SupabaseDataStore to fix, not work around here.
 
+          // CRITICAL: Check if user switch happened during cloud initialization.
+          // If dataStoreInstance changed (user switched), this background setup is stale.
+          // We must NOT set the executor on the old syncedStore - it could cause:
+          // - SyncEngine processing with wrong user's cloudStore
+          // - Memory leaks from orphaned cloudStore
+          // - Race conditions between old and new user's sync operations
+          if (dataStoreInstance !== syncedStore) {
+            log.warn('[factory] User switch detected during cloud setup - aborting stale setup', {
+              originalUserId: initUserId,
+              currentUserId: dataStoreCreatedForUserId || '(anonymous)',
+              elapsedMs: Date.now() - cloudSetupStartTime,
+            });
+            // Clean up the orphaned cloudStore
+            try {
+              await cloudStore.close();
+            } catch (closeErr) {
+              log.warn('[factory] Error closing orphaned cloudStore:', closeErr);
+            }
+            return;
+          }
+
           const { createSyncExecutor } = await import('@/sync');
           // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
           const localStore = syncedStore.getLocalStore();
