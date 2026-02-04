@@ -15,7 +15,7 @@
  * - Dedicated offline page for graceful offline experience
  */
 
-const CACHE_NAME = 'matchops-2026-02-03T09-40-52';
+const CACHE_NAME = 'matchops-2026-02-04T18-53-58';
 
 // Cache size limit - prevents unbounded growth from dynamically cached assets
 // Note: Entire cache is cleared on SW update, so this just limits runtime growth
