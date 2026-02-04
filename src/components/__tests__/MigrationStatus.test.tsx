@@ -208,7 +208,7 @@ describe('MigrationStatus', () => {
 
       render(<MigrationStatus />);
 
-      const dismissButton = screen.getByRole('button', { name: /dismiss success notification/i });
+      const dismissButton = screen.getByRole('button', { name: /dismiss notification/i });
       fireEvent.click(dismissButton);
 
       expect(mockDismissNotification).toHaveBeenCalled();

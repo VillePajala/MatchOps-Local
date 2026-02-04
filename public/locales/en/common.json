@@ -1457,7 +1457,15 @@
     "deleteAccountButton": "Delete Account",
     "deletingAccount": "Deleting...",
     "deleteAccountSuccess": "Account deleted successfully",
-    "deleteAccountFailed": "Failed to delete account"
+    "deleteAccountFailed": "Failed to delete account",
+    "resyncTitle": "Re-sync from Cloud",
+    "resyncDescription": "Clear local data and re-download from cloud. Your cloud backup will be restored.",
+    "confirmResyncLabel": "Type RESYNC to confirm",
+    "resyncButton": "Re-sync from Cloud",
+    "factoryResetTitle": "Factory Reset",
+    "factoryResetDescription": "Permanently delete ALL data - both local and cloud. This cannot be undone.",
+    "confirmFactoryResetLabel": "Type FACTORY RESET to confirm",
+    "factoryResetButton": "Factory Reset (Delete All)"
   },
   "playerAssessmentModal": {
     "title": "Assess Performance",
@@ -2573,7 +2581,12 @@
     "connectionTimeout": "Connection Timeout",
     "connectionTimeoutDesc": "Unable to connect to the server. This can happen after the app has been in the background for a while.",
     "tryAgain": "Try Again",
-    "useLocalModeInstead": "Use Local Mode Instead"
+    "useLocalModeInstead": "Use Local Mode Instead",
+    "noUserForResync": "No user logged in",
+    "resyncFailed": "Failed to re-sync. Please try again.",
+    "noUserForFactoryReset": "No user logged in",
+    "factoryResetFailed": "Failed to reset. Please try again.",
+    "factoryResetOffline": "Cannot delete cloud data while offline. Please check your connection and try again."
   },
   "positions": {
     "GK": "GK",

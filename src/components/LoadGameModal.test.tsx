@@ -173,7 +173,7 @@ describe('LoadGameModal', () => {
     const gameCard = await screen.findByTestId('game-item-game_1659223456_def');
 
     // Open the actions menu
-    const actionsButton = within(gameCard).getByLabelText('Game actions');
+    const actionsButton = within(gameCard).getByLabelText('loadGameModal.gameActions');
     await act(async () => {
       fireEvent.click(actionsButton);
     });
@@ -206,7 +206,7 @@ describe('LoadGameModal', () => {
     const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
     // Open actions menu
-    const actionsButton = within(gameCard).getByLabelText('Game actions');
+    const actionsButton = within(gameCard).getByLabelText('loadGameModal.gameActions');
     await act(async () => {
       fireEvent.click(actionsButton);
     });
@@ -225,7 +225,7 @@ describe('LoadGameModal', () => {
     const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
     // Open actions menu
-    const actionsButton = within(gameCard).getByLabelText('Game actions');
+    const actionsButton = within(gameCard).getByLabelText('loadGameModal.gameActions');
     await act(async () => {
       fireEvent.click(actionsButton);
     });
