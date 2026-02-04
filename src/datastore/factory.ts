@@ -58,6 +58,9 @@ let globalInitLockResolve: (() => void) | null = null;
 // Guard flag to prevent getDataStore() calls during resetFactory() cleanup
 // This prevents creating a new instance while the old one is still closing
 let isResetting = false;
+// Promise that resolves when isResetting becomes false (for waiting instead of throwing)
+let resetCompletePromise: Promise<void> | null = null;
+let resetCompleteResolve: (() => void) | null = null;
 
 /**
  * Result of checking if DataStore can be safely closed.
@@ -163,100 +166,121 @@ async function closeDataStoreInternal(
     return;
   }
 
-  log.info(`[factory] Closing DataStore due to: ${reason}`);
+  // CRITICAL: Block concurrent getDataStore() calls during cleanup.
+  // Without this, a new DataStore could be created while SyncEngine disposal
+  // is still in progress, causing race conditions during account switching.
+  // See: MATCHOPS-LOCAL-18, MATCHOPS-LOCAL-1N (infinite sync spinner spreading between accounts)
+  isResetting = true;
+  // Create a promise that getDataStore() can wait on
+  resetCompletePromise = new Promise<void>((resolve) => {
+    resetCompleteResolve = resolve;
+  });
 
-  // Save references for cleanup, then immediately null to prevent race conditions
-  const oldDataStore = dataStoreInstance;
-  const oldMode = dataStoreCreatedForMode;
-  const oldUserId = dataStoreCreatedForUserId;
+  try {
+    log.info(`[factory] Closing DataStore due to: ${reason}`);
 
-  // CRITICAL: Check for pending sync operations BEFORE nulling references
-  // If not forced and there are pending ops, throw to prevent data loss
-  if (oldMode === 'cloud' && !force) {
-    const check = await canCloseDataStore();
-    if (!check.canClose) {
-      throw new Error(
-        `Cannot close DataStore: ${check.pendingCount} pending sync operation(s). ` +
-        `Either wait for sync to complete, or call closeDataStore({ force: true }) ` +
-        `after showing user confirmation.`
-      );
-    }
-  }
+    // Save references for cleanup, then immediately null to prevent race conditions
+    const oldDataStore = dataStoreInstance;
+    const oldMode = dataStoreCreatedForMode;
+    const oldUserId = dataStoreCreatedForUserId;
 
-  // Now safe to null references
-  dataStoreInstance = null;
-  dataStoreCreatedForMode = null;
-  dataStoreCreatedForUserId = undefined;
-
-  // If closing from cloud mode, clean up sync engine and Supabase resources
-  if (oldMode === 'cloud') {
-    // Log if force-closing with pending ops (for monitoring/debugging)
-    if (force) {
-      try {
-        const { getSyncEngine } = await import('@/sync');
-        const engine = getSyncEngine();
-        const status = await engine.getStatus();
-        if (status.pendingCount > 0) {
-          log.warn(`[factory] Force-closing DataStore with ${status.pendingCount} pending sync operations (user confirmed data loss).`);
-        }
-      } catch (e) {
-        // Check for "not initialized" error using SyncError type and error code
-        // This is expected during early close (before sync engine was set up)
-        const { SyncError, SyncErrorCode } = await import('@/sync');
-        const isSyncError = e instanceof SyncError;
-        const isNotInitialized = isSyncError && e.code === SyncErrorCode.NOT_INITIALIZED;
-
-        if (!isNotInitialized) {
-          const msg = e instanceof Error ? e.message : String(e);
-          const err = e instanceof Error ? e : new Error(msg);
-          log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
-        }
-        // "not initialized" is expected - sync engine wasn't started yet, no pending ops
+    // CRITICAL: Check for pending sync operations BEFORE nulling references
+    // If not forced and there are pending ops, throw to prevent data loss
+    if (oldMode === 'cloud' && !force) {
+      const check = await canCloseDataStore();
+      if (!check.canClose) {
+        throw new Error(
+          `Cannot close DataStore: ${check.pendingCount} pending sync operation(s). ` +
+          `Either wait for sync to complete, or call closeDataStore({ force: true }) ` +
+          `after showing user confirmation.`
+        );
       }
     }
 
-    // Stop the sync engine singleton
+    // Now safe to null references
+    dataStoreInstance = null;
+    dataStoreCreatedForMode = null;
+    dataStoreCreatedForUserId = undefined;
+
+    // If closing from cloud mode, clean up sync engine and Supabase resources
+    if (oldMode === 'cloud') {
+      // Log if force-closing with pending ops (for monitoring/debugging)
+      if (force) {
+        try {
+          const { getSyncEngine } = await import('@/sync');
+          const engine = getSyncEngine();
+          const status = await engine.getStatus();
+          if (status.pendingCount > 0) {
+            log.warn(`[factory] Force-closing DataStore with ${status.pendingCount} pending sync operations (user confirmed data loss).`);
+          }
+        } catch (e) {
+          // Check for "not initialized" error using SyncError type and error code
+          // This is expected during early close (before sync engine was set up)
+          const { SyncError, SyncErrorCode } = await import('@/sync');
+          const isSyncError = e instanceof SyncError;
+          const isNotInitialized = isSyncError && e.code === SyncErrorCode.NOT_INITIALIZED;
+
+          if (!isNotInitialized) {
+            const msg = e instanceof Error ? e.message : String(e);
+            const err = e instanceof Error ? e : new Error(msg);
+            log.warn(`[factory] Unexpected error checking pending operations: ${msg}`, err);
+          }
+          // "not initialized" is expected - sync engine wasn't started yet, no pending ops
+        }
+      }
+
+      // Stop the sync engine singleton
+      try {
+        const { resetSyncEngine } = await import('@/sync');
+        await resetSyncEngine();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error resetting sync engine: ${msg}`, err);
+      }
+
+      // Clean up Supabase client
+      try {
+        const { cleanupSupabaseClient } = await import('./supabase/client');
+        await cleanupSupabaseClient();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error cleaning up Supabase client: ${msg}`, err);
+      }
+    }
+
+    // Close the old instance
     try {
-      const { resetSyncEngine } = await import('@/sync');
-      await resetSyncEngine();
+      await oldDataStore.close();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error resetting sync engine: ${msg}`, err);
+      log.warn(`[factory] Error closing DataStore: ${msg}`, err);
     }
 
-    // Clean up Supabase client
-    try {
-      const { cleanupSupabaseClient } = await import('./supabase/client');
-      await cleanupSupabaseClient();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error cleaning up Supabase client: ${msg}`, err);
+    // Close the user storage adapter to release IndexedDB connection
+    // This prevents memory leaks when switching users
+    if (oldUserId) {
+      try {
+        const { closeUserStorageAdapter } = await import('@/utils/storage');
+        await closeUserStorageAdapter(oldUserId);
+        log.info(`[factory] Closed user storage adapter for: ${oldUserId}`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const err = e instanceof Error ? e : new Error(msg);
+        log.warn(`[factory] Error closing user storage adapter: ${msg}`, err);
+      }
     }
-  }
-
-  // Close the old instance
-  try {
-    await oldDataStore.close();
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const err = e instanceof Error ? e : new Error(msg);
-    log.warn(`[factory] Error closing DataStore: ${msg}`, err);
-  }
-
-  // Close the user storage adapter to release IndexedDB connection
-  // This prevents memory leaks when switching users
-  if (oldUserId) {
-    try {
-      const { closeUserStorageAdapter } = await import('@/utils/storage');
-      await closeUserStorageAdapter(oldUserId);
-      log.info(`[factory] Closed user storage adapter for: ${oldUserId}`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const err = e instanceof Error ? e : new Error(msg);
-      log.warn(`[factory] Error closing user storage adapter: ${msg}`, err);
+  } finally {
+    // Always clear the resetting flag, even if cleanup fails
+    isResetting = false;
+    // Resolve the promise so waiters can continue
+    if (resetCompleteResolve) {
+      resetCompleteResolve();
+      resetCompleteResolve = null;
     }
+    resetCompletePromise = null;
   }
 }
 
@@ -338,13 +362,15 @@ async function closeDataStoreInternal(
  * ```
  */
 export async function getDataStore(userId?: string): Promise<DataStore> {
-  // Guard: Block calls during resetFactory() cleanup to prevent race conditions
-  // where a new instance is created while the old one is still closing
-  if (isResetting) {
-    throw new Error(
-      'Cannot get DataStore while factory reset is in progress. ' +
-      'Wait for resetFactory() to complete before calling getDataStore().'
-    );
+  // Guard: Wait for reset/close to complete before proceeding.
+  // This prevents race conditions where a new instance is created while
+  // the old one is still closing (e.g., during account switching).
+  // See: MATCHOPS-LOCAL-18, MATCHOPS-LOCAL-1N (infinite sync spinner)
+  if (isResetting && resetCompletePromise) {
+    log.info(`[factory] Waiting for reset to complete before getting DataStore for user: ${userId || '(anonymous)'}`);
+    await resetCompletePromise;
+    // After waiting, recurse to re-check state (in case of nested resets)
+    return getDataStore(userId);
   }
 
   const currentMode = getBackendMode();
@@ -750,6 +776,10 @@ export async function resetFactory(): Promise<void> {
   // Guard: Set resetting flag to block concurrent getDataStore() calls
   // This prevents creating a new instance while cleanup is in progress
   isResetting = true;
+  // Create a promise that getDataStore() can wait on
+  resetCompletePromise = new Promise<void>((resolve) => {
+    resetCompleteResolve = resolve;
+  });
 
   try {
     // IMPORTANT: Capture and clear tracking variables FIRST to prevent
@@ -835,6 +865,12 @@ export async function resetFactory(): Promise<void> {
   } finally {
     // Always clear the resetting flag, even if cleanup fails
     isResetting = false;
+    // Resolve the promise so waiters can continue
+    if (resetCompleteResolve) {
+      resetCompleteResolve();
+      resetCompleteResolve = null;
+    }
+    resetCompletePromise = null;
   }
 }
 
