@@ -553,12 +553,23 @@ export class SyncQueue {
    * Check if an operation is ready for retry based on exponential backoff.
    */
   private isReadyForRetry(op: SyncOperation, now: number): boolean {
-    // Never tried yet - ready
-    if (!op.lastAttempt || op.retryCount === 0) {
+    // Never tried yet - ready immediately
+    if (!op.lastAttempt) {
       return true;
     }
 
-    // Calculate backoff delay
+    // If retryCount is 0 but lastAttempt exists (e.g., after abort recovery),
+    // apply a minimum 2-second delay to prevent tight retry loops during
+    // auth state changes or rapid navigation. Without this delay, aborted
+    // operations would retry immediately and abort again, causing infinite loops.
+    // See: MATCHOPS-LOCAL-18, MATCHOPS-LOCAL-1N (AbortError during account switch)
+    // Build trigger: 2026-02-04
+    if (op.retryCount === 0) {
+      const MIN_ABORT_RETRY_DELAY_MS = 2000; // 2 seconds
+      return now >= op.lastAttempt + MIN_ABORT_RETRY_DELAY_MS;
+    }
+
+    // Calculate exponential backoff delay for retries
     const backoffDelay = Math.min(
       this.backoffBaseMs * Math.pow(2, op.retryCount - 1),
       this.backoffMaxMs

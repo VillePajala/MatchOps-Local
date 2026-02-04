@@ -639,14 +639,16 @@ describe('SyncEngine', () => {
       engine.start();
 
       // Flush to let resetStaleSyncing complete and initial processQueue run
-      // The initial processQueue won't find the operation ready (backoff not elapsed)
+      // The initial processQueue won't find the operation ready (minimum delay not elapsed)
       await flushAllAsync();
 
-      // Advance time past the backoff delay (100ms in test config) so the reset
-      // operation is ready for retry. resetStaleSyncing sets lastAttempt=now and
-      // retryCount=1, requiring backoffBaseMs to pass before isReadyForRetry returns true.
+      // Advance time past the minimum retry delay (2000ms) for reset operations.
+      // resetStaleSyncing sets lastAttempt=now but does NOT increment retryCount
+      // (to prevent cascade backoff). Operations with retryCount=0 but lastAttempt set
+      // require a 2-second minimum delay before isReadyForRetry returns true.
+      // This prevents tight retry loops during auth state changes.
       // Then advance to the next sync interval (1000ms) to trigger processing.
-      await jest.advanceTimersByTimeAsync(1100);
+      await jest.advanceTimersByTimeAsync(3000);
       await flushAllAsync();
 
       // The operation should have been reset AND processed (removed from queue)
