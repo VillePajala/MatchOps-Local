@@ -103,6 +103,11 @@ export class SyncedDataStore implements DataStore {
   private readonly userId?: string;
 
   /**
+   * True after close() has been called. Prevents operations on closed store.
+   */
+  private closed = false;
+
+  /**
    * Creates a new SyncedDataStore instance.
    *
    * @param userId - Optional user ID for user-scoped storage.
@@ -150,6 +155,10 @@ export class SyncedDataStore implements DataStore {
     const closeStartTime = Date.now();
     logger.info('[SyncedDataStore] Closing', { userId: this.userId });
 
+    // CRITICAL: Mark as closed FIRST to prevent any concurrent operations
+    // This prevents race conditions where setExecutor() is called during close
+    this.closed = true;
+
     // CRITICAL: Reset the sync engine singleton so a new engine is created for the next user.
     // Without this, the new SyncedDataStore's getSyncEngine() would return the OLD
     // instance that still references the OLD SyncQueue, causing:
@@ -160,8 +169,11 @@ export class SyncedDataStore implements DataStore {
     // and clears listeners.
     if (this.syncEngine) {
       logger.info('[SyncedDataStore] Resetting sync engine...');
-      await resetSyncEngine();
+      // Null the reference BEFORE reset to prevent race conditions where
+      // setExecutor() is called on the old engine during dispose
+      const engineRef = this.syncEngine;
       this.syncEngine = null;
+      await resetSyncEngine();
       logger.info('[SyncedDataStore] Sync engine reset', { elapsedMs: Date.now() - closeStartTime });
     }
 
@@ -231,6 +243,11 @@ export class SyncedDataStore implements DataStore {
    * Called by the factory after cloud store is available.
    */
   setExecutor(executor: SyncOperationExecutor): void {
+    // Guard: Prevent setting executor on closed store (race condition during user switch)
+    if (this.closed) {
+      logger.warn('[SyncedDataStore] Cannot set executor - store is closed (user switched?)');
+      return;
+    }
     if (!this.syncEngine) {
       logger.warn('[SyncedDataStore] Cannot set executor - sync engine not initialized');
       return;
@@ -247,6 +264,11 @@ export class SyncedDataStore implements DataStore {
    * @param store - The SupabaseDataStore instance for direct cloud operations
    */
   setRemoteStore(store: DataStore): void {
+    // Guard: Prevent setting remote store on closed store (race condition during user switch)
+    if (this.closed) {
+      logger.warn('[SyncedDataStore] Cannot set remote store - store is closed (user switched?)');
+      return;
+    }
     this.remoteStore = store;
     logger.info('[SyncedDataStore] Remote store set');
   }

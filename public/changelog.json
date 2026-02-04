@@ -1,8 +1,8 @@
 {
-  "version": "acc4783d",
-  "date": "2026-02-03",
+  "version": "70e6f5bc",
+  "date": "2026-02-04",
   "notes": {
-    "en": "Add localStorage fallback for session recovery on AbortError",
-    "fi": "Add localStorage fallback for session recovery on AbortError"
+    "en": "Close remoteStore on SyncedDataStore.close() to prevent memory leak",
+    "fi": "Close remoteStore on SyncedDataStore.close() to prevent memory leak"
   }
 }
