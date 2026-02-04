@@ -231,9 +231,10 @@ async function closeDataStoreInternal(
       }
 
       // Stop the sync engine singleton
+      // Use skipWait during force close to avoid 5-second wait for in-flight sync
       try {
         const { resetSyncEngine } = await import('@/sync');
-        await resetSyncEngine();
+        await resetSyncEngine({ skipWait: force });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         const err = e instanceof Error ? e : new Error(msg);
