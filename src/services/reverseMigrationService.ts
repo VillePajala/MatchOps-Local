@@ -1498,16 +1498,48 @@ export async function hydrateLocalFromCloud(
 
     safeProgress('Downloading data from cloud...', 10);
 
-    // Download all cloud data
+    // Download all cloud data with progress logging
+    logger.info('[ReverseMigrationService] Fetching players...');
+    const players = await cloudStore.getPlayers();
+    logger.info('[ReverseMigrationService] Fetched players', { count: players.length });
+
+    logger.info('[ReverseMigrationService] Fetching teams...');
+    const teams = await cloudStore.getTeams(true);
+    logger.info('[ReverseMigrationService] Fetched teams', { count: teams.length });
+
+    logger.info('[ReverseMigrationService] Fetching seasons...');
+    const seasons = await cloudStore.getSeasons(true);
+    logger.info('[ReverseMigrationService] Fetched seasons', { count: seasons.length });
+
+    logger.info('[ReverseMigrationService] Fetching tournaments...');
+    const tournaments = await cloudStore.getTournaments(true);
+    logger.info('[ReverseMigrationService] Fetched tournaments', { count: tournaments.length });
+
+    logger.info('[ReverseMigrationService] Fetching personnel...');
+    const personnel = await cloudStore.getAllPersonnel();
+    logger.info('[ReverseMigrationService] Fetched personnel', { count: personnel.length });
+
+    logger.info('[ReverseMigrationService] Fetching games...');
+    const games = await cloudStore.getGames();
+    logger.info('[ReverseMigrationService] Fetched games', { count: Object.keys(games).length });
+
+    logger.info('[ReverseMigrationService] Fetching warmup plan...');
+    const warmupPlan = await cloudStore.getWarmupPlan();
+    logger.info('[ReverseMigrationService] Fetched warmup plan', { hasWarmupPlan: !!warmupPlan });
+
+    logger.info('[ReverseMigrationService] Fetching settings...');
+    const settings = await cloudStore.getSettings();
+    logger.info('[ReverseMigrationService] Fetched settings', { hasSettings: !!settings });
+
     const cloudData = {
-      players: await cloudStore.getPlayers(),
-      teams: await cloudStore.getTeams(true),
-      seasons: await cloudStore.getSeasons(true),
-      tournaments: await cloudStore.getTournaments(true),
-      personnel: await cloudStore.getAllPersonnel(),
-      games: await cloudStore.getGames(),
-      warmupPlan: await cloudStore.getWarmupPlan(),
-      settings: await cloudStore.getSettings(),
+      players,
+      teams,
+      seasons,
+      tournaments,
+      personnel,
+      games,
+      warmupPlan,
+      settings,
       teamRosters: new Map<string, TeamPlayer[]>(),
       playerAdjustments: new Map<string, PlayerStatAdjustment[]>(),
     };
