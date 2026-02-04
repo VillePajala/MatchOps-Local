@@ -282,6 +282,19 @@ async function closeDataStoreInternal(
       resetCompleteResolve = null;
     }
     resetCompletePromise = null;
+
+    // DEFENSIVE: Also clear globalInitLock if it's somehow still held
+    // This prevents deadlocks if a previous init was interrupted during user switch.
+    // The lock should normally be released by initPromise.finally(), but clearing
+    // it here as a safety net ensures user switching doesn't leave stale locks.
+    // See: MATCHOPS-LOCAL-34 (infinite spinner when switching B → A)
+    if (globalInitLockResolve) {
+      log.warn('[factory] Clearing stale globalInitLock during close');
+      globalInitLockResolve();
+      globalInitLockResolve = null;
+    }
+    globalInitLock = null;
+
     log.info(`[factory] CloseDataStore completed`, { durationMs: Date.now() - closeStartTime });
   }
 }
@@ -477,11 +490,26 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   // With the global lock, only one initialization runs at a time. The second
   // caller waits for the first to complete, then re-checks state.
   if (globalInitLock) {
+    const waitStartTime = Date.now();
     log.info(`[factory] Waiting for global init lock before starting init for user: ${userId || '(anonymous)'}`);
+
+    // Add Sentry breadcrumb for tracking potential deadlocks
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.addBreadcrumb({
+        category: 'datastore',
+        message: 'Waiting for global init lock',
+        level: 'warning',
+        data: { userId: userId || '(anonymous)' },
+      });
+    } catch { /* Sentry optional */ }
+
     try {
       await globalInitLock;
+      log.info(`[factory] Global init lock released`, { waitDurationMs: Date.now() - waitStartTime });
     } catch {
       // If the pending init failed, that's fine - we'll proceed with ours
+      log.info(`[factory] Global init lock failed, proceeding`, { waitDurationMs: Date.now() - waitStartTime });
     }
     // After waiting, recurse to re-check state (the pending init may have set dataStoreInstance
     // or the user switch logic will handle the transition)
