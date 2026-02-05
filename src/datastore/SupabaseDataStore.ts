@@ -446,28 +446,32 @@ export class SupabaseDataStore implements DataStore {
    *
    * @param gameId - The game ID
    * @param version - The version from the database (should always be number per schema)
-   * @throws {ValidationError} If version is not a number (indicates data corruption)
+   *
+   * RESILIENCE: Games with null/invalid versions are loaded with default version 1.
+   * This allows users to access their data even if migration didn't backfill properly.
+   * The next save will properly set the version via save_game_with_relations RPC.
    */
   private cacheGameVersion(gameId: string, version: number | null | undefined): void {
     if (typeof version === 'number') {
       this.gameVersionCache.set(gameId, version);
     } else {
-      // Schema guarantees version is NOT NULL with DEFAULT 1 - non-numeric version indicates
-      // data corruption or schema migration issue. CRITICAL: Must throw to prevent silent
-      // disabling of optimistic locking which could lead to data loss.
-      const errorMsg = `Game ${gameId} has invalid version (${typeof version}: ${version}). This indicates data corruption.`;
-      logger.error('[SupabaseDataStore] ' + errorMsg);
-      // Wrap in try/catch - Sentry failure must not prevent the validation error
+      // Non-numeric version indicates migration didn't backfill properly or data corruption.
+      // RESILIENCE: Default to version 1 to allow game loading. User can still access their data.
+      // The next save will properly set version via save_game_with_relations RPC.
+      const errorMsg = `Game ${gameId} has invalid version (${typeof version}: ${version}). Defaulting to version 1.`;
+      logger.warn('[SupabaseDataStore] ' + errorMsg);
+      // Track in Sentry at error level so we can monitor affected games
       try {
-        Sentry.captureMessage('Game loaded with non-numeric version - data corruption detected', {
-          level: 'fatal',
-          tags: { component: 'SupabaseDataStore', action: 'cacheGameVersion', corruption: 'true' },
+        Sentry.captureMessage('Game loaded with non-numeric version - defaulting to 1', {
+          level: 'error',
+          tags: { component: 'SupabaseDataStore', action: 'cacheGameVersion', versionFallback: 'true' },
           extra: { gameId, version, versionType: typeof version },
         });
       } catch {
-        // Sentry failure is acceptable - validation error is critical
+        // Sentry failure must not prevent game loading
       }
-      throw new ValidationError(errorMsg, 'version', version);
+      // Default to version 1 - allows game to load, next save will fix version
+      this.gameVersionCache.set(gameId, 1);
     }
   }
 
@@ -3077,11 +3081,11 @@ export class SupabaseDataStore implements DataStore {
             // Catch errors from individual game fetches to allow batch to continue
             const errorMsg = err instanceof Error ? err.message : 'Unknown error';
             logger.error(`[SupabaseDataStore] Error fetching game ${id}: ${errorMsg}`);
-            // Track in Sentry - partial data loading could cause user confusion
+            // Track in Sentry at error level - partial data loading causes user confusion
             try {
               Sentry.captureException(err, {
                 tags: { component: 'SupabaseDataStore', action: 'getGames-fetchGame' },
-                level: 'warning',
+                level: 'error', // Use error level so these appear in Sentry dashboard
                 extra: { gameId: id, errorMsg },
               });
             } catch {
@@ -3106,8 +3110,16 @@ export class SupabaseDataStore implements DataStore {
             try {
               Sentry.captureException(transformErr, {
                 tags: { component: 'SupabaseDataStore', action: 'getGames-transform' },
-                level: 'warning',
-                extra: { gameId: id, errorMsg },
+                level: 'error', // Use error level so these appear in Sentry dashboard
+                extra: {
+                  gameId: id,
+                  errorMsg,
+                  // Include game metadata for debugging (omit large fields like players/events)
+                  gameVersion: tables.game.version,
+                  gameStatus: tables.game.game_status,
+                  playersCount: tables.players?.length ?? 0,
+                  eventsCount: tables.events?.length ?? 0,
+                },
               });
             } catch {
               // Sentry failure must not break batch processing
