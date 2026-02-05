@@ -25,121 +25,8 @@ import type { PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { processImportedGames } from './gameImportHelper';
 import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal';
-
-/**
- * Retry an async operation with exponential backoff.
- * Used to handle transient AbortError from Supabase auth locks.
- */
-const retryWithBackoff = async <T>(
-  operation: () => Promise<T>,
-  operationName: string,
-  maxRetries: number = 3,
-  initialDelayMs: number = 500
-): Promise<T> => {
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      const isAbortError = lastError.message.includes('AbortError') ||
-                           lastError.message.includes('signal is aborted');
-
-      if (!isAbortError || attempt === maxRetries) {
-        // Non-transient error or last attempt - throw
-        throw lastError;
-      }
-
-      const delay = initialDelayMs * Math.pow(2, attempt - 1);
-      logger.warn(`[${operationName}] Attempt ${attempt} failed with AbortError, retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-
-  throw lastError;
-};
-
-/**
- * Wait for sync to complete (pendingCount = 0) with timeout.
- * Used after backup import to ensure all data is synced to cloud before reload.
- *
- * For large imports (100+ entities), this may take several minutes.
- * Each entity requires a network request, and the sync engine processes them sequentially.
- */
-const waitForSyncCompletion = async (
-  dataStore: Awaited<ReturnType<typeof getDataStore>>,
-  timeoutMs: number = 180000 // 3 minutes for large imports
-): Promise<boolean> => {
-  // Check if dataStore supports sync status (cloud mode)
-  if (!('getSyncStatus' in dataStore)) {
-    logger.log('[waitForSyncCompletion] DataStore does not support sync - skipping wait');
-    return true;
-  }
-
-  const startTime = Date.now();
-  const checkInterval = 1000; // Check every second
-  let lastPendingCount = -1;
-  let stuckCounter = 0;
-  const MAX_STUCK_CHECKS = 30; // Consider stuck after 30 seconds of no progress
-
-  logger.log('[waitForSyncCompletion] Waiting for sync to complete...');
-
-  // Type for sync engine methods we need
-  type SyncedStore = {
-    getSyncStatus: () => Promise<{ pendingCount: number; failedCount: number; state: string }>;
-  };
-
-  while (Date.now() - startTime < timeoutMs) {
-    try {
-      const status = await (dataStore as SyncedStore).getSyncStatus();
-
-      if (status.pendingCount === 0 && status.failedCount === 0) {
-        logger.log('[waitForSyncCompletion] Sync complete - no pending operations');
-        return true;
-      }
-
-      // Check for stuck sync (no progress for too long)
-      if (status.pendingCount === lastPendingCount) {
-        stuckCounter++;
-        if (stuckCounter >= MAX_STUCK_CHECKS) {
-          logger.warn('[waitForSyncCompletion] Sync appears stuck - no progress for 30s', {
-            pendingCount: status.pendingCount,
-            failedCount: status.failedCount,
-            state: status.state,
-          });
-          // Reset stuck counter but continue waiting
-          stuckCounter = 0;
-        }
-      } else {
-        stuckCounter = 0; // Progress made, reset counter
-      }
-      lastPendingCount = status.pendingCount;
-
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
-      logger.log(`[waitForSyncCompletion] Waiting... ${status.pendingCount} pending, ${status.failedCount} failed, state: ${status.state} (${elapsed}s elapsed)`);
-      await new Promise(resolve => setTimeout(resolve, checkInterval));
-    } catch (error) {
-      logger.warn('[waitForSyncCompletion] Error checking sync status:', error);
-      // Continue waiting - don't fail on transient errors
-      await new Promise(resolve => setTimeout(resolve, checkInterval));
-    }
-  }
-
-  // Log final state on timeout
-  try {
-    const finalStatus = await (dataStore as SyncedStore).getSyncStatus();
-    logger.warn(`[waitForSyncCompletion] Timeout after ${timeoutMs / 1000}s - sync incomplete`, {
-      pendingCount: finalStatus.pendingCount,
-      failedCount: finalStatus.failedCount,
-      state: finalStatus.state,
-    });
-  } catch {
-    logger.warn(`[waitForSyncCompletion] Timeout after ${timeoutMs / 1000}s - could not get final status`);
-  }
-
-  return false;
-};
+import { retryWithBackoff, countPushFailures } from '@/utils/retry';
+import type { PushAllToCloudResult } from '@/datastore/SyncedDataStore';
 
 // Define the structure of the backup file
 interface FullBackupData {
@@ -612,9 +499,7 @@ export const importFullBackup = async (
     try {
       await retryWithBackoff(
         () => dataStore.clearAllUserData(),
-        'clearAllUserData',
-        3,  // max 3 attempts
-        500 // start with 500ms delay
+        { operationName: 'clearAllUserData', maxRetries: 3, initialDelayMs: 500 }
       );
       logger.log("Cleared existing app data for clean restore");
     } catch (error) {
@@ -820,26 +705,54 @@ export const importFullBackup = async (
     // For cloud mode: Use direct bulk push instead of sync queue for reliability
     // The sync queue approach fails due to Supabase auth lock AbortErrors
     // This runs regardless of delayReload - user expects data in cloud
-    if ('pushAllToCloud' in dataStore) {
+    if ('pushAllToCloud' in dataStore && typeof dataStore.pushAllToCloud === 'function') {
       logger.log('[importFullBackup] Using direct bulk push to cloud...');
       try {
-        type PushableStore = {
-          pushAllToCloud: () => Promise<{
-            players: number;
-            teams: number;
-            seasons: number;
-            tournaments: number;
-            personnel: number;
-            games: number;
-            settings: boolean;
-            warmupPlan: boolean;
-          }>;
-        };
-        const pushSummary = await (dataStore as PushableStore).pushAllToCloud();
+        // Runtime-verified method call (checked above with typeof guard)
+        const pushSummary = await dataStore.pushAllToCloud() as PushAllToCloudResult;
         logger.log('[importFullBackup] Bulk push complete:', pushSummary);
+
+        // Report any failures to user (items that failed after all retries)
+        if (pushSummary.failures) {
+          const totalFailures = countPushFailures(pushSummary.failures);
+          if (totalFailures > 0) {
+            // Build detailed breakdown of failures by entity type
+            const failureDetails: string[] = [];
+            const f = pushSummary.failures;
+            if (f.players.length > 0) failureDetails.push(`${f.players.length} players`);
+            if (f.teams.length > 0) failureDetails.push(`${f.teams.length} teams`);
+            if (f.seasons.length > 0) failureDetails.push(`${f.seasons.length} seasons`);
+            if (f.tournaments.length > 0) failureDetails.push(`${f.tournaments.length} tournaments`);
+            if (f.personnel.length > 0) failureDetails.push(`${f.personnel.length} personnel`);
+            if (f.games.length > 0) failureDetails.push(`${f.games.length} games`);
+            if (f.rosters.length > 0) failureDetails.push(`${f.rosters.length} rosters`);
+            if (f.adjustments.length > 0) failureDetails.push(`${f.adjustments.length} adjustments`);
+            if (f.settings) failureDetails.push('settings');
+            if (f.warmupPlan) failureDetails.push('warmup plan');
+
+            const detailStr = failureDetails.length > 0
+              ? ` (${failureDetails.join(', ')})`
+              : '';
+            warnings.push(`${totalFailures} items failed to sync to cloud${detailStr}. You can retry from Settings.`);
+
+            // Log detailed failure IDs for debugging (visible in browser console)
+            logger.warn('[importFullBackup] Failed item IDs:', {
+              players: f.players,
+              teams: f.teams,
+              seasons: f.seasons,
+              tournaments: f.tournaments,
+              personnel: f.personnel,
+              games: f.games,
+              rosters: f.rosters,
+              adjustments: f.adjustments,
+              settings: f.settings,
+              warmupPlan: f.warmupPlan,
+            });
+          }
+        }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn('[importFullBackup] Bulk push failed:', errorMsg);
+        logger.error('[importFullBackup] Bulk push failed after retries:', errorMsg);
         warnings.push('Some data might not have synced to cloud. You can manually sync from Settings.');
         // Don't throw - local data is safe, user can retry sync manually
       }

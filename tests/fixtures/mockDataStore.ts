@@ -213,6 +213,23 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
 
     // Danger Zone
     clearAllUserData: jest.fn(async () => {}),
+
+    // Entity Reference Checks
+    getSeasonReferences: jest.fn(async () => ({
+      canDelete: true,
+      counts: { games: 0, teams: 0, adjustments: 0 },
+      summary: 'Not used by any other data',
+    })) as unknown as jest.MockedFunction<DataStore['getSeasonReferences']>,
+    getTournamentReferences: jest.fn(async () => ({
+      canDelete: true,
+      counts: { games: 0, teams: 0, adjustments: 0 },
+      summary: 'Not used by any other data',
+    })) as unknown as jest.MockedFunction<DataStore['getTournamentReferences']>,
+    getTeamReferences: jest.fn(async () => ({
+      canDelete: true,
+      counts: { games: 0 },
+      summary: 'Not used by any other data',
+    })) as unknown as jest.MockedFunction<DataStore['getTeamReferences']>,
   };
 
   // Apply overrides

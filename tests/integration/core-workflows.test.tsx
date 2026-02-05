@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent, act } from '../utils/test-utils';
+import { render, screen, waitFor, act } from '../utils/test-utils';
 import HomePage from '@/components/HomePage';
 import {
   createMockPlayers,
