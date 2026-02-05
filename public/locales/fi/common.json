@@ -2606,5 +2606,20 @@
     "ST": "ST",
     "RW": "RW",
     "SUB": "SUB"
+  },
+  "entityType": {
+    "season": "kausi",
+    "tournament": "turnaus",
+    "team": "joukkue"
+  },
+  "deleteBlocked": {
+    "title": "Ei voida poistaa: \"{{name}}\"",
+    "reason": "Tämä {{type}} on {{summary}}.",
+    "archiveOption": "Voit sen sijaan arkistoida sen, jolloin:",
+    "hideFromLists": "Se piilotetaan listoista ja valinnoista",
+    "keepData": "Kaikki siihen linkitetyt tiedot säilyvät",
+    "canRestore": "Voit palauttaa sen myöhemmin",
+    "deleteHint": "Poistaaksesi pysyvästi, poista ensin kaikki viittaukset (siirrä pelit toiseen {{type}}n tai poista ne).",
+    "archiveInstead": "Arkistoi sen sijaan"
   }
 }

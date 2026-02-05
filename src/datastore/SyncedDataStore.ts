@@ -1314,13 +1314,12 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
-      // 5. Team rosters
+      // 5. Team rosters (only for teams that exist - orphaned rosters already logged above)
       // Assumption: Typically 1-10 rosters per import (one per team).
       // Sequential processing is acceptable at this scale. If imports regularly
       // include 50+ rosters, consider adding chunked parallel processing.
-      const rosterTeamIds = Object.keys(teamRosters);
-      logger.info(`[SyncedDataStore] Pushing ${rosterTeamIds.length} team rosters to cloud...`);
-      for (const teamId of rosterTeamIds) {
+      logger.info(`[SyncedDataStore] Pushing ${validRosterTeamIds.length} team rosters to cloud...`);
+      for (const teamId of validRosterTeamIds) {
         try {
           await retryWithBackoff(
             () => remoteStore.setTeamRoster(teamId, teamRosters[teamId]),
