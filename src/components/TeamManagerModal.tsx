@@ -12,6 +12,7 @@ import {
   HiOutlineArchiveBox
 } from 'react-icons/hi2';
 import { Team, Player, Tournament, Season } from '@/types';
+import type { EntityReferences } from '@/interfaces/DataStore';
 import { queryKeys } from '@/config/queryKeys';
 import {
   updateTeam,
@@ -28,6 +29,7 @@ import logger from '@/utils/logger';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useDataStore } from '@/hooks/useDataStore';
 import UnifiedTeamModal from './UnifiedTeamModal';
+import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 
 interface TeamManagerModalProps {
@@ -47,7 +49,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { userId } = useDataStore();
+  const { userId, getStore } = useDataStore();
 
   // Premium limit check for team creation (count non-archived teams)
   const activeTeamCount = teams.filter(team => !team.archived).length;
@@ -63,6 +65,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const [deleteConfirmTeamId, setDeleteConfirmTeamId] = useState<string | null>(null);
   const [deleteTeamGamesCount, setDeleteTeamGamesCount] = useState<number>(0);
   const [rosterCounts, setRosterCounts] = useState<Record<string, number>>({});
+  const [deleteBlockedState, setDeleteBlockedState] = useState<{
+    open: boolean;
+    entityName: string;
+    references: EntityReferences | null;
+    teamId: string | null;
+  }>({ open: false, entityName: '', references: null, teamId: null });
 
   // Refs
   const actionsMenuRef = useRef<HTMLDivElement>(null);
@@ -160,6 +168,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       setActionsMenuTeamId(null);
       setDeleteConfirmTeamId(null);
       setSearchText('');
+      setDeleteBlockedState({ open: false, entityName: '', references: null, teamId: null });
     }
   }, [isOpen]);
 
@@ -233,7 +242,27 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   };
 
   const handleDeleteTeam = async (teamId: string) => {
-    // Load games count for impact warning
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
+
+    // Check if team has references that block deletion
+    const store = await getStore();
+    const refs = await store.getTeamReferences(teamId);
+
+    if (!refs.canDelete) {
+      // Show blocked dialog
+      logger.log(`[TeamManager] Delete blocked for team "${team.name}": ${refs.summary}`);
+      setDeleteBlockedState({
+        open: true,
+        entityName: team.name,
+        references: refs,
+        teamId: teamId,
+      });
+      setActionsMenuTeamId(null);
+      return;
+    }
+
+    // Can delete - show normal confirmation
     const gamesCount = await countGamesForTeam(teamId);
     setDeleteTeamGamesCount(gamesCount);
     setDeleteConfirmTeamId(teamId);
@@ -617,6 +646,22 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           teams={teams}
           masterRoster={masterRoster}
         />
+
+        {/* Delete Blocked Dialog */}
+        {deleteBlockedState.references && (
+          <DeleteBlockedDialog
+            isOpen={deleteBlockedState.open}
+            onClose={() => setDeleteBlockedState({ open: false, entityName: '', references: null, teamId: null })}
+            entityType="team"
+            entityName={deleteBlockedState.entityName}
+            references={deleteBlockedState.references}
+            onArchive={() => {
+              if (deleteBlockedState.teamId) {
+                handleToggleArchive(deleteBlockedState.teamId, false);
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );

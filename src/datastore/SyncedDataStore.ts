@@ -26,7 +26,7 @@ import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
-import type { DataStore } from '@/interfaces/DataStore';
+import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
@@ -146,6 +146,11 @@ export interface PushAllToCloudResult {
     /** Whether warmup plan failed to push */
     warmupPlan: boolean;
   };
+  /**
+   * Warnings about orphaned references that were fixed during push.
+   * Present only if orphans were detected and fixed.
+   */
+  orphanWarnings?: string[];
 }
 
 /**
@@ -1067,7 +1072,7 @@ export class SyncedDataStore implements DataStore {
     // Store in local variable after null check to avoid repeated non-null assertions
     const remoteStore = this.remoteStore;
 
-    const summary = {
+    const summary: PushAllToCloudResult = {
       players: 0,
       teams: 0,
       seasons: 0,
@@ -1126,6 +1131,85 @@ export class SyncedDataStore implements DataStore {
         this.localStore.getWarmupPlan(),
         this.localStore.getAllPlayerAdjustments(),
       ]);
+
+      // ========================================================================
+      // ORPHAN DETECTION & FIX (Safety Net for Legacy Data)
+      // ========================================================================
+      // Check for orphaned references in games (seasonId, tournamentId, teamId
+      // pointing to entities that don't exist). Fix them to prevent FK violations.
+      // Fixes are applied to BOTH local and cloud to keep them in sync.
+      // ========================================================================
+      const seasonIds = new Set(seasons.map(s => s.id));
+      const tournamentIds = new Set(tournaments.map(t => t.id));
+      const teamIds = new Set(teams.map(t => t.id));
+      const orphanWarnings: string[] = [];
+
+      for (const [gameId, game] of Object.entries(games)) {
+        let modified = false;
+        const gameLabel = `"${game.teamName} vs ${game.opponentName}" (${game.gameDate})`;
+
+        if (game.seasonId && !seasonIds.has(game.seasonId)) {
+          orphanWarnings.push(`Game ${gameLabel} had invalid season reference (${game.seasonId}) - fixed to empty`);
+          game.seasonId = '';
+          modified = true;
+        }
+
+        if (game.tournamentId && !tournamentIds.has(game.tournamentId)) {
+          orphanWarnings.push(`Game ${gameLabel} had invalid tournament reference (${game.tournamentId}) - fixed to empty`);
+          game.tournamentId = '';
+          game.tournamentSeriesId = '';
+          game.tournamentLevel = '';
+          modified = true;
+        }
+
+        if (game.teamId && !teamIds.has(game.teamId)) {
+          orphanWarnings.push(`Game ${gameLabel} had invalid team reference (${game.teamId}) - fixed to empty`);
+          game.teamId = undefined;
+          modified = true;
+        }
+
+        if (modified) {
+          // Update local storage to keep local and cloud in sync
+          // This prevents perpetual sync conflicts
+          await this.localStore.saveGame(gameId, game);
+        }
+      }
+
+      // Skip rosters for teams that don't exist (orphaned rosters)
+      const validRosterTeamIds = Object.keys(teamRosters).filter(teamId => teamIds.has(teamId));
+      const skippedRosters = Object.keys(teamRosters).length - validRosterTeamIds.length;
+      if (skippedRosters > 0) {
+        orphanWarnings.push(`Skipped ${skippedRosters} roster(s) for deleted/missing teams`);
+      }
+
+      // Fix orphaned player adjustments (reference to deleted seasons/tournaments)
+      for (const [playerId, adjustments] of adjustmentsMap) {
+        for (const adj of adjustments) {
+          let modified = false;
+
+          if (adj.seasonId && !seasonIds.has(adj.seasonId)) {
+            orphanWarnings.push(`Player adjustment for ${playerId} had invalid season reference - fixed to empty`);
+            adj.seasonId = '';
+            modified = true;
+          }
+
+          if (adj.tournamentId && !tournamentIds.has(adj.tournamentId)) {
+            orphanWarnings.push(`Player adjustment for ${playerId} had invalid tournament reference - fixed to empty`);
+            adj.tournamentId = '';
+            modified = true;
+          }
+
+          if (modified) {
+            // Update local storage
+            await this.localStore.updatePlayerAdjustment(playerId, adj.id, adj);
+          }
+        }
+      }
+
+      if (orphanWarnings.length > 0) {
+        logger.warn('[SyncedDataStore] Fixed orphaned references before cloud push:', orphanWarnings);
+        summary.orphanWarnings = orphanWarnings;
+      }
 
       // Push to cloud with chunked parallel processing and retry
       // Order matters: referenced entities first, then games
@@ -1386,5 +1470,22 @@ export class SyncedDataStore implements DataStore {
     }
 
     logger.info('[SyncedDataStore] All user data cleared (local and cloud)');
+  }
+
+  // ==========================================================================
+  // ENTITY REFERENCE CHECKS
+  // Delegate to local store - reference checks are against local data
+  // ==========================================================================
+
+  async getSeasonReferences(seasonId: string): Promise<EntityReferences> {
+    return this.localStore.getSeasonReferences(seasonId);
+  }
+
+  async getTournamentReferences(tournamentId: string): Promise<EntityReferences> {
+    return this.localStore.getTournamentReferences(tournamentId);
+  }
+
+  async getTeamReferences(teamId: string): Promise<EntityReferences> {
+    return this.localStore.getTeamReferences(teamId);
   }
 }

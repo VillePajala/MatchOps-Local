@@ -19,7 +19,7 @@ import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
-import type { DataStore } from '@/interfaces/DataStore';
+import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import {
   AlreadyExistsError,
   NotInitializedError,
@@ -2404,6 +2404,115 @@ export class LocalDataStore implements DataStore {
     logger.info('[LocalDataStore] All user data cleared from local storage', {
       userId: this.userId ?? '(legacy)',
     });
+  }
+
+  // ==========================================================================
+  // ENTITY REFERENCE CHECKS
+  // ==========================================================================
+
+  /**
+   * Check if a season can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   */
+  async getSeasonReferences(seasonId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+
+    const games = await this.getGames();
+    const teams = await this.getTeams(true); // include archived
+
+    const gameCount = Object.values(games).filter(g => g.seasonId === seasonId).length;
+    const teamCount = teams.filter(t => t.boundSeasonId === seasonId).length;
+
+    // Adjustments: count for info, but don't block (SET NULL handles deletion gracefully)
+    const adjustments = await this.getAllPlayerAdjustments();
+    let adjustmentCount = 0;
+    for (const [, playerAdj] of adjustments) {
+      adjustmentCount += playerAdj.filter(a => a.seasonId === seasonId).length;
+    }
+
+    const counts = { games: gameCount, teams: teamCount, adjustments: adjustmentCount };
+
+    // Only GAMES and TEAMS block deletion (hard references)
+    const canDelete = gameCount === 0 && teamCount === 0;
+
+    const parts: string[] = [];
+    if (gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+    if (teamCount > 0) parts.push(`${teamCount} team${teamCount > 1 ? 's' : ''}`);
+    // Show adjustments in summary for awareness, but they don't block
+    if (adjustmentCount > 0) parts.push(`${adjustmentCount} stat adjustment${adjustmentCount > 1 ? 's' : ''} (will be unlinked)`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
+  }
+
+  /**
+   * Check if a tournament can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   */
+  async getTournamentReferences(tournamentId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+
+    const games = await this.getGames();
+    const teams = await this.getTeams(true); // include archived
+
+    // Check both tournamentId and tournamentSeriesId (series belong to tournament)
+    const gameCount = Object.values(games).filter(
+      g => g.tournamentId === tournamentId || (g.tournamentSeriesId && g.tournamentId === tournamentId)
+    ).length;
+    const teamCount = teams.filter(
+      t => t.boundTournamentId === tournamentId || t.boundTournamentSeriesId?.startsWith(`series_${tournamentId}_`)
+    ).length;
+
+    // Adjustments: count for info, but don't block
+    const adjustments = await this.getAllPlayerAdjustments();
+    let adjustmentCount = 0;
+    for (const [, playerAdj] of adjustments) {
+      adjustmentCount += playerAdj.filter(a => a.tournamentId === tournamentId).length;
+    }
+
+    const counts = { games: gameCount, teams: teamCount, adjustments: adjustmentCount };
+
+    // Only GAMES and TEAMS block deletion
+    const canDelete = gameCount === 0 && teamCount === 0;
+
+    const parts: string[] = [];
+    if (gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+    if (teamCount > 0) parts.push(`${teamCount} team${teamCount > 1 ? 's' : ''}`);
+    if (adjustmentCount > 0) parts.push(`${adjustmentCount} stat adjustment${adjustmentCount > 1 ? 's' : ''} (will be unlinked)`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
+  }
+
+  /**
+   * Check if a team can be safely deleted (no game references).
+   * Team rosters CASCADE delete and don't block deletion.
+   */
+  async getTeamReferences(teamId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+
+    const games = await this.getGames();
+    const gameCount = Object.values(games).filter(g => g.teamId === teamId).length;
+
+    const counts = { games: gameCount };
+
+    // Only GAMES block deletion (rosters CASCADE delete with team)
+    const canDelete = gameCount === 0;
+
+    const parts: string[] = [];
+    if (gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
   }
 
   private ensureInitialized(): void {
