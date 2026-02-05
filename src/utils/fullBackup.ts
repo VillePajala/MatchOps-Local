@@ -25,7 +25,8 @@ import type { PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { processImportedGames } from './gameImportHelper';
 import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal';
-import { retryWithBackoff } from '@/utils/retry';
+import { retryWithBackoff, countPushFailures } from '@/utils/retry';
+import type { PushAllToCloudResult } from '@/datastore/SyncedDataStore';
 
 // Define the structure of the backup file
 interface FullBackupData {
@@ -708,56 +709,21 @@ export const importFullBackup = async (
       logger.log('[importFullBackup] Using direct bulk push to cloud...');
       try {
         type PushableStore = {
-          pushAllToCloud: () => Promise<{
-            players: number;
-            teams: number;
-            seasons: number;
-            tournaments: number;
-            personnel: number;
-            games: number;
-            settings: boolean;
-            warmupPlan: boolean;
-            failures: {
-              players: string[];
-              teams: string[];
-              seasons: string[];
-              tournaments: string[];
-              personnel: string[];
-              games: string[];
-              rosters: string[];
-              adjustments: string[];
-              settings: boolean;
-              warmupPlan: boolean;
-            };
-          }>;
+          pushAllToCloud: () => Promise<PushAllToCloudResult>;
         };
         const pushSummary = await (dataStore as PushableStore).pushAllToCloud();
         logger.log('[importFullBackup] Bulk push complete:', pushSummary);
 
         // Report any failures to user (items that failed after all retries)
-        // Count both array failures and boolean failures
         if (pushSummary.failures) {
-          const arrayFailures = [
-            pushSummary.failures.players,
-            pushSummary.failures.teams,
-            pushSummary.failures.seasons,
-            pushSummary.failures.tournaments,
-            pushSummary.failures.personnel,
-            pushSummary.failures.games,
-            pushSummary.failures.rosters,
-            pushSummary.failures.adjustments,
-          ].reduce((sum, arr) => sum + (arr?.length || 0), 0);
-          const booleanFailures =
-            (pushSummary.failures.settings ? 1 : 0) +
-            (pushSummary.failures.warmupPlan ? 1 : 0);
-          const totalFailures = arrayFailures + booleanFailures;
+          const totalFailures = countPushFailures(pushSummary.failures);
           if (totalFailures > 0) {
             warnings.push(`${totalFailures} items failed to sync to cloud after retries. You can retry from Settings.`);
           }
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn('[importFullBackup] Bulk push failed:', errorMsg);
+        logger.error('[importFullBackup] Bulk push failed after retries:', errorMsg);
         warnings.push('Some data might not have synced to cloud. You can manually sync from Settings.');
         // Don't throw - local data is safe, user can retry sync manually
       }

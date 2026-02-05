@@ -3279,29 +3279,36 @@ describe('SupabaseDataStore', () => {
       });
 
       /**
-       * Issue #330: NULL/undefined version must throw ValidationError, not silently disable locking.
-       * @critical - Prevents silent data corruption from invalid version data
+       * RESILIENCE: null/undefined version should NOT throw - instead defaults to version 1.
+       * This ensures games can still be loaded even if migration didn't backfill versions properly.
+       * The next save will properly set the version via save_game_with_relations RPC.
        *
        * Tests the cacheGameVersion method directly since fetchGameTables mocking is complex.
        */
-      it('should throw ValidationError when cacheGameVersion receives null version', () => {
+      it('should default to version 1 when cacheGameVersion receives null version (resilience)', () => {
         // Access private method for testing
         const cacheGameVersion = (dataStore as unknown as { cacheGameVersion: (id: string, version: number | null | undefined) => void }).cacheGameVersion.bind(dataStore);
+        const gameVersionCache = (dataStore as unknown as { gameVersionCache: Map<string, number> }).gameVersionCache;
 
-        // Should throw ValidationError for null version
-        expect(() => cacheGameVersion('game_null', null)).toThrow(ValidationError);
-        expect(() => cacheGameVersion('game_null', null)).toThrow(/invalid version/i);
+        // Should NOT throw - resilience pattern defaults to version 1
+        expect(() => cacheGameVersion('game_null', null)).not.toThrow();
+
+        // Verify it defaulted to version 1
+        expect(gameVersionCache.get('game_null')).toBe(1);
       });
 
       /**
-       * Issue #330: undefined version must also throw ValidationError.
+       * RESILIENCE: undefined version also defaults to version 1.
        */
-      it('should throw ValidationError when cacheGameVersion receives undefined version', () => {
+      it('should default to version 1 when cacheGameVersion receives undefined version (resilience)', () => {
         const cacheGameVersion = (dataStore as unknown as { cacheGameVersion: (id: string, version: number | null | undefined) => void }).cacheGameVersion.bind(dataStore);
+        const gameVersionCache = (dataStore as unknown as { gameVersionCache: Map<string, number> }).gameVersionCache;
 
-        // Should throw ValidationError for undefined version
-        expect(() => cacheGameVersion('game_undefined', undefined)).toThrow(ValidationError);
-        expect(() => cacheGameVersion('game_undefined', undefined)).toThrow(/invalid version/i);
+        // Should NOT throw - resilience pattern defaults to version 1
+        expect(() => cacheGameVersion('game_undefined', undefined)).not.toThrow();
+
+        // Verify it defaulted to version 1
+        expect(gameVersionCache.get('game_undefined')).toBe(1);
       });
 
       /**

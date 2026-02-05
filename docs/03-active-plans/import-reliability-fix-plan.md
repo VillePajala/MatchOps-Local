@@ -23,7 +23,7 @@ Fix the backup import reliability issue by adding retry logic and parallel chunk
 | Modify `pushAllToCloud()` in SyncedDataStore.ts | ✅ Complete |
 | Update `fullBackup.ts` call site | ✅ Complete |
 | Remove dead code (`waitForSyncCompletion`) | ✅ Complete |
-| Unit tests for retry utility | ⏳ Pending |
+| Unit tests for retry utility | ✅ Complete (38 tests) |
 | Unit tests for pushAllToCloud | ⏳ Pending |
 | Manual testing | ⏳ Pending |
 
@@ -67,25 +67,38 @@ Normal sync (SyncQueue → SyncEngine) is **not affected** by this change.
 
 **File:** `src/utils/retry.ts`
 
+**Note:** There's also `src/datastore/supabase/retry.ts` which is Supabase-specific (includes
+`throwIfTransient` helper for Supabase result types). The new `src/utils/retry.ts` is a
+general-purpose utility for use in `fullBackup.ts` and `SyncedDataStore.ts`. Both use the
+same robust error detection patterns.
+
 Created shared utility with:
-- `isTransientError()` - Detects retryable errors (AbortError, network, 429/503/504)
+- `isTransientError()` - Robust error detection (status codes, PostgreSQL codes, message patterns)
 - `retryWithBackoff()` - Exponential backoff retry (default: 3 attempts, 500ms initial delay)
 - `chunkArray()` - Splits arrays into chunks for parallel processing
 
+**Error detection (in priority order):**
+1. HTTP status codes: 408, 429, 500, 502, 503, 504
+2. PostgreSQL codes: PGRST301, PGRST000 (NOT 40001 - optimistic locking)
+3. Message patterns: network, timeout, connection, AbortError, etc.
+
 ```typescript
-export function isTransientError(error: Error): boolean {
-  const message = error.message.toLowerCase();
-  return (
-    message.includes('aborterror') ||
-    message.includes('signal is aborted') ||
-    message.includes('network') ||
-    message.includes('timeout') ||
-    message.includes('fetch failed') ||
-    message.includes('failed to fetch') ||
-    message.includes('429') ||  // Rate limit
-    message.includes('503') ||  // Service unavailable
-    message.includes('504')     // Gateway timeout
-  );
+export function isTransientError(error: unknown): boolean {
+  if (!error) return false;
+
+  // Check status codes first (most reliable)
+  if (typeof error === 'object' && error !== null) {
+    const status = errorObj.status ?? errorObj.statusCode;
+    if (typeof status === 'number' && TRANSIENT_STATUS_CODES.has(status)) {
+      return true;
+    }
+    // PostgreSQL codes
+    if (code === 'PGRST301' || code === 'PGRST000') return true;
+    if (code === '40001') return false; // Optimistic locking - don't retry!
+  }
+
+  // Fall back to message pattern matching
+  return TRANSIENT_ERROR_PATTERNS.some(pattern => message.includes(pattern));
 }
 
 export async function retryWithBackoff<T>(
