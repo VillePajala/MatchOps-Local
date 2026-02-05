@@ -63,10 +63,13 @@ const retryWithBackoff = async <T>(
 /**
  * Wait for sync to complete (pendingCount = 0) with timeout.
  * Used after backup import to ensure all data is synced to cloud before reload.
+ *
+ * For large imports (100+ entities), this may take several minutes.
+ * Each entity requires a network request, and the sync engine processes them sequentially.
  */
 const waitForSyncCompletion = async (
   dataStore: Awaited<ReturnType<typeof getDataStore>>,
-  timeoutMs: number = 30000
+  timeoutMs: number = 180000 // 3 minutes for large imports
 ): Promise<boolean> => {
   // Check if dataStore supports sync status (cloud mode)
   if (!('getSyncStatus' in dataStore)) {
@@ -75,20 +78,46 @@ const waitForSyncCompletion = async (
   }
 
   const startTime = Date.now();
-  const checkInterval = 500; // Check every 500ms
+  const checkInterval = 1000; // Check every second
+  let lastPendingCount = -1;
+  let stuckCounter = 0;
+  const MAX_STUCK_CHECKS = 30; // Consider stuck after 30 seconds of no progress
 
   logger.log('[waitForSyncCompletion] Waiting for sync to complete...');
 
+  // Type for sync engine methods we need
+  type SyncedStore = {
+    getSyncStatus: () => Promise<{ pendingCount: number; failedCount: number; state: string }>;
+  };
+
   while (Date.now() - startTime < timeoutMs) {
     try {
-      const status = await (dataStore as { getSyncStatus: () => Promise<{ pendingCount: number; state: string }> }).getSyncStatus();
+      const status = await (dataStore as SyncedStore).getSyncStatus();
 
-      if (status.pendingCount === 0) {
+      if (status.pendingCount === 0 && status.failedCount === 0) {
         logger.log('[waitForSyncCompletion] Sync complete - no pending operations');
         return true;
       }
 
-      logger.log(`[waitForSyncCompletion] Waiting... ${status.pendingCount} operations pending, state: ${status.state}`);
+      // Check for stuck sync (no progress for too long)
+      if (status.pendingCount === lastPendingCount) {
+        stuckCounter++;
+        if (stuckCounter >= MAX_STUCK_CHECKS) {
+          logger.warn('[waitForSyncCompletion] Sync appears stuck - no progress for 30s', {
+            pendingCount: status.pendingCount,
+            failedCount: status.failedCount,
+            state: status.state,
+          });
+          // Reset stuck counter but continue waiting
+          stuckCounter = 0;
+        }
+      } else {
+        stuckCounter = 0; // Progress made, reset counter
+      }
+      lastPendingCount = status.pendingCount;
+
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      logger.log(`[waitForSyncCompletion] Waiting... ${status.pendingCount} pending, ${status.failedCount} failed, state: ${status.state} (${elapsed}s elapsed)`);
       await new Promise(resolve => setTimeout(resolve, checkInterval));
     } catch (error) {
       logger.warn('[waitForSyncCompletion] Error checking sync status:', error);
@@ -97,7 +126,18 @@ const waitForSyncCompletion = async (
     }
   }
 
-  logger.warn(`[waitForSyncCompletion] Timeout after ${timeoutMs}ms - sync may be incomplete`);
+  // Log final state on timeout
+  try {
+    const finalStatus = await (dataStore as SyncedStore).getSyncStatus();
+    logger.warn(`[waitForSyncCompletion] Timeout after ${timeoutMs / 1000}s - sync incomplete`, {
+      pendingCount: finalStatus.pendingCount,
+      failedCount: finalStatus.failedCount,
+      state: finalStatus.state,
+    });
+  } catch {
+    logger.warn(`[waitForSyncCompletion] Timeout after ${timeoutMs / 1000}s - could not get final status`);
+  }
+
   return false;
 };
 
@@ -777,18 +817,38 @@ export const importFullBackup = async (
       warnings,
     };
 
+    // For cloud mode: Use direct bulk push instead of sync queue for reliability
+    // The sync queue approach fails due to Supabase auth lock AbortErrors
+    // This runs regardless of delayReload - user expects data in cloud
+    if ('pushAllToCloud' in dataStore) {
+      logger.log('[importFullBackup] Using direct bulk push to cloud...');
+      try {
+        type PushableStore = {
+          pushAllToCloud: () => Promise<{
+            players: number;
+            teams: number;
+            seasons: number;
+            tournaments: number;
+            personnel: number;
+            games: number;
+            settings: boolean;
+            warmupPlan: boolean;
+          }>;
+        };
+        const pushSummary = await (dataStore as PushableStore).pushAllToCloud();
+        logger.log('[importFullBackup] Bulk push complete:', pushSummary);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.warn('[importFullBackup] Bulk push failed:', errorMsg);
+        warnings.push('Some data might not have synced to cloud. You can manually sync from Settings.');
+        // Don't throw - local data is safe, user can retry sync manually
+      }
+    }
+
     // Skip automatic reload/refresh if caller wants to handle it manually (e.g., after showing results modal)
     if (delayReload) {
       logger.log("Skipping automatic reload - caller will handle it manually");
       return result;
-    }
-
-    // CRITICAL: Wait for sync to complete before reload (cloud mode)
-    // Without this, page reload aborts in-flight sync operations, causing data loss
-    const syncCompleted = await waitForSyncCompletion(dataStore, 30000);
-    if (!syncCompleted) {
-      warnings.push('Sync may be incomplete - some data might not have uploaded to cloud yet');
-      logger.warn('[importFullBackup] Sync timeout - proceeding with reload anyway');
     }
 
     // Use callback to refresh app state without reload, or fallback to reload
