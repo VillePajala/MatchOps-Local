@@ -4119,8 +4119,9 @@ export class SupabaseDataStore implements DataStore {
 
     // First fetch the tournament to get its actual series IDs
     // Series created via TournamentSeriesManager use arbitrary IDs like series_${timestamp}_${uuid}
-    const tournament = await this.getSeasonOrTournamentById(tournamentId, 'tournament');
-    const seriesIds = tournament?.series?.map(s => s.id) ?? [];
+    const tournaments = await this.getTournaments(true);
+    const tournament = tournaments.find(t => t.id === tournamentId);
+    const seriesIds = tournament?.series?.map((s: { id: string }) => s.id) ?? [];
 
     // For games, we only need to check tournament_id (series refs are within tournament)
     const [gamesResult, teamsResult, adjustmentsResult] = await Promise.all([
