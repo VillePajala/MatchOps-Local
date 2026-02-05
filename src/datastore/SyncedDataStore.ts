@@ -944,12 +944,215 @@ export class SyncedDataStore implements DataStore {
   // DATA MANAGEMENT
   // ==========================================================================
 
-  async clearAllUserData(): Promise<void> {
-    // Stop sync engine first. Note: This immediately stops processing,
-    // so any in-flight sync operations will be interrupted. This is
-    // acceptable for a "clear all data" operation - we're wiping everything.
+  /**
+   * Push all local data directly to cloud, bypassing the sync queue.
+   * Use this for bulk operations like backup import where the sync queue
+   * approach would be too slow or unreliable due to network issues.
+   *
+   * This method:
+   * 1. Pauses the sync engine to prevent queue processing
+   * 2. Clears any pending operations in the queue
+   * 3. Reads all local data
+   * 4. Writes directly to cloud store
+   * 5. Resumes the sync engine
+   *
+   * @returns Summary of what was pushed
+   * @throws If cloud store is not available or push fails
+   */
+  async pushAllToCloud(): Promise<{
+    players: number;
+    teams: number;
+    seasons: number;
+    tournaments: number;
+    personnel: number;
+    games: number;
+    settings: boolean;
+    warmupPlan: boolean;
+  }> {
+    if (!this.remoteStore) {
+      throw new Error('Cloud store not available - cannot push to cloud');
+    }
+
+    const summary = {
+      players: 0,
+      teams: 0,
+      seasons: 0,
+      tournaments: 0,
+      personnel: 0,
+      games: 0,
+      settings: false,
+      warmupPlan: false,
+    };
+
+    logger.info('[SyncedDataStore] Starting bulk push to cloud...');
+
+    // Pause sync engine to prevent queue processing during bulk push
     if (this.syncEngine) {
-      this.syncEngine.stop();
+      this.syncEngine.pause();
+    }
+
+    try {
+      // Clear sync queue - we're doing direct push instead
+      await this.syncQueue.clear();
+      logger.info('[SyncedDataStore] Sync queue cleared for bulk push');
+
+      // Read all local data
+      const [
+        players,
+        teams,
+        teamRosters,
+        seasons,
+        tournaments,
+        personnel,
+        games,
+        settings,
+        warmupPlan,
+        adjustmentsMap,
+      ] = await Promise.all([
+        this.localStore.getPlayers(),
+        this.localStore.getTeams(true),
+        this.localStore.getAllTeamRosters(),
+        this.localStore.getSeasons(true),
+        this.localStore.getTournaments(true),
+        this.localStore.getAllPersonnel(),
+        this.localStore.getGames(),
+        this.localStore.getSettings(),
+        this.localStore.getWarmupPlan(),
+        this.localStore.getAllPlayerAdjustments(),
+      ]);
+
+      // Push to cloud with error handling for each entity type
+      // Using sequential processing to avoid overwhelming the server
+      // and to handle Supabase auth lock issues
+
+      // 1. Players (games reference these)
+      logger.info(`[SyncedDataStore] Pushing ${players.length} players to cloud...`);
+      for (const player of players) {
+        try {
+          await this.remoteStore.upsertPlayer(player);
+          summary.players++;
+        } catch (error) {
+          logger.warn(`[SyncedDataStore] Failed to push player ${player.id}:`, error);
+        }
+      }
+
+      // 2. Seasons (games reference these)
+      logger.info(`[SyncedDataStore] Pushing ${seasons.length} seasons to cloud...`);
+      for (const season of seasons) {
+        try {
+          await this.remoteStore.upsertSeason(season);
+          summary.seasons++;
+        } catch (error) {
+          logger.warn(`[SyncedDataStore] Failed to push season ${season.id}:`, error);
+        }
+      }
+
+      // 3. Tournaments (games reference these)
+      logger.info(`[SyncedDataStore] Pushing ${tournaments.length} tournaments to cloud...`);
+      for (const tournament of tournaments) {
+        try {
+          await this.remoteStore.upsertTournament(tournament);
+          summary.tournaments++;
+        } catch (error) {
+          logger.warn(`[SyncedDataStore] Failed to push tournament ${tournament.id}:`, error);
+        }
+      }
+
+      // 4. Teams (games reference these)
+      logger.info(`[SyncedDataStore] Pushing ${teams.length} teams to cloud...`);
+      for (const team of teams) {
+        try {
+          await this.remoteStore.upsertTeam(team);
+          summary.teams++;
+        } catch (error) {
+          logger.warn(`[SyncedDataStore] Failed to push team ${team.id}:`, error);
+        }
+      }
+
+      // 5. Team rosters
+      const rosterTeamIds = Object.keys(teamRosters);
+      logger.info(`[SyncedDataStore] Pushing ${rosterTeamIds.length} team rosters to cloud...`);
+      for (const teamId of rosterTeamIds) {
+        try {
+          await this.remoteStore.setTeamRoster(teamId, teamRosters[teamId]);
+        } catch (error) {
+          logger.warn(`[SyncedDataStore] Failed to push roster for team ${teamId}:`, error);
+        }
+      }
+
+      // 6. Personnel (games reference these)
+      logger.info(`[SyncedDataStore] Pushing ${personnel.length} personnel to cloud...`);
+      for (const member of personnel) {
+        try {
+          await this.remoteStore.upsertPersonnelMember(member);
+          summary.personnel++;
+        } catch (error) {
+          logger.warn(`[SyncedDataStore] Failed to push personnel ${member.id}:`, error);
+        }
+      }
+
+      // 7. Games (the main data - do these last as they reference other entities)
+      const gameIds = Object.keys(games);
+      logger.info(`[SyncedDataStore] Pushing ${gameIds.length} games to cloud...`);
+      for (const gameId of gameIds) {
+        try {
+          await this.remoteStore.saveGame(gameId, games[gameId]);
+          summary.games++;
+        } catch (error) {
+          logger.warn(`[SyncedDataStore] Failed to push game ${gameId}:`, error);
+        }
+      }
+
+      // 8. Settings
+      logger.info('[SyncedDataStore] Pushing settings to cloud...');
+      try {
+        await this.remoteStore.saveSettings(settings);
+        summary.settings = true;
+      } catch (error) {
+        logger.warn('[SyncedDataStore] Failed to push settings:', error);
+      }
+
+      // 9. Warmup plan
+      if (warmupPlan) {
+        logger.info('[SyncedDataStore] Pushing warmup plan to cloud...');
+        try {
+          await this.remoteStore.saveWarmupPlan(warmupPlan);
+          summary.warmupPlan = true;
+        } catch (error) {
+          logger.warn('[SyncedDataStore] Failed to push warmup plan:', error);
+        }
+      }
+
+      // 10. Player adjustments
+      logger.info(`[SyncedDataStore] Pushing adjustments for ${adjustmentsMap.size} players to cloud...`);
+      for (const [, adjustments] of adjustmentsMap) {
+        for (const adjustment of adjustments) {
+          try {
+            await this.remoteStore.upsertPlayerAdjustment(adjustment);
+          } catch (error) {
+            logger.warn(`[SyncedDataStore] Failed to push adjustment ${adjustment.id}:`, error);
+          }
+        }
+      }
+
+      logger.info('[SyncedDataStore] Bulk push to cloud complete', summary);
+      return summary;
+    } finally {
+      // Always resume sync engine
+      if (this.syncEngine) {
+        this.syncEngine.resume();
+      }
+    }
+  }
+
+  async clearAllUserData(): Promise<void> {
+    // Pause sync engine (not stop) so new operations can be queued after clear.
+    // Stopping the engine prevents nudge() from triggering processing,
+    // which breaks backup import flow where operations are queued after clear.
+    const wasRunning = this.syncEngine?.isEngineRunning() ?? false;
+    if (this.syncEngine) {
+      this.syncEngine.pause();
+      logger.info('[SyncedDataStore] Sync engine paused for data clear');
     }
 
     // Clear the sync queue (pending operations will be discarded)
@@ -965,6 +1168,13 @@ export class SyncedDataStore implements DataStore {
 
     // Clear local data
     await this.localStore.clearAllUserData();
+
+    // Resume sync engine if it was running before
+    // This allows subsequent queueSync() calls to be processed
+    if (wasRunning && this.syncEngine) {
+      this.syncEngine.resume();
+      logger.info('[SyncedDataStore] Sync engine resumed after data clear');
+    }
 
     logger.info('[SyncedDataStore] All user data cleared (local and cloud)');
   }
