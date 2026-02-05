@@ -718,7 +718,38 @@ export const importFullBackup = async (
         if (pushSummary.failures) {
           const totalFailures = countPushFailures(pushSummary.failures);
           if (totalFailures > 0) {
-            warnings.push(`${totalFailures} items failed to sync to cloud after retries. You can retry from Settings.`);
+            // Build detailed breakdown of failures by entity type
+            const failureDetails: string[] = [];
+            const f = pushSummary.failures;
+            if (f.players.length > 0) failureDetails.push(`${f.players.length} players`);
+            if (f.teams.length > 0) failureDetails.push(`${f.teams.length} teams`);
+            if (f.seasons.length > 0) failureDetails.push(`${f.seasons.length} seasons`);
+            if (f.tournaments.length > 0) failureDetails.push(`${f.tournaments.length} tournaments`);
+            if (f.personnel.length > 0) failureDetails.push(`${f.personnel.length} personnel`);
+            if (f.games.length > 0) failureDetails.push(`${f.games.length} games`);
+            if (f.rosters.length > 0) failureDetails.push(`${f.rosters.length} rosters`);
+            if (f.adjustments.length > 0) failureDetails.push(`${f.adjustments.length} adjustments`);
+            if (f.settings) failureDetails.push('settings');
+            if (f.warmupPlan) failureDetails.push('warmup plan');
+
+            const detailStr = failureDetails.length > 0
+              ? ` (${failureDetails.join(', ')})`
+              : '';
+            warnings.push(`${totalFailures} items failed to sync to cloud${detailStr}. You can retry from Settings.`);
+
+            // Log detailed failure IDs for debugging (visible in browser console)
+            logger.warn('[importFullBackup] Failed item IDs:', {
+              players: f.players,
+              teams: f.teams,
+              seasons: f.seasons,
+              tournaments: f.tournaments,
+              personnel: f.personnel,
+              games: f.games,
+              rosters: f.rosters,
+              adjustments: f.adjustments,
+              settings: f.settings,
+              warmupPlan: f.warmupPlan,
+            });
           }
         }
       } catch (error) {
