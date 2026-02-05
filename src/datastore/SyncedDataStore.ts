@@ -1138,6 +1138,14 @@ export class SyncedDataStore implements DataStore {
       // Check for orphaned references in games (seasonId, tournamentId, teamId
       // pointing to entities that don't exist). Fix them to prevent FK violations.
       // Fixes are applied to BOTH local and cloud to keep them in sync.
+      //
+      // LIMITATION: This only runs during bulk push (import/migration), not during
+      // normal incremental sync. If orphans are created between bulk pushes, they
+      // won't be auto-fixed until the next import or "Re-sync from Cloud" operation.
+      // This is acceptable because:
+      // 1. UI now blocks deletion of entities with references (DeleteBlockedDialog)
+      // 2. Incremental sync validates individual operations server-side (FK constraints)
+      // 3. Users can trigger manual re-sync from Settings if needed
       // ========================================================================
       const seasonIds = new Set(seasons.map(s => s.id));
       const tournamentIds = new Set(tournaments.map(t => t.id));
