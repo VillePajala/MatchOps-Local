@@ -1183,6 +1183,43 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
+      // Fix orphaned team references (boundSeasonId/boundTournamentId pointing to deleted entities)
+      // Build set of tournament series IDs for checking boundTournamentSeriesId
+      const tournamentSeriesIds = new Set<string>();
+      for (const tournament of tournaments) {
+        if (tournament.series) {
+          for (const series of tournament.series) {
+            tournamentSeriesIds.add(series.id);
+          }
+        }
+      }
+
+      for (const team of teams) {
+        let modified = false;
+
+        if (team.boundSeasonId && !seasonIds.has(team.boundSeasonId)) {
+          orphanWarnings.push(`Team "${team.name}" had invalid season reference (${team.boundSeasonId}) - unbound`);
+          team.boundSeasonId = '';
+          modified = true;
+        }
+
+        if (team.boundTournamentId && !tournamentIds.has(team.boundTournamentId)) {
+          orphanWarnings.push(`Team "${team.name}" had invalid tournament reference (${team.boundTournamentId}) - unbound`);
+          team.boundTournamentId = '';
+          team.boundTournamentSeriesId = ''; // Clear series too since tournament is gone
+          modified = true;
+        } else if (team.boundTournamentSeriesId && !tournamentSeriesIds.has(team.boundTournamentSeriesId)) {
+          // Tournament exists but series doesn't (series was deleted from tournament)
+          orphanWarnings.push(`Team "${team.name}" had invalid series reference (${team.boundTournamentSeriesId}) - unbound`);
+          team.boundTournamentSeriesId = '';
+          modified = true;
+        }
+
+        if (modified) {
+          await this.localStore.upsertTeam(team);
+        }
+      }
+
       // Skip rosters for teams that don't exist (orphaned rosters)
       const validRosterTeamIds = Object.keys(teamRosters).filter(teamId => teamIds.has(teamId));
       const skippedRosters = Object.keys(teamRosters).length - validRosterTeamIds.length;
