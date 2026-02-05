@@ -26,6 +26,47 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import { processImportedGames } from './gameImportHelper';
 import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal';
 
+/**
+ * Wait for sync to complete (pendingCount = 0) with timeout.
+ * Used after backup import to ensure all data is synced to cloud before reload.
+ */
+const waitForSyncCompletion = async (
+  dataStore: Awaited<ReturnType<typeof getDataStore>>,
+  timeoutMs: number = 30000
+): Promise<boolean> => {
+  // Check if dataStore supports sync status (cloud mode)
+  if (!('getSyncStatus' in dataStore)) {
+    logger.log('[waitForSyncCompletion] DataStore does not support sync - skipping wait');
+    return true;
+  }
+
+  const startTime = Date.now();
+  const checkInterval = 500; // Check every 500ms
+
+  logger.log('[waitForSyncCompletion] Waiting for sync to complete...');
+
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      const status = await (dataStore as { getSyncStatus: () => Promise<{ pendingCount: number; state: string }> }).getSyncStatus();
+
+      if (status.pendingCount === 0) {
+        logger.log('[waitForSyncCompletion] Sync complete - no pending operations');
+        return true;
+      }
+
+      logger.log(`[waitForSyncCompletion] Waiting... ${status.pendingCount} operations pending, state: ${status.state}`);
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+    } catch (error) {
+      logger.warn('[waitForSyncCompletion] Error checking sync status:', error);
+      // Continue waiting - don't fail on transient errors
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+    }
+  }
+
+  logger.warn(`[waitForSyncCompletion] Timeout after ${timeoutMs}ms - sync may be incomplete`);
+  return false;
+};
+
 // Define the structure of the backup file
 interface FullBackupData {
   meta: {
@@ -700,6 +741,14 @@ export const importFullBackup = async (
     if (delayReload) {
       logger.log("Skipping automatic reload - caller will handle it manually");
       return result;
+    }
+
+    // CRITICAL: Wait for sync to complete before reload (cloud mode)
+    // Without this, page reload aborts in-flight sync operations, causing data loss
+    const syncCompleted = await waitForSyncCompletion(dataStore, 30000);
+    if (!syncCompleted) {
+      warnings.push('Sync may be incomplete - some data might not have uploaded to cloud yet');
+      logger.warn('[importFullBackup] Sync timeout - proceeding with reload anyway');
     }
 
     // Use callback to refresh app state without reload, or fallback to reload
