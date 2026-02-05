@@ -495,11 +495,13 @@ export const importFullBackup = async (
     }
 
     // --- Clear all existing app data for a clean restore ---
-    // Use retry with backoff to handle transient AbortError from Supabase auth locks
+    // Use aggressive retry to handle persistent AbortError from Supabase auth locks.
+    // Android Chrome is particularly prone to this issue on repeated imports.
+    // 5 retries with 1000ms initial = up to ~31s total wait (1+2+4+8+16s)
     try {
       await retryWithBackoff(
         () => dataStore.clearAllUserData(),
-        { operationName: 'clearAllUserData', maxRetries: 3, initialDelayMs: 500 }
+        { operationName: 'clearAllUserData', maxRetries: 5, initialDelayMs: 1000 }
       );
       logger.log("Cleared existing app data for clean restore");
     } catch (error) {
@@ -705,6 +707,7 @@ export const importFullBackup = async (
     // For cloud mode: Use direct bulk push instead of sync queue for reliability
     // The sync queue approach fails due to Supabase auth lock AbortErrors
     // This runs regardless of delayReload - user expects data in cloud
+    let cloudPushSucceeded = false;
     if ('pushAllToCloud' in dataStore && typeof dataStore.pushAllToCloud === 'function') {
       logger.log('[importFullBackup] Using direct bulk push to cloud...');
       try {
@@ -748,13 +751,31 @@ export const importFullBackup = async (
               settings: f.settings,
               warmupPlan: f.warmupPlan,
             });
+          } else {
+            // No failures - mark cloud push as successful
+            cloudPushSucceeded = true;
           }
+        } else {
+          // No failures object means full success
+          cloudPushSucceeded = true;
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         logger.error('[importFullBackup] Bulk push failed after retries:', errorMsg);
         warnings.push('Some data might not have synced to cloud. You can manually sync from Settings.');
         // Don't throw - local data is safe, user can retry sync manually
+      }
+    }
+
+    // If cloud push succeeded, set migration flag to prevent migration wizard from appearing
+    // This avoids showing "Sync to Cloud" wizard when data is already synced
+    if (cloudPushSucceeded && userId) {
+      try {
+        const { setMigrationCompleted } = await import('@/config/backendConfig');
+        setMigrationCompleted(userId);
+        logger.log('[importFullBackup] Set migration flag - cloud push succeeded, no wizard needed');
+      } catch (flagError) {
+        logger.warn('[importFullBackup] Failed to set migration flag (non-fatal):', flagError);
       }
     }
 

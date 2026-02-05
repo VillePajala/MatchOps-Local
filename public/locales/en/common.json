@@ -136,6 +136,7 @@
     "confirm": "Confirm",
     "date": "Date",
     "delete": "Delete",
+    "done": "Done",
     "doneButton": "Done",
     "edit": "Edit",
     "error": "Error",
@@ -180,6 +181,7 @@
     "remove": "Remove",
     "refresh": "Refresh",
     "restore": "Restore",
+    "retry": "Retry",
     "save": "Save",
     "saveButton": "Save",
     "saveChanges": "Save Changes",
@@ -1465,7 +1467,11 @@
     "factoryResetTitle": "Factory Reset",
     "factoryResetDescription": "Permanently delete ALL data - both local and cloud. This cannot be undone.",
     "confirmFactoryResetLabel": "Type FACTORY RESET to confirm",
-    "factoryResetButton": "Factory Reset (Delete All)"
+    "factoryResetButton": "Factory Reset (Delete All)",
+    "restoring": "Restoring backup...",
+    "restoringTitle": "Restoring Backup",
+    "restoringDescription": "Please wait while your data is being restored. This may take a moment.",
+    "deleteDescriptionAccount": "To delete all your data, use the Danger Zone options in the Account tab."
   },
   "playerAssessmentModal": {
     "title": "Assess Performance",
@@ -2257,7 +2263,15 @@
       "startFreshWarning": "This will permanently delete your local data!",
       "cancel": "Cancel",
       "cancelDesc": "Return to local mode and keep using local data."
-    }
+    },
+    "syncDescription": "Your local data will be synced to the cloud for backup and access from other devices.",
+    "notNow": "Not Now",
+    "syncToCloud": "Sync to Cloud",
+    "loadDataFailed": "Failed to load your data. Please try again.",
+    "canRetryOrCancel": "You can retry or close this dialog.",
+    "dataIsSafe": "Your local data is safe.",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "syncFailedUnknown": "Sync failed due to an unknown error. Please try again."
   },
   "syncStatus": {
     "local": "Local",
