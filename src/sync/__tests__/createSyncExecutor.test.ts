@@ -112,6 +112,11 @@ describe('createSyncExecutor', () => {
 
       // Data Management
       clearAllUserData: jest.fn().mockResolvedValue(undefined),
+
+      // Entity Reference Checks
+      getSeasonReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
+      getTournamentReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
+      getTeamReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
     } as jest.Mocked<DataStore>;
 
     executor = createSyncExecutor(mockStore);

@@ -30,7 +30,7 @@ import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
-import type { DataStore } from '@/interfaces/DataStore';
+import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import type { Database, Json } from '@/types/supabase';
 import {
   AlreadyExistsError,
@@ -4054,6 +4054,142 @@ export class SupabaseDataStore implements DataStore {
 
     // Any other error - use standard classification
     this.classifyAndThrowError(error, 'Failed to clear user data');
+  }
+
+  // ==========================================================================
+  // ENTITY REFERENCE CHECKS
+  // ==========================================================================
+
+  /**
+   * Check if a season can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   */
+  async getSeasonReferences(seasonId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const client = this.getClient();
+
+    // Use parallel COUNT queries for efficiency
+    const [gamesResult, teamsResult, adjustmentsResult] = await Promise.all([
+      client
+        .from('games')
+        .select('id', { count: 'exact', head: true })
+        .eq('season_id', seasonId),
+      client
+        .from('teams')
+        .select('id', { count: 'exact', head: true })
+        .eq('bound_season_id', seasonId),
+      client
+        .from('player_adjustments')
+        .select('id', { count: 'exact', head: true })
+        .eq('season_id', seasonId),
+    ]);
+
+    const gameCount = gamesResult.count ?? 0;
+    const teamCount = teamsResult.count ?? 0;
+    const adjustmentCount = adjustmentsResult.count ?? 0;
+
+    const counts = { games: gameCount, teams: teamCount, adjustments: adjustmentCount };
+
+    // Only GAMES and TEAMS block deletion
+    const canDelete = gameCount === 0 && teamCount === 0;
+
+    const parts: string[] = [];
+    if (gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+    if (teamCount > 0) parts.push(`${teamCount} team${teamCount > 1 ? 's' : ''}`);
+    if (adjustmentCount > 0) parts.push(`${adjustmentCount} stat adjustment${adjustmentCount > 1 ? 's' : ''} (will be unlinked)`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
+  }
+
+  /**
+   * Check if a tournament can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   */
+  async getTournamentReferences(tournamentId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const client = this.getClient();
+
+    // For games, we only need to check tournament_id (series refs are within tournament)
+    const [gamesResult, teamsResult, adjustmentsResult] = await Promise.all([
+      client
+        .from('games')
+        .select('id', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId),
+      // Teams: check bound_tournament_id OR bound_tournament_series_id starting with the tournament
+      // Note: Supabase doesn't have great OR support in count, so we do two queries
+      client
+        .from('teams')
+        .select('id', { count: 'exact', head: true })
+        .eq('bound_tournament_id', tournamentId),
+      client
+        .from('player_adjustments')
+        .select('id', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId),
+    ]);
+
+    // For teams bound to tournament series, we need a separate query with LIKE
+    const teamsSeriesResult = await client
+      .from('teams')
+      .select('id', { count: 'exact', head: true })
+      .like('bound_tournament_series_id', `series_${tournamentId}_%`);
+
+    const gameCount = gamesResult.count ?? 0;
+    const teamCount = (teamsResult.count ?? 0) + (teamsSeriesResult.count ?? 0);
+    const adjustmentCount = adjustmentsResult.count ?? 0;
+
+    const counts = { games: gameCount, teams: teamCount, adjustments: adjustmentCount };
+
+    // Only GAMES and TEAMS block deletion
+    const canDelete = gameCount === 0 && teamCount === 0;
+
+    const parts: string[] = [];
+    if (gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+    if (teamCount > 0) parts.push(`${teamCount} team${teamCount > 1 ? 's' : ''}`);
+    if (adjustmentCount > 0) parts.push(`${adjustmentCount} stat adjustment${adjustmentCount > 1 ? 's' : ''} (will be unlinked)`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
+  }
+
+  /**
+   * Check if a team can be safely deleted (no game references).
+   * Team rosters CASCADE delete and don't block deletion.
+   */
+  async getTeamReferences(teamId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const client = this.getClient();
+
+    const { count: gameCount } = await client
+      .from('games')
+      .select('id', { count: 'exact', head: true })
+      .eq('team_id', teamId);
+
+    const counts = { games: gameCount ?? 0 };
+
+    // Only GAMES block deletion
+    const canDelete = (gameCount ?? 0) === 0;
+
+    const parts: string[] = [];
+    if (gameCount && gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
   }
 
   // ==========================================================================
