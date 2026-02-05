@@ -246,7 +246,7 @@ describe('FieldContainer', () => {
 
     // Overlay should be gone, banner should appear
     expect(screen.queryByText(/Ready to track your first game/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/No game created yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/No game created/i)).toBeInTheDocument();
   });
 
   describe('Export Button', () => {

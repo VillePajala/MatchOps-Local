@@ -1,8 +1,14 @@
 /**
- * Retry Logic with Exponential Backoff
+ * Retry Logic with Exponential Backoff (Supabase-specific)
  *
  * Provides retry functionality for transient network errors in Supabase operations.
  * Improves resilience on mobile devices with flaky connections.
+ *
+ * Includes Supabase-specific helpers like throwIfTransient() for {data, error} results.
+ *
+ * Note: See also src/utils/retry.ts for general-purpose retry utilities
+ * (used by fullBackup.ts and SyncedDataStore bulk operations).
+ * Both utilities use aligned error detection patterns.
  *
  * @module datastore/supabase/retry
  */
