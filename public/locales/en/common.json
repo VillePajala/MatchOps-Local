@@ -2606,5 +2606,20 @@
     "ST": "ST",
     "RW": "RW",
     "SUB": "SUB"
+  },
+  "entityType": {
+    "season": "season",
+    "tournament": "tournament",
+    "team": "team"
+  },
+  "deleteBlocked": {
+    "title": "Cannot Delete \"{{name}}\"",
+    "reason": "This {{type}} is {{summary}}.",
+    "archiveOption": "You can archive it instead, which will:",
+    "hideFromLists": "Hide it from lists and dropdowns",
+    "keepData": "Keep all linked data intact",
+    "canRestore": "Allow you to restore it later",
+    "deleteHint": "To permanently delete, first remove all references (reassign games to another {{type}} or delete them).",
+    "archiveInstead": "Archive Instead"
   }
 }

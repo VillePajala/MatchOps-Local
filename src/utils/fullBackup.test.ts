@@ -212,6 +212,11 @@ function createMockDataStore(): DataStore {
       delete mockStore['matchops_personnel'];
       delete mockStore[WARMUP_PLAN_KEY];
     }),
+
+    // Entity Reference Checks
+    getSeasonReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
+    getTournamentReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
+    getTeamReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
   };
 }
 

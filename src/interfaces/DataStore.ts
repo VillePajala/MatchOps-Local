@@ -593,6 +593,58 @@ export interface DataStore {
    * @throws {Error} If deletion fails
    */
   clearAllUserData(): Promise<void>;
+
+  // ==========================================================================
+  // ENTITY REFERENCE CHECKS
+  // Used for safe deletion - check if entity is referenced before allowing delete.
+  // Returns counts and summary for UI display.
+  // ==========================================================================
+
+  /**
+   * Check if a season can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   * @param seasonId - Season ID to check
+   * @returns Reference counts and delete safety status
+   */
+  getSeasonReferences(seasonId: string): Promise<EntityReferences>;
+
+  /**
+   * Check if a tournament can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   * @param tournamentId - Tournament ID to check
+   * @returns Reference counts and delete safety status
+   */
+  getTournamentReferences(tournamentId: string): Promise<EntityReferences>;
+
+  /**
+   * Check if a team can be safely deleted (no game references).
+   * Team rosters CASCADE delete and don't block deletion.
+   * @param teamId - Team ID to check
+   * @returns Reference counts and delete safety status
+   */
+  getTeamReferences(teamId: string): Promise<EntityReferences>;
+}
+
+/**
+ * Result of entity reference check.
+ * Used by UI to show why deletion is blocked and offer archive alternative.
+ */
+export interface EntityReferences {
+  /** True if entity can be safely deleted (no blocking references) */
+  canDelete: boolean;
+
+  /** Counts of different reference types */
+  counts: {
+    /** Number of games referencing this entity */
+    games?: number;
+    /** Number of teams bound to this entity (season/tournament only) */
+    teams?: number;
+    /** Number of player adjustments referencing this entity (info only, doesn't block) */
+    adjustments?: number;
+  };
+
+  /** Human-readable summary for UI display */
+  summary: string;
 }
 
 // =============================================================================

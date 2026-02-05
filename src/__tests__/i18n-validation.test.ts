@@ -273,8 +273,9 @@ describe('Translation File Validation', () => {
       // Cloud hydration keys: dataLoadedFromCloud, failedToLoadCloudData, partialSyncComplete, genericError (Timestamp Conflict Resolution)
       // Auth timeout UI: connectionTimeout, connectionTimeoutDesc, tryAgain, useLocalModeInstead, plus 2 additional keys
       // Reset functionality: resync + factory reset keys for cloud mode (8 settingsModal + 5 page keys)
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237
-      expect(enKeys.length).toBe(2237);
+      // Entity deletion integrity: entityType (3 keys) + deleteBlocked (8 keys)
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248
+      expect(enKeys.length).toBe(2248);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -295,8 +296,9 @@ describe('Translation File Validation', () => {
       // Cloud hydration keys: dataLoadedFromCloud, failedToLoadCloudData, partialSyncComplete, genericError (Timestamp Conflict Resolution)
       // Auth timeout UI: connectionTimeout, connectionTimeoutDesc, tryAgain, useLocalModeInstead, plus 2 additional keys
       // Reset functionality: resync + factory reset keys for cloud mode (8 settingsModal + 5 page keys)
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237
-      expect(fiKeys.length).toBe(2237);
+      // Entity deletion integrity: entityType (3 keys) + deleteBlocked (8 keys)
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248
+      expect(fiKeys.length).toBe(2248);
     });
   });
 });

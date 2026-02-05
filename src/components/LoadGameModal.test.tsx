@@ -154,7 +154,9 @@ describe('LoadGameModal', () => {
     expect(screen.getByText('Eagles')).toBeInTheDocument();
   });
 
-  it('calls onLoad and onClose when a game is loaded', async () => {
+  it('calls onLoad when a game is clicked (parent handles onClose)', async () => {
+    // Note: The component intentionally does NOT call onClose here to avoid UI flash.
+    // The parent component is responsible for closing the modal after game loads.
     await renderModal();
     const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
@@ -163,7 +165,7 @@ describe('LoadGameModal', () => {
     });
 
     expect(mockHandlers.onLoad).toHaveBeenCalledWith('game_1659123456_abc');
-    expect(mockHandlers.onClose).toHaveBeenCalled();
+    // onClose is NOT called by the component - parent handles this after game loads
   });
 
   it('calls onDelete when delete is confirmed', async () => {
