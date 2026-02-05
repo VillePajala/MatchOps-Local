@@ -724,6 +724,10 @@ export const importFullBackup = async (
               tournaments: string[];
               personnel: string[];
               games: string[];
+              rosters: string[];
+              adjustments: string[];
+              settings: boolean;
+              warmupPlan: boolean;
             };
           }>;
         };
@@ -731,11 +735,25 @@ export const importFullBackup = async (
         logger.log('[importFullBackup] Bulk push complete:', pushSummary);
 
         // Report any failures to user (items that failed after all retries)
-        const totalFailures = pushSummary.failures
-          ? Object.values(pushSummary.failures).reduce((sum, arr) => sum + arr.length, 0)
-          : 0;
-        if (totalFailures > 0) {
-          warnings.push(`${totalFailures} items failed to sync to cloud after retries. You can retry from Settings.`);
+        // Count both array failures and boolean failures
+        if (pushSummary.failures) {
+          const arrayFailures = [
+            pushSummary.failures.players,
+            pushSummary.failures.teams,
+            pushSummary.failures.seasons,
+            pushSummary.failures.tournaments,
+            pushSummary.failures.personnel,
+            pushSummary.failures.games,
+            pushSummary.failures.rosters,
+            pushSummary.failures.adjustments,
+          ].reduce((sum, arr) => sum + (arr?.length || 0), 0);
+          const booleanFailures =
+            (pushSummary.failures.settings ? 1 : 0) +
+            (pushSummary.failures.warmupPlan ? 1 : 0);
+          const totalFailures = arrayFailures + booleanFailures;
+          if (totalFailures > 0) {
+            warnings.push(`${totalFailures} items failed to sync to cloud after retries. You can retry from Settings.`);
+          }
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);

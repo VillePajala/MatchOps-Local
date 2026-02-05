@@ -135,6 +135,10 @@ for (const chunk of playerChunks) {
 
 **Single-item entities:** settings, warmupPlan, rosters, adjustments (retry only, no chunking)
 
+**Failure tracking:** All entity types are tracked in `failures` object:
+- Arrays: players, teams, seasons, tournaments, personnel, games, rosters, adjustments
+- Booleans: settings, warmupPlan
+
 ### 3. Updated `fullBackup.ts` ✅
 
 Changes:

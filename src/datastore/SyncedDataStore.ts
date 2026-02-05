@@ -981,6 +981,10 @@ export class SyncedDataStore implements DataStore {
       tournaments: string[];
       personnel: string[];
       games: string[];
+      rosters: string[];
+      adjustments: string[];
+      settings: boolean;
+      warmupPlan: boolean;
     };
   }> {
     if (!this.remoteStore) {
@@ -1005,6 +1009,10 @@ export class SyncedDataStore implements DataStore {
         tournaments: [] as string[],
         personnel: [] as string[],
         games: [] as string[],
+        rosters: [] as string[],
+        adjustments: [] as string[],
+        settings: false,
+        warmupPlan: false,
       },
     };
 
@@ -1150,6 +1158,7 @@ export class SyncedDataStore implements DataStore {
             { operationName: `setTeamRoster(${teamId})` }
           );
         } catch (error) {
+          summary.failures.rosters.push(teamId);
           logger.error(`[SyncedDataStore] Failed roster for team ${teamId} after retries:`, error);
         }
       }
@@ -1210,6 +1219,7 @@ export class SyncedDataStore implements DataStore {
         );
         summary.settings = true;
       } catch (error) {
+        summary.failures.settings = true;
         logger.error('[SyncedDataStore] Failed to push settings after retries:', error);
       }
 
@@ -1223,6 +1233,7 @@ export class SyncedDataStore implements DataStore {
           );
           summary.warmupPlan = true;
         } catch (error) {
+          summary.failures.warmupPlan = true;
           logger.error('[SyncedDataStore] Failed to push warmup plan after retries:', error);
         }
       }
@@ -1237,13 +1248,25 @@ export class SyncedDataStore implements DataStore {
               { operationName: `upsertPlayerAdjustment(${playerId}/${adjustment.id})` }
             );
           } catch (error) {
+            summary.failures.adjustments.push(adjustment.id);
             logger.error(`[SyncedDataStore] Failed adjustment ${adjustment.id} after retries:`, error);
           }
         }
       }
 
-      // Log summary
-      const totalFailures = Object.values(summary.failures).reduce((sum, arr) => sum + arr.length, 0);
+      // Log summary - count both array failures and boolean failures
+      const arrayFailures = [
+        summary.failures.players,
+        summary.failures.teams,
+        summary.failures.seasons,
+        summary.failures.tournaments,
+        summary.failures.personnel,
+        summary.failures.games,
+        summary.failures.rosters,
+        summary.failures.adjustments,
+      ].reduce((sum, arr) => sum + arr.length, 0);
+      const booleanFailures = (summary.failures.settings ? 1 : 0) + (summary.failures.warmupPlan ? 1 : 0);
+      const totalFailures = arrayFailures + booleanFailures;
       if (totalFailures > 0) {
         logger.warn('[SyncedDataStore] Bulk push completed with failures:', {
           ...summary,
