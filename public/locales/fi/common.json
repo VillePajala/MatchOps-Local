@@ -136,6 +136,7 @@
     "confirm": "Vahvista",
     "date": "Päivä",
     "delete": "Poista",
+    "done": "Valmis",
     "doneButton": "Valmis",
     "edit": "Muokkaa",
     "error": "Virhe",
@@ -180,6 +181,7 @@
     "remove": "Poista",
     "refresh": "Päivitä",
     "restore": "Palauta",
+    "retry": "Yritä uudelleen",
     "save": "Tallenna",
     "saveButton": "Tallenna",
     "saveChanges": "Tallenna muutokset",
@@ -1465,7 +1467,11 @@
     "factoryResetTitle": "Tehdaspalautus",
     "factoryResetDescription": "Poista KAIKKI tiedot pysyvästi - sekä paikalliset että pilvitiedot. Tätä ei voi perua.",
     "confirmFactoryResetLabel": "Kirjoita FACTORY RESET vahvistaaksesi",
-    "factoryResetButton": "Tehdaspalautus (Poista kaikki)"
+    "factoryResetButton": "Tehdaspalautus (Poista kaikki)",
+    "restoring": "Palautetaan varmuuskopiota...",
+    "restoringTitle": "Palautetaan varmuuskopiota",
+    "restoringDescription": "Odota hetki, tietojasi palautetaan. Tämä voi kestää hetken.",
+    "deleteDescriptionAccount": "Poistaaksesi kaikki tietosi, käytä Vaaravyöhyke-vaihtoehtoja Tili-välilehdellä."
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",
@@ -2257,7 +2263,15 @@
       "startFreshWarning": "Tämä poistaa paikalliset tietosi pysyvästi!",
       "cancel": "Peruuta",
       "cancelDesc": "Palaa paikalliseen tilaan ja jatka paikallisten tietojen käyttöä."
-    }
+    },
+    "syncDescription": "Paikalliset tietosi synkronoidaan pilveen varmuuskopiointia ja pääsyä muilta laitteilta varten.",
+    "notNow": "Ei nyt",
+    "syncToCloud": "Synkronoi pilveen",
+    "loadDataFailed": "Tietojen lataaminen epäonnistui. Yritä uudelleen.",
+    "canRetryOrCancel": "Voit yrittää uudelleen tai sulkea tämän ikkunan.",
+    "dataIsSafe": "Paikalliset tietosi ovat turvassa.",
+    "errorGeneric": "Jotain meni pieleen. Yritä uudelleen.",
+    "syncFailedUnknown": "Synkronointi epäonnistui tuntemattomasta syystä. Yritä uudelleen."
   },
   "syncStatus": {
     "local": "Paikallinen",

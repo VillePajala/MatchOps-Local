@@ -166,6 +166,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingRestoreContent, setPendingRestoreContent] = useState<string | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
   const { user } = useAuth();
 
   React.useLayoutEffect(() => {
@@ -235,6 +236,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleRestoreConfirmed = async () => {
     if (pendingRestoreContent) {
+      // Start loading state
+      setIsRestoring(true);
+
       // In cloud mode, clear migration flag so the simplified migration wizard
       // will show after reload to sync the imported data to cloud
       const mode = getBackendMode();
@@ -268,6 +272,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       } catch (error) {
         logger.error('[SettingsModal] Restore backup failed:', error);
         showToast(t('fullBackup.restoreError', 'An error occurred while restoring the backup.'), 'error');
+      } finally {
+        // End loading state
+        setIsRestoring(false);
       }
     }
     setShowRestoreConfirm(false);
@@ -969,6 +976,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         onClose={handleRestoreResultsClose}
         result={backupRestoreResult}
       />
+
+      {/* Restoring Loading Overlay */}
+      {isRestoring && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70]">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-sm mx-4 shadow-xl border border-slate-700 text-center">
+            <div
+              className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mx-auto mb-4"
+              role="status"
+              aria-label={t('settingsModal.restoring', 'Restoring backup...')}
+            />
+            <h3 className="text-lg font-semibold text-slate-100 mb-2">
+              {t('settingsModal.restoringTitle', 'Restoring Backup')}
+            </h3>
+            <p className="text-slate-300 text-sm">
+              {t('settingsModal.restoringDescription', 'Please wait while your data is being restored. This may take a moment.')}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
