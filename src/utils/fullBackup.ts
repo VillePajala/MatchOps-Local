@@ -705,13 +705,11 @@ export const importFullBackup = async (
     // For cloud mode: Use direct bulk push instead of sync queue for reliability
     // The sync queue approach fails due to Supabase auth lock AbortErrors
     // This runs regardless of delayReload - user expects data in cloud
-    if ('pushAllToCloud' in dataStore) {
+    if ('pushAllToCloud' in dataStore && typeof dataStore.pushAllToCloud === 'function') {
       logger.log('[importFullBackup] Using direct bulk push to cloud...');
       try {
-        type PushableStore = {
-          pushAllToCloud: () => Promise<PushAllToCloudResult>;
-        };
-        const pushSummary = await (dataStore as PushableStore).pushAllToCloud();
+        // Runtime-verified method call (checked above with typeof guard)
+        const pushSummary = await dataStore.pushAllToCloud() as PushAllToCloudResult;
         logger.log('[importFullBackup] Bulk push complete:', pushSummary);
 
         // Report any failures to user (items that failed after all retries)
