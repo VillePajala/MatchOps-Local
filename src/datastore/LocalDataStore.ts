@@ -2458,12 +2458,18 @@ export class LocalDataStore implements DataStore {
     const games = await this.getGames();
     const teams = await this.getTeams(true); // include archived
 
+    // Get the tournament's actual series IDs (don't rely on naming pattern)
+    // Series created via TournamentSeriesManager use arbitrary IDs like series_${timestamp}_${uuid}
+    const tournament = await this.getSeasonOrTournamentById(tournamentId, 'tournament');
+    const seriesIds = new Set(tournament?.series?.map(s => s.id) ?? []);
+
     // Check both tournamentId and tournamentSeriesId (series belong to tournament)
     const gameCount = Object.values(games).filter(
       g => g.tournamentId === tournamentId || (g.tournamentSeriesId && g.tournamentId === tournamentId)
     ).length;
     const teamCount = teams.filter(
-      t => t.boundTournamentId === tournamentId || t.boundTournamentSeriesId?.startsWith(`series_${tournamentId}_`)
+      t => t.boundTournamentId === tournamentId ||
+           (t.boundTournamentSeriesId && seriesIds.has(t.boundTournamentSeriesId))
     ).length;
 
     // Adjustments: count for info, but don't block

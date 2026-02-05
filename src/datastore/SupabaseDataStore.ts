@@ -4117,14 +4117,18 @@ export class SupabaseDataStore implements DataStore {
 
     const client = this.getClient();
 
+    // First fetch the tournament to get its actual series IDs
+    // Series created via TournamentSeriesManager use arbitrary IDs like series_${timestamp}_${uuid}
+    const tournament = await this.getSeasonOrTournamentById(tournamentId, 'tournament');
+    const seriesIds = tournament?.series?.map(s => s.id) ?? [];
+
     // For games, we only need to check tournament_id (series refs are within tournament)
     const [gamesResult, teamsResult, adjustmentsResult] = await Promise.all([
       client
         .from('games')
         .select('id', { count: 'exact', head: true })
         .eq('tournament_id', tournamentId),
-      // Teams: check bound_tournament_id OR bound_tournament_series_id starting with the tournament
-      // Note: Supabase doesn't have great OR support in count, so we do two queries
+      // Teams bound directly to tournament
       client
         .from('teams')
         .select('id', { count: 'exact', head: true })
@@ -4135,14 +4139,18 @@ export class SupabaseDataStore implements DataStore {
         .eq('tournament_id', tournamentId),
     ]);
 
-    // For teams bound to tournament series, we need a separate query with LIKE
-    const teamsSeriesResult = await client
-      .from('teams')
-      .select('id', { count: 'exact', head: true })
-      .like('bound_tournament_series_id', `series_${tournamentId}_%`);
+    // For teams bound to tournament series, check against actual series IDs
+    let teamsSeriesCount = 0;
+    if (seriesIds.length > 0) {
+      const teamsSeriesResult = await client
+        .from('teams')
+        .select('id', { count: 'exact', head: true })
+        .in('bound_tournament_series_id', seriesIds);
+      teamsSeriesCount = teamsSeriesResult.count ?? 0;
+    }
 
     const gameCount = gamesResult.count ?? 0;
-    const teamCount = (teamsResult.count ?? 0) + (teamsSeriesResult.count ?? 0);
+    const teamCount = (teamsResult.count ?? 0) + teamsSeriesCount;
     const adjustmentCount = adjustmentsResult.count ?? 0;
 
     const counts = { games: gameCount, teams: teamCount, adjustments: adjustmentCount };
