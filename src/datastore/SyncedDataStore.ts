@@ -32,6 +32,7 @@ import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
 import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
 import logger from '@/utils/logger';
+import { retryWithBackoff, chunkArray } from '@/utils/retry';
 import * as Sentry from '@sentry/nextjs';
 
 /**
@@ -953,11 +954,16 @@ export class SyncedDataStore implements DataStore {
    * 1. Pauses the sync engine to prevent queue processing
    * 2. Clears any pending operations in the queue
    * 3. Reads all local data
-   * 4. Writes directly to cloud store
+   * 4. Writes directly to cloud store (chunked parallel with retry)
    * 5. Resumes the sync engine
    *
-   * @returns Summary of what was pushed
-   * @throws If cloud store is not available or push fails
+   * Uses chunked parallel processing with retry for reliability:
+   * - Entities are processed in chunks of 10 for parallelism
+   * - Each operation is retried up to 3 times on transient failures
+   * - Failed entity IDs are tracked and returned for reporting
+   *
+   * @returns Summary of what was pushed including failures
+   * @throws If cloud store is not available
    */
   async pushAllToCloud(): Promise<{
     players: number;
@@ -968,10 +974,20 @@ export class SyncedDataStore implements DataStore {
     games: number;
     settings: boolean;
     warmupPlan: boolean;
+    failures: {
+      players: string[];
+      teams: string[];
+      seasons: string[];
+      tournaments: string[];
+      personnel: string[];
+      games: string[];
+    };
   }> {
     if (!this.remoteStore) {
       throw new Error('Cloud store not available - cannot push to cloud');
     }
+
+    const CHUNK_SIZE = 10; // Process 10 entities in parallel per chunk
 
     const summary = {
       players: 0,
@@ -982,9 +998,17 @@ export class SyncedDataStore implements DataStore {
       games: 0,
       settings: false,
       warmupPlan: false,
+      failures: {
+        players: [] as string[],
+        teams: [] as string[],
+        seasons: [] as string[],
+        tournaments: [] as string[],
+        personnel: [] as string[],
+        games: [] as string[],
+      },
     };
 
-    logger.info('[SyncedDataStore] Starting bulk push to cloud...');
+    logger.info('[SyncedDataStore] Starting bulk push to cloud (with retry)...');
 
     // Pause sync engine to prevent queue processing during bulk push
     if (this.syncEngine) {
@@ -1021,121 +1045,214 @@ export class SyncedDataStore implements DataStore {
         this.localStore.getAllPlayerAdjustments(),
       ]);
 
-      // Push to cloud with error handling for each entity type
-      // Using sequential processing to avoid overwhelming the server
-      // and to handle Supabase auth lock issues
+      // Push to cloud with chunked parallel processing and retry
+      // Order matters: referenced entities first, then games
 
       // 1. Players (games reference these)
       logger.info(`[SyncedDataStore] Pushing ${players.length} players to cloud...`);
-      for (const player of players) {
-        try {
-          await this.remoteStore.upsertPlayer(player);
-          summary.players++;
-        } catch (error) {
-          logger.warn(`[SyncedDataStore] Failed to push player ${player.id}:`, error);
+      const playerChunks = chunkArray(players, CHUNK_SIZE);
+      for (const chunk of playerChunks) {
+        const results = await Promise.allSettled(
+          chunk.map(player =>
+            retryWithBackoff(
+              () => this.remoteStore!.upsertPlayer(player),
+              { operationName: `upsertPlayer(${player.id})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.players++;
+          } else {
+            summary.failures.players.push(chunk[i].id);
+            logger.error(`[SyncedDataStore] Failed player ${chunk[i].id} after retries:`,
+              (results[i] as PromiseRejectedResult).reason);
+          }
         }
       }
 
       // 2. Seasons (games reference these)
       logger.info(`[SyncedDataStore] Pushing ${seasons.length} seasons to cloud...`);
-      for (const season of seasons) {
-        try {
-          await this.remoteStore.upsertSeason(season);
-          summary.seasons++;
-        } catch (error) {
-          logger.warn(`[SyncedDataStore] Failed to push season ${season.id}:`, error);
+      const seasonChunks = chunkArray(seasons, CHUNK_SIZE);
+      for (const chunk of seasonChunks) {
+        const results = await Promise.allSettled(
+          chunk.map(season =>
+            retryWithBackoff(
+              () => this.remoteStore!.upsertSeason(season),
+              { operationName: `upsertSeason(${season.id})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.seasons++;
+          } else {
+            summary.failures.seasons.push(chunk[i].id);
+            logger.error(`[SyncedDataStore] Failed season ${chunk[i].id} after retries:`,
+              (results[i] as PromiseRejectedResult).reason);
+          }
         }
       }
 
       // 3. Tournaments (games reference these)
       logger.info(`[SyncedDataStore] Pushing ${tournaments.length} tournaments to cloud...`);
-      for (const tournament of tournaments) {
-        try {
-          await this.remoteStore.upsertTournament(tournament);
-          summary.tournaments++;
-        } catch (error) {
-          logger.warn(`[SyncedDataStore] Failed to push tournament ${tournament.id}:`, error);
+      const tournamentChunks = chunkArray(tournaments, CHUNK_SIZE);
+      for (const chunk of tournamentChunks) {
+        const results = await Promise.allSettled(
+          chunk.map(tournament =>
+            retryWithBackoff(
+              () => this.remoteStore!.upsertTournament(tournament),
+              { operationName: `upsertTournament(${tournament.id})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.tournaments++;
+          } else {
+            summary.failures.tournaments.push(chunk[i].id);
+            logger.error(`[SyncedDataStore] Failed tournament ${chunk[i].id} after retries:`,
+              (results[i] as PromiseRejectedResult).reason);
+          }
         }
       }
 
       // 4. Teams (games reference these)
       logger.info(`[SyncedDataStore] Pushing ${teams.length} teams to cloud...`);
-      for (const team of teams) {
-        try {
-          await this.remoteStore.upsertTeam(team);
-          summary.teams++;
-        } catch (error) {
-          logger.warn(`[SyncedDataStore] Failed to push team ${team.id}:`, error);
+      const teamChunks = chunkArray(teams, CHUNK_SIZE);
+      for (const chunk of teamChunks) {
+        const results = await Promise.allSettled(
+          chunk.map(team =>
+            retryWithBackoff(
+              () => this.remoteStore!.upsertTeam(team),
+              { operationName: `upsertTeam(${team.id})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.teams++;
+          } else {
+            summary.failures.teams.push(chunk[i].id);
+            logger.error(`[SyncedDataStore] Failed team ${chunk[i].id} after retries:`,
+              (results[i] as PromiseRejectedResult).reason);
+          }
         }
       }
 
-      // 5. Team rosters
+      // 5. Team rosters (typically few, sequential with retry is fine)
       const rosterTeamIds = Object.keys(teamRosters);
       logger.info(`[SyncedDataStore] Pushing ${rosterTeamIds.length} team rosters to cloud...`);
       for (const teamId of rosterTeamIds) {
         try {
-          await this.remoteStore.setTeamRoster(teamId, teamRosters[teamId]);
+          await retryWithBackoff(
+            () => this.remoteStore!.setTeamRoster(teamId, teamRosters[teamId]),
+            { operationName: `setTeamRoster(${teamId})` }
+          );
         } catch (error) {
-          logger.warn(`[SyncedDataStore] Failed to push roster for team ${teamId}:`, error);
+          logger.error(`[SyncedDataStore] Failed roster for team ${teamId} after retries:`, error);
         }
       }
 
       // 6. Personnel (games reference these)
       logger.info(`[SyncedDataStore] Pushing ${personnel.length} personnel to cloud...`);
-      for (const member of personnel) {
-        try {
-          await this.remoteStore.upsertPersonnelMember(member);
-          summary.personnel++;
-        } catch (error) {
-          logger.warn(`[SyncedDataStore] Failed to push personnel ${member.id}:`, error);
+      const personnelChunks = chunkArray(personnel, CHUNK_SIZE);
+      for (const chunk of personnelChunks) {
+        const results = await Promise.allSettled(
+          chunk.map(member =>
+            retryWithBackoff(
+              () => this.remoteStore!.upsertPersonnelMember(member),
+              { operationName: `upsertPersonnelMember(${member.id})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.personnel++;
+          } else {
+            summary.failures.personnel.push(chunk[i].id);
+            logger.error(`[SyncedDataStore] Failed personnel ${chunk[i].id} after retries:`,
+              (results[i] as PromiseRejectedResult).reason);
+          }
         }
       }
 
       // 7. Games (the main data - do these last as they reference other entities)
       const gameIds = Object.keys(games);
       logger.info(`[SyncedDataStore] Pushing ${gameIds.length} games to cloud...`);
-      for (const gameId of gameIds) {
-        try {
-          await this.remoteStore.saveGame(gameId, games[gameId]);
-          summary.games++;
-        } catch (error) {
-          logger.warn(`[SyncedDataStore] Failed to push game ${gameId}:`, error);
-        }
-      }
-
-      // 8. Settings
-      logger.info('[SyncedDataStore] Pushing settings to cloud...');
-      try {
-        await this.remoteStore.saveSettings(settings);
-        summary.settings = true;
-      } catch (error) {
-        logger.warn('[SyncedDataStore] Failed to push settings:', error);
-      }
-
-      // 9. Warmup plan
-      if (warmupPlan) {
-        logger.info('[SyncedDataStore] Pushing warmup plan to cloud...');
-        try {
-          await this.remoteStore.saveWarmupPlan(warmupPlan);
-          summary.warmupPlan = true;
-        } catch (error) {
-          logger.warn('[SyncedDataStore] Failed to push warmup plan:', error);
-        }
-      }
-
-      // 10. Player adjustments
-      logger.info(`[SyncedDataStore] Pushing adjustments for ${adjustmentsMap.size} players to cloud...`);
-      for (const [, adjustments] of adjustmentsMap) {
-        for (const adjustment of adjustments) {
-          try {
-            await this.remoteStore.upsertPlayerAdjustment(adjustment);
-          } catch (error) {
-            logger.warn(`[SyncedDataStore] Failed to push adjustment ${adjustment.id}:`, error);
+      const gameIdChunks = chunkArray(gameIds, CHUNK_SIZE);
+      for (const chunk of gameIdChunks) {
+        const results = await Promise.allSettled(
+          chunk.map(gameId =>
+            retryWithBackoff(
+              () => this.remoteStore!.saveGame(gameId, games[gameId]),
+              { operationName: `saveGame(${gameId})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.games++;
+          } else {
+            summary.failures.games.push(chunk[i]);
+            logger.error(`[SyncedDataStore] Failed game ${chunk[i]} after retries:`,
+              (results[i] as PromiseRejectedResult).reason);
           }
         }
       }
 
-      logger.info('[SyncedDataStore] Bulk push to cloud complete', summary);
+      // 8. Settings (single item, just retry)
+      logger.info('[SyncedDataStore] Pushing settings to cloud...');
+      try {
+        await retryWithBackoff(
+          () => this.remoteStore!.saveSettings(settings),
+          { operationName: 'saveSettings' }
+        );
+        summary.settings = true;
+      } catch (error) {
+        logger.error('[SyncedDataStore] Failed to push settings after retries:', error);
+      }
+
+      // 9. Warmup plan (single item, just retry)
+      if (warmupPlan) {
+        logger.info('[SyncedDataStore] Pushing warmup plan to cloud...');
+        try {
+          await retryWithBackoff(
+            () => this.remoteStore!.saveWarmupPlan(warmupPlan),
+            { operationName: 'saveWarmupPlan' }
+          );
+          summary.warmupPlan = true;
+        } catch (error) {
+          logger.error('[SyncedDataStore] Failed to push warmup plan after retries:', error);
+        }
+      }
+
+      // 10. Player adjustments (typically few per player, sequential with retry)
+      logger.info(`[SyncedDataStore] Pushing adjustments for ${adjustmentsMap.size} players to cloud...`);
+      for (const [playerId, adjustments] of adjustmentsMap) {
+        for (const adjustment of adjustments) {
+          try {
+            await retryWithBackoff(
+              () => this.remoteStore!.upsertPlayerAdjustment(adjustment),
+              { operationName: `upsertPlayerAdjustment(${playerId}/${adjustment.id})` }
+            );
+          } catch (error) {
+            logger.error(`[SyncedDataStore] Failed adjustment ${adjustment.id} after retries:`, error);
+          }
+        }
+      }
+
+      // Log summary
+      const totalFailures = Object.values(summary.failures).reduce((sum, arr) => sum + arr.length, 0);
+      if (totalFailures > 0) {
+        logger.warn('[SyncedDataStore] Bulk push completed with failures:', {
+          ...summary,
+          totalFailures,
+        });
+      } else {
+        logger.info('[SyncedDataStore] Bulk push to cloud complete - all succeeded', summary);
+      }
+
       return summary;
     } finally {
       // Always resume sync engine
