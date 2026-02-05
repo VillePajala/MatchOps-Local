@@ -27,6 +27,40 @@ import { processImportedGames } from './gameImportHelper';
 import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal';
 
 /**
+ * Retry an async operation with exponential backoff.
+ * Used to handle transient AbortError from Supabase auth locks.
+ */
+const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = 3,
+  initialDelayMs: number = 500
+): Promise<T> => {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const isAbortError = lastError.message.includes('AbortError') ||
+                           lastError.message.includes('signal is aborted');
+
+      if (!isAbortError || attempt === maxRetries) {
+        // Non-transient error or last attempt - throw
+        throw lastError;
+      }
+
+      const delay = initialDelayMs * Math.pow(2, attempt - 1);
+      logger.warn(`[${operationName}] Attempt ${attempt} failed with AbortError, retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+};
+
+/**
  * Wait for sync to complete (pendingCount = 0) with timeout.
  * Used after backup import to ensure all data is synced to cloud before reload.
  */
@@ -534,8 +568,14 @@ export const importFullBackup = async (
     }
 
     // --- Clear all existing app data for a clean restore ---
+    // Use retry with backoff to handle transient AbortError from Supabase auth locks
     try {
-      await dataStore.clearAllUserData();
+      await retryWithBackoff(
+        () => dataStore.clearAllUserData(),
+        'clearAllUserData',
+        3,  // max 3 attempts
+        500 // start with 500ms delay
+      );
       logger.log("Cleared existing app data for clean restore");
     } catch (error) {
       logger.error('Failed to clear user data before restore:', error);
