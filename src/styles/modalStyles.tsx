@@ -228,7 +228,8 @@ export const wizardBackdropStyle =
 export const WizardBackdrop: React.FC<{
   children: React.ReactNode;
   className?: string;
-}> = ({ children, className = '' }) => (
+  onClick?: (e: React.MouseEvent) => void;
+}> = ({ children, className = '', onClick }) => (
   <div
     className={`fixed inset-0 z-[80] bg-slate-900 flex items-center justify-center font-display overflow-hidden ${className}`}
   >
@@ -240,7 +241,7 @@ export const WizardBackdrop: React.FC<{
       <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
     </div>
     {/* Content */}
-    <div className="relative z-10 flex items-center justify-center w-full h-full p-4">
+    <div className="relative z-10 flex items-center justify-center w-full h-full p-4" onClick={onClick}>
       {children}
     </div>
   </div>

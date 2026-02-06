@@ -27,6 +27,8 @@ jest.mock('react-i18next', () => ({
 jest.mock('@/services/migrationService', () => ({
   getLocalDataSummary: jest.fn(),
   migrateLocalToCloud: jest.fn(),
+  wasMigrationInterrupted: jest.fn().mockReturnValue(false),
+  clearInterruptedMigrationFlag: jest.fn(),
 }));
 
 // Mock logger

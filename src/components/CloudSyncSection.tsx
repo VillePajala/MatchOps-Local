@@ -912,6 +912,7 @@ export default function CloudSyncSection({
               <button
                 onClick={() => setShowClearConfirm(true)}
                 disabled={isChangingMode}
+                aria-label={t('cloudSync.clearCloudData', 'Clear All Cloud Data')}
                 className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/50 rounded text-sm font-medium transition-colors disabled:opacity-50"
               >
                 <HiOutlineTrash className="h-5 w-5" />
