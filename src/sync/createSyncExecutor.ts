@@ -778,9 +778,10 @@ function createCloudDeleter(cloudStore: DataStore): CloudRecordDeleter {
         break;
 
       case 'settings':
-        // Settings cannot be deleted - this is a no-op
-        logger.warn('[SyncExecutor] Cannot delete settings - no-op');
-        break;
+        throw new SyncError(
+          SyncErrorCode.INVALID_DATA,
+          'Cannot delete settings: delete operation is not supported for settings entity'
+        );
 
       case 'playerAdjustment': {
         // Extract playerId from context (passed from op.data)

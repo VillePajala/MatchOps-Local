@@ -112,7 +112,7 @@ export default function Home() {
     const timeoutId = setTimeout(() => {
       logger.warn('[page.tsx] Post-login check safety timeout - forcing completion to unblock user');
       setPostLoginCheckComplete(true);
-    }, 90000); // 90 seconds (was 15 seconds - too short for large hydrations)
+    }, 120000); // 120 seconds - allows time for large data sets (100+ games) to download from cloud
 
     return () => clearTimeout(timeoutId);
   }, [isPostLoginLoading]);
@@ -212,7 +212,6 @@ export default function Home() {
   // Handle "Start Fresh" (local mode) from welcome screen
   const handleWelcomeStartLocal = useCallback(() => {
     logger.info('[page.tsx] Welcome: User chose local mode');
-    setWelcomeSeen();
 
     // Explicitly ensure we're in local mode
     // This handles edge cases where mode might be 'cloud' from previous sessions
@@ -221,6 +220,9 @@ export default function Home() {
       // Should rarely happen, log but continue
       logger.warn('[page.tsx] Failed to ensure local mode:', result.message);
     }
+
+    // Only set welcome flag AFTER mode switch confirmed (prevents stuck state if localStorage fails)
+    setWelcomeSeen();
 
     // If mode was cloud, reload to reinitialize in local mode
     // Otherwise just hide welcome screen
@@ -1008,6 +1010,25 @@ export default function Home() {
     window.addEventListener('app-resume-reload-failed', handleReloadFailed);
     return () => window.removeEventListener('app-resume-reload-failed', handleReloadFailed);
   }, [showToast, t]);
+
+  // Listen for sync queue errors from SyncedDataStore (cloud mode)
+  // These fire when a background sync operation fails after local write succeeded
+  useEffect(() => {
+    if (mode !== 'cloud') return;
+
+    const handleSyncQueueError = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { entityType?: string; error?: string } | undefined;
+      const entity = detail?.entityType ?? 'data';
+      const errorMsg = detail?.error ?? 'Unknown error';
+      logger.warn('[page.tsx] Sync queue error:', { entity, error: errorMsg });
+      showToast(
+        t('page.syncError', 'Failed to sync {{entity}} to cloud. Changes saved locally.', { entity }),
+        'error'
+      );
+    };
+    window.addEventListener('sync-queue-error', handleSyncQueueError);
+    return () => window.removeEventListener('sync-queue-error', handleSyncQueueError);
+  }, [mode, showToast, t]);
 
   // Handle PWA shortcut query parameters (e.g., /?action=newGame)
   useEffect(() => {

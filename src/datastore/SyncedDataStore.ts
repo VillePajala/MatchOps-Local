@@ -471,6 +471,12 @@ export class SyncedDataStore implements DataStore {
         }
       }
     }
+
+    // Also dispatch a DOM event so UI components (e.g., page.tsx toast) can react
+    // without needing to thread callbacks through hook layers
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sync-queue-error', { detail: info }));
+    }
   }
 
   /**

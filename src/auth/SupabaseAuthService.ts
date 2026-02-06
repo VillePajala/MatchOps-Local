@@ -262,6 +262,12 @@ export class SupabaseAuthService implements AuthService {
   private failedSignInAttempts = 0;
   private lastFailedSignInTime = 0;
 
+  // Promise deduplication for refreshSession() to prevent concurrent refresh calls
+  private refreshSessionPromise: Promise<Session | null> | null = null;
+
+  // Flag to prevent concurrent sign-in/sign-up calls
+  private isSigningIn = false;
+
   // ==========================================================================
   // LIFECYCLE
   // ==========================================================================
@@ -491,6 +497,20 @@ export class SupabaseAuthService implements AuthService {
   async signUp(email: string, password: string): Promise<AuthResult> {
     this.ensureInitialized();
 
+    // Prevent concurrent sign-in/sign-up calls (e.g., double-click)
+    if (this.isSigningIn) {
+      throw new AuthError('Authentication already in progress. Please wait.');
+    }
+    this.isSigningIn = true;
+
+    try {
+      return await this._doSignUp(email, password);
+    } finally {
+      this.isSigningIn = false;
+    }
+  }
+
+  private async _doSignUp(email: string, password: string): Promise<AuthResult> {
     // Client-side validation (stronger than Supabase defaults)
     validateEmail(email);
     validatePassword(password);
@@ -555,6 +575,20 @@ export class SupabaseAuthService implements AuthService {
   async signIn(email: string, password: string): Promise<AuthResult> {
     this.ensureInitialized();
 
+    // Prevent concurrent sign-in/sign-up calls (e.g., double-click)
+    if (this.isSigningIn) {
+      throw new AuthError('Authentication already in progress. Please wait.');
+    }
+    this.isSigningIn = true;
+
+    try {
+      return await this._doSignIn(email, password);
+    } finally {
+      this.isSigningIn = false;
+    }
+  }
+
+  private async _doSignIn(email: string, password: string): Promise<AuthResult> {
     // Rate limiting: Check if we need to wait before allowing another attempt
     const now = Date.now();
     const timeSinceLastFailure = now - this.lastFailedSignInTime;
@@ -710,6 +744,17 @@ export class SupabaseAuthService implements AuthService {
   async refreshSession(): Promise<Session | null> {
     this.ensureInitialized();
 
+    // Deduplicate concurrent refresh calls — if already refreshing, return existing promise
+    // All callers get the same promise instance (including the .finally cleanup)
+    if (!this.refreshSessionPromise) {
+      this.refreshSessionPromise = this._doRefreshSession().finally(() => {
+        this.refreshSessionPromise = null;
+      });
+    }
+    return this.refreshSessionPromise;
+  }
+
+  private async _doRefreshSession(): Promise<Session | null> {
     const { data: { session }, error } = await this.client!.auth.refreshSession();
 
     if (error) {
@@ -932,7 +977,10 @@ export class SupabaseAuthService implements AuthService {
         );
       }
 
-      // Update cached session with refreshed data
+      // Update cached session with refreshed data.
+      // NOTE: We intentionally update the cached session BEFORE the edge function call.
+      // If the edge function fails, the user retains a valid refreshed session for retry.
+      // Restoring the old (potentially stale) session would be worse.
       this.currentSession = transformSession(refreshData.session);
       this.currentUser = this.currentSession.user;
       logger.info('[SupabaseAuthService] Session refreshed successfully');
