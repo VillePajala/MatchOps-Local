@@ -8,9 +8,11 @@ import {
   getBackendMode,
   isCloudAvailable,
   enableCloudMode,
+  disableCloudMode,
   getCloudAccountInfo,
   clearMigrationCompleted,
   hasMigrationCompleted,
+  clearWelcomeSeen,
   type CloudAccountInfo,
 } from '@/config/backendConfig';
 import { hasLocalDataToMigrate } from '@/services/migrationService';
@@ -407,6 +409,50 @@ export default function CloudSyncSection({
   };
 
   /**
+   * Handle "Start Over" - sign out, disable cloud mode, return to WelcomeScreen.
+   * Different from Sign Out which stays in cloud mode and shows LoginScreen.
+   */
+  const handleStartOver = async () => {
+    setIsSigningOut(true);
+    try {
+      // 1. Clear migration completed flag (while we still have user ID)
+      if (user?.id) {
+        clearMigrationCompleted(user.id);
+      }
+
+      // 2. Sign out
+      const { getAuthService } = await import('@/datastore/factory');
+      const authService = await getAuthService();
+      await authService.signOut();
+
+      // 3. Clear welcome seen flag to show WelcomeScreen
+      clearWelcomeSeen();
+
+      // 4. Disable cloud mode
+      disableCloudMode();
+
+      showToast(
+        t('cloudSync.startingOver', 'Starting over. Reloading...'),
+        'success'
+      );
+
+      // 5. Reload after brief delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      logger.error('[CloudSyncSection] Failed to start over:', error);
+      showToast(
+        t('cloudSync.startOverError', 'Failed to start over. Please try again.'),
+        'error'
+      );
+      if (isMountedRef.current) {
+        setIsSigningOut(false);
+      }
+    }
+  };
+
+  /**
    * Handle successful cloud data deletion from CloudAuthModal
    */
   const handleCloudAuthComplete = () => {
@@ -778,6 +824,15 @@ export default function CloudSyncSection({
               </button>
             </>
           )}
+
+          {/* Start Over link - return to WelcomeScreen with different account */}
+          <button
+            onClick={handleStartOver}
+            disabled={isSigningOut || isChangingMode}
+            className="w-full text-center text-slate-400 hover:text-white text-sm underline transition-colors disabled:opacity-50 pt-2"
+          >
+            {t('cloudSync.startOver', 'Start over with a different account')}
+          </button>
         </div>
       )}
 

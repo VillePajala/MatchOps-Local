@@ -3,11 +3,10 @@
  *
  * Tests the first-install welcome screen that lets users choose:
  * - Start Fresh (local mode) - FREE
- * - Sign In or Create Account - FREE ACCOUNT (subscription required for sync)
- * - Import Backup - FREE
+ * - Use Cloud Sync - FREE (enables cloud mode, shows login)
+ * - Import Backup (footer link) - FREE
  *
- * All platforms show the same UI - account creation is free everywhere.
- * Subscription is only required for active cloud sync.
+ * Simplified to 2 primary options + footer link.
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -39,7 +38,7 @@ jest.mock('@/utils/logger', () => ({
 describe('WelcomeScreen', () => {
   const mockHandlers = {
     onStartLocal: jest.fn(),
-    onSignInCloud: jest.fn(),
+    onUseCloudSync: jest.fn(),
     onImportBackup: jest.fn(),
   };
 
@@ -86,10 +85,11 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Start without an account')).toBeInTheDocument();
-      // Unified button for all platforms - account creation is free
-      expect(screen.getByText('Sign in or create an account')).toBeInTheDocument();
-      expect(screen.getByText('Create a free account. Cloud sync available for €4.99/month.')).toBeInTheDocument();
-      expect(screen.getByText('Import a backup')).toBeInTheDocument();
+      // Cloud option - enables cloud mode and shows login
+      expect(screen.getByText('Use Cloud Sync')).toBeInTheDocument();
+      expect(screen.getByText('Sync your data across all your devices.')).toBeInTheDocument();
+      // Import is now a footer link
+      expect(screen.getByText('Have a backup file?')).toBeInTheDocument();
     });
 
     it('hides cloud option when cloud is not available', () => {
@@ -102,8 +102,8 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Start without an account')).toBeInTheDocument();
-      expect(screen.queryByText('Sign in or create an account')).not.toBeInTheDocument();
-      expect(screen.getByText('Import a backup')).toBeInTheDocument();
+      expect(screen.queryByText('Use Cloud Sync')).not.toBeInTheDocument();
+      expect(screen.getByText('Have a backup file?')).toBeInTheDocument();
     });
 
     it('renders descriptions for each option', () => {
@@ -116,11 +116,12 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Your data is saved on this device only.')).toBeInTheDocument();
-      expect(screen.getByText('Create a free account. Cloud sync available for €4.99/month.')).toBeInTheDocument();
-      expect(screen.getByText('Restore your previous data from a file and continue where you left off.')).toBeInTheDocument();
+      expect(screen.getByText('Sync your data across all your devices.')).toBeInTheDocument();
+      // Import is now a footer link with simpler text
+      expect(screen.getByText('Have a backup file?')).toBeInTheDocument();
     });
 
-    it('renders Free badges for local and import options', () => {
+    it('renders Free badges for both options', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -129,21 +130,8 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      // Two "Free" badges (for local and import options)
-      expect(screen.getAllByText(/^Free$/i)).toHaveLength(2);
-    });
-
-    it('renders Free Account badge for cloud option', () => {
-      render(
-        <WelcomeScreen
-          {...mockHandlers}
-          isCloudAvailable={true}
-          isImporting={false}
-        />
-      );
-
-      // One "Free Account" badge for cloud option
-      expect(screen.getByText(/^Free Account$/i)).toBeInTheDocument();
+      // Two "FREE" badges (for local and cloud options)
+      expect(screen.getAllByText(/^FREE$/i)).toHaveLength(2);
     });
 
     it('shows footer note about settings', () => {
@@ -175,7 +163,7 @@ describe('WelcomeScreen', () => {
       expect(mockHandlers.onStartLocal).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onSignInCloud when Sign in or create account button is clicked', () => {
+    it('calls onUseCloudSync when Use Cloud Sync button is clicked', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -184,11 +172,11 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Sign in or create an account'));
-      expect(mockHandlers.onSignInCloud).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getByText('Use Cloud Sync'));
+      expect(mockHandlers.onUseCloudSync).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onImportBackup when Import a backup button is clicked', () => {
+    it('calls onImportBackup when Have a backup file? link is clicked', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -197,7 +185,7 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Import a backup'));
+      fireEvent.click(screen.getByText('Have a backup file?'));
       expect(mockHandlers.onImportBackup).toHaveBeenCalledTimes(1);
     });
   });
@@ -213,10 +201,10 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Importing...')).toBeInTheDocument();
-      expect(screen.queryByText('Import a backup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Have a backup file?')).not.toBeInTheDocument();
     });
 
-    it('disables import button when importing', () => {
+    it('disables import link when importing', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -225,13 +213,13 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      const importButton = screen.getByRole('button', {
+      const importLink = screen.getByRole('button', {
         name: /importing/i,
       });
-      expect(importButton).toBeDisabled();
+      expect(importLink).toBeDisabled();
     });
 
-    it('does not call onImportBackup when import button is disabled', () => {
+    it('does not call onImportBackup when import link is disabled', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -240,10 +228,10 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      const importButton = screen.getByRole('button', {
+      const importLink = screen.getByRole('button', {
         name: /importing/i,
       });
-      fireEvent.click(importButton);
+      fireEvent.click(importLink);
       expect(mockHandlers.onImportBackup).not.toHaveBeenCalled();
     });
   });
@@ -262,7 +250,7 @@ describe('WelcomeScreen', () => {
         screen.getByRole('button', { name: /start without an account/i })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /sign in or create a free account/i })
+        screen.getByRole('button', { name: /use cloud sync/i })
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: /import backup file/i })

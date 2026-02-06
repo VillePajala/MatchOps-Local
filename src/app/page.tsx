@@ -6,7 +6,6 @@ import StartScreen from '@/components/StartScreen';
 import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
-import AuthModal from '@/components/AuthModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
@@ -59,8 +58,6 @@ export default function Home() {
   // Welcome screen state (first-install onboarding)
   const [showWelcome, setShowWelcome] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
-  // Issue #336: Auth modal for sign-in from welcome screen (stays in local mode)
-  const [showAuthModal, setShowAuthModal] = useState(false);
   // Post-login upgrade modal (shown when user authenticates without subscription)
   const [showPostLoginUpgrade, setShowPostLoginUpgrade] = useState(false);
   // Track pending post-login check in state (initialized from localStorage)
@@ -245,29 +242,31 @@ export default function Home() {
     }
   }, [mode, showToast, t]);
 
-  // Handle "Sign In to Cloud" from welcome screen
-  // Issue #336: Sign-in creates account but stays in local mode (auth ≠ sync)
-  const handleWelcomeSignInCloud = useCallback(() => {
-    logger.info('[page.tsx] Welcome: User chose to sign in - showing auth modal (staying in local mode)');
-    setShowAuthModal(true);
-  }, []);
+  // Handle "Use Cloud Sync" from welcome screen
+  // This ENABLES cloud mode AND shows login - clear intent, no confusion
+  const handleWelcomeUseCloudSync = useCallback(() => {
+    logger.info('[page.tsx] Welcome: User chose cloud sync - enabling cloud mode');
 
-  // Handle successful auth from welcome screen's auth modal
-  // Issue #336: User signed in but stays in local mode - sync is a separate toggle
-  const handleWelcomeAuthSuccess = useCallback(() => {
-    logger.info('[page.tsx] Welcome: Auth successful - dismissing welcome, staying in local mode');
-    setShowAuthModal(false);
+    // Enable cloud mode first (synchronous, returns boolean)
+    const success = enableCloudMode();
+
+    if (!success) {
+      logger.error('[page.tsx] Failed to enable cloud mode');
+      showToast(t('page.cloudSyncNotAvailable', 'Cloud sync is not available'), 'error');
+      return;
+    }
+
+    // Only set welcome seen AFTER successful enable
     setWelcomeSeen();
-    setShowWelcome(false);
-    // Trigger app state refresh to pick up authenticated state
-    setRefreshTrigger(prev => prev + 1);
-  }, []);
 
-  // Handle auth modal cancel from welcome screen
-  const handleWelcomeAuthCancel = useCallback(() => {
-    logger.info('[page.tsx] Welcome: Auth modal cancelled');
-    setShowAuthModal(false);
-  }, []);
+    logger.info('[page.tsx] Cloud mode enabled, reloading...');
+    showToast(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'), 'info');
+
+    // Reload to enter cloud mode - LoginScreen will show automatically
+    setTimeout(() => {
+      window.location.reload();
+    }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
+  }, [showToast, t]);
 
   // Handle "Import Backup" from welcome screen
   // Import backup puts user in local mode (same as "Start Fresh")
@@ -1077,19 +1076,11 @@ export default function Home() {
           <ErrorBoundary>
             <WelcomeScreen
               onStartLocal={handleWelcomeStartLocal}
-              onSignInCloud={handleWelcomeSignInCloud}
+              onUseCloudSync={handleWelcomeUseCloudSync}
               onImportBackup={handleWelcomeImportBackup}
               isCloudAvailable={isCloudAvailable()}
               isImporting={isImportingBackup}
             />
-            {/* Issue #336: Auth modal for sign-in from welcome screen (stays in local mode) */}
-            {showAuthModal && (
-              <AuthModal
-                onSuccess={handleWelcomeAuthSuccess}
-                onCancel={handleWelcomeAuthCancel}
-                allowRegistration={true}
-              />
-            )}
           </ErrorBoundary>
         ) : initTimedOut && mode === 'cloud' ? (
           // Cloud mode: auth initialization timed out - show retry screen
