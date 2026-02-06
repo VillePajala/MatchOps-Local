@@ -277,8 +277,9 @@ describe('Translation File Validation', () => {
       // Import loading overlay: restoring, restoringTitle, restoringDescription, deleteDescriptionAccount (settingsModal)
       // Migration wizard simplified: syncDescription, notNow, syncToCloud, loadDataFailed, canRetryOrCancel, dataIsSafe, errorGeneric, syncFailedUnknown (migration)
       // Common keys: done, retry
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262
-      expect(enKeys.length).toBe(2262);
+      // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262 → 2268
+      expect(enKeys.length).toBe(2268);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -286,8 +287,9 @@ describe('Translation File Validation', () => {
       // Import loading overlay: restoring, restoringTitle, restoringDescription, deleteDescriptionAccount (settingsModal)
       // Migration wizard simplified: syncDescription, notNow, syncToCloud, loadDataFailed, canRetryOrCancel, dataIsSafe, errorGeneric, syncFailedUnknown (migration)
       // Common keys: done, retry
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262
-      expect(fiKeys.length).toBe(2262);
+      // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262 → 2268
+      expect(fiKeys.length).toBe(2268);
     });
   });
 });
