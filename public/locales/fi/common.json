@@ -1423,6 +1423,7 @@
       "deleteTitle": "Poista tietosi",
       "deleteDescriptionCloud": "Poistaaksesi kaikki pilvitiedot, käytä \"Tyhjennä pilvitiedot\" -vaihtoehtoa Premium-välilehdellä.",
       "deleteDescriptionLocal": "Poistaaksesi kaikki paikalliset tiedot, käytä \"Nollaa sovellus\" -vaihtoehtoa Tietoja-välilehdellä.",
+      "deleteDescriptionAccount": "Poistaaksesi kaikki tietosi, käytä Vaaravyöhyke-vaihtoehtoja Tili-välilehdellä.",
       "goToDelete": "Siirry",
       "correctTitle": "Korjaa tietojasi",
       "correctDescription": "Voit muokata pelaajanimiä, pelitietoja ja kaikkia muita tietoja suoraan sovelluksessa milloin tahansa."
@@ -1470,8 +1471,7 @@
     "factoryResetButton": "Tehdaspalautus (Poista kaikki)",
     "restoring": "Palautetaan varmuuskopiota...",
     "restoringTitle": "Palautetaan varmuuskopiota",
-    "restoringDescription": "Odota hetki, tietojasi palautetaan. Tämä voi kestää hetken.",
-    "deleteDescriptionAccount": "Poistaaksesi kaikki tietosi, käytä Vaaravyöhyke-vaihtoehtoja Tili-välilehdellä."
+    "restoringDescription": "Odota hetki, tietojasi palautetaan. Tämä voi kestää hetken."
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",

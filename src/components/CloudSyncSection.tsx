@@ -283,9 +283,10 @@ export default function CloudSyncSection({
 
       // Defense-in-depth: Verify we're actually using cloud backend
       // This catches edge cases where cloudAvailable is true but factory returned LocalDataStore
+      // Valid cloud backends: 'supabase' (direct) or 'synced' (local-first with cloud sync)
       const backendName = dataStore.getBackendName();
-      if (backendName !== 'supabase') {
-        logger.error(`[CloudSyncSection] Expected supabase backend but got ${backendName}`);
+      if (backendName !== 'supabase' && backendName !== 'synced') {
+        logger.error(`[CloudSyncSection] Expected cloud backend but got ${backendName}`);
         showToast(
           t('cloudSync.wrongBackend', 'Cannot clear: not connected to cloud storage.'),
           'error'

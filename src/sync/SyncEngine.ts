@@ -908,7 +908,13 @@ export class SyncEngine {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const isAbortError = error instanceof Error && error.name === 'AbortError';
+      // Detect AbortError: either directly thrown or wrapped in NetworkError
+      // When fetch is aborted, Supabase client throws AbortError, but SupabaseDataStore
+      // may wrap it in NetworkError with message "Failed to X: AbortError: signal is aborted..."
+      // See Sentry MATCHOPS-LOCAL-35, MATCHOPS-LOCAL-7G, MATCHOPS-LOCAL-7F
+      const isAbortError = (error instanceof Error && error.name === 'AbortError') ||
+        errorMessage.includes('AbortError') ||
+        errorMessage.includes('signal is aborted');
 
       // If we never marked as syncing, the operation wasn't ours to process
       // This can happen if another tab/process completed it, or it was deleted

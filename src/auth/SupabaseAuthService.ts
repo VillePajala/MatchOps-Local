@@ -918,6 +918,25 @@ export class SupabaseAuthService implements AuthService {
     logger.info('[SupabaseAuthService] Initiating account deletion');
 
     try {
+      // CRITICAL: Refresh session before calling edge function to ensure valid JWT.
+      // After offline/online network toggling, the cached session may be stale/expired.
+      // The edge function will reject with 401 if the JWT is invalid.
+      // See Sentry: delete-account returning 401 after network issues.
+      logger.info('[SupabaseAuthService] Refreshing session before account deletion');
+      const { data: refreshData, error: refreshError } = await this.client!.auth.refreshSession();
+
+      if (refreshError || !refreshData.session) {
+        logger.error('[SupabaseAuthService] Session refresh failed before account deletion:', refreshError?.message);
+        throw new AuthError(
+          'Session expired. Please sign out and sign in again before deleting your account.'
+        );
+      }
+
+      // Update cached session with refreshed data
+      this.currentSession = transformSession(refreshData.session);
+      this.currentUser = this.currentSession.user;
+      logger.info('[SupabaseAuthService] Session refreshed successfully');
+
       // Call the Edge Function to delete the account
       // The Edge Function uses the service role key to delete from auth.users
       const { data, error } = await this.client!.functions.invoke('delete-account', {
