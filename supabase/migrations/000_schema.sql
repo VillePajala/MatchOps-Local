@@ -350,7 +350,11 @@ CREATE TABLE player_assessments (
   notes text,
   minutes_played integer,
   created_by text DEFAULT 'coach',
-  created_at bigint NOT NULL,  -- Unix timestamp milliseconds (matches TypeScript number)
+  -- INTENTIONALLY bigint (not timestamptz): Stores Unix timestamp in milliseconds
+  -- to match the TypeScript number type used in the app layer. The app creates
+  -- assessments with Date.now() and the value is stored/compared as a number.
+  -- This differs from all other tables which use timestamptz for created_at.
+  created_at bigint NOT NULL,
 
   CONSTRAINT player_assessments_game_player_unique UNIQUE (game_id, player_id)
 );

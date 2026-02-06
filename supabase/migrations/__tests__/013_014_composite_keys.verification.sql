@@ -73,10 +73,10 @@ END $$;
 -- CRITICAL: This is the core feature that enables backup sharing
 
 -- 1a. Insert same player ID for two different users
-INSERT INTO players (user_id, id, name, jersey_number, position, created_at, updated_at)
+INSERT INTO players (user_id, id, name, jersey_number, created_at, updated_at)
 VALUES
-  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_player_same_id', 'User A Player', '10', 'forward', now(), now()),
-  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'test_player_same_id', 'User B Player', '10', 'forward', now(), now());
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_player_same_id', 'User A Player', '10', now(), now()),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'test_player_same_id', 'User B Player', '10', now(), now());
 -- EXPECTED: Success (no constraint violation)
 
 -- 1b. Verify both records exist
@@ -99,17 +99,18 @@ INSERT INTO games (user_id, id, team_name, opponent_name, game_date, version, cr
 VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_game', 'Test Team', 'Test Opponent', '2025-01-01', 1, now(), now());
 
 -- 2b. Create child records
-INSERT INTO game_events (user_id, id, game_id, event_type, time_seconds, order_index, created_at, updated_at)
-VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_event', 'test_cascade_game', 'goal', 300, 0, now(), now());
+INSERT INTO game_events (user_id, id, game_id, event_type, time_seconds, order_index, created_at)
+VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_event', 'test_cascade_game', 'goal', 300, 0, now());
 
-INSERT INTO game_players (user_id, id, game_id, player_id, jersey_number, is_selected, on_field, created_at, updated_at)
-VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_player', 'test_cascade_game', 'test_player_same_id', '10', true, true, now(), now());
+INSERT INTO game_players (user_id, id, game_id, player_id, player_name, jersey_number, is_selected, on_field, created_at)
+VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_player', 'test_cascade_game', 'test_player_same_id', 'User A Player', '10', true, true, now());
 
 INSERT INTO game_tactical_data (user_id, game_id, created_at, updated_at)
 VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_game', now(), now());
 
-INSERT INTO player_assessments (user_id, id, game_id, player_id, created_at, updated_at)
-VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_assessment', 'test_cascade_game', 'test_player_same_id', now(), now());
+-- Note: player_assessments.created_at is bigint (Unix timestamp ms), not timestamptz
+INSERT INTO player_assessments (user_id, id, game_id, player_id, created_at)
+VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'test_cascade_assessment', 'test_cascade_game', 'test_player_same_id', (EXTRACT(EPOCH FROM now()) * 1000)::bigint);
 
 -- 2c. Verify child records exist
 SELECT 'game_events' AS table_name, COUNT(*) AS count FROM game_events WHERE game_id = 'test_cascade_game'

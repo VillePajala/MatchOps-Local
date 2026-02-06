@@ -12,7 +12,7 @@ import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 import { getBackendMode, clearMigrationCompleted } from '@/config/backendConfig';
 import { useAuth } from '@/contexts/AuthProvider';
-import { ModalFooter, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, modalContainerStyle, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { queryKeys } from '@/config/queryKeys';
@@ -397,8 +397,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
   };
 
-  const modalContainerStyle =
-    'bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden';
   const titleStyle =
     'text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg';
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
@@ -704,14 +702,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        logger.log('[SettingsModal] Hard Reset button clicked', {
+                        logger.debug('[SettingsModal] Hard Reset button clicked', {
                           resetConfirm,
                           matches: resetConfirm === 'RESET',
                           length: resetConfirm.length,
                           trimmed: resetConfirm.trim()
                         });
                         if (resetConfirm.trim() === 'RESET') {
-                          logger.log('[SettingsModal] Calling onHardResetApp');
+                          logger.debug('[SettingsModal] Calling onHardResetApp');
                           onHardResetApp();
                           setResetConfirm('');
                         }

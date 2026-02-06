@@ -145,19 +145,6 @@ interface GoogleSubscription {
   cancelReason?: number;
 }
 
-interface SubscriptionRecord {
-  user_id: string;
-  status: SubscriptionStatus;
-  google_purchase_token: string;
-  google_order_id?: string;
-  product_id: string;
-  period_start?: string;
-  period_end: string;
-  grace_end: string;
-  last_verified_at: string;
-  updated_at: string;
-}
-
 Deno.serve(async (req: Request) => {
   // Get origin for CORS
   const origin = req.headers.get('Origin');
@@ -385,26 +372,20 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build subscription record
-    const subscriptionRecord: SubscriptionRecord = {
-      user_id: userId,
-      status,
-      google_purchase_token: purchaseToken,
-      google_order_id: orderId,
-      product_id: productId,
-      period_start: now,
-      period_end: periodEnd.toISOString(),
-      grace_end: graceEnd.toISOString(),
-      last_verified_at: now,
-      updated_at: now,
-    };
-
-    // Upsert subscription record
-    const { error: upsertError } = await supabaseAdmin
-      .from('subscriptions')
-      .upsert(subscriptionRecord, {
-        onConflict: 'user_id',
-      });
+    // Upsert subscription record using the RPC function.
+    // CRITICAL: The RPC uses COALESCE to preserve existing field values when the new
+    // value is NULL (e.g., google_order_id is only set in mock mode, not for real tokens).
+    // A direct .upsert() would overwrite existing values with NULL, losing data.
+    const { error: upsertError } = await supabaseAdmin.rpc('upsert_subscription', {
+      p_user_id: userId,
+      p_status: status,
+      p_google_purchase_token: purchaseToken,
+      p_google_order_id: orderId ?? null,
+      p_product_id: productId,
+      p_period_start: now,
+      p_period_end: periodEnd.toISOString(),
+      p_grace_end: graceEnd.toISOString(),
+    });
 
     if (upsertError) {
       console.error('Failed to upsert subscription:', upsertError.message);

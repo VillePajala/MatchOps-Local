@@ -222,6 +222,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // Step 2: Delete the user from auth.users
+    // KNOWN EDGE CASE: If Step 1 succeeds but Step 2 fails, user data is deleted
+    // but the auth account remains. This is acceptable — the user can retry deletion,
+    // and the empty auth account poses no data or security risk.
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (authDeleteError) {

@@ -110,7 +110,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
             {/* Tagline */}
             <p className="text-lg text-slate-400">
-              {isEnglish ? 'Plan · Track · Assess' : 'Suunnittele · Kirjaa · Arvioi'}
+              {t('startScreen.tagline', 'Plan · Track · Assess')}
             </p>
           </div>
 

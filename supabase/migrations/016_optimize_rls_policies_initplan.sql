@@ -8,6 +8,18 @@
 --
 -- This fixes 16 performance warnings from Supabase advisor.
 -- See: https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select
+--
+-- NOTE ON WITH CHECK CLAUSES:
+-- These policies use FOR ALL with only a USING clause (no explicit WITH CHECK).
+-- Per PostgreSQL documentation, when WITH CHECK is omitted for INSERT/UPDATE,
+-- the USING expression is applied as the WITH CHECK expression. This means
+-- INSERT/UPDATE operations are implicitly checked against the same condition
+-- (i.e., user_id must match auth.uid()). This is intentional and functionally
+-- equivalent to adding explicit WITH CHECK clauses with the same expression.
+-- See: https://www.postgresql.org/docs/current/sql-createpolicy.html
+--
+-- Exception: subscriptions policy was reverted to FOR SELECT in migration 018
+-- because subscriptions should only be written by Edge Functions (service role).
 
 -- 1. game_events
 DROP POLICY IF EXISTS "Users can only access their own game events" ON public.game_events;

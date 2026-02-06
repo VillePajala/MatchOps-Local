@@ -28,4 +28,4 @@ export const PREMIUM_ENFORCEMENT_ENABLED = false;
  *
  * @see docs/02-technical/database/supabase-schema.md Section 16 (user_consents)
  */
-export const POLICY_VERSION = '2025-01';
+export const POLICY_VERSION = '2026-01';
