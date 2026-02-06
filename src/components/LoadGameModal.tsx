@@ -391,7 +391,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                 onClick={() => {
                   if (!disableActions && !isLoadActionActive) {
                     onLoad(gameId);
-                    onClose();
+                    // Note: Don't call onClose() here - the parent handles closing
+                    // after the async load completes. Calling it immediately would
+                    // cause a visual flash as the modal closes before the field
+                    // renders with the correct game type.
                   }
                 }}
               >
