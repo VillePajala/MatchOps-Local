@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useWarmupPlan } from '@/hooks/useWarmupPlan';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
@@ -213,27 +213,28 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
           </div>
 
           {/* Footer */}
-          <ModalFooter>
+          {/* Custom footer with responsive wrapping for edit mode (3 buttons) */}
+          <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex flex-wrap justify-end items-center gap-2 sm:gap-4 flex-shrink-0">
             {isEditMode ? (
               <>
                 <button
                   onClick={() => setShowResetConfirm(true)}
                   disabled={isResetting}
-                  className={`${secondaryButtonStyle} flex items-center gap-2 disabled:opacity-50`}
+                  className={`${secondaryButtonStyle} flex items-center gap-2 disabled:opacity-50 text-xs sm:text-sm px-3 sm:px-6`}
                 >
                   <FaUndo className="w-3 h-3" />
                   {t('warmupPlanModal.resetToDefaultButton', 'Reset to Default')}
                 </button>
                 <button
                   onClick={cancelEditing}
-                  className={secondaryButtonStyle}
+                  className={`${secondaryButtonStyle} text-xs sm:text-sm px-3 sm:px-6`}
                 >
                   {t('warmupPlanModal.cancelButton', 'Cancel')}
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className={`${primaryButtonStyle} disabled:opacity-50`}
+                  className={`${primaryButtonStyle} disabled:opacity-50 text-xs sm:text-sm px-3 sm:px-6`}
                 >
                   {isSaving
                     ? t('common.saving', 'Saving...')
@@ -254,7 +255,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                 </button>
               </>
             )}
-          </ModalFooter>
+          </div>
         </div>
 
         {/* Reset Confirmation Dialog */}

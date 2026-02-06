@@ -1423,6 +1423,7 @@
       "deleteTitle": "Delete Your Data",
       "deleteDescriptionCloud": "To delete all cloud data, use the \"Clear Cloud Data\" option in the Premium tab.",
       "deleteDescriptionLocal": "To delete all local data, use the \"Hard Reset App\" option in the About tab.",
+      "deleteDescriptionAccount": "To delete all your data, use the Danger Zone options in the Account tab.",
       "goToDelete": "Go",
       "correctTitle": "Correct Your Data",
       "correctDescription": "You can edit player names, game details, and all other data directly in the app at any time."
@@ -1470,8 +1471,7 @@
     "factoryResetButton": "Factory Reset (Delete All)",
     "restoring": "Restoring backup...",
     "restoringTitle": "Restoring Backup",
-    "restoringDescription": "Please wait while your data is being restored. This may take a moment.",
-    "deleteDescriptionAccount": "To delete all your data, use the Danger Zone options in the Account tab."
+    "restoringDescription": "Please wait while your data is being restored. This may take a moment."
   },
   "playerAssessmentModal": {
     "title": "Assess Performance",
