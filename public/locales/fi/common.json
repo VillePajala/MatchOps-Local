@@ -2378,7 +2378,13 @@
       "justNow": "Juuri nyt",
       "minutesAgo": "{{count}} min sitten",
       "hoursAgo": "{{count}} t sitten",
-      "daysAgo": "{{count}} pv sitten"
+      "daysAgo": "{{count}} pv sitten",
+      "resume": "Jatka",
+      "pause": "Keskeytä",
+      "resumeTitle": "Jatka automaattista synkronointia",
+      "pauseTitle": "Keskeytä automaattinen synkronointi",
+      "pausedWarning": "Synkronointi on keskeytetty. Muutokset tallennetaan paikallisesti ja synkronoidaan kun jatkat.",
+      "cloudNotConnected": "Pilviyhteys muodostuu... Muutokset synkronoidaan automaattisesti kun yhteys on valmis."
     },
     "pendingSync": {
       "title": "Synkronoimattomat muutokset",
