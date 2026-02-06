@@ -1288,36 +1288,46 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setIsResetting(true);
 
       // 1. Clear all data (cloud + local) via SyncedDataStore
-      // SyncedDataStore.clearAllUserData() clears cloud FIRST, then local
-      const dataStore = await getDataStore(userId);
-      await dataStore.clearAllUserData();
-      logger.log('[handleFactoryReset] Cloud and local data cleared');
+      // SyncedDataStore.clearAllUserData() always clears local, even if cloud
+      // clear fails (e.g., AbortError on Chrome Mobile). If cloud fails, it
+      // re-throws after local is cleared, which we catch here.
+      let cloudClearFailed = false;
+      try {
+        const dataStore = await getDataStore(userId);
+        await dataStore.clearAllUserData();
+        logger.log('[handleFactoryReset] Cloud and local data cleared');
+      } catch (clearError) {
+        // Local data is always cleared by SyncedDataStore, but cloud may have failed.
+        // Log and continue — the user's primary intent is to reset local state.
+        // Cloud data can be cleaned up on next attempt or via account deletion.
+        logger.warn('[handleFactoryReset] Data clear partial failure (local cleared, cloud may have failed):', clearError);
+        cloudClearFailed = true;
+      }
 
-      // 2. Also close the storage adapter to ensure clean state
+      // 2. Close the storage adapter to ensure clean state
       await utilResetUserAppSettings(userId, { clearMigrationFlag: false });
 
       // 3. Set migration flag to skip cloud check (both local and cloud are empty now)
       setMigrationCompleted(userId);
 
       logger.log('[handleFactoryReset] Factory reset complete, reloading...');
+
+      if (cloudClearFailed) {
+        // Brief toast before reload so user knows cloud data may remain
+        showToast(
+          t('page.factoryResetPartial', 'Local data cleared. Cloud data may not have been fully removed — try again if needed.'),
+          'warning'
+        );
+        // Small delay so toast is visible before reload
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+
       window.location.reload();
     } catch (error) {
+      // Only reaches here if getDataStore, utilResetUserAppSettings, or setMigrationCompleted fails
       logger.error('[handleFactoryReset] Failed:', error);
       setIsResetting(false);
-
-      // Provide specific error message for network issues
-      const isNetworkError = error && typeof error === 'object' &&
-        ('code' in error && error.code === 'NETWORK_ERROR' ||
-         'name' in error && error.name === 'NetworkError');
-
-      if (isNetworkError) {
-        showToast(
-          t('page.factoryResetOffline', 'Cannot delete cloud data while offline. Please check your connection and try again.'),
-          'error'
-        );
-      } else {
-        showToast(t('page.factoryResetFailed', 'Failed to reset. Please try again.'), 'error');
-      }
+      showToast(t('page.factoryResetFailed', 'Failed to reset. Please try again.'), 'error');
     }
   }, [userId, showToast, t]);
 

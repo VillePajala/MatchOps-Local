@@ -47,6 +47,10 @@ const DEFAULT_CONFIG: Required<Omit<RetryConfig, 'operationName'>> = {
  * - Temporary connection issues
  */
 const TRANSIENT_ERROR_PATTERNS = [
+  // AbortError from browser fetch cancellation (common on Chrome Mobile Android)
+  // Aligned with src/utils/retry.ts which also includes these patterns
+  'aborterror',
+  'signal is aborted',
   // Network errors
   'fetch failed',
   'network error',

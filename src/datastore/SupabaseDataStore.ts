@@ -4026,8 +4026,14 @@ export class SupabaseDataStore implements DataStore {
     // - Deletes tables in FK-compliant order (child tables first)
     // - Runs in single transaction for atomicity
     //
+    // Wrapped in withRetry to handle transient AbortError on Chrome Mobile Android
+    // where the browser can cancel fetch requests unexpectedly.
+    //
     // See: docs/02-technical/database/supabase-schema.md "Clear All User Data (Atomic)"
-    const { error } = await client.rpc('clear_all_user_data');
+    const { error } = await withRetry(
+      async () => throwIfTransient(await client.rpc('clear_all_user_data')),
+      { maxRetries: 3, operationName: 'clearAllUserData' }
+    );
 
     if (!error) {
       // Clear local caches
@@ -4041,7 +4047,9 @@ export class SupabaseDataStore implements DataStore {
       errorMessage.includes('fetch') ||
       errorMessage.includes('network') ||
       errorMessage.includes('offline') ||
-      errorMessage.includes('connection');
+      errorMessage.includes('connection') ||
+      errorMessage.includes('abort') ||
+      errorMessage.includes('signal is aborted');
     const isMissingRpc =
       error.code === 'PGRST202' ||
       errorMessage.includes('does not exist') ||
