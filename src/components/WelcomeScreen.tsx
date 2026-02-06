@@ -3,10 +3,10 @@
 /**
  * WelcomeScreen Component
  *
- * First-install welcome screen that lets users choose their onboarding path:
- * - Start Fresh (local mode) - data stays on device
- * - Sign In to Cloud - sync across devices
- * - Import Backup - restore from exported file
+ * First-install welcome screen with 2 primary paths + footer link:
+ * - Start without an account (local mode) - data stays on device
+ * - Use Cloud Sync - enables cloud mode, shows login screen after reload
+ * - Have a backup file? (footer link) - restore from exported file
  *
  * Only shown once on first launch. After user makes a choice,
  * the welcome flag is set and this screen won't show again.
@@ -25,8 +25,8 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 interface WelcomeScreenProps {
   /** Called when user chooses "Start Fresh" (local mode) */
   onStartLocal: () => void;
-  /** Called when user chooses "Sign In to Cloud" */
-  onSignInCloud: () => void;
+  /** Called when user chooses "Use Cloud Sync" - enables cloud mode and shows login */
+  onUseCloudSync: () => void;
   /** Called when user chooses "Import Backup" */
   onImportBackup: () => void;
   /** Whether cloud option should be shown (Supabase configured) */
@@ -37,7 +37,7 @@ interface WelcomeScreenProps {
 
 export default function WelcomeScreen({
   onStartLocal,
-  onSignInCloud,
+  onUseCloudSync,
   onImportBackup,
   isCloudAvailable,
   isImporting,
@@ -136,49 +136,46 @@ export default function WelcomeScreen({
               </div>
             </button>
 
-            {/* Sign in or create account - only if Supabase is configured */}
-            {/* Account creation is FREE on all platforms. Subscription only required for sync. */}
+            {/* Use Cloud Sync - only if Supabase is configured */}
             {isCloudAvailable && (
               <button
-                onClick={onSignInCloud}
+                onClick={onUseCloudSync}
                 className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
-                aria-label={t('welcome.signInCloudAria', 'Sign in or create a free account')}
+                aria-label={t('welcome.useCloudSyncAria', 'Use cloud sync, access from any device')}
               >
                 <div className="text-white font-semibold text-lg">
-                  {t('welcome.signInCloud', 'Sign in or create an account')}
+                  {t('welcome.useCloudSync', 'Use Cloud Sync')}
                 </div>
                 <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
-                  {t('welcome.badgeFreeAccount', 'Free Account')}
+                  {t('welcome.badgeFree', 'FREE')}
                 </div>
                 <div className="text-slate-400 text-sm">
-                  {t('welcome.signInCloudDescWithPrice', 'Create a free account. Cloud sync available for €4.99/month.')}
+                  {t('welcome.useCloudSyncDesc', 'Sync your data across all your devices.')}
                 </div>
               </button>
             )}
-
-            {/* Import Backup */}
-            <button
-              onClick={onImportBackup}
-              disabled={isImporting}
-              className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-800/90 disabled:hover:border-sky-500/30"
-              aria-label={isImporting ? t('welcome.importingAria', 'Importing backup file') : t('welcome.importBackupAria', 'Import backup file')}
-            >
-              <div className="text-white font-semibold text-lg">
-                {isImporting ? t('welcome.importing', 'Importing...') : t('welcome.importBackup', 'Import a backup')}
-              </div>
-              <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
-                {t('welcome.badgeFree', 'Free')}
-              </div>
-              <div className="text-slate-400 text-sm">
-                {t('welcome.importBackupDesc', 'Restore your previous data from a file and continue where you left off.')}
-              </div>
-            </button>
           </div>
 
-          {/* Footer Note */}
-          <p className="text-center text-slate-500 text-sm mt-6">
-            {t('welcome.changeInSettings', 'You can change this later in Settings')}
-          </p>
+          {/* Footer */}
+          <div className="text-center mt-6 space-y-2">
+            {/* Import backup as footer link */}
+            <p className="text-slate-500 text-sm">
+              <button
+                onClick={onImportBackup}
+                disabled={isImporting}
+                className="text-slate-400 hover:text-white underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={isImporting ? t('welcome.importingAria', 'Importing backup file') : t('welcome.importBackupAria', 'Import backup file')}
+              >
+                {isImporting
+                  ? t('welcome.importing', 'Importing...')
+                  : t('welcome.haveBackup', 'Have a backup file?')}
+              </button>
+            </p>
+            {/* Settings note */}
+            <p className="text-slate-500 text-sm">
+              {t('welcome.changeInSettings', 'You can change this later in Settings')}
+            </p>
+          </div>
         </div>
       </div>
     </div>
