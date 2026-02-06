@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityReferences } from '@/interfaces/DataStore';
 import { DialogBackdrop, dialogContainerStyle, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface DeleteBlockedDialogProps {
   isOpen: boolean;
@@ -27,6 +28,21 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
   onArchive,
 }) => {
   const { t } = useTranslation();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(modalRef, isOpen);
+
+  // Escape key handler
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) {
     return null;
@@ -46,8 +62,8 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
         }
       }}
     >
-      <div className={dialogContainerStyle}>
-        <h3 className="text-lg font-semibold text-slate-100 mb-4">
+      <div ref={modalRef} className={dialogContainerStyle} role="dialog" aria-modal="true" aria-labelledby="delete-blocked-title">
+        <h3 id="delete-blocked-title" className="text-lg font-semibold text-slate-100 mb-4">
           {t('deleteBlocked.title', 'Cannot Delete "{{name}}"', { name: entityName })}
         </h3>
 

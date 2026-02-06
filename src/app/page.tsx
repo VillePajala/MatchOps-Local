@@ -100,12 +100,12 @@ export default function Home() {
     !isAuthLoading &&
     !postLoginCheckComplete;
 
-  // Safety timeout: If post-login check doesn't complete within 90 seconds, force completion
+  // Safety timeout: If post-login check doesn't complete within 120 seconds, force completion
   // This prevents users from getting stuck on the loading screen indefinitely due to:
   // - Network issues during migration check
   // - Race conditions during user transitions
   // - Unexpected errors that aren't caught
-  // Note: 90 seconds is needed for large data sets (100+ games) to download from cloud
+  // Note: 120 seconds is needed for large data sets (100+ games) to download from cloud
   useEffect(() => {
     if (!isPostLoginLoading) return;
 

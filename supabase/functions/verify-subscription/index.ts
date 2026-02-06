@@ -39,12 +39,11 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3009',
 ];
 
-// Vercel preview deployment pattern: match-ops-local-{hash}-{team}.vercel.app
-// Format: https://match-ops-local-{deploymentHash}-{teamSlug}.vercel.app
+// Vercel preview deployment pattern: match-ops-local-*.vercel.app
 // Security note: This only matches our specific project prefix (match-ops-local).
-// Vercel generates unique subdomains per deployment (e.g., match-ops-local-abc123-team-name.vercel.app).
+// Vercel generates unique subdomains per deployment (e.g., match-ops-local-abc123.vercel.app).
 // An attacker would need access to our Vercel project to create a matching deployment.
-const VERCEL_PREVIEW_PATTERN = /^https:\/\/match-ops-local-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$/;
+const VERCEL_PREVIEW_PATTERN = /^https:\/\/match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/;
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthProvider';
 import { primaryButtonStyle, DialogBackdrop, secondaryButtonStyle } from '@/styles/modalStyles';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { POLICY_VERSION } from '@/config/constants';
 
 /**
@@ -22,6 +23,21 @@ export function ReConsentModal() {
   const [hasAccepted, setHasAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(modalRef, needsReConsent);
+
+  // Escape key handler — decline and sign out
+  useEffect(() => {
+    if (!needsReConsent) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        signOut();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [needsReConsent, signOut]);
 
   // Don't render if re-consent not needed
   if (!needsReConsent) {
@@ -50,10 +66,10 @@ export function ReConsentModal() {
 
   return (
     <DialogBackdrop className="z-[100]">
-      <div className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600 overflow-hidden">
+      <div ref={modalRef} className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="reconsent-title">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-900/50 border-b border-slate-600">
-          <h2 className="text-xl font-bold text-yellow-400">
+          <h2 id="reconsent-title" className="text-xl font-bold text-yellow-400">
             {t('reConsent.title', 'Updated Terms & Privacy Policy')}
           </h2>
         </div>

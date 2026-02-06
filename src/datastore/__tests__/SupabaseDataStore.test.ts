@@ -31,6 +31,7 @@ interface MockQueryBuilder {
   delete: jest.Mock;
   upsert: jest.Mock;
   eq: jest.Mock;
+  in: jest.Mock;
   is: jest.Mock;
   single: jest.Mock;
   maybeSingle: jest.Mock;
@@ -47,6 +48,7 @@ const createMockQueryBuilder = (): MockQueryBuilder => {
     delete: jest.fn().mockReturnThis(),
     upsert: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+    in: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
     is: jest.fn().mockResolvedValue({ data: null, error: null }),
     single: jest.fn().mockReturnThis(),
     maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
@@ -4730,6 +4732,294 @@ describe('SupabaseDataStore', () => {
       });
 
       await expect(dataStore.clearAllUserData()).rejects.toThrow();
+    });
+  });
+
+  // ==========================================================================
+  // ENTITY REFERENCE CHECKS (C3 - guards against cascade data loss)
+  // ==========================================================================
+
+  describe('getSeasonReferences', () => {
+    /**
+     * @critical - Guards against cascade data loss when deleting seasons
+     */
+    it('should return canDelete=true when no games or teams reference the season', async () => {
+      // Mock 3 parallel count queries: games, teams, adjustments — all return 0
+      (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+        const builder = createMockQueryBuilder();
+        builder.select.mockReturnValue(builder);
+        builder.eq.mockResolvedValue({ data: null, error: null, count: 0 });
+        return builder;
+      });
+
+      const result = await dataStore.getSeasonReferences('season_1');
+
+      expect(result.canDelete).toBe(true);
+      expect(result.counts.games).toBe(0);
+      expect(result.counts.teams).toBe(0);
+      expect(result.summary).toContain('Not used');
+    });
+
+    it('should return canDelete=false when games reference the season', async () => {
+      let callIndex = 0;
+      (mockSupabaseClient.from as jest.Mock).mockImplementation(() => {
+        const builder = createMockQueryBuilder();
+        builder.select.mockReturnValue(builder);
+        // First call = games (3 references), second = teams (0), third = adjustments (0)
+        const counts = [3, 0, 0];
+        builder.eq.mockResolvedValue({ data: null, error: null, count: counts[callIndex++] ?? 0 });
+        return builder;
+      });
+
+      const result = await dataStore.getSeasonReferences('season_1');
+
+      expect(result.canDelete).toBe(false);
+      expect(result.counts.games).toBe(3);
+      expect(result.summary).toContain('3 games');
+    });
+
+    it('should return canDelete=false when teams are bound to the season', async () => {
+      let callIndex = 0;
+      (mockSupabaseClient.from as jest.Mock).mockImplementation(() => {
+        const builder = createMockQueryBuilder();
+        builder.select.mockReturnValue(builder);
+        // games=0, teams=2, adjustments=1
+        const counts = [0, 2, 1];
+        builder.eq.mockResolvedValue({ data: null, error: null, count: counts[callIndex++] ?? 0 });
+        return builder;
+      });
+
+      const result = await dataStore.getSeasonReferences('season_1');
+
+      expect(result.canDelete).toBe(false);
+      expect(result.counts.teams).toBe(2);
+      expect(result.counts.adjustments).toBe(1);
+      expect(result.summary).toContain('2 teams');
+      expect(result.summary).toContain('unlinked');
+    });
+  });
+
+  describe('getTeamReferences', () => {
+    /**
+     * @critical - Guards against cascade data loss when deleting teams
+     */
+    it('should return canDelete=true when no games reference the team', async () => {
+      const builder = createMockQueryBuilder();
+      builder.select.mockReturnValue(builder);
+      builder.eq.mockResolvedValue({ data: null, error: null, count: 0 });
+      (mockSupabaseClient.from as jest.Mock).mockReturnValue(builder);
+
+      const result = await dataStore.getTeamReferences('team_1');
+
+      expect(result.canDelete).toBe(true);
+      expect(result.counts.games).toBe(0);
+    });
+
+    it('should return canDelete=false when games reference the team', async () => {
+      const builder = createMockQueryBuilder();
+      builder.select.mockReturnValue(builder);
+      builder.eq.mockResolvedValue({ data: null, error: null, count: 5 });
+      (mockSupabaseClient.from as jest.Mock).mockReturnValue(builder);
+
+      const result = await dataStore.getTeamReferences('team_1');
+
+      expect(result.canDelete).toBe(false);
+      expect(result.counts.games).toBe(5);
+      expect(result.summary).toContain('5 games');
+    });
+  });
+
+  describe('getTournamentReferences', () => {
+    /**
+     * @critical - Guards against cascade data loss when deleting tournaments
+     */
+    it('should return canDelete=true when no games or teams reference the tournament', async () => {
+      // getTournamentReferences first calls getTournaments() to get series IDs
+      // Mock the tournaments query to return a tournament with series
+      const tournamentsBuilder = createMockQueryBuilder();
+      tournamentsBuilder.select.mockReturnValue(tournamentsBuilder);
+      tournamentsBuilder.order.mockResolvedValue({
+        data: [{
+          id: 'tourn_1',
+          user_id: 'user_123_abc',
+          name: 'Test Cup',
+          club_season: '2025-2026',
+          game_type: 'soccer',
+          gender: 'male',
+          age_group: 'U15',
+          start_date: '2025-01-01',
+          end_date: '2025-06-01',
+          level: null,
+          series: [{ id: 'series_1', level: 'Group A' }],
+          is_archived: false,
+          created_at: '2025-01-01T00:00:00Z',
+          updated_at: '2025-01-01T00:00:00Z',
+        }],
+        error: null,
+      });
+
+      let fromCallIndex = 0;
+      (mockSupabaseClient.from as jest.Mock).mockImplementation(() => {
+        fromCallIndex++;
+        // First from() call = tournaments (for getTournaments)
+        if (fromCallIndex === 1) return tournamentsBuilder;
+        // Subsequent calls = count queries (games, teams, adjustments, teams-series)
+        const countBuilder = createMockQueryBuilder();
+        countBuilder.select.mockReturnValue(countBuilder);
+        countBuilder.eq.mockResolvedValue({ data: null, error: null, count: 0 });
+        countBuilder.in.mockResolvedValue({ data: null, error: null, count: 0 });
+        return countBuilder;
+      });
+
+      const result = await dataStore.getTournamentReferences('tourn_1');
+
+      expect(result.canDelete).toBe(true);
+      expect(result.counts.games).toBe(0);
+      expect(result.counts.teams).toBe(0);
+    });
+
+    it('should count teams bound to tournament series in the total', async () => {
+      const tournamentsBuilder = createMockQueryBuilder();
+      tournamentsBuilder.select.mockReturnValue(tournamentsBuilder);
+      tournamentsBuilder.order.mockResolvedValue({
+        data: [{
+          id: 'tourn_1',
+          user_id: 'user_123_abc',
+          name: 'Test Cup',
+          club_season: '2025-2026',
+          game_type: 'soccer',
+          gender: 'male',
+          age_group: 'U15',
+          start_date: '2025-01-01',
+          end_date: '2025-06-01',
+          level: null,
+          series: [{ id: 'series_1', level: 'Group A' }],
+          is_archived: false,
+          created_at: '2025-01-01T00:00:00Z',
+          updated_at: '2025-01-01T00:00:00Z',
+        }],
+        error: null,
+      });
+
+      let fromCallIndex = 0;
+      (mockSupabaseClient.from as jest.Mock).mockImplementation(() => {
+        fromCallIndex++;
+        if (fromCallIndex === 1) return tournamentsBuilder;
+        const countBuilder = createMockQueryBuilder();
+        countBuilder.select.mockReturnValue(countBuilder);
+        // games=0, teams=0 (direct), adjustments=0, but teams-series=2
+        const counts = [0, 0, 0];
+        countBuilder.eq.mockResolvedValue({ data: null, error: null, count: counts[fromCallIndex - 2] ?? 0 });
+        countBuilder.in.mockResolvedValue({ data: null, error: null, count: 2 });
+        return countBuilder;
+      });
+
+      const result = await dataStore.getTournamentReferences('tourn_1');
+
+      expect(result.canDelete).toBe(false);
+      expect(result.counts.teams).toBe(2);
+      expect(result.summary).toContain('2 teams');
+    });
+  });
+
+  // ==========================================================================
+  // OPTIMISTIC LOCKING / CONFLICT ERROR (C4 - prevents silent data overwrites)
+  // ==========================================================================
+
+  describe('saveGame ConflictError handling', () => {
+    const { setStorageItem } = jest.requireMock('@/utils/storage') as { setStorageItem: jest.Mock };
+
+    const mockGameData = {
+      teamName: 'Test Team',
+      opponentName: 'Test Opponent',
+      gameDate: '2025-01-15',
+      homeOrAway: 'home' as const,
+      numberOfPeriods: 2 as const,
+      periodDurationMinutes: 10,
+      currentPeriod: 1,
+      gameStatus: 'notStarted' as const,
+      homeScore: 0,
+      awayScore: 0,
+      gameNotes: '',
+      showPlayerNames: true,
+      playersOnField: [],
+      availablePlayers: [],
+      selectedPlayerIds: [],
+      gameEvents: [],
+      playerAssessments: [],
+    } as unknown as AppState;
+
+    /**
+     * @critical - Primary mechanism preventing silent data overwrites
+     */
+    it('should throw ConflictError when RPC returns 40001 (serialization_failure)', async () => {
+      // Mock RPC returning conflict error
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: '40001', message: 'version mismatch: expected 5, found 6' },
+      });
+
+      await expect(dataStore.saveGame('game_1', mockGameData)).rejects.toThrow(ConflictError);
+    });
+
+    it('should save conflict backup before throwing ConflictError', async () => {
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: '40001', message: 'version mismatch' },
+      });
+
+      try {
+        await dataStore.saveGame('game_1', mockGameData);
+      } catch {
+        // Expected to throw
+      }
+
+      expect(setStorageItem).toHaveBeenCalledWith(
+        'conflict_backup_game_1',
+        expect.stringContaining('"gameId":"game_1"')
+      );
+    });
+
+    it('should still throw ConflictError even if backup fails', async () => {
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: '40001', message: 'version mismatch' },
+      });
+      setStorageItem.mockRejectedValueOnce(new Error('IndexedDB full'));
+
+      await expect(dataStore.saveGame('game_1', mockGameData)).rejects.toThrow(ConflictError);
+    });
+
+    it('should NOT throw ConflictError for non-40001 errors', async () => {
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: '23505', message: 'unique_violation' },
+      });
+
+      // Should throw some error, but NOT ConflictError
+      await expect(dataStore.saveGame('game_1', mockGameData)).rejects.toThrow();
+      await expect(dataStore.saveGame('game_1', mockGameData)).rejects.not.toThrow(ConflictError);
+    });
+
+    it('should update version cache on successful save', async () => {
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: 7, // New version returned by RPC
+        error: null,
+      });
+
+      await dataStore.saveGame('game_1', mockGameData);
+
+      // Save again — should include expected version from cache
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: 8,
+        error: null,
+      });
+
+      await dataStore.saveGame('game_1', mockGameData);
+
+      // Second call should pass expected version 7
+      const secondCall = (mockSupabaseClient.rpc as jest.Mock).mock.calls[1];
+      expect(secondCall[1].p_expected_version).toBe(7);
     });
   });
 });
