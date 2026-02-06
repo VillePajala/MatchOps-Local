@@ -27,7 +27,7 @@ import {
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
-  wizardBackdropStyle,
+  WizardBackdrop,
   wizardModalStyle,
   wizardHeaderStyle,
   wizardTitleStyle,
@@ -492,7 +492,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   };
 
   return (
-    <div className={wizardBackdropStyle}>
+    <WizardBackdrop>
       <div
         ref={modalRef}
         className={wizardModalStyle}
@@ -531,7 +531,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           );
         })()}
       </div>
-    </div>
+    </WizardBackdrop>
   );
 };
 

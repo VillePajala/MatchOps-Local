@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthProvider';
-import { primaryButtonStyle } from '@/styles/modalStyles';
+import { primaryButtonStyle, DialogBackdrop, secondaryButtonStyle } from '@/styles/modalStyles';
 import { POLICY_VERSION } from '@/config/constants';
 
 /**
@@ -49,10 +49,10 @@ export function ReConsentModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] font-display p-4">
-      <div className="bg-slate-800 rounded-lg shadow-xl max-w-md w-full border border-slate-700 overflow-hidden">
+    <DialogBackdrop className="z-[100]">
+      <div className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900/50 border-b border-slate-700">
+        <div className="px-6 py-4 bg-slate-900/50 border-b border-slate-600">
           <h2 className="text-xl font-bold text-yellow-400">
             {t('reConsent.title', 'Updated Terms & Privacy Policy')}
           </h2>
@@ -117,18 +117,18 @@ export function ReConsentModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-900/30 border-t border-slate-700 flex gap-3">
+        <div className="px-6 py-4 bg-slate-900/30 border-t border-slate-600 flex gap-3">
           <button
             onClick={handleDecline}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2 rounded-md text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50 transition-colors"
+            className={`flex-1 ${secondaryButtonStyle}`}
           >
             {t('reConsent.decline', 'Decline & Sign Out')}
           </button>
           <button
             onClick={handleAccept}
             disabled={!hasAccepted || isSubmitting}
-            className={`flex-1 ${primaryButtonStyle} disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`flex-1 ${primaryButtonStyle}`}
           >
             {isSubmitting
               ? t('reConsent.accepting', 'Accepting...')
@@ -136,7 +136,7 @@ export function ReConsentModal() {
           </button>
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }
 
