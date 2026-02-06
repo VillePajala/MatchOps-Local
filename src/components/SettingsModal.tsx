@@ -6,10 +6,8 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
-import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineChartBar, HiOutlineArrowPath } from 'react-icons/hi2';
+import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath } from 'react-icons/hi2';
 import { importFullBackup } from '@/utils/fullBackup';
-import { useGameImport } from '@/hooks/useGameImport';
-import ImportResultsModal from './ImportResultsModal';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 import { getBackendMode, clearMigrationCompleted } from '@/config/backendConfig';
@@ -67,9 +65,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
-  const gameImportFileInputRef = useRef<HTMLInputElement>(null);
-  const [showImportResults, setShowImportResults] = useState(false);
-  const { importFromFile, isImporting, lastResult } = useGameImport();
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(DEFAULT_CLUB_SEASON_START_DATE);
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(DEFAULT_CLUB_SEASON_END_DATE);
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
@@ -291,27 +286,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }, 100);
   };
 
-  const handleGameImportFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const result = await importFromFile(file, false); // Don't overwrite by default
-      setShowImportResults(true);
-
-      if (result.success && result.successful > 0) {
-        // Success message is handled by the ImportResultsModal
-      } else if (result.warnings.length > 0 || result.failed.length > 0) {
-        logger.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
-      }
-    } catch (error) {
-      logger.error('[SettingsModal] Game import error:', error);
-      showToast(t('settingsModal.gameImportError', 'Error importing games. Please check the file format and try again.'), 'error');
-    }
-
-    event.target.value = '';
-  };
-
   const handleCheckForUpdates = async () => {
     setCheckingForUpdates(true);
     logger.log('[PWA] Manual update check triggered from Settings');
@@ -464,31 +438,41 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             {/* General Tab - App preferences and season settings */}
             {activeTab === 'general' && (
             <>
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-4">
-              <h3 className="text-lg font-semibold text-slate-200">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-2">
+              <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('settingsModal.preferencesTitle', 'Preferences')}
               </h3>
-              <div>
-                <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
+              {/* Language */}
+              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-200">
+                    {t('settingsModal.languageLabel', 'Language')}
+                  </p>
+                </div>
                 <select
                   id="language-select"
                   value={language}
                   onChange={(e) => onLanguageChange(e.target.value)}
-                  className={inputStyle}
+                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="en">English</option>
                   <option value="fi">Suomi</option>
                 </select>
               </div>
-              <div>
-                <label htmlFor="team-name-input" className={labelStyle}>{t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}</label>
+              {/* Default Team Name */}
+              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-200">
+                    {t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}
+                  </p>
+                </div>
                 <input
                   id="team-name-input"
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   onBlur={() => onDefaultTeamNameChange(teamName)}
-                  className={inputStyle}
+                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40"
                 />
               </div>
             </div>
@@ -813,44 +797,40 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 style={{ display: "none" }}
                 data-testid="restore-backup-input"
               />
-              <input
-                type="file"
-                ref={gameImportFileInputRef}
-                onChange={handleGameImportFileChange}
-                accept=".json"
-                style={{ display: "none" }}
-                data-testid="game-import-input"
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  onClick={onCreateBackup}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-sm font-medium transition-colors border border-indigo-400/30"
-                >
-                  <HiOutlineDocumentArrowDown className="h-5 w-5" />
-                  {t('settingsModal.backupButton', 'Backup All Data')}
-                </button>
-                <button
-                  onClick={handleRestore}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium shadow-sm transition-colors"
-                >
-                  <HiOutlineDocumentArrowUp className="h-5 w-5" />
-                  {t('settingsModal.restoreButton', 'Restore from Backup')}
-                </button>
-                <button
-                  onClick={() => gameImportFileInputRef.current?.click()}
-                  disabled={isImporting}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors sm:col-span-2"
-                >
-                  <HiOutlineChartBar className="h-5 w-5" />
-                  {isImporting ? t('settingsModal.importing', 'Importing...') : t('settingsModal.importGamesButton', 'Import Games')}
-                </button>
+              <div className="space-y-2">
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.backupButton', 'Backup All Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.backupCardDesc', 'Export all your data to a backup file you can keep.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={onCreateBackup}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    <HiOutlineDocumentArrowDown className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.restoreButton', 'Restore from Backup')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.restoreCardDesc', 'Replace current data with a backup file.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRestore}
+                    className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    <HiOutlineDocumentArrowUp className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
-              <p className="text-sm text-slate-300">
-                {t(
-                  'settingsModal.backupDescription',
-                  'Export your data to a backup file or restore from a previous backup. All data will be replaced when restoring.'
-                )}
-              </p>
             </div>
             </>
             )}
@@ -861,79 +841,112 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.aboutTitle', 'About')}
               </h3>
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-slate-300">
-                  {t('settingsModal.appVersion', 'App Version')}: {packageJson.version}
-                </p>
-                {process.env.NEXT_PUBLIC_GIT_BRANCH && process.env.NEXT_PUBLIC_GIT_BRANCH !== 'master' && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                    {t('settingsModal.previewBadge', 'Preview')}
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-4 text-sm">
-                <a
-                  href="/privacy-policy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 underline"
-                >
-                  {t('settingsModal.privacyPolicy', 'Privacy Policy')}
-                </a>
-                <a
-                  href="/terms"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 underline"
-                >
-                  {t('settingsModal.termsOfService', 'Terms of Service')}
-                </a>
-              </div>
-              <div className="space-y-1">
-                <label className={labelStyle}>{t('settingsModal.storageUsageLabel', 'Storage Usage')}</label>
-                <p className="text-sm text-slate-300">
-                  {storageEstimate
-                    ? t('settingsModal.storageUsageDetails', {
-                        used: formatBytes(storageEstimate.usage),
-                        quota: formatBytes(storageEstimate.quota),
-                      })
-                    : t(
-                        'settingsModal.storageUsageUnavailable',
-                        'Storage usage information unavailable.'
-                      )}
-                </p>
-                {storageEstimate && (
-                  <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
-                    <div
-                      className="bg-indigo-500 h-2"
-                      style={{ width: `${Math.min(100, (storageEstimate.usage / storageEstimate.quota) * 100)}%` }}
-                    />
+
+              <div className="space-y-2">
+                {/* Version */}
+                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.appVersion', 'App Version')}
+                    </p>
                   </div>
-                )}
-              </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-300">{packageJson.version}</span>
+                    {process.env.NEXT_PUBLIC_GIT_BRANCH && process.env.NEXT_PUBLIC_GIT_BRANCH !== 'master' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        {t('settingsModal.previewBadge', 'Preview')}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-              {/* Check for Updates - moved from Data tab */}
-              <div className="pt-2 border-t border-slate-700">
-                <button
-                  onClick={handleCheckForUpdates}
-                  disabled={checkingForUpdates}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
-                >
-                  <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
-                  {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
-                </button>
-              </div>
-
-              <div className="pt-2 border-t border-slate-700 space-y-1">
-                <button onClick={onResetGuide} className={primaryButtonStyle}>
-                  {t('settingsModal.resetGuideButton', 'Reset App Guide')}
-                </button>
-                <p className="text-sm text-slate-300">
-                  {t(
-                    'settingsModal.resetGuideDescription',
-                    'Show the onboarding guide again the next time you open the app.'
+                {/* Storage Usage */}
+                <div className="p-3 bg-slate-800/50 rounded-md space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.storageUsageLabel', 'Storage Usage')}
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      {storageEstimate
+                        ? t('settingsModal.storageUsageDetails', {
+                            used: formatBytes(storageEstimate.usage),
+                            quota: formatBytes(storageEstimate.quota),
+                          })
+                        : t('settingsModal.storageUsageUnavailable', 'Unavailable')}
+                    </p>
+                  </div>
+                  {storageEstimate && (
+                    <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
+                      <div
+                        className="bg-indigo-500 h-2"
+                        style={{ width: `${Math.min(100, (storageEstimate.usage / storageEstimate.quota) * 100)}%` }}
+                      />
+                    </div>
                   )}
-                </p>
+                </div>
+
+                {/* Check for Updates */}
+                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.checkForUpdates', 'Check for Updates')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.checkForUpdatesDesc', 'Check if a new version is available.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCheckForUpdates}
+                    disabled={checkingForUpdates}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {checkingForUpdates ? (
+                      <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <HiOutlineArrowPath className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Reset Guide */}
+                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.resetGuideButton', 'Reset App Guide')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('settingsModal.resetGuideDescription', 'Show the onboarding guide again the next time you open the app.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={onResetGuide}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {t('common.reset', 'Reset')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Legal Links */}
+              <div className="pt-2 border-t border-slate-700">
+                <div className="flex gap-4 text-sm">
+                  <a
+                    href="/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:text-indigo-300 underline"
+                  >
+                    {t('settingsModal.privacyPolicy', 'Privacy Policy')}
+                  </a>
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:text-indigo-300 underline"
+                  >
+                    {t('settingsModal.termsOfService', 'Terms of Service')}
+                  </a>
+                </div>
               </div>
             </div>
             )}
@@ -945,14 +958,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </ModalFooter>
         </div>
       </div>
-      
-      {/* Import Results Modal */}
-      <ImportResultsModal
-        isOpen={showImportResults}
-        onClose={() => setShowImportResults(false)}
-        importResult={lastResult}
-        isImporting={isImporting}
-      />
 
       {/* Restore Confirmation Modal */}
       <ConfirmationModal

@@ -895,35 +895,44 @@ export default function CloudSyncSection({
       {/* which would clear local IndexedDB instead of cloud data - so we must gate on both */}
       {currentMode === 'cloud' && cloudAvailable && (
         <div className="pt-4 mt-4 border-t border-slate-700">
-          <h4 className="text-sm font-medium text-slate-300 mb-2">
+          <h4 className="text-sm font-medium text-red-300 mb-2">
             {t('cloudSync.dangerZone', 'Danger Zone')}
           </h4>
 
           {!showClearConfirm ? (
-            <button
-              onClick={() => setShowClearConfirm(true)}
-              disabled={isChangingMode}
-              className={`${dangerButtonStyle} flex items-center justify-center gap-2 w-full py-3 !bg-red-600/20 hover:!bg-red-600/30 !text-red-400 border border-red-500/50`}
-            >
-              <HiOutlineTrash className="h-5 w-5" />
-              {t('cloudSync.clearCloudData', 'Clear All Cloud Data')}
-            </button>
+            <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md border border-red-700/30">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-200">
+                  {t('cloudSync.clearCloudData', 'Clear All Cloud Data')}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {t('cloudSync.clearNote', 'This will delete all your data from the cloud. Local data on this device will not be affected.')}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                disabled={isChangingMode}
+                className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/50 rounded text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                <HiOutlineTrash className="h-5 w-5" />
+              </button>
+            </div>
           ) : (
-            <div className="p-4 rounded-md bg-red-900/20 border border-red-500/50">
-              <div className="flex items-start gap-2 mb-3">
+            <div className="p-3 bg-slate-800/50 rounded-md border border-red-500/50 space-y-3">
+              <div className="flex items-start gap-2">
                 <HiOutlineExclamationTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm text-red-300 font-medium">
                     {t('cloudSync.clearWarningTitle', 'This action cannot be undone!')}
                   </p>
-                  <p className="text-sm text-red-300/80 mt-1">
+                  <p className="text-xs text-red-300/80 mt-1">
                     {t('cloudSync.clearWarningDescription', 'All your games, players, teams, seasons, and other data will be permanently deleted from the cloud.')}
                   </p>
                 </div>
               </div>
 
-              <div className="mb-3">
-                <label className="block text-sm text-slate-300 mb-1">
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">
                   {t('cloudSync.clearConfirmLabel', 'Type DELETE to confirm:')}
                 </label>
                 <input
@@ -932,7 +941,7 @@ export default function CloudSyncSection({
                   onChange={(e) => setClearConfirmText(e.target.value)}
                   placeholder="DELETE"
                   disabled={isClearingCloud}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
                 />
               </div>
 
@@ -943,14 +952,14 @@ export default function CloudSyncSection({
                     setClearConfirmText('');
                   }}
                   disabled={isClearingCloud}
-                  className={`${secondaryButtonStyle} flex-1`}
+                  className={`${secondaryButtonStyle} flex-1 py-1.5 text-sm`}
                 >
                   {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   onClick={handleClearCloudData}
                   disabled={clearConfirmText !== 'DELETE' || isClearingCloud}
-                  className={`${dangerButtonStyle} flex-1 flex items-center justify-center gap-2`}
+                  className={`${dangerButtonStyle} flex-1 py-1.5 text-sm flex items-center justify-center gap-2`}
                 >
                   {isClearingCloud ? (
                     <>
@@ -967,10 +976,6 @@ export default function CloudSyncSection({
               </div>
             </div>
           )}
-
-          <p className="text-xs text-slate-500 mt-2">
-            {t('cloudSync.clearNote', 'This will delete all your data from the cloud. Local data on this device will not be affected.')}
-          </p>
         </div>
       )}
 
@@ -984,39 +989,44 @@ export default function CloudSyncSection({
             </h4>
           </div>
 
-          {/* Account info */}
-          <div className="p-3 rounded-md bg-slate-800/50 space-y-2 mb-3">
-            <div className="flex items-center gap-2">
-              <HiOutlineUser className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-300">{cloudAccountInfo?.email || t('cloudSync.cloudAccount.unknownEmail', 'Unknown')}</span>
+          {/* Account info - horizontal card style */}
+          <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md mb-2">
+            <HiOutlineUser className="h-5 w-5 text-slate-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-200">
+                {cloudAccountInfo?.email || t('cloudSync.cloudAccount.unknownEmail', 'Unknown')}
+              </p>
+              <p className="text-xs text-slate-400">
+                {t('cloudSync.cloudAccount.lastSynced', 'Last synced: {{date}}', {
+                  date: formatDate(cloudAccountInfo?.lastSyncedAt),
+                })}
+              </p>
+              {cloudAccountInfo?.hasCloudData && (
+                <p className="text-xs text-amber-400 mt-1">
+                  {t('cloudSync.cloudAccount.hasCloudData', 'You have data stored in the cloud.')}
+                </p>
+              )}
             </div>
-            <div className="text-xs text-slate-500">
-              {t('cloudSync.cloudAccount.lastSynced', 'Last synced: {{date}}', {
-                date: formatDate(cloudAccountInfo?.lastSyncedAt),
-              })}
-            </div>
-            {cloudAccountInfo?.hasCloudData && (
-              <div className="text-xs text-amber-400">
-                {t('cloudSync.cloudAccount.hasCloudData', 'You have data stored in the cloud.')}
-              </div>
-            )}
           </div>
 
-          {/* Delete cloud data from local mode */}
+          {/* Delete cloud data from local mode - horizontal card style */}
           {cloudAccountInfo?.hasCloudData && (
-            <>
+            <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md border border-red-700/30">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-200">
+                  {t('cloudSync.cloudAccount.deleteCloudData', 'Delete All Cloud Data')}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {t('cloudSync.cloudAccount.deleteNote', 'This will permanently delete all your data from our servers.')}
+                </p>
+              </div>
               <button
                 onClick={handleDeleteCloudFromLocalMode}
-                className={`${dangerButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm !bg-red-600/20 hover:!bg-red-600/30 !text-red-400 border border-red-500/50`}
+                className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/50 rounded text-sm font-medium transition-colors"
               >
-                <HiOutlineTrash className="h-4 w-4" />
-                {t('cloudSync.cloudAccount.deleteCloudData', 'Delete All Cloud Data')}
+                <HiOutlineTrash className="h-5 w-5" />
               </button>
-
-              <p className="text-xs text-slate-500 mt-2">
-                {t('cloudSync.cloudAccount.deleteNote', 'This will permanently delete all your data from our servers.')}
-              </p>
-            </>
+            </div>
           )}
         </div>
       )}
