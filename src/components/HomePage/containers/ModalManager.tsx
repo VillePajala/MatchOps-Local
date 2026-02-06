@@ -457,7 +457,6 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onLanguageChange={handlers.setAppLanguage}
           defaultTeamName={data.defaultTeamNameSetting}
           onDefaultTeamNameChange={handlers.setDefaultTeamName}
-          onResetGuide={handlers.showAppGuide}
           onHardResetApp={handlers.hardResetApp}
           onCreateBackup={handlers.onCreateBackup}
           onDataImportSuccess={handlers.onDataImportSuccess}
