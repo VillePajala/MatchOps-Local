@@ -787,6 +787,9 @@ describe('SupabaseAuthService', () => {
       mockAuth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
       await authService.initialize();
 
+      // deleteAccount() refreshes session before calling edge function
+      mockAuth.refreshSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+
       // Setup mock for functions.invoke
       mockFunctionsInvoke = jest.fn();
       (mockSupabaseClient as unknown as { functions: { invoke: jest.Mock } }).functions = {

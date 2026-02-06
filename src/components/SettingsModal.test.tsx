@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 
@@ -34,11 +34,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, fallbackOrOpts?: any) => {
-      if (typeof fallbackOrOpts === 'string') return fallbackOrOpts;
-      if (key === 'settingsModal.storageUsageDetails' && fallbackOrOpts) {
-        return `${fallbackOrOpts.used} of ${fallbackOrOpts.quota} used`;
-      }
+    t: (key: string, fallbackOrOpts?: unknown) => {
       // Return English translations for common keys
       const translations: Record<string, string> = {
         'settingsModal.title': 'App Settings',
@@ -50,7 +46,7 @@ jest.mock('react-i18next', () => ({
         'settingsModal.languageLabel': 'Language',
         'settingsModal.defaultTeamNameLabel': 'Default Team Name',
         'settingsModal.storageUsageLabel': 'Storage Usage',
-        'settingsModal.storageUsageUnavailable': 'Storage usage information unavailable.',
+        'settingsModal.storageUsageUnavailable': 'Unavailable',
         'settingsModal.doneButton': 'Done',
         'settingsModal.dangerZoneTitle': 'Danger Zone',
         'settingsModal.hardResetButton': 'Hard Reset App',
@@ -65,8 +61,18 @@ jest.mock('react-i18next', () => ({
         'settingsModal.installUpdate': 'Install',
         'settingsModal.updateReadyReload': 'Update installed! Reload the app when ready to apply.',
         'settingsModal.upToDate': 'App is up to date!',
+        'common.reset': 'Reset',
       };
-      return translations[key] || fallbackOrOpts || key;
+      // Check translations map first
+      if (translations[key]) return translations[key];
+      // Handle interpolation objects (e.g., storageUsageDetails)
+      if (key === 'settingsModal.storageUsageDetails' && fallbackOrOpts && typeof fallbackOrOpts === 'object') {
+        const opts = fallbackOrOpts as Record<string, string>;
+        return `${opts.used} of ${opts.quota} used`;
+      }
+      // Fall back to string fallback or key
+      if (typeof fallbackOrOpts === 'string') return fallbackOrOpts;
+      return key;
     },
   }),
 }));
@@ -106,8 +112,12 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
     expect(screen.getByText('App Settings')).toBeInTheDocument();
-    expect(screen.getByLabelText('Language')).toBeInTheDocument();
-    expect(screen.getByLabelText('Default Team Name')).toBeInTheDocument();
+    // Language label is a <p> element, select has id="language-select"
+    expect(screen.getByText('Language')).toBeInTheDocument();
+    expect(document.getElementById('language-select')).toBeInTheDocument();
+    // Default Team Name label is a <p> element, input has id="team-name-input"
+    expect(screen.getByText('Default Team Name')).toBeInTheDocument();
+    expect(document.getElementById('team-name-input')).toBeInTheDocument();
   });
 
   test('displays storage unavailable message when navigator.storage is not supported', () => {
@@ -121,7 +131,8 @@ describe('<SettingsModal />', () => {
     navigateToTab('About');
 
     expect(screen.getByText('Storage Usage')).toBeInTheDocument();
-    expect(screen.getByText('Storage usage information unavailable.')).toBeInTheDocument();
+    // Component uses t('settingsModal.storageUsageUnavailable', 'Unavailable')
+    expect(screen.getByText('Unavailable')).toBeInTheDocument();
   });
 
   test('displays storage usage when available', async () => {
@@ -222,7 +233,11 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
     navigateToTab('About');
-    fireEvent.click(screen.getByRole('button', { name: /Reset App Guide/i }));
+    // The card has label "Reset App Guide" in a <p> and a button with text "Reset"
+    const resetGuideLabel = screen.getByText('Reset App Guide');
+    const card = resetGuideLabel.closest('.flex.items-center')!;
+    const resetButton = within(card as HTMLElement).getByRole('button', { name: /Reset/i });
+    fireEvent.click(resetButton);
     expect(defaultProps.onResetGuide).toHaveBeenCalled();
   });
 
@@ -232,9 +247,11 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    // Backup button is in Data tab
+    // Backup button is in Data tab - button has icon only, text is in a sibling <p>
     navigateToTab('Data');
-    const backupButton = screen.getByRole('button', { name: /Backup All Data/i });
+    const backupLabel = screen.getByText('Backup All Data');
+    const card = backupLabel.closest('.flex.items-start')!;
+    const backupButton = within(card as HTMLElement).getByRole('button');
     fireEvent.click(backupButton);
     expect(defaultProps.onCreateBackup).toHaveBeenCalled();
   });
@@ -245,7 +262,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    const input = screen.getByLabelText('Default Team Name');
+    // Input has id="team-name-input", no <label> association
+    const input = document.getElementById('team-name-input')!;
     expect(input).not.toHaveFocus();
   });
 
@@ -369,6 +387,13 @@ describe('<SettingsModal />', () => {
       global.fetch = originalFetch;
     });
 
+    // Helper to find the "Check for Updates" icon-only button via its card label
+    const getCheckForUpdatesButton = () => {
+      const label = screen.getByText('Check for Updates');
+      const card = label.closest('.flex.items-center')!;
+      return within(card as HTMLElement).getByRole('button');
+    };
+
     /**
      * Tests that update check triggers registration.update()
      * @critical
@@ -385,8 +410,8 @@ describe('<SettingsModal />', () => {
 
       navigateToTab('About');
 
-      // Find and click the "Check for Updates" button
-      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      // Find and click the "Check for Updates" button (icon-only button in card)
+      const checkButton = getCheckForUpdatesButton();
       fireEvent.click(checkButton);
 
       // Wait for registration.update() to be called
@@ -412,16 +437,16 @@ describe('<SettingsModal />', () => {
 
       navigateToTab('About');
 
-      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      const checkButton = getCheckForUpdatesButton();
 
       // Button should be enabled initially
       expect(checkButton).not.toBeDisabled();
 
       fireEvent.click(checkButton);
 
-      // Button should be disabled while checking
+      // Button should be disabled while checking (icon changes to spinning)
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Checking/i })).toBeDisabled();
+        expect(getCheckForUpdatesButton()).toBeDisabled();
       });
 
       // Resolve the update promise
@@ -429,7 +454,7 @@ describe('<SettingsModal />', () => {
 
       // Button should be enabled again after check completes
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Check for Updates/i })).not.toBeDisabled();
+        expect(getCheckForUpdatesButton()).not.toBeDisabled();
       });
     });
 
@@ -450,8 +475,8 @@ describe('<SettingsModal />', () => {
 
       navigateToTab('About');
 
-      // Click "Check for Updates"
-      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      // Click "Check for Updates" (icon-only button)
+      const checkButton = getCheckForUpdatesButton();
       fireEvent.click(checkButton);
 
       // Wait for registration.update() to be called
@@ -482,7 +507,7 @@ describe('<SettingsModal />', () => {
 
       navigateToTab('About');
 
-      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      const checkButton = getCheckForUpdatesButton();
       fireEvent.click(checkButton);
 
       // Wait for registration.update() to be called

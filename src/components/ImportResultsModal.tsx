@@ -101,7 +101,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
   };
 
   return (
-    <WizardBackdrop>
+    <WizardBackdrop onClick={handleBackdropClick}>
       <div ref={modalRef} className={`${wizardModalLargeStyle} overflow-y-auto text-slate-100`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className={wizardHeaderStyle}>
           <div className="flex items-center space-x-3">
