@@ -229,7 +229,9 @@ function isNetworkError(error: unknown): boolean {
     lowerMessage.includes('fetch') ||
     lowerMessage.includes('offline') ||
     lowerMessage.includes('connection') ||
-    lowerMessage.includes('failed to fetch')
+    lowerMessage.includes('failed to fetch') ||
+    lowerMessage.includes('abort') ||
+    lowerMessage.includes('signal is aborted')
   );
 }
 
@@ -991,9 +993,20 @@ export class SupabaseAuthService implements AuthService {
 
       // Call the Edge Function to delete the account
       // The Edge Function uses the service role key to delete from auth.users
-      const { data, error } = await this.client!.functions.invoke('delete-account', {
-        method: 'POST',
-      });
+      // Wrapped in retry to handle transient AbortError on Chrome Mobile Android
+      const { data, error } = await withRetry(
+        async () => {
+          const result = await this.client!.functions.invoke('delete-account', {
+            method: 'POST',
+          });
+          // Throw transient errors so withRetry can retry them
+          if (result.error && isNetworkError(result.error)) {
+            throw result.error;
+          }
+          return result;
+        },
+        { maxRetries: 3, operationName: 'deleteAccount' }
+      );
 
       if (error) {
         logger.error('[SupabaseAuthService] Account deletion failed:', error.message);
@@ -1022,6 +1035,15 @@ export class SupabaseAuthService implements AuthService {
       // Re-throw AuthError and NetworkError as-is
       if (error instanceof AuthError || error instanceof NetworkError) {
         throw error;
+      }
+
+      // Check if this is a network-like error (e.g., AbortError from withRetry exhaustion)
+      // that wasn't already wrapped as NetworkError
+      if (isNetworkError(error)) {
+        logger.error('[SupabaseAuthService] Network error during account deletion:', error);
+        throw new NetworkError(
+          'Account deletion failed due to a network error. Please try again.'
+        );
       }
 
       // Wrap unexpected errors

@@ -498,6 +498,10 @@ export const importFullBackup = async (
     // Use aggressive retry to handle persistent AbortError from Supabase auth locks.
     // Android Chrome is particularly prone to this issue on repeated imports.
     // 5 retries with 1000ms initial = up to ~31s total wait (1+2+4+8+16s)
+    //
+    // NOTE: SyncedDataStore.clearAllUserData() always clears local data even if
+    // cloud clear fails. So if this throws, local is still cleared and we can
+    // proceed with the import — cloud data will be overwritten during sync.
     try {
       await retryWithBackoff(
         () => dataStore.clearAllUserData(),
@@ -505,8 +509,10 @@ export const importFullBackup = async (
       );
       logger.log("Cleared existing app data for clean restore");
     } catch (error) {
-      logger.error('Failed to clear user data before restore:', error);
-      throw new Error('Failed to clear existing data before restore. Aborting import.');
+      // Local data is always cleared by SyncedDataStore, even if cloud clear fails.
+      // Continue with import — cloud data will be overwritten during subsequent sync.
+      logger.warn('clearAllUserData had issues (local cleared, cloud may have failed):', error);
+      logger.log("Proceeding with restore despite cloud clear failure — data will sync after import");
     }
 
     // --- Process games to ensure proper player mapping ---

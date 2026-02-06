@@ -1503,15 +1503,22 @@ export class SyncedDataStore implements DataStore {
     // Clear the sync queue (pending operations will be discarded)
     await this.syncQueue.clear();
 
-    // Clear cloud data FIRST (while we still have auth/connection)
-    // This ensures cloud data is deleted even if local clear fails
+    // Try to clear cloud data first (while we still have auth/connection)
+    // If cloud clear fails (e.g., AbortError on Chrome Mobile), we still
+    // clear local data so the user isn't stuck with an unrecoverable state.
+    let cloudError: unknown = null;
     if (this.remoteStore) {
-      logger.info('[SyncedDataStore] Clearing remote (cloud) data...');
-      await this.remoteStore.clearAllUserData();
-      logger.info('[SyncedDataStore] Remote data cleared');
+      try {
+        logger.info('[SyncedDataStore] Clearing remote (cloud) data...');
+        await this.remoteStore.clearAllUserData();
+        logger.info('[SyncedDataStore] Remote data cleared');
+      } catch (error) {
+        cloudError = error;
+        logger.warn('[SyncedDataStore] Failed to clear remote data, continuing with local clear:', error);
+      }
     }
 
-    // Clear local data
+    // Always clear local data, even if cloud clear failed
     await this.localStore.clearAllUserData();
 
     // Resume sync engine if it was running before
@@ -1519,6 +1526,11 @@ export class SyncedDataStore implements DataStore {
     if (wasRunning && this.syncEngine) {
       this.syncEngine.resume();
       logger.info('[SyncedDataStore] Sync engine resumed after data clear');
+    }
+
+    if (cloudError) {
+      logger.warn('[SyncedDataStore] Local data cleared but cloud clear failed - re-throwing for caller');
+      throw cloudError;
     }
 
     logger.info('[SyncedDataStore] All user data cleared (local and cloud)');
