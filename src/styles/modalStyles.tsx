@@ -232,6 +232,7 @@ export const WizardBackdrop: React.FC<{
 }> = ({ children, className = '', onClick }) => (
   <div
     className={`fixed inset-0 z-[80] bg-slate-900 flex items-center justify-center font-display overflow-hidden ${className}`}
+    onClick={onClick}
   >
     {/* Ambient glow effects - matches AuthModal/WelcomeScreen */}
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -241,7 +242,7 @@ export const WizardBackdrop: React.FC<{
       <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
     </div>
     {/* Content */}
-    <div className="relative z-10 flex items-center justify-center w-full h-full p-4" onClick={onClick}>
+    <div className="relative z-10 flex items-center justify-center w-full h-full p-4">
       {children}
     </div>
   </div>

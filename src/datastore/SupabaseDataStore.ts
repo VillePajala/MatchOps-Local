@@ -1027,11 +1027,21 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('teams')
-      .select('*')
-      .eq('id', id)
-      .single();
+    // Use withRetry for transient network error resilience (matches getPersonnelById pattern)
+    // Note: PGRST116 (no row found) is not transient and handled below
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('teams')
+        .select('*')
+        .eq('id', id)
+        .single();
+      // Only throw if it's a transient error (for retry)
+      // PGRST116 (not found) is expected and should not be retried
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'getTeamById');
 
     // PGRST116 = row not found - return null
     // Other errors should be classified appropriately
@@ -1365,17 +1375,22 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('team_players')
-      .select('*')
-      .eq('team_id', teamId)
-      .order('created_at', { ascending: true });
+    // Use withRetry for transient network error resilience (matches getTeams pattern)
+    const result = await this.withRetry(async () => {
+      return throwIfTransient(
+        await this.getClient()
+          .from('team_players')
+          .select('*')
+          .eq('team_id', teamId)
+          .order('created_at', { ascending: true })
+      );
+    }, 'getTeamRoster');
 
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch team roster');
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to fetch team roster');
     }
 
-    return (data || []).map(this.transformTeamPlayerFromDb);
+    return (result.data || []).map(this.transformTeamPlayerFromDb);
   }
 
   /**
@@ -3600,17 +3615,22 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('player_adjustments')
-      .select('*')
-      .eq('player_id', playerId)
-      .order('applied_at', { ascending: false });
+    // Use withRetry for transient network error resilience (matches getPlayers pattern)
+    const result = await this.withRetry(async () => {
+      return throwIfTransient(
+        await this.getClient()
+          .from('player_adjustments')
+          .select('*')
+          .eq('player_id', playerId)
+          .order('applied_at', { ascending: false })
+      );
+    }, 'getPlayerAdjustments');
 
-    if (error) {
-      this.classifyAndThrowError(error, 'Failed to fetch player adjustments');
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to fetch player adjustments');
     }
 
-    return (data || []).map((row: PlayerAdjustmentRow) => this.transformAdjustmentFromDb(row));
+    return (result.data || []).map((row: PlayerAdjustmentRow) => this.transformAdjustmentFromDb(row));
   }
 
   /**
@@ -3845,11 +3865,20 @@ export class SupabaseDataStore implements DataStore {
     // Note: Using .maybeSingle() instead of .single() to avoid 406 errors when no rows exist.
     // .single() requires exactly 1 row and returns 406 on certain edge cases.
     // .maybeSingle() returns null for 0 rows and errors on >1 rows.
-    const { data, error } = await this.getClient()
-      .from('warmup_plans')
-      .select('*')
-      .limit(1)
-      .maybeSingle();
+    // Use withRetry for transient network error resilience (matches getPersonnelById pattern)
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('warmup_plans')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      // Only throw if it's a transient error (for retry)
+      // PGRST116 (not found) is expected and should not be retried
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'getWarmupPlan');
 
     if (error) {
       // DIAGNOSTIC: Log full error details to help debug 406 errors

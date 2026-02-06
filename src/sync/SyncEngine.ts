@@ -853,11 +853,14 @@ export class SyncEngine {
       // Execute the sync with timeout to prevent hung operations blocking all syncing
       // Note: 90 seconds needed for large games with many events/players/related data
       // and to account for potential cold starts on first request after inactivity.
-      // TODO: Future improvement - use AbortController to actually abort the HTTP request
-      // when timeout fires. Currently the request continues in background, which means:
-      // - If it completes after timeout, data is saved but SyncEngine thinks it failed
-      // - Retry then succeeds quickly because data already exists (upsert behavior)
-      // This is safe for data integrity but causes misleading error messages.
+      //
+      // AbortController is used to signal timeout. While the underlying HTTP request
+      // may not be directly abortable (the Supabase client doesn't accept external signals),
+      // the AbortController ensures:
+      // 1. The timeout produces a proper AbortError (consistent with navigation aborts)
+      // 2. The operation is reset to pending (not counted as a failure) via abort handling
+      // 3. If the orphaned request completes after timeout, data is saved (upsert behavior)
+      //    and the retry succeeds quickly because data already exists
       const SYNC_TIMEOUT_MS = 90000; // 90 seconds per operation
       const execStartTime = Date.now();
       logger.info(`[SyncEngine] Marked syncing, executing: ${opInfo}`, {
@@ -865,24 +868,35 @@ export class SyncEngine {
         dataSize: op.data ? JSON.stringify(op.data).length : 0,
       });
 
-      // Use a timer ID to clear the timeout after executor completes (prevents memory leak)
-      let timeoutId: ReturnType<typeof setTimeout> | null = null;
-      const timeoutPromise = new Promise<never>((_resolve, reject) => {
-        timeoutId = setTimeout(() => {
-          const elapsed = Date.now() - execStartTime;
-          reject(new Error(`Sync operation timed out after ${elapsed}ms (limit: ${SYNC_TIMEOUT_MS}ms)`));
-        }, SYNC_TIMEOUT_MS);
-      });
+      // Use AbortController for timeout so the error is a proper AbortError,
+      // which triggers the existing abort-handling path (reset to pending without retry penalty)
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        const elapsed = Date.now() - execStartTime;
+        logger.warn(`[SyncEngine] Aborting operation after ${elapsed}ms timeout: ${opInfo}`);
+        abortController.abort(new Error(`Sync operation timed out after ${elapsed}ms (limit: ${SYNC_TIMEOUT_MS}ms)`));
+      }, SYNC_TIMEOUT_MS);
 
       try {
-        await Promise.race([executor(op), timeoutPromise]);
+        // Race the executor against the abort signal
+        await Promise.race([
+          executor(op),
+          new Promise<never>((_resolve, reject) => {
+            // If already aborted (shouldn't happen, but defensive)
+            if (abortController.signal.aborted) {
+              reject(abortController.signal.reason);
+              return;
+            }
+            abortController.signal.addEventListener('abort', () => {
+              reject(abortController.signal.reason);
+            }, { once: true });
+          }),
+        ]);
         const execDuration = Date.now() - execStartTime;
         logger.info(`[SyncEngine] Executor completed in ${execDuration}ms: ${opInfo}`);
       } finally {
         // Clear timeout to prevent memory leak when executor completes before timeout
-        if (timeoutId !== null) {
-          clearTimeout(timeoutId);
-        }
+        clearTimeout(timeoutId);
       }
 
       // Mark as completed (removes from queue)
@@ -908,13 +922,15 @@ export class SyncEngine {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      // Detect AbortError: either directly thrown or wrapped in NetworkError
+      // Detect AbortError or timeout: either directly thrown or wrapped in NetworkError
       // When fetch is aborted, Supabase client throws AbortError, but SupabaseDataStore
       // may wrap it in NetworkError with message "Failed to X: AbortError: signal is aborted..."
+      // Timeouts from the SyncEngine AbortController also produce errors with "timed out" in the message.
       // See Sentry MATCHOPS-LOCAL-35, MATCHOPS-LOCAL-7G, MATCHOPS-LOCAL-7F
       const isAbortError = (error instanceof Error && error.name === 'AbortError') ||
         errorMessage.includes('AbortError') ||
-        errorMessage.includes('signal is aborted');
+        errorMessage.includes('signal is aborted') ||
+        errorMessage.includes('Sync operation timed out');
 
       // If we never marked as syncing, the operation wasn't ours to process
       // This can happen if another tab/process completed it, or it was deleted
@@ -923,13 +939,14 @@ export class SyncEngine {
         return; // Don't emit failure events for operations we never owned
       }
 
-      // AbortError is expected during page navigation, hot reload, or user-initiated cancellation
-      // CRITICAL FIX: Don't count AbortError as a retry failure - just reset to pending.
+      // AbortError/timeout is expected during page navigation, hot reload, timeout, or user-initiated cancellation
+      // CRITICAL FIX: Don't count AbortError or timeout as a retry failure - just reset to pending.
       // The request was cancelled before completion, so it should be retried fresh.
-      // This prevents operations from getting stuck when users navigate/refresh.
+      // This prevents operations from getting stuck when users navigate/refresh or operations time out.
       // See Sentry MATCHOPS-LOCAL-24, MATCHOPS-LOCAL-1E
       if (isAbortError) {
-        logger.info(`[SyncEngine] Aborted: ${opInfo} (expected during navigation/reload) - resetting to pending`);
+        const reason = errorMessage.includes('timed out') ? 'timeout' : 'navigation/reload';
+        logger.info(`[SyncEngine] Aborted: ${opInfo} (${reason}) - resetting to pending`);
         try {
           // Reset to pending WITHOUT incrementing retry count
           // AbortError means the request was cancelled, not that it failed

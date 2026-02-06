@@ -59,9 +59,11 @@ function isDataEqual<T extends { createdAt?: string; updatedAt?: string }>(a: T,
   const { createdAt: _ca, updatedAt: _ua, ...restA } = a;
   const { createdAt: _cb, updatedAt: _ub, ...restB } = b;
 
-  // JSON.stringify comparison - fast for typical data sizes
+  // Sort keys before comparing to handle different key ordering between local/cloud objects.
+  // Without sorting, identical data with different key order would trigger unnecessary syncs.
   try {
-    return JSON.stringify(restA) === JSON.stringify(restB);
+    const sortedStringify = (obj: unknown) => JSON.stringify(obj, Object.keys(obj as object).sort());
+    return sortedStringify(restA) === sortedStringify(restB);
   } catch {
     // If serialization fails (circular ref), assume different
     return false;

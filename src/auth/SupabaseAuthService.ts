@@ -174,6 +174,10 @@ function validatePassword(password: string): void {
  * @throws AuthError if email is invalid
  */
 function validateEmail(email: string): void {
+  // RFC 5321: max 254 characters for email address
+  if (email.length > 254) {
+    throw new AuthError('Email address is too long');
+  }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     throw new AuthError('Invalid email format');

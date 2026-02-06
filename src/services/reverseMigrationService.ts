@@ -97,6 +97,55 @@ function shouldWriteBasedOnTimestamp(
 }
 
 // =============================================================================
+// REVERSE MIGRATION CRASH RECOVERY
+// =============================================================================
+
+/**
+ * SessionStorage key for tracking reverse-migration-in-progress state.
+ * Persists across page reloads (same tab) but not tab close — prevents stale flags.
+ * If the page reloads during reverse migration, this flag signals the UI
+ * to show a "migration may be incomplete, retry?" message.
+ *
+ * Mirrors the pattern in migrationService.ts for forward (local→cloud) migrations.
+ */
+const REVERSE_MIGRATION_IN_PROGRESS_KEY = 'matchops_reverse_migration_in_progress';
+
+function setReverseMigrationInProgress(): void {
+  try {
+    sessionStorage.setItem(REVERSE_MIGRATION_IN_PROGRESS_KEY, Date.now().toString());
+  } catch {
+    // sessionStorage unavailable (private browsing) — non-critical
+  }
+}
+
+function clearReverseMigrationInProgress(): void {
+  try {
+    sessionStorage.removeItem(REVERSE_MIGRATION_IN_PROGRESS_KEY);
+  } catch {
+    // sessionStorage unavailable — non-critical
+  }
+}
+
+/**
+ * Check if a previous reverse migration was interrupted (page reload during migration).
+ * Returns true if reverse migration was in progress when the page last reloaded.
+ */
+export function wasReverseMigrationInterrupted(): boolean {
+  try {
+    return sessionStorage.getItem(REVERSE_MIGRATION_IN_PROGRESS_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Clear the interrupted reverse migration flag (call after user acknowledges or retries).
+ */
+export function clearInterruptedReverseMigrationFlag(): void {
+  clearReverseMigrationInProgress();
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -428,6 +477,9 @@ async function performReverseMigration(
     }
   };
 
+  // Set crash recovery flag before starting
+  setReverseMigrationInProgress();
+
   try {
     // Check network connectivity
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -620,6 +672,9 @@ async function performReverseMigration(
     };
 
   } finally {
+    // Clear crash recovery flag — migration completed (successfully or with error)
+    clearReverseMigrationInProgress();
+
     // Clean up resources
     // Note: Migration lock (reverseMigrationPromise) is reset in the wrapper function
     if (cloudStore) {

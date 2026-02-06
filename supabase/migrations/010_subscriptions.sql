@@ -187,7 +187,12 @@ BEGIN
 END;
 $$;
 
--- Only service role can execute this (Edge Functions)
--- Regular users cannot call this function
+-- Only service role can execute this (Edge Functions).
+-- Regular users cannot call this function.
+-- NOTE: No explicit GRANT to service_role is needed because the service_role
+-- in Supabase is a PostgreSQL superuser that bypasses all permission checks,
+-- including EXECUTE privileges and RLS policies. The REVOKE statements below
+-- ensure that the anon and authenticated roles cannot call this function via
+-- PostgREST, while the service_role used by Edge Functions is unaffected.
 REVOKE EXECUTE ON FUNCTION upsert_subscription FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION upsert_subscription FROM authenticated;

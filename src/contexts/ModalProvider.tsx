@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useRef, useReducer, useCallback } from 'react';
 import { initialModalState, modalReducer } from './modalReducer';
 
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
@@ -182,7 +182,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  const value: ModalContextValue = {
+  const value: ModalContextValue = useMemo(() => ({
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
     isLoadGameModalOpen: modalState.loadGame,
@@ -207,7 +207,20 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     settingsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
-  };
+  }), [
+    isGameSettingsModalOpen, setIsGameSettingsModalOpen,
+    modalState.loadGame, setIsLoadGameModalOpen,
+    modalState.roster, setIsRosterModalOpen,
+    modalState.seasonTournament, setIsSeasonTournamentModalOpen,
+    isTrainingResourcesOpen, setIsTrainingResourcesOpen,
+    isRulesDirectoryOpen, setIsRulesDirectoryOpen,
+    isGoalLogModalOpen, setIsGoalLogModalOpen,
+    modalState.gameStats, setIsGameStatsModalOpen,
+    modalState.newGameSetup, setIsNewGameSetupModalOpen,
+    modalState.settings, setIsSettingsModalOpen,
+    openSettingsToTab, settingsInitialTab,
+    isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen,
+  ]);
 
   return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;
 };

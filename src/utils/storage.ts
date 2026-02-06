@@ -394,6 +394,11 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
  * ```
  */
 export async function closeUserStorageAdapter(userId: string): Promise<void> {
+  // NOTE: This function does NOT acquire userAdapterCreationMutex.
+  // In theory, a concurrent getUserStorageAdapter() call could return the adapter
+  // being closed. In practice this is safe because close() is called on sign-out
+  // and get() is called on sign-in — these never overlap in a single-user PWA.
+  //
   // Validate userId - consistent with getUserStorageAdapter validation
   if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
     throw new Error('userId is required and must be a non-empty string');

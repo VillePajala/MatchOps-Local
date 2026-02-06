@@ -56,6 +56,10 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
 
   const [mode, setMode] = useState<AuthMode>('signIn');
   const [email, setEmail] = useState('');
+  // Password stored in React state (not refs) for controlled input validation.
+  // State is acceptable here: the value is short-lived (cleared on mode switch
+  // and after submission), never persisted, and React state is not more
+  // accessible to XSS than a ref — both live in the same JS heap.
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
