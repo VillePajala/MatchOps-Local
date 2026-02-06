@@ -2957,9 +2957,9 @@ export class SupabaseDataStore implements DataStore {
       demandFactor: game.demand_factor ?? undefined,
       gameType: normalizeGameType(game.game_type) ?? undefined,
       gender: normalizeGender(game.gender) ?? undefined,
-      // === Array/object fields ===
-      gamePersonnel: game.game_personnel ?? [],
-      formationSnapPoints: (game.formation_snap_points as Point[] | null) ?? undefined,
+      // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
+      gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
+      formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as Point[] : undefined,
       // === Timer restoration ===
       timeElapsedInSeconds: game.time_elapsed_in_seconds ?? undefined,
       // === Player arrays ===
@@ -2970,12 +2970,14 @@ export class SupabaseDataStore implements DataStore {
       gameEvents,
       assessments: assessmentsRecord,
       // === Tactical data from JSONB columns ===
-      opponents: (tacticalData?.opponents as Opponent[] | null) ?? [],
-      drawings: (tacticalData?.drawings as Point[][] | null) ?? [],
-      tacticalDiscs: (tacticalData?.tactical_discs as TacticalDisc[] | null) ?? [],
-      tacticalDrawings: (tacticalData?.tactical_drawings as Point[][] | null) ?? [],
-      tacticalBallPosition: (tacticalData?.tactical_ball_position as Point | null) ?? null,
-      completedIntervalDurations: (tacticalData?.completed_interval_durations as IntervalLog[] | null) ?? [],
+      // DEFENSIVE: Validate array structure for JSONB fields to guard against DB corruption
+      opponents: Array.isArray(tacticalData?.opponents) ? tacticalData.opponents as Opponent[] : [],
+      drawings: Array.isArray(tacticalData?.drawings) ? tacticalData.drawings as Point[][] : [],
+      tacticalDiscs: Array.isArray(tacticalData?.tactical_discs) ? tacticalData.tactical_discs as TacticalDisc[] : [],
+      tacticalDrawings: Array.isArray(tacticalData?.tactical_drawings) ? tacticalData.tactical_drawings as Point[][] : [],
+      tacticalBallPosition: (tacticalData?.tactical_ball_position != null && typeof tacticalData.tactical_ball_position === 'object' && !Array.isArray(tacticalData.tactical_ball_position))
+        ? tacticalData.tactical_ball_position as Point : null,
+      completedIntervalDurations: Array.isArray(tacticalData?.completed_interval_durations) ? tacticalData.completed_interval_durations as IntervalLog[] : [],
       lastSubConfirmationTimeSeconds: tacticalData?.last_sub_confirmation_time_seconds ?? undefined,
       // === Timestamps for conflict resolution ===
       createdAt: game.created_at ?? undefined,

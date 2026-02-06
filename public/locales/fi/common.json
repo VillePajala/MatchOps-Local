@@ -2610,6 +2610,8 @@
     "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen.",
     "signingOut": "Kirjaudutaan ulos...",
     "loadingYourData": "Ladataan tietojasi...",
+    "alreadyOpen": "Jo avoinna",
+    "alreadyOpenDesc": "MatchOps on jo avoinna toisessa välilehdessä. Sulje tämä tai toinen välilehti jatkaaksesi.",
     "connectionTimeout": "Yhteys aikakatkaistiin",
     "connectionTimeoutDesc": "Palvelimeen ei saatu yhteyttä. Tämä voi tapahtua, kun sovellus on ollut taustalla pitkään.",
     "tryAgain": "Yritä uudelleen",

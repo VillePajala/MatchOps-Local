@@ -65,6 +65,8 @@ export default function Home() {
   const [pendingPostLoginCheckState, setPendingPostLoginCheckState] = useState(() => hasPendingPostLoginCheck());
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
+  // Multi-tab prevention: another tab already has the app open
+  const [isBlockedByOtherTab, setIsBlockedByOtherTab] = useState(false);
   // Ref to track if legacy database migration has been checked this session
   const legacyMigrationCheckedRef = useRef(false);
   // Ref to track if checkAppState has been triggered post-login (prevents premature postLoginCheckComplete)
@@ -99,6 +101,36 @@ export default function Home() {
     isAuthenticated &&
     !isAuthLoading &&
     !postLoginCheckComplete;
+
+  // Multi-tab prevention via Web Locks API
+  // Acquires an exclusive lock; if another tab holds it, shows a blocking screen
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.locks) return;
+
+    let released = false;
+
+    navigator.locks.request(
+      'matchops-active-tab',
+      { ifAvailable: true },
+      (lock) => {
+        if (!lock) {
+          // Another tab holds the lock
+          setIsBlockedByOtherTab(true);
+          return Promise.resolve();
+        }
+        // We got the lock — hold it until component unmounts
+        return new Promise<void>((resolve) => {
+          const check = () => {
+            if (released) resolve();
+            else setTimeout(check, 500);
+          };
+          check();
+        });
+      }
+    );
+
+    return () => { released = true; };
+  }, []);
 
   // Safety timeout: If post-login check doesn't complete within 120 seconds, force completion
   // This prevents users from getting stuck on the loading screen indefinitely due to:
@@ -1087,7 +1119,32 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
-        {showLoadingScreen ? (
+        {isBlockedByOtherTab ? (
+          // Multi-tab block: another tab is already running the app
+          <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+              <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+            </div>
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
+              <h1 className="text-5xl font-bold tracking-tight text-amber-400 mb-4">MatchOps</h1>
+              <div className="max-w-sm text-center">
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  {t('page.alreadyOpen', 'Already Open')}
+                </h2>
+                <p className="text-slate-400 mb-6">
+                  {t('page.alreadyOpenDesc', 'MatchOps is already open in another tab. Please close this tab or the other one to continue.')}
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 transition-all"
+                >
+                  {t('page.tryAgain', 'Try Again')}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : showLoadingScreen ? (
           // Loading state while checking auth, data, or during sign-out
           <LoadingScreen message={getLoadingMessage()} />
         ) : showWelcome ? (
