@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityReferences } from '@/interfaces/DataStore';
+import { DialogBackdrop, dialogContainerStyle, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 
 interface DeleteBlockedDialogProps {
   isOpen: boolean;
@@ -37,15 +38,15 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]"
+    <DialogBackdrop
+      className="z-[70]"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
     >
-      <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md w-full mx-4 shadow-xl">
+      <div className={dialogContainerStyle}>
         <h3 className="text-lg font-semibold text-slate-100 mb-4">
           {t('deleteBlocked.title', 'Cannot Delete "{{name}}"', { name: entityName })}
         </h3>
@@ -78,19 +79,19 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
         <div className="flex gap-3 justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-slate-200 transition-colors"
+            className={secondaryButtonStyle}
           >
             {t('common.cancel', 'Cancel')}
           </button>
           <button
             onClick={handleArchive}
-            className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white transition-colors"
+            className={primaryButtonStyle}
           >
             {t('deleteBlocked.archiveInstead', 'Archive Instead')}
           </button>
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 };
 

@@ -4,7 +4,7 @@ import React, { useRef } from 'react';
 import {
   ModalFooter,
   primaryButtonStyle,
-  wizardBackdropStyle,
+  WizardBackdrop,
   wizardModalLargeStyle,
   wizardHeaderStyle,
   wizardTitleStyle,
@@ -101,8 +101,8 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
   };
 
   return (
-    <div ref={modalRef} className={wizardBackdropStyle} onClick={handleBackdropClick}>
-      <div className={`${wizardModalLargeStyle} mx-4 overflow-y-auto text-slate-100`} role="dialog" aria-modal="true">
+    <WizardBackdrop>
+      <div ref={modalRef} className={`${wizardModalLargeStyle} overflow-y-auto text-slate-100`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className={wizardHeaderStyle}>
           <div className="flex items-center space-x-3">
             {getStatusIcon()}
@@ -244,7 +244,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
           </button>
         </ModalFooter>
       </div>
-    </div>
+    </WizardBackdrop>
   );
 };
 

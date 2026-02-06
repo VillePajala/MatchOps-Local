@@ -168,20 +168,92 @@ export const ScrollableContent: React.FC<{ children: React.ReactNode; className?
 );
 
 // ============================================================================
+// Dialog/Overlay Backdrop Styles
+// ============================================================================
+
+/**
+ * Standard backdrop for all dialog-style overlays.
+ * Provides consistent visual treatment with dark background + ambient glows.
+ */
+export const dialogBackdropStyle =
+  "fixed inset-0 bg-slate-900 flex items-center justify-center font-display";
+
+/**
+ * Standard dialog container style for smaller modals (confirmation, etc.)
+ */
+export const dialogContainerStyle =
+  "bg-slate-800 p-6 rounded-lg border border-slate-600 shadow-2xl max-w-md w-full mx-4";
+
+/**
+ * Dialog backdrop with ambient glow effects.
+ * Use this component instead of raw dialogBackdropStyle for better visuals.
+ */
+export const DialogBackdrop: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  onClick?: (e: React.MouseEvent) => void;
+}> = ({ children, className = '', onClick }) => (
+  <div
+    className={`fixed inset-0 bg-slate-900 flex items-center justify-center font-display overflow-hidden ${className}`}
+    onClick={onClick}
+  >
+    {/* Ambient glow effects - matches AuthModal/WelcomeScreen */}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Blue glow - top right */}
+      <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+      {/* Blue glow - bottom left */}
+      <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+    </div>
+    {/* Content */}
+    <div className="relative z-10 flex items-center justify-center w-full h-full p-4">
+      {children}
+    </div>
+  </div>
+);
+
+// ============================================================================
 // Wizard Modal Styles (Migration, Import dialogs)
 // ============================================================================
 
+/**
+ * @deprecated Use WizardBackdrop component instead for consistent visuals.
+ */
 export const wizardBackdropStyle =
   "fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4";
 
+/**
+ * Wizard backdrop with ambient glow effects.
+ * Use this component for all wizard-style modals (Migration, Import, etc.)
+ */
+export const WizardBackdrop: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className = '' }) => (
+  <div
+    className={`fixed inset-0 z-[80] bg-slate-900 flex items-center justify-center font-display overflow-hidden ${className}`}
+  >
+    {/* Ambient glow effects - matches AuthModal/WelcomeScreen */}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Blue glow - top right */}
+      <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+      {/* Blue glow - bottom left */}
+      <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+    </div>
+    {/* Content */}
+    <div className="relative z-10 flex items-center justify-center w-full h-full p-4">
+      {children}
+    </div>
+  </div>
+);
+
 export const wizardModalStyle =
-  "relative w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-[90vh] flex flex-col";
+  "relative w-full max-w-md bg-slate-800 border border-slate-600 rounded-lg shadow-2xl max-h-[90vh] flex flex-col";
 
 export const wizardModalLargeStyle =
-  "relative w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-[85vh] flex flex-col";
+  "relative w-full max-w-lg bg-slate-800 border border-slate-600 rounded-lg shadow-2xl max-h-[85vh] flex flex-col";
 
 export const wizardHeaderStyle =
-  "flex items-center justify-between px-6 py-4 border-b border-slate-700";
+  "flex items-center justify-between px-6 py-4 border-b border-slate-600";
 
 export const wizardTitleStyle =
   "text-lg font-semibold text-slate-100";
@@ -190,7 +262,7 @@ export const wizardContentStyle =
   "px-6 py-5 overflow-y-auto flex-1 min-h-0";
 
 export const wizardFooterStyle =
-  "px-6 py-4 border-t border-slate-700 flex gap-3 justify-end";
+  "px-6 py-4 border-t border-slate-600 flex gap-3 justify-end";
 
 // Data summary boxes
 export const dataSummaryBoxStyle =

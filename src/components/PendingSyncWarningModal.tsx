@@ -23,7 +23,7 @@ import {
   primaryButtonStyle,
   secondaryButtonStyle,
   dangerButtonStyle,
-  wizardBackdropStyle,
+  WizardBackdrop,
   wizardModalStyle,
   wizardHeaderStyle,
   wizardTitleStyle,
@@ -80,7 +80,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
   const hasFailed = failedCount > 0;
 
   return (
-    <div className={wizardBackdropStyle}>
+    <WizardBackdrop>
       <div
         ref={modalRef}
         role="alertdialog"
@@ -198,7 +198,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </WizardBackdrop>
   );
 };
 

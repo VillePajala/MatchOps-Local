@@ -15,7 +15,7 @@ import {
   primaryButtonStyle,
   secondaryButtonStyle,
   dangerButtonStyle,
-  wizardBackdropStyle,
+  WizardBackdrop,
   wizardModalStyle,
   wizardHeaderStyle,
   wizardTitleStyle,
@@ -774,7 +774,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
   };
 
   return (
-    <div className={wizardBackdropStyle}>
+    <WizardBackdrop>
       <div
         ref={modalRef}
         role="dialog"
@@ -803,7 +803,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           {renderContent()}
         </div>
       </div>
-    </div>
+    </WizardBackdrop>
   );
 };
 

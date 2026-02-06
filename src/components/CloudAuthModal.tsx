@@ -11,7 +11,7 @@ import {
   HiOutlineTrash,
   HiOutlineCheckCircle,
 } from 'react-icons/hi2';
-import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle, DialogBackdrop } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { clearCloudAccountInfo } from '@/config/backendConfig';
 import logger from '@/utils/logger';
@@ -614,16 +614,16 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <DialogBackdrop className="z-[100]">
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cloud-auth-modal-title"
-        className="relative w-full max-w-md mx-4 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl"
+        className="relative w-full max-w-md bg-slate-800 border border-slate-600 rounded-lg shadow-2xl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-600">
           <h2 id="cloud-auth-modal-title" className="text-lg font-semibold text-slate-100">
             {getStepTitle()}
           </h2>
@@ -643,7 +643,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
           {renderContent()}
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 };
 
