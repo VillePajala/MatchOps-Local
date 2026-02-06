@@ -29,6 +29,53 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 
 // =============================================================================
+// MIGRATION CRASH RECOVERY
+// =============================================================================
+
+/**
+ * SessionStorage key for tracking migration-in-progress state.
+ * Persists across page reloads (same tab) but not tab close — prevents stale flags.
+ * If the page reloads during migration, this flag signals the MigrationWizard
+ * to show a "migration may be incomplete, retry?" message.
+ */
+const MIGRATION_IN_PROGRESS_KEY = 'matchops_cloud_migration_in_progress';
+
+function setMigrationInProgress(): void {
+  try {
+    sessionStorage.setItem(MIGRATION_IN_PROGRESS_KEY, Date.now().toString());
+  } catch {
+    // sessionStorage unavailable (private browsing) — non-critical
+  }
+}
+
+function clearMigrationInProgress(): void {
+  try {
+    sessionStorage.removeItem(MIGRATION_IN_PROGRESS_KEY);
+  } catch {
+    // sessionStorage unavailable — non-critical
+  }
+}
+
+/**
+ * Check if a previous migration was interrupted (page reload during migration).
+ * Returns true if migration was in progress when the page last reloaded.
+ */
+export function wasMigrationInterrupted(): boolean {
+  try {
+    return sessionStorage.getItem(MIGRATION_IN_PROGRESS_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Clear the interrupted migration flag (call after user acknowledges or retries).
+ */
+export function clearInterruptedMigrationFlag(): void {
+  clearMigrationInProgress();
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -302,11 +349,21 @@ export async function migrateLocalToCloud(
     return migrationPromise;
   }
 
+  // Set recovery flag so page reloads can detect interrupted migration
+  setMigrationInProgress();
+
   // Start new migration and store the promise
   migrationPromise = performMigration(onProgress, mode);
 
   try {
-    return await migrationPromise;
+    const result = await migrationPromise;
+    // Clear recovery flag on successful completion
+    clearMigrationInProgress();
+    return result;
+  } catch (error) {
+    // Clear recovery flag on explicit error (not a page reload interruption)
+    clearMigrationInProgress();
+    throw error;
   } finally {
     // Reset promise so next call starts fresh
     migrationPromise = null;

@@ -44,6 +44,8 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import {
   migrateLocalToCloud,
   getLocalDataSummary,
+  wasMigrationInterrupted,
+  clearInterruptedMigrationFlag,
   type MigrationCounts,
   type MigrationProgress,
 } from '@/services/migrationService';
@@ -135,6 +137,16 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [_isSyncing, setIsSyncing] = useState(false);
+
+  // Detect if a previous migration was interrupted by a page reload
+  const [wasInterrupted] = useState(() => {
+    const interrupted = wasMigrationInterrupted();
+    if (interrupted) {
+      clearInterruptedMigrationFlag();
+      logger.warn('[MigrationWizard] Previous migration was interrupted by page reload');
+    }
+    return interrupted;
+  });
 
   // Focus trap
   useFocusTrap(modalRef, true);
@@ -358,6 +370,15 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
         return (
           <>
+            {/* Warning if previous migration was interrupted */}
+            {wasInterrupted && (
+              <div className="bg-amber-900/30 border border-amber-500/30 rounded-lg px-4 py-3 mb-4">
+                <p className="text-amber-300 text-sm">
+                  {t('migration.previousInterrupted', 'A previous sync may not have completed. Tap "Sync to Cloud" to retry — your data is safe.')}
+                </p>
+              </div>
+            )}
+
             {/* Icon and description */}
             <div className="text-center mb-5">
               <HiOutlineCloudArrowUp className="h-12 w-12 text-sky-400 mx-auto mb-3" />
