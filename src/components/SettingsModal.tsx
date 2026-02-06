@@ -28,7 +28,6 @@ interface SettingsModalProps {
   onLanguageChange: (lang: string) => void;
   defaultTeamName: string;
   onDefaultTeamNameChange: (name: string) => void;
-  onResetGuide: () => void;
   onHardResetApp: () => void;
   onCreateBackup: () => void;
   // onDataImportSuccess prop kept for interface compatibility but not used
@@ -49,7 +48,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onLanguageChange,
   defaultTeamName,
   onDefaultTeamNameChange,
-  onResetGuide,
   onHardResetApp,
   onCreateBackup,
   initialTab,
@@ -432,7 +430,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-4">
             {/* General Tab - App preferences and season settings */}
             {activeTab === 'general' && (
             <>
@@ -906,23 +904,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </button>
                 </div>
 
-                {/* Reset Guide */}
-                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
-                      {t('settingsModal.resetGuideButton', 'Reset App Guide')}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {t('settingsModal.resetGuideDescription', 'Show the onboarding guide again the next time you open the app.')}
-                    </p>
-                  </div>
-                  <button
-                    onClick={onResetGuide}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
-                  >
-                    {t('common.reset', 'Reset')}
-                  </button>
-                </div>
               </div>
 
               {/* Legal Links */}

@@ -228,7 +228,6 @@ export default function Home() {
     // Otherwise just hide welcome screen
     if (mode === 'cloud') {
       logger.info('[page.tsx] Mode was cloud, reloading to switch to local');
-      showToast(t('page.startingLocalMode', 'Starting in local mode...'), 'info');
       setTimeout(() => {
         try {
           window.location.reload();
@@ -262,7 +261,6 @@ export default function Home() {
     setWelcomeSeen();
 
     logger.info('[page.tsx] Cloud mode enabled, reloading...');
-    showToast(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'), 'info');
 
     // Reload to enter cloud mode - LoginScreen will show automatically
     setTimeout(() => {

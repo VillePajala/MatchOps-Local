@@ -585,7 +585,7 @@ export default function CloudSyncSection({
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
 
   return (
-    <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+    <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
       <h3 className="text-lg font-semibold text-slate-200">
         {t('cloudSync.title', 'Account & Sync')}
       </h3>
