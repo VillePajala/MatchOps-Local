@@ -1316,7 +1316,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // Brief toast before reload so user knows cloud data may remain
         showToast(
           t('page.factoryResetPartial', 'Local data cleared. Cloud data may not have been fully removed — try again if needed.'),
-          'warning'
+          'error'
         );
         // Small delay so toast is visible before reload
         await new Promise(resolve => setTimeout(resolve, 1500));

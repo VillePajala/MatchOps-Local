@@ -795,25 +795,11 @@ export class SyncedDataStore implements DataStore {
   }
 
   async saveGame(id: string, game: AppState): Promise<AppState> {
-    // Get existing game to detect if data actually changed.
-    // This prevents unnecessary saves AND preserves correct timestamps for conflict resolution.
-    const existing = await this.localStore.getGameById(id);
-
-    // If data is unchanged (excluding timestamps), skip save entirely.
-    // This is critical because:
-    // 1. LocalDataStore.saveGame() always updates updatedAt to "now"
-    // 2. If we save unchanged data, local gets artificially newer timestamp
-    // 3. Future conflict resolution would incorrectly favor local (newer timestamp wins)
-    // 4. By skipping, we preserve the original timestamp from cloud/last real change
-    if (existing && isDataEqual(game, existing)) {
-      logger.debug('[SyncedDataStore] Skipping save - game data unchanged (preserving timestamp)', {
-        gameId: id.slice(0, 20),
-        existingUpdatedAt: existing.updatedAt,
-      });
-      return existing; // Return existing game with correct timestamp
-    }
-
-    // Data changed (or new game) - save and queue for sync
+    // Always save to local to ensure writes are never lost.
+    // Previous implementation skipped saves when isDataEqual() returned true to preserve
+    // timestamps for conflict resolution. However, this caused a race condition (#343):
+    // the SyncEngine could overwrite IndexedDB between the caller's state read and the
+    // isDataEqual check, causing the comparison to use stale data and incorrectly skip the save.
     const saved = await this.localStore.saveGame(id, game);
     await this.queueSync('game', id, 'update', saved);
     return saved;
