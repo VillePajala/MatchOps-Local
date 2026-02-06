@@ -2959,7 +2959,7 @@ export class SupabaseDataStore implements DataStore {
       gender: normalizeGender(game.gender) ?? undefined,
       // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
       gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
-      formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as Point[] : undefined,
+      formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as unknown as Point[] : undefined,
       // === Timer restoration ===
       timeElapsedInSeconds: game.time_elapsed_in_seconds ?? undefined,
       // === Player arrays ===
@@ -2971,13 +2971,13 @@ export class SupabaseDataStore implements DataStore {
       assessments: assessmentsRecord,
       // === Tactical data from JSONB columns ===
       // DEFENSIVE: Validate array structure for JSONB fields to guard against DB corruption
-      opponents: Array.isArray(tacticalData?.opponents) ? tacticalData.opponents as Opponent[] : [],
-      drawings: Array.isArray(tacticalData?.drawings) ? tacticalData.drawings as Point[][] : [],
-      tacticalDiscs: Array.isArray(tacticalData?.tactical_discs) ? tacticalData.tactical_discs as TacticalDisc[] : [],
-      tacticalDrawings: Array.isArray(tacticalData?.tactical_drawings) ? tacticalData.tactical_drawings as Point[][] : [],
+      opponents: Array.isArray(tacticalData?.opponents) ? tacticalData.opponents as unknown as Opponent[] : [],
+      drawings: Array.isArray(tacticalData?.drawings) ? tacticalData.drawings as unknown as Point[][] : [],
+      tacticalDiscs: Array.isArray(tacticalData?.tactical_discs) ? tacticalData.tactical_discs as unknown as TacticalDisc[] : [],
+      tacticalDrawings: Array.isArray(tacticalData?.tactical_drawings) ? tacticalData.tactical_drawings as unknown as Point[][] : [],
       tacticalBallPosition: (tacticalData?.tactical_ball_position != null && typeof tacticalData.tactical_ball_position === 'object' && !Array.isArray(tacticalData.tactical_ball_position))
-        ? tacticalData.tactical_ball_position as Point : null,
-      completedIntervalDurations: Array.isArray(tacticalData?.completed_interval_durations) ? tacticalData.completed_interval_durations as IntervalLog[] : [],
+        ? tacticalData.tactical_ball_position as unknown as Point : null,
+      completedIntervalDurations: Array.isArray(tacticalData?.completed_interval_durations) ? tacticalData.completed_interval_durations as unknown as IntervalLog[] : [],
       lastSubConfirmationTimeSeconds: tacticalData?.last_sub_confirmation_time_seconds ?? undefined,
       // === Timestamps for conflict resolution ===
       createdAt: game.created_at ?? undefined,

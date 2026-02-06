@@ -32,7 +32,6 @@ describe('R0 Baseline: Core modals render and close', () => {
     const onClose = jest.fn();
     const onLang = jest.fn();
     const onTeam = jest.fn();
-    const onResetGuide = jest.fn();
     const onHardReset = jest.fn();
     const onBackup = jest.fn();
 
@@ -44,7 +43,6 @@ describe('R0 Baseline: Core modals render and close', () => {
         onLanguageChange={onLang}
         defaultTeamName={''}
         onDefaultTeamNameChange={onTeam}
-        onResetGuide={onResetGuide}
         onHardResetApp={onHardReset}
         onCreateBackup={onBackup}
       />

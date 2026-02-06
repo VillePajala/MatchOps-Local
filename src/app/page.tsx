@@ -14,6 +14,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
+import { useMultiTabPrevention } from '@/hooks/useMultiTabPrevention';
+import { useDeepLinkHandler } from '@/hooks/useDeepLinkHandler';
+import type { AppAction } from '@/hooks/useDeepLinkHandler';
 import { usePremium } from '@/hooks/usePremium';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
@@ -48,7 +51,8 @@ const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
-  const [initialAction, setInitialAction] = useState<'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'settings' | null>(null);
+  const { initialAction, hasDeepLink, setAction } = useDeepLinkHandler();
+  const { isBlocked: isBlockedByOtherTab } = useMultiTabPrevention();
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
@@ -65,8 +69,6 @@ export default function Home() {
   const [pendingPostLoginCheckState, setPendingPostLoginCheckState] = useState(() => hasPendingPostLoginCheck());
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
-  // Multi-tab prevention: another tab already has the app open
-  const [isBlockedByOtherTab, setIsBlockedByOtherTab] = useState(false);
   // Ref to track if legacy database migration has been checked this session
   const legacyMigrationCheckedRef = useRef(false);
   // Ref to track if checkAppState has been triggered post-login (prevents premature postLoginCheckComplete)
@@ -101,36 +103,6 @@ export default function Home() {
     isAuthenticated &&
     !isAuthLoading &&
     !postLoginCheckComplete;
-
-  // Multi-tab prevention via Web Locks API
-  // Acquires an exclusive lock; if another tab holds it, shows a blocking screen
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.locks) return;
-
-    let released = false;
-
-    navigator.locks.request(
-      'matchops-active-tab',
-      { ifAvailable: true },
-      (lock) => {
-        if (!lock) {
-          // Another tab holds the lock
-          setIsBlockedByOtherTab(true);
-          return Promise.resolve();
-        }
-        // We got the lock — hold it until component unmounts
-        return new Promise<void>((resolve) => {
-          const check = () => {
-            if (released) resolve();
-            else setTimeout(check, 500);
-          };
-          check();
-        });
-      }
-    );
-
-    return () => { released = true; };
-  }, []);
 
   // Safety timeout: If post-login check doesn't complete within 120 seconds, force completion
   // This prevents users from getting stuck on the loading screen indefinitely due to:
@@ -1060,44 +1032,17 @@ export default function Home() {
     return () => window.removeEventListener('sync-queue-error', handleSyncQueueError);
   }, [mode, showToast, t]);
 
-  // Handle PWA shortcut query parameters (e.g., /?action=newGame)
+  // Skip start screen when a PWA shortcut deep link was detected
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const params = new URLSearchParams(window.location.search);
-    const action = params.get('action');
-
-    if (action) {
-      // Map query parameter to valid action
-      const validActions: Record<string, typeof initialAction> = {
-        newGame: 'newGame',
-        stats: 'stats',
-        roster: 'roster',
-        settings: 'settings',
-        loadGame: 'loadGame',
-      };
-
-      const mappedAction = validActions[action];
-      if (mappedAction) {
-        // Clear the query parameter from URL to prevent re-triggering
-        window.history.replaceState({}, '', window.location.pathname);
-        // Skip start screen and go directly to the action
-        setInitialAction(mappedAction);
-        setScreen('home');
-      }
+    if (hasDeepLink) {
+      setScreen('home');
     }
-  }, []);
+  }, [hasDeepLink]);
 
   const handleAction = (
-    action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster' | 'teams' | 'settings'
+    action: AppAction | 'getStarted'
   ) => {
-    // For getStarted, we want to go to the main app with no specific action
-    // This will trigger the soccer field center overlay for first-time users
-    if (action === 'getStarted') {
-      setInitialAction(null); // No specific action - let the natural onboarding flow take over
-    } else {
-      setInitialAction(action);
-    }
+    setAction(action);
     setScreen('home');
   };
 
