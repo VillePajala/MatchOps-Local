@@ -154,6 +154,87 @@ describe('SupabaseAuthService', () => {
 
       expect(mockAuth.getSession).toHaveBeenCalledTimes(1);
     });
+
+    /**
+     * @critical AbortError recovery: Supabase's internal lock mechanism can throw
+     * AbortError on PWA resume or rapid sign-in/sign-out. The auth service must
+     * handle this gracefully and attempt localStorage fallback.
+     */
+    describe('AbortError recovery', () => {
+      it('should recover session from localStorage when getSession throws AbortError', async () => {
+        // Mock getSession throwing AbortError (Supabase lock timeout)
+        const abortError = new Error('The operation was aborted');
+        abortError.name = 'AbortError';
+        mockAuth.getSession.mockRejectedValue(abortError);
+
+        // Set up localStorage with a stored Supabase session
+        const projectRef = 'testproject';
+        process.env.NEXT_PUBLIC_SUPABASE_URL = `https://${projectRef}.supabase.co`;
+        const storageKey = `sb-${projectRef}-auth-token`;
+
+        const storedSession = {
+          access_token: 'recovered_token',
+          refresh_token: 'recovered_refresh',
+          user: mockUser,
+        };
+        localStorage.setItem(storageKey, JSON.stringify(storedSession));
+
+        // Mock getUser to succeed (validates recovered session)
+        mockAuth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
+
+        await authService.initialize();
+
+        expect(authService.isInitialized()).toBe(true);
+        expect(authService.isAuthenticated()).toBe(true);
+
+        // Cleanup
+        localStorage.removeItem(storageKey);
+        delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      });
+
+      it('should initialize without session when AbortError occurs and no localStorage fallback', async () => {
+        const abortError = new Error('The operation was aborted');
+        abortError.name = 'AbortError';
+        mockAuth.getSession.mockRejectedValue(abortError);
+
+        // No localStorage data and no SUPABASE_URL
+        delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+        await authService.initialize();
+
+        expect(authService.isInitialized()).toBe(true);
+        expect(authService.isAuthenticated()).toBe(false);
+      });
+
+      it('should re-throw non-AbortError exceptions from getSession', async () => {
+        const randomError = new Error('Something unexpected');
+        randomError.name = 'TypeError';
+        mockAuth.getSession.mockRejectedValue(randomError);
+
+        await expect(authService.initialize()).rejects.toThrow('Something unexpected');
+      });
+
+      it('should handle AbortError with corrupted localStorage data gracefully', async () => {
+        const abortError = new Error('aborted');
+        abortError.name = 'AbortError';
+        mockAuth.getSession.mockRejectedValue(abortError);
+
+        const projectRef = 'testproject';
+        process.env.NEXT_PUBLIC_SUPABASE_URL = `https://${projectRef}.supabase.co`;
+        const storageKey = `sb-${projectRef}-auth-token`;
+        localStorage.setItem(storageKey, 'not-valid-json{{{');
+
+        await authService.initialize();
+
+        // Should still initialize even if localStorage parse fails
+        expect(authService.isInitialized()).toBe(true);
+        expect(authService.isAuthenticated()).toBe(false);
+
+        // Cleanup
+        localStorage.removeItem(storageKey);
+        delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      });
+    });
   });
 
   describe('getMode', () => {

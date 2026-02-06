@@ -211,12 +211,10 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyRe
     }
 
     logger.info('[usePlayBilling] Calling Edge Function with fresh session:', {
-      userId: session.user.id,
+      userId: session.user.id.slice(0, 8),
       expiresAt: session.expires_at,
       hasAccessToken: !!accessToken,
-      accessTokenLength: accessToken.length,
       hasPurchaseToken: !!purchaseToken,
-      purchaseTokenLength: purchaseToken.length,
       productId: SUBSCRIPTION_PRODUCT_ID,
     });
 

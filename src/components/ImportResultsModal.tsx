@@ -153,26 +153,28 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
               </div>
 
               {/* Progress Bar */}
-              <div className={progressBarContainerStyle}>
-                <div
-                  className={`${progressBarFillStyle} bg-green-500 rounded-l-full`}
-                  style={{ width: `${(importResult.successful / getTotalProcessed()) * 100}%` }}
-                ></div>
-                <div
-                  className={`${progressBarFillStyle} bg-indigo-500`}
-                  style={{
-                    width: `${(importResult.skipped / getTotalProcessed()) * 100}%`,
-                    marginLeft: `${(importResult.successful / getTotalProcessed()) * 100}%`
-                  }}
-                ></div>
-                <div
-                  className={`${progressBarFillStyle} bg-red-500 rounded-r-full`}
-                  style={{
-                    width: `${(importResult.failed.length / getTotalProcessed()) * 100}%`,
-                    marginLeft: `${((importResult.successful + importResult.skipped) / getTotalProcessed()) * 100}%`
-                  }}
-                ></div>
-              </div>
+              {getTotalProcessed() > 0 && (
+                <div className={progressBarContainerStyle}>
+                  <div
+                    className={`${progressBarFillStyle} bg-green-500 rounded-l-full`}
+                    style={{ width: `${(importResult.successful / getTotalProcessed()) * 100}%` }}
+                  ></div>
+                  <div
+                    className={`${progressBarFillStyle} bg-indigo-500`}
+                    style={{
+                      width: `${(importResult.skipped / getTotalProcessed()) * 100}%`,
+                      marginLeft: `${(importResult.successful / getTotalProcessed()) * 100}%`
+                    }}
+                  ></div>
+                  <div
+                    className={`${progressBarFillStyle} bg-red-500 rounded-r-full`}
+                    style={{
+                      width: `${(importResult.failed.length / getTotalProcessed()) * 100}%`,
+                      marginLeft: `${((importResult.successful + importResult.skipped) / getTotalProcessed()) * 100}%`
+                    }}
+                  ></div>
+                </div>
+              )}
 
               {/* Warnings */}
               {importResult.warnings.length > 0 && (

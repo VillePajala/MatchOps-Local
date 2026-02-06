@@ -168,7 +168,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     setTeamName(defaultTeamName);
   }, [defaultTeamName]);
 
-  React.useLayoutEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       // Load club season settings (user-scoped)
       getAppSettings(userId).then(settings => {

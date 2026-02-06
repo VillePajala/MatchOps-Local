@@ -1,8 +1,8 @@
 {
-  "version": "70e6f5bc",
-  "date": "2026-02-04",
+  "version": "a2d0fc59",
+  "date": "2026-02-06",
   "notes": {
-    "en": "Close remoteStore on SyncedDataStore.close() to prevent memory leak",
-    "fi": "Close remoteStore on SyncedDataStore.close() to prevent memory leak"
+    "en": "Robustness improvements for auth, sync, and migration",
+    "fi": "Robustness improvements for auth, sync, and migration"
   }
 }
