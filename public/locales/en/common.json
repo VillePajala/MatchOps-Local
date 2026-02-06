@@ -2610,6 +2610,8 @@
     "partialSyncComplete": "Sync complete. Some cloud data may not have loaded - refresh to retry.",
     "signingOut": "Signing out...",
     "loadingYourData": "Loading your data...",
+    "alreadyOpen": "Already Open",
+    "alreadyOpenDesc": "MatchOps is already open in another tab. Please close this tab or the other one to continue.",
     "connectionTimeout": "Connection Timeout",
     "connectionTimeoutDesc": "Unable to connect to the server. This can happen after the app has been in the background for a while.",
     "tryAgain": "Try Again",
