@@ -1,7 +1,7 @@
 ---
 title: Usein kysytyt kysymykset
 description: Yleisimmät kysymykset ja vastaukset MatchOpsista
-lastUpdated: "2025-01-09"
+lastUpdated: "2026-02-06"
 ---
 
 Vastauksia yleisimpiin kysymyksiin MatchOpsista.
@@ -12,23 +12,72 @@ Vastauksia yleisimpiin kysymyksiin MatchOpsista.
 
 Avaa sovellus selaimessa. Sovellus kehottaa asentamaan sen - napauta "Asenna" tai "Lisää aloitusnäyttöön". Androidilla voit asentaa myös Play Kaupasta.
 
+### Tarvitseeko minulla olla tili?
+
+Ei, tili on valinnainen. Voit käyttää MatchOpsia paikallisella tallennuksella (tiliä ei tarvita) tai luoda pilvitilin laitteiden väliseen synkronointiin. Valitse haluamasi tapa, kun avaat sovelluksen ensimmäistä kertaa.
+
 ### Minne tietoni tallennetaan?
 
-Tietosi tallennetaan turvallisesti ja pysyvät yksityisinä. Yksityisyytesi on suojattu suunnitteluperiaatteena.
+Riippuu valitsemastasi tilasta:
+
+- **Paikallinen tila**: Data tallennetaan vain laitteellesi. Maksimaalinen yksityisyys.
+- **Pilvitila**: Data tallennetaan turvallisesti pilveen (Supabase, EU-alue) ja synkronoituu laitteiden välillä.
+
+Molemmat tilat toimivat offline-tilassa. Yksityisyytesi on suojattu suunnitteluperiaatteena.
+
+### Onko pilvisynkronointia?
+
+Kyllä! Pilvisynkronointi on valinnainen. Luo tili synkronoidaksesi datasi automaattisesti useiden laitteiden välillä. Voit myös aloittaa paikallisella tilalla ja siirtyä pilveen myöhemmin.
+
+## Pilvi ja synkronointi
 
 ### Voinko käyttää sovellusta usealla laitteella?
 
-Kyllä. Voit viedä tiedot yhdeltä laitteelta ja tuoda ne toiselle, tai käyttää pilvisynkronointia laitteiden synkronoimiseen.
+Kyllä, kahdella vaihtoehdolla:
+
+- **Pilvitila (suositeltu)**: Luo tili ja datasi synkronoituu automaattisesti kaikkien laitteidesi välillä.
+- **Paikallinen tila**: Vie tiedot yhdeltä laitteelta ja tuo ne toiselle manuaalisesti.
+
+### Mitä tapahtuu, jos olen offline-tilassa pilvitilin kanssa?
+
+Sovellus toimii normaalisti! Kaikki muutokset tallentuvat laitteellesi välittömästi. Kun olet taas verkossa, kaikki synkronoituu automaattisesti. Et menetä mitään dataa.
+
+<Callout type="tip">
+Voit seurata kokonaisen pelin ilman internetiä. Data synkronoituu, kun yhdistät uudelleen.
+</Callout>
+
+### Miten vaihdan paikallisen ja pilvitilan välillä?
+
+Avaa Asetukset ja etsi pilvi/synkronointi-vaihtoehdot. Voit:
+
+- **Paikallinen → Pilvi**: Luo tili ja siirrä olemassa oleva datasi
+- **Pilvi → Paikallinen**: Vaihda vain paikalliseen tallennukseen (data säilyy pilvitililläsi mutta lakkaa synkronoitumasta)
+
+### Onko datani yksityinen pilvitilassa?
+
+Kyllä. Pilvitilassa:
+
+- Data tallennetaan Supabaseen (EU-alue)
+- Suojattu tilitunnuksillasi
+- Rivitason suojaus varmistaa, että vain sinä pääset dataasi
+- Ei jakamista kolmansille osapuolille
+- Voit poistaa tilisi ja kaiken datan milloin tahansa
 
 ## Tietojen hallinta
 
 ### Miten varmuuskopioin tietoni?
 
-Avaa Asetukset-valikko ja käytä Vie-toimintoa. Tämä luo JSON-tiedoston kaikista tiedoistasi, jonka voit tallentaa ja tuoda myöhemmin.
+Avaa valikko (☰) ja valitse **Varmuuskopiointi**. Käytä Vie-toimintoa luodaksesi JSON-tiedoston kaikista tiedoistasi.
+
+<Callout type="info">
+Pilvitilan käyttäjät: Datasi varmuuskopioidaan automaattisesti pilveen. Manuaaliset varmuuskopiot ovat silti suositeltavia lisäsuojaksi.
+</Callout>
 
 ### Mitä tapahtuu, jos kadotan puhelimeni tai se hajoaa?
 
-Jos olet tehnyt säännöllisiä varmuuskopioita, voit tuoda tiedot uudelle laitteelle. Ilman varmuuskopioita tiedot menetetään laitteen mukana.
+**Pilvitilan käyttäjät**: Kirjaudu sisään uudella laitteella - kaikki datasi on siellä.
+
+**Paikallisen tilan käyttäjät**: Jos olet tehnyt säännöllisiä varmuuskopioita, voit tuoda tiedot uudelle laitteelle. Ilman varmuuskopioita tiedot menetetään laitteen mukana.
 
 <Callout type="tip">
 Tee varmuuskopio säännöllisesti, erityisesti tärkeiden otteluiden jälkeen tai kauden lopussa.
@@ -60,7 +109,7 @@ Sovellus päivittyy automaattisesti, kun avaat sen ja sinulla on internetyhteys.
 
 ### Toimiiko sovellus offline-tilassa?
 
-Kyllä! Ensimmäisen latauksen jälkeen sovellus toimii täysin ilman internetyhteyttä. Voit seurata pelejä ilman verkkoyhteyttä.
+Kyllä! Ensimmäisen latauksen jälkeen sovellus toimii täysin ilman internetyhteyttä. Voit seurata pelejä ilman verkkoyhteyttä. Jos käytät pilvitilaa, data synkronoituu, kun yhdistät uudelleen.
 
 ## Tarvitsetko lisäapua?
 
@@ -68,4 +117,5 @@ Jos et löydä vastausta kysymykseesi:
 
 - Tarkista [Vianetsintä](/guide/troubleshooting)-opas yleisiin ongelmiin
 - Tutustu [Vinkit ja parhaat käytännöt](/guide/tips-best-practices) -osioon
+- Lue [Datan hallinta](/guide/data-management) yksityiskohtaiseen tietoon tallennustiloista ja synkronoinnista
 - Ota yhteyttä: hello@match-ops.com

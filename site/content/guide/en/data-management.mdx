@@ -1,36 +1,201 @@
 ---
 title: Data Management
-description: Backup, export, restore, and manage your MatchOps data
-lastUpdated: "2025-01-05"
+description: Storage modes, backup, export, restore, and manage your MatchOps data
+lastUpdated: "2026-02-06"
 ---
 
-Your data in MatchOps is stored securely. This guide covers how to protect and manage your valuable match data.
+Your data in MatchOps is stored securely. This guide covers the storage options available and how to protect and manage your valuable match data.
 
-## How Data is Stored
+## Data Storage Options
 
-### Secure Storage
+MatchOps offers two ways to store your data. You choose your preferred mode when first opening the app.
 
-MatchOps stores your data securely. This means:
+### Local Mode (No Account)
 
-- Data persists even when you close the app or restart your device
-- Works completely offline
-- Regular backups recommended
+Store all data on your device only:
 
-<Callout type="warning">
-Make regular backups to protect against data loss. If you uninstall the app or clear app data in Android settings, backup files ensure you can restore your data.
+- **No account required** - Start using immediately
+- **Works completely offline** - No internet needed
+- **Data stays on device** - Maximum privacy
+- **Single device only** - Data doesn't sync between devices
+
+<Callout type="info">
+Local mode is ideal for coaches who use a single device and prefer keeping data completely private.
 </Callout>
 
-### What's Stored
+### Cloud Mode (Account Required)
 
-Your local database contains:
+Store data in the cloud with automatic sync:
 
-- Player roster and assessments
-- All games and events
-- Seasons and tournaments
-- Teams and personnel
-- User preferences and settings
+- **Account required** - Sign up with email and password
+- **Sync across devices** - Access data from any device
+- **Automatic backup** - Data stored securely in the cloud
+- **Works offline** - Changes save locally, sync when online
+
+<Callout type="info">
+Cloud mode is ideal for coaches who use multiple devices or want automatic backup protection.
+</Callout>
+
+### Choosing Your Mode
+
+When you first open MatchOps, you'll see the Welcome Screen with two options:
+
+1. **Continue with Cloud** - Create an account or sign in for cross-device sync
+2. **Continue Locally** - Start immediately with device-only storage
+
+You can change your mode later in Settings.
+
+## Account Management
+
+*This section applies to Cloud Mode users only.*
+
+### Creating an Account
+
+<Steps>
+<Step title="Select Cloud Mode">
+On the Welcome Screen, tap **Continue with Cloud**.
+</Step>
+
+<Step title="Choose Sign Up">
+Select the sign-up option to create a new account.
+</Step>
+
+<Step title="Enter Your Details">
+Provide your email address and choose a password.
+</Step>
+
+<Step title="Verify Email">
+Check your email and click the verification link.
+</Step>
+</Steps>
+
+### Signing In
+
+If you already have an account:
+
+1. Select **Continue with Cloud** on the Welcome Screen
+2. Enter your email and password
+3. Tap **Sign In**
+
+### Password Reset
+
+Forgot your password?
+
+1. On the sign-in screen, tap **Forgot Password**
+2. Enter your email address
+3. Check your email for the reset link
+4. Follow the link to set a new password
+
+### Signing Out
+
+To sign out of your cloud account:
+
+1. Open the menu (☰) and select **Settings**
+2. Find the Account section
+3. Tap **Sign Out**
+
+<Callout type="warning">
+Before signing out, ensure all data has synced. Check that the sync indicator shows no pending changes.
+</Callout>
+
+## Migration Between Modes
+
+You can switch between local and cloud modes at any time.
+
+### Local to Cloud Migration
+
+Move your local data to the cloud:
+
+<Steps>
+<Step title="Open Settings">
+Open the menu (☰) and select **Settings**.
+</Step>
+
+<Step title="Find Cloud Options">
+Look for the cloud/sync section.
+</Step>
+
+<Step title="Start Migration">
+Select the option to migrate to cloud mode.
+</Step>
+
+<Step title="Create or Sign In">
+Create a new cloud account or sign in to existing.
+</Step>
+
+<Step title="Confirm Migration">
+Review what will be migrated and confirm.
+</Step>
+</Steps>
+
+Your local data will be uploaded to your cloud account.
+
+### Cloud to Local Migration
+
+Move your cloud data to local-only storage:
+
+<Steps>
+<Step title="Open Settings">
+Open the menu (☰) and select **Settings**.
+</Step>
+
+<Step title="Find Mode Options">
+Look for the option to switch to local mode.
+</Step>
+
+<Step title="Confirm Migration">
+Review the implications and confirm.
+</Step>
+</Steps>
+
+<Callout type="warning">
+After switching to local mode, your data will no longer sync. Cloud data remains in your account but won't update with local changes.
+</Callout>
+
+## Sync Status
+
+*This section applies to Cloud Mode users only.*
+
+### Understanding Sync Indicators
+
+When using cloud mode, you'll see sync status indicators:
+
+- **Synced** - All changes saved to cloud
+- **Syncing** - Upload in progress
+- **Pending** - Changes waiting to sync
+- **Offline** - No connection, changes saved locally
+
+### Offline Behavior
+
+Cloud mode works offline:
+
+1. Changes save to your device immediately
+2. When you reconnect, changes sync automatically
+3. No data is lost during offline periods
+
+<Callout type="tip">
+You can use the app normally even without internet. Go to a game, track everything, and it will sync when you're back online.
+</Callout>
+
+### Sync Troubleshooting
+
+If sync seems stuck:
+
+1. Check your internet connection
+2. Wait a few moments for retry
+3. Try closing and reopening the app
+4. Sign out and sign back in as last resort
 
 ## Backup
+
+### Why Backup?
+
+Even with cloud sync, manual backups are valuable:
+
+- **Extra protection** - Belt and suspenders approach
+- **Point-in-time snapshots** - Restore to specific dates
+- **Transferable** - Share data with others
+- **Works in both modes** - Local and cloud users benefit
 
 ### Creating a Backup
 
@@ -63,6 +228,10 @@ Backups are saved as JSON files containing:
 2. **Multiple locations** - Save to cloud storage (Google Drive, iCloud, Dropbox)
 3. **Before updates** - Backup before app or device updates
 4. **Before device changes** - Essential when switching devices
+
+<Callout type="info">
+Cloud mode users: Your data is automatically backed up to the cloud, but manual backups give you additional protection and flexibility.
+</Callout>
 
 ## Restore
 
@@ -102,7 +271,7 @@ Review and confirm the restore operation.
 </Steps>
 
 <Callout type="warning">
-Restoring from backup will replace your current data. Make sure to backup current data first if needed.
+Restoring from backup will add to or replace your current data. Make sure to backup current data first if needed.
 </Callout>
 
 ### Import Options
@@ -115,12 +284,18 @@ When importing data:
 
 ### Transfer to New Device
 
-To move data to a new device:
+**Local mode users:**
 
 1. Create a full backup on old device
 2. Transfer backup file to new device (email, cloud, etc.)
 3. Install MatchOps on new device
 4. Restore from backup
+
+**Cloud mode users:**
+
+1. Install MatchOps on new device
+2. Sign in with your account
+3. Your data syncs automatically
 
 ## Export Options
 
@@ -142,14 +317,24 @@ Export data to Excel for:
 
 ## Data Privacy
 
-### Your Data Stays Local
+### Local Mode Privacy
 
-MatchOps is designed for privacy:
+In local mode, your data is completely private:
 
 - No account required
-- No cloud sync
+- No data transmission
 - No tracking or analytics
-- Data never leaves your device automatically
+- Data never leaves your device
+
+### Cloud Mode Privacy
+
+In cloud mode, your data is stored securely:
+
+- Data stored in Supabase (EU region)
+- Protected by your account credentials
+- Row-level security ensures only you access your data
+- No sharing with third parties
+- You can delete your account and all data anytime
 
 ### Sharing Data
 
@@ -170,11 +355,12 @@ View your storage usage in the Settings modal (About section):
 
 ### App Settings
 
-The Settings modal also provides:
+The Settings modal provides:
 
 - **Language** - Switch between English and Finnish
 - **Default Team Name** - Pre-fill your team name for new games
 - **Season Period** - Customize season start/end dates (default: October-May)
+- **Account** (cloud mode) - View account info and sign out
 
 ### Clearing Data
 
@@ -182,7 +368,9 @@ If you need to clear data:
 
 - **Clear old seasons** - Remove completed, archived seasons
 - **Delete old games** - Remove individual games
-- **Full reset** - Clear all data (use with caution)
+- **Re-sync from cloud** (cloud mode) - Clear local cache and re-download from cloud
+- **Factory reset** (cloud mode) - Clear all data including cloud storage
+- **Hard reset** (local mode) - Clear all local data
 
 <Callout type="tip">
 Archive rather than delete when possible. Storage space is rarely a limiting factor.
@@ -206,5 +394,14 @@ If data appears corrupted:
 1. Try refreshing the app
 2. Restore from a recent backup
 3. Export working data before any fixes
+
+### Cloud Sync Issues
+
+If cloud data isn't syncing:
+
+1. Check your internet connection
+2. Verify you're signed in
+3. Wait for automatic retry
+4. Try signing out and back in
 
 See [Troubleshooting](/guide/troubleshooting) for more help.
