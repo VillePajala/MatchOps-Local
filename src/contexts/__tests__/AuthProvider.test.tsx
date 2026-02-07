@@ -11,6 +11,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { AuthProvider, useAuth } from '../AuthProvider';
 import type { AuthService } from '@/interfaces/AuthService';
 import type { AuthState, Session } from '@/interfaces/AuthTypes';
+import { POLICY_VERSION } from '@/config/constants';
 
 // Track auth callbacks for testing
 let authCallbacks: ((state: AuthState, session: Session | null) => void)[] = [];
@@ -84,7 +85,7 @@ const createMockCloudAuthService = (authenticated = true): AuthService => ({
   }),
   recordConsent: jest.fn().mockResolvedValue(undefined),
   hasConsentedToVersion: jest.fn().mockResolvedValue(true),
-  getLatestConsent: jest.fn().mockResolvedValue({ policyVersion: '2026-01', consentedAt: new Date().toISOString() }),
+  getLatestConsent: jest.fn().mockResolvedValue({ policyVersion: POLICY_VERSION, consentedAt: new Date().toISOString() }),
   deleteAccount: jest.fn().mockResolvedValue(undefined),
 });
 
@@ -526,7 +527,7 @@ describe('AuthProvider', () => {
     it('should not set needsReConsent when user has current policy version', async () => {
       // Mock current policy version
       mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({
-        policyVersion: '2026-01', // Current version (matches POLICY_VERSION)
+        policyVersion: POLICY_VERSION, // Current version
         consentedAt: new Date().toISOString(),
       });
 
@@ -595,7 +596,7 @@ describe('AuthProvider', () => {
 
       await waitFor(() => {
         expect(mockAuthService.recordConsent).toHaveBeenCalledWith(
-          '2026-01',
+          POLICY_VERSION,
           expect.objectContaining({})
         );
       });
@@ -632,7 +633,7 @@ describe('AuthProvider', () => {
 
       await waitFor(() => {
         expect(mockAuthService.recordConsent).toHaveBeenCalledWith(
-          '2026-01',
+          POLICY_VERSION,
           expect.objectContaining({})
         );
       });

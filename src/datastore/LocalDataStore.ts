@@ -17,6 +17,7 @@ import type {
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
+import { DEFAULT_APP_SETTINGS } from '@/types/settings';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
@@ -25,7 +26,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame } from '@/datastore/validation';
+import { validateGame, normalizeOptionalString } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import { validateUserId } from '@/datastore/userDatabase';
 import {
@@ -67,17 +68,6 @@ type TeamRostersIndex = Record<string, TeamPlayer[]>;
 
 // Player adjustments storage format: { [playerId: string]: PlayerStatAdjustment[] }
 type PlayerAdjustmentsIndex = Record<string, PlayerStatAdjustment[]>;
-
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  currentGameId: null,
-  lastHomeTeamName: '',
-  language: 'fi',
-  hasSeenAppGuide: false,
-  useDemandCorrection: false,
-  hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
-  clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
-};
 
 /**
  * Calculate club season label from a date string.
@@ -168,12 +158,6 @@ const isValidWarmupPlan = (value: unknown): boolean => {
   }
 
   return true;
-};
-
-const normalizeOptionalString = (value?: string): string | undefined => {
-  if (value === undefined) return undefined;
-  const trimmed = value.trim();
-  return trimmed === '' ? undefined : trimmed;
 };
 
 // Team-specific aliases for semantic clarity (use shared normalization utilities)

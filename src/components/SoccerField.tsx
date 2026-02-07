@@ -1205,7 +1205,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
   // --- Event Position Helper ---
   // Function to get the relative position of an event within the canvas
-  const getRelativeEventPosition = (
+  // Memoized with empty deps — only reads canvasRef (stable ref)
+  const getRelativeEventPosition = useCallback((
     e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | TouchEvent,
     specificTouchId?: number | null
   ): Point | null => {
@@ -1226,7 +1227,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
              touch = touches[0];
         }
 
-        if (!touch) return null; 
+        if (!touch) return null;
         clientX = touch.clientX;
         clientY = touch.clientY;
     } else { // It's a MouseEvent
@@ -1242,13 +1243,13 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     const relX = (clientX - rect.left) / rect.width;
     const relY = (clientY - rect.top) / rect.height;
-    
+
     // Clamp values between 0 and 1 (optional, but good practice)
     const clampedX = Math.max(0, Math.min(1, relX));
     const clampedY = Math.max(0, Math.min(1, relY));
 
     return { relX: clampedX, relY: clampedY };
-  };
+  }, []);
 
   // Helper to check if a point (clientX, clientY) is within a player disk - Corrected Canvas Logic
   const isPointInPlayer = useCallback((eventClientX: number, eventClientY: number, player: Player): boolean => {
@@ -1692,6 +1693,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         e.preventDefault();
       }
     }, [
+      getRelativeEventPosition,
       isPointInBall, isTacticsBoardView, tacticalDiscs, onToggleTacticalDiscType, onTacticalDiscRemove, isPointInTacticalDisc,
       players, onPlayerRemove, isPointInPlayer, opponents, onOpponentRemove, isPointInOpponent,
     draggingPlayerFromBarInfo, onPlayerDropViaTouch,
@@ -1753,7 +1755,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     } else if (isDrawing) {
       onDrawingAddPoint(pos);
     }
-  }, [activeTouchId, isDrawing, isDraggingPlayer, isDraggingOpponent, draggingPlayerId, draggingOpponentId, onPlayerMove, onOpponentMove, onDrawingAddPoint, isDraggingTacticalDisc, draggingTacticalDiscId, onTacticalDiscMove, isDraggingBall, onTacticalBallMove, isTacticsBoardView]);
+  }, [getRelativeEventPosition, activeTouchId, isDrawing, isDraggingPlayer, isDraggingOpponent, draggingPlayerId, draggingOpponentId, onPlayerMove, onOpponentMove, onDrawingAddPoint, isDraggingTacticalDisc, draggingTacticalDiscId, onTacticalDiscMove, isDraggingBall, onTacticalBallMove, isTacticsBoardView]);
 
   const finalizeTouchEnd = useCallback(() => {
       const touchStartTarget = touchStartTargetRef.current;

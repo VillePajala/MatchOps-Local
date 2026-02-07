@@ -525,10 +525,17 @@ export class SupabaseAuthService implements AuthService {
     validateEmail(email);
     validatePassword(password);
 
-    const { data, error } = await this.client!.auth.signUp({
-      email,
-      password,
-    });
+    const { data, error } = await withRetry(async () => {
+      const result = await this.client!.auth.signUp({
+        email,
+        password,
+      });
+      // Retry transient network errors (e.g., AbortError on Chrome Mobile Android)
+      if (result.error && isNetworkError(result.error)) {
+        throw new TransientSupabaseError(result.error.message);
+      }
+      return result;
+    }, 'signUp');
 
     if (error) {
       logger.warn('[SupabaseAuthService] Sign up failed:', error.message);
@@ -626,10 +633,17 @@ export class SupabaseAuthService implements AuthService {
     // Basic validation only (no password complexity check on sign in)
     validateEmail(email);
 
-    const { data, error } = await this.client!.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await withRetry(async () => {
+      const result = await this.client!.auth.signInWithPassword({
+        email,
+        password,
+      });
+      // Retry transient network errors (e.g., AbortError on Chrome Mobile Android)
+      if (result.error && isNetworkError(result.error)) {
+        throw new TransientSupabaseError(result.error.message);
+      }
+      return result;
+    }, 'signIn');
 
     if (error) {
       // Track failed attempt for rate limiting

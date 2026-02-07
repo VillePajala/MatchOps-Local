@@ -1048,12 +1048,12 @@ export default function Home() {
     }
   }, [hasDeepLink]);
 
-  const handleAction = (
+  const handleAction = useCallback((
     action: AppAction | 'getStarted'
   ) => {
     setAction(action);
     setScreen('home');
-  };
+  }, []);
 
   // Show login screen in cloud mode when not authenticated
   const needsAuth = mode === 'cloud' && !isAuthenticated;

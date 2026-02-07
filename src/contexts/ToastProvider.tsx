@@ -24,6 +24,10 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     const id = `toast-${Date.now()}-${++globalToastCounter}-${Math.random().toString(36).substring(2, 11)}`;
 
     setToasts(prev => {
+      // Deduplicate: skip if identical message+type already visible
+      if (prev.some(t => t.message === message && t.type === type)) {
+        return prev;
+      }
       // Cap at 5 visible toasts to prevent accumulation during rapid errors
       const next = [...prev, { id, message, type }];
       return next.length > 5 ? next.slice(-5) : next;

@@ -28,6 +28,7 @@ import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, Tactic
 import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
+import { DEFAULT_APP_SETTINGS } from '@/types/settings';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
@@ -41,7 +42,7 @@ import {
   StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame } from '@/datastore/validation';
+import { validateGame, normalizeOptionalString } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -140,32 +141,11 @@ interface GameTableSetRow {
   tacticalData: GameTacticalDataRow | null;
 }
 
-// Default settings matching LocalDataStore
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  currentGameId: null,
-  lastHomeTeamName: '',
-  language: 'fi',
-  hasSeenAppGuide: false,
-  useDemandCorrection: false,
-  hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
-  clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
-};
-
 /**
  * Default field position for players (center of field).
  * Used when player position data is missing or undefined.
  */
 const DEFAULT_FIELD_POSITION = { relX: 0.5, relY: 0.5 } as const;
-
-/**
- * Normalize optional string: trim whitespace, convert empty to undefined.
- */
-const normalizeOptionalString = (value?: string): string | undefined => {
-  if (value === undefined) return undefined;
-  const trimmed = value.trim();
-  return trimmed === '' ? undefined : trimmed;
-};
 
 /**
  * Normalize enum-like values to allowed set; returns null for invalid or empty.
@@ -1397,6 +1377,10 @@ export class SupabaseDataStore implements DataStore {
    * Upsert a team - inserts if not exists, updates if exists.
    * Preserves the original ID (critical for migration).
    *
+   * Note: Composite uniqueness checks (Rule 6) are intentionally skipped here.
+   * Upsert is used during migration where data is pre-validated by the source DataStore.
+   * For new team creation, use createTeam() which enforces composite uniqueness.
+   *
    * @param team - Complete team object WITH id
    * @returns The upserted team
    */
@@ -1913,6 +1897,10 @@ export class SupabaseDataStore implements DataStore {
    * Upsert a season - inserts if not exists, updates if exists.
    * Preserves the original ID (critical for migration).
    *
+   * Note: Composite uniqueness checks (Rule 6) are intentionally skipped here.
+   * Upsert is used during migration where data is pre-validated by the source DataStore.
+   * For new season creation, use createSeason() which enforces composite uniqueness.
+   *
    * @param season - Complete season object WITH id
    * @returns The upserted season
    */
@@ -2289,6 +2277,10 @@ export class SupabaseDataStore implements DataStore {
   /**
    * Upsert a tournament - inserts if not exists, updates if exists.
    * Preserves the original ID (critical for migration).
+   *
+   * Note: Composite uniqueness checks (Rule 6) are intentionally skipped here.
+   * Upsert is used during migration where data is pre-validated by the source DataStore.
+   * For new tournament creation, use createTournament() which enforces composite uniqueness.
    *
    * @param tournament - Complete tournament object WITH id
    * @returns The upserted tournament
