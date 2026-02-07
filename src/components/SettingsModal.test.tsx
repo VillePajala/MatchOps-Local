@@ -50,7 +50,7 @@ jest.mock('react-i18next', () => ({
         'settingsModal.doneButton': 'Done',
         'settingsModal.dangerZoneTitle': 'Danger Zone',
         'settingsModal.hardResetButton': 'Hard Reset App',
-        'settingsModal.resetGuideButton': 'Reset App Guide',
+        'settingsModal.resetButton': 'Reset',
         'settingsModal.confirmResetLabel': 'Type RESET to confirm',
         'settingsModal.backupButton': 'Backup All Data',
         'settingsModal.restoreButton': 'Restore from Backup',
@@ -84,7 +84,6 @@ const defaultProps = {
   onLanguageChange: jest.fn(),
   defaultTeamName: 'My Team',
   onDefaultTeamNameChange: jest.fn(),
-  onResetGuide: jest.fn(),
   onHardResetApp: jest.fn(),
   onCreateBackup: jest.fn(),
 };
@@ -224,21 +223,6 @@ describe('<SettingsModal />', () => {
     );
     fireEvent.click(resetBtn);
     expect(defaultProps.onHardResetApp).toHaveBeenCalled();
-  });
-
-  test('calls onResetGuide when Reset App Guide clicked', () => {
-    render(
-      <TestWrapper>
-        <SettingsModal {...defaultProps} />
-      </TestWrapper>
-    );
-    navigateToTab('About');
-    // The card has label "Reset App Guide" in a <p> and a button with text "Reset"
-    const resetGuideLabel = screen.getByText('Reset App Guide');
-    const card = resetGuideLabel.closest('.flex.items-center')!;
-    const resetButton = within(card as HTMLElement).getByRole('button', { name: /Reset/i });
-    fireEvent.click(resetButton);
-    expect(defaultProps.onResetGuide).toHaveBeenCalled();
   });
 
   test('backup button triggers callback', () => {

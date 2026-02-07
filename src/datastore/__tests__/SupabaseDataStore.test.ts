@@ -100,6 +100,19 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
+// Mock retry module to skip delays and retries in unit tests.
+// Both withRetry and throwIfTransient are pass-throughs so that:
+// - No retry delays (test speed)
+// - Errors flow through to classifyAndThrowError (test error classification)
+jest.mock('@/datastore/supabase/retry', () => {
+  const actual = jest.requireActual('@/datastore/supabase/retry');
+  return {
+    ...actual,
+    withRetry: jest.fn(async (fn: () => Promise<unknown>) => fn()),
+    throwIfTransient: jest.fn((result: unknown) => result),
+  };
+});
+
 // Mock storage module for conflict backup tests
 // Note: Storage interactions are mocked to return success; detailed verification
 // requires integration tests with fake-indexeddb
@@ -4745,7 +4758,7 @@ describe('SupabaseDataStore', () => {
      */
     it('should return canDelete=true when no games or teams reference the season', async () => {
       // Mock 3 parallel count queries: games, teams, adjustments — all return 0
-      (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+      (mockSupabaseClient.from as jest.Mock).mockImplementation((_table: string) => {
         const builder = createMockQueryBuilder();
         builder.select.mockReturnValue(builder);
         builder.eq.mockResolvedValue({ data: null, error: null, count: 0 });

@@ -7,7 +7,7 @@
  * Returns the parsed action (or null) and a setter for manual navigation.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 export type AppAction =
   | 'newGame' | 'loadGame' | 'resumeGame' | 'explore'
@@ -31,26 +31,32 @@ interface DeepLinkResult {
   clearAction: () => void;
 }
 
-export function useDeepLinkHandler(): DeepLinkResult {
-  const [initialAction, setInitialAction] = useState<AppAction | null>(null);
-  const [hasDeepLink, setHasDeepLink] = useState(false);
+/**
+ * Parse deep link from URL query parameters.
+ * Executed once as a lazy state initializer to avoid useEffect + setState.
+ */
+function parseDeepLink(): { action: AppAction | null; detected: boolean } {
+  if (typeof window === 'undefined') return { action: null, detected: false };
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get('action');
 
-    const params = new URLSearchParams(window.location.search);
-    const action = params.get('action');
-
-    if (action) {
-      const mappedAction = VALID_ACTIONS[action];
-      if (mappedAction) {
-        // Clear the query parameter from URL to prevent re-triggering
-        window.history.replaceState({}, '', window.location.pathname);
-        setInitialAction(mappedAction);
-        setHasDeepLink(true);
-      }
+  if (raw) {
+    const mapped = VALID_ACTIONS[raw];
+    if (mapped) {
+      // Clear the query parameter from URL to prevent re-triggering
+      window.history.replaceState({}, '', window.location.pathname);
+      return { action: mapped, detected: true };
     }
-  }, []);
+  }
+
+  return { action: null, detected: false };
+}
+
+export function useDeepLinkHandler(): DeepLinkResult {
+  // Parse URL once on mount via lazy initializer (avoids react-hooks/set-state-in-effect).
+  const [deepLink] = useState(parseDeepLink);
+  const [initialAction, setInitialAction] = useState<AppAction | null>(deepLink.action);
 
   const setAction = useCallback((action: AppAction | 'getStarted') => {
     if (action === 'getStarted') {
@@ -64,5 +70,5 @@ export function useDeepLinkHandler(): DeepLinkResult {
     setInitialAction(null);
   }, []);
 
-  return { initialAction, hasDeepLink, setAction, clearAction };
+  return { initialAction, hasDeepLink: deepLink.detected, setAction, clearAction };
 }
