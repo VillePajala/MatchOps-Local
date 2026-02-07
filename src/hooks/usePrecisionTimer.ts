@@ -41,14 +41,14 @@ export const usePrecisionTimer = ({
 
   // Update initial time when startTime changes and timer is not running
   useEffect(() => {
-    if (!startTimestampRef.current) {
+    if (startTimestampRef.current === null) {
       initialTimeRef.current = startTime;
       lastTickRef.current = Math.floor(startTime);
     }
   }, [startTime]);
 
   const tick = useCallback(() => {
-    if (!startTimestampRef.current) return;
+    if (startTimestampRef.current === null) return;
 
     const now = performance.now();
     const elapsedMs = now - startTimestampRef.current;
@@ -63,7 +63,7 @@ export const usePrecisionTimer = ({
   }, []);
 
   const start = useCallback(() => {
-    if (startTimestampRef.current) return; // Already running
+    if (startTimestampRef.current !== null) return; // Already running
 
     startTimestampRef.current = performance.now();
     lastTickRef.current = Math.floor(initialTimeRef.current);
@@ -101,25 +101,23 @@ export const usePrecisionTimer = ({
     };
   }, [isRunning, start, stop]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stop();
-    };
-  }, [stop]);
+  // Note: No separate unmount cleanup effect needed — the isRunning effect above
+  // already calls stop() in its cleanup, which runs on unmount.
+
+  const getCurrentTime = useCallback(() => {
+    if (startTimestampRef.current === null) {
+      return initialTimeRef.current;
+    }
+    const now = performance.now();
+    const elapsedMs = now - startTimestampRef.current;
+    return initialTimeRef.current + (elapsedMs / 1000);
+  }, []);
 
   return {
     start,
     stop,
     reset,
-    getCurrentTime: useCallback(() => {
-      if (!startTimestampRef.current) {
-        return initialTimeRef.current;
-      }
-      const now = performance.now();
-      const elapsedMs = now - startTimestampRef.current;
-      return initialTimeRef.current + (elapsedMs / 1000);
-    }, [])
+    getCurrentTime,
   };
 };
 

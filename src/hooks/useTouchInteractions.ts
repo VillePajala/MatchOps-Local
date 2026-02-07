@@ -18,7 +18,7 @@
  * @category Hooks
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { TFunction } from 'i18next';
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
@@ -102,6 +102,14 @@ export function useTouchInteractions({
   // --- State ---
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
+  // Ref to keep selectedPlayer stable for handleDrop callback.
+  // This avoids handleDrop re-creating on every selectedPlayer change,
+  // which would cause unnecessary re-renders in consumers.
+  const selectedPlayerRef = useRef<Player | null>(null);
+  useEffect(() => {
+    selectedPlayerRef.current = selectedPlayer;
+  }, [selectedPlayer]);
+
   // Derived state
   const isDragging = selectedPlayer !== null;
 
@@ -114,7 +122,7 @@ export function useTouchInteractions({
    */
   const handleDragStart = useCallback((playerInfo: Player) => {
     setSelectedPlayer(playerInfo);
-    logger.log('[useTouchInteractions] Drag start:', playerInfo.name);
+    logger.debug('[useTouchInteractions] Drag start:', playerInfo.name);
   }, []);
 
   /**
@@ -128,11 +136,11 @@ export function useTouchInteractions({
     setSelectedPlayer((currentSelected) => {
       // If tapping the already-selected player, deselect
       if (currentSelected?.id === playerInfo?.id) {
-        logger.log('[useTouchInteractions] Tap deselect:', playerInfo?.name);
+        logger.debug('[useTouchInteractions] Tap deselect:', playerInfo?.name);
         return null;
       }
       // Otherwise, select the new player
-      logger.log('[useTouchInteractions] Tap select:', playerInfo?.name || 'none');
+      logger.debug('[useTouchInteractions] Tap select:', playerInfo?.name || 'none');
       return playerInfo;
     });
   }, []);
@@ -148,18 +156,19 @@ export function useTouchInteractions({
    */
   const handleDrop = useCallback(
     (relX: number, relY: number) => {
-      if (!selectedPlayer) {
+      const player = selectedPlayerRef.current;
+      if (!player) {
         logger.warn('[useTouchInteractions] Drop called with no selected player');
         return;
       }
 
       try {
-        logger.log('[useTouchInteractions] Drop player:', {
-          name: selectedPlayer.name,
+        logger.debug('[useTouchInteractions] Drop player:', {
+          name: player.name,
           relX,
           relY,
         });
-        onDrop(selectedPlayer.id, relX, relY);
+        onDrop(player.id, relX, relY);
         setSelectedPlayer(null); // Clear selection after successful drop
       } catch (error) {
         logger.error('[useTouchInteractions] Drop failed:', error);
@@ -170,7 +179,7 @@ export function useTouchInteractions({
         // Keep player selected so user can try again
       }
     },
-    [selectedPlayer, onDrop, showToast, t]
+    [onDrop, showToast, t]
   );
 
   /**
@@ -179,7 +188,7 @@ export function useTouchInteractions({
    * Clears selected player and optionally calls onCancel callback.
    */
   const handleCancel = useCallback(() => {
-    logger.log('[useTouchInteractions] Drag cancelled');
+    logger.debug('[useTouchInteractions] Drag cancelled');
     setSelectedPlayer(null);
     onCancel?.();
   }, [onCancel]);
@@ -192,7 +201,7 @@ export function useTouchInteractions({
   const handleDeselect = useCallback(() => {
     setSelectedPlayer((currentSelected) => {
       if (currentSelected) {
-        logger.log('[useTouchInteractions] Deselecting:', currentSelected.name);
+        logger.debug('[useTouchInteractions] Deselecting:', currentSelected.name);
       }
       return null;
     });

@@ -13,7 +13,11 @@ This directory contains technical architecture documentation covering system des
 ## Subdirectories
 
 - **[database/](./database/)** - Storage schema and database design
-- **[architecture/](./architecture/)** - Detailed architecture components (dual backend, DataStore interface)
+- **[architecture/](./architecture/)** - Detailed architecture components:
+  - [dual-backend-architecture.md](./architecture/dual-backend-architecture.md) - Local vs Cloud mode design
+  - [auth-data-sync-architecture.md](./architecture/auth-data-sync-architecture.md) - **Runtime behavior** of auth, data, and sync systems
+  - [datastore-interface.md](./architecture/datastore-interface.md) - DataStore interface specification
+  - [auth-service-interface.md](./architecture/auth-service-interface.md) - AuthService interface specification
 
 ## Quick Start
 

@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: Common issues and solutions for MatchOps
-lastUpdated: "2025-01-08"
+lastUpdated: "2026-02-06"
 ---
 
 This guide helps you resolve common issues with MatchOps.
@@ -27,7 +27,8 @@ This guide helps you resolve common issues with MatchOps.
 - Using a different device than before
 
 **Recovery**:
-- Restore from backup if available
+- **Cloud mode users**: Sign out and sign back in to re-sync from cloud
+- **Local mode users**: Restore from backup if available
 - Check if you're on the correct device
 - Contact support if data should exist
 
@@ -40,6 +41,91 @@ This guide helps you resolve common issues with MatchOps.
 - Ensure file isn't corrupted
 - Try a smaller data subset
 - Check that the app has file access permissions
+
+## Cloud Sync Issues
+
+### Data Not Syncing
+
+**Problem**: Changes made on one device don't appear on another.
+
+**Solutions**:
+1. Check your internet connection
+2. Look for sync status indicator - if it shows "Pending", wait for sync to complete
+3. Pull down to refresh or close and reopen the app
+4. Verify you're signed into the same account on both devices
+5. Try signing out and back in
+
+### Sync Stuck or Failing
+
+**Problem**: Sync indicator shows pending changes that won't sync.
+
+**Solutions**:
+1. Check internet connection
+2. Wait a few minutes - the app retries automatically
+3. Close and reopen the app
+4. If still stuck, try signing out and back in
+
+<Callout type="info">
+If you have pending changes and go offline, they're safely stored and will sync when you reconnect.
+</Callout>
+
+### Offline with Cloud Account
+
+**Problem**: Worried about using the app offline with a cloud account.
+
+**This is normal and works fine!**
+- All changes save to your device immediately
+- Data syncs automatically when you reconnect
+- No data is lost during offline periods
+- You can track entire games without internet
+
+<Callout type="tip">
+The app is designed to work offline. Track your game, and everything syncs when you're back online.
+</Callout>
+
+## Authentication Issues
+
+### Can't Sign In
+
+**Problem**: Unable to log into your account.
+
+**Solutions**:
+1. Verify email and password are correct
+2. Check if Caps Lock is on
+3. Try the "Forgot Password" option to reset
+4. Check your internet connection
+5. If using a new account, ensure you verified your email
+
+### Forgot Password
+
+**Problem**: Can't remember your password.
+
+**Solution**:
+1. On the sign-in screen, tap **Forgot Password**
+2. Enter your email address
+3. Check your email (including spam folder) for reset link
+4. Click the link and set a new password
+5. Return to the app and sign in
+
+### Session Expired
+
+**Problem**: App asks you to sign in again unexpectedly.
+
+**Causes**:
+- Sessions expire after extended periods of inactivity
+- App was cleared from memory by the system
+
+**Solution**: Simply sign in again. Your data is safe in the cloud.
+
+### Account Creation Problems
+
+**Problem**: Can't create a new account.
+
+**Solutions**:
+- Check that email address is valid
+- Use a stronger password (minimum requirements shown)
+- Check internet connection
+- Try a different email address if issues persist
 
 ## Performance Issues
 
@@ -133,14 +219,21 @@ Common issues:
 Gather this information:
 1. Device model and Android version
 2. App version (found in Settings)
-3. Steps to reproduce the issue
-4. Any error messages
-5. Screenshot if possible
+3. Storage mode (local or cloud)
+4. Steps to reproduce the issue
+5. Any error messages
+6. Screenshot if possible
 
 ### Reset Options
 
 If issues persist:
 
+**Cloud mode users:**
+1. **Re-sync from cloud**: In Settings, find the option to clear local data and re-download from cloud
+2. **Sign out and back in**: Often fixes sync issues
+3. **Factory reset**: In Settings, clears both local and cloud data (last resort)
+
+**Local mode users:**
 1. **Soft reset**: Clear app cache in Android settings, reopen
 2. **Data export**: Save your data first via backup
 3. **Clean reinstall**: Uninstall and reinstall from Play Store

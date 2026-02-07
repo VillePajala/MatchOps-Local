@@ -47,11 +47,8 @@ export interface GameEvent {
   entityId?: string;
 }
 
-export interface TimerState {
-  gameId: string;
-  timeElapsedInSeconds: number;
-  timestamp: number;
-}
+// TimerState is defined in @/utils/timerStateManager.ts (canonical location)
+// with readonly modifiers and optional wasRunning field.
 
 export interface IntervalLog {
   period: number;
@@ -159,6 +156,23 @@ export interface AppState {
    * Used for filtering and organizing games.
    */
   gender?: Gender;
+  /** Whether the game went to overtime/extra time */
+  wentToOvertime?: boolean;
+  /** Whether the game was decided by penalty shootout */
+  wentToPenalties?: boolean;
+  /** Whether to show position labels (GK, CB, ST, etc.) on the field */
+  showPositionLabels?: boolean;
+  /**
+   * ISO timestamp when the game was created.
+   * Optional for backwards compatibility with legacy data.
+   */
+  createdAt?: string;
+  /**
+   * ISO timestamp when the game was last updated.
+   * Optional for backwards compatibility with legacy data.
+   * Used for conflict resolution in multi-device sync.
+   */
+  updatedAt?: string;
 }
 
 export interface SavedGamesCollection {

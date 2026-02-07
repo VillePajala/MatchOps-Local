@@ -137,6 +137,10 @@ export interface GameSettingsModalProps {
   onSetHomeOrAway: (status: 'home' | 'away') => void;
   isPlayed: boolean;
   onIsPlayedChange: (played: boolean) => void;
+  wentToOvertime?: boolean;
+  wentToPenalties?: boolean;
+  onWentToOvertimeChange: (value: boolean) => void;
+  onWentToPenaltiesChange: (value: boolean) => void;
   gameType?: GameType;
   onGameTypeChange: (gameType: GameType) => void;
   gender?: Gender;
@@ -239,6 +243,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onSetHomeOrAway,
   isPlayed,
   onIsPlayedChange,
+  wentToOvertime = false,
+  wentToPenalties = false,
+  onWentToOvertimeChange,
+  onWentToPenaltiesChange,
   gameType = 'soccer',
   onGameTypeChange,
   gender,
@@ -1453,7 +1461,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettings.title', 'Game Settings')}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -2228,7 +2236,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
 
               {/* Not Played Yet Checkbox */}
-              <div className="mb-4">
+              <div className="mb-4 space-y-2">
                 <label className="inline-flex items-center text-sm text-slate-300">
                   <input
                     type="checkbox"
@@ -2244,6 +2252,38 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
                   />
                   <span className="ml-2">{t('gameSettingsModal.unplayedToggle', 'Not played yet')}</span>
+                </label>
+                <label className="inline-flex items-center text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={!!wentToOvertime}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      onWentToOvertimeChange(newValue);
+                      mutateGameDetails(
+                        { wentToOvertime: newValue },
+                        { source: 'stateSync' }
+                      );
+                    }}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="ml-2">{t('gameSettingsModal.wentToOvertime', 'Went to overtime')}</span>
+                </label>
+                <label className="inline-flex items-center text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={!!wentToPenalties}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      onWentToPenaltiesChange(newValue);
+                      mutateGameDetails(
+                        { wentToPenalties: newValue },
+                        { source: 'stateSync' }
+                      );
+                    }}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="ml-2">{t('gameSettingsModal.wentToPenalties', 'Decided by penalties')}</span>
                 </label>
               </div>
             </div>

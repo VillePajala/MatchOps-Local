@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { importGamesWithMapping, importGamesFromFile, GameImportResult } from '@/utils/gameImport';
 import { queryKeys } from '@/config/queryKeys';
+import { useDataStore } from '@/hooks/useDataStore';
 import logger from '@/utils/logger';
 
 export interface UseGameImportResult {
@@ -17,17 +18,18 @@ export interface UseGameImportResult {
  */
 export const useGameImport = (): UseGameImportResult => {
   const queryClient = useQueryClient();
+  const { userId } = useDataStore();
 
   const invalidateAllQueries = () => {
-    // Invalidate all game-related queries to ensure UI updates
-    queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-    queryClient.invalidateQueries({ queryKey: queryKeys.masterRoster });
-    queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
-    queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-    
+    // Invalidate all game-related queries to ensure UI updates (user-scoped)
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.seasons, userId] });
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.tournaments, userId] });
+
     // Also invalidate any team-related queries if they exist
-    queryClient.invalidateQueries({ queryKey: queryKeys.teams });
-    
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.teams, userId] });
+
     logger.log('Invalidated React Query caches after game import');
   };
 
@@ -37,7 +39,7 @@ export const useGameImport = (): UseGameImportResult => {
     { jsonData: string; overwrite: boolean }
   >({
     mutationFn: async ({ jsonData, overwrite }) => {
-      return importGamesWithMapping(jsonData, overwrite, invalidateAllQueries);
+      return importGamesWithMapping(jsonData, overwrite, invalidateAllQueries, userId);
     },
     onSuccess: (result) => {
       logger.log('Game import mutation completed:', result);
@@ -53,7 +55,7 @@ export const useGameImport = (): UseGameImportResult => {
     { file: File; overwrite: boolean }
   >({
     mutationFn: async ({ file, overwrite }) => {
-      return importGamesFromFile(file, overwrite, invalidateAllQueries);
+      return importGamesFromFile(file, overwrite, invalidateAllQueries, userId);
     },
     onSuccess: (result) => {
       logger.log('Game file import mutation completed:', result);

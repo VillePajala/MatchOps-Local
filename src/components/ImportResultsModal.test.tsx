@@ -167,7 +167,7 @@ describe('ImportResultsModal', () => {
 
   it('calls onClose when backdrop is clicked', async () => {
     const onCloseMock = jest.fn();
-    
+
     renderWithI18n(
       <ImportResultsModal
         isOpen={true}
@@ -175,13 +175,15 @@ describe('ImportResultsModal', () => {
         importResult={mockImportResult}
       />
     );
-    
-    // Click the backdrop (the modal container with backdrop click handler)
-    const backdrop = screen.getByRole('dialog').parentElement;
+
+    // WizardBackdrop wraps children in a content div, so the backdrop
+    // with onClick is 2 levels up from the dialog element.
+    const dialog = screen.getByRole('dialog');
+    const backdrop = dialog.parentElement?.parentElement;
     if (backdrop) {
       fireEvent.click(backdrop);
     }
-    
+
     await waitFor(() => {
       expect(onCloseMock).toHaveBeenCalledTimes(1);
     });

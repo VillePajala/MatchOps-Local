@@ -100,6 +100,7 @@ export interface UseFieldCoordinationReturn {
   setFormationSnapPoints: React.Dispatch<React.SetStateAction<Point[]>>;
   /** Sub slots for substitution planning on sideline */
   subSlots: SubSlot[];
+  setSubSlots: React.Dispatch<React.SetStateAction<SubSlot[]>>;
   tacticalDiscs: TacticalDisc[];
   tacticalDrawings: Point[][];
   tacticalBallPosition: Point | null;
@@ -689,6 +690,7 @@ export function useFieldCoordination({
     formationSnapPoints,
     setFormationSnapPoints,
     subSlots,
+    setSubSlots,
     tacticalDiscs,
     tacticalDrawings,
     tacticalBallPosition,

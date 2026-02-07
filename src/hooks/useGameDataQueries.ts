@@ -1,3 +1,11 @@
+/**
+ * React Query hooks for game data management.
+ *
+ * All hooks use user-scoped storage when authenticated:
+ * - userId is included in query keys for cache isolation
+ * - userId is passed to utility functions for correct database selection
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import {
@@ -8,6 +16,7 @@ import { getTournaments } from '@/utils/tournaments';
 import { getSavedGames } from '@/utils/savedGames';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import { getTeams, getTeamRoster } from '@/utils/teams';
+import { useDataStore } from '@/hooks/useDataStore';
 import type {
   Player,
   Season,
@@ -40,30 +49,40 @@ export interface TeamGameDataQueriesResult {
 }
 
 export function useGameDataQueries(): GameDataQueriesResult {
+  const { userId } = useDataStore();
+
   const masterRoster = useQuery<Player[], Error>({
-    queryKey: queryKeys.masterRoster,
-    queryFn: getMasterRoster,
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.masterRoster, userId],
+    queryFn: () => getMasterRoster(userId),
   });
 
   const seasons = useQuery<Season[], Error>({
-    queryKey: queryKeys.seasons,
-    queryFn: getSeasons,
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.seasons, userId],
+    queryFn: () => getSeasons(userId),
   });
 
   const tournaments = useQuery<Tournament[], Error>({
-    queryKey: queryKeys.tournaments,
-    queryFn: getTournaments,
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.tournaments, userId],
+    queryFn: () => getTournaments(userId),
   });
 
   const savedGames = useQuery<SavedGamesCollection | null, Error>({
-    queryKey: queryKeys.savedGames,
-    queryFn: getSavedGames,
-    initialData: {},
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.savedGames, userId],
+    queryFn: () => getSavedGames(userId),
+    // Note: Removed initialData: {} - it was causing race conditions where
+    // isLoading would be false (because initialData counts as "data available")
+    // but the actual cloud data hadn't loaded yet. This caused the game ID
+    // from settings to not be found in the empty savedGames object.
   });
 
   const currentGameId = useQuery<string | null, Error>({
-    queryKey: queryKeys.appSettingsCurrentGameId,
-    queryFn: getCurrentGameIdSetting,
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.appSettingsCurrentGameId, userId],
+    queryFn: () => getCurrentGameIdSetting(userId),
   });
 
   const loading =
@@ -94,47 +113,55 @@ export function useGameDataQueries(): GameDataQueriesResult {
 
 // Team-aware version of useGameDataQueries
 export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResult {
+  const { userId } = useDataStore();
+
   // Get all teams
   const teams = useQuery<Team[], Error>({
-    queryKey: queryKeys.teams,
-    queryFn: getTeams,
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.teams, userId],
+    queryFn: () => getTeams(userId),
   });
 
   // Note: Active team concept removed - teams are contextually selected
   // This will be refactored in Phase 2 when implementing contextual team selection
-  
+
   // Use provided teamId (no fallback to global active team)
   const effectiveTeamId = teamId;
 
   // Get team roster (only if we have a team ID)
   const teamRoster = useQuery<TeamPlayer[], Error>({
-    queryKey: queryKeys.teamRoster(effectiveTeamId || 'none'),
-    queryFn: () => effectiveTeamId ? getTeamRoster(effectiveTeamId) : Promise.resolve([]),
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.teamRoster(effectiveTeamId || 'none'), userId],
+    queryFn: () => effectiveTeamId ? getTeamRoster(effectiveTeamId, userId) : Promise.resolve([]),
     enabled: !!effectiveTeamId,
   });
 
   // Get seasons (global entities - no team filtering per plan)
   const seasons = useQuery<Season[], Error>({
-    queryKey: queryKeys.seasons,
-    queryFn: getSeasons,
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.seasons, userId],
+    queryFn: () => getSeasons(userId),
   });
 
-  // Get tournaments (global entities - no team filtering per plan)  
+  // Get tournaments (global entities - no team filtering per plan)
   const tournaments = useQuery<Tournament[], Error>({
-    queryKey: queryKeys.tournaments,
-    queryFn: getTournaments,
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.tournaments, userId],
+    queryFn: () => getTournaments(userId),
   });
 
   // Get saved games (global collection - filtering happens at UI level)
   const savedGames = useQuery<SavedGamesCollection | null, Error>({
-    queryKey: queryKeys.savedGames,
-    queryFn: getSavedGames,
-    initialData: {},
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.savedGames, userId],
+    queryFn: () => getSavedGames(userId),
+    // Note: No initialData - let the query properly load before rendering
   });
 
   const currentGameId = useQuery<string | null, Error>({
-    queryKey: queryKeys.appSettingsCurrentGameId,
-    queryFn: getCurrentGameIdSetting,
+    // Include userId in query key for cache isolation between users
+    queryKey: [...queryKeys.appSettingsCurrentGameId, userId],
+    queryFn: () => getCurrentGameIdSetting(userId),
   });
 
   const loading =

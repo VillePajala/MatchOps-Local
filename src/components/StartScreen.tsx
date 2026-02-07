@@ -2,13 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from '@/i18n';
-import {
-  updateAppSettings,
-  getAppSettings,
-} from '@/utils/appSettings';
+import i18n, { saveLanguagePreference } from '@/i18n';
+// Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
+// and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import InstructionsModal from '@/components/InstructionsModal';
-import logger from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthProvider';
+import { isAndroid } from '@/utils/platform';
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -16,9 +15,14 @@ interface StartScreenProps {
   onGetStarted: () => void;
   onViewStats: () => void;
   onOpenSettings: () => void;
+  /** Called on Android to enable cloud sync (shows upgrade modal if not premium) */
+  onEnableCloudSync?: () => void;
+  /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
+  onSignInExistingSubscriber?: () => void;
   canResume?: boolean;
   hasSavedGames?: boolean;
   isFirstTimeUser?: boolean;
+  isCloudAvailable?: boolean;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
@@ -27,30 +31,31 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onGetStarted,
   onViewStats,
   onOpenSettings,
+  onEnableCloudSync,
+  onSignInExistingSubscriber,
   canResume = false,
   hasSavedGames = false,
   isFirstTimeUser = false,
+  isCloudAvailable = false,
 }) => {
   const { t } = useTranslation();
+  const { user, mode, signOut } = useAuth();
   const [language, setLanguage] = useState<string>(i18n.language);
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
 
-  useEffect(() => {
-    getAppSettings().then((settings) => {
-      if (settings.language) {
-        setLanguage(settings.language);
-      }
-    });
-  }, []);
+  const isCloudMode = mode === 'cloud' && user;
+
+  // Language is already loaded from localStorage by i18n on initialization.
+  // i18n.language is the source of truth - no need to call getAppSettings().
+  // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N).
 
   useEffect(() => {
     i18n.changeLanguage(language);
-    updateAppSettings({ language }).catch((error) => {
-      logger.warn('[StartScreen] Failed to save language preference (non-critical)', { language, error });
-    });
+    // Save to localStorage (i18n loads from here on init).
+    // DO NOT call updateAppSettings here - StartScreen is shown in local mode,
+    // so calling it could cause DataStore initialization conflicts if user switches modes.
+    saveLanguagePreference(language);
   }, [language]);
-
-  const isEnglish = language === 'en';
 
   return (
     <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
@@ -96,16 +101,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <div className="text-center mb-6">
             {/* App Name as Logo */}
             <div className="relative inline-block mb-3">
-              <h1 className="relative text-6xl sm:text-7xl font-bold tracking-tight">
+              <h1 className="relative text-5xl sm:text-6xl font-bold tracking-tight">
                 <span className="text-amber-400">MatchOps</span>
-                <br />
-                <span className="text-white">Local</span>
               </h1>
             </div>
 
             {/* Tagline */}
             <p className="text-lg text-slate-400">
-              {isEnglish ? 'Plan · Track · Assess' : 'Suunnittele · Kirjaa · Arvioi'}
+              {t('startScreen.tagline', 'Plan · Track · Assess')}
             </p>
           </div>
 
@@ -183,6 +186,64 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </>
             )}
           </div>
+
+          {/* Mode footer */}
+          {isCloudMode ? (
+            <div className="mt-8 text-center text-sm text-slate-500">
+              <span>{t('startScreen.signedInAs', 'Signed in as')} </span>
+              <span className="text-slate-400">{user.email}</span>
+              <span className="mx-2">·</span>
+              <button
+                type="button"
+                onClick={signOut}
+                className="text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                {t('controlBar.signOut', 'Sign Out')}
+              </button>
+            </div>
+          ) : isCloudAvailable && (onEnableCloudSync || onSignInExistingSubscriber) ? (
+            isAndroid() ? (
+              // Android: Show enable cloud sync (triggers upgrade modal → purchase)
+              <div className="mt-8 text-center text-sm text-slate-500">
+                <span>{t('startScreen.usingLocalStorage', 'Using local storage')}</span>
+                <span className="mx-2">·</span>
+                <button
+                  type="button"
+                  onClick={onEnableCloudSync}
+                  className="text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  {t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}
+                </button>
+              </div>
+            ) : (
+              // Desktop: Show sign in for existing subscribers + Play Store link for new users
+              <div className="mt-8 text-center text-sm">
+                <div className="text-slate-500 mb-2">
+                  {t('startScreen.usingLocalStorage', 'Using local storage')}
+                </div>
+                {onSignInExistingSubscriber && (
+                  <button
+                    type="button"
+                    onClick={onSignInExistingSubscriber}
+                    className="text-amber-400 hover:text-amber-300 transition-colors"
+                  >
+                    {t('startScreen.existingSubscriber', 'Already a subscriber? Sign in →')}
+                  </button>
+                )}
+                <div className="mt-3 text-slate-500 text-xs">
+                  <span>{t('startScreen.newToCloud', 'New here? Subscribe via the Android app.')}</span>
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.matchops.local"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-400/80 hover:text-amber-300 ml-1"
+                  >
+                    {t('startScreen.getAndroidApp', 'Get on Google Play')}
+                  </a>
+                </div>
+              </div>
+            )
+          ) : null}
         </div>
       </div>
 

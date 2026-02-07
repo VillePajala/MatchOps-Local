@@ -84,7 +84,7 @@ describe('useTouchInteractions', () => {
 
       expect(result.current.selectedPlayer).toEqual(goalkeeper);
       expect(result.current.isDragging).toBe(true);
-      expect(logger.log).toHaveBeenCalledWith(
+      expect(logger.debug).toHaveBeenCalledWith(
         '[useTouchInteractions] Drag start:',
         goalkeeper.name
       );

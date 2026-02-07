@@ -6,15 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Healthy
 
-**Last Updated**: January 5, 2026
+**Last Updated**: January 28, 2026
 
 ### Quick Stats
-- ✅ **3,203 tests** passing across 182 suites
+- ✅ **3,500+ tests** passing
 - ✅ **0 security vulnerabilities**
-- ✅ **Next.js 16.0.10 + React 19.2**
-- ✅ **HomePage**: 62 lines (was 3,725)
-- ✅ **9 hooks** extracted and tested
-- ✅ **React.memo** optimization complete
+- ✅ **Next.js 16.0.10 + React 19.2 + Supabase**
+- ✅ **Dual-mode**: Local (IndexedDB) + Cloud (Supabase)
+- ✅ **Auth**: Email/password via Supabase Auth
+- ✅ **Edge Functions**: verify-subscription, delete-account
 
 ### What's Complete
 - All P0/P1/P2 refactoring
@@ -22,11 +22,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Next.js 16.0.10 + React 19.2 upgrade**
 - Layer 3 performance polish
 - Test coverage improvement (+694 tests)
-- **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory (PR #137 ready to merge)
+- **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory
+- **Supabase Cloud Backend PRs 1-12** ✅ - See PR Summary below
+- **Local-First Cloud Sync** ✅ - SyncQueue, SyncEngine, SyncedDataStore (PR #324)
 
 ### What's Next
-- **Supabase Cloud Backend (Phase 4)** - IN PROGRESS
-- **Play Store Release**: See master-execution-guide.md
+- **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
+- **Cloud Sync Bug Fixes**: Warmup plan ID conflict, metadata normalization (see UNIFIED-ROADMAP.md)
+
+### ⚠️ Quality Bar: Production-Ready (Not MVP)
+
+**This project is past MVP stage.** We are preparing for Play Store release with paid subscriptions.
+
+**What this means for development:**
+- **Billing/Auth/Security**: Production-grade quality required. No shortcuts, no "good enough for MVP".
+- **Error Messages**: Must be sanitized - never leak implementation details (mock modes, config state, stack traces).
+- **Edge Functions**: Must have tests and proper error handling.
+- **Feature Code**: Can be "launch-ready" (not perfect, but solid for initial user scale).
+
+**Do NOT defer issues with these justifications:**
+- ❌ "Acceptable for MVP"
+- ❌ "Can fix later before launch"
+- ❌ "Good enough for now"
+
+**Instead, use these criteria:**
+- ✅ "Safe for production with paying users"
+- ✅ "Handles edge cases gracefully"
+- ✅ "Follows security best practices"
 
 ### Essential Reading
 - **[supabase-implementation-guide.md](./docs/03-active-plans/supabase-implementation-guide.md)** ⭐ **Active implementation plan**
@@ -180,16 +202,18 @@ certifications: personnel.certifications ?? [],  // text[] array
 
 #### Rule 10: createGame() Defaults
 
-**SupabaseDataStore.createGame() MUST provide these defaults** (especially `periodDurationMinutes` which has NO schema default):
+**SupabaseDataStore.createGame() MUST provide these defaults** to ensure consistent behavior with LocalDataStore:
 
 ```typescript
-periodDurationMinutes: 10,       // ⚠️ NOT NULL, NO DB DEFAULT - will fail without this!
+periodDurationMinutes: 10,       // Schema has DEFAULT 10, but app should set explicitly
 subIntervalMinutes: 5,
 showPlayerNames: true,
 tacticalBallPosition: { relX: 0.5, relY: 0.5 },
 lastSubConfirmationTimeSeconds: 0,
 // See implementation guide Section 5.0.1 for full list
 ```
+
+Note: The schema provides `DEFAULT 10` for `period_duration_minutes` as a safety net, but the app layer should always provide the value explicitly for clarity and consistency.
 
 #### Rule 11: Event CRUD Uses Full-Save
 
@@ -303,82 +327,15 @@ const seasons = await localDataStore.getSeasons(true);          // Computes club
 
 ---
 
-### 🚫 BRANCHING STRATEGY — READ CAREFULLY
+### Branching Strategy
 
-#### ⛔ NEVER MERGE TO MASTER UNTIL ALL 8 PRs ARE COMPLETE
+All Supabase work happens on `feature/supabase-cloud-backend`. Sub-PRs (e.g., `supabase/pr12-*`) target the feature branch, not master.
 
-```
-master (production) ← PROTECTED: NO SUPABASE CODE UNTIL 100% COMPLETE
-│
-│   ⛔ DO NOT CREATE PRs TO MASTER FOR SUPABASE WORK
-│   ⛔ DO NOT MERGE ANY SUPABASE BRANCH TO MASTER
-│   ⛔ DO NOT PUSH SUPABASE CODE DIRECTLY TO MASTER
-│
-└── feature/supabase-cloud-backend (MASTER FEATURE BRANCH)
-    │
-    │   ✅ ALL Supabase PRs target THIS branch
-    │   ✅ This branch accumulates all 8 PRs
-    │   ✅ Only merged to master when EVERYTHING works
-    │
-    ├── supabase/pr1-foundation        → PR to feature/supabase-cloud-backend
-    ├── supabase/pr2-supabase-client   → PR to feature/supabase-cloud-backend
-    ├── supabase/pr3-datastore-core    → PR to feature/supabase-cloud-backend
-    ├── supabase/pr4-datastore-games   → PR to feature/supabase-cloud-backend
-    ├── supabase/pr5-auth-service      → PR to feature/supabase-cloud-backend
-    ├── supabase/pr6-migration         → PR to feature/supabase-cloud-backend
-    ├── supabase/pr7-performance       → PR to feature/supabase-cloud-backend
-    └── supabase/pr8-integration       → PR to feature/supabase-cloud-backend
-                                       │
-                                       └── FINAL: PR to master (ONLY when ALL 8 complete + tested)
-```
-
-#### Why This Matters
-
-- **master is production** — users are running this code
-- **Partial Supabase = broken app** — cloud mode won't work until all pieces exist
-- **Local mode must stay perfect** — any regression breaks existing users
-- **Feature branch isolates risk** — we can test everything together before release
-
-#### Branch Commands
-
-```bash
-# Starting work on a new PR (e.g., PR #3)
-git checkout feature/supabase-cloud-backend
-git pull origin feature/supabase-cloud-backend
-git checkout -b supabase/pr3-datastore-core
-
-# When PR is ready (after review)
-# Create PR: supabase/pr3-datastore-core → feature/supabase-cloud-backend
-# ⛔ NOT: supabase/pr3-datastore-core → master
-
-# After PR is merged, start next PR
-git checkout feature/supabase-cloud-backend
-git pull origin feature/supabase-cloud-backend
-git checkout -b supabase/pr4-datastore-games
-```
-
-#### Final Merge Criteria (ALL must be true)
-
-Before creating the final PR from `feature/supabase-cloud-backend` → `master`:
-
-- [ ] All 8 sub-PRs merged to feature branch
-- [ ] `npm test` passes (3,200+ tests)
+**Final Merge Criteria** (before `feature/supabase-cloud-backend` → `master`):
+- [ ] All sub-PRs merged to feature branch
+- [ ] `npm test` passes
 - [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Manual test: Local mode full workflow works
-- [ ] Manual test: Cloud mode full workflow works
-- [ ] Manual test: Migration from local → cloud works
-- [ ] Manual test: Mode switching works
-- [ ] Code review completed by user
-
-### PR Workflow Rules
-
-1. **All sub-PRs target `feature/supabase-cloud-backend`** (NEVER master)
-2. **Each PR from its own branch**: `supabase/pr1-foundation`, `supabase/pr2-supabase-client`, etc.
-3. **Final merge to master only when all 8 PRs are complete and tested**
-4. **Before each PR**: Run `npx ts-node scripts/verify-supabase-plan.ts`
-5. **During each PR**: Follow the checklist in `supabase-preflight-checklist.md`
-6. **If asked to merge to master**: REFUSE and explain the branching strategy
+- [ ] Manual test: Local mode, cloud mode, migration, mode switching
 
 ### Review Process (IMPORTANT)
 
@@ -404,16 +361,20 @@ Before creating the final PR from `feature/supabase-cloud-backend` → `master`:
 
 ### PR Summary
 
-| PR | Branch | Description | Critical Rules |
-|----|--------|-------------|----------------|
-| 1 | `supabase/pr1-foundation` | backendConfig.ts, mode detection | — |
-| 2 | `supabase/pr2-supabase-client` | Supabase client singleton, lazy loading | — |
-| 3 | `supabase/pr3-datastore-core` | Core CRUD (players, teams, seasons, etc.) | Rules 6, 7, 9, **13, 16, 17** |
-| 4 | `supabase/pr4-datastore-games` | Game transforms, all DataStore methods | **Rules 1-5, 8, 10, 11, 14, 15** |
-| 5 | `supabase/pr5-auth-service` | SupabaseAuthService implementation | Rule 12 |
-| 6 | `supabase/pr6-migration` | Local → Cloud migration service | Rules 1-9, 13, **18** |
-| 7 | `supabase/pr7-performance` | QueryProvider optimization | Rule **19** |
-| 8 | `supabase/pr8-integration` | UI, integration tests, polish | Verify all **19 rules** |
+| PR | Status | Description |
+|----|--------|-------------|
+| 1 | ✅ | Foundation - backendConfig.ts, mode detection |
+| 2 | ✅ | Supabase client singleton, lazy loading |
+| 3 | ✅ | SupabaseDataStore core CRUD (players, teams, seasons, etc.) |
+| 4 | ✅ | SupabaseDataStore games - transforms, all DataStore methods |
+| 5 | ✅ | SupabaseAuthService + Auth UI |
+| 6 | ✅ | Migration service (local → cloud) |
+| 7 | ✅ | QueryProvider optimization |
+| 8 | ✅ | Integration & final polish |
+| 9 | ✅ | Infrastructure & Migration UI (SQL migrations, MigrationWizard) |
+| 10 | ✅ | Cloud Data Management (clear cloud data, migration modes) |
+| 11 | ✅ | Reverse Migration & Cloud Account (cloud → local, WelcomeScreen) |
+| 12 | ✅ | Migration Wizard Simplified (2 buttons: Sync/Not Now, CloudModeImportModal deleted) |
 
 ---
 
@@ -440,7 +401,13 @@ The build process includes a custom manifest generation step that runs before Ne
 - **React 19.2** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker
-- **Browser IndexedDB** for data persistence
+- **Dual-mode data persistence**:
+  - **Local**: Browser IndexedDB (offline-first, no account required)
+  - **Cloud**: Supabase PostgreSQL (cross-device sync, requires auth)
+- **Supabase** for cloud backend:
+  - Auth (email/password)
+  - PostgreSQL database with RLS
+  - Edge Functions (subscription verification, account deletion)
 - **React Query** for state management
 - **i18next** for internationalization (English/Finnish)
 - **xlsx** for Excel export (CDN tarball: SheetJS removed npm registry access, CDN is official distribution)
@@ -466,12 +433,16 @@ The build process includes a custom manifest generation step that runs before Ne
 - `ControlBar` - Main app controls
 - Various modals for game settings, stats, and management
 
-**Data Persistence**: All data stored in browser IndexedDB via DataStore abstraction:
+**Data Persistence**: Dual-mode architecture via DataStore abstraction:
 - **DataStore Interface**: `src/interfaces/DataStore.ts` (backend-agnostic contract)
 - **LocalDataStore**: `src/datastore/LocalDataStore.ts` (IndexedDB implementation)
-- **Factory**: `src/datastore/factory.ts` (singleton access via `getDataStore()`)
+- **SupabaseDataStore**: `src/datastore/SupabaseDataStore.ts` (Supabase/PostgreSQL implementation)
+- **Factory**: `src/datastore/factory.ts` (singleton access via `getDataStore()`, mode-aware)
+- **AuthService Interface**: `src/interfaces/AuthService.ts` (auth abstraction)
+- **LocalAuthService**: `src/auth/LocalAuthService.ts` (no-op for local mode)
+- **SupabaseAuthService**: `src/auth/SupabaseAuthService.ts` (Supabase Auth)
 - Player roster, games, seasons, tournaments, personnel, settings
-- Legacy utilities (`src/utils/savedGames.ts`, etc.) now delegate to DataStore
+- Migration service for local ↔ cloud data transfer
 
 **Game Types**: Supports both soccer and futsal games via `gameType: 'soccer' | 'futsal'` field on games, seasons, and tournaments. Legacy games without `gameType` default to soccer. See `docs/04-features/game-type-support.md`.
 
@@ -497,23 +468,23 @@ The build process includes a custom manifest generation step that runs before Ne
 
 ## For Code Reviewers (AI or Human)
 
-### ⚠️ Critical: This is a Local-First PWA, NOT a Traditional Web App
+### ⚠️ Critical: This is a Local-First PWA with Optional Cloud Sync
 
-This is a **local-first Progressive Web App** for single-user soccer coaching. No backend, no multi-user features, no enterprise patterns needed.
+This is a **local-first Progressive Web App** for single-user soccer coaching with **optional** cloud backend for cross-device sync.
 
 ### Architecture Context
 
-**Single-User Installation**
-- One soccer coach per installation, no authentication/authorization/RBAC
-- 100% browser-based, no API endpoints or database servers
-- Minimal network: PWA updates, license validation, error reporting only
-- Works completely offline, all data in browser IndexedDB
+**Dual-Mode Operation**
+- **Local mode**: Zero setup, all data in IndexedDB, works offline, no account needed
+- **Cloud mode**: Supabase backend for cross-device sync, requires authentication
+- User chooses mode at first launch; can migrate data between modes anytime
+- Single-user per account (no team collaboration features)
 
 **Data Scale & Privacy**
 - 1 user, 50-100 players, 50-100 games/season, <50MB storage
 - Soccer scores/stats only - NOT sensitive PII/financial/healthcare data
-- Data never leaves device (except opt-in error tracking)
-- Primary threat: physical device theft (mitigated by OS encryption)
+- **Local mode**: Data never leaves device
+- **Cloud mode**: Data stored in Supabase (EU region), protected by RLS policies
 
 **PWA Private Mode Behavior**
 - PWA installation IMPOSSIBLE in private/incognito (by design across all browsers)
@@ -564,27 +535,40 @@ This is a **local-first Progressive Web App** for single-user soccer coaching. N
 
 ### Quick Reference
 
-1. **Remember**: One user, one device, no server, no network
+1. **Remember**: One user per account, local-first with optional cloud sync
 2. **Data scale**: Hundreds of records, not millions
-3. **Security**: Browser sandboxing is the boundary
+3. **Security**: Local mode = browser sandbox; Cloud mode = Supabase RLS + auth
 4. **Performance**: Optimize for small datasets and single-user UX
 
 See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
 
 ## Key Files to Understand
 
+**Core App:**
 - `src/app/page.tsx` - Main component orchestrating entire app (hooks, reducers, data fetching)
 - `src/hooks/useGameSessionReducer.ts` - Core game logic reducer (timer, score, status)
 - `src/hooks/useGameState.ts` - Interactive soccer field state management
 - `src/utils/masterRosterManager.ts` - Player CRUD operations
 - `src/config/queryKeys.ts` - React Query cache keys
 - `src/types/index.ts` - Core TypeScript interfaces
-- `src/utils/localStorage.ts` - Async localStorage wrapper
-- `src/utils/logger.ts` - Centralized logging utility
+
+**Data Layer (Dual-Mode):**
 - `src/interfaces/DataStore.ts` - Backend-agnostic data access interface
-- `src/datastore/LocalDataStore.ts` - IndexedDB implementation of DataStore
-- `src/datastore/factory.ts` - Singleton factory for DataStore/AuthService
-- `src/auth/LocalAuthService.ts` - No-op auth service for local mode
+- `src/datastore/LocalDataStore.ts` - IndexedDB implementation
+- `src/datastore/SupabaseDataStore.ts` - Supabase/PostgreSQL implementation
+- `src/datastore/factory.ts` - Mode-aware singleton factory
+- `src/config/backendConfig.ts` - Backend mode detection and configuration
+
+**Authentication:**
+- `src/interfaces/AuthService.ts` - Auth abstraction interface
+- `src/auth/LocalAuthService.ts` - No-op auth for local mode
+- `src/auth/SupabaseAuthService.ts` - Supabase Auth implementation
+- `src/datastore/supabase/client.ts` - Supabase client singleton
+
+**Cloud Infrastructure:**
+- `supabase/functions/verify-subscription/` - Edge Function for Play Store billing
+- `supabase/functions/delete-account/` - Edge Function for GDPR account deletion
+- `supabase/migrations/` - PostgreSQL schema migrations
 
 ## Opportunistic Refactoring Policy
 
@@ -942,7 +926,11 @@ Code that works in dev may fail in Vercel due to stricter ESLint, different Type
 
 ## Environment Variables
 
-### Required Production
+### Cloud Backend (enables cloud mode)
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon/public key
+
+### Error Reporting
 - `NEXT_PUBLIC_SENTRY_DSN` - Sentry DSN for error reporting (client-side)
 - `SENTRY_AUTH_TOKEN` - Sentry auth for source map uploads (server-side)
 

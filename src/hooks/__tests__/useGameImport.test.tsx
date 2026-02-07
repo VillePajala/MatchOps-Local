@@ -36,6 +36,16 @@ jest.mock('@/utils/logger', () => {
   };
 });
 
+// Mock useDataStore for user-scoped storage
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 // Test data fixtures
 const mockSuccessResult: GameImportResult = {
   success: true,
@@ -140,7 +150,8 @@ describe('useGameImport', () => {
       expect(importGamesWithMapping).toHaveBeenCalledWith(
         jsonData,
         false,
-        expect.any(Function)
+        expect.any(Function),
+        TEST_USER_ID
       );
     });
 
@@ -162,7 +173,8 @@ describe('useGameImport', () => {
       expect(importGamesWithMapping).toHaveBeenCalledWith(
         jsonData,
         true,
-        expect.any(Function)
+        expect.any(Function),
+        TEST_USER_ID
       );
     });
 
@@ -228,7 +240,8 @@ describe('useGameImport', () => {
       expect(importGamesFromFile).toHaveBeenCalledWith(
         mockFile,
         false,
-        expect.any(Function)
+        expect.any(Function),
+        TEST_USER_ID
       );
       // Wait for state update to propagate
       await waitFor(() => {
@@ -254,7 +267,8 @@ describe('useGameImport', () => {
       expect(importGamesFromFile).toHaveBeenCalledWith(
         mockFile,
         true,
-        expect.any(Function)
+        expect.any(Function),
+        TEST_USER_ID
       );
     });
 

@@ -257,12 +257,38 @@ describe('Translation File Validation', () => {
   describe('Snapshot', () => {
     it('EN key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      expect(enKeys.length).toBe(1672);
+      // Billing Phases 5-6: Subscription context + warning banner + Play Billing keys
+      // Desktop registration block: auth + premium + startScreen keys
+      // Account-Subscription Separation Model: subscription/welcome keys
+      // Security fixes: signOut, manageSubscription, switchedToLocal keys
+      // Robustness fixes: playBilling restore functionality keys
+      // Migration wizard trigger fix: importLocalData + subscriptionSuccess keys
+      // Local-first sync UI: syncStatus + syncDetails keys (Phase 6)
+      // Mode switching: pendingSync warning keys (Phase 7)
+      // CloudSync error differentiation: clearNetworkError, clearAuthError, signOutNetworkError (Phase 8)
+      // Sync status paused state: paused, pausedTitle (Phase 8)
+      // Page toast translations: 18 keys for page.tsx and useGameOrchestration.ts toasts
+      // Legacy migration keys: legacyDataMigrated, legacyMigrationFailed (Step 8)
+      // Legacy migration pluralization: legacyDataMigrated_one, legacyDataMigrated_other (Step 8)
+      // Cloud hydration keys: dataLoadedFromCloud, failedToLoadCloudData, partialSyncComplete, genericError (Timestamp Conflict Resolution)
+      // Auth timeout UI: connectionTimeout, connectionTimeoutDesc, tryAgain, useLocalModeInstead, plus 2 additional keys
+      // Reset functionality: resync + factory reset keys for cloud mode (8 settingsModal + 5 page keys)
+      // Entity deletion integrity: entityType (3 keys) + deleteBlocked (8 keys)
+      // Import loading overlay: restoring, restoringTitle, restoringDescription, deleteDescriptionAccount (settingsModal)
+      // Migration wizard simplified: syncDescription, notNow, syncToCloud, loadDataFailed, canRetryOrCancel, dataIsSafe, errorGeneric, syncFailedUnknown (migration)
+      // Common keys: done, retry
+      // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
+      // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
+      // Previous: 2055 → ... → 2282 → 2323
+      // Legal/GDPR: privacy policy, terms of service, consent management translations
+      expect(enKeys.length).toBe(2323);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      expect(fiKeys.length).toBe(1672);
+      // Previous: 2055 → ... → 2282 → 2323
+      // Legal/GDPR: privacy policy, terms of service, consent management translations
+      expect(fiKeys.length).toBe(2323);
     });
   });
 });

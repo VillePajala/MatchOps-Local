@@ -27,8 +27,8 @@
     "enterFullscreen": "Siirry koko näyttöön",
     "exitFullscreen": "Poistu koko näytöstä",
     "languageToggle": "Vaihda kieli englannin (EN) ja suomen (FI) välillä.",
-    "userGuide": "Käyttöopas",
-    "appWebsite": "match-ops.com",
+    "tasoLink": "Taso",
+    "marketingSite": "Tietoa MatchOpsista",
     "saveGameAs": "Tallenna Peli Nimellä...",
     "loadGame": "Tallennetut pelit",
     "startNewGame": "Aloita uusi ottelu",
@@ -53,9 +53,7 @@
     "personnelManager": "Taustahenkilöt",
     "assessPlayers": "Arvioi ottelusuoritukset",
     "appSettings": "Asetukset",
-    "startScreen": "Aloitusnäyttö",
     "coachingMaterials": "Valmennusmateriaalit",
-    "tasoLink": "Taso",
     "backupRestore": "Varmuuskopiointi & Palautus",
     "toggleLanguage": "Vaihda kieli",
     "backButton": "Takaisin",
@@ -73,7 +71,10 @@
     "startNewMatchWarning": "Varmista että olet tallentanut nykyisen pelin jos haluat säilyttää sen.",
     "drawingMode": "Piirtotila",
     "resetFieldNormalTitle": "Nollataanko kenttä?",
-    "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?"
+    "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?",
+    "signOut": "Kirjaudu ulos",
+    "startScreen": "Aloitusnäyttö",
+    "userGuide": "Käyttöohje"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -119,6 +120,7 @@
     "saving": "Tallennetaan...",
     "deleting": "Poistetaan...",
     "loading": "Ladataan...",
+    "moreOptions": "Lisää vaihtoehtoja",
     "closeMenu": "Sulje valikko",
     "assist": "Syöttö",
     "assistsShort": "S",
@@ -126,6 +128,7 @@
     "avgGoalsFor": "KA TM",
     "avgPointsShort": "KA",
     "away": "Vieras",
+    "back": "Takaisin",
     "cancel": "Peruuta",
     "cancelButton": "Peruuta",
     "clear": "Tyhjennä",
@@ -133,6 +136,7 @@
     "confirm": "Vahvista",
     "date": "Päivä",
     "delete": "Poista",
+    "done": "Valmis",
     "doneButton": "Valmis",
     "edit": "Muokkaa",
     "error": "Virhe",
@@ -177,6 +181,7 @@
     "remove": "Poista",
     "refresh": "Päivitä",
     "restore": "Palauta",
+    "retry": "Yritä uudelleen",
     "save": "Tallenna",
     "saveButton": "Tallenna",
     "saveChanges": "Tallenna muutokset",
@@ -282,7 +287,9 @@
     "subIntervalLabel": "Vaihdon Aikaväli:",
     "disabledWhenPaused": "Pois käytöstä tauon aikana",
     "periodShort": "E",
-    "fullTime": "LP"
+    "fullTime": "LP",
+    "decreaseInterval": "Lyhennä aikaväliä",
+    "increaseInterval": "Pidennä aikaväliä"
   },
   "instructionsModal": {
     "title": "Näin se toimii",
@@ -523,7 +530,7 @@
   "rulesDirectory": {
     "title": "Säännöt",
     "buttonTitle": "Näytä säännöt",
-    "soccerRules": "Jalkapallosäännöt 2026",
+    "soccerRules": "Jalkapallosäännöt 2025",
     "futsalRules": "Futsalsäännöt 2025-2026",
     "youthRules": "Kaikki Pelaa 2025",
     "allRules": "Kaikki säännöt ja määräykset",
@@ -633,6 +640,7 @@
   },
   "loadGameModal": {
     "title": "Tallennetut pelit",
+    "gameActions": "Pelitoiminnot",
     "gamesCount": "Pelejä",
     "gameSingular": "Peli",
     "gamePlural": "Peliä",
@@ -689,14 +697,22 @@
       "notFound": "Tallennettua peliä ei löytynyt: {gameId}",
       "cannotDeleteDefault": "Et voi poistaa nykyistä tallentamatonta peliä.",
       "deleteFailedNotFound": "Pelin poistaminen epäonnistui: {gameId}. Peliä ei löytynyt tai tunnus oli virheellinen.",
-      "deleteFailedCatch": "Tallennetun pelin poistaminen epäonnistui: {gameId}. Virhe: {errorMessage}",
+      "deleteFailedCatch": "Pelin poistaminen epäonnistui. Yritä uudelleen.",
       "quickSaveFailed": "Pelin pikallennus epäonnistui.",
       "createGameFailed": "Uuden pelin luominen epäonnistui."
     }
   },
   "errors": {
     "failedToSaveDrawingMode": "Piirtotilan asetuksen tallennus epäonnistui. Muutokset eivät välttämättä pysy.",
-    "failedToLoadData": "Tietojen lataus epäonnistui. Osa toiminnoista ei välttämättä ole käytettävissä."
+    "failedToLoadData": "Tietojen lataus epäonnistui. Osa toiminnoista ei välttämättä ole käytettävissä.",
+    "somethingWentWrong": "Jotain meni pieleen",
+    "unexpectedError": "Odottamaton virhe tapahtui. Tämä on kirjattu ja tutkitaan.",
+    "tryAgain": "Yritä uudelleen",
+    "refreshPage": "Päivitä sivu",
+    "showErrorDetails": "Näytä virhetiedot (vain kehityksessä)",
+    "soccerFieldCrashed": "Kenttänäkymä kaatui",
+    "pleaseRefreshPage": "Päivitä sivu jatkaaksesi.",
+    "playerBarCrashed": "Pelaajapalkki kaatui. Päivitä sivu."
   },
   "newGameSetupModal": {
     "title": "Uuden pelin asetukset",
@@ -758,7 +774,6 @@
     "homeOrAwayLabel": "Joukkueesi on",
     "unplayedToggle": "Ei vielä pelattu",
     "confirmAndStart": "Vahvista ja aloita peli",
-    "createGame": "Luo ottelu",
     "teamLabel": "Joukkueen valinta",
     "selectTeamLabel": "Valitse joukkue",
     "noTeamMasterRoster": "Ei joukkuetta (Käytä pääkokoonpanoa)",
@@ -773,7 +788,8 @@
     "gameConfigLabel": "Pelin asetukset",
     "leagueLabel": "Sarja",
     "selectLeague": "-- Valitse sarja --",
-    "customLeaguePlaceholder": "Kirjoita sarjan nimi"
+    "customLeaguePlaceholder": "Kirjoita sarjan nimi",
+    "createGame": "Luo ottelu"
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
@@ -800,7 +816,14 @@
     "getStarted": "Aloita tästä",
     "manageTeams": "Joukkueet",
     "appSettings": "Asetukset",
-    "freeVersionLimits": "Ilmaisversio sisältää:"
+    "freeVersionLimits": "Ilmaisversio sisältää:",
+    "newGame": "Uusi ottelu",
+    "signedInAs": "Kirjautunut:",
+    "usingLocalStorage": "Paikallinen tallennus",
+    "enableCloudSync": "Ota pilvisynkronointi käyttöön →",
+    "existingSubscriber": "Oletko jo tilaaja? Kirjaudu sisään →",
+    "newToCloud": "Uusi käyttäjä? Tilaa Android-sovelluksen kautta.",
+    "getAndroidApp": "Lataa Google Playsta"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -1069,6 +1092,7 @@
   },
   "teamManager": {
     "title": "Joukkueet",
+    "teamActions": "Joukkuetoiminnot",
     "createNewTeam": "Luo uusi joukkue",
     "newTeam": "Uusi joukkue",
     "addTeam": "Lisää joukkue",
@@ -1351,8 +1375,17 @@
   },
   "settingsModal": {
     "title": "Sovelluksen asetukset",
+    "tabs": {
+      "general": "Yleiset",
+      "season": "Kausi",
+      "data": "Tiedot",
+      "premium": "Premium",
+      "account": "Tili",
+      "about": "Tietoja"
+    },
     "languageLabel": "Kieli",
     "defaultTeamNameLabel": "Oletusjoukkueen nimi",
+    "preferencesTitle": "Asetukset",
     "resetGuideButton": "Näytä opastus uudelleen",
     "resetGuideDescription": "Sovelluksen opastus näytetään uudelleen seuraavalla kerralla.",
     "hardResetButton": "Nollaa Sovellus",
@@ -1360,6 +1393,7 @@
     "doneButton": "Valmis",
     "aboutTitle": "Tietoja",
     "appVersion": "Sovelluksen versio",
+    "previewBadge": "Esikatselu",
     "privacyPolicy": "Tietosuojakäytäntö",
     "termsOfService": "Käyttöehdot",
     "documentationLink": "Dokumentaatio",
@@ -1371,8 +1405,11 @@
     "confirmResetLabel": "Kirjoita RESET vahvistaaksesi",
     "backupTitle": "Tietojen hallinta",
     "backupButton": "Varmuuskopioi kaikki tiedot",
+    "backupCardDesc": "Vie kaikki tietosi varmuuskopiotiedostoon.",
     "restoreButton": "Palauta varmuuskopiosta",
+    "restoreCardDesc": "Korvaa nykyiset tiedot varmuuskopiotiedostolla.",
     "checkForUpdates": "Tarkista päivitykset",
+    "checkForUpdatesDesc": "Tarkista onko uusi versio saatavilla.",
     "checkingUpdates": "Tarkistetaan...",
     "updateAvailable": "Päivitys saatavilla! Lataa sovellus uudelleen ottaaksesi käyttöön.",
     "updateAvailableTitle": "Päivitys saatavilla",
@@ -1382,20 +1419,33 @@
     "noServiceWorker": "Service workeria ei ole rekisteröity",
     "updateCheckFailed": "Päivitysten tarkistus epäonnistui",
     "backupDescription": "Vie tietosi varmuuskopiotiedostoon tai palauta aiemmasta varmuuskopiosta. Kaikki tiedot korvataan palautettaessa.",
+    "gdpr": {
+      "title": "Tietojesi oikeudet",
+      "description": "Sinulla on täysi hallinta tietoihisi. Käytä alla olevia vaihtoehtoja GDPR-oikeuksiesi toteuttamiseen.",
+      "downloadTitle": "Lataa tietosi",
+      "downloadDescription": "Vie kaikki tietosi (pelaajat, pelit, joukkueet jne.) varmuuskopiotiedostoon.",
+      "downloadButton": "Lataa",
+      "deleteTitle": "Poista tietosi",
+      "deleteDescriptionCloud": "Poistaaksesi kaikki pilvitiedot, käytä \"Tyhjennä pilvitiedot\" -vaihtoehtoa Premium-välilehdellä.",
+      "deleteDescriptionLocal": "Poistaaksesi kaikki paikalliset tiedot, käytä \"Nollaa sovellus\" -vaihtoehtoa Tietoja-välilehdellä.",
+      "deleteDescriptionAccount": "Poistaaksesi kaikki tietosi, käytä Vaaravyöhyke-vaihtoehtoja Tili-välilehdellä.",
+      "goToDelete": "Siirry",
+      "correctTitle": "Korjaa tietojasi",
+      "correctDescription": "Voit muokata pelaajanimiä, pelitietoja ja kaikkia muita tietoja suoraan sovelluksessa milloin tahansa."
+    },
     "importReadError": "Virhe varmuuskopiotiedoston lukemisessa.",
     "importGamesButton": "Tuo pelejä",
     "importing": "Tuodaan...",
     "gameImportError": "Virhe pelien tuonnissa: ",
-    "seasonPeriodTitle": "Ajanjakso",
-    "seasonPeriodDescription": "Määritä ajanjakso tilastojen suodatusta varten (esim. lokakuu - toukokuu). Vain kuukausi ja päivä vaikuttavat - vuosi on vain mallipohja.",
-    "seasonDatesNote": "Huom: Päivämäärien muuttaminen vaikuttaa vain uusiin kausiin. Olemassa olevat kaudet säilyttävät alkuperäiset kausitunnisteensa.",
-    "periodStartLabel": "Jakson alku",
-    "periodEndLabel": "Jakson loppu",
+    "seasonStartTitle": "Kauden alkamispäivä",
+    "seasonStartDescription": "Milloin seurasi uusi kausi alkaa? Tämä on tyypillisesti silloin kun pelaajat siirtyvät uusiin ikäryhmiin. Edellinen kausi päättyy automaattisesti edellisenä päivänä.",
+    "newSeasonStartsLabel": "Uusi kausi alkaa",
+    "seasonEndsLabel": "Kausi päättyy",
+    "autoCalculated": "laskettu automaattisesti",
+    "seasonExample": "Esimerkki: Jos kautesi alkaa {{startDate}}, kausi 2024-25 on {{startDate}} 2024 → {{endDate}} 2025.",
     "monthLabel": "Kuukausi",
     "dayLabel": "Päivä",
-    "invalidPeriodDateError": "Virheellinen jakson päivämäärä. Anna kelvollinen päivämäärä.",
     "savePeriodDateError": "Jakson päivämäärän tallennus epäonnistui. Yritä uudelleen.",
-    "sameStartEndDateError": "Jakson alku ja loppu eivät voi olla sama päivämäärä.",
     "premiumStatusLabel": "Sovelluksen tila",
     "premiumActive": "Täysversio",
     "freeVersion": "Ilmaisversio",
@@ -1408,7 +1458,25 @@
     "limitGames": "10 ottelua per kilpailu",
     "resetToFree": "Nollaa",
     "resetToFreeConfirm": "Palautetaanko ilmaisversioon? (Testausta varten)",
-    "resetToFreeSuccess": "Palautettu ilmaisversioon"
+    "resetToFreeSuccess": "Palautettu ilmaisversioon",
+    "deleteAccountTitle": "Poista tili",
+    "deleteAccountDescription": "Poista tilisi ja kaikki pilvitiedot pysyvästi. Tätä toimintoa ei voi peruuttaa. Sinun täytyy luoda uusi tili käyttääksesi pilviominaisuuksia uudelleen.",
+    "confirmDeleteLabel": "Kirjoita DELETE vahvistaaksesi",
+    "deleteAccountButton": "Poista tili",
+    "deletingAccount": "Poistetaan...",
+    "deleteAccountSuccess": "Tili poistettu onnistuneesti",
+    "deleteAccountFailed": "Tilin poistaminen epäonnistui",
+    "resyncTitle": "Synkronoi pilvestä uudelleen",
+    "resyncDescription": "Tyhjennä paikalliset tiedot ja lataa uudelleen pilvestä. Pilvivarmuuskopio palautetaan.",
+    "confirmResyncLabel": "Kirjoita RESYNC vahvistaaksesi",
+    "resyncButton": "Synkronoi pilvestä uudelleen",
+    "factoryResetTitle": "Tehdaspalautus",
+    "factoryResetDescription": "Poista KAIKKI tiedot pysyvästi - sekä paikalliset että pilvitiedot. Tätä ei voi perua.",
+    "confirmFactoryResetLabel": "Kirjoita FACTORY RESET vahvistaaksesi",
+    "factoryResetButton": "Tehdaspalautus (Poista kaikki)",
+    "restoring": "Palautetaan varmuuskopiota...",
+    "restoringTitle": "Palautetaan varmuuskopiota",
+    "restoringDescription": "Odota hetki, tietojasi palautetaan. Tämä voi kestää hetken."
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",
@@ -1555,7 +1623,19 @@
     "restoreKeyError": "Kohteen {{key}} palautus epäonnistui. Tuonti peruttiin.",
     "restoreSuccess": "Varmuuskopio palautettu. Sovellus latautuu uudelleen...",
     "restoreError": "Virhe varmuuskopion tuonnissa: {{error}}",
-    "currentGameWarning": "Varmuuskopio palautettu, mutta nykyisen pelin valintaa ei voitu päivittää automaattisesti. Valitse peli manuaalisesti."
+    "currentGameWarning": "Varmuuskopio palautettu, mutta nykyisen pelin valintaa ei voitu päivittää automaattisesti. Valitse peli manuaalisesti.",
+    "migrationFlagWarning": "Varmuuskopio palautetaan, mutta pilvisynkronointikehote ei ehkä näy automaattisesti. Voit synkronoida Asetuksista myöhemmin."
+  },
+  "cloudModeImport": {
+    "title": "Tuo varmuuskopio",
+    "description": "Käytät tällä hetkellä pilvisynkronointia. Varmuuskopiotiedostot sisältävät paikallista dataa, joka täytyy ladata pilvipalveluun.",
+    "chooseOption": "Valitse miten haluat jatkaa:",
+    "importAndMigrate": "Tuo ja siirrä pilveen",
+    "importAndMigrateDesc": "Tuo varmuuskopio ja lataa kaikki tiedot pilvipalveluun.",
+    "recommended": "Suositeltu",
+    "switchToLocal": "Vaihda ensin paikalliseen tilaan",
+    "switchToLocalDesc": "Vaihda paikalliseen tilaan ensin. Tiedot tallentuvat vain tälle laitteelle.",
+    "switchFailed": "Paikalliseen tilaan vaihtaminen epäonnistui. Yritä uudelleen."
   },
   "orphanedGame": {
     "noTeam": "Ei joukkuetta (Käytä pääkokoonpanoa)",
@@ -1711,28 +1791,53 @@
   },
   "privacyPolicy": {
     "title": "MatchOpsin tietosuojakäytäntö",
-    "lastUpdated": "Päivitetty: joulukuu 2025",
+    "version": "Käytännön versio: 2026-02",
+    "lastUpdated": "Päivitetty: helmikuu 2026",
+    "dataController": {
+      "title": "Rekisterinpitäjä",
+      "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Rekisterinpitäjänä olemme vastuussa henkilötietojesi käsittelystä tässä käytännössä kuvatulla tavalla."
+    },
     "overview": {
       "title": "Yleiskatsaus",
       "content": "MatchOps (\"me\", \"meidän\", \"sovellus\") on paikallisesti toimiva jalkapallovalmennus­sovellus. Tämä tietosuojakäytäntö selittää, miten käsittelemme tietojasi."
     },
     "dataStorage": {
       "title": "Tietojen tallennus",
-      "localDataTitle": "Paikalliset tiedot",
-      "localDataIntro": "Kaikki tietosi tallennetaan paikallisesti laitteellesi:",
+      "localDataTitle": "Paikalliset tiedot (oletus)",
+      "localDataIntro": "Oletuksena kaikki tietosi tallennetaan paikallisesti laitteellesi:",
       "localDataItems": {
         "playerRosters": "Pelaajalistat ja -tiedot",
         "gameRecords": "Pelitallenteet ja tilastot",
         "settings": "Asetukset ja mieltymykset",
-        "seasonData": "Kausi- ja turnaustiedot"
+        "seasonData": "Kausi- ja turnaustiedot",
+        "personnelInfo": "Henkilöstötiedot (nimet, roolit, yhteystiedot jos valitset syöttää ne)"
       },
-      "localDataNote": "Meillä ei ole pääsyä näihin tietoihin. Ne eivät koskaan poistu laitteeltasi, ellet erikseen vie niitä.",
-      "noAccountTitle": "Tiliä ei tarvita",
-      "noAccountContent": "MatchOps toimii täysin offline-tilassa. Tilin luomista, kirjautumista tai henkilötietoja ei tarvita sovelluksen käyttämiseen."
+      "localDataNote": "Meillä ei ole pääsyä näihin tietoihin. Ne eivät koskaan poistu laitteeltasi, ellet erikseen vie niitä tai ota käyttöön pilvisynkronointia.",
+      "noAccountTitle": "Tiliä ei tarvita (paikallinen tila)",
+      "noAccountContent": "MatchOps toimii täysin offline-tilassa paikallisessa tilassa. Tilin luomista, kirjautumista tai henkilötietoja ei tarvita.",
+      "cloudDataTitle": "Pilvisynkronointi (valinnainen)",
+      "cloudDataIntro": "Jos otat käyttöön pilvisynkronoinnin Premium-tilauksella, tietosi tallennetaan turvallisille pilvipalvelimille:",
+      "cloudDataItems": {
+        "syncedData": "Kopioidaan turvallisille EU-palvelimille (Supabase, EU)",
+        "encryption": "Salataan siirron aikana (HTTPS/TLS) ja levossa",
+        "rowLevelSecurity": "Suojattu rivitason suojauksella (vain sinä pääset tietoihisi)",
+        "multiDevice": "Synkronoitu laitteidesi välillä",
+        "dataOwnership": "Säilytetään täydessä omistuksessasi"
+      },
+      "cloudDataNote": "Pilvitiedot tallennetaan turvallisiin EU-datakeskuksiin. Voit poistaa pilvitietosi milloin tahansa Asetuksista.",
+      "dataRetentionTitle": "Tietojen säilytys",
+      "dataRetentionContent": "Pilvitiedot säilytetään niin kauan kuin tilisi on aktiivinen. Kun poistat pilvitietosi tai tilisi, tiedot poistetaan pysyvästi 30 päivän kuluessa. Tilauksen peruutuksen jälkeen pilvitiedot pysyvät luettavissa vain luku -tilassa; 90 päivän tilin käyttämättömyyden jälkeen ne voidaan poistaa. Paikalliset tiedot säilyvät laitteellasi kunnes tyhjennät ne. Suostumustiedot säilytetään tilin poistamisen jälkeenkin GDPR-vaatimustenmukaisuutta varten."
+    },
+    "legalBasis": {
+      "title": "Tietojenkäsittelyn oikeusperuste (GDPR 6 art.)",
+      "intro": "Käsittelemme henkilötietoja seuraavilla oikeusperusteilla:",
+      "contract": "Sopimus (6(1)(b) art.): Pilvisynkronointipalvelun toteuttamiseksi välttämätön käsittely",
+      "consent": "Suostumus (6(1)(a) art.): Käyttöehtojen ja tietosuojakäytännön hyväksyminen pilvitilan käyttäjille. Suostumustiedot tallennetaan vaatimustenmukaisuuden osoittamiseksi",
+      "legitimateInterest": "Oikeutettu etu (6(1)(f) art.): Virheraportit Sentryn kautta sovelluksen laadun ylläpitämiseksi ja virheiden korjaamiseksi. Käsittely koskee vähäisiä anonymisoituja tietoja eikä sisällä profilointia tai seurantaa. Voit poistaa käytöstä asetuksista milloin tahansa"
     },
     "dataWeCollect": {
       "title": "Tiedot, joita saatamme kerätä",
-      "errorReportingTitle": "Virheraportit (valinnainen)",
+      "errorReportingTitle": "Virheraportit (Opt-Out)",
       "errorReportingIntro": "Kun sovelluksessa tapahtuu virhe, saatamme kerätä:",
       "errorReportingItems": {
         "errorType": "Virhetyyppi ja pinojälki",
@@ -1740,64 +1845,109 @@
         "appVersion": "Sovelluksen versio",
         "sessionInfo": "Anonymisoitu istuntotieto"
       },
-      "errorReportingNote": "Tämä auttaa meitä korjaamaan virheitä ja parantamaan sovellusta. Virheraportit eivät sisällä pelitietojasi tai pelaajatietoja, ja ne käsittelee Sentry.io.",
+      "errorReportingNote": "Tämä auttaa meitä korjaamaan virheitä ja parantamaan sovellusta. Virheraportit eivät sisällä pelitietojasi tai pelaajatietoja. Ne käsittelee Sentry.io (tietoja voidaan käsitellä Yhdysvalloissa vakiosopimuslausekkeiden nojalla). Voit poistaa virheraportit käytöstä sovelluksen asetuksista milloin tahansa.",
       "licenseValidationTitle": "Play Kaupan lisenssivahvistus",
-      "licenseValidationContent": "Kun ostat premium-ominaisuuksia, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi."
+      "licenseValidationContent": "Kun ostat premium-ominaisuuksia, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi.",
+      "consentTrackingTitle": "Suostumustiedot (Pilvisynkronointi)",
+      "consentTrackingIntro": "Kun hyväksyt käyttöehtomme ja tietosuojakäytäntömme pilvisynkronoinnissa, tallennamme:",
+      "consentTrackingItems": {
+        "timestamp": "Suostumuksen päivämäärä ja aika",
+        "policyVersion": "Hyväksytyn käytännön versio",
+        "ipAddress": "IP-osoitteesi (oikeudellista todentamista varten)",
+        "userAgent": "Selain- ja laitetietosi"
+      },
+      "consentTrackingNote": "Nämä tiedot vaaditaan GDPR-vaatimustenmukaisuuteen todisteeksi pätevän suostumuksen antamisesta (GDPR 7(1) art.). Suostumustiedot säilytetään tilin poistamisen jälkeenkin oikeudellisista syistä.",
+      "personnelDataTitle": "Henkilöstötiedot",
+      "personnelDataIntro": "Kun lisäät joukkueen henkilöstöä (valmentajat, avustajat, lääkintähenkilöstö), voit valinnaisesti syöttää:",
+      "personnelDataItems": {
+        "name": "Nimi ja rooli",
+        "email": "Sähköpostiosoite (valinnainen)",
+        "phone": "Puhelinnumero (valinnainen)",
+        "certifications": "Pätevyydet (valinnainen)"
+      },
+      "personnelDataNote": "Nämä tiedot tallennetaan paikallisesti laitteellesi (paikallinen tila) tai turvalliseen EU-tietokantaamme, johon vain sinä pääset (pilvitila). Henkilöstön yhteystiedot (sähköposti, puhelin) ovat GDPR:n mukaisia henkilötietoja. Olet vastuussa siitä, että sinulla on asianmukaiset perusteet yhteystietojen tallentamiselle."
     },
     "dataWeDoNotCollect": {
       "title": "Tiedot, joita EMME kerää",
       "items": {
-        "playerNames": "Pelaajalistojesi nimiä tai henkilötietoja",
-        "gameContent": "Pelisisältöä, tuloksia tai tilastoja",
+        "gameContent": "Pelisisältöä, tuloksia tai tilastoja (tallennettu vain paikallisesti tai yksityiselle pilvitilillesi)",
         "location": "Sijaintitietoja",
         "photos": "Valokuvia tai mediaa",
-        "contacts": "Yhteystietoja",
-        "deviceIds": "Laitetunnisteita seurantaa varten"
-      }
+        "deviceIds": "Laitetunnisteita seurantaa tai mainontaa varten",
+        "playerNames": "Pelaajien nimiä tai henkilötietoja (ne tallentaa paikallisesti sinä, tai yksityiselle pilvitilillesi)"
+      },
+      "personnelNote": "Huomautus: Jos syötät henkilöstön yhteystietoja (sähköposti, puhelin), ne tallennetaan valintasi mukaan ja sinun hallinnassasi — katso Henkilöstötiedot-osio tietosuojakäytännöstämme."
     },
     "thirdPartyServices": {
-      "title": "Kolmannen osapuolen palvelut",
+      "title": "Kolmannen osapuolen palvelut (alikäsittelijät)",
+      "intro": "Käytämme seuraavia kolmannen osapuolen palveluita MatchOpsin toimintaan. Tietojenkäsittelysopimukset ovat voimassa jokaisen palveluntarjoajan kanssa.",
       "googlePlay": "Google Play Kauppa",
-      "googlePlayDesc": "Käsittelee sovelluksen jakelun ja maksut.",
+      "googlePlayDesc": "Sovelluksen jakelu ja maksut (Googlen infrastruktuuri).",
       "sentry": "Sentry",
-      "sentryDesc": "Käsittelee virheraportit ja kaatumiset.",
+      "sentryDesc": "Virheraportit ja kaatumisanalyysi (Yhdysvallat, vakiosopimuslausekkeet).",
+      "supabase": "Supabase",
+      "supabaseDesc": "Pilvitietokanta ja todennus (EU, Frankfurt).",
       "vercel": "Vercel",
-      "vercelDesc": "Isännöi PWA-versiota."
+      "vercelDesc": "PWA-verkkopalvelun isännöinti (globaali reunaverkko, vakiosopimuslausekkeet).",
+      "googlePlayLink": "Googlen tietosuojakäytäntö",
+      "sentryLink": "Sentryn tietosuojakäytäntö",
+      "supabaseLink": "Supabasen tietosuojakäytäntö",
+      "vercelLink": "Vercelin tietosuojakäytäntö"
     },
     "yourRights": {
-      "title": "Oikeutesi",
-      "export": "Vie tietosi sovelluksen vientitoiminnolla",
-      "delete": "Poista tietosi tyhjentämällä sovellustiedot tai poistamalla sovellus",
-      "contactUs": "Ota meihin yhteyttä tietosuojakysymyksissä"
+      "title": "Oikeutesi (GDPR)",
+      "intro": "GDPR:n ja sovellettavan tietosuojalainsäädännön mukaan sinulla on oikeus:",
+      "access": "Pääsy (15 art.): Nähdä ja viedä kaikki tietosi milloin tahansa",
+      "rectification": "Oikaisu (16 art.): Korjata virheelliset tiedot suoraan sovelluksessa",
+      "erasure": "Poistaminen (17 art.): Poistaa paikalliset tai pilvitietosi milloin tahansa",
+      "portability": "Siirrettävyys (20 art.): Viedä tietosi standardissa JSON-muodossa",
+      "restriction": "Rajoittaminen (18 art.): Vaihtaa vain paikalliseen tilaan lopettaaksesi pilvikäsittelyn",
+      "objection": "Vastustaminen (21 art.): Lopeta pilvikäsittely vaihtamalla paikalliseen tilaan tai poista virheraportit käytöstä asetuksista",
+      "withdrawConsent": "Suostumuksen peruuttaminen: Poista virheraportit käytöstä asetuksista; poista pilvitilisi peruuttaaksesi suostumuksen pilvikäsittelyyn",
+      "deleteLocal": "Paikallisille tiedoille: Käytä Asetukset → Tiedot → Tietojesi oikeudet",
+      "deleteCloud": "Pilvitiedoille: Käytä Asetukset → Tiedot → Tietojesi oikeudet",
+      "contactUs": "Kaikki tiedonhallintavaihtoehdot löytyvät suoraan sovelluksesta Asetukset → Tiedot-välilehdeltä. Sähköpostipyyntöä ei tarvita.",
+      "supervisoryAuthority": "Jos uskot tietosuojaoikeuksiasi loukatun, sinulla on oikeus tehdä valitus valvontaviranomaiselle. Suomessa: Tietosuojavaltuutetun toimisto",
+      "supervisoryAuthorityUrl": "https://tietosuoja.fi"
     },
     "childrensPrivacy": {
       "title": "Lasten yksityisyys",
-      "content": "MatchOps ei tietoisesti kerää tietoja lapsilta. Sovellus tallentaa pelaajien nimet paikallisesti valmentajan syöttäminä - nämä ovat täysin sinun hallinnassasi eikä niitä koskaan lähetetä meille."
+      "content": "MatchOps on suunniteltu aikuisille valmentajille, ei lasten käyttöön. Sovellus ei tietoisesti kerää alle 16-vuotiaiden henkilötietoja. Pelaajien nimet ja tilastot syöttää valmentaja (sovelluksen käyttäjä), ei pelaajat itse. Nämä tiedot tallennetaan paikallisesti valmentajan laitteelle tai hänen yksityiselle pilvitililleen, eikä niitä koskaan lähetetä meille tai kolmansille osapuolille (paitsi kun pilvisynkronointi on käytössä, jolloin ne tallennetaan turvallisesti valmentajan yksityiselle tilille). Ikävahvistusta ei vaadita, koska sovellus kerää tietoja valmentajilta heidän pelaajistaan, ei suoraan lapsilta."
     },
     "dataSecurity": {
       "title": "Tietoturva",
-      "intro": "Tietosi on suojattu:",
-      "items": {
-        "encryption": "Laitetason salaus (Androidin tarjoama)",
-        "localStorage": "Vain paikallinen tallennus",
-        "noTransmission": "Ei pelitietojen verkkolähetystä"
-      }
+      "localIntro": "Paikallisessa tilassa tietosi tallennetaan selaimesi IndexedDB-tietokantaan:",
+      "localItems": {
+        "deviceProtection": "Suojattu laitteesi pääsynvalvonnalla (näytön lukitus, salasana, biometriikka)",
+        "noAdditionalEncryption": "Ei lisäsalausta levossa laitteesi/selaimesi tarjoaman lisäksi",
+        "noTransmission": "Ei verkkolähetystä, ellet ota käyttöön pilvisynkronointia"
+      },
+      "localNote": "Laitteesi suojaus on ensisijainen suoja paikallisille tiedoillesi. Suosittelemme vahvan näytön lukituksen käyttöä.",
+      "cloudIntro": "Pilvitilassa tietosi on suojattu:",
+      "cloudItems": {
+        "tlsEncryption": "Salattu siirron aikana (HTTPS/TLS)",
+        "atRestEncryption": "Salattu levossa turvallisissa EU-palvelimissa (Supabase, Frankfurt)",
+        "rowLevelSecurity": "Rivitason suojaus varmistaa, että pääset vain omiin tietoihisi",
+        "soc2": "Supabasen turvainfrastruktuuri ja SOC 2 -vaatimustenmukaisuus"
+      },
+      "backupTitle": "Varmuuskopiotiedostojen turvallisuus",
+      "backupContent": "Kun viet tietojasi, varmuuskopiotiedosto sisältää kaikki tietosi mukaan lukien mahdolliset henkilöstön yhteystiedot. Varmuuskopiotiedostot eivät ole salattuja ja ne tulee säilyttää turvallisesti. Suosittelemme varmuuskopiotiedostojen tallentamista turvalliseen paikkaan ja poistamista tuonnin jälkeen."
     },
     "changes": {
       "title": "Muutokset tähän käytäntöön",
-      "content": "Saatamme päivittää tätä käytäntöä ajoittain. Muutokset merkitään \"Päivitetty\"-päivämäärään."
+      "content": "Saatamme päivittää tätä käytäntöä tarvittaessa. Olennaiset muutokset päivittävät \"Päivitetty\"-päivämäärän ja käytännön version, käynnistävät uudelleensuostumuskyselyn pilvitilan käyttäjille seuraavalla kirjautumiskerralla ja ovat tarkastettavissa ennen hyväksymistä."
     },
     "contact": {
       "title": "Yhteystiedot",
-      "intro": "Tietosuojakysymysten tai -huolien osalta:",
-      "email": "Sähköposti",
-      "github": "GitHub Issues"
+      "intro": "Useimmat tietopyynnöt voit hoitaa suoraan sovelluksessa (Asetukset → Tiedot-välilehti) ilman yhteydenottoa. Muihin tietosuojakysymyksiin tai huolenaiheisiin:",
+      "email": "Sähköposti"
     },
     "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
   },
   "termsOfService": {
     "title": "MatchOpsin käyttöehdot",
-    "lastUpdated": "Päivitetty: joulukuu 2025",
+    "version": "Ehtojen versio: 2026-02",
+    "lastUpdated": "Päivitetty: helmikuu 2026",
     "agreement": {
       "title": "Ehtojen hyväksyminen",
       "content": "Lataamalla, asentamalla tai käyttämällä MatchOpsia (\"sovellus\") hyväksyt nämä käyttöehdot. Jos et hyväksy ehtoja, älä käytä sovellusta."
@@ -1837,11 +1987,21 @@
     },
     "dataAndPrivacy": {
       "title": "Tiedot ja yksityisyys",
-      "content": "Tietosi tallennetaan paikallisesti laitteellesi. Meillä ei ole pääsyä pelitietoihisi, pelaajatietoihisi tai tilastoihisi. Katso tietosuojakäytännöstämme tarkemmat tiedot siitä, mitä rajallisia tietoja saatamme kerätä."
+      "content": "Tietosi tallennetaan paikallisesti laitteellesi (paikallinen tila) tai turvalliseen pilvitietokantaamme (pilvitila tilauksella). Katso tietosuojakäytännöstämme tarkemmat tiedot tietojen käsittelystä, turvallisuudesta, GDPR-oikeuksista ja siitä, mitä rajallisia tietoja saatamme kerätä.",
+      "securityAcknowledgmentTitle": "Tietoturvatiedote",
+      "securityAcknowledgmentIntro": "Käyttämällä MatchOpsia hyväksyt seuraavat:",
+      "securityAcknowledgmentItems": {
+        "localMode": "Paikallinen tila: Tiedot tallennetaan selaimesi IndexedDB:hen ilman lisäsalausta laitteesi tarjoaman lisäksi",
+        "deviceSecurity": "Laitteen suojaus: Laitteesi pääsynvalvonta (näytön lukitus, salasana, biometriikka) on ensisijainen suoja paikallisille tiedoille",
+        "backupFiles": "Varmuuskopiotiedostot: Viedyt varmuuskopiotiedostot sisältävät salaamatonta tietoa ja ne tulee säilyttää turvallisesti",
+        "personnelData": "Henkilöstötiedot: Jos tallennat henkilöstön yhteystietoja (sähköposti, puhelin), ne noudattavat samaa turvamallia kuin muut sovellustiedot",
+        "yourResponsibility": "Sinun vastuullasi: Olet vastuussa laitteesi ja varmuuskopiotiedostojesi pääsyn suojaamisesta"
+      },
+      "securityAcknowledgmentNote": "Lisäturvallisuuden varmistamiseksi ota käyttöön pilvisynkronointi, joka tarjoaa palvelinpuolen salauksen, levyssä olevan salauksen ja rivitason suojauksen."
     },
     "intellectualProperty": {
       "title": "Immateriaalioikeudet",
-      "content": "MatchOps ja kaikki siihen liittyvät tavaramerkit, logot ja sisältö ovat kehittäjän omaisuutta. Et saa omistusoikeuksia käyttämällä sovellusta."
+      "content": "MatchOps ja kaikki siihen liittyvät tavaramerkit, logot ja sisältö ovat kehittäjän (Ville Pajala) omaisuutta. Et saa omistusoikeuksia käyttämällä sovellusta."
     },
     "disclaimer": {
       "title": "Takuuvapauslauseke",
@@ -1863,7 +2023,7 @@
       "title": "Tietojen menetys",
       "intro": "Hyväksyt seuraavat:",
       "items": {
-        "localStorage": "Tiedot tallennetaan paikallisesti laitteellesi",
+        "localStorage": "Tiedot tallennetaan paikallisesti laitteellesi (tai pilveen, jos käytössä)",
         "notResponsible": "Emme ole vastuussa tietojen menetyksestä laitevian, sovelluksen poistamisen tai muun syyn vuoksi",
         "backupAdvice": "Sinun tulisi säännöllisesti viedä ja varmuuskopioida tärkeät tiedot"
       }
@@ -1874,26 +2034,66 @@
       "googlePlay": "Google Play Kauppa",
       "googlePlayDesc": "Sovelluksen jakeluun ja maksuihin",
       "sentry": "Sentry",
-      "sentryDesc": "Virheraportointiin (valinnainen)",
+      "sentryDesc": "Virheraportointiin (valinnainen, voidaan poistaa käytöstä)",
+      "supabase": "Supabase",
+      "supabaseDesc": "Pilvisynkronointiin ja todennukseen (Premium-ominaisuus)",
+      "vercel": "Vercel",
+      "vercelDesc": "PWA-version isännöintiin",
       "note": "Näiden palveluiden käyttöäsi koskevat niiden omat ehdot ja käytännöt."
+    },
+    "premiumSubscription": {
+      "title": "Premium-tilaus",
+      "intro": "MatchOps Premium on valinnainen tilaus, joka tarjoaa lisäominaisuuksia:",
+      "features": {
+        "cloudSync": "Pilvisynkronointi: Pääsy tietoihisi useilta laitteilta",
+        "unlimitedEntities": "Rajattomat pelaajat, joukkueet, kaudet ja turnaukset",
+        "prioritySupport": "Ensisijainen tuki"
+      },
+      "billing": "Tilaukset laskutetaan Google Play Kaupan kautta. Katso Google Playn ehdot laskutuksesta, peruutuksesta ja hyvityksistä.",
+      "cancellation": "Voit peruuttaa tilauksesi milloin tahansa Google Playn kautta. Peruutuksen jälkeen säilytät pääsyn laskutusjakson loppuun asti.",
+      "dataAfterCancel": "Jos peruutat Premiumin, pilvitietosi pysyvät luettavissa vain luku -tilassa. Voit viedä tai poistaa ne milloin tahansa. 90 päivän käyttämättömyyden jälkeen pilvitiedot voidaan poistaa."
+    },
+    "cloudSync": {
+      "title": "Pilvisynkronoinnin ehdot",
+      "intro": "Kun otat pilvisynkronoinnin käyttöön:",
+      "items": {
+        "ownership": "Säilytät omistusoikeuden kaikkiin tietoihisi",
+        "availability": "Pyrimme korkeaan käytettävyyteen, mutta emme takaa keskeytyksettömyyttä",
+        "backups": "Olet vastuussa kriittisten tietojen paikallisista varmuuskopioista",
+        "security": "Toteutamme alan standardien mukaiset turvatoimet tietojesi suojaamiseksi"
+      },
+      "deletion": "Voit poistaa kaikki pilvitiedot milloin tahansa Asetuksista. Poistaminen on pysyvää eikä sitä voi kumota."
     },
     "changes": {
       "title": "Muutokset sovellukseen",
-      "content": "Pidätämme oikeuden muokata tai lopettaa sovelluksen milloin tahansa, päivittää näitä ehtoja kohtuullisella varoitusajalla ja lisätä tai poistaa ominaisuuksia."
+      "content": "Pidätämme oikeuden muokata tai lopettaa sovelluksen milloin tahansa ja lisätä tai poistaa ominaisuuksia."
+    },
+    "changesToTerms": {
+      "title": "Ehtojen muutokset",
+      "content": "Saatamme päivittää näitä ehtoja tarvittaessa. Olennaiset muutokset päivittävät \"Päivitetty\"-päivämäärän ja käynnistävät uudelleensuostumuskyselyn pilvitilan käyttäjille. Sovelluksen jatkuva käyttö muutosten jälkeen merkitsee uusien ehtojen hyväksymistä."
     },
     "termination": {
       "title": "Päättäminen",
-      "content": "Voimme lopettaa tai keskeyttää pääsysi sovellukseen välittömästi ilman ennakkoilmoitusta, jos rikot näitä ehtoja. Päättämisen jälkeen oikeutesi käyttää sovellusta päättyy."
+      "content": "Voimme lopettaa tai keskeyttää pääsysi sovellukseen välittömästi ilman ennakkoilmoitusta, jos rikot näitä ehtoja. Päättämisen jälkeen oikeutesi käyttää sovellusta päättyy.",
+      "cloudTermination": "Jos tilisi päätetään, menetät pääsyn pilvisynkronointiominaisuuksiin. Paikalliset tietosi säilyvät laitteellasi. Pilvitiedot poistetaan 30 päivän kuluessa päättämisestä.",
+      "voluntaryDeletion": "Voit vapaaehtoisesti poistaa pilvitilisi ja -tietosi milloin tahansa Asetukset-valikosta."
     },
     "governingLaw": {
-      "title": "Sovellettava laki",
-      "content": "Näitä ehtoja sääntelee Suomen laki, ottamatta huomioon lainvalintasääntöjä."
+      "title": "Sovellettava laki ja riitojen ratkaisu",
+      "content": "Näitä ehtoja sääntelee Suomen laki, ottamatta huomioon lainvalintasääntöjä. Näistä ehdoista tai sovelluksen käytöstä johtuvat riidat ratkaistaan Helsingin käräjäoikeudessa."
+    },
+    "severability": {
+      "title": "Erotettavuus",
+      "content": "Jos jokin näiden ehtojen määräys todetaan täytäntöönpanokelvottomaksi, muut määräykset pysyvät voimassa."
+    },
+    "entireAgreement": {
+      "title": "Koko sopimus",
+      "content": "Nämä ehdot yhdessä tietosuojakäytäntömme kanssa muodostavat koko sopimuksen sinun ja meidän välillämme sovelluksen osalta."
     },
     "contact": {
       "title": "Yhteystiedot",
-      "intro": "Kysymyksiä näistä ehdoista:",
-      "email": "Sähköposti",
-      "github": "GitHub Issues"
+      "intro": "Useimmat toiminnot (tietojen vienti, poistaminen, tilin hallinta) voit tehdä suoraan sovelluksen Asetuksissa. Kysymyksiä näistä ehdoista:",
+      "email": "Sähköposti"
     },
     "footer": "Nämä käyttöehdot koskevat Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
   },
@@ -1926,25 +2126,589 @@
     "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!",
     "grantSuccess": "Premium aktivoitu! Voit nollata Asetuksissa.",
     "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
-    "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!"
+    "subscriptionFailed": "Tilaus epäonnistui: {{error}}",
+    "processing": "Käsitellään...",
+    "billingNotAvailable": "Play Billing ei ole käytettävissä. Yritä uudelleen.",
+    "purchaseFailed": "Osto epäonnistui. Yritä uudelleen.",
+    "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!",
+    "androidOnly": "Tilaukset ovat saatavilla Android-sovelluksessa.",
+    "getAndroidApp": "Lataa Google Playsta",
+    "cloudUpgradeTitle": "Pilvisynkronointi vaatii Premiumin",
+    "cloudUpgradeDescription": "Pilvisynkronoinnin avulla voit varmuuskopioida tietosi ja käyttää niitä miltä tahansa laitteelta. Päivitä premiumiin ottaaksesi tämän ominaisuuden käyttöön.",
+    "cloudBenefitsTitle": "Pilvisynkronointi sisältää:",
+    "cloudBenefit": {
+      "sync": "Synkronointi kaikilla laitteillasi",
+      "backup": "Automaattinen pilvivarmuuskopiointi",
+      "security": "Turvallinen pilvitallennus"
+    },
+    "subscriptionIncludes": "Tilauksesi sisältää:",
+    "monthlySubscription": "kuukausitilaus",
+    "cancelAnytime": "Peruuta milloin tahansa"
+  },
+  "subscription": {
+    "graceWarning": "Tilauksesi on päättynyt. Uusi tilaus {{days}} päivän kuluessa säilyttääksesi pilvipalvelun käytön.",
+    "expiredWarning": "Tilauksesi on päättynyt. Uusi tilaus palauttaaksesi pilvipalvelun käytön.",
+    "renewNow": "Uusi tilaus",
+    "renewOnAndroid": "Uusi tilaus Android-sovelluksessa",
+    "statusActive": "Aktiivinen",
+    "statusCancelled": "Peruutettu",
+    "statusGrace": "Lisäaika",
+    "statusExpired": "Päättynyt",
+    "statusNone": "Ei tilausta",
+    "periodEnds": "Kausi päättyy: {{date}}",
+    "graceEnds": "Lisäaika päättyy: {{date}}"
+  },
+  "playBilling": {
+    "restorePurchases": "Palauta ostokset",
+    "restoreSuccess": "Ostokset palautettu onnistuneesti!",
+    "restoreFailed": "Ostosten palautus epäonnistui. Yritä uudelleen.",
+    "noPurchases": "Ei palautettavia ostoksia."
+  },
+  "auth": {
+    "signIn": "Kirjaudu sisään",
+    "signUp": "Rekisteröidy",
+    "createAccount": "Luo tili",
+    "resetPassword": "Nollaa salasana",
+    "signInSubtitle": "Kirjaudu sisään synkronoidaksesi tietosi laitteidesi välillä",
+    "signUpSubtitle": "Luo tili ottaaksesi pilvisynkronoinnin käyttöön",
+    "resetSubtitle": "Syötä sähköpostiosoitteesi saadaksesi nollausohjeet",
+    "email": "Sähköposti",
+    "password": "Salasana",
+    "confirmPassword": "Vahvista salasana",
+    "passwordMismatch": "Salasanat eivät täsmää",
+    "passwordRequirements": "Salasanan on oltava vähintään 12 merkkiä ja sisällettävä 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit.",
+    "checkEmail": "Tarkista sähköpostisi vahvistaaksesi tilisi",
+    "emailMayExist": "Jos tämä sähköposti ei ole vielä rekisteröity, tarkista postilaatikkosi vahvistusviestiltä. Jos sinulla on jo tili, kirjaudu sen sijaan sisään.",
+    "resetEmailSent": "Tarkista sähköpostistasi nollausohjeet",
+    "sendResetEmail": "Lähetä nollaussähköposti",
+    "forgotPassword": "Unohditko salasanasi?",
+    "noAccount": "Eikö sinulla ole tiliä?",
+    "signUpLink": "Rekisteröidy",
+    "hasAccount": "Onko sinulla jo tili?",
+    "signInLink": "Kirjaudu sisään",
+    "backToSignIn": "Takaisin kirjautumiseen",
+    "networkErrorHint": "Tarkista internetyhteytesi ja yritä uudelleen.",
+    "useWithoutAccount": "Tai jatka ilman tiliä",
+    "termsConsent": "Olen lukenut ja hyväksyn",
+    "termsLink": "käyttöehdot",
+    "and": "ja",
+    "privacyLink": "tietosuojakäytännön",
+    "consentRequired": "Sinun on hyväksyttävä käyttöehdot ja tietosuojakäytäntö",
+    "androidOnlyRegistration": "Eikö sinulla ole tiliä? Tilaa Android-sovelluksen kautta.",
+    "getAndroidApp": "Lataa Google Playsta"
+  },
+  "reConsent": {
+    "title": "Päivitetyt käyttöehdot ja tietosuojakäytäntö",
+    "description": "Olemme päivittäneet käyttöehtomme ja tietosuojakäytäntömme. Lue ja hyväksy uudet ehdot jatkaaksesi MatchOpsin käyttöä.",
+    "version": "Käytännön versio",
+    "termsLink": "Käyttöehdot",
+    "privacyLink": "Tietosuojakäytäntö",
+    "acceptCheckbox": "Olen lukenut ja hyväksyn päivitetyt käyttöehdot ja tietosuojakäytännön",
+    "accept": "Hyväksy ja jatka",
+    "accepting": "Hyväksytään...",
+    "decline": "Hylkää ja kirjaudu ulos"
+  },
+  "migrationStatus": {
+    "percentComplete": "{{percent}}% valmis",
+    "progressLabel": "Siirron edistyminen: {{percent}}% valmis",
+    "estimatedTime": "Arvioitu aika: {{time}}",
+    "itemsProcessed": "{{processed}}/{{total}} kohdetta käsitelty",
+    "preparingMigration": "Valmistellaan siirtoa...",
+    "inProgress": "Siirto käynnissä",
+    "upgradingStorage": "Päivitetään tallennustilaa",
+    "dontCloseApp": "Älä sulje sovellusta tämän prosessin aikana.",
+    "warningTitle": "Tallennustilan päivitysvaroitus",
+    "successTitle": "Tallennustila päivitetty onnistuneesti",
+    "successMessage": "Tietosi on siirretty parannettuun tallennustilaan parempaa suorituskykyä varten.",
+    "dismissNotification": "Sulje ilmoitus"
+  },
+  "migration": {
+    "title": "Siirrä pilveen",
+    "description": "Siirrä paikalliset tietosi pilvitilillesi varmuuskopiointia ja synkronointia varten.",
+    "preparing": "Valmistellaan siirtoa...",
+    "exporting": "Viedään paikallisia tietoja...",
+    "validating": "Tarkistetaan tietojen eheys...",
+    "clearing": "Tyhjennetään olemassa olevat pilvitiedot...",
+    "uploading": "Ladataan pilveen...",
+    "verifying": "Varmistetaan siirto...",
+    "success": "Siirto valmis!",
+    "successDescription": "Tietosi on nyt synkronoitu pilveen.",
+    "partialFailure": "Siirto keskeytyi. Paikalliset tietosi ovat turvassa. Yritä uudelleen.",
+    "verificationFailed": "Siirto suoritettiin mutta varmennus epäonnistui. Yritä uudelleen.",
+    "networkError": "Verkkovirhe siirron aikana. Paikalliset tietosi ovat muuttumattomia.",
+    "failed": "Siirto epäonnistui",
+    "noData": "Ei siirrettäviä tietoja.",
+    "confirmMessage": "Haluatko varmasti siirtää tietosi pilveen?",
+    "confirmWarning": "Paikalliset tietosi säilyvät muuttumattomina. Voit tyhjentää ne siirron onnistumisen jälkeen.",
+    "clearLocalPrompt": "Haluatko tyhjentää paikalliset tiedot? (Pilvitietosi ovat turvassa)",
+    "startButton": "Aloita siirto",
+    "retryButton": "Yritä uudelleen",
+    "retryWait": "Yritä ({{seconds}}s)",
+    "cancelButton": "Peruuta",
+    "skipButton": "Ohita toistaiseksi",
+    "continueButton": "Jatka",
+    "doneButton": "Valmis",
+    "clearLocalButton": "Tyhjennä paikalliset tiedot",
+    "clearFailed": "Paikallisten tietojen tyhjentäminen epäonnistui. Voit yrittää myöhemmin uudelleen Asetuksissa.",
+    "clearFailedAcknowledge": "Paikallisten tietojen tyhjentäminen epäonnistui. Voit tyhjentää myöhemmin Asetuksissa tai yrittää nyt uudelleen.",
+    "retryClear": "Yritä tyhjentää",
+    "continueWithoutClear": "Jatka (tyhjennä myöhemmin)",
+    "switchToLocal": "Vaihda paikalliseen tilaan",
+    "switchingToLocal": "Vaihdetaan...",
+    "switchToLocalFailed": "Paikalliseen tilaan vaihtaminen epäonnistui.",
+    "continueInCloud": "Jatka pilvipalvelussa",
+    "summary": {
+      "title": "Tietojen yhteenveto",
+      "players": "Pelaajat",
+      "teams": "Joukkueet",
+      "teamRosters": "Joukkuekokoonpanot",
+      "seasons": "Kaudet",
+      "tournaments": "Turnaukset",
+      "games": "Ottelut",
+      "personnel": "Henkilöstö",
+      "playerAdjustments": "Pelaajakorjaukset",
+      "warmupPlan": "Alkulämmittelysuunnitelma",
+      "settings": "Asetukset"
+    },
+    "progress": {
+      "entity": "Siirretään {{entity}}...",
+      "complete": "{{count}} kohdetta siirretty"
+    },
+    "warnings": {
+      "cloudCleared": "Olemassa olevat pilvitiedot tyhjennettiin ennen siirtoa (korvaustila)",
+      "andMore": "...ja {{count}} lisää",
+      "title": "Varoitukset"
+    },
+    "errors": {
+      "unexpected": "Tapahtui odottamaton virhe. Yritä uudelleen.",
+      "network": "Verkkovirhe. Tarkista yhteys ja yritä uudelleen.",
+      "sessionExpired": "Istunto vanhentunut. Kirjaudu sisään uudelleen.",
+      "rateLimit": "Liian monta yritystä. Odota hetki ja yritä uudelleen.",
+      "storage": "Tallennusvirhe. Yritä uudelleen tai ota yhteyttä tukeen.",
+      "timeout": "Pyyntö aikakatkaistiin. Yritä uudelleen vakaalla yhteydellä.",
+      "permission": "Käyttöoikeusvirhe. Kirjaudu ulos ja takaisin sisään.",
+      "validation": "Tietojen tarkistus epäonnistui. Tarkista tiedot ja yritä uudelleen.",
+      "syncFailed": "Synkronointi epäonnistui. Yritä uudelleen.",
+      "downloadFailed": "Lataus epäonnistui. Yritä uudelleen."
+    },
+    "modeTitle": "Siirtotapa",
+    "modeMerge": "Lisää pilveen",
+    "modeMergeDesc": "Yhdistä olemassa oleviin pilvitietoihin. Vastaavat kohteet päivitetään.",
+    "modeReplace": "Korvaa pilvitiedot",
+    "modeReplaceDesc": "Tyhjennä kaikki olemassa olevat pilvitiedot ensin, sitten lataa uudet.",
+    "modeReplaceWarning": "Varoitus: Korvaustila poistaa kaikki olemassa olevat pilvitietosi ennen latausta.",
+    "replaceWarningTitle": "Korvaustila POISTAA kaikki olemassa olevat pilvitiedot!",
+    "replaceWarningDesc": "Kaikki ottelusi, pelaajasi, joukkueesi, kautesi ja muut pilvessä olevat tietosi poistetaan pysyvästi ennen paikallisten tietojen lataamista.",
+    "replaceNoRollback": "Varoitus: Jos siirto epäonnistuu tyhjennyksen jälkeen, pilvitietojasi ei voida palauttaa. Paikalliset tietosi pysyvät turvassa.",
+    "replaceConfirmLabel": "Kirjoita REPLACE vahvistaaksesi:",
+    "startReplaceButton": "Korvaa ja lataa",
+    "loadingData": "Ladataan tietojen yhteenvetoa...",
+    "bothHaveDataTitle": "Tietoja löytyi molemmista paikoista",
+    "bothHaveDataDesc": "Sinulla on tietoja sekä paikallisesti että pilvessä. Valitse miten haluat jatkaa:",
+    "localOnlyTitle": "Paikallisia tietoja löytyi",
+    "localOnlyDesc": "Sinulla on paikallisesti tallennettuja tietoja, jotka voidaan siirtää pilveen.",
+    "localData": "Paikalliset tiedot",
+    "cloudData": "Pilvitiedot",
+    "action": {
+      "merge": "Yhdistä tiedot",
+      "mergeDesc": "Yhdistä paikalliset ja pilvitiedot. Vastaavat kohteet päivitetään paikallisista.",
+      "replaceCloud": "Korvaa pilvitiedot",
+      "replaceCloudDesc": "Poista kaikki pilvitiedot ja lataa paikalliset tiedot tilalle.",
+      "keepCloud": "Säilytä pilvitiedot",
+      "keepCloudDesc": "Hylkää paikalliset tiedot ja jatka vain pilvitiedoilla.",
+      "migrate": "Siirrä pilveen",
+      "migrateDesc": "Lataa paikalliset tietosi pilveen varmuuskopiointia ja synkronointia varten.",
+      "startFresh": "Aloita alusta",
+      "startFreshDesc": "Hylkää paikalliset tiedot ja aloita tyhjällä pilvitilillä.",
+      "startFreshWarning": "Tämä poistaa paikalliset tietosi pysyvästi!",
+      "cancel": "Peruuta",
+      "cancelDesc": "Palaa paikalliseen tilaan ja jatka paikallisten tietojen käyttöä."
+    },
+    "syncDescription": "Paikalliset tietosi synkronoidaan pilveen varmuuskopiointia ja pääsyä muilta laitteilta varten.",
+    "notNow": "Ei nyt",
+    "syncToCloud": "Synkronoi pilveen",
+    "loadDataFailed": "Tietojen lataaminen epäonnistui. Yritä uudelleen.",
+    "canRetryOrCancel": "Voit yrittää uudelleen tai sulkea tämän ikkunan.",
+    "dataIsSafe": "Paikalliset tietosi ovat turvassa.",
+    "errorGeneric": "Jotain meni pieleen. Yritä uudelleen.",
+    "syncFailedUnknown": "Synkronointi epäonnistui tuntemattomasta syystä. Yritä uudelleen."
+  },
+  "syncStatus": {
+    "local": "Paikallinen",
+    "localTitle": "Tiedot tallennettu paikallisesti laitteelle",
+    "synced": "Synkronoitu",
+    "syncedTitle": "Kaikki tiedot synkronoitu pilveen",
+    "syncing": "Synkronoidaan",
+    "syncingTitle": "Synkronoidaan tietoja pilveen...",
+    "pending": "Odottaa",
+    "pendingCount": "{{count}} odottaa",
+    "pendingTitle": "{{count}} muutosta odottaa synkronointia",
+    "error": "Virhe",
+    "errorCount": "{{count}} epäonnistui",
+    "errorTitle": "{{count}} toimintoa epäonnistui - napauta yrittääksesi uudelleen",
+    "offline": "Offline",
+    "offlineTitle": "Ei internet-yhteyttä - muutokset synkronoidaan kun olet online",
+    "paused": "Keskeytetty",
+    "pausedTitle": "Synkronointi keskeytetty - tilaus vaaditaan",
+    "cloud": "Pilvi",
+    "cloudTitle": "Tiedot synkronoidaan pilveen",
+    "online": "Online"
+  },
+  "cloudSync": {
+    "title": "Tili ja synkronointi",
+    "statusLabel": "Nykyinen tila",
+    "cloudMode": "Pilvisynkronointi käytössä",
+    "localMode": "Paikallinen tallennus",
+    "cloudDescription": "Tietosi synkronoidaan pilveen. Pääset niihin käsiksi miltä tahansa laitteelta kirjautumisen jälkeen.",
+    "cloudNoSubscription": "Sinulla on pilvitili, mutta synkronointi on tauolla. Tilaa synkronointi käyttöön.",
+    "localDescription": "Tietosi tallennetaan paikallisesti tälle laitteelle. Toimii offline-tilassa, mutta tietoja ei synkronoida.",
+    "subscriptionRequired": "Tilaus vaaditaan",
+    "subscriptionRequiredDescription": "Tilisi on aktiivinen, mutta pilvisynkronointi on tauolla. Tilaa synkronoidaksesi tiedot laitteiden välillä.",
+    "subscribeButton": "Tilaa nyt",
+    "notAvailable": "Pilvisynkronointi ei ole käytettävissä. Tämä ominaisuus vaatii premium-tilauksen ja palvelimen määrityksen.",
+    "notConfigured": "Pilvisynkronointia ei ole määritetty. Yritä myöhemmin uudelleen.",
+    "enableButton": "Ota pilvisynkronointi käyttöön",
+    "disableButton": "Vaihda paikalliseen tilaan",
+    "enabling": "Otetaan käyttöön...",
+    "disabling": "Poistetaan käytöstä...",
+    "enabledReloading": "Pilvitila käytössä. Ladataan uudelleen...",
+    "disabledReloading": "Paikallinen tila käytössä. Ladataan uudelleen...",
+    "enabledRestartRequired": "Pilvitila käytössä. Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
+    "disabledRestartRequired": "Paikallinen tila käytössä. Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
+    "enableFailed": "Pilvitilan käyttöönotto epäonnistui. Yritä uudelleen.",
+    "enableError": "Virhe pilvitilan käyttöönotossa.",
+    "disableFailed": "Paikalliseen tilaan vaihtaminen epäonnistui. Yritä uudelleen.",
+    "disableError": "Virhe pilvitilan poistamisessa käytöstä.",
+    "restartRequired": "Käynnistä sovellus uudelleen muutosten soveltamiseksi.",
+    "migrationNote": "Kun otat pilvisynkronoinnin käyttöön, voit siirtää nykyiset paikalliset tietosi pilveen.",
+    "dangerZone": "Vaaravyöhyke",
+    "clearCloudData": "Tyhjennä kaikki pilvitiedot",
+    "clearWarningTitle": "Tätä toimintoa ei voi kumota!",
+    "clearWarningDescription": "Kaikki ottelusi, pelaajasi, joukkueesi, kautesi ja muut tietosi poistetaan pysyvästi pilvestä.",
+    "clearConfirmLabel": "Kirjoita DELETE vahvistaaksesi:",
+    "clearing": "Tyhjennetään...",
+    "confirmClear": "Tyhjennä kaikki tiedot",
+    "clearNote": "Tämä poistaa kaikki tietosi pilvestä. Tämän laitteen paikallisiin tietoihin ei vaikuteta.",
+    "clearSuccess": "Kaikki pilvitiedot on poistettu.",
+    "clearSuccessReloading": "Kaikki pilvitiedot poistettu. Ladataan uudelleen...",
+    "clearError": "Pilvitietojen tyhjentäminen epäonnistui. Yritä uudelleen.",
+    "clearNetworkError": "Verkkovirhe. Tarkista yhteys ja yritä uudelleen.",
+    "clearAuthError": "Istunto vanhentunut. Kirjaudu ulos ja takaisin sisään.",
+    "cloudUnavailable": "Pilvi ei ole käytettävissä. Pilvitietoja ei voida tyhjentää.",
+    "wrongBackend": "Tyhjennys epäonnistui: ei yhteyttä pilvitallennustilaan.",
+    "signOutButton": "Kirjaudu ulos",
+    "signingOut": "Kirjaudutaan ulos...",
+    "signedOut": "Kirjauduttu ulos onnistuneesti. Ladataan uudelleen...",
+    "signOutError": "Uloskirjautuminen epäonnistui. Yritä uudelleen.",
+    "signOutNetworkError": "Verkkovirhe. Voit jatkaa sovelluksen käyttöä offline-tilassa.",
+    "startOver": "Aloita alusta toisella tilillä",
+    "startingOver": "Aloitetaan alusta. Ladataan uudelleen...",
+    "startOverError": "Alusta aloittaminen epäonnistui. Yritä uudelleen.",
+    "switchedToLocal": "Vaihdettu paikalliseen tilaan. Ladataan uudelleen...",
+    "manageSubscription": "Hallitse tilausta",
+    "subscriptionSuccess": "Tilaus aktivoitu! Ladataan uudelleen...",
+    "importLocalData": {
+      "button": "Tuo paikalliset tiedot pilveen",
+      "checking": "Tarkistetaan...",
+      "starting": "Aloitetaan tuonti... Ladataan uudelleen.",
+      "noData": "Ei paikallisia tietoja tuotavaksi.",
+      "notSignedIn": "Kirjaudu ensin sisään.",
+      "checkFailed": "Paikallisten tietojen tarkistus epäonnistui. Yritä uudelleen.",
+      "error": "Tapahtui virhe. Yritä uudelleen."
+    },
+    "cloudAccount": {
+      "title": "Pilvitili",
+      "lastSynced": "Viimeksi synkronoitu: {{date}}",
+      "neverSynced": "Ei koskaan",
+      "unknownDate": "Tuntematon",
+      "unknownEmail": "Tuntematon",
+      "hasCloudData": "Sinulla on tietoja tallennettuna pilveen.",
+      "deleteCloudData": "Poista kaikki pilvitiedot",
+      "deleteWarning": "Sinun täytyy kirjautua uudelleen poistaaksesi pilvitietosi.",
+      "signInToDelete": "Kirjaudu poistaaksesi",
+      "deleteNote": "Tämä poistaa pysyvästi kaikki tietosi palvelimiltamme.",
+      "deleteSuccess": "Pilvitiedot poistettu onnistuneesti."
+    },
+    "syncDetails": {
+      "status": "Synkronointitila",
+      "lastSynced": "Viimeksi synkronoitu",
+      "pendingChanges": "Odottavat muutokset",
+      "syncNow": "Synkronoi nyt",
+      "syncing": "Synkronoidaan...",
+      "failedCount": "{{count}} toimintoa epäonnistui synkronoinnissa.",
+      "retry": "Yritä uudelleen",
+      "discard": "Hylkää",
+      "justNow": "Juuri nyt",
+      "minutesAgo": "{{count}} min sitten",
+      "hoursAgo": "{{count}} t sitten",
+      "daysAgo": "{{count}} pv sitten",
+      "resume": "Jatka",
+      "pause": "Keskeytä",
+      "resumeTitle": "Jatka automaattista synkronointia",
+      "pauseTitle": "Keskeytä automaattinen synkronointi",
+      "pausedWarning": "Synkronointi on keskeytetty. Muutokset tallennetaan paikallisesti ja synkronoidaan kun jatkat.",
+      "cloudNotConnected": "Pilviyhteys muodostuu... Muutokset synkronoidaan automaattisesti kun yhteys on valmis."
+    },
+    "pendingSync": {
+      "title": "Synkronoimattomat muutokset",
+      "warning": "Sinulla on {{count}} muutosta, joita ei ole vielä synkronoitu pilveen.",
+      "pendingCount": "{{count}} odottavaa muutosta",
+      "failedCount": "{{count}} epäonnistui synkronoinnissa",
+      "consequence": "Siirtyminen paikalliseen tilaan hylkää nämä muutokset.",
+      "syncFirst": "Synkronoi ensin",
+      "syncing": "Synkronoidaan...",
+      "discardAndContinue": "Hylkää ja jatka",
+      "offlineNotice": "Synkronointi ei ole mahdollista offline-tilassa",
+      "syncFailed": "Synkronointi epäonnistui. Yritä uudelleen tai hylkää muutokset."
+    }
+  },
+  "cloudAuth": {
+    "title": {
+      "auth": "Kirjaudu sisään",
+      "confirm": "Vahvista poisto",
+      "deleting": "Poistetaan...",
+      "success": "Valmis",
+      "error": "Virhe"
+    },
+    "description": "Kirjaudu sisään poistaaksesi pilvitietosi.",
+    "email": "Sähköposti",
+    "password": "Salasana",
+    "passwordPlaceholder": "Syötä salasanasi",
+    "signingIn": "Kirjaudutaan...",
+    "signIn": "Kirjaudu sisään",
+    "errors": {
+      "passwordRequired": "Salasana vaaditaan",
+      "signInFailed": "Kirjautuminen epäonnistui. Yritä uudelleen.",
+      "deleteFailed": "Poisto epäonnistui",
+      "unexpected": "Odottamaton virhe tapahtui. Yritä uudelleen.",
+      "network": "Verkkovirhe. Tarkista yhteys ja yritä uudelleen.",
+      "invalidCredentials": "Virheellinen sähköposti tai salasana.",
+      "emailNotConfirmed": "Vahvista sähköpostiosoitteesi ennen kirjautumista.",
+      "rateLimit": "Liian monta yritystä. Odota hetki ja yritä uudelleen.",
+      "generic": "Virhe tapahtui. Yritä uudelleen.",
+      "moduleLoadFailed": "Pilvipalveluiden lataus epäonnistui. Tarkista yhteys ja yritä uudelleen."
+    },
+    "confirm": {
+      "title": "Vahvista poisto",
+      "warning": "Tämä poistaa pysyvästi KAIKKI tietosi palvelimiltamme:",
+      "allGames": "Kaikki ottelut ja ottelutiedot",
+      "allPlayers": "Kaikki pelaajat ja kokoonpanot",
+      "allOther": "Kaikki kaudet, turnaukset ja asetukset",
+      "cannotUndo": "Tätä toimintoa ei voi kumota.",
+      "typeDelete": "Kirjoita DELETE vahvistaaksesi:",
+      "deleteAll": "Poista kaikki pilvitiedot"
+    },
+    "deleting": "Poistetaan pilvitietojasi...",
+    "deletingNote": "Tämä voi kestää hetken.",
+    "success": {
+      "title": "Pilvitiedot poistettu",
+      "description": "Kaikki tietosi on poistettu pysyvästi palvelimiltamme."
+    },
+    "error": {
+      "title": "Poisto epäonnistui"
+    }
+  },
+  "reverseMigration": {
+    "title": "Vaihda paikalliseen tilaan",
+    "description": "Lataa pilvitietosi tälle laitteelle ja vaihda paikalliseen tilaan.",
+    "preparing": "Valmistellaan latausta...",
+    "noData": "Pilvitietoja ei löytynyt.",
+    "noLocalData": "Ei paikallisia tietoja",
+    "localDataWarning": "Pilvitiedot yhdistetään olemassa oleviin paikallisiin tietoihin. Kaksoiskappaleita saattaa syntyä.",
+    "summaryError": "Pilvitietojen tarkistus epäonnistui",
+    "summary": {
+      "title": "Pilvitietosi"
+    },
+    "steps": {
+      "preview": "Esikatselu",
+      "choose": "Valinnat",
+      "confirm": "Vahvista",
+      "progress": "Edistyminen",
+      "complete": "Valmis",
+      "error": "Virhe"
+    },
+    "preview": {
+      "title": "Pilvitietosi",
+      "description": "Sinulla on seuraavat tiedot tallennettuna pilveen:",
+      "games": "{{count}} ottelua",
+      "players": "{{count}} pelaajaa",
+      "teams": "{{count}} joukkuetta",
+      "seasons": "{{count}} kautta",
+      "tournaments": "{{count}} turnausta",
+      "personnel": "{{count}} henkilökuntaa",
+      "loading": "Ladataan pilvitietojasi...",
+      "loadError": "Pilvitietojen lataus epäonnistui."
+    },
+    "choose": {
+      "title": "Mitä haluat tehdä pilvitiedoillesi?",
+      "description": "Valitse mitä pilvitiedoillesi tapahtuu kun vaihdat paikalliseen tilaan.",
+      "keepCloud": "Säilytä pilvikopio",
+      "keepCloudDescription": "Tietosi säilyvät Supabasessa. Voit ottaa pilvisynkronoinnin uudelleen käyttöön myöhemmin menettämättä mitään.",
+      "deleteCloud": "Poista pilvitiedot",
+      "deleteCloudDescription": "Latauksen jälkeen kaikki tietosi poistetaan palvelimiltamme. Tätä ei voi kumota."
+    },
+    "confirm": {
+      "title": "Vahvista pilven poisto",
+      "keepCloudSummary": "Tietosi ladataan tälle laitteelle. Pilvitietosi säilyvät muuttumattomina.",
+      "deleteCloudSummary": "Tietosi ladataan tälle laitteelle, sitten ne poistetaan pysyvästi pilvestä.",
+      "warning": "Latauksen jälkeen KAIKKI pilvitiedot poistetaan pysyvästi palvelimiltamme.",
+      "allData": "Kaikki liittyvät tiedot",
+      "cannotUndo": "Tätä toimintoa ei voi kumota.",
+      "typeConfirm": "Kirjoita CONFIRM jatkaaksesi:",
+      "typeDelete": "Kirjoita DELETE vahvistaaksesi:",
+      "downloadAndDelete": "Lataa ja poista pilvi"
+    },
+    "progress": {
+      "title": "Siirretään tietoja",
+      "preparing": "Valmistellaan...",
+      "downloading": "Ladataan tietojasi...",
+      "downloadingAndDeleting": "Ladataan ja poistetaan...",
+      "downloadingFromCloud": "Ladataan pilvestä...",
+      "saving": "Tallennetaan paikalliseen tallennustilaan...",
+      "verifying": "Varmistetaan tiedot...",
+      "deleting": "Poistetaan pilvitiedot...",
+      "switching": "Vaihdetaan paikalliseen tilaan...",
+      "entity": "Ladataan {{entity}}..."
+    },
+    "complete": {
+      "title": "Vaihto valmis!",
+      "titleWithWarnings": "Vaihto valmis varoituksin",
+      "description": "Tietosi on ladattu tälle laitteelle.",
+      "deletedDescription": "Tietosi on ladattu ja pilvitiedot on poistettu.",
+      "cloudDeleted": "Pilvitietosi on poistettu pysyvästi.",
+      "cloudKept": "Pilvitietosi on säilytetty.",
+      "done": "Valmis",
+      "doneAndReload": "Valmis ja päivitä",
+      "reloadNote": "Sivu päivitetään muutosten käyttöönottamiseksi",
+      "reloading": "Ladataan sovellusta uudelleen..."
+    },
+    "error": {
+      "title": "Siirto epäonnistui",
+      "description": "Siirron aikana tapahtui virhe. Tietojasi ei ole muutettu.",
+      "retry": "Yritä uudelleen",
+      "retryIn": "Yritä uudelleen ({{seconds}}s)",
+      "maxRetries": "Uudelleenyritysraja saavutettu. Yritä myöhemmin uudelleen.",
+      "cancel": "Peruuta"
+    },
+    "buttons": {
+      "next": "Seuraava",
+      "back": "Takaisin",
+      "cancel": "Peruuta",
+      "confirm": "Vahvista",
+      "startMigration": "Aloita siirto",
+      "done": "Valmis"
+    },
+    "title": {
+      "preview": "Vaihda paikalliseen tilaan",
+      "choose": "Vaihda paikalliseen tilaan",
+      "confirm": "Vahvista pilven poisto",
+      "progress": "Vaihdetaan paikalliseen tilaan",
+      "complete": "Vaihto valmis",
+      "error": "Lataus epäonnistui"
+    }
+  },
+  "welcome": {
+    "title": "Tervetuloa!",
+    "instruction": "Valitse miten haluat aloittaa",
+    "subtitle": "Seuraa joukkueesi pelejä, pelaajia ja tilastoja",
+    "startLocal": "Aloita ilman tiliä",
+    "startLocalDesc": "Tietosi tallentuvat vain tälle laitteelle.",
+    "startLocalAria": "Aloita ilman tiliä, ilmainen",
+    "signInCloud": "Kirjaudu tai luo tili",
+    "signInCloudDesc": "Tietosi synkronoituvat laitteiden välillä.",
+    "signInCloudAria": "Kirjaudu tai luo ilmainen tili",
+    "importBackup": "Tuo varmuuskopiosta",
+    "importBackupDesc": "Palauta aiemmat tiedot tiedostosta ja jatka siitä mihin jäit.",
+    "importBackupAria": "Tuo varmuuskopiotiedosto",
+    "importing": "Tuodaan...",
+    "importingAria": "Tuodaan varmuuskopiotiedostoa",
+    "changeInSettings": "Voit muuttaa tätä myöhemmin Asetuksissa",
+    "useCloudSync": "Käytä pilvisynkronointia",
+    "useCloudSyncDesc": "Synkronoi tietosi kaikilla laitteillasi.",
+    "useCloudSyncAria": "Käytä pilvisynkronointia, pääsy kaikilta laitteilta",
+    "haveBackup": "Onko sinulla varmuuskopio?",
+    "badgeFree": "ILMAINEN",
+    "badgeFreeAccount": "ILMAINEN TILI",
+    "badgePaid": "MAKSULLINEN",
+    "signInCloudDescFree": "Luo ilmainen tili. Tilaa milloin tahansa synkronoidaksesi laitteiden välillä.",
+    "signInCloudDescWithPrice": "Luo ilmainen tili. Pilvisynkronointi 4,99 €/kk.",
+    "signInOnly": "Kirjaudu pilvitilille",
+    "signInOnlyAria": "Kirjaudu olemassa olevalle pilvitilille",
+    "signInOnlyDesc": "Olemassa oleville tilaajille",
+    "androidRequired": "Uusi käyttäjä? Tilaa Android-sovelluksessa.",
+    "getAndroidApp": "Lataa Google Playsta"
+  },
+  "page": {
+    "startingLocalMode": "Käynnistetään paikallisessa tilassa...",
+    "refreshPageManually": "Päivitä sivu manuaalisesti",
+    "refreshPageManuallyContinue": "Päivitä sivu manuaalisesti jatkaaksesi",
+    "cloudModeEnabledReloading": "Pilvitila käytössä. Ladataan uudelleen...",
+    "cloudSyncNotAvailable": "Pilvisynkronointi ei ole käytettävissä",
+    "importSucceededRefresh": "Tuonti onnistui. Päivitä sivu manuaalisesti.",
+    "failedToImportBackup": "Varmuuskopion tuonti epäonnistui",
+    "localModeEnabledReloading": "Paikallinen tila käytössä. Ladataan uudelleen...",
+    "failedToSwitchLocalMode": "Paikalliseen tilaan vaihtaminen epäonnistui",
+    "couldNotCheckLocalData": "Paikallisia tietoja ei voitu tarkistaa. Päivitä sivu yrittääksesi uudelleen.",
+    "couldNotCheckCloudData": "Pilvitietoja ei voitu tarkistaa. Tietosi latautuvat automaattisesti.",
+    "unableToCheckSync": "Synkronoitavia tietoja ei voitu tarkistaa. Päivitä sivu, jos sinulla on synkronoitavia tietoja.",
+    "returningToLocalMode": "Palataan paikalliseen tilaan...",
+    "failedToSwitchLocalModeRetry": "Paikalliseen tilaan vaihtaminen epäonnistui. Yritä uudelleen.",
+    "refreshingAfterBackground": "Päivitetään sovellusta taustalta palaamisen jälkeen...",
+    "unableToRefreshApp": "Sovelluksen päivitys epäonnistui. Sulje ja avaa uudelleen.",
+    "failedResetAppData": "Sovellustietojen nollaus epäonnistui.",
+    "gameDataNotFound": "Virhe: Pelitietoja ei löytynyt pelille {{gameId}}",
+    "legacyDataMigrated_one": "Tietosi on siirretty tilillesi ({{count}} kohde)",
+    "legacyDataMigrated_other": "Tietosi on siirretty tilillesi ({{count}} kohdetta)",
+    "legacyMigrationFailed": "Tietojesi siirto epäonnistui. Yritä myöhemmin uudelleen.",
+    "dataLoadedFromCloud": "Tietosi on ladattu pilvestä.",
+    "failedToLoadCloudData": "Pilvitietojen lataus epäonnistui. Kokeile päivittää sivu.",
+    "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen.",
+    "signingOut": "Kirjaudutaan ulos...",
+    "loadingYourData": "Ladataan tietojasi...",
+    "alreadyOpen": "Jo avoinna",
+    "alreadyOpenDesc": "MatchOps on jo avoinna toisessa välilehdessä. Sulje tämä tai toinen välilehti jatkaaksesi.",
+    "connectionTimeout": "Yhteys aikakatkaistiin",
+    "connectionTimeoutDesc": "Palvelimeen ei saatu yhteyttä. Tämä voi tapahtua, kun sovellus on ollut taustalla pitkään.",
+    "tryAgain": "Yritä uudelleen",
+    "useLocalModeInstead": "Käytä paikallista tilaa",
+    "noUserForResync": "Käyttäjä ei ole kirjautunut",
+    "resyncFailed": "Synkronointi epäonnistui. Yritä uudelleen.",
+    "noUserForFactoryReset": "Käyttäjä ei ole kirjautunut",
+    "factoryResetFailed": "Palautus epäonnistui. Yritä uudelleen.",
+    "factoryResetOffline": "Pilvitietoja ei voi poistaa offline-tilassa. Tarkista yhteys ja yritä uudelleen."
   },
   "positions": {
-    "GK": "MV",
-    "LB": "VP",
-    "CB": "KP",
-    "RB": "OP",
-    "LDM": "VPK",
-    "CDM": "PK",
-    "RDM": "OPK",
-    "LM": "VK",
-    "CM": "KK",
-    "RM": "OK",
-    "LAM": "VHK",
-    "CAM": "HK",
-    "RAM": "OHK",
-    "LW": "VL",
-    "ST": "HY",
-    "RW": "OL",
-    "SUB": "VAR"
+    "GK": "GK",
+    "LB": "LB",
+    "CB": "CB",
+    "RB": "RB",
+    "LDM": "LDM",
+    "CDM": "CDM",
+    "RDM": "RDM",
+    "LM": "LM",
+    "CM": "CM",
+    "RM": "RM",
+    "LAM": "LAM",
+    "CAM": "CAM",
+    "RAM": "RAM",
+    "LW": "LW",
+    "ST": "ST",
+    "RW": "RW",
+    "SUB": "SUB"
+  },
+  "entityType": {
+    "season": "kausi",
+    "tournament": "turnaus",
+    "team": "joukkue"
+  },
+  "deleteBlocked": {
+    "title": "Ei voida poistaa: \"{{name}}\"",
+    "reason": "Tämä {{type}} on {{summary}}.",
+    "archiveOption": "Voit sen sijaan arkistoida sen, jolloin:",
+    "hideFromLists": "Se piilotetaan listoista ja valinnoista",
+    "keepData": "Kaikki siihen linkitetyt tiedot säilyvät",
+    "canRestore": "Voit palauttaa sen myöhemmin",
+    "deleteHint": "Poistaaksesi pysyvästi, poista ensin kaikki viittaukset (siirrä pelit toiseen {{type}}n tai poista ne).",
+    "archiveInstead": "Arkistoi sen sijaan"
   }
 }

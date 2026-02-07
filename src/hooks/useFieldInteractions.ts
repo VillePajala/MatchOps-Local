@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getDrawingModeEnabled, saveDrawingModeEnabled } from '@/utils/appSettings';
+import { useAuth } from '@/contexts/AuthProvider';
 
 export interface UseFieldInteractionsReturn {
   isDrawingEnabled: boolean;
@@ -41,6 +42,10 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
   const [isDrawingEnabled, setIsDrawingEnabled] = useState<boolean>(false);
   const [isPersisting, setIsPersisting] = useState<boolean>(false);
 
+  // Get user ID for user-scoped storage operations
+  const { user } = useAuth();
+  const userId = user?.id;
+
   // Refs grouped together for maintainability
   const isInitialMount = useRef(true);
   const onPersistErrorRef = useRef<UseFieldInteractionsOptions['onPersistError']>(options?.onPersistError);
@@ -54,7 +59,7 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
   useEffect(() => {
     let isMounted = true;
     const loadPreference = async () => {
-      const saved = await getDrawingModeEnabled();
+      const saved = await getDrawingModeEnabled(userId);
       if (isMounted) {
         setIsDrawingEnabled(saved);
         previousValueRef.current = saved;
@@ -64,7 +69,7 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [userId]);
 
   // Reload drawing mode preference when app returns from background (Android TWA / iOS Safari fix)
   // This prevents stale state after bfcache restoration where the preference might have
@@ -74,7 +79,7 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     const handleVisibilityChange = async () => {
       if (!document.hidden && isMounted) {
         // Re-sync with IndexedDB to ensure state consistency
-        const saved = await getDrawingModeEnabled();
+        const saved = await getDrawingModeEnabled(userId);
         if (isMounted) {
           setIsDrawingEnabled(saved);
           previousValueRef.current = saved;
@@ -87,7 +92,7 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
       isMounted = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [userId]);
 
   // Persist drawing mode preference to IndexedDB with rollback on failure
   // Skip initial mount to avoid redundant write (value just loaded)
@@ -101,11 +106,14 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     const previousValue = previousValueRef.current;
     const newValue = isDrawingEnabled;
 
+    // Skip persistence if value hasn't changed (prevents redundant save on rollback)
+    if (newValue === previousValue) return;
+
     let isMounted = true;
     // Attempt to persist the change
     (async () => {
       setIsPersisting(true);
-      const ok = await saveDrawingModeEnabled(newValue);
+      const ok = await saveDrawingModeEnabled(newValue, userId);
       if (!isMounted) {
         return;
       }
@@ -131,7 +139,7 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     return () => {
       isMounted = false;
     };
-  }, [isDrawingEnabled]);
+  }, [isDrawingEnabled, userId]);
 
   const toggleDrawingMode = useCallback(() => {
     setIsDrawingEnabled(prev => !prev);

@@ -5,6 +5,7 @@ import 'jest-canvas-mock';
 jest.mock('@sentry/nextjs', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
+  addBreadcrumb: jest.fn(),
   withScope: jest.fn((callback) => callback({ setTag: jest.fn(), setContext: jest.fn() })),
 }));
 
@@ -211,7 +212,17 @@ const allowedConsolePatterns = [
   'Import completed with',
   'Failed to parse import',
   'Skipping IndexedDB test',
-  'Failed to',
+  'Failed to get install prompt',
+  'Failed to set install prompt',
+  'Failed to save',
+  'Failed to load',
+  'Failed to delete',
+  'Failed to initialize',
+  'Failed to clear',
+  'Failed to fetch',
+  'Failed to parse',
+  'Failed to read',
+  'Failed to connect',
   'Migration failed',
   'Storage operation failed',
   'Storage adapter creation still in backoff period',
@@ -229,6 +240,27 @@ const allowedConsolePatterns = [
   'Wake Lock request failed',
   // Club season validation warnings (expected in validation tests)
   '[getClubSeasonForDate] Invalid date format',
+  // Backend config warnings (expected in backendConfig tests)
+  '[backendConfig]',
+  '[factory]',
+  // SupabaseDataStore warnings (expected fallback behavior in tests)
+  '[SupabaseDataStore]',
+  // MigrationService errors/warnings (expected in migration failure tests)
+  '[MigrationService]',
+  // SyncEngine warnings/errors (expected in sync failure tests)
+  '[SyncEngine]',
+  // SyncExecutor warnings/errors (expected in sync failure tests)
+  '[SyncExecutor]',
+  // PlayBilling errors (expected in billing error-handling tests)
+  '[PlayBilling]',
+  // SeasonTournamentManagementModal errors (expected in delete tests)
+  '[SeasonTournamentManagementModal]',
+  // Warmup plan errors (expected in warmup plan error-handling tests)
+  '[useWarmupPlan]',
+  // Premium access errors (expected in premium error-handling tests)
+  'Failed to grant premium',
+  'Failed to revoke premium',
+  'Failed to get premium',
 ];
 
 const shouldFailOnConsoleMessage = (message) => {

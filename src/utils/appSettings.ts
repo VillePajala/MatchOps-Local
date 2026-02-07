@@ -11,21 +11,21 @@ import {
   TEAM_ROSTERS_KEY,
   APP_DATA_VERSION_KEY,
   INSTALL_PROMPT_DISMISSED_KEY,
-  HAS_SEEN_FIRST_GAME_GUIDE_KEY,
 } from '@/config/storageKeys';
 import {
   getStorageItem,
   setStorageItem,
-  removeStorageItem,
 } from './storage';
 import logger from '@/utils/logger';
 import { storageConfigManager } from './storageConfigManager';
 import { getDataStore } from '@/datastore';
 // ValidationError check uses code property (not instanceof) to avoid module boundary issues
+import { DEFAULT_APP_SETTINGS } from '@/types/settings';
 import type { AppSettings } from '@/types/settings';
 
 // Re-export for backwards compatibility
 export type { AppSettings } from '@/types/settings';
+export { DEFAULT_APP_SETTINGS } from '@/types/settings';
 
 // Import club season defaults for use in this file
 import {
@@ -38,30 +38,23 @@ import {
 export { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE };
 
 /**
- * Default application settings
- */
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  currentGameId: null,
-  lastHomeTeamName: '',
-  language: 'fi',
-  hasSeenAppGuide: false,
-  useDemandCorrection: false,
-  hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
-  clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
-};
-
-/**
  * Gets the application settings.
  * DataStore handles legacy migration from month-based to date-based format.
  *
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the application settings
  */
-export const getAppSettings = async (): Promise<AppSettings> => {
+export const getAppSettings = async (userId?: string): Promise<AppSettings> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getSettings();
   } catch (error) {
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Don't log as error to avoid Sentry noise
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('Settings read skipped - DataStore closed during transition');
+      return DEFAULT_APP_SETTINGS;
+    }
     logger.error('Error getting app settings:', error);
     return DEFAULT_APP_SETTINGS;
   }
@@ -71,11 +64,12 @@ export const getAppSettings = async (): Promise<AppSettings> => {
  * Saves the application settings.
  * DataStore handles locking and persistence.
  * @param settings - The settings to save
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false otherwise
  */
-export const saveAppSettings = async (settings: AppSettings): Promise<boolean> => {
+export const saveAppSettings = async (settings: AppSettings, userId?: string): Promise<boolean> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     await dataStore.saveSettings(settings);
     return true;
   } catch (error) {
@@ -93,12 +87,18 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
  * - Returns current settings on storage failures (graceful degradation)
  *
  * @param settingsUpdate - Partial settings to update (must not be empty)
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the updated settings (or current settings on storage error)
  * @throws {ValidationError} If settingsUpdate is an empty object
  */
-export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
+export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>, userId?: string): Promise<AppSettings> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
+    // Defensive null check - shouldn't happen but can during page reload edge cases
+    if (!dataStore) {
+      logger.warn('updateAppSettings: dataStore is null, returning defaults');
+      return DEFAULT_APP_SETTINGS;
+    }
     return await dataStore.updateSettings(settingsUpdate);
   } catch (error) {
     // Re-throw ValidationError - it's a programming error, caller should fix their code
@@ -106,10 +106,21 @@ export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): P
     if (error && typeof error === 'object' && 'code' in error && error.code === 'VALIDATION_ERROR') {
       throw error;
     }
+    // AuthError is expected during sign out - don't log as error (prevents Sentry noise)
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'AUTH_ERROR') {
+      logger.info('Settings update skipped - user signed out:', error);
+      return DEFAULT_APP_SETTINGS;
+    }
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Graceful degradation - return defaults instead of crashing
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('Settings update skipped - DataStore closed during transition:', error);
+      return DEFAULT_APP_SETTINGS;
+    }
     // Graceful degradation for unexpected errors (storage failures, etc.)
     logger.error('Error updating app settings:', error);
     try {
-      return await getAppSettings();
+      return await getAppSettings(userId);
     } catch (fallbackError) {
       logger.error('Fallback getAppSettings also failed:', fallbackError);
       return DEFAULT_APP_SETTINGS;
@@ -119,22 +130,24 @@ export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): P
 
 /**
  * Gets the current game ID
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the current game ID, or null if not set
  */
-export const getCurrentGameIdSetting = async (): Promise<string | null> => {
+export const getCurrentGameIdSetting = async (userId?: string): Promise<string | null> => {
   // Wait for getAppSettings to resolve
-  const settings = await getAppSettings();
+  const settings = await getAppSettings(userId);
   return settings.currentGameId;
 };
 
 /**
  * Saves the current game ID setting
  * @param gameId - The game ID to save
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false otherwise
  */
-export const saveCurrentGameIdSetting = async (gameId: string | null): Promise<boolean> => {
+export const saveCurrentGameIdSetting = async (gameId: string | null, userId?: string): Promise<boolean> => {
   try {
-    const updatedSettings = await updateAppSettings({ currentGameId: gameId });
+    const updatedSettings = await updateAppSettings({ currentGameId: gameId }, userId);
     // Defensive null check - updateAppSettings should always return settings
     if (!updatedSettings) {
       logger.warn('updateAppSettings returned no data', { gameId });
@@ -155,17 +168,18 @@ export const saveCurrentGameIdSetting = async (gameId: string | null): Promise<b
 
 /**
  * Gets the last used home team name
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the last home team name, or empty string if not set
  */
-export const getLastHomeTeamName = async (): Promise<string> => {
+export const getLastHomeTeamName = async (userId?: string): Promise<string> => {
   try {
     // Try the modern approach first (using appSettings)
     // Wait for getAppSettings to resolve
-    const settings = await getAppSettings();
+    const settings = await getAppSettings(userId);
     if (settings.lastHomeTeamName) {
       return settings.lastHomeTeamName;
     }
-    
+
     // Fall back to legacy approach (using dedicated key)
     const legacyValue = await getStorageItem(LAST_HOME_TEAM_NAME_KEY).catch(() => null);
     return legacyValue || '';
@@ -179,11 +193,12 @@ export const getLastHomeTeamName = async (): Promise<string> => {
  * Saves the last used home team name.
  *
  * @param teamName - The team name to save
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false otherwise
  */
-export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> => {
+export const saveLastHomeTeamName = async (teamName: string, userId?: string): Promise<boolean> => {
   try {
-    const updatedSettings = await updateAppSettings({ lastHomeTeamName: teamName });
+    const updatedSettings = await updateAppSettings({ lastHomeTeamName: teamName }, userId);
     // Defensive null check - updateAppSettings should always return settings
     if (!updatedSettings) {
       logger.warn('updateAppSettings returned no data', { teamName });
@@ -202,21 +217,23 @@ export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> =
 
 /**
  * Gets whether the user has seen the app guide
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if seen, false otherwise
  */
-export const getHasSeenAppGuide = async (): Promise<boolean> => {
-  const settings = await getAppSettings();
+export const getHasSeenAppGuide = async (userId?: string): Promise<boolean> => {
+  const settings = await getAppSettings(userId);
   return settings.hasSeenAppGuide ?? false;
 };
 
 /**
  * Saves the hasSeenAppGuide flag
  * @param value - Whether the guide has been viewed
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false otherwise
  */
-export const saveHasSeenAppGuide = async (value: boolean): Promise<boolean> => {
+export const saveHasSeenAppGuide = async (value: boolean, userId?: string): Promise<boolean> => {
   try {
-    await updateAppSettings({ hasSeenAppGuide: value });
+    await updateAppSettings({ hasSeenAppGuide: value }, userId);
     return true;
   } catch (error) {
     logger.warn('Failed to save hasSeenAppGuide setting', { value, error });
@@ -226,21 +243,23 @@ export const saveHasSeenAppGuide = async (value: boolean): Promise<boolean> => {
 
 /**
  * Gets the drawing mode enabled preference
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to whether drawing mode should be enabled (default: false)
  */
-export const getDrawingModeEnabled = async (): Promise<boolean> => {
-  const settings = await getAppSettings();
+export const getDrawingModeEnabled = async (userId?: string): Promise<boolean> => {
+  const settings = await getAppSettings(userId);
   return settings.isDrawingModeEnabled ?? false;
 };
 
 /**
  * Saves the drawing mode enabled preference
  * @param value - Whether drawing mode should be enabled
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false otherwise
  */
-export const saveDrawingModeEnabled = async (value: boolean): Promise<boolean> => {
+export const saveDrawingModeEnabled = async (value: boolean, userId?: string): Promise<boolean> => {
   try {
-    await updateAppSettings({ isDrawingModeEnabled: value });
+    await updateAppSettings({ isDrawingModeEnabled: value }, userId);
     return true;
   } catch (error) {
     logger.warn('Failed to save drawing mode setting', { value, error });
@@ -283,43 +302,6 @@ export const setInstallPromptDismissed = async (): Promise<void> => {
   }
 };
 
-// ============================================
-// First Game Guide Utilities
-// ============================================
-// These manage the first-time user game guide display
-// Key: HAS_SEEN_FIRST_GAME_GUIDE_KEY (stored as 'true' string)
-
-/**
- * Gets whether the user has seen the first game guide
- * @returns A promise that resolves to true if seen, false otherwise
- */
-export const getHasSeenFirstGameGuide = async (): Promise<boolean> => {
-  try {
-    const value = await getStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
-    return value === 'true';
-  } catch (error) {
-    logger.debug('Failed to get first game guide status (non-critical)', { error });
-    return false;
-  }
-};
-
-/**
- * Sets the first game guide as seen
- * @param value - Whether the guide has been seen
- * @returns A promise that resolves when complete
- */
-export const setHasSeenFirstGameGuide = async (value: boolean): Promise<void> => {
-  try {
-    if (value) {
-      await setStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY, 'true');
-    } else {
-      await removeStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
-    }
-  } catch (error) {
-    logger.debug('Failed to set first game guide status (non-critical)', { error });
-  }
-};
-
 /**
  * Clears all application settings, resetting to defaults
  * Uses clearStorage() to completely wipe IndexedDB for a clean reset
@@ -344,7 +326,6 @@ export const resetAppSettings = async (): Promise<boolean> => {
       removeStorageItem(TEAM_ROSTERS_KEY),
       removeStorageItem(APP_DATA_VERSION_KEY),
       removeStorageItem(LAST_HOME_TEAM_NAME_KEY),
-      removeStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY),
       removeStorageItem(INSTALL_PROMPT_DISMISSED_KEY),
       removeStorageItem('storage-mode'),
       removeStorageItem('storage-version'),
@@ -369,6 +350,50 @@ export const resetAppSettings = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     logger.error('[resetAppSettings] Error resetting app:', error);
+    return false;
+  }
+};
+
+/**
+ * Clears all data for a specific authenticated user.
+ * Used for user-scoped reset (cloud mode) - "Re-sync from Cloud" or local data clear.
+ *
+ * @param userId - The authenticated user's ID
+ * @param options - Configuration options
+ * @param options.clearMigrationFlag - Whether to clear migration flag (default: true)
+ *   - true: Migration wizard will appear on reload (for re-sync scenario)
+ *   - false: Migration wizard won't appear (for factory reset scenario)
+ * @returns A promise that resolves to true if successful, false otherwise
+ */
+export const resetUserAppSettings = async (
+  userId: string,
+  options: { clearMigrationFlag?: boolean } = {}
+): Promise<boolean> => {
+  const { clearMigrationFlag = true } = options;
+
+  try {
+    const { getUserStorageAdapter, closeUserStorageAdapter } = await import('./storage');
+
+    logger.log(`[resetUserAppSettings] Clearing data for user ${userId.slice(0, 8)}...`);
+
+    // Get user's storage adapter and clear it
+    const adapter = await getUserStorageAdapter(userId);
+    await adapter.clear();
+
+    // Close the adapter connection
+    await closeUserStorageAdapter(userId);
+
+    // Optionally clear migration flag (triggers re-check on reload)
+    if (clearMigrationFlag) {
+      const { clearMigrationCompleted } = await import('@/config/backendConfig');
+      clearMigrationCompleted(userId);
+      logger.log('[resetUserAppSettings] Migration flag cleared');
+    }
+
+    logger.log('[resetUserAppSettings] User data cleared successfully');
+    return true;
+  } catch (error) {
+    logger.error('[resetUserAppSettings] Failed to clear user data:', error);
     return false;
   }
 };

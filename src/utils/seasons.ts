@@ -22,13 +22,20 @@ const isExpectedDataStoreError = (error: unknown): boolean =>
 /**
  * Retrieves all seasons from IndexedDB.
  * DataStore handles initialization and storage access.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to an array of Season objects.
  */
-export const getSeasons = async (): Promise<Season[]> => {
+export const getSeasons = async (userId?: string): Promise<Season[]> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getSeasons();
   } catch (error) {
+    // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
+    // Don't log as error to avoid Sentry noise
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
+      logger.info('[getSeasons] Read skipped - DataStore closed during transition');
+      return [];
+    }
     logger.error('[getSeasons] Error getting seasons:', error);
     return [];
   }
@@ -68,9 +75,10 @@ export const saveSeasons = async (seasons: Season[]): Promise<boolean> => {
  *
  * @param newSeasonName - The name of the new season.
  * @param extra - Optional additional fields for the season (excludes id and name).
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the newly created Season object, or null if validation/save fails.
  */
-export const addSeason = async (newSeasonName: string, extra: Partial<Omit<Season, 'id' | 'name'>> = {}): Promise<Season | null> => {
+export const addSeason = async (newSeasonName: string, extra: Partial<Omit<Season, 'id' | 'name'>> = {}, userId?: string): Promise<Season | null> => {
   const trimmedName = newSeasonName?.trim();
   if (!trimmedName) {
     logger.warn('[addSeason] Validation failed: Season name cannot be empty.');
@@ -78,7 +86,7 @@ export const addSeason = async (newSeasonName: string, extra: Partial<Omit<Seaso
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const newSeason = await dataStore.createSeason(trimmedName, extra);
     return newSeason;
   } catch (error) {
@@ -96,16 +104,17 @@ export const addSeason = async (newSeasonName: string, extra: Partial<Omit<Seaso
  * DataStore handles validation and storage.
  *
  * @param updatedSeasonData - The Season object with updated details.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the updated Season object, or null if not found or save fails.
  */
-export const updateSeason = async (updatedSeasonData: Season): Promise<Season | null> => {
+export const updateSeason = async (updatedSeasonData: Season, userId?: string): Promise<Season | null> => {
   if (!updatedSeasonData || !updatedSeasonData.id || !updatedSeasonData.name?.trim()) {
     logger.error('[updateSeason] Invalid season data provided for update.');
     return null;
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const updatedSeason = await dataStore.updateSeason(updatedSeasonData);
 
     if (!updatedSeason) {
@@ -132,16 +141,17 @@ export const updateSeason = async (updatedSeasonData: Season): Promise<Season | 
  * DataStore handles storage and atomicity.
  *
  * @param seasonId - The ID of the season to delete.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false if not found or error occurs.
  */
-export const deleteSeason = async (seasonId: string): Promise<boolean> => {
+export const deleteSeason = async (seasonId: string, userId?: string): Promise<boolean> => {
   if (!seasonId) {
     logger.error('[deleteSeason] Invalid season ID provided.');
     return false;
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const deleted = await dataStore.deleteSeason(seasonId);
 
     if (!deleted) {
@@ -164,11 +174,12 @@ export const deleteSeason = async (seasonId: string): Promise<boolean> => {
  * DataStore handles loading saved games.
  *
  * @param seasonId - The ID of the season to count games for.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the number of games associated with this season.
  */
-export const countGamesForSeason = async (seasonId: string): Promise<number> => {
+export const countGamesForSeason = async (seasonId: string, userId?: string): Promise<number> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const savedGames = await dataStore.getGames();
 
     let count = 0;
@@ -201,6 +212,7 @@ export const countGamesForSeason = async (seasonId: string): Promise<number> => 
  * @param placement - The team's placement (1 = 1st place, 2 = 2nd place, etc.). Pass null to remove placement.
  * @param award - Optional award label (e.g., "Champion", "Runner-up").
  * @param note - Optional coach note.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to true if successful, false otherwise.
  */
 export const updateTeamPlacement = async (
@@ -208,7 +220,8 @@ export const updateTeamPlacement = async (
   teamId: string,
   placement: number | null,
   award?: string,
-  note?: string
+  note?: string,
+  userId?: string
 ): Promise<boolean> => {
   if (!seasonId || !teamId) {
     logger.error('[updateTeamPlacement] Invalid season ID or team ID provided.');
@@ -216,7 +229,7 @@ export const updateTeamPlacement = async (
   }
 
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const seasons = await dataStore.getSeasons();
     const season = seasons.find(s => s.id === seasonId);
 
@@ -271,14 +284,16 @@ export const updateTeamPlacement = async (
  *
  * @param seasonId - The ID of the season.
  * @param teamId - The ID of the team.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to the team's placement data, or null if not found.
  */
 export const getTeamPlacement = async (
   seasonId: string,
-  teamId: string
+  teamId: string,
+  userId?: string
 ): Promise<{ placement: number; award?: string; note?: string } | null> => {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     const seasons = await dataStore.getSeasons();
     const season = seasons.find(s => s.id === seasonId);
 

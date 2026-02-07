@@ -36,7 +36,6 @@ jest.mock('@/utils/appSettings', () => ({
   saveHasSeenAppGuide: jest.fn().mockResolvedValue(undefined),
   getLastHomeTeamName: jest.fn().mockResolvedValue('Test Team'),
   updateAppSettings: jest.fn().mockResolvedValue(undefined),
-  getHasSeenFirstGameGuide: jest.fn().mockResolvedValue(true),
   getDrawingModeEnabled: jest.fn().mockResolvedValue(false),
   saveDrawingModeEnabled: jest.fn().mockResolvedValue(undefined),
   getAppSettings: jest.fn().mockResolvedValue({}),
@@ -115,6 +114,20 @@ jest.mock('@/hooks/usePremium', () => ({
     canCreate: jest.fn().mockReturnValue(true),
     showUpgradePrompt: jest.fn(),
     isPremium: true,
+  }),
+}));
+
+// Mock AuthProvider context
+jest.mock('@/contexts/AuthProvider', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useAuth: () => ({
+    user: null,
+    session: null,
+    isLoading: false,
+    isAuthenticated: false,
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+    signUp: jest.fn(),
   }),
 }));
 

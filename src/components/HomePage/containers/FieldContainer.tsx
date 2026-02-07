@@ -1,12 +1,11 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
-import { HiOutlineCamera, HiOutlineBookOpen } from 'react-icons/hi2';
+import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } from 'react-icons/hi2';
+import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
-import { FirstGameGuide } from '@/components/HomePage/components/FirstGameGuide';
-import { DEFAULT_GAME_ID } from '@/config/constants';
 import { exportFieldAsImage, isExportSupported } from '@/utils/export';
 import { useExportMetadata } from '@/hooks/useExportMetadata';
 import { useToast } from '@/contexts/ToastProvider';
@@ -21,6 +20,7 @@ import type {
 } from '@/types';
 import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -125,20 +125,16 @@ export interface FieldContainerProps {
   teams: Team[];
   seasons: Season[];
   tournaments: Tournament[];
-  showFirstGameGuide: boolean;
-  hasCheckedFirstGameGuide: boolean;
-  firstGameGuideStep: number;
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   onOpenNewGameSetup?: () => void;
   onOpenRosterModal?: () => void;
   onOpenSeasonTournamentModal?: () => void;
   onOpenTeamManagerModal: () => void;
-  onGuideStepChange?: (step: number) => void;
-  onGuideClose: () => void;
   onOpenTeamReassignModal?: () => void;
   onOpenRulesModal?: () => void;
   onTeamNameChange: (name: string) => void;
   onOpponentNameChange: (name: string) => void;
+  onTogglePositionLabels: (value: boolean) => void;
   interactions: FieldInteractions;
   timerInteractions: TimerInteractions;
 }
@@ -149,29 +145,28 @@ export function FieldContainer({
   gameSessionState,
   currentGameId,
   availablePlayers,
-  teams,
+  teams: _teams,
   seasons,
   tournaments,
-  showFirstGameGuide,
-  hasCheckedFirstGameGuide,
-  firstGameGuideStep,
-  orphanedGameInfo,
+  orphanedGameInfo: _orphanedGameInfo,
   onOpenNewGameSetup,
   onOpenRosterModal,
-  onOpenSeasonTournamentModal,
-  onOpenTeamManagerModal,
-  onGuideStepChange,
-  onGuideClose,
-  onOpenTeamReassignModal,
+  onOpenSeasonTournamentModal: _onOpenSeasonTournamentModal,
+  onOpenTeamManagerModal: _onOpenTeamManagerModal,
+  onOpenTeamReassignModal: _onOpenTeamReassignModal,
   onOpenRulesModal,
   onTeamNameChange,
   onOpponentNameChange,
+  onTogglePositionLabels,
   interactions,
   timerInteractions,
 }: FieldContainerProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const fieldRef = useRef<SoccerFieldHandle>(null);
+
+  // Track if user has dismissed the first-game setup overlay
+  const [isSetupOverlayDismissed, setIsSetupOverlayDismissed] = useState(false);
 
   // Assemble export metadata using dedicated hook
   const exportMetadata = useExportMetadata({
@@ -200,7 +195,7 @@ export function FieldContainer({
         includeOverlay: true,
         scale: 1, // Already rendered at high res, no additional scaling needed
       });
-      showToast(t('export.success', 'Field exported successfully'), 'success');
+      // Download triggered — no success toast needed
     } catch (error) {
       logger.error('[FieldContainer] Export failed:', error);
       showToast(t('export.failed', 'Failed to export field'), 'error');
@@ -218,10 +213,6 @@ export function FieldContainer({
     startPauseTimer,
     resetTimer,
   } = timerInteractions;
-
-  const handleGuideStepChange = (step: number) => {
-    onGuideStepChange?.(step);
-  };
 
   // Consolidated locals (prefer VMs when provided)
   const fcPlayersOnField = fieldVM.playersOnField;
@@ -277,8 +268,8 @@ export function FieldContainer({
         fallback={
           <div className="flex items-center justify-center h-full bg-red-900/20 border border-red-700 text-red-300">
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">Soccer Field Crashed</h3>
-              <p className="text-sm">Please refresh the page to continue.</p>
+              <h3 className="text-lg font-semibold mb-2">{t('errors.soccerFieldCrashed', 'Soccer Field Crashed')}</h3>
+              <p className="text-sm">{t('errors.pleaseRefreshPage', 'Please refresh the page to continue.')}</p>
             </div>
           </div>
         }
@@ -298,6 +289,7 @@ export function FieldContainer({
           onOpponentRemove={opponents.remove}
           onPlayerDrop={players.drop}
           showPlayerNames={gameSessionState.showPlayerNames}
+          showPositionLabels={gameSessionState.showPositionLabels ?? true}
           onDrawingStart={fcIsTactics ? tactical.drawingStart : drawing.start}
           onDrawingAddPoint={fcIsTactics ? tactical.drawingAddPoint : drawing.addPoint}
           onDrawingEnd={fcIsTactics ? tactical.drawingEnd : drawing.end}
@@ -319,6 +311,11 @@ export function FieldContainer({
           subSlots={fieldVM.subSlots}
         />
       </ErrorBoundary>
+
+      {/* Sync status indicator - top left */}
+      <div className="absolute top-4 left-4 z-20">
+        <SyncStatusIndicator variant="field" />
+      </div>
 
       {/* Field action buttons - always visible */}
       <div className="absolute top-4 right-4 z-20 flex gap-2">
@@ -350,15 +347,35 @@ export function FieldContainer({
             <HiOutlineCamera className="w-5 h-5" />
           </button>
         )}
+        {/* Position labels toggle */}
+        <button
+          onClick={() => onTogglePositionLabels(!(gameSessionState.showPositionLabels ?? true))}
+          className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+          title={t('field.togglePositionLabels', 'Toggle position labels')}
+          aria-label={t('field.togglePositionLabels', 'Toggle position labels')}
+          aria-pressed={gameSessionState.showPositionLabels ?? true}
+        >
+          <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-slate-400'}`} />
+        </button>
       </div>
 
-      {/* First game setup guidance */}
+      {/* First game setup guidance - dismissible overlay */}
       {tmInitialLoad &&
         currentGameId === DEFAULT_GAME_ID &&
+        !isSetupOverlayDismissed &&
         fcPlayersOnField.length === 0 &&
         fcDrawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-            <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+            <div className="relative bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+              {/* Dismiss button */}
+              <button
+                onClick={() => setIsSetupOverlayDismissed(true)}
+                className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                aria-label={t('common.dismiss', 'Dismiss')}
+              >
+                <HiOutlineXMark className="w-5 h-5" />
+              </button>
+
               <div className="text-center">
                 <div className="mb-4">
                   <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
@@ -372,8 +389,8 @@ export function FieldContainer({
                   <p className="text-slate-300 text-sm leading-relaxed mb-6">
                     {availablePlayers.length === 0
                       ? t(
-                          'firstGame.descNoPlayers',
-                          'First, set up your team roster, then create your first game to start tracking player positions, goals, and performance.'
+                          'firstGame.descNoPlayersSimple',
+                          'Set up your team roster to start tracking games.'
                         )
                       : t(
                           'firstGame.desc',
@@ -382,83 +399,46 @@ export function FieldContainer({
                   </p>
                 </div>
 
-                <div className="space-y-3">
-                  {availablePlayers.length === 0 ? (
-                    <button
-                      onClick={() => onOpenRosterModal?.()}
-                      className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
-                    >
-                      {t('firstGame.setupRoster', 'Set Up Team Roster')}
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => onOpenNewGameSetup?.()}
-                        className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
-                      >
-                        {t('firstGame.createGame', 'Create Your First Match')}
-                      </button>
-
-                      <button
-                      onClick={onOpenTeamManagerModal}
-                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg ${
-                          teams.length > 0
-                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border border-slate-500'
-                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                        }`}
-                      >
-                        {teams.length > 0
-                          ? t('firstGame.manageTeams', 'Manage Teams')
-                          : t('firstGame.createTeam', 'Create First Team')}
-                      </button>
-
-                      <button
-                      onClick={() => onOpenSeasonTournamentModal?.()}
-                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border ${
-                          seasons.length > 0 || tournaments.length > 0
-                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border-slate-500'
-                            : 'bg-amber-700 hover:bg-amber-600 text-amber-100 border-amber-600'
-                        }`}
-                      >
-                        {seasons.length > 0 || tournaments.length > 0
-                          ? t('firstGame.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')
-                          : t('firstGame.createSeasonFirst', 'Create Season/Tournament First')}
-                      </button>
-                    </>
-                  )}
-                </div>
+                {/* Single primary CTA */}
+                {availablePlayers.length === 0 ? (
+                  <button
+                    onClick={() => onOpenRosterModal?.()}
+                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                  >
+                    {t('firstGame.setupRoster', 'Set Up Team Roster')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onOpenNewGameSetup?.()}
+                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                  >
+                    {t('firstGame.createGame', 'Create Your First Match')}
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
 
-      {tmInitialLoad &&
-        currentGameId === DEFAULT_GAME_ID &&
-        (fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
-            <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-3 h-3 bg-amber-200 rounded-full animate-pulse flex-shrink-0"></div>
-                <span className="text-amber-100 font-medium flex-1">
-                  {t('firstGame.workspaceWarning', "Temporary workspace - changes won't be saved")}
-                </span>
-                <button
-                  onClick={() => onOpenNewGameSetup?.()}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-900 rounded-md text-xs font-semibold transition-colors shadow-sm flex-shrink-0"
-                >
-                  {t('firstGame.createRealGame', 'Create real game')}
-                </button>
-              </div>
+      {/* Persistent banner when on default game - minimal bottom pill for field visibility */}
+      {tmInitialLoad && currentGameId === DEFAULT_GAME_ID && (isSetupOverlayDismissed || fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40">
+          <div className="bg-black/70 border border-white/10 rounded-full px-4 py-2 shadow-lg backdrop-blur-sm">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-white/90 font-medium">
+                {fcPlayersOnField.length > 0 || fcDrawings.length > 0
+                  ? t('firstGame.workspaceWarning', "Temporary workspace - won't be saved")
+                  : t('firstGame.noGameCreated', 'No game created')}
+              </span>
+              <button
+                onClick={() => onOpenNewGameSetup?.()}
+                className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+              >
+                + {t('firstGame.createGameShort', 'Create')}
+              </button>
             </div>
           </div>
-        )}
-
-      {hasCheckedFirstGameGuide && showFirstGameGuide && currentGameId !== DEFAULT_GAME_ID && (
-        <FirstGameGuide
-          step={firstGameGuideStep}
-          onStepChange={handleGuideStepChange}
-          onClose={onGuideClose}
-        />
+        </div>
       )}
 
       {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.

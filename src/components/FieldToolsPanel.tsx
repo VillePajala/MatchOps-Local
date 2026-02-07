@@ -99,7 +99,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-700/50 transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close', 'Close')}
           >
             <HiOutlineXMark className="w-5 h-5" />
           </button>

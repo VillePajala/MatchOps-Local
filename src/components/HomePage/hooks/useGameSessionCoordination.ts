@@ -88,6 +88,9 @@ export interface UseGameSessionCoordinationReturn {
     setCustomLeagueName: (customLeagueName: string | undefined) => void;
     setGameType: (gameType: import('@/types').GameType) => void;
     setGender: (gender: import('@/types').Gender | undefined) => void;
+    setWentToOvertime: (value: boolean) => void;
+    setWentToPenalties: (value: boolean) => void;
+    setShowPositionLabels: (value: boolean) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
   };
 }
@@ -286,6 +289,7 @@ export function useGameSessionCoordination({
       completedIntervalDurations: state.completedIntervalDurations,
       lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
       showPlayerNames: state.showPlayerNames,
+      showPositionLabels: state.showPositionLabels,
       timeElapsedInSeconds: state.timeElapsedInSeconds,
     } satisfies Partial<AppState>;
     return slice;
@@ -428,6 +432,18 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_GENDER', payload: newGender });
   }, [dispatchGameSession]);
 
+  const handleSetWentToOvertime = useCallback((value: boolean) => {
+    dispatchGameSession({ type: 'SET_WENT_TO_OVERTIME', payload: value });
+  }, [dispatchGameSession]);
+
+  const handleSetWentToPenalties = useCallback((value: boolean) => {
+    dispatchGameSession({ type: 'SET_WENT_TO_PENALTIES', payload: value });
+  }, [dispatchGameSession]);
+
+  const handleSetShowPositionLabels = useCallback((value: boolean) => {
+    dispatchGameSession({ type: 'SET_SHOW_POSITION_LABELS', payload: value });
+  }, [dispatchGameSession]);
+
   const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
     dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
   }, [dispatchGameSession]);
@@ -459,19 +475,20 @@ export function useGameSessionCoordination({
    * @see docs/03-active-plans/L2-2.6-useGameOrchestration-Splitting-PLAN.md for Step 2.6.3 details
    */
   const applyHistoryState = useCallback((state: AppState) => {
-    // Note: useGameSessionWithHistory automatically skips saving for LOAD_STATE_FROM_HISTORY actions
-
-    dispatchGameSession({ type: 'SET_TEAM_NAME', payload: state.teamName });
-    dispatchGameSession({ type: 'SET_HOME_SCORE', payload: state.homeScore });
-    dispatchGameSession({ type: 'SET_AWAY_SCORE', payload: state.awayScore });
-    dispatchGameSession({ type: 'SET_OPPONENT_NAME', payload: state.opponentName });
-    dispatchGameSession({ type: 'SET_GAME_DATE', payload: state.gameDate });
-    dispatchGameSession({ type: 'SET_GAME_NOTES', payload: state.gameNotes });
-    dispatchGameSession({ type: 'SET_NUMBER_OF_PERIODS', payload: state.numberOfPeriods });
-    dispatchGameSession({ type: 'SET_PERIOD_DURATION', payload: state.periodDurationMinutes });
+    // Single dispatch restores all session fields at once, avoiding 8 intermediate
+    // reducer passes. LOAD_STATE_FROM_HISTORY is in NO_HISTORY_ACTIONS so no
+    // history save is triggered.
     dispatchGameSession({
       type: 'LOAD_STATE_FROM_HISTORY',
       payload: {
+        teamName: state.teamName,
+        opponentName: state.opponentName,
+        gameDate: state.gameDate,
+        homeScore: state.homeScore,
+        awayScore: state.awayScore,
+        gameNotes: state.gameNotes,
+        numberOfPeriods: state.numberOfPeriods,
+        periodDurationMinutes: state.periodDurationMinutes,
         currentPeriod: state.currentPeriod,
         gameStatus: state.gameStatus,
         selectedPlayerIds: state.selectedPlayerIds,
@@ -543,6 +560,9 @@ export function useGameSessionCoordination({
       setCustomLeagueName: handleSetCustomLeagueName,
       setGameType: handleSetGameType,
       setGender: handleSetGender,
+      setWentToOvertime: handleSetWentToOvertime,
+      setWentToPenalties: handleSetWentToPenalties,
+      setShowPositionLabels: handleSetShowPositionLabels,
       setGamePersonnel: handleSetGamePersonnel,
     },
   };

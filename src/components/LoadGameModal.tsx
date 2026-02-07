@@ -390,11 +390,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                 data-testid={`game-item-${gameId}`}
                 onClick={() => {
                   if (!disableActions && !isLoadActionActive) {
+                    // Note: Don't call onClose() here - the handler closes the modal
+                    // after the game loads successfully. Calling it here causes a flash
+                    // where the old field is briefly visible before the new game renders.
                     onLoad(gameId);
-                    // Note: Don't call onClose() here - the parent handles closing
-                    // after the async load completes. Calling it immediately would
-                    // cause a visual flash as the modal closes before the field
-                    // renders with the correct game type.
                   }
                 }}
               >
@@ -420,6 +419,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                         <div className={`text-2xl font-black tracking-tight ${scoreColor}`}>
                           {displayHomeScore} <span className="text-slate-500">-</span> {displayAwayScore}
                         </div>
+                        {(game.wentToOvertime || game.wentToPenalties) && (
+                          <div className="text-xs text-slate-400 font-medium">
+                            {[
+                              game.wentToOvertime && t('gameResult.overtime', 'OT'),
+                              game.wentToPenalties && t('gameResult.penalties', 'PKs'),
+                            ].filter(Boolean).join(', ')}
+                          </div>
+                        )}
                       </div>
 
                       {/* Actions menu button */}
@@ -427,7 +434,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                         <button
                           onClick={(e) => handleActionsMenuToggle(e, gameId)}
                           className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
-                          aria-label="Game actions"
+                          aria-label={t('loadGameModal.gameActions', 'Game actions')}
                           disabled={disableActions}
                         >
                           {isLoadActionActive ? (
@@ -569,7 +576,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('loadGame.title', 'Load Game')}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />

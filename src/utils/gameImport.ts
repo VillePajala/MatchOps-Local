@@ -30,7 +30,8 @@ export interface GameImportResult {
 export const importGamesWithMapping = async (
   jsonData: string,
   overwrite: boolean = false,
-  invalidateCache?: () => void
+  invalidateCache?: () => void,
+  userId?: string
 ): Promise<GameImportResult> => {
   const result: GameImportResult = {
     success: false,
@@ -70,7 +71,7 @@ export const importGamesWithMapping = async (
     // Get current roster for player mapping
     let currentRoster: Player[] = [];
     try {
-      currentRoster = await getMasterRoster();
+      currentRoster = await getMasterRoster(userId);
     } catch (error) {
       logger.warn('Could not load current roster for player mapping:', error);
     }
@@ -86,7 +87,7 @@ export const importGamesWithMapping = async (
     // Get current saved games
     let currentGames: SavedGamesCollection = {};
     try {
-      currentGames = await getSavedGames() || {};
+      currentGames = await getSavedGames(userId) || {};
     } catch (error) {
       logger.warn('Could not load current games:', error);
     }
@@ -117,7 +118,7 @@ export const importGamesWithMapping = async (
 
     // Save updated games
     try {
-      await saveGames(updatedGames);
+      await saveGames(updatedGames, userId);
       
       result.success = true;
       result.successful = imported;
@@ -154,7 +155,8 @@ export const importGamesWithMapping = async (
 export const importGamesFromFile = async (
   file: File,
   overwrite: boolean = false,
-  invalidateCache?: () => void
+  invalidateCache?: () => void,
+  userId?: string
 ): Promise<GameImportResult> => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -173,7 +175,7 @@ export const importGamesFromFile = async (
       }
       
       try {
-        const result = await importGamesWithMapping(content, overwrite, invalidateCache);
+        const result = await importGamesWithMapping(content, overwrite, invalidateCache, userId);
         resolve(result);
       } catch (error) {
         resolve({

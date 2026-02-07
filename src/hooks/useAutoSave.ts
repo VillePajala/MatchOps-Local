@@ -51,9 +51,11 @@ const isTransientError = (error: unknown): boolean => {
 const saveWithRetry = async (
   saveFn: () => void | Promise<void>,
   maxRetries: number = 3,
-  context: string = 'auto-save'
+  context: string = 'auto-save',
+  isCancelled?: () => boolean
 ): Promise<void> => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (isCancelled?.()) return; // Effect cleaned up — abort silently
     try {
       await saveFn();
       return; // Success
@@ -68,7 +70,7 @@ const saveWithRetry = async (
 
       // Exponential backoff: 1s, 2s, 4s
       const delay = Math.pow(2, attempt) * 1000;
-      logger.log(`[useAutoSave] ${context} retry ${attempt + 1}/${maxRetries} in ${delay}ms`);
+      logger.debug(`[useAutoSave] ${context} retry ${attempt + 1}/${maxRetries} in ${delay}ms`);
 
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -135,10 +137,17 @@ export const useAutoSave = ({
   // This ensures we always call the latest version even if it changes during debounce
   const saveFunctionRef = useRef(saveFunction);
 
-  // Update ref when saveFunction changes (doesn't trigger effect re-runs)
+  // Ref for enabled state — checked at fire time to avoid saving while disabled
+  const enabledRef = useRef(enabled);
+
+  // Update refs when values change (doesn't trigger effect re-runs)
   useEffect(() => {
     saveFunctionRef.current = saveFunction;
   }, [saveFunction]);
+
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
   /**
    * Serializes state for deep equality comparison via JSON.stringify
@@ -174,28 +183,36 @@ export const useAutoSave = ({
     const currentSerialized = serializeStates(immediate.states);
     if (currentSerialized === null) return;
 
+    let cancelled = false;
+
     // Check if states changed
     if (prevImmediateRef.current !== null && prevImmediateRef.current !== currentSerialized) {
-      logger.log(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
+      logger.debug(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
 
       // Use async IIFE since useEffect callbacks can't be async
       // Retry transient errors with exponential backoff
       (async () => {
         try {
-          await saveWithRetry(saveFunctionRef.current, 3, 'immediate');
+          await saveWithRetry(saveFunctionRef.current, 3, 'immediate', () => cancelled);
         } catch (error) {
+          if (cancelled) return; // Unmounted or deps changed — discard
           // All retries failed or error was not transient
           logger.error('[useAutoSave] Save failed after retries (immediate):', error);
-          Sentry.captureException(error, {
-            tags: { operation: 'auto_save_immediate', gameId: currentGameId || 'unknown' },
-            extra: { trigger: 'immediate_state_change', retriesFailed: true },
-          });
+          try {
+            Sentry.captureException(error, {
+              tags: { operation: 'auto_save_immediate', gameId: currentGameId || 'unknown' },
+              extra: { trigger: 'immediate_state_change', retriesFailed: true },
+            });
+          } catch {
+            // Sentry failure must not affect auto-save error handling
+          }
           // Don't re-throw - let app continue running
         }
       })();
     }
 
     prevImmediateRef.current = currentSerialized;
+    return () => { cancelled = true; };
   }, [enabled, immediate, currentGameId]);
 
   // --- Short Delay Save (500ms) ---
@@ -214,9 +231,9 @@ export const useAutoSave = ({
 
       // Set new debounced timer
       shortTimerRef.current = setTimeout(async () => {
-        // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
-        if (enabled) {
-          logger.log(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
+        // Check enabledRef (not closure) at fire time to avoid saving while temporarily disabled
+        if (enabledRef.current) {
+          logger.debug(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
 
           // Retry transient errors with exponential backoff
           try {
@@ -224,14 +241,18 @@ export const useAutoSave = ({
           } catch (error) {
             // All retries failed or error was not transient
             logger.error('[useAutoSave] Save failed after retries (short-delay):', error);
-            Sentry.captureException(error, {
-              tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
-              extra: { trigger: 'short_delay_state_change', delay: short.delay, retriesFailed: true },
-            });
+            try {
+              Sentry.captureException(error, {
+                tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
+                extra: { trigger: 'short_delay_state_change', delay: short.delay, retriesFailed: true },
+              });
+            } catch {
+              // Sentry failure must not affect auto-save error handling
+            }
             // Don't re-throw - let app continue running
           }
         } else {
-          logger.log('[useAutoSave] Short-delay skipped: disabled at fire time');
+          logger.debug('[useAutoSave] Short-delay skipped: disabled at fire time');
         }
       }, short.delay);
     }
@@ -255,9 +276,9 @@ export const useAutoSave = ({
 
       // Set new debounced timer
       longTimerRef.current = setTimeout(async () => {
-        // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
-        if (enabled) {
-          logger.log(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
+        // Check enabledRef (not closure) at fire time to avoid saving while temporarily disabled
+        if (enabledRef.current) {
+          logger.debug(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
 
           // Retry transient errors with exponential backoff
           try {
@@ -265,14 +286,18 @@ export const useAutoSave = ({
           } catch (error) {
             // All retries failed or error was not transient
             logger.error('[useAutoSave] Save failed after retries (long-delay):', error);
-            Sentry.captureException(error, {
-              tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
-              extra: { trigger: 'long_delay_state_change', delay: long.delay, retriesFailed: true },
-            });
+            try {
+              Sentry.captureException(error, {
+                tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
+                extra: { trigger: 'long_delay_state_change', delay: long.delay, retriesFailed: true },
+              });
+            } catch {
+              // Sentry failure must not affect auto-save error handling
+            }
             // Don't re-throw - let app continue running
           }
         } else {
-          logger.log('[useAutoSave] Long-delay skipped: disabled at fire time');
+          logger.debug('[useAutoSave] Long-delay skipped: disabled at fire time');
         }
       }, long.delay);
     }

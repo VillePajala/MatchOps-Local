@@ -6,10 +6,26 @@
  * - Next: Branches 2-4 will build advanced features on this foundation
  */
 
-import { createStorageAdapter } from './storageFactory';
+import { createStorageAdapter, createUserAdapter } from './storageFactory';
 import { StorageAdapter } from './storageAdapter';
 import { MutexManager } from './storageMutex';
 import logger from './logger';
+
+/**
+ * Extended interface for storage adapters that support connection disposal
+ * Used for type-safe cleanup of IndexedDB connections
+ */
+interface DisposableAdapter extends StorageAdapter {
+  close: () => Promise<void>;
+}
+
+/**
+ * Type guard for checking if an adapter has a close method.
+ * Prefer this over type assertions for safer runtime checks.
+ */
+function hasCloseMethod(adapter: StorageAdapter): adapter is DisposableAdapter {
+  return 'close' in adapter && typeof (adapter as DisposableAdapter).close === 'function';
+}
 
 /**
  * Check if running in production environment
@@ -97,6 +113,369 @@ const adapterCreationMutex = new MutexManager({
   defaultTimeout: 30000, // 30 second timeout for adapter creation
   enableDebugLogging: false
 });
+
+// ==========================================================================
+// USER-SCOPED ADAPTER MANAGEMENT
+// ==========================================================================
+
+/**
+ * Maximum number of user adapters to keep in cache.
+ * Prevents unbounded memory growth in multi-user scenarios.
+ * When exceeded, oldest adapters are evicted (LRU-style).
+ *
+ * The value of 5 was chosen based on:
+ * - Typical usage: 1-2 users (primary user + maybe a test account)
+ * - Test scenarios: May create 3-4 user contexts in quick succession
+ * - Memory overhead: ~1-2MB per IndexedDB connection is acceptable
+ * - 5 provides buffer for edge cases without excessive memory usage
+ */
+const MAX_USER_ADAPTERS = 5;
+
+/**
+ * Cache for user-scoped storage adapters.
+ * Key: userId, Value: { promise, lastAccessedAt }
+ * lastAccessedAt is updated on every cache hit for true LRU eviction.
+ */
+const userAdapterCache = new Map<string, {
+  promise: Promise<StorageAdapter>;
+  lastAccessedAt: number;
+}>();
+
+/** Timeout for adapter close operations during eviction (5 seconds) */
+const ADAPTER_CLOSE_TIMEOUT_MS = 5000;
+
+/**
+ * Timeout for adapter creation (25 seconds).
+ * Set lower than mutex timeout (30s) so timeout error is thrown before mutex times out.
+ * This prevents hung IndexedDB operations from blocking indefinitely.
+ *
+ * NOTE: The timeout uses Promise.race which doesn't actually cancel the underlying
+ * IndexedDB operation. If timeout occurs:
+ * 1. The hung adapter is NOT cached (removed in .catch handler)
+ * 2. The hung connection will eventually close when the promise resolves/rejects
+ * 3. Next retry gets a fresh connection attempt
+ *
+ * True cancellation would require AbortController support in IndexedDB, which
+ * doesn't exist. This timeout prevents blocking callers, which is the critical goal.
+ */
+const ADAPTER_CREATE_TIMEOUT_MS = 25000;
+
+/**
+ * Track timed-out adapter creations to prevent memory leaks.
+ * When a creation times out, we track the promise so we can close it if it
+ * eventually resolves (cleanup orphaned connections).
+ */
+const timedOutCreations = new Set<Promise<StorageAdapter>>();
+
+/**
+ * Maximum number of orphaned timed-out adapters to track before cleanup.
+ * Prevents unbounded memory growth from tracking timed-out promises.
+ */
+const MAX_TRACKED_TIMEOUTS = 10;
+
+/**
+ * Evict least-recently-used user adapters if cache exceeds MAX_USER_ADAPTERS.
+ * Uses lastAccessedAt timestamp for true LRU eviction.
+ *
+ * Close operations have a 5-second timeout to prevent blocking new adapter
+ * creation if an adapter's close() hangs (e.g., IndexedDB unresponsive).
+ *
+ * Note: If close() times out, the connection may remain open until garbage
+ * collected. This is acceptable because:
+ * 1. IndexedDB connections are automatically closed when the page unloads
+ * 2. Orphaned connections have no references and will be GC'd eventually
+ * 3. The timeout prevents blocking, which is more critical than perfect cleanup
+ */
+async function evictOldestUserAdapters(): Promise<void> {
+  if (userAdapterCache.size <= MAX_USER_ADAPTERS) {
+    return;
+  }
+
+  // Sort entries by lastAccessedAt (least recently accessed first)
+  const entries = Array.from(userAdapterCache.entries())
+    .sort((a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt);
+
+  // Evict oldest entries until we're at or below the limit
+  const toEvict = entries.slice(0, userAdapterCache.size - MAX_USER_ADAPTERS);
+
+  /** Threshold for logging slow evictions (100ms) */
+  const SLOW_EVICTION_THRESHOLD_MS = 100;
+
+  for (const [userId, entry] of toEvict) {
+    const evictionStart = Date.now();
+    logger.debug(`[storage] Evicting oldest user adapter: ${userId}`);
+    try {
+      const adapter = await entry.promise;
+      if (hasCloseMethod(adapter)) {
+        // Use timeout to prevent blocking if close() hangs
+        const closePromise = adapter.close();
+        const timeoutPromise = new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('Adapter close timeout')), ADAPTER_CLOSE_TIMEOUT_MS)
+        );
+        await Promise.race([closePromise, timeoutPromise]);
+      }
+    } catch (error) {
+      // If close() timed out or threw, the connection may still be open.
+      // This is acceptable because:
+      // 1. We remove from cache so no new code can access it
+      // 2. Orphaned connections have no references and will be GC'd
+      // 3. IndexedDB connections auto-close on page unload
+      // 4. Timeout/error is logged for monitoring
+      logger.warn(`[storage] Eviction close failed for ${userId}, relying on GC for cleanup`, { error });
+    } finally {
+      // Always remove from cache, even if close() failed or timed out
+      // This prevents memory leaks from stuck entries and ensures
+      // future requests get a fresh adapter instead of a potentially-closed one
+      userAdapterCache.delete(userId);
+
+      // Log slow evictions for production monitoring
+      const evictionDuration = Date.now() - evictionStart;
+      if (evictionDuration > SLOW_EVICTION_THRESHOLD_MS) {
+        logger.warn(`[storage] Slow eviction detected`, {
+          userId,
+          durationMs: evictionDuration,
+          thresholdMs: SLOW_EVICTION_THRESHOLD_MS,
+        });
+      }
+    }
+  }
+}
+
+// Mutex for user adapter creation (separate from global adapter mutex)
+const userAdapterCreationMutex = new MutexManager({
+  defaultTimeout: 30000,
+  enableDebugLogging: false
+});
+
+/**
+ * Get a user-scoped storage adapter.
+ *
+ * Creates and caches an IndexedDB adapter for the specified user.
+ * Each user gets their own database for complete data isolation.
+ *
+ * @param userId - The authenticated user's ID
+ * @returns Promise resolving to user-scoped storage adapter
+ * @throws Error if userId is invalid or IndexedDB is unavailable
+ *
+ * @example
+ * ```typescript
+ * const adapter = await getUserStorageAdapter('user123');
+ * await adapter.setItem('settings', JSON.stringify({ theme: 'dark' }));
+ * ```
+ */
+export async function getUserStorageAdapter(userId: string): Promise<StorageAdapter> {
+  if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+    throw new Error('userId is required and must be a non-empty string');
+  }
+
+  const trimmedUserId = userId.trim();
+
+  // IMPORTANT: No fast path outside mutex!
+  // A fast path that reads cache and updates lastAccessedAt without holding the mutex
+  // creates a race condition where:
+  // 1. Fast path finds cached adapter X
+  // 2. Concurrent eviction (triggered by another user's creation) decides to evict X
+  // 3. Eviction closes adapter X
+  // 4. Fast path returns closed adapter X -> user gets errors
+  //
+  // The mutex overhead (~microseconds) is negligible compared to IndexedDB operations (~milliseconds).
+
+  // Use mutex to prevent concurrent adapter creation AND cache access races
+  try {
+    await userAdapterCreationMutex.acquire();
+
+    // Check for cached adapter (mutex-protected)
+    const cached = userAdapterCache.get(trimmedUserId);
+    if (cached && !isUserAdapterExpired(cached.lastAccessedAt)) {
+      // Update lastAccessedAt for true LRU eviction (safe: we hold the mutex)
+      cached.lastAccessedAt = Date.now();
+      return cached.promise;
+    }
+
+    // Close and remove expired adapter if exists
+    if (cached) {
+      logger.debug('Closing expired user adapter', { userId: trimmedUserId });
+      try {
+        const oldAdapter = await cached.promise;
+        if (hasCloseMethod(oldAdapter)) {
+          await oldAdapter.close();
+        }
+      } catch (error) {
+        logger.warn('Failed to close expired user adapter', { userId: trimmedUserId, error });
+      }
+      userAdapterCache.delete(trimmedUserId);
+    }
+
+    // Create new adapter with timeout to prevent indefinite hangs
+    const lastAccessedAt = Date.now();
+    const createPromise = createUserAdapter(trimmedUserId);
+
+    // Track the original promise for cleanup if timeout occurs
+    let didTimeout = false;
+    const timeoutPromise = new Promise<StorageAdapter>((_, reject) =>
+      setTimeout(() => {
+        didTimeout = true;
+        reject(new Error(`Adapter creation timeout after ${ADAPTER_CREATE_TIMEOUT_MS}ms`));
+      }, ADAPTER_CREATE_TIMEOUT_MS)
+    );
+
+    // Race between creation and timeout
+    const promise = Promise.race([createPromise, timeoutPromise]);
+
+    // Handle timeout cleanup: if creation times out, track the original promise
+    // so we can close the orphaned connection when it eventually resolves
+    promise.catch(() => {
+      if (didTimeout) {
+        // Track timed-out creation for cleanup
+        timedOutCreations.add(createPromise);
+
+        // Clean up orphaned connection when it eventually resolves
+        createPromise.then(adapter => {
+          timedOutCreations.delete(createPromise);
+          if (hasCloseMethod(adapter)) {
+            adapter.close().catch(err => {
+              logger.warn('[storage] Error closing orphaned timed-out adapter', { error: err });
+            });
+          }
+        }).catch(() => {
+          // Creation failed anyway - just remove from tracking
+          timedOutCreations.delete(createPromise);
+        });
+
+        // Prevent unbounded tracking if too many timeouts
+        if (timedOutCreations.size > MAX_TRACKED_TIMEOUTS) {
+          logger.warn('[storage] Too many timed-out adapter creations - possible IndexedDB issue');
+          // Remove oldest (first added) to prevent memory leak
+          const oldest = timedOutCreations.values().next().value;
+          if (oldest) timedOutCreations.delete(oldest);
+        }
+      }
+    });
+
+    // Cache the promise (not the resolved adapter) to handle concurrent requests
+    userAdapterCache.set(trimmedUserId, { promise, lastAccessedAt });
+
+    // Evict oldest adapters if cache is full (LRU eviction)
+    // IMPORTANT: Must await eviction while holding the mutex to prevent race:
+    // - Without await: mutex released, another thread gets adapter, eviction closes it
+    // - With await: eviction completes before any thread can access evicted adapters
+    // The eviction overhead is acceptable (~5ms for close) and happens rarely (only when cache full).
+    try {
+      await evictOldestUserAdapters();
+    } catch (error) {
+      logger.warn('[storage] Error during user adapter eviction', { error });
+      // Continue - eviction failure shouldn't block adapter creation
+    }
+
+    // Handle creation failure (async, outside mutex - just cleans up our own entry)
+    promise.catch(() => {
+      // Remove from cache on failure
+      userAdapterCache.delete(trimmedUserId);
+    });
+
+    return promise;
+  } finally {
+    userAdapterCreationMutex.release();
+  }
+}
+
+/**
+ * Close and remove a user's storage adapter from cache.
+ *
+ * Call this when a user signs out to release resources and
+ * ensure data isolation when another user signs in.
+ *
+ * @param userId - The user's ID whose adapter should be closed
+ *
+ * @example
+ * ```typescript
+ * // On sign out
+ * await closeUserStorageAdapter(currentUserId);
+ * ```
+ */
+export async function closeUserStorageAdapter(userId: string): Promise<void> {
+  // NOTE: This function does NOT acquire userAdapterCreationMutex.
+  // In theory, a concurrent getUserStorageAdapter() call could return the adapter
+  // being closed. In practice this is safe because close() is called on sign-out
+  // and get() is called on sign-in — these never overlap in a single-user PWA.
+  //
+  // Validate userId - consistent with getUserStorageAdapter validation
+  if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+    throw new Error('userId is required and must be a non-empty string');
+  }
+
+  const trimmedUserId = userId.trim();
+  const cached = userAdapterCache.get(trimmedUserId);
+
+  if (!cached) {
+    logger.debug('No cached adapter to close for user', { userId: trimmedUserId });
+    return;
+  }
+
+  logger.debug('Closing user storage adapter', { userId: trimmedUserId });
+
+  try {
+    const adapter = await cached.promise;
+    if (hasCloseMethod(adapter)) {
+      await adapter.close();
+    }
+    logger.debug('User adapter closed successfully', { userId: trimmedUserId });
+  } catch (error) {
+    logger.warn('Error closing user adapter', { userId: trimmedUserId, error });
+  } finally {
+    userAdapterCache.delete(trimmedUserId);
+  }
+}
+
+/**
+ * Close all user storage adapters and clear the cache.
+ *
+ * Call this during:
+ * - Application shutdown (ensures clean IndexedDB disconnect)
+ * - Test cleanup (prevents state leakage between tests)
+ * - Factory reset (part of resetFactory() cleanup)
+ *
+ * This function is safe to call even if no adapters are cached.
+ * Errors closing individual adapters are logged but don't fail the operation.
+ *
+ * @example
+ * ```typescript
+ * // In test cleanup
+ * afterEach(async () => {
+ *   await closeAllUserStorageAdapters();
+ * });
+ *
+ * // During app shutdown
+ * window.addEventListener('beforeunload', async () => {
+ *   await closeAllUserStorageAdapters();
+ * });
+ * ```
+ */
+export async function closeAllUserStorageAdapters(): Promise<void> {
+  logger.debug('Closing all user storage adapters', {
+    cachedCount: userAdapterCache.size,
+    timedOutCount: timedOutCreations.size
+  });
+
+  const closePromises = Array.from(userAdapterCache.keys()).map(userId =>
+    closeUserStorageAdapter(userId).catch(error => {
+      logger.warn('Error closing user adapter during bulk close', { userId, error });
+    })
+  );
+
+  await Promise.all(closePromises);
+  userAdapterCache.clear();
+
+  // Also clear timed-out creation tracking (they'll close themselves when resolved)
+  timedOutCreations.clear();
+}
+
+/**
+ * Check if a user adapter has expired based on TTL.
+ */
+function isUserAdapterExpired(createdAt: number): boolean {
+  return Date.now() - createdAt > ADAPTER_TTL;
+}
 
 // Configurable TTL for adapter caching (default: 15 minutes)
 // Longer TTL improves performance for active users while still ensuring fresh connections
@@ -593,11 +972,11 @@ export async function setStorageItems(
 
     const batchResults = await Promise.all(batchPromises);
 
-    // Check for failures
+    // Check for failures and throw if any writes failed
     const failures = batchResults.filter(result => !result.success);
     if (failures.length > 0) {
       const failedKeys = failures.map(f => f.key).join(', ');
-      logger.warn(`Batch write had ${failures.length} failures for keys: ${failedKeys}`);
+      throw new Error(`Failed to write ${failures.length} storage key(s): ${failedKeys}`);
     }
 
     // Small delay between batches

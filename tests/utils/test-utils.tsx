@@ -5,6 +5,7 @@ import { AppState, Player, Season, Tournament, GameEvent } from '@/types';
 import ModalProvider from '@/contexts/ModalProvider';
 import ToastProvider from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
+import { AuthProvider } from '@/contexts/AuthProvider';
 
 /**
  * Creates a fresh QueryClient instance optimized for testing
@@ -42,6 +43,7 @@ const queryClientRef = { current: null as QueryClient | null };
  *
  * @description Wraps components with essential providers:
  * - QueryClientProvider for React Query
+ * - AuthProvider for authentication state
  * - PremiumProvider for premium/freemium state
  * - ToastProvider for notifications
  * - ModalProvider for modal management
@@ -66,13 +68,15 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PremiumProvider>
-        <ToastProvider>
-          <ModalProvider>
-            {children}
-          </ModalProvider>
-        </ToastProvider>
-      </PremiumProvider>
+      <AuthProvider>
+        <PremiumProvider>
+          <ToastProvider>
+            <ModalProvider>
+              {children}
+            </ModalProvider>
+          </ToastProvider>
+        </PremiumProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

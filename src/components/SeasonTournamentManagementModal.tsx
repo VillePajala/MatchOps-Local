@@ -9,9 +9,13 @@ import { useTranslation } from 'react-i18next';
 import SeasonDetailsModal from './SeasonDetailsModal';
 import TournamentDetailsModal from './TournamentDetailsModal';
 import ConfirmationModal from './ConfirmationModal';
+import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
+import { useDataStore } from '@/hooks/useDataStore';
 import { CLUB_SEASON_OFF_SEASON } from '@/utils/entityDisplayNames';
+import type { EntityReferences } from '@/interfaces/DataStore';
+import logger from '@/utils/logger';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -36,6 +40,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     onOpenSettings
 }) => {
     const { t } = useTranslation();
+    const { getStore } = useDataStore();
 
     // Premium limit checks (count non-archived items)
     const activeSeasonCount = seasons.filter(s => !s.archived).length;
@@ -57,6 +62,15 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const [showArchived, setShowArchived] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string; type: 'season' | 'tournament' } | null>(null);
+
+    // Delete blocked state
+    const [deleteBlockedState, setDeleteBlockedState] = useState<{
+        open: boolean;
+        entityType: 'season' | 'tournament';
+        entityName: string;
+        references: EntityReferences;
+        item: Season | Tournament;
+    } | null>(null);
 
     const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
     const actionsMenuRef = React.useRef<HTMLDivElement>(null);
@@ -145,10 +159,36 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         setActionsMenuId(null);
     };
 
-    const handleDeleteClick = (item: Season | Tournament, type: 'season' | 'tournament') => {
-        setItemToDelete({ id: item.id, name: item.name, type });
-        setShowDeleteConfirm(true);
+    const handleDeleteClick = async (item: Season | Tournament, type: 'season' | 'tournament') => {
         setActionsMenuId(null);
+
+        try {
+            // Check for references before allowing delete
+            const store = await getStore();
+            const refs = type === 'season'
+                ? await store.getSeasonReferences(item.id)
+                : await store.getTournamentReferences(item.id);
+
+            if (!refs.canDelete) {
+                // Show blocked dialog with archive option
+                setDeleteBlockedState({
+                    open: true,
+                    entityType: type,
+                    entityName: item.name,
+                    references: refs,
+                    item,
+                });
+            } else {
+                // No references - show normal delete confirmation
+                setItemToDelete({ id: item.id, name: item.name, type });
+                setShowDeleteConfirm(true);
+            }
+        } catch (error) {
+            logger.error('[SeasonTournamentManagementModal] Failed to check references:', error);
+            // On error, fall back to allowing delete with normal confirmation
+            setItemToDelete({ id: item.id, name: item.name, type });
+            setShowDeleteConfirm(true);
+        }
     };
 
     const handleDeleteConfirmed = () => {
@@ -301,7 +341,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('seasonTournament.title', 'Seasons & Tournaments')}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
@@ -447,6 +487,22 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
       />
+
+      {/* Delete Blocked Dialog - shown when entity has references */}
+      {deleteBlockedState && (
+        <DeleteBlockedDialog
+          isOpen={deleteBlockedState.open}
+          onClose={() => setDeleteBlockedState(null)}
+          entityType={deleteBlockedState.entityType}
+          entityName={deleteBlockedState.entityName}
+          references={deleteBlockedState.references}
+          onArchive={() => {
+            // Archive the item instead of deleting
+            handleToggleArchive(deleteBlockedState.item, deleteBlockedState.entityType);
+            setDeleteBlockedState(null);
+          }}
+        />
+      )}
     </div>
   );
 };

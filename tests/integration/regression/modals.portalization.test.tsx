@@ -197,6 +197,8 @@ const createProps = (): ModalManagerProps => ({
     setDefaultTeamName: noop,
     showAppGuide: noop,
     hardResetApp: noop,
+    resyncFromCloud: noop,
+    factoryReset: noop,
     closePlayerAssessmentModal: noop,
     savePlayerAssessment: noop,
     deletePlayerAssessment: noop,
@@ -216,6 +218,8 @@ const createProps = (): ModalManagerProps => ({
     onCreateBackup: noop,
     onDataImportSuccess: noop,
     manageTeamRosterFromNewGame: noop,
+    setWentToOvertime: noop,
+    setWentToPenalties: noop,
   },
 });
 

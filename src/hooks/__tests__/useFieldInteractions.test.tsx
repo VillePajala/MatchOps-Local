@@ -19,8 +19,17 @@ const mockGetDrawingModeEnabled = jest.fn();
 const mockSaveDrawingModeEnabled = jest.fn();
 
 jest.mock('@/utils/appSettings', () => ({
-  getDrawingModeEnabled: () => mockGetDrawingModeEnabled(),
-  saveDrawingModeEnabled: (value: boolean) => mockSaveDrawingModeEnabled(value),
+  getDrawingModeEnabled: (userId?: string) => mockGetDrawingModeEnabled(userId),
+  saveDrawingModeEnabled: (value: boolean, userId?: string) => mockSaveDrawingModeEnabled(value, userId),
+}));
+
+// Mock useAuth
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id' },
+    isAuthenticated: true,
+    isLoading: false,
+  }),
 }));
 
 describe('useFieldInteractions', () => {
@@ -125,9 +134,9 @@ describe('useFieldInteractions', () => {
       result.current.toggleDrawingMode();
     });
 
-    // Wait for persistence
+    // Wait for persistence (userId is passed from auth context)
     await waitFor(() => {
-      expect(mockSaveDrawingModeEnabled).toHaveBeenCalledWith(true);
+      expect(mockSaveDrawingModeEnabled).toHaveBeenCalledWith(true, 'test-user-id');
     });
   });
 
@@ -222,8 +231,8 @@ describe('useFieldInteractions', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
 
-    // Wait a bit for any potential async calls
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Flush async queue to ensure no async calls are pending
+    await act(async () => {});
 
     // getDrawingModeEnabled should NOT be called when going to background
     expect(mockGetDrawingModeEnabled).not.toHaveBeenCalled();
@@ -304,7 +313,7 @@ describe('useFieldInteractions', () => {
 
     // Should persist false (not true, which was the new previous value)
     await waitFor(() => {
-      expect(mockSaveDrawingModeEnabled).toHaveBeenCalledWith(false);
+      expect(mockSaveDrawingModeEnabled).toHaveBeenCalledWith(false, 'test-user-id');
     });
   });
 
@@ -326,8 +335,8 @@ describe('useFieldInteractions', () => {
       expect(mockGetDrawingModeEnabled).toHaveBeenCalled();
     });
 
-    // Wait a bit for any potential async persistence calls
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Flush async queue to ensure no persistence calls are pending
+    await act(async () => {});
 
     // Should not persist on initial load (value just loaded from storage)
     expect(mockSaveDrawingModeEnabled).not.toHaveBeenCalled();

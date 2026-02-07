@@ -1,8 +1,8 @@
 {
-  "version": "0324c335",
-  "date": "2026-01-16",
+  "version": "360345eb",
+  "date": "2026-02-06",
   "notes": {
-    "en": "Address code review feedback",
-    "fi": "Address code review feedback"
+    "en": "Refactor authentication components and hooks",
+    "fi": "Refactor authentication components and hooks"
   }
 }

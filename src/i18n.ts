@@ -1,6 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { getAppSettings } from '@/utils/appSettings';
+import { getLocalStorageItem, setLocalStorageItem } from '@/utils/localStorage';
 // Use the comprehensive translation files
 // Load translations from the public folder so all keys are available
 import fi from '../public/locales/fi/common.json';
@@ -12,18 +12,42 @@ export const resources = {
 } as const;
 
 /**
- * Load language preference from IndexedDB storage
- * This runs asynchronously after initial setup
+ * Language preference storage key.
+ * Uses localStorage (via utility) to avoid DataStore user-scoping issues.
+ * Language is a UI preference that should persist across user sessions.
+ */
+const LANGUAGE_PREF_KEY = 'matchops_language';
+
+/**
+ * Load language preference from localStorage.
+ *
+ * NOTE: We intentionally use localStorage instead of getAppSettings() because:
+ * 1. Language is a device/browser preference, not user-specific data
+ * 2. getAppSettings() requires user-scoped DataStore, which can cause
+ *    initialization conflicts when called during i18n setup (before auth resolves)
+ * 3. This prevents the "Multiple users tried to initialize simultaneously" error
+ *    seen in Sentry (MATCHOPS-LOCAL-2P)
  */
 const loadLanguagePreference = async (): Promise<void> => {
   try {
-    const settings = await getAppSettings();
-    const preferredLanguage = settings.language || 'fi';
+    const preferredLanguage = getLocalStorageItem(LANGUAGE_PREF_KEY) || 'fi';
     if (preferredLanguage !== i18n.language) {
       await i18n.changeLanguage(preferredLanguage);
     }
   } catch {
     // Silently fail - keep default language
+  }
+};
+
+/**
+ * Save language preference to localStorage.
+ * Call this when user changes language in settings.
+ */
+export const saveLanguagePreference = (language: string): void => {
+  try {
+    setLocalStorageItem(LANGUAGE_PREF_KEY, language);
+  } catch {
+    // Silently fail - localStorage might be full or disabled
   }
 };
 

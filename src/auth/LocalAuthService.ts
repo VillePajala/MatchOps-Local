@@ -14,6 +14,7 @@ import type { AuthService } from '@/interfaces/AuthService';
 import type { User, Session, AuthResult, AuthStateCallback } from '@/interfaces/AuthTypes';
 import { LOCAL_USER } from '@/interfaces/AuthTypes';
 import { NotSupportedError } from '@/interfaces/DataStoreErrors';
+import logger from '@/utils/logger';
 
 /**
  * Local authentication service.
@@ -65,6 +66,7 @@ export class LocalAuthService implements AuthService {
 
   async signOut(): Promise<void> {
     // No-op in local mode - user is always "signed in"
+    logger.debug('[LocalAuthService] signOut called (no-op in local mode)');
   }
 
   async resetPassword(_email: string): Promise<void> {
@@ -88,6 +90,35 @@ export class LocalAuthService implements AuthService {
     // No-op: local mode never fires state changes
     // Return empty unsubscribe function
     return () => {};
+  }
+
+  // ==========================================================================
+  // CONSENT MANAGEMENT (Not applicable in local mode)
+  // Local mode stores data only on user's device - no GDPR consent needed
+  // ==========================================================================
+
+  async recordConsent(
+    _policyVersion: string,
+    _metadata?: { ipAddress?: string; userAgent?: string }
+  ): Promise<void> {
+    throw new NotSupportedError('recordConsent', 'local');
+  }
+
+  async hasConsentedToVersion(_policyVersion: string): Promise<boolean> {
+    throw new NotSupportedError('hasConsentedToVersion', 'local');
+  }
+
+  async getLatestConsent(): Promise<{ policyVersion: string; consentedAt: string } | null> {
+    throw new NotSupportedError('getLatestConsent', 'local');
+  }
+
+  // ==========================================================================
+  // ACCOUNT MANAGEMENT (Not applicable in local mode)
+  // Local mode users should use "Hard Reset" to clear local data
+  // ==========================================================================
+
+  async deleteAccount(): Promise<void> {
+    throw new NotSupportedError('deleteAccount', 'local');
   }
 
   // ==========================================================================

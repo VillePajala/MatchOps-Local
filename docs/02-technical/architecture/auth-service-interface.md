@@ -1,13 +1,22 @@
 # AuthService Interface Specification
 
-**Status**: Proposed Design
-**Last Updated**: 2025-10-11
+**Status**: ✅ **Implemented**
+**Last Updated**: 2026-01-26
 **Purpose**: Unified authentication interface for both local (no-auth) and cloud (Supabase) backends
 **Related**: [Dual-Backend Architecture](./dual-backend-architecture.md) | [DataStore Interface](./datastore-interface.md) | [Supabase Schema](../database/supabase-schema.md)
 
 ## Overview
 
 The `AuthService` interface provides a **unified authentication API** that abstracts authentication details for both local (single-user, no authentication) and cloud (Supabase Auth, multi-user) backends. This allows the application to support both modes without changing business logic.
+
+### Implementation Status
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| AuthService Interface | ✅ Implemented | `src/interfaces/AuthService.ts` |
+| LocalAuthService | ✅ Implemented | `src/auth/LocalAuthService.ts` |
+| SupabaseAuthService | ✅ Implemented | `src/auth/SupabaseAuthService.ts` |
+| Factory | ✅ Implemented | `src/datastore/factory.ts` |
 
 **Key Design Principles**:
 1. **Mode-Agnostic**: Same interface for local and cloud implementations

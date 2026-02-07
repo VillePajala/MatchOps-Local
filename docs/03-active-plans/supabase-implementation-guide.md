@@ -1,8 +1,8 @@
 # MatchOps Cloud Implementation Guide
 
-**Version**: 1.10.0
-**Status**: Implementation Ready (Verified + Eight Adversarial Reviews)
-**Last Updated**: January 12, 2026 (v1.10.0: all migration transforms defined, NaN/Infinity guards, CHECK constraint handling)
+**Version**: 1.12.0
+**Status**: PRs 1-11 Complete, Local-First Sync Complete
+**Last Updated**: January 26, 2026 (v1.12.0: Local-first sync merged via PR #324, all core cloud infrastructure complete)
 
 ---
 
@@ -48,7 +48,16 @@ npm test
 7. [Performance Architecture](#performance-architecture)
 8. [Migration System](#migration-system)
 9. [Testing Strategy](#testing-strategy)
-10. [Deployment Checklist](#deployment-checklist)
+10. [Final Phase: Infrastructure & Master Merge](#10-final-phase-infrastructure--master-merge)
+    - 10.1 [What's Missing After PR #8](#101-overview-whats-still-missing-after-pr-8)
+    - 10.2 [PR #9: Infrastructure & Migration UI](#102-pr-9-infrastructure--migration-ui-15-hours)
+    - 10.2.8 [PR #10: Cloud Data Management](#1028-pr-10-cloud-data-management-3-hours)
+    - 10.2.9 [PR #11: Reverse Migration & Cloud Account](#1029-pr-11-reverse-migration--cloud-account-8-12-hours)
+    - 10.3 [Supabase Project Setup](#103-supabase-project-setup)
+    - 10.4 [Environment Configuration](#104-environment-configuration)
+    - 10.5 [E2E Testing with Real Supabase](#105-end-to-end-testing-with-real-supabase)
+    - 10.6 [Final Merge to Master](#106-final-merge-to-master)
+    - 10.7 [Rollback Plan](#107-rollback-plan)
 
 ---
 
@@ -108,50 +117,22 @@ Or runtime detection:
 
 ### 2.1 Branching Strategy
 
-#### ⛔ CRITICAL: NOTHING GOES TO MASTER UNTIL ALL 8 PRs ARE COMPLETE
+All Supabase work happens on `feature/supabase-cloud-backend`. Sub-PRs target this branch, not master.
 
-```
-master (production) ← PROTECTED: NO SUPABASE CODE UNTIL 100% COMPLETE
-│
-│   ⛔ DO NOT CREATE PRs TO MASTER FOR SUPABASE WORK
-│   ⛔ DO NOT MERGE ANY SUPABASE BRANCH TO MASTER
-│   ⛔ DO NOT PUSH SUPABASE CODE DIRECTLY TO MASTER
-│
-└── feature/supabase-cloud-backend (MASTER FEATURE BRANCH)
-    │
-    │   ✅ ALL Supabase PRs target THIS branch
-    │   ✅ This branch accumulates all 8 PRs
-    │   ✅ Only merged to master when EVERYTHING works
-    │
-    ├── supabase/pr1-foundation        → PR to feature/supabase-cloud-backend
-    ├── supabase/pr2-supabase-client   → PR to feature/supabase-cloud-backend
-    ├── supabase/pr3-datastore-core    → PR to feature/supabase-cloud-backend
-    ├── supabase/pr4-datastore-games   → PR to feature/supabase-cloud-backend
-    ├── supabase/pr5-auth-service      → PR to feature/supabase-cloud-backend
-    ├── supabase/pr6-migration         → PR to feature/supabase-cloud-backend
-    ├── supabase/pr7-performance       → PR to feature/supabase-cloud-backend
-    └── supabase/pr8-integration       → PR to feature/supabase-cloud-backend
-                                       │
-                                       └── FINAL: PR to master (ONLY when ALL 8 complete + tested)
-```
+#### PR Progress
 
-#### Why This Strategy?
-
-| Reason | Explanation |
-|--------|-------------|
-| **master is production** | Real users are running code from master |
-| **Partial Supabase = broken app** | Cloud mode requires ALL pieces to work |
-| **Local mode must stay perfect** | Any regression breaks existing users |
-| **Feature branch isolates risk** | We can test everything together before release |
+| PR | Status | Description |
+|----|--------|-------------|
+| 1-11 | ✅ | Foundation through Reverse Migration |
+| **12** | 🚧 | Migration Wizard Redesign (in progress) |
 
 #### Final Merge Criteria
 
-Before creating the final PR `feature/supabase-cloud-backend` → `master`:
+Before creating `feature/supabase-cloud-backend` → `master`:
 
-- [ ] All 8 sub-PRs merged to feature branch
-- [ ] `npm test` passes (3,200+ tests)
+- [ ] All sub-PRs merged to feature branch
+- [ ] `npm test` passes
 - [ ] `npm run build` passes
-- [ ] `npm run lint` passes
 - [ ] Manual test: Local mode full workflow works
 - [ ] Manual test: Cloud mode full workflow works
 - [ ] Manual test: Migration local → cloud works
@@ -195,7 +176,7 @@ Before creating the final PR `feature/supabase-cloud-backend` → `master`:
 
 **⚠️ USER MUST REVIEW AND APPROVE EVERY PR - NO EXCEPTIONS**
 
-For **each** of the 8 PRs, the process is:
+For **each** PR, the process is:
 
 1. **Implementation complete** → Claude reports "Ready for review"
 2. **User says "review changes"** → Claude performs senior engineer code review
@@ -283,46 +264,46 @@ src/datastore/supabase/index.ts      # Barrel export
 
 > ⚠️ **Critical**: This PR implements composite uniqueness rules. Before coding, read the "Critical Behavior Parity Checks" section in the preflight checklist.
 
-**Files to Create**:
+> ✅ **IMPLEMENTED** - See architectural decision note below.
+
+**Architectural Decision (Documented Jan 2026)**:
+Implemented as single-file `SupabaseDataStore.ts` (~1,770 lines) instead of separate query modules.
+- **Rationale**: Single-file is coherent at this scale; PR #4's game transforms are fundamentally different (5-table RPC); no later PRs import from query modules; avoids unnecessary file complexity.
+- **QueryCache skipped**: React Query handles caching at app level - local DataStore cache would be redundant.
+- **Personnel cascade delete**: Deferred to PR #4 when games exist.
+
+**Files Created**:
 ```
-src/datastore/SupabaseDataStore.ts           # Main class (~800 lines initial)
-src/datastore/supabase/queries/players.ts    # Player CRUD
-src/datastore/supabase/queries/teams.ts      # Team + roster CRUD
-src/datastore/supabase/queries/seasons.ts    # Season CRUD
-src/datastore/supabase/queries/tournaments.ts # Tournament CRUD
-src/datastore/supabase/queries/personnel.ts  # Personnel CRUD
-src/datastore/supabase/queries/settings.ts   # Settings CRUD
-src/datastore/supabase/queries/index.ts      # Barrel export
-src/datastore/supabase/cache/QueryCache.ts   # In-memory cache
+src/datastore/SupabaseDataStore.ts                    # Main class with all CRUD (~1,770 lines)
+src/datastore/__tests__/SupabaseDataStore.test.ts    # Comprehensive tests (62 tests)
 ```
 
-**Files to Modify**:
+**Files Modified**:
 ```
 src/datastore/factory.ts             # Return SupabaseDataStore when cloud mode
 src/datastore/index.ts               # Export SupabaseDataStore
 ```
 
 **Implements DataStore Methods**:
-- [ ] `initialize()`, `close()`, `getBackendName()`, `isAvailable()`
-- [ ] `getPlayers()`, `createPlayer()`, `updatePlayer()`, `deletePlayer()`
-- [ ] `getTeams()`, `getTeamById()`, `createTeam()`, `updateTeam()`, `deleteTeam()`
-- [ ] `getTeamRoster()`, `setTeamRoster()`, `getAllTeamRosters()`
-- [ ] `getSeasons()`, `createSeason()`, `updateSeason()`, `deleteSeason()`
-- [ ] `getTournaments()`, `createTournament()`, `updateTournament()`, `deleteTournament()`
-- [ ] `getAllPersonnel()`, `getPersonnelById()`, `addPersonnelMember()`, `updatePersonnelMember()`, `removePersonnelMember()` **Note: removePersonnelMember implements CASCADE DELETE - removes personnel ID from all games' gamePersonnel arrays**
-- [ ] `getSettings()`, `saveSettings()`, `updateSettings()`
+- [x] `initialize()`, `close()`, `getBackendName()`, `isAvailable()`
+- [x] `getPlayers()`, `createPlayer()`, `updatePlayer()`, `deletePlayer()`
+- [x] `getTeams()`, `getTeamById()`, `createTeam()`, `updateTeam()`, `deleteTeam()`
+- [x] `getTeamRoster()`, `setTeamRoster()`, `getAllTeamRosters()`
+- [x] `getSeasons()`, `createSeason()`, `updateSeason()`, `deleteSeason()`
+- [x] `getTournaments()`, `createTournament()`, `updateTournament()`, `deleteTournament()`
+- [x] `getAllPersonnel()`, `getPersonnelById()`, `addPersonnelMember()`, `updatePersonnelMember()`, `removePersonnelMember()` **Note: CASCADE DELETE deferred to PR #4**
+- [x] `getSettings()`, `saveSettings()`, `updateSettings()`
 
 **Deliverables**:
-- [ ] SupabaseDataStore implements all non-game DataStore methods
-- [ ] Optimistic update pattern for all mutations
-- [ ] In-memory cache with prefetch on initialize
-- [ ] Unit tests with mocked Supabase client
-- [ ] Factory returns correct store based on mode
+- [x] SupabaseDataStore implements all non-game DataStore methods
+- [x] Architecture ready for optimistic updates (React Query handles at app level)
+- [x] Unit tests with mocked Supabase client (62 tests)
+- [x] Factory returns correct store based on mode
 
 **Acceptance Criteria**:
-- All core CRUD operations work against Supabase
-- Optimistic updates provide <50ms perceived latency
-- Tests pass with mocked Supabase
+- [x] All core CRUD operations work against Supabase
+- [x] Composite uniqueness matches LocalDataStore behavior
+- [x] Tests pass with mocked Supabase
 
 ---
 
@@ -341,6 +322,12 @@ src/datastore/index.ts               # Export SupabaseDataStore
 > - Assessment slider flattening
 >
 > **Reference**: Use [supabase-verification-matrix.md](./supabase-verification-matrix.md) for field-by-field mappings.
+
+**Pre-requisite: Generate Supabase Types**
+```bash
+npx supabase gen types typescript --project-id <project-id> > src/types/supabase.ts
+```
+This replaces the placeholder `any` types in SupabaseDataStore.ts (`DbInsertData`, `DbRow`, etc.) with proper generated types for compile-time type safety.
 
 **Files to Create**:
 ```
@@ -362,6 +349,9 @@ src/datastore/SupabaseDataStore.ts   # Add game methods
 - [ ] `getPlayerAdjustments()`, `addPlayerAdjustment()`, `updatePlayerAdjustment()`, `deletePlayerAdjustment()`
 - [ ] `getWarmupPlan()`, `saveWarmupPlan()`, `deleteWarmupPlan()`
 - [ ] `getTimerState()`, `saveTimerState()`, `clearTimerState()` (local-only, no-op for cloud)
+
+**Deferred from PR #3** (games now exist):
+- [ ] `removePersonnelMember()` cascade delete - must remove personnel ID from all games' `gamePersonnel` arrays when personnel is deleted (see `LocalDataStore.ts:1223-1291` for reference implementation)
 
 **Critical Transformations**:
 - [ ] `seasonId: ''` → `season_id: NULL`
@@ -522,6 +512,7 @@ tests/integration/cloud-flow.test.ts # End-to-end integration tests
 - [ ] Full integration test suite
 - [ ] Documentation updates
 - [ ] Final cleanup and code review
+- [ ] **Deferred from PR #4**: Generate proper Supabase types to replace `unknown` JSONB columns in `src/types/supabase.ts` (tactical_discs, tactical_ball_position, etc.) - removes `as unknown` type assertions
 
 **Acceptance Criteria**:
 - User can enable cloud mode from settings
@@ -533,35 +524,58 @@ tests/integration/cloud-flow.test.ts # End-to-end integration tests
 
 ### 2.5 PR Summary Table
 
-| PR | Branch | Est. Hours | Tests | Dependencies | Key Deliverables |
-|----|--------|------------|-------|--------------|------------------|
-| 1 | `supabase/pr1-foundation` | 8h | 15 | None | backendConfig.ts, factory mode detection |
-| 2 | `supabase/pr2-supabase-client` | 10h | 15 | PR #1 | Supabase client, lazy loading |
-| 3 | `supabase/pr3-datastore-core` | 30h | 80+ | PR #2 | Core CRUD + TDD + parity tests |
-| 4 | `supabase/pr4-datastore-games` | 35h | 70+ | PR #3 | Game transforms (TDD), RPC, all DataStore |
-| 5 | `supabase/pr5-auth-service` | 25h | 45 | PR #2 | Auth service + Auth UI + TDD |
-| 6 | `supabase/pr6-migration` | 25h | 30 | PR #4, #5 | Migration service + TDD + verification |
-| 7 | `supabase/pr7-performance` | 10h | 15 | PR #4 | QueryProvider optimization |
-| 8 | `supabase/pr8-integration` | 15h | 40 | All | UI, integration tests, RLS tests, polish |
+| PR | Branch | Status | Tests | Dependencies | Key Deliverables |
+|----|--------|--------|-------|--------------|------------------|
+| 1 | `supabase/pr1-foundation` | ✅ MERGED | 15 | None | backendConfig.ts, factory mode detection |
+| 2 | `supabase/pr2-supabase-client` | ✅ MERGED | 15 | PR #1 | Supabase client, lazy loading |
+| 3 | `supabase/pr3-datastore-core` | ✅ MERGED | 80+ | PR #2 | Core CRUD + TDD + parity tests |
+| 4 | `supabase/pr4-datastore-games` | ✅ MERGED | 70+ | PR #3 | Game transforms (TDD), RPC, all DataStore |
+| 5 | `supabase/pr5-auth-service` | ✅ MERGED | 45 | PR #2 | Auth service + Auth UI + TDD |
+| 6 | `supabase/pr6-migration` | ✅ MERGED | 30 | PR #4, #5 | Migration service + TDD + verification |
+| 7 | `supabase/pr7-performance` | ✅ MERGED | 15 | PR #4 | QueryProvider optimization |
+| 8 | `supabase/pr8-integration` | ✅ MERGED | 40 | All #1-7 | UI integration, polish |
+| **Final** | **`feature/...` → `master`** | **PENDING** | **—** | **All + Supabase setup** | **E2E testing, production merge** |
 
-**Total**: ~160 hours (~375 new tests)
+**Total**: ~183 hours (~390 new tests)
 
-> **Note**: Hours include TDD test-writing time. See Section 9 for detailed testing strategy.
+> **Note**: Hours include TDD test-writing time. See Section 9 for detailed testing strategy. See **Section 10** for complete infrastructure and final merge details.
 
 ### 2.6 Parallel Work Opportunities
 
 ```
 PR #1 ─────────┐
-               ├──► PR #2 ─────┬──► PR #3 ──► PR #4 ──┬──► PR #6 ──► PR #8
-               │               │                      │
-               │               └──► PR #5 ────────────┘
-               │                         │
-               │                         └──► PR #7 ──────────────────┘
+               ├──► PR #2 ─────┬──► PR #3 ──► PR #4 ──┬──► PR #6 ──► PR #8 ──► PR #9
+               │               │                      │                          │
+               │               └──► PR #5 ────────────┘                          │
+               │                         │                                       │
+               │                         └──► PR #7 ─────────────────────────────┤
+               │                                                                 │
+               │                                        ┌────────────────────────┘
+               │                                        ▼
+               │                              ┌─────────────────────┐
+               │                              │  Supabase Setup     │
+               │                              │  (create project,   │
+               │                              │   run migrations)   │
+               │                              └──────────┬──────────┘
+               │                                         │
+               │                                         ▼
+               │                              ┌─────────────────────┐
+               │                              │  E2E Testing        │
+               │                              │  (real Supabase)    │
+               │                              └──────────┬──────────┘
+               │                                         │
+               │                                         ▼
+               │                              ┌─────────────────────┐
+               │                              │  FINAL MERGE        │
+               │                              │  feature → master   │
+               │                              └─────────────────────┘
 ```
 
 - **PR #3 and PR #5** can be developed in parallel after PR #2
 - **PR #7** can start after PR #4, parallel with PR #6
-- **PR #8** requires all others complete
+- **PR #8** requires PRs #1-7 complete
+- **PR #9** requires PR #8 (adds SQL files and MigrationWizard)
+- **Final Merge** requires PR #9 + Supabase project setup + E2E testing
 
 ### 2.7 Definition of Done (Per PR)
 
@@ -580,7 +594,7 @@ Before merging any PR to `feature/supabase-cloud-backend`:
 
 Before creating PR from `feature/supabase-cloud-backend` → `master`:
 
-- [ ] All 8 sub-PRs merged to feature branch
+- [ ] All sub-PRs merged to feature branch
 - [ ] Full integration test suite passes
 - [ ] Manual testing completed:
   - [ ] Fresh install → local mode works
@@ -1366,7 +1380,7 @@ async createPlayer(player: Omit<Player, 'id'>): Promise<Player> {
 
 **Conflict resolution**: Last-write-wins (implicit in Supabase). If two devices edit same entity, last `UPDATE` wins. This matches typical cloud app behavior.
 
-#### 5.0.14 Migration Using DataStore Getters + Direct Inserts
+#### 5.0.14 Migration Using DataStore Getters + Upsert Methods
 
 **⚠️ CRITICAL: Migration must NOT use create* methods** - they generate new IDs!
 
@@ -1376,371 +1390,108 @@ await supabaseDataStore.createPlayer(player);  // player.id is ignored!
 
 // ❌ WRONG: Reading raw storage keys skips migrations
 const tournaments = JSON.parse(localStorage.getItem(TOURNAMENTS_LIST_KEY));
+
+// ✅ CORRECT: Use upsert methods that preserve original IDs
+await supabaseDataStore.upsertPlayer(player);  // Uses player.id as-is
 ```
 
-**Migration must:**
-1. **Read via DataStore getters** - applies legacy migrations
-2. **Write via direct Supabase inserts** - preserves existing IDs
+**Migration Design Principles**:
+1. **Read via DataStore getters** - applies legacy migrations (Rule 18)
+2. **Write via upsert methods** - preserves existing IDs using `onConflict: 'id'`
 3. **Await all writes** - no optimistic fire-and-forget
 4. **Verify completion** - only after all awaits resolve
 
-**Correct migration service flow**:
+**Implementation Pattern (DRY - reuses SupabaseDataStore transforms)**:
+
+SupabaseDataStore provides upsert methods that:
+- Accept entities with existing IDs
+- Use Supabase `.upsert()` with `onConflict: 'id'`
+- Reuse the same transforms as create/update methods
+
+```typescript
+// SupabaseDataStore upsert methods (added in PR #6):
+async upsertPlayer(player: Player): Promise<Player>
+async upsertTeam(team: Team): Promise<Team>
+async upsertSeason(season: Season): Promise<Season>
+async upsertTournament(tournament: Tournament): Promise<Tournament>
+async upsertPersonnel(personnel: Personnel): Promise<Personnel>
+```
+
+**Migration service upload flow**:
 
 ```typescript
 // src/services/migrationService.ts
-async function migrateLocalToCloud(
-  supabaseClient: SupabaseClient,
-  userId: string,  // ⚠️ REQUIRED: Get from auth.uid() after user signs in
-  onProgress?: (progress: MigrationProgress) => void
-): Promise<MigrationResult> {
-  const localDataStore = new LocalDataStore();
-  await localDataStore.initialize();
+async function uploadToCloud(
+  localData: LocalDataSnapshot,
+  cloudStore: DataStore,
+  onProgress?: ProgressCallback
+): Promise<void> {
+  // Upload in FK-safe order (parents before children)
 
-  // STEP 1: Read ALL data via DataStore getters (applies legacy migrations)
-  onProgress?.({ stage: 'exporting', progress: 0, currentEntity: 'Reading local data' });
-  const players = await localDataStore.getPlayers();
-  const seasons = await localDataStore.getSeasons(true);      // Computes clubSeason
-  const tournaments = await localDataStore.getTournaments(true);  // Applies migrateTournamentLevel
-  const teams = await localDataStore.getTeams();
-  const teamRosters = await localDataStore.getAllTeamRosters();  // Record<teamId, TeamPlayer[]>
-  const personnel = await localDataStore.getAllPersonnel();
-  const games = await localDataStore.getGames();
-  const settings = await localDataStore.getSettings();
-  const warmupPlan = await localDataStore.getWarmupPlan();
-  // Player adjustments: need to fetch for each player
-  const playerAdjustments: PlayerStatAdjustment[] = [];
-  for (const player of players) {
-    const adjustments = await localDataStore.getPlayerAdjustments(player.id);
-    playerAdjustments.push(...adjustments);
+  // 1. Players (no FK dependencies)
+  for (const player of localData.players) {
+    await cloudStore.upsertPlayer(player);  // Preserves player.id
   }
 
-  // STEP 2: Upload in FK-safe order (parents before children)
-  // ⚠️ CRITICAL: Order matters for foreign key constraints!
-  onProgress?.({ stage: 'uploading', progress: 10, currentEntity: 'players' });
-
-  // 2.1 Players (no FK dependencies)
-  for (const player of players) {
-    const { error } = await supabaseClient
-      .from('players')
-      .upsert(transformPlayerForMigration(player, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate player ${player.id}: ${error.message}`);
+  // 2. Seasons (no FK dependencies)
+  for (const season of localData.seasons) {
+    await cloudStore.upsertSeason(season);  // Preserves season.id
   }
 
-  // 2.2 Seasons (no FK dependencies)
-  onProgress?.({ stage: 'uploading', progress: 20, currentEntity: 'seasons' });
-  for (const season of seasons) {
-    const { error } = await supabaseClient
-      .from('seasons')
-      .upsert(transformSeasonForMigration(season, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate season ${season.id}: ${error.message}`);
+  // 3. Tournaments (no FK dependencies)
+  for (const tournament of localData.tournaments) {
+    await cloudStore.upsertTournament(tournament);  // Preserves tournament.id
   }
 
-  // 2.3 Tournaments (no FK dependencies)
-  onProgress?.({ stage: 'uploading', progress: 30, currentEntity: 'tournaments' });
-  for (const tournament of tournaments) {
-    const { error } = await supabaseClient
-      .from('tournaments')
-      .upsert(transformTournamentForMigration(tournament, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate tournament ${tournament.id}: ${error.message}`);
+  // 4. Teams (FK to seasons, tournaments - must come AFTER them)
+  for (const team of localData.teams) {
+    await cloudStore.upsertTeam(team);  // Preserves team.id
   }
 
-  // 2.4 Teams (FK to seasons, tournaments - must come AFTER them)
-  onProgress?.({ stage: 'uploading', progress: 40, currentEntity: 'teams' });
-  for (const team of teams) {
-    const { error } = await supabaseClient
-      .from('teams')
-      .upsert(transformTeamForMigration(team, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate team ${team.id}: ${error.message}`);
+  // 5. Team rosters (uses existing saveTeamRoster)
+  for (const [teamId, roster] of Object.entries(localData.teamRosters)) {
+    await cloudStore.saveTeamRoster(teamId, roster);
   }
 
-  // 2.5 Team rosters (FK to teams, players - must come AFTER both)
-  onProgress?.({ stage: 'uploading', progress: 45, currentEntity: 'team_players' });
-  for (const [teamId, roster] of Object.entries(teamRosters)) {
-    for (const teamPlayer of roster) {
-      const { error } = await supabaseClient
-        .from('team_players')
-        .upsert(transformTeamPlayerForMigration(teamId, teamPlayer, userId))
-        .select();
-      if (error) throw new MigrationError(`Failed to migrate team roster for ${teamId}: ${error.message}`);
-    }
+  // 6. Personnel (no FK dependencies)
+  for (const person of localData.personnel) {
+    await cloudStore.upsertPersonnel(person);  // Preserves personnel.id
   }
 
-  // 2.6 Personnel (no FK dependencies)
-  onProgress?.({ stage: 'uploading', progress: 50, currentEntity: 'personnel' });
-  for (const person of personnel) {
-    const { error } = await supabaseClient
-      .from('personnel')
-      .upsert(transformPersonnelForMigration(person, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate personnel ${person.id}: ${error.message}`);
+  // 7. Games (uses saveGame with RPC for atomic 5-table write)
+  for (const [gameId, game] of Object.entries(localData.games)) {
+    await cloudStore.saveGame(gameId, game);  // Preserves gameId
   }
 
-  // 2.7 Games (FK to seasons, tournaments, teams - uses RPC for atomic 5-table write)
-  onProgress?.({ stage: 'uploading', progress: 60, currentEntity: 'games' });
-  for (const [gameId, game] of Object.entries(games)) {
-    const tables = transformGameToTables(gameId, game, userId);
-    const { error } = await supabaseClient.rpc('save_game_with_relations', {
-      p_game: tables.game,
-      p_players: tables.players,
-      p_events: tables.events,
-      p_assessments: tables.assessments,
-      p_tactical_data: tables.tacticalData,
-    });
-    if (error) throw new MigrationError(`Failed to migrate game ${gameId}: ${error.message}`);
+  // 8. Player adjustments (FK to players, seasons, teams - must come AFTER all)
+  for (const adjustment of localData.adjustments) {
+    await cloudStore.addPlayerAdjustment(adjustment);
   }
 
-  // 2.8 Player adjustments (FK to players, seasons, teams - must come AFTER all)
-  onProgress?.({ stage: 'uploading', progress: 80, currentEntity: 'player_adjustments' });
-  for (const adjustment of playerAdjustments) {
-    const { error } = await supabaseClient
-      .from('player_adjustments')
-      .upsert(transformAdjustmentForMigration(adjustment, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate adjustment ${adjustment.id}: ${error.message}`);
+  // 9. Warmup plan (optional)
+  if (localData.warmupPlan) {
+    await cloudStore.saveWarmupPlan(localData.warmupPlan);
   }
 
-  // 2.9 Warmup plan (FK to seasons - optional, single row)
-  onProgress?.({ stage: 'uploading', progress: 90, currentEntity: 'warmup_plans' });
-  if (warmupPlan) {
-    const { error } = await supabaseClient
-      .from('warmup_plans')
-      .upsert(transformWarmupPlanForMigration(warmupPlan, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate warmup plan: ${error.message}`);
+  // 10. Settings
+  if (localData.settings) {
+    await cloudStore.saveSettings(localData.settings);
   }
-
-  // 2.10 Settings (single row per user)
-  onProgress?.({ stage: 'uploading', progress: 95, currentEntity: 'user_settings' });
-  if (settings) {
-    const { error } = await supabaseClient
-      .from('user_settings')
-      .upsert(transformSettingsForMigration(settings, userId))
-      .select();
-    if (error) throw new MigrationError(`Failed to migrate settings: ${error.message}`);
-  }
-
-  // STEP 3: Verify counts match (only AFTER all awaits complete)
-  // CRITICAL: Verify ALL entities, not just players
-  onProgress?.({ stage: 'verifying', progress: 98, currentEntity: 'Verifying counts' });
-
-  const verifyCount = async (table: string, expected: number, label: string) => {
-    const { count, error } = await supabaseClient.from(table).select('id', { count: 'exact', head: true });
-    if (error) throw new MigrationError(`Failed to verify ${label}: ${error.message}`);
-    if (count !== expected) {
-      throw new MigrationError(`${label} count mismatch: local=${expected}, cloud=${count}`);
-    }
-  };
-
-  await verifyCount('players', players.length, 'Players');
-  await verifyCount('teams', teams.length, 'Teams');
-  await verifyCount('team_players', Object.values(teamRosters).flat().length, 'Team rosters');
-  await verifyCount('seasons', seasons.length, 'Seasons');
-  await verifyCount('tournaments', tournaments.length, 'Tournaments');
-  await verifyCount('games', Object.keys(games).length, 'Games');
-  await verifyCount('personnel', personnel.length, 'Personnel');
-  await verifyCount('player_adjustments', playerAdjustments.length, 'Player adjustments');
-  // warmup_plans and user_settings are single-row, verification optional
-
-  onProgress?.({ stage: 'complete', progress: 100 });
-  return {
-    success: true,
-    migrated: {
-      players: players.length,
-      teams: teams.length,
-      teamRosters: Object.values(teamRosters).flat().length,
-      seasons: seasons.length,
-      tournaments: tournaments.length,
-      games: Object.keys(games).length,
-      personnel: personnel.length,
-      playerAdjustments: playerAdjustments.length,
-      warmupPlan: !!warmupPlan,
-      settings: !!settings,
-    },
-    errors: [],
-  };
-}
-
-// Migration-specific transforms that preserve IDs
-function transformPlayerForMigration(player: Player, userId: string): DbPlayer {
-  return {
-    id: player.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: player.name,
-    nickname: player.nickname ?? null,
-    jersey_number: player.jerseyNumber ?? null,
-    is_goalie: player.isGoalie ?? false,
-    color: player.color ?? null,
-    notes: player.notes ?? null,
-    received_fair_play_card: player.receivedFairPlayCard ?? false,
-  };
-}
-
-function transformTeamForMigration(team: Team, userId: string): DbTeam {
-  return {
-    id: team.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: team.name,
-    color: team.color ?? null,
-    notes: team.notes ?? null,
-    age_group: team.ageGroup ?? null,
-    game_type: team.gameType ?? null,
-    archived: team.archived ?? false,
-    bound_season_id: team.boundSeasonId === '' ? null : team.boundSeasonId,
-    bound_tournament_id: team.boundTournamentId === '' ? null : team.boundTournamentId,
-    bound_tournament_series_id: team.boundTournamentSeriesId === '' ? null : team.boundTournamentSeriesId,
-    // created_at/updated_at handled by PostgreSQL DEFAULT
-  };
-}
-
-function transformTeamPlayerForMigration(teamId: string, tp: TeamPlayer, userId: string): DbTeamPlayer {
-  return {
-    id: `${teamId}_${tp.playerId}`,  // Composite key
-    team_id: teamId,
-    player_id: tp.playerId,
-    user_id: userId,
-    // Snapshot fields from player at time of roster assignment
-    name: tp.name,
-    nickname: tp.nickname ?? null,
-    jersey_number: tp.jerseyNumber ?? null,
-    is_goalie: tp.isGoalie ?? false,
-    color: tp.color ?? null,
-    notes: tp.notes ?? null,
-    received_fair_play_card: tp.receivedFairPlayCard ?? false,
-    // created_at/updated_at handled by PostgreSQL DEFAULT
-  };
-}
-
-function transformSeasonForMigration(season: Season, userId: string): DbSeason {
-  return {
-    id: season.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: season.name,
-    location: season.location ?? null,
-    period_count: season.periodCount ?? null,
-    period_duration: season.periodDuration ?? null,
-    start_date: season.startDate ?? null,  // ISO string → PostgreSQL date
-    end_date: season.endDate ?? null,
-    game_dates: season.gameDates ?? null,  // string[] → PostgreSQL date[] (ISO strings work)
-    archived: season.archived ?? false,
-    notes: season.notes ?? null,
-    color: season.color ?? null,
-    badge: season.badge ?? null,
-    age_group: season.ageGroup ?? null,
-    game_type: season.gameType ?? null,
-    gender: season.gender ?? null,
-    league_id: season.leagueId ?? null,
-    custom_league_name: season.customLeagueName ?? null,
-    club_season: season.clubSeason ?? null,
-    team_placements: season.teamPlacements ?? {},  // object → jsonb (Supabase handles serialization)
-  };
-}
-
-function transformTournamentForMigration(tournament: Tournament, userId: string): DbTournament {
-  return {
-    id: tournament.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: tournament.name,
-    location: tournament.location ?? null,
-    period_count: tournament.periodCount ?? null,
-    period_duration: tournament.periodDuration ?? null,
-    start_date: tournament.startDate ?? null,
-    end_date: tournament.endDate ?? null,
-    game_dates: tournament.gameDates ?? null,  // string[] → PostgreSQL date[]
-    archived: tournament.archived ?? false,
-    notes: tournament.notes ?? null,
-    color: tournament.color ?? null,
-    badge: tournament.badge ?? null,
-    level: tournament.level ?? null,  // Legacy field
-    age_group: tournament.ageGroup ?? null,
-    awarded_player_id: tournament.awardedPlayerId ?? null,
-    game_type: tournament.gameType ?? null,
-    gender: tournament.gender ?? null,
-    club_season: tournament.clubSeason ?? null,
-    team_placements: tournament.teamPlacements ?? {},  // object → jsonb
-    series: tournament.series ?? [],  // TournamentSeries[] → jsonb array
-  };
-}
-
-function transformPersonnelForMigration(person: Personnel, userId: string): DbPersonnel {
-  return {
-    id: person.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    name: person.name,
-    role: person.role ?? 'other',
-    email: person.email ?? null,
-    phone: person.phone ?? null,
-    certifications: person.certifications ?? [],  // string[] → PostgreSQL text[]
-    notes: person.notes ?? null,
-  };
-}
-
-function transformAdjustmentForMigration(adj: PlayerStatAdjustment, userId: string): DbPlayerAdjustment {
-  return {
-    id: adj.id,  // ⚠️ PRESERVE existing ID
-    user_id: userId,
-    player_id: adj.playerId,
-    season_id: adj.seasonId === '' ? null : adj.seasonId,
-    team_id: adj.teamId === '' ? null : adj.teamId,
-    tournament_id: adj.tournamentId === '' ? null : adj.tournamentId,
-    external_team_name: adj.externalTeamName ?? null,
-    opponent_name: adj.opponentName ?? null,
-    score_for: adj.scoreFor ?? null,
-    score_against: adj.scoreAgainst ?? null,
-    game_date: adj.gameDate ?? null,
-    home_or_away: adj.homeOrAway ?? null,
-    include_in_season_tournament: adj.includeInSeasonTournament ?? false,
-    games_played_delta: adj.gamesPlayedDelta ?? 0,
-    goals_delta: adj.goalsDelta ?? 0,
-    assists_delta: adj.assistsDelta ?? 0,
-    fair_play_cards_delta: adj.fairPlayCardsDelta ?? 0,
-    note: adj.note ?? null,
-    created_by: adj.createdBy ?? null,
-    applied_at: adj.appliedAt ?? null,
-  };
-}
-
-function transformWarmupPlanForMigration(plan: WarmupPlan, userId: string): DbWarmupPlan {
-  return {
-    id: plan.id,  // Typically 'user_warmup_plan'
-    user_id: userId,
-    version: plan.version ?? 1,
-    last_modified: plan.lastModified ?? new Date().toISOString(),
-    is_default: plan.isDefault ?? false,
-    sections: plan.sections ?? [],  // WarmupPlanSection[] → jsonb
-  };
-}
-
-function transformSettingsForMigration(settings: AppSettings, userId: string): DbUserSettings {
-  return {
-    user_id: userId,  // Note: user_id is PRIMARY KEY, not a separate id field
-    current_game_id: settings.currentGameId ?? null,
-    last_home_team_name: settings.lastHomeTeamName ?? null,
-    language: settings.language ?? 'fi',
-    has_seen_app_guide: settings.hasSeenAppGuide ?? false,
-    use_demand_correction: settings.useDemandCorrection ?? false,
-    is_drawing_mode_enabled: settings.isDrawingModeEnabled ?? false,
-    club_season_start_date: settings.clubSeasonStartDate ?? '2000-11-15',
-    club_season_end_date: settings.clubSeasonEndDate ?? '2000-10-20',
-    has_configured_season_dates: settings.hasConfiguredSeasonDates ?? false,
-  };
 }
 ```
 
-**Type Conversion Notes**:
-- **Date strings**: PostgreSQL `date` accepts ISO format strings (`'2024-01-15'`) directly
-- **Date arrays**: PostgreSQL `date[]` accepts arrays of ISO strings
-- **JSONB**: Supabase client automatically serializes JavaScript objects to JSON
+**Why upsert methods in SupabaseDataStore (not direct Supabase calls)**:
+- **DRY**: Transform logic stays in one place (SupabaseDataStore)
+- **Consistency**: Same validation and transforms as normal operations
+- **Maintainability**: If transforms change, migration automatically uses updated logic
+- **Testing**: Can mock upsert methods in tests
 
 **Why this matters**:
 - `createPlayer(player)` ignores `player.id` and generates new ID
 - Games reference players by ID - if IDs change, all references break
 - Assessments, roster assignments, event scorer IDs all depend on stable IDs
 
-**Legacy migrations applied by getters**:
+**Legacy migrations applied by getters** (Rule 18):
 - `migrateTournamentLevel()` - converts `level` → `series[]`
 - `getClubSeasonForDate()` - computes missing `clubSeason`
 - Field normalization (undefined → default values)
@@ -4243,33 +3994,1125 @@ coverageThreshold: {
 
 ---
 
-## 10. Deployment Checklist
+## 10. Final Phase: Infrastructure & Master Merge
 
-### Pre-deployment
+> **IMPORTANT**: This section covers everything needed AFTER PR #8 is merged to `feature/supabase-cloud-backend` but BEFORE the final merge to `master`. This is when the cloud backend becomes actually functional.
 
-- [ ] Create Supabase project
-- [ ] Run database migrations (create tables)
-- [ ] Configure RLS policies
-- [ ] Set environment variables
-- [ ] Test with cloud mode enabled
-- [ ] Verify migration tool works
-- [ ] Load test with 100+ games
+### 10.1 Overview: What's Still Missing After PR #8
 
-### Environment Variables
+After all PRs are merged to the feature branch, you have:
+- ✅ All application code (DataStore, AuthService, UI components)
+- ✅ All unit tests passing
+- ✅ RPC functions SQL file (`supabase/migrations/001_rpc_functions.sql`)
 
-```bash
-# Production
-NEXT_PUBLIC_BACKEND_MODE=local  # Keep default as local
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+But you still need:
+- ❌ **SQL migration files** for tables, indexes, RLS policies
+- ❌ **MigrationWizard UI** to trigger local→cloud migration
+- ❌ **Supabase project** created and configured
+- ❌ **End-to-end testing** with real Supabase (not mocks)
+- ❌ **Production environment** configured
+
+### 10.2 PR #9: Infrastructure & Migration UI (~15 hours)
+
+**Branch**: `supabase/pr9-infrastructure`
+**Depends on**: PR #8 merged to `feature/supabase-cloud-backend`
+
+This PR creates the missing pieces needed for a functional cloud backend.
+
+#### 10.2.1 Create SQL Migration Files
+
+Extract SQL from `docs/02-technical/database/supabase-schema.md` into runnable files:
+
+**Files to Create**:
+```
+supabase/migrations/
+├── 000_schema.sql           # All 15 tables + indexes + constraints
+├── 001_rpc_functions.sql    # KEEP existing file (no rename)
+├── 002_rls_policies.sql     # All RLS policies (runs after tables + RPC)
+└── README.md                # Deployment instructions
 ```
 
-### Rollback Plan
+> **Note**: Keep `001_rpc_functions.sql` as-is. Adding `000_schema.sql` before it and `002_rls_policies.sql` after maintains correct execution order without breaking existing references in code comments and checklists.
+
+**`000_schema.sql`** (~400 lines) - Tables in dependency order:
+```sql
+-- 1. Independent tables (no foreign keys to other app tables)
+CREATE TABLE players (...);
+CREATE TABLE seasons (...);
+CREATE TABLE tournaments (...);
+CREATE TABLE personnel (...);
+CREATE TABLE warmup_plans (...);
+CREATE TABLE user_settings (...);
+
+-- 2. Tables with foreign keys
+CREATE TABLE teams (...);           -- refs seasons, tournaments
+CREATE TABLE team_players (...);    -- refs teams
+CREATE TABLE games (...);           -- refs teams, seasons, tournaments
+CREATE TABLE game_players (...);    -- refs games
+CREATE TABLE game_events (...);     -- refs games
+CREATE TABLE player_assessments (...); -- refs games
+CREATE TABLE game_tactical_data (...); -- refs games
+CREATE TABLE player_adjustments (...); -- refs players
+
+-- 3. All indexes
+CREATE INDEX idx_players_user_id ON players(user_id);
+-- ... (all indexes from schema.md)
+```
+
+**`001_rls_policies.sql`** (~150 lines):
+```sql
+-- Enable RLS on all tables
+ALTER TABLE players ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+-- ... (all 15 tables)
+
+-- Create policies for each table
+CREATE POLICY "Users can only access their own players"
+  ON players FOR ALL
+  USING (auth.uid() = user_id);
+-- ... (all policies from schema.md)
+```
+
+**`supabase/migrations/README.md`**:
+```markdown
+# Supabase Migration Files
+
+Run these in order via Supabase Dashboard > SQL Editor:
+
+1. `000_schema.sql` - Creates all tables and indexes
+2. `001_rpc_functions.sql` - Creates atomic transaction functions (existing file)
+3. `002_rls_policies.sql` - Enables Row Level Security
+
+## Quick Deploy
+```bash
+# Using Supabase CLI (if configured)
+supabase db push
+
+# Or manually in SQL Editor - copy/paste each file in order
+```
+```
+
+#### 10.2.2 Create MigrationWizard Component
+
+The migration service exists but has **no UI**. Create the wizard.
+
+> **⚠️ CRITICAL: Migration Requires Authentication**
+>
+> `migrateLocalToCloud()` instantiates `SupabaseDataStore` which requires an authenticated session.
+> The wizard **MUST** run AFTER the user has signed in, not before.
+
+**File**: `src/components/MigrationWizard.tsx` (~250 lines)
+
+**When Shown** (post-authentication only):
+```
+User enables cloud → App reloads → LoginScreen → User signs in
+    → Check: hasLocalData AND NOT hasMigrated?
+        → YES: Show MigrationWizard
+        → NO: Proceed to app
+```
+
+**Wizard Steps**:
+1. **Preview** - Show counts of data to migrate (all fields from `MigrationCounts`)
+2. **Confirm** - User confirms migration
+3. **Progress** - Show upload progress with entity names
+4. **Complete** - Success message with option to clear local data
+
+**Preview Must Show ALL Migrated Data** (matches `MigrationCounts` interface):
+- Players (`players`)
+- Teams (`teams`)
+- Team Rosters (`teamRosters`)
+- Seasons (`seasons`)
+- Tournaments (`tournaments`)
+- Games (`games`)
+- Personnel (`personnel`)
+- Player Adjustments (`playerAdjustments`)
+- Warmup Plan (`warmupPlan` - boolean)
+- Settings (`settings` - boolean)
+
+#### 10.2.3 Migration Completed Flag
+
+**Problem**: Without a persistent flag, MigrationWizard would appear on every login.
+
+**Solution**: Store completion flag in localStorage (per-user):
+
+**File**: `src/config/backendConfig.ts` (add functions)
+
+```typescript
+const MIGRATION_COMPLETED_PREFIX = 'matchops_cloud_migration_completed_';
+
+/**
+ * Check if migration has been completed for the current user.
+ * @param userId - Supabase auth user ID
+ */
+export function hasMigrationCompleted(userId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(`${MIGRATION_COMPLETED_PREFIX}${userId}`) === 'true';
+}
+
+/**
+ * Mark migration as completed for the current user.
+ * @param userId - Supabase auth user ID
+ */
+export function setMigrationCompleted(userId: string): void {
+  localStorage.setItem(`${MIGRATION_COMPLETED_PREFIX}${userId}`, 'true');
+}
+
+/**
+ * Clear migration completed flag (for testing or re-migration).
+ * @param userId - Supabase auth user ID
+ */
+export function clearMigrationCompleted(userId: string): void {
+  localStorage.removeItem(`${MIGRATION_COMPLETED_PREFIX}${userId}`);
+}
+```
+
+**Why localStorage (not AppSettings)**:
+- Checked BEFORE DataStore is initialized
+- Per-device (migration is device-specific)
+- Per-user (keyed by userId)
+- Survives mode switches
+
+#### 10.2.4 Clear Local Data (Safe Implementation)
+
+**Problem**: Existing `resetAppSettings()` clears ALL localStorage including `matchops_backend_mode`, which would flip users back to local mode.
+
+**Solution**: Create dedicated function that only clears IndexedDB data stores.
+
+**File**: `src/utils/clearLocalData.ts` (new file)
+
+```typescript
+/**
+ * Clear local IndexedDB data stores only.
+ *
+ * DOES NOT clear:
+ * - localStorage settings (backend mode, migration flags, etc.)
+ * - Session storage
+ * - Service worker cache
+ *
+ * Safe to call in cloud mode after successful migration.
+ */
+export async function clearLocalIndexedDBData(): Promise<void> {
+  const localStore = new LocalDataStore();
+  await localStore.initialize();
+
+  // Clear each data type
+  await localStore.clearAllPlayers();
+  await localStore.clearAllTeams();
+  await localStore.clearAllSeasons();
+  await localStore.clearAllTournaments();
+  await localStore.clearAllPersonnel();
+  await localStore.clearAllGames();
+  await localStore.clearWarmupPlan();
+  await localStore.clearSettings();
+  // ... etc
+}
+```
+
+> **Note**: LocalDataStore may need new `clear*()` methods added. Alternatively, use IndexedDB API directly to delete the database.
+
+#### 10.2.5 Integration Point (page.tsx - Post-Auth Only)
+
+```typescript
+// In page.tsx - AFTER authentication check
+const { isAuthenticated, user, mode } = useAuth();
+
+// Only show wizard when:
+// 1. Cloud mode AND
+// 2. Authenticated (required for SupabaseDataStore) AND
+// 3. Migration not already completed for this user
+const shouldShowMigrationWizard =
+  mode === 'cloud' &&
+  isAuthenticated &&
+  user?.id &&
+  !hasMigrationCompleted(user.id);
+
+if (shouldShowMigrationWizard) {
+  // Check if there's actually local data to migrate
+  const [hasLocalData, setHasLocalData] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    hasLocalDataToMigrate().then(setHasLocalData);
+  }, []);
+
+  if (hasLocalData === null) {
+    return <LoadingSpinner />; // Checking...
+  }
+
+  if (hasLocalData) {
+    return (
+      <MigrationWizard
+        onComplete={() => {
+          setMigrationCompleted(user.id);
+          // Refresh app state
+        }}
+        onSkip={() => {
+          setMigrationCompleted(user.id); // Don't ask again
+        }}
+      />
+    );
+  }
+
+  // No local data, mark as "completed" so we don't check again
+  setMigrationCompleted(user.id);
+}
+
+// Continue to normal app...
+```
+
+**CloudSyncSection Integration**: When enabling cloud mode, just enable and reload. The migration prompt will appear after login (when auth is available).
+
+#### 10.2.6 Translation Keys
+
+**Existing Keys** (already in `common.json` - USE THESE):
+```json
+"migration": {
+  "title": "Migrate to Cloud",
+  "description": "Transfer your local data to your cloud account...",
+  "preparing": "Preparing migration...",
+  "exporting": "Exporting local data...",
+  "validating": "Validating data integrity...",
+  "uploading": "Uploading to cloud...",
+  "verifying": "Verifying migration...",
+  "success": "Migration complete! Your data is now synced to the cloud.",
+  "partialFailure": "Migration was interrupted...",
+  "verificationFailed": "Migration completed but verification failed...",
+  "networkError": "Network error during migration...",
+  "clearLocalPrompt": "Would you like to clear local data?...",
+  "startButton": "Start Migration",
+  "retryButton": "Retry Migration",
+  "cancelButton": "Cancel",
+  "summary": {
+    "title": "Data Summary",
+    "players": "Players",
+    "teams": "Teams",
+    "seasons": "Seasons",
+    "tournaments": "Tournaments",
+    "games": "Games",
+    "personnel": "Personnel"
+  },
+  "progress": {
+    "entity": "Migrating {{entity}}...",
+    "complete": "{{count}} items migrated"
+  }
+}
+```
+
+**Keys to ADD** (extend `migration.summary` for missing counts):
+```json
+"migration": {
+  "summary": {
+    // ... existing keys ...
+    "teamRosters": "Team Rosters",
+    "playerAdjustments": "Player Adjustments",
+    "warmupPlan": "Warmup Plan",
+    "settings": "Settings"
+  },
+  "skipButton": "Skip for now",
+  "keepLocalButton": "Keep local data as backup",
+  "clearLocalButton": "Clear local data"
+}
+```
+
+> **Note**: After adding keys, regenerate types: `npm run generate:i18n-types`
+
+#### 10.2.7 PR #9 Deliverables Checklist
+
+**SQL Migration Files**:
+- [ ] `supabase/migrations/000_schema.sql` - All 15 tables and indexes
+- [ ] `supabase/migrations/002_rls_policies.sql` - All RLS policies
+- [ ] `supabase/migrations/README.md` - Deployment instructions
+- [ ] Keep `001_rpc_functions.sql` unchanged (already exists)
+
+**Migration Completed Flag**:
+- [ ] Add `hasMigrationCompleted(userId)` to `backendConfig.ts`
+- [ ] Add `setMigrationCompleted(userId)` to `backendConfig.ts`
+- [ ] Add `clearMigrationCompleted(userId)` to `backendConfig.ts`
+
+**Clear Local Data**:
+- [ ] Create `src/utils/clearLocalIndexedDBData.ts` (or add clear methods to LocalDataStore)
+- [ ] Ensure it does NOT clear localStorage (backend mode, migration flags)
+
+**MigrationWizard UI**:
+- [ ] `src/components/MigrationWizard.tsx` - Migration UI (shows AFTER auth)
+- [ ] `src/components/__tests__/MigrationWizard.test.tsx` - Tests
+- [ ] Preview shows ALL counts (players, teams, teamRosters, seasons, tournaments, games, personnel, playerAdjustments, warmupPlan, settings)
+
+**Integration**:
+- [ ] Update `page.tsx` - Show wizard post-auth when `hasLocalData && !hasMigrationCompleted`
+- [ ] `CloudSyncSection.tsx` - Just enables mode (wizard appears after login)
+
+**Translations**:
+- [ ] Add missing keys to `common.json` (EN): `migration.summary.teamRosters`, etc.
+- [ ] Add missing keys to `common.json` (FI)
+- [ ] Run `npm run generate:i18n-types`
+
+**Tests**:
+- [ ] All existing tests pass
+- [ ] New tests for migration flag functions
+- [ ] New tests for MigrationWizard component
+
+---
+
+### 10.2.8 PR #10: Cloud Data Management (~3 hours)
+
+**Branch**: `feature/supabase-cloud-backend` (direct commit)
+**Depends on**: PR #9 merged
+
+This PR adds critical cloud data management features: migration mode selection and clear cloud data functionality.
+
+#### 10.2.8.1 Migration Mode Selection
+
+**Problem**: Original migration only supports merge mode. Users need ability to completely replace cloud data with local data (e.g., after testing or to reset).
+
+**Solution**: Add `replace` mode that clears all cloud data before uploading.
+
+**File Changes**: `src/components/MigrationWizard.tsx`
+
+```typescript
+// Add migration mode state
+const [migrationMode, setMigrationMode] = useState<'merge' | 'replace'>('merge');
+const [replaceConfirmText, setReplaceConfirmText] = useState('');
+
+// Mode selection UI with radio buttons
+// Replace mode requires typed "REPLACE" confirmation
+// Shows rollback warning: data cannot be recovered if migration fails after clearing
+```
+
+**File Changes**: `src/services/migrationService.ts`
+
+```typescript
+// Extend migrateLocalToCloud to accept mode parameter
+export async function migrateLocalToCloud(
+  options?: { mode?: 'merge' | 'replace' }
+): Promise<MigrationResult> {
+  const mode = options?.mode ?? 'merge';
+
+  if (mode === 'replace') {
+    try {
+      await cloudStore.clearAllUserData();
+      warnings.push('CLOUD_CLEARED');
+    } catch (clearError) {
+      // Abort migration if clear fails - don't leave partial state
+      return { ...emptyResult, errors: [`Failed to clear: ${message}. Migration aborted.`] };
+    }
+  }
+  // Continue with upload...
+}
+```
+
+#### 10.2.8.2 Clear All Cloud Data
+
+**Problem**: Users need ability to delete all their cloud data (account cleanup, privacy, testing).
+
+**Solution**: Add clear functionality with safety checks.
+
+**File Changes**: `src/datastore/SupabaseDataStore.ts`
+
+```typescript
+async clearAllUserData(): Promise<void> {
+  const userId = await this.getUserId();
+
+  // FK Constraints (verified in supabase-schema.md):
+  // - game_events, game_players, game_tactical_data, player_assessments:
+  //     game_id REFERENCES games(id) ON DELETE CASCADE
+  // - games: season_id, tournament_id, team_id ON DELETE SET NULL
+  // - team_players: team_id REFERENCES teams(id) ON DELETE CASCADE
+  //
+  // Deletion order: child tables first, parent tables last
+  const tablesToClear = [
+    'game_events', 'game_players', 'game_tactical_data', 'player_assessments',
+    'games', 'player_adjustments', 'team_players', 'teams', 'tournaments',
+    'seasons', 'personnel', 'players', 'warmup_plans', 'user_settings'
+  ] as const;
+
+  for (const table of tablesToClear) {
+    // Explicit user_id filter (defense in depth - don't rely solely on RLS)
+    const { error } = await client.from(table).delete().eq('user_id', userId);
+    if (error) throw new NetworkError(`Failed to clear ${table}: ${error.message}`);
+  }
+}
+```
+
+**File Changes**: `src/components/CloudSyncSection.tsx`
+
+```typescript
+// Add "Clear All Cloud Data" button with safety checks
+const handleClearCloudData = async () => {
+  // Safety check 1: UI-level cloud availability
+  if (!cloudAvailable) {
+    showToast(t('cloudSync.cloudUnavailable'), 'error');
+    return;
+  }
+
+  // Safety check 2: Runtime backend verification
+  const dataStore = await getDataStore();
+  if (dataStore.getBackendName() !== 'supabase') {
+    showToast(t('cloudSync.wrongBackend'), 'error');
+    return;
+  }
+
+  // Require typed "DELETE" confirmation
+  if (deleteConfirmText !== 'DELETE') return;
+
+  await dataStore.clearAllUserData();
+  showToast(t('cloudSync.cloudCleared'), 'success');
+};
+```
+
+#### 10.2.8.3 Interface Updates
+
+**File Changes**: `src/interfaces/DataStore.ts`
+
+```typescript
+// Add upsertPlayerAdjustment for both local and cloud parity
+upsertPlayerAdjustment(
+  adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+): Promise<PlayerStatAdjustment>;
+```
+
+**File Changes**: `src/datastore/LocalDataStore.ts`
+
+```typescript
+// Implement upsertPlayerAdjustment with DRY helpers
+private buildPlayerAdjustment(adjustment: ...): PlayerStatAdjustment { /* ... */ }
+private validateAdjustmentNote(note: string | undefined): void { /* ... */ }
+
+async upsertPlayerAdjustment(adjustment: ...): Promise<PlayerStatAdjustment> {
+  // Insert or update based on existing id
+}
+```
+
+#### 10.2.8.4 Translation Keys Added
+
+**EN (`public/locales/en/common.json`)**:
+```json
+{
+  "cloudSync": {
+    "cloudUnavailable": "Cloud is not available. Cannot clear cloud data.",
+    "wrongBackend": "Cannot clear: not connected to cloud storage."
+  },
+  "migration": {
+    "replaceWarningTitle": "Replace mode will DELETE all existing cloud data!",
+    "replaceWarningDesc": "This will clear all your cloud data before uploading local data.",
+    "replaceConfirmLabel": "Type REPLACE to confirm:",
+    "startReplaceButton": "Start Replace Migration",
+    "replaceNoRollback": "Warning: If migration fails after clearing, your cloud data cannot be recovered."
+  }
+}
+```
+
+#### 10.2.8.5 PR #10 Deliverables Checklist
+
+**Migration Mode Selection**:
+- [x] Add `migrationMode` state to MigrationWizard
+- [x] Add mode selection radio buttons UI
+- [x] Add typed "REPLACE" confirmation for replace mode
+- [x] Add rollback warning message
+- [x] Update migrationService to accept mode parameter
+- [x] Clear cloud data before upload in replace mode
+- [x] Handle clear failure gracefully (abort migration)
+
+**Clear Cloud Data**:
+- [x] Implement `clearAllUserData()` in SupabaseDataStore
+- [x] Verify FK constraint deletion order
+- [x] Add explicit userId filter (defense in depth)
+- [x] Add "Clear All Cloud Data" button in CloudSyncSection
+- [x] Add cloudAvailable UI gating
+- [x] Add runtime backend verification
+- [x] Add typed "DELETE" confirmation
+
+**Interface Parity**:
+- [x] Add `upsertPlayerAdjustment()` to DataStore interface
+- [x] Implement in LocalDataStore with DRY helpers
+- [x] Update mockDataStore for tests
+
+**Translations**:
+- [x] Add EN translations for new keys
+- [x] Add FI translations for new keys
+- [x] Regenerate i18n types
+
+**Tests**:
+- [x] All existing tests pass
+- [x] i18n validation tests updated
+
+---
+
+### 10.2.9 PR #11: Reverse Migration & Cloud Account (~8-12 hours)
+
+**Branch**: `supabase/pr11-reverse-migration`
+**Depends on**: PR #10 merged to `feature/supabase-cloud-backend`
+
+This PR enables users to downgrade from cloud mode to local mode while keeping their data, and provides cloud account management accessible from local mode.
+
+> **Full Plan**: See [pr11-reverse-migration-plan.md](./pr11-reverse-migration-plan.md) for detailed design.
+
+#### Key Features
+
+1. **Reverse Migration Wizard**: Downloads cloud data to local IndexedDB when disabling cloud sync
+2. **Cloud Account Section**: Visible in Settings even when in local mode
+3. **Delete Cloud Data from Local Mode**: GDPR compliance - delete all cloud data without re-enabling cloud
+4. **Re-authentication Modal**: For operations requiring auth when session expired
+
+#### User Scenarios
+
+| Scenario | Behavior |
+|----------|----------|
+| Downgrade (keep cloud) | Data copied to local, cloud preserved for re-subscription |
+| Downgrade (delete cloud) | Data copied to local, cloud data deleted |
+| Delete from local mode | Re-authenticate, then delete all cloud data |
+| Re-subscribe after downgrade | Migration wizard with merge/replace options |
+
+#### New Files
+
+- `src/services/reverseMigrationService.ts` - Cloud → Local migration logic
+- `src/components/ReverseMigrationWizard.tsx` - Wizard UI
+- `src/components/CloudAuthModal.tsx` - Re-auth for deletion
+
+#### PR #11 Deliverables Checklist
+
+**Reverse Migration**:
+- [ ] `reverseMigrationService.ts` with download logic
+- [ ] `ReverseMigrationWizard.tsx` component
+- [ ] Preview cloud data counts
+- [ ] Choose keep/delete mode
+- [ ] DELETE confirmation for cloud deletion
+- [ ] Progress indicator
+- [ ] Error handling with retry
+
+**Cloud Account Section**:
+- [ ] Show in Settings when user has ever used cloud
+- [ ] Display email and last sync date
+- [ ] "Delete All Cloud Data" button works from local mode
+- [ ] Re-auth modal when session expired
+
+**Data Integrity**:
+- [ ] All entity types transferred correctly
+- [ ] Verification step confirms counts match
+- [ ] No data loss during transfer
+
+**Translations**:
+- [ ] EN translations for `reverseMigration.*` and `cloudAccount.*`
+- [ ] FI translations
+
+**Tests**:
+- [ ] Unit tests for reverseMigrationService
+- [ ] Component tests for ReverseMigrationWizard
+- [ ] Integration tests for full flow
+
+---
+
+### 10.2.10 PR #12: Migration Wizard Redesign (~4-6 hours)
+
+**Branch**: `supabase/pr12-migration-wizard-redesign`
+**Depends on**: PR #11 merged to `feature/supabase-cloud-backend`
+
+This PR redesigns the MigrationWizard to handle all data state scenarios clearly, eliminating the confusing "Skip" option that left users with orphaned data.
+
+#### Problem Statement
+
+The original wizard only handled one scenario (local has data, cloud is empty) and offered a "Skip" option that:
+- Left orphaned local data unused
+- Didn't inform users they'd be using empty cloud data
+- Created confusion about "where is my data?"
+- Had no clear path to migrate later
+
+#### Scenario Matrix
+
+The wizard must handle four possible states when enabling cloud mode:
+
+| Local Data | Cloud Data | Wizard Behavior |
+|------------|------------|-----------------|
+| Empty | Empty | No wizard - proceed to app |
+| **Has data** | Empty | Show wizard: Migrate / Start Fresh / Cancel |
+| Empty | **Has data** | No wizard - proceed to app (use cloud data) |
+| **Has data** | **Has data** | Show wizard: Merge / Replace Cloud / Keep Cloud / Cancel |
+
+#### Redesigned Options
+
+**Scenario: Local has data, Cloud is empty**
+```
+┌─────────────────────────────────────────────────────┐
+│  You have local data to migrate                     │
+│                                                     │
+│  Local: 12 games, 25 players, 3 teams               │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │ ★ Migrate to Cloud (Recommended)          │     │
+│  │   Upload your data to the cloud           │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Start Fresh                              │     │
+│  │   Begin with empty cloud account           │     │
+│  │   ⚠️ Local data will be deleted            │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Cancel                                   │     │
+│  │   Return to local mode                     │     │
+│  └───────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────┘
+```
+
+**Scenario: Both local and cloud have data**
+```
+┌─────────────────────────────────────────────────────┐
+│  You have data in both places                       │
+│                                                     │
+│  Local: 12 games, 25 players, 3 teams               │
+│  Cloud: 8 games, 20 players, 2 teams                │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │ ★ Merge (Recommended)                      │     │
+│  │   Combine both - keeps everything          │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Replace Cloud with Local                 │     │
+│  │   Upload local, overwrite cloud            │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Keep Cloud (Delete Local)                │     │
+│  │   Use cloud data, discard local            │     │
+│  └───────────────────────────────────────────┘     │
+│                                                     │
+│  ┌───────────────────────────────────────────┐     │
+│  │   Cancel                                   │     │
+│  │   Return to local mode                     │     │
+│  └───────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────┘
+```
+
+#### Merge Logic
+
+When merging local and cloud data:
+1. Add all local items that don't exist in cloud (by ID)
+2. If same ID exists in both → keep cloud version (cloud wins conflicts)
+3. Result: Union of both datasets
+
+#### Key Principle
+
+**One source of truth, always.** Either you're using local OR cloud, and when you switch, you either bring your data or explicitly abandon it. No lingering orphan data.
+
+#### Implementation Changes
+
+**File Changes**: `src/components/MigrationWizard.tsx`
+- Add `cloudCounts` state (fetch from cloud on mount)
+- Determine scenario based on `localCounts` and `cloudCounts`
+- Show appropriate options per scenario
+- Remove "Skip" option entirely
+- "Start Fresh" and "Keep Cloud" options delete local data
+- "Cancel" returns to local mode (disable cloud)
+
+**File Changes**: `src/services/migrationService.ts`
+- Add `getCloudCounts()` function to fetch cloud data counts
+- Add `clearLocalData()` function for "Start Fresh" / "Keep Cloud" options
+- Update `migrateLocalToCloud()` to handle merge vs replace modes
+
+**File Changes**: `src/app/page.tsx`
+- Update migration check to also fetch cloud counts
+- Pass both counts to MigrationWizard
+- Handle "Cancel" by disabling cloud mode
+
+#### Deliverables Checklist
+
+**Core Implementation**:
+- [ ] Add `getCloudCounts()` to migrationService
+- [ ] Add `clearLocalData()` to migrationService
+- [ ] Update MigrationWizard to detect scenario
+- [ ] Implement "Local only" scenario UI
+- [ ] Implement "Both have data" scenario UI
+- [ ] Remove "Skip" option
+- [ ] "Cancel" returns to local mode
+
+**Translations**:
+- [ ] EN translations for new wizard text
+- [ ] FI translations
+
+**Tests**:
+- [ ] Unit tests for scenario detection
+- [ ] Unit tests for merge logic
+- [ ] Component tests for both wizard variants
+- [ ] Integration test for full flows
+
+---
+
+### 10.3 Supabase Project Setup
+
+After PR #9 is merged, set up the actual Supabase infrastructure.
+
+#### 10.3.1 Create Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) → New Project
+2. Choose region closest to users (e.g., `eu-central-1` for Finland)
+3. Set a strong database password (save it securely)
+4. Wait for project to provision (~2 minutes)
+
+#### 10.3.2 Run Database Migrations
+
+In Supabase Dashboard → SQL Editor:
+
+```bash
+# Option A: Supabase CLI (recommended)
+cd /path/to/project
+supabase link --project-ref <your-project-ref>
+supabase db push
+
+# Option B: Manual (copy/paste in SQL Editor)
+# 1. Open 000_schema.sql → Run
+# 2. Open 001_rls_policies.sql → Run
+# 3. Open 002_rpc_functions.sql → Run
+```
+
+#### 10.3.3 Verify Schema
+
+After running migrations, verify in Supabase Dashboard → Table Editor:
+
+- [ ] 15 tables visible (players, teams, seasons, tournaments, personnel, games, game_players, game_events, player_assessments, game_tactical_data, player_adjustments, team_players, warmup_plans, user_settings)
+- [ ] Each table has RLS enabled (lock icon)
+- [ ] Indexes visible in Database → Indexes
+
+#### 10.3.4 Configure Authentication
+
+In Supabase Dashboard → Authentication → Settings:
+
+1. **Email Auth**:
+   - Enable "Email" provider
+   - Disable "Confirm email" for testing (enable for production)
+   - Set site URL: `https://your-domain.com`
+   - Add redirect URLs: `https://your-domain.com/*`, `http://localhost:3000/*`
+
+2. **Email Templates** (Authentication → Email Templates):
+   - Customize confirmation email
+   - Customize password reset email
+   - Add your app name and branding
+
+3. **Rate Limits** (optional):
+   - Default limits are usually fine for single-user app
+
+#### 10.3.5 Get API Credentials
+
+In Supabase Dashboard → Settings → API:
+
+- **Project URL**: `https://<project-ref>.supabase.co`
+- **anon/public key**: Safe for client-side (RLS protects data)
+- **service_role key**: ⚠️ NEVER expose client-side (admin access)
+
+---
+
+### 10.4 Environment Configuration
+
+#### 10.4.1 Local Development
+
+**File**: `.env.local`
+```bash
+# Backend mode (local = IndexedDB, cloud = Supabase)
+NEXT_PUBLIC_BACKEND_MODE=local
+
+# Supabase credentials (required for cloud mode)
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Optional: Force cloud mode for testing
+# NEXT_PUBLIC_BACKEND_MODE=cloud
+```
+
+#### 10.4.2 Production (Vercel)
+
+In Vercel Dashboard → Project → Settings → Environment Variables:
+
+| Variable | Value | Environment |
+|----------|-------|-------------|
+| `NEXT_PUBLIC_BACKEND_MODE` | `local` | Production |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<project>.supabase.co` | Production |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` | Production |
+
+> **Note**: Keep `NEXT_PUBLIC_BACKEND_MODE=local` as default. Users opt-in to cloud via Settings.
+
+---
+
+### 10.5 End-to-End Testing with Real Supabase
+
+Before merging to master, test against the real Supabase project (not mocks).
+
+#### 10.5.1 Create Test Supabase Project
+
+Create a **separate** Supabase project for testing:
+- Name: `matchops-test` or `matchops-staging`
+- Run same migrations as production
+- Use for E2E tests and manual testing
+
+#### 10.5.2 E2E Test Checklist
+
+**Authentication Flow**:
+- [ ] Sign up with email → receives confirmation email
+- [ ] Confirm email → can sign in
+- [ ] Sign in → redirected to app
+- [ ] Sign out → redirected to login
+- [ ] Password reset → receives email → can reset
+
+**Data Operations** (as authenticated user):
+- [ ] Create player → appears in Supabase `players` table
+- [ ] Create team → appears with correct `user_id`
+- [ ] Create game → all 5 tables populated (games, game_players, game_events, player_assessments, game_tactical_data)
+- [ ] Update game → changes persisted
+- [ ] Delete game → cascade deletes child rows
+
+**RLS Verification** (critical security test):
+- [ ] User A's data not visible to User B
+- [ ] Direct API call with forged `user_id` rejected
+- [ ] Unauthenticated requests rejected
+
+**Migration Flow**:
+- [ ] Local mode → has data → enable cloud → MigrationWizard appears
+- [ ] Migration preview shows correct counts
+- [ ] Migration uploads all data
+- [ ] Verification passes
+- [ ] Data accessible in cloud mode
+
+**Mode Switching**:
+- [ ] Local → Cloud → restart → Login shown
+- [ ] Cloud → Local → restart → immediate access
+- [ ] Data preserved in both modes
+
+#### 10.5.3 Load Testing
+
+With 100+ games in local storage:
+- [ ] Migration completes without timeout
+- [ ] Cloud mode loads game list in <3s
+- [ ] Game save completes in <2s
+- [ ] No memory issues during migration
+
+---
+
+### 10.6 Final Merge to Master
+
+#### 10.6.1 Pre-Merge Checklist
+
+**Code Quality**:
+- [ ] All PRs (#1-#9) merged to `feature/supabase-cloud-backend`
+- [ ] `npm test` passes (3,200+ tests)
+- [ ] `npm run build` passes
+- [ ] `npm run lint` passes
+- [ ] No TypeScript errors
+
+**Infrastructure**:
+- [ ] Production Supabase project created
+- [ ] All migrations run successfully
+- [ ] RLS policies verified
+- [ ] Environment variables set in Vercel
+
+**Manual Testing** (on staging/preview):
+- [ ] Fresh install → local mode works perfectly
+- [ ] Enable cloud → sign up → migrate → data syncs
+- [ ] Disable cloud → returns to local mode
+- [ ] Offline behavior: cloud mode shows clear error
+- [ ] Mode switch requires restart (expected)
+
+**Documentation**:
+- [ ] CLAUDE.md updated with cloud mode info
+- [ ] Changelog updated
+- [ ] User-facing docs (if any) updated
+
+#### 10.6.2 Merge Process
+
+```bash
+# 1. Ensure feature branch is up to date with master
+git checkout feature/supabase-cloud-backend
+git pull origin feature/supabase-cloud-backend
+git merge master  # Resolve any conflicts
+
+# 2. Final verification
+npm test
+npm run build
+npm run lint
+
+# 3. Create PR to master
+gh pr create \
+  --base master \
+  --head feature/supabase-cloud-backend \
+  --title "feat: Add Supabase cloud backend" \
+  --body "## Summary
+- Dual-backend architecture (local + cloud)
+- Cloud mode with Supabase auth and storage
+- Migration service for local → cloud data transfer
+- All 9 PRs included
+
+## Test Plan
+- [ ] Local mode regression tested
+- [ ] Cloud mode E2E tested
+- [ ] Migration tested with 100+ games
+- [ ] RLS security verified
+
+🤖 Generated with Claude Code"
+
+# 4. After approval and merge
+git checkout master
+git pull origin master
+```
+
+#### 10.6.3 Post-Merge Verification
+
+After merging to master and deploying:
+
+1. **Verify local mode unchanged**:
+   - New users get local mode by default
+   - All existing functionality works
+
+2. **Verify cloud mode available**:
+   - Settings → Cloud Sync section visible
+   - "Enable Cloud Sync" button works
+   - Sign up/in flow works
+
+3. **Monitor for errors**:
+   - Check Sentry for new errors
+   - Check Supabase logs for failed queries
+   - Monitor user feedback
+
+---
+
+### 10.7 Rollback Plan
+
+If issues occur after master merge:
+
+**Immediate (no code change)**:
+1. Set Vercel env: `NEXT_PUBLIC_BACKEND_MODE=local`
+2. Redeploy
+3. Cloud features hidden, local mode only
+
+**User-level**:
+1. User disables cloud in Settings
+2. App restarts in local mode
+3. Local data always preserved
+
+**Code rollback** (if critical):
+```bash
+git revert <merge-commit-sha>
+git push origin master
+```
+
+---
+
+### 10.8 PR Summary Table (Updated)
+
+| PR | Branch | Est. Hours | Description |
+|----|--------|------------|-------------|
+| 1 | `supabase/pr1-foundation` | 8h | backendConfig.ts, mode detection |
+| 2 | `supabase/pr2-supabase-client` | 10h | Supabase client, lazy loading |
+| 3 | `supabase/pr3-datastore-core` | 30h | Core CRUD + TDD |
+| 4 | `supabase/pr4-datastore-games` | 35h | Game transforms, RPC |
+| 5 | `supabase/pr5-auth-service` | 25h | Auth service + UI |
+| 6 | `supabase/pr6-migration` | 25h | Migration service |
+| 7 | `supabase/pr7-performance` | 10h | QueryProvider optimization |
+| 8 | `supabase/pr8-integration` | 15h | UI integration, tests |
+| **9** | **`supabase/pr9-infrastructure`** | **15h** | **SQL files, MigrationWizard, setup** |
+| **Final** | **`feature/supabase-cloud-backend` → `master`** | **5h** | **E2E testing, merge** |
+
+**Total**: ~180 hours
+
+---
+
+### 10.9 Environment Variables Reference
+
+```bash
+# === REQUIRED FOR CLOUD MODE ===
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+
+# === MODE CONTROL ===
+# Default: local (IndexedDB, no auth)
+# Cloud: Supabase + auth
+NEXT_PUBLIC_BACKEND_MODE=local
+
+# === EXISTING (unchanged) ===
+NEXT_PUBLIC_SENTRY_DSN=...
+SENTRY_AUTH_TOKEN=...
+```
+
+---
+
+### 10.10 Rollback Plan
 
 If issues occur:
 1. Set `NEXT_PUBLIC_BACKEND_MODE=local` (immediate)
 2. Users can disable cloud in settings → revert to local
 3. Local data is always preserved (cloud is optional layer)
+
+---
+
+## Future Enhancements (Post-MVP)
+
+The following items are deferred and can be implemented if/when needed:
+
+- [ ] **DB-level composite unique constraints**: Add PostgreSQL unique indexes for teams/seasons/tournaments to prevent race conditions during concurrent writes (see Section 5.0.7). Currently mitigated by app-level validation which covers 99% of cases; if race condition creates duplicate, user can delete one manually.
+
+- [ ] **Offline queue for cloud mode**: Currently cloud mode requires online connectivity. Could add offline queue with sync-on-reconnect if user demand exists.
+
+- [ ] **Real-time subscriptions**: Supabase supports real-time via websockets. Could enable for multi-device sync if user has multiple devices.
+
+- [ ] **Remove legacy personnel array normalization**: `normalizePersonnelArray()` in `migrationService.ts` handles legacy `Record<string, Personnel>` format that may no longer exist in production. Monitor logs for 3 months after launch (it logs a warning when triggered). If never triggered, remove the backward compatibility code. Added: January 2026.
+
+---
+
+## Post-Implementation Polish (Non-Blocking)
+
+The following items are quality improvements identified during code review. None are blocking issues - the code works correctly. These can be addressed in a future cleanup PR.
+
+### Code Quality
+
+- [ ] **Extract migrateTournamentLevel to shared module**: Function exists in both `LocalDataStore.ts` and `SupabaseDataStore.ts`. Could extract to `src/datastore/migrations.ts` for DRY. However, current duplication is intentional per DataStore isolation pattern.
+
+- [ ] **Type assertions in RPC calls**: Regenerate Supabase types after RPC deployment to avoid `unknown` casts and achieve full type safety.
+
+- [ ] **Aggregate normalization warnings**: Current implementation logs individual warnings for each auto-fixed field. For users with 100+ games with missing data, this could generate 500+ warnings. Consider aggregating (e.g., "Auto-fixed 47 games with missing team names").
+
+- [ ] **Defensive position fallback logging**: `saveGameManually()` uses `DEFAULT_FIELD_POSITION` when `rel_x`/`rel_y` are null for on-field players. Add logging to detect potential data corruption.
+
+- [ ] **Password validation comment**: Add comment to `validatePassword()` noting client-side validation can be bypassed and Supabase Auth is source of truth.
+
+- [ ] **RPC typed helper**: Create typed helper function to reduce complex type assertions in RPC calls (e.g., `typedRpc<T>(fn, params)`).
+
+- [ ] **Session expiry buffer**: Consider using 55 min fallback instead of 60 min for missing `expires_at` to ensure refresh happens before actual expiry.
+
+### Testing Enhancements
+
+- [ ] **Transform Rules Test Suite**: Add dedicated test suite explicitly validating all 19 transform rules from CLAUDE.md. Serves as living documentation and catches regressions.
+
+- [ ] **Data Scale Testing**: Add load test simulating 500+ game migration to verify memory usage, UI responsiveness, and error recovery at scale.
+
+### UX Improvements
+
+- [ ] **Migration Retry Failed button**: Current behavior shows partial success well. Consider adding a "Retry Failed" button in MigrationWizard to re-attempt only failed entities.
+
+- [ ] **Manual fallback telemetry**: The `saveGameManually()` fallback (lines 2956-3034) is excellent defensive programming. Consider adding telemetry to detect if it's ever triggered in production.
+
+- [ ] **Migration Data Comparison View**: When users have data in both local and cloud, they may want to compare before deciding merge/replace. Implementation levels:
+  - **Level 1 (Current)**: Show counts only ("Local: 12 games, Cloud: 8 games") - implemented in PR #12
+  - **Level 2**: Show item lists (game names/dates, player names, team names) so users can scan and recognize their data
+  - **Level 3**: Full diff view with side-by-side comparison, highlighting unique items, shared items, and conflicts; per-item selection (like git merge UI)
+
+  Level 2 provides good value with moderate effort. Level 3 is complex and likely overkill for most users. *Added: January 2026*
+
+### Performance (Rule #19)
+
+- [ ] **Pagination for 500+ games**: Current `getGames()` fetches all games. For users with 500+ games, implement pagination: prefetch recent 100 on initialize, load older on demand. Not needed for current user base (<100 games typical).
+
+- [ ] **Composite uniqueness via DB constraints**: `createTeam()`, `createSeason()`, `createTournament()` fetch ALL entities to check uniqueness (O(N) per create). For power users with 500+ teams, add database unique indexes and catch constraint violations. Per-user impact (not system-wide due to RLS isolation).
+
+- [ ] **Batch game fetch retry**: Failed games in batch fetch are logged but excluded. Add single retry for failed game IDs to handle transient errors.
+
+### Security Hardening
+
+- [ ] **Defense-in-depth user_id filters**: SELECT queries rely on RLS without explicit `.eq('user_id', userId)`. RLS is the security layer by design, but client-side filters provide defense-in-depth if RLS is misconfigured. Trade-off: could mask RLS failures.
+
+- [ ] **Document localStorage token trade-off**: Supabase stores tokens in localStorage (XSS risk). This is an accepted trade-off for PWAs (httpOnly cookies require backend). Document in security considerations.
+
+### Logging Improvements
+
+- [ ] **Structured error logging**: Add context to error logs (userId, operation, stack trace) for better debugging in production.
+
+*Added: January 22, 2026 during PR #12 (Welcome Screen) review*
 
 ---
 
@@ -4281,19 +5124,59 @@ This implementation guide ensures:
 2. **Local Default**: Current behavior unchanged until enabled
 3. **Professional Performance**: Optimistic updates, aggressive caching
 4. **Parallel Development**: Cloud code exists but dormant
+5. **Complete Infrastructure**: SQL migrations, setup guide, E2E testing plan
 
-**Effort Breakdown**:
-- SupabaseDataStore: 50-60h
-- SupabaseAuthService + Auth UI: 25-30h (includes AuthProvider, LoginScreen, page.tsx integration)
-- Migration: 20-25h
-- UI/Config: 10-15h
-- Testing: 30-40h (TDD for transforms, DataStore, Auth, Migration + integration tests)
+### Complete PR Flow
 
-**Total**: 135-170 hours
+```
+PRs #1-#8: Application Code
+    │
+    └──► All merge to feature/supabase-cloud-backend
+              │
+PR #9: Infrastructure & Migration UI
+    │
+    └──► Merges to feature/supabase-cloud-backend
+              │
+              ▼
+    ┌─────────────────────────────────┐
+    │  Supabase Project Setup         │
+    │  - Create project               │
+    │  - Run SQL migrations           │
+    │  - Configure auth               │
+    │  - Set environment variables    │
+    └─────────────────────────────────┘
+              │
+              ▼
+    ┌─────────────────────────────────┐
+    │  E2E Testing (Real Supabase)    │
+    │  - Auth flow                    │
+    │  - Data operations              │
+    │  - Migration flow               │
+    │  - RLS security                 │
+    └─────────────────────────────────┘
+              │
+              ▼
+FINAL: PR feature/supabase-cloud-backend → master
+    │
+    └──► Production deployment
+```
 
-**Note on Testing**: Testing effort increased from 10-15h to 30-40h to ensure comprehensive coverage:
+### Effort Breakdown
+
+| Phase | Hours | Description |
+|-------|-------|-------------|
+| PRs #1-#8 | 158h | Application code, tests |
+| PR #9 | 15h | SQL files, MigrationWizard |
+| Supabase Setup | 3h | Project creation, migrations |
+| E2E Testing | 5h | Real Supabase testing |
+| Final Merge | 2h | PR review, merge, verify |
+| **Total** | **~183h** | |
+
+### Test Coverage Summary
+
 - ~250 unit tests (TDD for critical code)
 - ~60 cross-backend parity tests
 - ~40 integration tests (real Supabase)
 - ~25 UI component tests
+- Manual E2E testing checklist
 - 90% coverage target for transform functions

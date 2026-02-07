@@ -1,6 +1,18 @@
 /**
  * Premium tier limits configuration
- * Free users have quantity limits, premium users have unlimited access
+ *
+ * ENFORCEMENT:
+ * - Cloud mode (Supabase): Limits ARE enforced for free-tier users.
+ *   Premium subscribers get unlimited access.
+ * - Local mode (IndexedDB): No limits enforced - always treated as premium.
+ *   This allows full offline functionality without subscription.
+ *
+ * EXISTING DATA:
+ * - Data exceeding limits is never deleted automatically.
+ * - Users who downgrade from premium retain access to existing data.
+ * - They just can't create NEW resources beyond the limit.
+ *
+ * @see PremiumContext.tsx - where enforcement logic lives
  */
 
 export const FREE_LIMITS = {
@@ -15,8 +27,11 @@ export const FREE_LIMITS = {
 export type ResourceType = 'team' | 'game' | 'player' | 'season' | 'tournament';
 
 export const PREMIUM_PRODUCT_ID = 'matchops_premium';
-export const PREMIUM_PRICE = '9,99 €';
-export const PREMIUM_PRICE_AMOUNT = 9.99;
+/** Price in European format: symbol + space + comma decimal + /kk (per month in Finnish) */
+export const PREMIUM_PRICE = '€ 4,99/kk';
+export const PREMIUM_PRICE_AMOUNT = 4.99;
+/** Whether premium is a subscription (monthly) or one-time purchase */
+export const PREMIUM_IS_SUBSCRIPTION = true;
 
 /**
  * Get the limit for a specific resource type

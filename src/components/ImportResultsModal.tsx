@@ -1,7 +1,21 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import {
+  ModalFooter,
+  primaryButtonStyle,
+  WizardBackdrop,
+  wizardModalLargeStyle,
+  wizardHeaderStyle,
+  wizardTitleStyle,
+  wizardContentStyle,
+  wizardCloseButtonStyle,
+  warningBoxStyle,
+  errorBoxStyle,
+  successBoxStyle,
+  progressBarContainerStyle,
+  progressBarFillStyle,
+} from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineCheckCircle,
@@ -87,25 +101,25 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
   };
 
   return (
-    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" onClick={handleBackdropClick}>
-      <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto text-slate-100" role="dialog" aria-modal="true">
-        <div className="flex items-center justify-between p-6 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
+    <WizardBackdrop onClick={handleBackdropClick}>
+      <div ref={modalRef} className={`${wizardModalLargeStyle} overflow-y-auto text-slate-100`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <div className={wizardHeaderStyle}>
           <div className="flex items-center space-x-3">
             {getStatusIcon()}
-            <h2 className={`text-xl font-semibold ${getStatusColor()}`}>
+            <h2 className={`${wizardTitleStyle} ${getStatusColor()}`}>
               {isImporting ? t('importResults.importing') : t('importResults.title')}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-300 hover:text-slate-100 transition-colors"
+            className={wizardCloseButtonStyle}
             disabled={isImporting}
           >
             <HiOutlineXMark className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className={wizardContentStyle}>
           {isImporting ? (
             <div className="text-center py-8">
               <p className="text-slate-300 mb-4">{t('importResults.processing')}</p>
@@ -139,30 +153,32 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-slate-700 rounded-full h-3">
-                <div
-                  className="bg-green-500 h-3 rounded-l-full"
-                  style={{ width: `${(importResult.successful / getTotalProcessed()) * 100}%` }}
-                ></div>
-                <div
-                  className="bg-indigo-500 h-3"
-                  style={{ 
-                    width: `${(importResult.skipped / getTotalProcessed()) * 100}%`,
-                    marginLeft: `${(importResult.successful / getTotalProcessed()) * 100}%`
-                  }}
-                ></div>
-                <div
-                  className="bg-red-500 h-3 rounded-r-full"
-                  style={{ 
-                    width: `${(importResult.failed.length / getTotalProcessed()) * 100}%`,
-                    marginLeft: `${((importResult.successful + importResult.skipped) / getTotalProcessed()) * 100}%`
-                  }}
-                ></div>
-              </div>
+              {getTotalProcessed() > 0 && (
+                <div className={progressBarContainerStyle}>
+                  <div
+                    className={`${progressBarFillStyle} bg-green-500 rounded-l-full`}
+                    style={{ width: `${(importResult.successful / getTotalProcessed()) * 100}%` }}
+                  ></div>
+                  <div
+                    className={`${progressBarFillStyle} bg-indigo-500`}
+                    style={{
+                      width: `${(importResult.skipped / getTotalProcessed()) * 100}%`,
+                      marginLeft: `${(importResult.successful / getTotalProcessed()) * 100}%`
+                    }}
+                  ></div>
+                  <div
+                    className={`${progressBarFillStyle} bg-red-500 rounded-r-full`}
+                    style={{
+                      width: `${(importResult.failed.length / getTotalProcessed()) * 100}%`,
+                      marginLeft: `${((importResult.successful + importResult.skipped) / getTotalProcessed()) * 100}%`
+                    }}
+                  ></div>
+                </div>
+              )}
 
               {/* Warnings */}
               {importResult.warnings.length > 0 && (
-                <div className="bg-amber-900/20 border border-amber-600/30 rounded-lg p-4">
+                <div className={warningBoxStyle}>
                   <div className="flex items-start space-x-2">
                     <HiOutlineExclamationTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
                     <div>
@@ -181,7 +197,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
 
               {/* Failed Imports */}
               {importResult.failed.length > 0 && (
-                <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-4">
+                <div className={errorBoxStyle}>
                   <div className="flex items-start space-x-2">
                     <HiOutlineXCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
@@ -190,7 +206,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
                       </h4>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {importResult.failed.map((failure, index) => (
-                          <div key={index} className="text-sm bg-slate-800/60 rounded p-2 border border-red-600/20">
+                          <div key={index} className="text-sm bg-slate-800/60 rounded p-2 border border-red-700/30">
                             <div className="font-medium text-red-300">{failure.gameId}</div>
                             <div className="text-red-400">{failure.error}</div>
                           </div>
@@ -203,13 +219,13 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
 
               {/* Success Message */}
               {importResult.failed.length === 0 && importResult.successful > 0 && (
-                <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
+                <div className={successBoxStyle}>
                   <div className="flex items-center space-x-2">
                     <HiOutlineCheckCircle className="w-5 h-5 text-green-400" />
                     <p className="text-green-200">
-                      {t('importResults.successMessage', { 
+                      {t('importResults.successMessage', {
                         count: importResult.successful,
-                        skipped: importResult.skipped 
+                        skipped: importResult.skipped
                       })}
                     </p>
                   </div>
@@ -230,7 +246,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
           </button>
         </ModalFooter>
       </div>
-    </div>
+    </WizardBackdrop>
   );
 };
 
