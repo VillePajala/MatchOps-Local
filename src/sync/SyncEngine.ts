@@ -29,6 +29,25 @@ import { AuthError } from '@/interfaces/DataStoreErrors';
 export type SyncOperationExecutor = (op: SyncOperation) => Promise<void>;
 
 /**
+ * Entity type processing priority for sync operations.
+ * Parent entities (seasons, tournaments, teams) must be synced before
+ * child entities (games, rosters, adjustments) to satisfy FK constraints.
+ * Lower number = higher priority (processed first).
+ */
+const ENTITY_SYNC_PRIORITY: Record<SyncEntityType, number> = {
+  player: 0,
+  team: 1,
+  season: 1,
+  tournament: 1,
+  personnel: 1,
+  settings: 2,
+  warmupPlan: 2,
+  game: 3,        // Games reference seasons/tournaments/teams via FK
+  teamRoster: 4,  // Rosters reference teams and players
+  playerAdjustment: 4, // Adjustments reference games and players
+};
+
+/**
  * Event listener callback types.
  */
 type StatusChangeListener = (info: SyncStatusInfo) => void;
@@ -754,6 +773,11 @@ export class SyncEngine {
         this.lastSyncedAt = Date.now();
         return;
       }
+
+      // Sort by entity type priority: parent entities before children (FK constraints)
+      pending.sort((a, b) =>
+        (ENTITY_SYNC_PRIORITY[a.entityType] ?? 5) - (ENTITY_SYNC_PRIORITY[b.entityType] ?? 5)
+      );
 
       logger.info('[SyncEngine] Processing batch', {
         count: pending.length,
