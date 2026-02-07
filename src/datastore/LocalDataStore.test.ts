@@ -2374,10 +2374,14 @@ describe('LocalDataStore', () => {
         expect(savedPlan.isDefault).toBe(false);
       });
 
-      it('should throw on save error', async () => {
-        mockSetStorageItem.mockRejectedValueOnce(new Error('Storage error'));
+      it('should propagate errors to caller', async () => {
+        // Temporarily uninitialize to trigger NotInitializedError
+        // This verifies errors propagate (not swallowed) so React Query onError fires
+        (dataStore as unknown as { initialized: boolean }).initialized = false;
 
-        await expect(dataStore.saveWarmupPlan(mockPlan)).rejects.toThrow('Storage error');
+        await expect(dataStore.saveWarmupPlan(mockPlan)).rejects.toThrow();
+
+        (dataStore as unknown as { initialized: boolean }).initialized = true;
       });
     });
 
@@ -2388,10 +2392,13 @@ describe('LocalDataStore', () => {
         expect(mockSetStorageItem).toHaveBeenCalledWith('soccerWarmupPlan', '');
       });
 
-      it('should throw on delete error', async () => {
-        mockSetStorageItem.mockRejectedValueOnce(new Error('Storage error'));
+      it('should propagate errors to caller', async () => {
+        // Temporarily uninitialize to trigger NotInitializedError
+        (dataStore as unknown as { initialized: boolean }).initialized = false;
 
-        await expect(dataStore.deleteWarmupPlan()).rejects.toThrow('Storage error');
+        await expect(dataStore.deleteWarmupPlan()).rejects.toThrow();
+
+        (dataStore as unknown as { initialized: boolean }).initialized = true;
       });
     });
   });

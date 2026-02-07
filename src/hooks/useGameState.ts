@@ -150,9 +150,12 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     // Ref tracking latest availablePlayers for use in stable callbacks (handleToggleGoalie)
     // that need to read current state without adding it as a dependency
     const availablePlayersRef = useRef<Player[]>(initialState.availablePlayers || []);
-    availablePlayersRef.current = availablePlayers;
     const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
-    // ... (more state will be moved here)
+
+    // Keep availablePlayersRef in sync with state (via effect, not during render)
+    useEffect(() => {
+      availablePlayersRef.current = availablePlayers;
+    }, [availablePlayers]);
 
     // --- Development Mode: Runtime Safeguard for saveStateToHistory Memoization ---
     // Detects if saveStateToHistory reference changes between renders, which indicates

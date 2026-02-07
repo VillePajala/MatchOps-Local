@@ -27,7 +27,7 @@
 // Console logging is appropriate for Edge Functions (server-side Deno runtime)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getCorsHeaders, ALLOWED_ORIGINS } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
