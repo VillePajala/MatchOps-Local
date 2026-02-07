@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 
 interface PrecisionTimerOptions {
   onTick: (elapsedSeconds: number) => void;
@@ -101,26 +101,26 @@ export const usePrecisionTimer = ({
     };
   }, [isRunning, start, stop]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stop();
-    };
-  }, [stop]);
+  // Note: No separate unmount cleanup effect needed — the isRunning effect above
+  // already calls stop() in its cleanup, which runs on unmount.
 
-  return {
+  const getCurrentTime = useCallback(() => {
+    if (!startTimestampRef.current) {
+      return initialTimeRef.current;
+    }
+    const now = performance.now();
+    const elapsedMs = now - startTimestampRef.current;
+    return initialTimeRef.current + (elapsedMs / 1000);
+  }, []);
+
+  // Memoize the return object to prevent consumers from re-running effects
+  // that depend on this object (e.g., useGameTimer's visibilitychange listener)
+  return useMemo(() => ({
     start,
     stop,
     reset,
-    getCurrentTime: useCallback(() => {
-      if (!startTimestampRef.current) {
-        return initialTimeRef.current;
-      }
-      const now = performance.now();
-      const elapsedMs = now - startTimestampRef.current;
-      return initialTimeRef.current + (elapsedMs / 1000);
-    }, [])
-  };
+    getCurrentTime,
+  }), [start, stop, reset, getCurrentTime]);
 };
 
 /**

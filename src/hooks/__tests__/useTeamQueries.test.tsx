@@ -345,10 +345,8 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync('team-1');
       });
 
-      // Allow any pending async operations to settle
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      });
+      // Flush async queue for negative assertions
+      await act(async () => {});
 
       // Cache data should still exist (not removed or refetched)
       expect(queryClient.getQueryData([...queryKeys.teams, TEST_USER_ID])).toEqual(mockTeams);
@@ -475,10 +473,8 @@ describe('useTeamQueries', () => {
         });
       });
 
-      // Allow any pending async operations to settle
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
+      // Flush async queue for negative assertions
+      await act(async () => {});
 
       // Cache data should still exist unchanged
       expect(queryClient.getQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID])).toEqual(mockPlayers);
@@ -524,10 +520,8 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync({ teamId: 'team-1', playerId: 'player-1' });
       });
 
-      // Allow any pending async operations to settle
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
+      // Flush async queue for negative assertions
+      await act(async () => {});
 
       // Cache data should still exist unchanged
       expect(queryClient.getQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID])).toEqual(mockPlayers);

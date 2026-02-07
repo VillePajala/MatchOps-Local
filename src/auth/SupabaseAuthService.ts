@@ -384,14 +384,15 @@ export class SupabaseAuthService implements AuthService {
           const VALIDATION_TIMEOUT_MS = 5000;
           try {
             const validationPromise = this.client.auth.getUser();
+            let timeoutId: NodeJS.Timeout;
             const timeoutPromise = new Promise<never>((_, reject) => {
-              setTimeout(() => reject(new Error('Session validation timeout')), VALIDATION_TIMEOUT_MS);
+              timeoutId = setTimeout(() => reject(new Error('Session validation timeout')), VALIDATION_TIMEOUT_MS);
             });
 
             const { data: { user: validatedUser }, error: userError } = await Promise.race([
               validationPromise,
               timeoutPromise,
-            ]);
+            ]).finally(() => clearTimeout(timeoutId));
 
             if (userError || !validatedUser) {
               // Session is invalid on server - clear it locally

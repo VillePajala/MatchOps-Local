@@ -70,11 +70,16 @@ BEGIN
   DELETE FROM warmup_plans WHERE user_id = v_user_id;
   DELETE FROM user_settings WHERE user_id = v_user_id;
 
-  -- NOTE: user_consents are intentionally NOT deleted here.
-  -- GDPR compliance requires retaining consent records:
-  -- - "Clear Cloud Data": User keeps account, consents remain linked
-  -- - Account deletion: ON DELETE SET NULL anonymizes (user_id → NULL)
-  -- See migration 008_user_consents.sql for design rationale.
+  -- NOTE: The following tables are intentionally NOT deleted here:
+  --
+  -- 1. user_consents: GDPR compliance requires retaining consent records.
+  --    "Clear Cloud Data" = user keeps account, consents remain linked.
+  --    Account deletion = ON DELETE SET NULL anonymizes (user_id → NULL).
+  --    See migration 008_user_consents.sql for design rationale.
+  --
+  -- 2. user_subscriptions (if/when added): Subscription status must survive
+  --    data clearing. A user who clears their game data should retain their
+  --    paid subscription entitlements.
 
 END;
 $$;
