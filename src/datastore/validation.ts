@@ -23,6 +23,16 @@ import { AGE_GROUPS } from '@/config/gameOptions';
  * @param context - Optional context for error messages (e.g., gameId for batch operations)
  * @throws ValidationError if validation fails
  */
+/**
+ * Normalize optional string: trim whitespace, convert empty to undefined.
+ * Used by both LocalDataStore and SupabaseDataStore for consistent field normalization.
+ */
+export const normalizeOptionalString = (value?: string): string | undefined => {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
+
 export const validateGame = (game: AppState, context?: string): void => {
   const prefix = context ? `Game ${context}: ` : '';
 

@@ -383,8 +383,8 @@ describe('CloudSyncSection', () => {
     it('shows loading state while signing out', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
-      // Make signOut take some time
-      mockAuthService.signOut.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      // Make signOut never resolve during this test — we only need loading state to appear
+      mockAuthService.signOut.mockImplementation(() => new Promise(() => {}));
 
       renderWithQueryClient(<CloudSyncSection />);
 

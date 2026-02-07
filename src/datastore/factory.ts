@@ -673,8 +673,10 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
         }
       };
 
-      // Fire and forget - don't await
-      setupCloudInBackground();
+      // Fire and forget - don't await, but catch to prevent unhandled rejection warnings
+      setupCloudInBackground().catch((error) => {
+        log.error('[factory] Unhandled error in background cloud setup', error);
+      });
 
       instance = syncedStore;
       log.info('[factory] Using SyncedDataStore (local-first cloud mode, cloud connecting...)', {

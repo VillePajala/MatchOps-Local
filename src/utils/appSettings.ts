@@ -20,10 +20,12 @@ import logger from '@/utils/logger';
 import { storageConfigManager } from './storageConfigManager';
 import { getDataStore } from '@/datastore';
 // ValidationError check uses code property (not instanceof) to avoid module boundary issues
+import { DEFAULT_APP_SETTINGS } from '@/types/settings';
 import type { AppSettings } from '@/types/settings';
 
 // Re-export for backwards compatibility
 export type { AppSettings } from '@/types/settings';
+export { DEFAULT_APP_SETTINGS } from '@/types/settings';
 
 // Import club season defaults for use in this file
 import {
@@ -34,20 +36,6 @@ import {
 // Re-export club season defaults for backwards compatibility
 // Import from @/config/clubSeasonDefaults for new code
 export { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE };
-
-/**
- * Default application settings
- */
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  currentGameId: null,
-  lastHomeTeamName: '',
-  language: 'fi',
-  hasSeenAppGuide: false,
-  useDemandCorrection: false,
-  hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
-  clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
-};
 
 /**
  * Gets the application settings.
