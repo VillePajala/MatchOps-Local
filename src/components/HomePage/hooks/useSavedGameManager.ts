@@ -312,12 +312,9 @@ export function useSavedGameManager({
           }
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error('[useSavedGameManager] Game delete failed:', error);
         setGameDeleteError(
-          t('loadGameModal.errors.deleteFailedCatch', 'Error deleting saved game: {gameId}. Details: {errorMessage}', {
-            gameId,
-            errorMessage,
-          }),
+          t('loadGameModal.errors.deleteFailedCatch', 'Failed to delete game. Please try again.'),
         );
       } finally {
         setIsGameDeleting(false);

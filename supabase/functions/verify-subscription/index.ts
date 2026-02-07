@@ -123,8 +123,14 @@ Deno.serve(async (req: Request) => {
     });
 
     if (rateLimitError) {
-      // If rate limiting fails, log but don't block the request (fail-open)
+      // Fail-closed: if rate limiting check fails, block the request.
+      // This is a billing endpoint — must not allow unmetered access.
+      // Matches delete-account's fail-closed behavior.
       console.error('Rate limit check failed:', rateLimitError.message);
+      return new Response(
+        JSON.stringify({ error: 'Service temporarily unavailable. Please try again.' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     } else if (isAllowed === false) {
       console.warn(`Rate limit exceeded for IP: ${clientIP}`);
       return new Response(

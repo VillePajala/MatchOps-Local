@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isNetworkErrorMessage, normalizeEmail } from '@/utils/authHelpers';
+import { AuthError, NetworkError } from '@/interfaces/DataStoreErrors';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 
@@ -126,7 +127,12 @@ export default function AuthForm({
       }
     } catch (error) {
       // Handle thrown exceptions (NetworkError, AuthError, NotInitializedError, etc.)
-      const errorMessage = error instanceof Error ? error.message : t('auth.unexpectedError', 'An unexpected error occurred');
+      // Sanitize: AuthError/NetworkError messages are user-friendly, but fallback
+      // AuthError(error.message) paths in SupabaseAuthService could leak Supabase/PostgreSQL
+      // internals. Only pass through known safe error types; use generic message otherwise.
+      const errorMessage = (error instanceof NetworkError || error instanceof AuthError)
+        ? error.message
+        : t('auth.unexpectedError', 'An unexpected error occurred');
       setError(errorMessage);
       logger.error('[AuthForm] Unexpected error during auth:', error);
       try {

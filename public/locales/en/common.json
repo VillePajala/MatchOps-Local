@@ -697,7 +697,7 @@
       "notFound": "Could not find saved game: {gameId}",
       "cannotDeleteDefault": "Cannot delete the current unsaved game progress.",
       "deleteFailedNotFound": "Error deleting game: {gameId}. Game not found or ID was invalid.",
-      "deleteFailedCatch": "Error deleting saved game: {gameId}. Details: {errorMessage}",
+      "deleteFailedCatch": "Failed to delete game. Please try again.",
       "quickSaveFailed": "Error quick saving game.",
       "createGameFailed": "Error creating new saved game."
     }

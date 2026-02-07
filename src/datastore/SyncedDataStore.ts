@@ -178,6 +178,7 @@ export class SyncedDataStore implements DataStore {
   private syncQueue: SyncQueue;
   private syncEngine: SyncEngine | null = null;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
   private queueErrorListeners: Set<SyncQueueErrorListener> = new Set();
 
   /**
@@ -223,6 +224,21 @@ export class SyncedDataStore implements DataStore {
       return;
     }
 
+    // Deduplicate concurrent calls: if initialization is already in progress,
+    // return the same promise so callers await the same result.
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this.doInitialize();
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  private async doInitialize(): Promise<void> {
     logger.info('[SyncedDataStore] Initializing');
 
     // Initialize local store first (this is the source of truth)
