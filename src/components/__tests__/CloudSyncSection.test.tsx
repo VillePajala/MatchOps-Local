@@ -237,7 +237,7 @@ import {
   enableCloudMode,
   clearMigrationCompleted,
 } from '@/config/backendConfig';
-import { getDataStore, getAuthService } from '@/datastore/factory';
+import { getAuthService } from '@/datastore/factory';
 
 const mockGetBackendMode = getBackendMode as jest.MockedFunction<typeof getBackendMode>;
 const mockIsCloudAvailable = isCloudAvailable as jest.MockedFunction<typeof isCloudAvailable>;
