@@ -1,4 +1,4 @@
-import { GameEvent, SubAlertLevel, GameType, Gender } from '@/types';
+import { GameEvent, SubAlertLevel, GameType, Gender, IntervalLog } from '@/types';
 import logger from '@/utils/logger';
 
 // --- State Definition ---
@@ -42,17 +42,10 @@ export interface GameSessionState {
   lastSubConfirmationTimeSeconds: number;
   completedIntervalDurations?: IntervalLog[]; // Made optional to align with AppState
   showPlayerNames: boolean;
+  showPositionLabels?: boolean; // Whether to show position labels on the field (default: true)
 }
 
-// Define IntervalLog if it's not globally available from AppState import
-// For now, assuming AppState might not be directly importable or could cause circular deps
-// So, defining it locally or ensuring it's available via a shared types file is better.
-export interface IntervalLog {
-  period: number;
-  duration: number; // Duration in seconds
-  timestamp: number; // Unix timestamp when the interval ended
-}
-
+// IntervalLog is imported from @/types (canonical definition in types/game.ts)
 
 // --- Initial State ---
 // The actual initial state will be derived from page.tsx's initialState object.
@@ -89,6 +82,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   lastSubConfirmationTimeSeconds: 0,
   completedIntervalDurations: [],
   showPlayerNames: true,
+  showPositionLabels: true,
   gameType: 'soccer',
 };
 
@@ -122,6 +116,7 @@ export type GameSessionAction =
   | { type: 'SET_GENDER'; payload: Gender | undefined }
   | { type: 'SET_WENT_TO_OVERTIME'; payload: boolean }
   | { type: 'SET_WENT_TO_PENALTIES'; payload: boolean }
+  | { type: 'SET_SHOW_POSITION_LABELS'; payload: boolean }
   | { type: 'SET_GAME_LOCATION'; payload: string }
   | { type: 'SET_GAME_TIME'; payload: string }
   | { type: 'SET_AGE_GROUP'; payload: string }
@@ -283,6 +278,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, wentToOvertime: action.payload || undefined };
     case 'SET_WENT_TO_PENALTIES':
       return { ...state, wentToPenalties: action.payload || undefined };
+    case 'SET_SHOW_POSITION_LABELS':
+      return { ...state, showPositionLabels: action.payload };
     case 'SET_GAME_LOCATION':
       return { ...state, gameLocation: action.payload };
     case 'SET_GAME_TIME':
@@ -499,6 +496,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const gameEvents = loadedData.gameEvents ?? [];
       const subIntervalMinutes = loadedData.subIntervalMinutes ?? initialGameSessionStatePlaceholder.subIntervalMinutes;
       const showPlayerNames = loadedData.showPlayerNames ?? initialGameSessionStatePlaceholder.showPlayerNames;
+      const showPositionLabels = loadedData.showPositionLabels ?? true;
       const completedIntervalDurations = loadedData.completedIntervalDurations ?? [];
       const gamePersonnel = loadedData.gamePersonnel ?? [];
 
@@ -559,6 +557,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         gameEvents,
         subIntervalMinutes,
         showPlayerNames,
+        showPositionLabels,
         completedIntervalDurations,
 
         timeElapsedInSeconds: timeElapsedAtLoad,

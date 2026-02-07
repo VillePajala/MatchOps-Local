@@ -21,6 +21,7 @@ interface SoccerFieldProps {
   opponents: Opponent[];
   drawings: Point[][];
   showPlayerNames: boolean;
+  showPositionLabels?: boolean;
   /** Game type determines field visualization (soccer field vs futsal court) */
   gameType?: GameType;
   onPlayerDrop: (playerId: string, relX: number, relY: number) => void; // Use relative coords
@@ -190,6 +191,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   opponents,
   drawings,
   showPlayerNames,
+  showPositionLabels = true,
   gameType = 'soccer',
   onPlayerDrop,
   onPlayerMove,
@@ -565,7 +567,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         // Show position label for:
         // - On-field players at formation snap points (except goalkeepers)
         // - Sideline players at sub slots (show the target position like "CB", "LW")
-        const shouldShowPositionLabel = matchingSubSlot || (isAtSnapPoint && !isGoalkeeper);
+        const shouldShowPositionLabel = showPositionLabels && (matchingSubSlot || (isAtSnapPoint && !isGoalkeeper));
 
         if (shouldShowPositionLabel) {
           // Use sub slot's positionLabel for sideline players, otherwise compute from coordinates
@@ -683,7 +685,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     return exportCanvas;
-  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, gameType, formationSnapPoints, subSlots, t]);
+  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, showPositionLabels, gameType, formationSnapPoints, subSlots, t]);
 
   // Expose canvas via ref for export functionality
   useImperativeHandle(ref, () => ({
@@ -981,20 +983,22 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         context.setLineDash([]);
 
         // Position label to the left of slot (avoids overlap with stacked players)
-        const translatedSlotLabel = t(`positions.${slot.positionLabel}`);
-        context.font = `700 ${POSITION_LABEL_FONT_SIZE}px Rajdhani, sans-serif`;
-        context.textAlign = 'right';
-        context.textBaseline = 'middle';
-        const labelX = absX - slotRadius - 6;
+        if (showPositionLabels) {
+          const translatedSlotLabel = t(`positions.${slot.positionLabel}`);
+          context.font = `700 ${POSITION_LABEL_FONT_SIZE}px Rajdhani, sans-serif`;
+          context.textAlign = 'right';
+          context.textBaseline = 'middle';
+          const labelX = absX - slotRadius - 6;
 
-        // Black outline for visibility
-        context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-        context.lineWidth = 2;
-        context.strokeText(translatedSlotLabel, labelX, absY);
+          // Black outline for visibility
+          context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+          context.lineWidth = 2;
+          context.strokeText(translatedSlotLabel, labelX, absY);
 
-        // White fill
-        context.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        context.fillText(translatedSlotLabel, labelX, absY);
+          // White fill
+          context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          context.fillText(translatedSlotLabel, labelX, absY);
+        }
 
         context.globalAlpha = 1.0;
       });
@@ -1112,7 +1116,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           Math.abs(player.relY! - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
         );
 
-        if (!isSidelinePlayer && isAtSnapPoint && !isGoalkeeper) {
+        if (showPositionLabels && !isSidelinePlayer && isAtSnapPoint && !isGoalkeeper) {
           const positionInfo = getPositionLabel(player.relX!, player.relY!);
           const translatedLabel = t(`positions.${positionInfo.label}`);
           const labelY = absY + playerRadius + 10;
@@ -1137,7 +1141,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Restore context ---
     context.restore();
-  }, [players, opponents, drawings, showPlayerNames, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints]);
+  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {

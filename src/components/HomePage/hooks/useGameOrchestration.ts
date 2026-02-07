@@ -1743,6 +1743,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleSetGender = sessionCoordination.handlers.setGender;
   const handleSetWentToOvertime = sessionCoordination.handlers.setWentToOvertime;
   const handleSetWentToPenalties = sessionCoordination.handlers.setWentToPenalties;
+  const handleSetShowPositionLabels = sessionCoordination.handlers.setShowPositionLabels;
   const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
 
   // --- AGGREGATE EXPORT HANDLERS ---
@@ -2115,6 +2116,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenRulesModal: handleToggleRulesDirectory,
     onTeamNameChange: handleTeamNameChange,
     onOpponentNameChange: handleOpponentNameChange,
+    onTogglePositionLabels: handleSetShowPositionLabels,
     interactions: fieldInteractions,
     timerInteractions,
   };

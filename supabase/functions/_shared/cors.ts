@@ -41,15 +41,20 @@ export function isOriginAllowed(origin: string | null): boolean {
 }
 
 /**
- * Get CORS headers with origin validation
+ * Get CORS headers with origin validation.
+ * Only reflects the request origin if it's in the allow list.
+ * Disallowed origins get no Access-Control-Allow-Origin header,
+ * causing the browser to block the request.
  */
 export function getCorsHeaders(origin: string | null): Record<string, string> {
-  // Use request origin if allowed, otherwise default to production
-  const allowedOrigin = isOriginAllowed(origin) ? origin! : ALLOWED_ORIGINS[0];
-
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
+  const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
+
+  if (isOriginAllowed(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin!;
+  }
+
+  return headers;
 }

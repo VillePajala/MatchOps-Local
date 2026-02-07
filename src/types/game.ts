@@ -47,11 +47,8 @@ export interface GameEvent {
   entityId?: string;
 }
 
-export interface TimerState {
-  gameId: string;
-  timeElapsedInSeconds: number;
-  timestamp: number;
-}
+// TimerState is defined in @/utils/timerStateManager.ts (canonical location)
+// with readonly modifiers and optional wasRunning field.
 
 export interface IntervalLog {
   period: number;
@@ -163,6 +160,8 @@ export interface AppState {
   wentToOvertime?: boolean;
   /** Whether the game was decided by penalty shootout */
   wentToPenalties?: boolean;
+  /** Whether to show position labels (GK, CB, ST, etc.) on the field */
+  showPositionLabels?: boolean;
   /**
    * ISO timestamp when the game was created.
    * Optional for backwards compatibility with legacy data.
