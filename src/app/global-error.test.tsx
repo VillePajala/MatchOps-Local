@@ -44,7 +44,9 @@ describe('GlobalError', () => {
   it('should capture exception to Sentry on mount', () => {
     render(<GlobalError error={mockError} reset={mockReset} />);
 
-    expect(Sentry.captureException).toHaveBeenCalledWith(mockError);
+    expect(Sentry.captureException).toHaveBeenCalledWith(mockError, {
+      tags: { handler: 'global-error-boundary' },
+    });
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
   });
 
@@ -88,6 +90,8 @@ describe('GlobalError', () => {
     rerender(<GlobalError error={newError} reset={mockReset} />);
 
     expect(Sentry.captureException).toHaveBeenCalledTimes(2);
-    expect(Sentry.captureException).toHaveBeenLastCalledWith(newError);
+    expect(Sentry.captureException).toHaveBeenLastCalledWith(newError, {
+      tags: { handler: 'global-error-boundary' },
+    });
   });
 });

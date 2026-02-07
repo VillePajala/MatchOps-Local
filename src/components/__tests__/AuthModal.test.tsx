@@ -655,8 +655,9 @@ describe('AuthModal', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
       });
 
+      // Generic Error is sanitized — user sees i18n fallback, not raw error.message
       await waitFor(() => {
-        expect(screen.getByText('Unexpected error')).toBeInTheDocument();
+        expect(screen.getByText('An unexpected error occurred')).toBeInTheDocument();
       });
 
       // AuthForm logs the error (tag changed from [AuthModal] to [AuthForm])
