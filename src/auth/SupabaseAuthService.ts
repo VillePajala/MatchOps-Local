@@ -319,7 +319,10 @@ export class SupabaseAuthService implements AuthService {
 
             // FALLBACK: Try to read session directly from localStorage
             // Supabase stores sessions with key: sb-<project-ref>-auth-token
-            // This bypasses the failing lock mechanism while still recovering the session
+            // FORMAT DEPENDENCY: This key format is an internal Supabase implementation detail.
+            // If Supabase changes it, this fallback silently fails (try/catch below) and the
+            // user proceeds without a session — the primary getSession() path still works.
+            // This only runs when getSession() fails with an AbortError (Chrome Mobile Android).
             try {
               const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
               // eslint-disable-next-line no-restricted-globals -- Supabase stores auth tokens in localStorage, not IndexedDB
@@ -525,17 +528,28 @@ export class SupabaseAuthService implements AuthService {
     validateEmail(email);
     validatePassword(password);
 
-    const { data, error } = await withRetry(async () => {
-      const result = await this.client!.auth.signUp({
-        email,
-        password,
-      });
-      // Retry transient network errors (e.g., AbortError on Chrome Mobile Android)
-      if (result.error && isNetworkError(result.error)) {
-        throw new TransientSupabaseError(result.error.message);
+    let data, error;
+    try {
+      const result = await withRetry(async () => {
+        const r = await this.client!.auth.signUp({
+          email,
+          password,
+        });
+        // Retry transient network errors (e.g., AbortError on Chrome Mobile Android)
+        if (r.error && isNetworkError(r.error)) {
+          throw new TransientSupabaseError({ message: r.error.message, code: r.error.code, status: r.error.status });
+        }
+        return r;
+      }, { operationName: 'signUp' });
+      data = result.data;
+      error = result.error;
+    } catch (e) {
+      // withRetry exhausted all retries — convert to NetworkError
+      if (e instanceof TransientSupabaseError) {
+        throw new NetworkError('Sign up failed: network error');
       }
-      return result;
-    }, 'signUp');
+      throw e;
+    }
 
     if (error) {
       logger.warn('[SupabaseAuthService] Sign up failed:', error.message);
@@ -633,17 +647,28 @@ export class SupabaseAuthService implements AuthService {
     // Basic validation only (no password complexity check on sign in)
     validateEmail(email);
 
-    const { data, error } = await withRetry(async () => {
-      const result = await this.client!.auth.signInWithPassword({
-        email,
-        password,
-      });
-      // Retry transient network errors (e.g., AbortError on Chrome Mobile Android)
-      if (result.error && isNetworkError(result.error)) {
-        throw new TransientSupabaseError(result.error.message);
+    let data, error;
+    try {
+      const result = await withRetry(async () => {
+        const r = await this.client!.auth.signInWithPassword({
+          email,
+          password,
+        });
+        // Retry transient network errors (e.g., AbortError on Chrome Mobile Android)
+        if (r.error && isNetworkError(r.error)) {
+          throw new TransientSupabaseError({ message: r.error.message, code: r.error.code, status: r.error.status });
+        }
+        return r;
+      }, { operationName: 'signIn' });
+      data = result.data;
+      error = result.error;
+    } catch (e) {
+      // withRetry exhausted all retries — convert to NetworkError
+      if (e instanceof TransientSupabaseError) {
+        throw new NetworkError('Sign in failed: network error');
       }
-      return result;
-    }, 'signIn');
+      throw e;
+    }
 
     if (error) {
       // Track failed attempt for rate limiting
@@ -1003,8 +1028,9 @@ export class SupabaseAuthService implements AuthService {
 
       // Update cached session with refreshed data.
       // NOTE: We intentionally update the cached session BEFORE the edge function call.
-      // If the edge function fails, the user retains a valid refreshed session for retry.
-      // Restoring the old (potentially stale) session would be worse.
+      // If deletion fails, the user retains a valid refreshed session, which enables
+      // immediate retry without requiring re-authentication. Restoring the old
+      // (potentially expired) session would force a sign-out/sign-in cycle on retry.
       this.currentSession = transformSession(refreshData.session);
       this.currentUser = this.currentSession.user;
       logger.info('[SupabaseAuthService] Session refreshed successfully');
@@ -1031,6 +1057,17 @@ export class SupabaseAuthService implements AuthService {
 
         if (isNetworkError(error)) {
           throw new NetworkError('Account deletion failed: network error');
+        }
+
+        // Classify edge function errors for actionable user feedback:
+        // - "not found" / relay error → function not deployed (config/deployment issue)
+        // - 401/403 patterns → auth issue despite session refresh above
+        // - other → generic failure
+        const msg = (error.message ?? '').toLowerCase();
+        if (msg.includes('not found') || msg.includes('relay')) {
+          throw new AuthError(
+            'Account deletion is temporarily unavailable. Please try again later or contact support.'
+          );
         }
 
         throw new AuthError(`Account deletion failed: ${error.message}`);

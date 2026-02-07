@@ -201,9 +201,10 @@ jest.mock('@/datastore/factory', () => ({
 
 // Mock ReverseMigrationWizard for testing wizard flow
 jest.mock('../ReverseMigrationWizard', () => {
-  return function MockReverseMigrationWizard({ onComplete, onCancel }: { onComplete: () => void; onCancel: () => void }) {
+  return function MockReverseMigrationWizard({ onComplete, onCancel, userId }: { onComplete: () => void; onCancel: () => void; userId?: string }) {
     return (
       <div data-testid="reverse-migration-wizard">
+        {userId && <span data-testid="wizard-user-id">{userId}</span>}
         <button onClick={onComplete}>Complete Migration</button>
         <button onClick={onCancel}>Cancel Migration</button>
       </div>
@@ -463,6 +464,23 @@ describe('CloudSyncSection', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
       });
+    });
+
+    it('passes userId to reverse migration wizard', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const disableButton = screen.getByRole('button', { name: /switch to local mode/i });
+      fireEvent.click(disableButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('reverse-migration-wizard')).toBeInTheDocument();
+      });
+
+      // useAuth mock provides user.id = 'test-user-id'
+      expect(screen.getByTestId('wizard-user-id')).toHaveTextContent('test-user-id');
     });
 
     it('closes wizard on completion', async () => {

@@ -879,6 +879,7 @@ export default function CloudSyncSection({
         <ReverseMigrationWizard
           onComplete={handleReverseMigrationComplete}
           onCancel={handleReverseMigrationCancel}
+          userId={user?.id}
         />
       )}
 

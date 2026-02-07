@@ -18,8 +18,9 @@ jest.mock('@/services/reverseMigrationService', () => ({
   getCloudDataSummary: () => mockGetCloudDataSummary(),
   migrateCloudToLocal: (
     onProgress: (p: ReverseMigrationProgress) => void,
-    mode: string
-  ) => mockMigrateCloudToLocal(onProgress, mode),
+    mode: string,
+    userId?: string
+  ) => mockMigrateCloudToLocal(onProgress, mode, userId),
 }));
 
 // Mock i18next
@@ -69,11 +70,12 @@ describe('ReverseMigrationWizard', () => {
     downloaded: mockSummary,
   };
 
-  const renderWizard = () => {
+  const renderWizard = (props?: { userId?: string }) => {
     return render(
       <ReverseMigrationWizard
         onComplete={mockOnComplete}
         onCancel={mockOnCancel}
+        userId={props?.userId}
       />
     );
   };
@@ -289,7 +291,36 @@ describe('ReverseMigrationWizard', () => {
       await waitFor(() => {
         expect(mockMigrateCloudToLocal).toHaveBeenCalledWith(
           expect.any(Function),
-          'keep-cloud'
+          'keep-cloud',
+          undefined
+        );
+      });
+    });
+
+    it('should pass userId to migrateCloudToLocal when provided', async () => {
+      renderWizard({ userId: 'user-abc-123' });
+
+      await waitFor(() => {
+        expect(screen.getByText('Your Cloud Data')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('What should happen to your cloud data?')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      });
+
+      await waitFor(() => {
+        expect(mockMigrateCloudToLocal).toHaveBeenCalledWith(
+          expect.any(Function),
+          'keep-cloud',
+          'user-abc-123'
         );
       });
     });
@@ -444,7 +475,8 @@ describe('ReverseMigrationWizard', () => {
       await waitFor(() => {
         expect(mockMigrateCloudToLocal).toHaveBeenCalledWith(
           expect.any(Function),
-          'delete-cloud'
+          'delete-cloud',
+          undefined
         );
       });
     });

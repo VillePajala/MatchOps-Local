@@ -251,6 +251,16 @@ const allowedConsolePatterns = [
   '[SyncEngine]',
   // SyncExecutor warnings/errors (expected in sync failure tests)
   '[SyncExecutor]',
+  // PlayBilling errors (expected in billing error-handling tests)
+  '[PlayBilling]',
+  // SeasonTournamentManagementModal errors (expected in delete tests)
+  '[SeasonTournamentManagementModal]',
+  // Warmup plan errors (expected in warmup plan error-handling tests)
+  '[useWarmupPlan]',
+  // Premium access errors (expected in premium error-handling tests)
+  'Failed to grant premium',
+  'Failed to revoke premium',
+  'Failed to get premium',
 ];
 
 const shouldFailOnConsoleMessage = (message) => {

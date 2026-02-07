@@ -710,6 +710,30 @@ describe('AlreadyExistsError Handling', () => {
       // No error should propagate - treated as success
     });
 
+    it('should treat generic Error with "already exists" message as success (message fallback)', async () => {
+      // Defensive: if a DataStore implementation throws a generic Error instead of AlreadyExistsError,
+      // the message-based fallback via isAutoResolvableConflict should still handle it.
+      mockFetchFromCloud.mockResolvedValue(null);
+      mockWriteToCloud.mockRejectedValue(new Error('Record already exists in database'));
+
+      const op = createOperation({ operation: 'create' });
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('local');
+      expect(result.actionTaken).toBe(true);
+    });
+
+    it('should treat generic Error with "duplicate key" message as success (message fallback)', async () => {
+      mockFetchFromCloud.mockResolvedValue(null);
+      mockWriteToCloud.mockRejectedValue(new Error('duplicate key value violates unique constraint'));
+
+      const op = createOperation({ operation: 'create' });
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('local');
+      expect(result.actionTaken).toBe(true);
+    });
+
     it('should still propagate non-AlreadyExistsError errors', async () => {
       mockFetchFromCloud.mockResolvedValue(null);
       mockWriteToCloud.mockRejectedValue(new Error('Network timeout'));
@@ -744,6 +768,25 @@ describe('AlreadyExistsError Handling', () => {
 
       // Verify warning was logged
       expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it('should treat generic Error with "already exists" message as success when local wins (message fallback)', async () => {
+      const cloudRecord: CloudRecord = {
+        id: 'player-1',
+        updatedAt: new Date(OLDER).toISOString(),
+      };
+      mockFetchFromCloud.mockResolvedValue(cloudRecord);
+      mockWriteToCloud.mockRejectedValue(new Error('Record already exists'));
+
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const op = createOperation({ timestamp: NOW });
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('local');
+      expect(result.actionTaken).toBe(true);
+
       warnSpy.mockRestore();
     });
 

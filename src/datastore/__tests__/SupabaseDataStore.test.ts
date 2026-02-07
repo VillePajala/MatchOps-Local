@@ -328,18 +328,11 @@ describe('SupabaseDataStore', () => {
         error: null,
       });
 
-      // Mock eq() to behave differently based on call count:
-      // - First call (during fetch): chains to single() for player lookup
-      // - Second call (during update): returns error
-      let eqCallCount = 0;
-      mockQueryBuilder.eq = jest.fn().mockImplementation(() => {
-        eqCallCount++;
-        if (eqCallCount === 1) {
-          // First call is during fetch - return builder for chaining to single()
-          return mockQueryBuilder;
-        }
-        // Second call is during update - return error
-        return Promise.resolve({ error: { message: 'Database error' } });
+      // Mock update chain: .update(payload).eq('id', id).eq('user_id', userId)
+      mockQueryBuilder.update = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } }),
+        }),
       });
 
       await expect(
@@ -494,7 +487,9 @@ describe('SupabaseDataStore', () => {
           error: null,
         });
         mockQueryBuilder.update = jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ error: null }),
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
         });
 
         const updated = await dataStore.updatePlayer('player_123', { name: 'New Name' });
@@ -4337,7 +4332,9 @@ describe('SupabaseDataStore', () => {
       it('should delete adjustment successfully', async () => {
         mockQueryBuilder.delete = jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ error: null, count: 1 }),
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({ data: null, error: null, count: 1 }),
+            }),
           }),
         });
 
@@ -4348,7 +4345,9 @@ describe('SupabaseDataStore', () => {
       it('should return false for non-existent adjustment', async () => {
         mockQueryBuilder.delete = jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ error: null, count: 0 }),
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({ data: null, error: null, count: 0 }),
+            }),
           }),
         });
 

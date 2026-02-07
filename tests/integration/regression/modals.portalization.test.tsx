@@ -218,6 +218,8 @@ const createProps = (): ModalManagerProps => ({
     onCreateBackup: noop,
     onDataImportSuccess: noop,
     manageTeamRosterFromNewGame: noop,
+    setWentToOvertime: noop,
+    setWentToPenalties: noop,
   },
 });
 

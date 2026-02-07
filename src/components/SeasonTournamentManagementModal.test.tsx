@@ -39,10 +39,14 @@ jest.mock('@/hooks/usePremium', () => ({
 }));
 
 // Mock useDataStore for user-scoped storage
+const mockStore = {
+  getSeasonReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: { games: 0, teams: 0 }, summary: '' }),
+  getTournamentReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: { games: 0, teams: 0 }, summary: '' }),
+};
 jest.mock('@/hooks/useDataStore', () => ({
   useDataStore: () => ({
     userId: 'test-user-123',
-    getStore: jest.fn(),
+    getStore: jest.fn().mockResolvedValue(mockStore),
     isUserScoped: true,
   }),
 }));

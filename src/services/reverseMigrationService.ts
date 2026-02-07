@@ -412,11 +412,15 @@ export function isReverseMigrationRunning(): boolean {
  *
  * @param onProgress - Callback for progress updates
  * @param mode - 'keep-cloud' or 'delete-cloud'
+ * @param userId - Authenticated user's ID for user-scoped local storage.
+ *   REQUIRED so that downloaded data lands in `matchops_user_{userId}`
+ *   instead of the legacy shared `MatchOpsLocal` database.
  * @returns Migration result with counts and status
  */
 export async function migrateCloudToLocal(
   onProgress: ReverseMigrationProgressCallback,
-  mode: ReverseMigrationMode = 'keep-cloud'
+  mode: ReverseMigrationMode = 'keep-cloud',
+  userId?: string
 ): Promise<ReverseMigrationResult> {
   // Promise deduplication: if migration is already in progress, wait for it
   // This is safer than returning an error because concurrent callers get the
@@ -433,7 +437,7 @@ export async function migrateCloudToLocal(
   }
 
   // Start new migration and store the promise
-  reverseMigrationPromise = performReverseMigration(onProgress, mode);
+  reverseMigrationPromise = performReverseMigration(onProgress, mode, userId);
 
   try {
     return await reverseMigrationPromise;
@@ -449,7 +453,8 @@ export async function migrateCloudToLocal(
  */
 async function performReverseMigration(
   onProgress: ReverseMigrationProgressCallback,
-  mode: ReverseMigrationMode
+  mode: ReverseMigrationMode,
+  userId?: string
 ): Promise<ReverseMigrationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -510,7 +515,7 @@ async function performReverseMigration(
       throw new NetworkError(`Session refresh failed: ${errorMsg}. Please sign in again.`);
     }
 
-    localStore = new LocalDataStore();
+    localStore = new LocalDataStore(userId);
     await localStore.initialize();
 
     // Step 2: Download from cloud

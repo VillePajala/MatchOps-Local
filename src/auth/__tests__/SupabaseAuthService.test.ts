@@ -572,6 +572,52 @@ describe('SupabaseAuthService', () => {
       expect(session).toBeNull();
       expect(authService.isAuthenticated()).toBe(false);
     });
+
+    /**
+     * @critical Concurrent refresh calls should be deduplicated to a single Supabase call.
+     * Multiple callers get the same promise and the same result.
+     */
+    it('should deduplicate concurrent refreshSession() calls', async () => {
+      const newSession = { ...mockSession, access_token: 'deduped_token' };
+      mockAuth.refreshSession.mockResolvedValue({
+        data: { session: newSession },
+        error: null,
+      });
+
+      // Fire 3 concurrent refresh calls
+      const [session1, session2, session3] = await Promise.all([
+        authService.refreshSession(),
+        authService.refreshSession(),
+        authService.refreshSession(),
+      ]);
+
+      // All should return the same session
+      expect(session1?.accessToken).toBe('deduped_token');
+      expect(session2?.accessToken).toBe('deduped_token');
+      expect(session3?.accessToken).toBe('deduped_token');
+
+      // Supabase refreshSession should only be called ONCE (deduplication)
+      expect(mockAuth.refreshSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('should allow new refresh after previous one completes', async () => {
+      const session1Data = { ...mockSession, access_token: 'token_1' };
+      const session2Data = { ...mockSession, access_token: 'token_2' };
+      mockAuth.refreshSession
+        .mockResolvedValueOnce({ data: { session: session1Data }, error: null })
+        .mockResolvedValueOnce({ data: { session: session2Data }, error: null });
+
+      // First refresh
+      const result1 = await authService.refreshSession();
+      expect(result1?.accessToken).toBe('token_1');
+
+      // Second refresh (after first completes) should create new promise
+      const result2 = await authService.refreshSession();
+      expect(result2?.accessToken).toBe('token_2');
+
+      // Two separate calls to Supabase
+      expect(mockAuth.refreshSession).toHaveBeenCalledTimes(2);
+    });
   });
 
   // ==========================================================================
@@ -926,6 +972,25 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(authService.deleteAccount()).rejects.toThrow(AuthError);
+    });
+
+    it('should throw user-friendly AuthError when edge function not found (not deployed)', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Edge Function not found' },
+      });
+
+      await expect(authService.deleteAccount()).rejects.toThrow(AuthError);
+      await expect(authService.deleteAccount()).rejects.toThrow('temporarily unavailable');
+    });
+
+    it('should throw user-friendly AuthError on relay error', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Relay error connecting to function' },
+      });
+
+      await expect(authService.deleteAccount()).rejects.toThrow('temporarily unavailable');
     });
 
     it('should throw AuthError when Edge Function returns success=false', async () => {

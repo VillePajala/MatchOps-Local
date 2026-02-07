@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 interface PrecisionTimerOptions {
   onTick: (elapsedSeconds: number) => void;
@@ -41,14 +41,14 @@ export const usePrecisionTimer = ({
 
   // Update initial time when startTime changes and timer is not running
   useEffect(() => {
-    if (!startTimestampRef.current) {
+    if (startTimestampRef.current === null) {
       initialTimeRef.current = startTime;
       lastTickRef.current = Math.floor(startTime);
     }
   }, [startTime]);
 
   const tick = useCallback(() => {
-    if (!startTimestampRef.current) return;
+    if (startTimestampRef.current === null) return;
 
     const now = performance.now();
     const elapsedMs = now - startTimestampRef.current;
@@ -63,7 +63,7 @@ export const usePrecisionTimer = ({
   }, []);
 
   const start = useCallback(() => {
-    if (startTimestampRef.current) return; // Already running
+    if (startTimestampRef.current !== null) return; // Already running
 
     startTimestampRef.current = performance.now();
     lastTickRef.current = Math.floor(initialTimeRef.current);
@@ -105,7 +105,7 @@ export const usePrecisionTimer = ({
   // already calls stop() in its cleanup, which runs on unmount.
 
   const getCurrentTime = useCallback(() => {
-    if (!startTimestampRef.current) {
+    if (startTimestampRef.current === null) {
       return initialTimeRef.current;
     }
     const now = performance.now();
@@ -113,14 +113,12 @@ export const usePrecisionTimer = ({
     return initialTimeRef.current + (elapsedMs / 1000);
   }, []);
 
-  // Memoize the return object to prevent consumers from re-running effects
-  // that depend on this object (e.g., useGameTimer's visibilitychange listener)
-  return useMemo(() => ({
+  return {
     start,
     stop,
     reset,
     getCurrentTime,
-  }), [start, stop, reset, getCurrentTime]);
+  };
 };
 
 /**

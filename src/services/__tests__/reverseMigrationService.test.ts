@@ -521,6 +521,23 @@ describe('reverseMigrationService', () => {
     });
 
     /**
+     * @critical User-scoped storage: LocalDataStore receives userId
+     */
+    it('should create LocalDataStore with userId when provided', async () => {
+      const result = await migrateCloudToLocal(mockOnProgress, 'keep-cloud', 'test-user-123');
+
+      expect(result.success).toBe(true);
+      expect(MockedLocalDataStore).toHaveBeenCalledWith('test-user-123');
+    });
+
+    it('should create LocalDataStore without userId when not provided', async () => {
+      const result = await migrateCloudToLocal(mockOnProgress, 'keep-cloud');
+
+      expect(result.success).toBe(true);
+      expect(MockedLocalDataStore).toHaveBeenCalledWith(undefined);
+    });
+
+    /**
      * @edge-case Empty cloud data
      */
     it('should handle empty cloud data gracefully', async () => {

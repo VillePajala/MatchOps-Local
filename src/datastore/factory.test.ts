@@ -550,6 +550,26 @@ describe('Factory', () => {
       expect(dataStore.getBackendName()).toBe('local');
     });
 
+    /**
+     * Authenticated user in explicit local mode must get LocalDataStore.
+     * This prevents cloud sync from continuing after user switches to local mode
+     * (e.g., after "delete cloud data" migration) while staying signed in.
+     * Auth ≠ sync (Issue #336): users stay signed in regardless of data mode.
+     * @critical
+     */
+    it('should use LocalDataStore for authenticated user in explicit local mode (even when cloud available)', async () => {
+      // User is authenticated, cloud is available, but mode is explicitly 'local'
+      // This is the state after disableCloudMode() — user stays signed in
+      mockBackendConfig.backendMode = 'local';
+      mockBackendConfig.cloudAvailable = true;
+
+      const dataStore = await getDataStore(TEST_USER_ID);
+
+      // Must be LocalDataStore, NOT SyncedDataStore
+      expect(dataStore).toBeInstanceOf(LocalDataStore);
+      expect(dataStore.getBackendName()).toBe('local');
+    });
+
     afterEach(async () => {
       mockBackendConfig.backendMode = 'local';
       mockBackendConfig.cloudAvailable = false;
