@@ -1,7 +1,7 @@
 ---
 title: Vianetsintä
 description: Yleiset ongelmat ja ratkaisut MatchOpsille
-lastUpdated: "2025-01-08"
+lastUpdated: "2026-02-06"
 ---
 
 Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
@@ -27,7 +27,8 @@ Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
 - Käytät eri laitetta kuin aiemmin
 
 **Palautus**:
-- Palauta varmuuskopiosta jos saatavilla
+- **Pilvitilan käyttäjät**: Kirjaudu ulos ja takaisin sisään synkronoidaksesi pilvestä uudelleen
+- **Paikallisen tilan käyttäjät**: Palauta varmuuskopiosta jos saatavilla
 - Tarkista, oletko oikealla laitteella
 - Ota yhteyttä tukeen jos datan pitäisi olla olemassa
 
@@ -40,6 +41,91 @@ Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
 - Varmista, ettei tiedosto ole vioittunut
 - Kokeile pienempää dataosaa
 - Tarkista, että sovelluksella on tiedostojen käyttöoikeudet
+
+## Pilvisynkronoinnin ongelmat
+
+### Data ei synkronoidu
+
+**Ongelma**: Yhdellä laitteella tehdyt muutokset eivät näy toisella.
+
+**Ratkaisut**:
+1. Tarkista internetyhteytesi
+2. Katso synkronoinnin tilailmaisinta - jos se näyttää "Odottaa", odota synkronoinnin valmistumista
+3. Vedä alas päivittääksesi tai sulje ja avaa sovellus uudelleen
+4. Varmista, että olet kirjautunut samalle tilille molemmilla laitteilla
+5. Kokeile kirjautua ulos ja takaisin sisään
+
+### Synkronointi jumissa tai epäonnistuu
+
+**Ongelma**: Synkronointi-ilmaisin näyttää odottavia muutoksia, jotka eivät synkronoidu.
+
+**Ratkaisut**:
+1. Tarkista internetyhteys
+2. Odota muutama minuutti - sovellus yrittää automaattisesti uudelleen
+3. Sulje ja avaa sovellus uudelleen
+4. Jos edelleen jumissa, kokeile kirjautua ulos ja takaisin sisään
+
+<Callout type="info">
+Jos sinulla on odottavia muutoksia ja menet offline-tilaan, ne on tallennettu turvallisesti ja synkronoituvat kun yhdistät uudelleen.
+</Callout>
+
+### Offline-tilassa pilvitilin kanssa
+
+**Ongelma**: Huoli sovelluksen käytöstä offline-tilassa pilvitilin kanssa.
+
+**Tämä on normaalia ja toimii hyvin!**
+- Kaikki muutokset tallentuvat laitteellesi välittömästi
+- Data synkronoituu automaattisesti kun yhdistät uudelleen
+- Dataa ei menetä offline-jaksojen aikana
+- Voit seurata kokonaisia pelejä ilman internetiä
+
+<Callout type="tip">
+Sovellus on suunniteltu toimimaan offline-tilassa. Seuraa peliäsi, ja kaikki synkronoituu kun olet taas verkossa.
+</Callout>
+
+## Tunnistautumisongelmat
+
+### Ei voi kirjautua sisään
+
+**Ongelma**: Ei pääse kirjautumaan tilille.
+
+**Ratkaisut**:
+1. Varmista, että sähköposti ja salasana ovat oikein
+2. Tarkista, onko Caps Lock päällä
+3. Kokeile "Unohtuiko salasana" -vaihtoehtoa nollataksesi
+4. Tarkista internetyhteytesi
+5. Jos käytät uutta tiliä, varmista että olet vahvistanut sähköpostisi
+
+### Unohtunut salasana
+
+**Ongelma**: Salasana ei muistu mieleen.
+
+**Ratkaisu**:
+1. Napauta kirjautumisnäytöllä **Unohtuiko salasana**
+2. Syötä sähköpostiosoitteesi
+3. Tarkista sähköpostisi (myös roskapostikansio) nollauslinkin varalta
+4. Klikkaa linkkiä ja aseta uusi salasana
+5. Palaa sovellukseen ja kirjaudu sisään
+
+### Istunto vanhentunut
+
+**Ongelma**: Sovellus pyytää kirjautumaan sisään odottamatta.
+
+**Syyt**:
+- Istunnot vanhenevat pitkän käyttämättömyysjakson jälkeen
+- Järjestelmä poisti sovelluksen muistista
+
+**Ratkaisu**: Kirjaudu vain sisään uudelleen. Datasi on turvassa pilvessä.
+
+### Tilin luontiongelmat
+
+**Ongelma**: Uutta tiliä ei voi luoda.
+
+**Ratkaisut**:
+- Tarkista, että sähköpostiosoite on kelvollinen
+- Käytä vahvempaa salasanaa (vähimmäisvaatimukset näytetään)
+- Tarkista internetyhteys
+- Kokeile eri sähköpostiosoitetta jos ongelmat jatkuvat
 
 ## Suorituskykyongelmat
 
@@ -133,14 +219,21 @@ Yleisiä ongelmia:
 Kerää nämä tiedot:
 1. Laitteen malli ja Android-versio
 2. Sovelluksen versio (löytyy Asetuksista)
-3. Vaiheet ongelman toistamiseksi
-4. Mahdolliset virheilmoitukset
-5. Kuvakaappaus jos mahdollista
+3. Tallennustila (paikallinen vai pilvi)
+4. Vaiheet ongelman toistamiseksi
+5. Mahdolliset virheilmoitukset
+6. Kuvakaappaus jos mahdollista
 
 ### Nollausvaihtoehdot
 
 Jos ongelmat jatkuvat:
 
+**Pilvitilan käyttäjät:**
+1. **Synkronoi uudelleen pilvestä**: Asetuksissa, etsi vaihtoehto tyhjentää paikallinen data ja ladata uudelleen pilvestä
+2. **Kirjaudu ulos ja takaisin sisään**: Usein korjaa synkronointiongelmat
+3. **Tehdasnollaus**: Asetuksissa, tyhjentää sekä paikallisen että pilvidatan (viimeinen keino)
+
+**Paikallisen tilan käyttäjät:**
 1. **Pehmeä nollaus**: Tyhjennä sovelluksen välimuisti Androidin asetuksista, avaa uudelleen
 2. **Datan vienti**: Tallenna datasi ensin varmuuskopiolla
 3. **Puhdas uudelleenasennus**: Poista ja asenna uudelleen Play Kaupasta

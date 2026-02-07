@@ -1,7 +1,7 @@
 ---
 title: Frequently Asked Questions
 description: Common questions and answers about MatchOps
-lastUpdated: "2025-01-09"
+lastUpdated: "2026-02-06"
 ---
 
 Find answers to the most common questions about MatchOps.
@@ -12,23 +12,72 @@ Find answers to the most common questions about MatchOps.
 
 Open the app in your browser. The app will prompt you to install it - just tap "Install" or "Add to Home Screen". On Android, you can also install from the Play Store.
 
+### Do I need an account?
+
+No, an account is optional. You can use MatchOps with local-only storage (no account needed) or create a cloud account for cross-device sync. Choose your preference when you first open the app.
+
 ### Where is my data stored?
 
-Your data is stored securely and stays private. Your privacy is protected by design.
+It depends on your chosen mode:
 
-### Can I use it on multiple devices?
+- **Local mode**: Data is stored only on your device. Maximum privacy.
+- **Cloud mode**: Data is stored securely in the cloud (Supabase, EU region) and syncs across devices.
 
-Yes. You can export your data from one device and import it on another, or use cloud sync to keep devices in sync.
+Both modes work offline. Your privacy is protected by design.
+
+### Is there cloud sync?
+
+Yes! Cloud sync is optional. Create an account to sync your data across multiple devices automatically. You can also start with local mode and migrate to cloud later.
+
+## Cloud & Sync
+
+### Can I use the app on multiple devices?
+
+Yes, with two options:
+
+- **Cloud mode (recommended)**: Create an account and your data syncs automatically across all your devices.
+- **Local mode**: Export your data from one device and import it on another manually.
+
+### What happens if I'm offline with a cloud account?
+
+The app works normally! All changes save to your device immediately. When you're back online, everything syncs automatically. You won't lose any data.
+
+<Callout type="tip">
+You can track an entire game without internet. Data syncs when you reconnect.
+</Callout>
+
+### How do I switch between local and cloud mode?
+
+Open Settings and look for the cloud/sync options. You can:
+
+- **Local → Cloud**: Create an account and migrate your existing data
+- **Cloud → Local**: Switch to local-only storage (data stays in your cloud account but stops syncing)
+
+### Is my data private in cloud mode?
+
+Yes. In cloud mode:
+
+- Data is stored in Supabase (EU region)
+- Protected by your account credentials
+- Row-level security ensures only you can access your data
+- No sharing with third parties
+- You can delete your account and all data anytime
 
 ## Data Management
 
 ### How do I back up my data?
 
-Open the Settings menu and use the Export function. This creates a JSON file with all your data that you can save and import later.
+Open the menu (☰) and select **Backup & Restore**. Use the Export function to create a JSON file with all your data.
+
+<Callout type="info">
+Cloud mode users: Your data is automatically backed up to the cloud. Manual backups are still recommended for extra protection.
+</Callout>
 
 ### What happens if I lose my phone or it breaks?
 
-If you've made regular exports (backups), you can import your data on a new device. Without backups, data is lost with the device.
+**Cloud mode users**: Simply sign in on your new device - all your data is there.
+
+**Local mode users**: If you've made regular backups, import your data on a new device. Without backups, data is lost with the device.
 
 <Callout type="tip">
 Make it a habit to export your data regularly, especially after important games or at the end of each season.
@@ -60,7 +109,7 @@ The app updates automatically when you open it and have an internet connection. 
 
 ### Does the app work offline?
 
-Yes! After the first load, the app works completely offline. You can track games without any internet connection.
+Yes! After the first load, the app works completely offline. You can track games without any internet connection. If you're using cloud mode, data syncs when you reconnect.
 
 ## Need More Help?
 
@@ -68,4 +117,5 @@ If you can't find the answer you're looking for:
 
 - Check the [Troubleshooting](/guide/troubleshooting) guide for common issues
 - Review the [Tips & Best Practices](/guide/tips-best-practices) for getting the most out of the app
+- Read [Data Management](/guide/data-management) for detailed info on storage modes and sync
 - Contact us at hello@match-ops.com

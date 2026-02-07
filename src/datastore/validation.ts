@@ -1,0 +1,94 @@
+/**
+ * Shared validation utilities for DataStore implementations.
+ *
+ * This module provides validation functions that are shared between
+ * LocalDataStore and SupabaseDataStore to ensure consistent behavior.
+ *
+ * @see docs/03-active-plans/supabase-implementation-guide.md Section 5.0.10
+ */
+
+import type { AppState } from '@/types/game';
+import { ValidationError } from '@/interfaces/DataStoreErrors';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { AGE_GROUPS } from '@/config/gameOptions';
+
+/**
+ * Validate a game's required and optional fields.
+ * Throws ValidationError if validation fails.
+ *
+ * Used by both LocalDataStore and SupabaseDataStore for consistent validation.
+ * This ensures games saved to either backend meet the same requirements.
+ *
+ * @param game - The game state to validate
+ * @param context - Optional context for error messages (e.g., gameId for batch operations)
+ * @throws ValidationError if validation fails
+ */
+/**
+ * Normalize optional string: trim whitespace, convert empty to undefined.
+ * Used by both LocalDataStore and SupabaseDataStore for consistent field normalization.
+ */
+export const normalizeOptionalString = (value?: string): string | undefined => {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
+
+export const validateGame = (game: AppState, context?: string): void => {
+  const prefix = context ? `Game ${context}: ` : '';
+
+  // Validate required fields
+  if (!game.teamName || !game.opponentName || !game.gameDate) {
+    throw new ValidationError(
+      `${prefix}Missing required game fields`,
+      'game',
+      { hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
+    );
+  }
+
+  // Validate teamName length
+  if (game.teamName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
+    throw new ValidationError(
+      `${prefix}Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters (got ${game.teamName.length})`,
+      'teamName',
+      game.teamName
+    );
+  }
+
+  // Validate opponentName length
+  if (game.opponentName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
+    throw new ValidationError(
+      `${prefix}Opponent name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters (got ${game.opponentName.length})`,
+      'opponentName',
+      game.opponentName
+    );
+  }
+
+  // Validate gameNotes length
+  if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
+    throw new ValidationError(
+      `${prefix}Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`,
+      'gameNotes',
+      game.gameNotes
+    );
+  }
+
+  // Validate ageGroup if present
+  if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
+    throw new ValidationError(`${prefix}Invalid age group`, 'ageGroup', game.ageGroup);
+  }
+
+  // Validate periodDurationMinutes (required for Supabase - no schema default)
+  // Belt-and-suspenders: createGame provides default of 10, but validate anyway
+  if (
+    game.periodDurationMinutes === undefined ||
+    game.periodDurationMinutes === null ||
+    game.periodDurationMinutes <= 0 ||
+    !Number.isFinite(game.periodDurationMinutes)
+  ) {
+    throw new ValidationError(
+      `${prefix}periodDurationMinutes must be a positive number`,
+      'periodDurationMinutes',
+      game.periodDurationMinutes
+    );
+  }
+};

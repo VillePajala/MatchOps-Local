@@ -12,6 +12,7 @@ import { render, screen, act, waitFor } from '@testing-library/react';
 import { PremiumProvider, usePremiumContext } from '../PremiumContext';
 import { usePremium, useResourceLimit } from '@/hooks/usePremium';
 import * as premiumManager from '@/utils/premiumManager';
+import * as backendConfig from '@/config/backendConfig';
 
 // Mock premiumManager
 jest.mock('@/utils/premiumManager', () => ({
@@ -22,6 +23,16 @@ jest.mock('@/utils/premiumManager', () => ({
   getRemainingCount: jest.fn(),
   isOverFreeLimit: jest.fn(),
 }));
+
+// Mock backendConfig - default to 'cloud' mode so tests behave as before
+// (local mode = always premium, cloud mode = check license)
+jest.mock('@/config/backendConfig', () => ({
+  getBackendMode: jest.fn(() => 'cloud'),
+}));
+
+const mockGetBackendMode = backendConfig.getBackendMode as jest.MockedFunction<
+  typeof backendConfig.getBackendMode
+>;
 
 const mockGetPremiumLicense = premiumManager.getPremiumLicense as jest.MockedFunction<
   typeof premiumManager.getPremiumLicense
@@ -45,6 +56,9 @@ const mockIsOverFreeLimit = premiumManager.isOverFreeLimit as jest.MockedFunctio
 describe('PremiumContext', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default to cloud mode so tests check actual license
+    // (local mode = always premium, cloud mode = check license)
+    mockGetBackendMode.mockReturnValue('cloud');
     mockGetPremiumLicense.mockResolvedValue({ isPremium: false });
     mockCanCreateResource.mockReturnValue(true);
     mockGetRemainingCount.mockReturnValue(1);
@@ -53,6 +67,7 @@ describe('PremiumContext', () => {
 
   describe('PremiumProvider', () => {
     it('should load premium status on mount', async () => {
+      // LIMITS DISABLED: loadPremiumStatus completes quickly without async license check
       mockGetPremiumLicense.mockResolvedValue({ isPremium: true });
 
       const TestComponent = () => {
@@ -71,17 +86,16 @@ describe('PremiumContext', () => {
         </PremiumProvider>
       );
 
-      // Initially loading
-      expect(screen.getByTestId('loading').textContent).toBe('true');
-
-      // After load completes
+      // Limits disabled - loading completes quickly, premium is always true
       await waitFor(() => {
         expect(screen.getByTestId('loading').textContent).toBe('false');
       });
       expect(screen.getByTestId('premium').textContent).toBe('true');
     });
 
-    it('should provide limits for free users', async () => {
+    it('should always return no-limits (limits disabled)', async () => {
+      // LIMITS DISABLED: PremiumContext always sets isPremium=true, so limits=null
+      // This test verifies the current behavior where all users get unlimited access.
       mockGetPremiumLicense.mockResolvedValue({ isPremium: false });
 
       const TestComponent = () => {
@@ -96,7 +110,8 @@ describe('PremiumContext', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId('limits').textContent).toBe('has-limits');
+        // Limits are disabled - everyone is effectively premium
+        expect(screen.getByTestId('limits').textContent).toBe('no-limits');
       });
     });
 
@@ -119,7 +134,42 @@ describe('PremiumContext', () => {
       });
     });
 
+    it('should always be premium in local mode (regardless of license)', async () => {
+      // Local mode = always premium, no license check needed
+      mockGetBackendMode.mockReturnValue('local');
+      // Even if license says not premium, local mode should still be premium
+      mockGetPremiumLicense.mockResolvedValue({ isPremium: false });
+
+      const TestComponent = () => {
+        const { isPremium, limits } = usePremiumContext();
+        return (
+          <div>
+            <span data-testid="premium">{isPremium.toString()}</span>
+            <span data-testid="limits">{limits ? 'has-limits' : 'no-limits'}</span>
+          </div>
+        );
+      };
+
+      render(
+        <PremiumProvider>
+          <TestComponent />
+        </PremiumProvider>
+      );
+
+      await waitFor(() => {
+        // In local mode, premium is always true
+        expect(screen.getByTestId('premium').textContent).toBe('true');
+        // And limits should be null (no restrictions)
+        expect(screen.getByTestId('limits').textContent).toBe('no-limits');
+      });
+
+      // License check should not have been called in local mode
+      expect(mockGetPremiumLicense).not.toHaveBeenCalled();
+    });
+
     it('should handle grant premium access', async () => {
+      // LIMITS DISABLED: isPremium is always true, but grant/revoke still work
+      // for when limits might be re-enabled in the future.
       mockGetPremiumLicense.mockResolvedValue({ isPremium: false });
       mockGrantPremium.mockResolvedValue(undefined);
 
@@ -139,19 +189,22 @@ describe('PremiumContext', () => {
         </PremiumProvider>
       );
 
+      // Limits disabled - isPremium is always true
       await waitFor(() => {
-        expect(screen.getByTestId('premium').textContent).toBe('false');
+        expect(screen.getByTestId('premium').textContent).toBe('true');
       });
 
       await act(async () => {
         screen.getByRole('button').click();
       });
 
+      // Grant still calls the manager (for future use)
       expect(mockGrantPremium).toHaveBeenCalledWith('token123');
       expect(screen.getByTestId('premium').textContent).toBe('true');
     });
 
     it('should handle revoke premium access', async () => {
+      // LIMITS DISABLED: revoke still works but isPremium starts as true (not from license)
       mockGetPremiumLicense.mockResolvedValue({ isPremium: true });
       mockRevokePremium.mockResolvedValue(undefined);
 
@@ -179,11 +232,14 @@ describe('PremiumContext', () => {
         screen.getByRole('button').click();
       });
 
+      // Revoke calls the manager and updates local state
       expect(mockRevokePremium).toHaveBeenCalled();
+      // After revoke, state is set to false (even though limits disabled)
       expect(screen.getByTestId('premium').textContent).toBe('false');
     });
 
     it('should handle grant premium error and re-throw', async () => {
+      // LIMITS DISABLED: isPremium starts true, but error handling still works
       mockGetPremiumLicense.mockResolvedValue({ isPremium: false });
       const storageError = new Error('Storage write failed');
       mockGrantPremium.mockRejectedValue(storageError);
@@ -213,8 +269,9 @@ describe('PremiumContext', () => {
         </PremiumProvider>
       );
 
+      // Limits disabled - isPremium starts true
       await waitFor(() => {
-        expect(screen.getByTestId('premium').textContent).toBe('false');
+        expect(screen.getByTestId('premium').textContent).toBe('true');
       });
 
       await act(async () => {
@@ -222,8 +279,8 @@ describe('PremiumContext', () => {
       });
 
       expect(caughtError).toBe(storageError);
-      // Premium state should remain false since storage failed
-      expect(screen.getByTestId('premium').textContent).toBe('false');
+      // Premium state remains true (error occurred before state change)
+      expect(screen.getByTestId('premium').textContent).toBe('true');
     });
 
     it('should handle revoke premium error and re-throw', async () => {
@@ -281,10 +338,12 @@ describe('PremiumContext', () => {
         </PremiumProvider>
       );
 
-      expect(screen.getByTestId('price').textContent).toBe('9,99 €');
+      // Price in European format: "€ 4,99/kk" includes per-month indicator
+      expect(screen.getByTestId('price').textContent).toBe('€ 4,99/kk');
     });
 
     it('should handle license load error gracefully', async () => {
+      // LIMITS DISABLED: Even on error, grant premium since limits are disabled
       mockGetPremiumLicense.mockRejectedValue(new Error('Storage error'));
 
       const TestComponent = () => {
@@ -307,8 +366,8 @@ describe('PremiumContext', () => {
         expect(screen.getByTestId('loading').textContent).toBe('false');
       });
 
-      // Should default to free on error
-      expect(screen.getByTestId('premium').textContent).toBe('false');
+      // Limits disabled - premium is true even on error
+      expect(screen.getByTestId('premium').textContent).toBe('true');
     });
   });
 
@@ -389,7 +448,8 @@ describe('PremiumContext', () => {
       });
     });
 
-    it('should check limits for free users', async () => {
+    it('should always return false for import limits (limits disabled)', async () => {
+      // LIMITS DISABLED: isImportOverLimits always returns false since isPremium is true
       mockGetPremiumLicense.mockResolvedValue({ isPremium: false });
       mockIsOverFreeLimit.mockReturnValue(true);
 
@@ -414,7 +474,8 @@ describe('PremiumContext', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId('over-limit').textContent).toBe('true');
+        // Limits disabled - imports never over limit
+        expect(screen.getByTestId('over-limit').textContent).toBe('false');
       });
     });
   });
@@ -484,6 +545,7 @@ describe('usePremium hook', () => {
   });
 
   it('should return premium status and helpers', async () => {
+    // LIMITS DISABLED: isPremium is always true, limits is always null
     const TestComponent = () => {
       const { isPremium, isLoading, limits, price } = usePremium();
       return (
@@ -506,9 +568,11 @@ describe('usePremium hook', () => {
       expect(screen.getByTestId('loading').textContent).toBe('false');
     });
 
-    expect(screen.getByTestId('premium').textContent).toBe('false');
-    expect(screen.getByTestId('has-limits').textContent).toBe('true');
-    expect(screen.getByTestId('price').textContent).toBe('9,99 €');
+    // Limits disabled - everyone is premium with no limits
+    expect(screen.getByTestId('premium').textContent).toBe('true');
+    expect(screen.getByTestId('has-limits').textContent).toBe('false');
+    // Price in European format: "€ 4,99/kk" includes per-month indicator
+    expect(screen.getByTestId('price').textContent).toBe('€ 4,99/kk');
   });
 });
 

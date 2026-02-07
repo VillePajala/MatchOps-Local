@@ -23,4 +23,3 @@ export const WARMUP_PLAN_KEY = 'soccerWarmupPlan';
 
 // UI state storage keys
 export const INSTALL_PROMPT_DISMISSED_KEY = 'installPromptDismissed';
-export const HAS_SEEN_FIRST_GAME_GUIDE_KEY = 'hasSeenFirstGameGuide';

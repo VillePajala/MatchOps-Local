@@ -1,0 +1,298 @@
+/**
+ * User-Scoped Database Naming
+ *
+ * Provides functions for generating user-specific IndexedDB database names.
+ * This enables complete data isolation between users in the same browser.
+ *
+ * Database naming convention:
+ * - Legacy (anonymous): `MatchOpsLocal` (single global database)
+ * - User-scoped: `matchops_user_{userId}` (per-user database)
+ *
+ * ## Migration Path (Steps 7-11 of plan)
+ *
+ * 1. Anonymous user has data in `MatchOpsLocal` (legacy)
+ * 2. User signs in → `getDataStore(userId)` creates `matchops_user_{userId}`
+ * 3. App detects legacy data via `legacyDatabaseExists()` and offers migration
+ * 4. Copy data from `MatchOpsLocal` to `matchops_user_{userId}`
+ * 5. Delete `MatchOpsLocal` after successful migration
+ * 6. User signs out → `getDataStore()` falls back to `MatchOpsLocal`
+ *
+ * ## Implementation Status
+ *
+ * This module implements Steps 1-4 of the plan (storage layer).
+ * Steps 5-6 (updating callers to pass userId) are in a separate PR.
+ * Until callers are updated, all users share the legacy database.
+ *
+ * @see docs/03-active-plans/user-scoped-storage-plan-v2.md
+ */
+
+import logger from '@/utils/logger';
+
+/**
+ * Default database name for legacy/anonymous mode.
+ * Used when no user is authenticated (local-only mode without account).
+ */
+export const LEGACY_DATABASE_NAME = 'MatchOpsLocal';
+
+/**
+ * Prefix for user-scoped databases.
+ * Full name format: `matchops_user_{userId}`
+ */
+const USER_DATABASE_PREFIX = 'matchops_user_';
+
+/**
+ * Maximum allowed length for userId.
+ * Supabase UUIDs are 36 characters (e.g., 'f47ac10b-58cc-4372-a567-0e02b2c3d479').
+ * We use 255 to allow for future flexibility while preventing DoS attacks
+ * from extremely long strings that could cause memory issues or exceed
+ * IndexedDB database name limits.
+ */
+export const MAX_USER_ID_LENGTH = 255;
+
+/**
+ * Result of userId validation.
+ */
+export interface UserIdValidationResult {
+  /** Whether the userId is valid */
+  valid: boolean;
+  /** Trimmed userId (if valid) */
+  trimmedId?: string;
+  /** Error message (if invalid) */
+  error?: string;
+}
+
+/**
+ * Validate a userId for use in database names.
+ *
+ * Performs checks in order to prevent ReDoS attacks:
+ * 1. Type and presence check (fast)
+ * 2. Trim whitespace (fast)
+ * 3. Empty check (fast)
+ * 4. Length check BEFORE regex (prevents ReDoS on very long strings)
+ * 5. Character validation regex (safe after length check)
+ *
+ * @param userId - The userId to validate
+ * @returns Validation result with trimmed ID or error message
+ *
+ * @example
+ * ```typescript
+ * const result = validateUserId('user-123');
+ * if (!result.valid) {
+ *   throw new Error(result.error);
+ * }
+ * const dbName = `matchops_user_${result.trimmedId}`;
+ * ```
+ */
+export function validateUserId(userId: string | undefined | null): UserIdValidationResult {
+  // 1. Type and presence check (fast)
+  if (!userId || typeof userId !== 'string') {
+    return { valid: false, error: 'userId is required and must be a non-empty string' };
+  }
+
+  // 2. Trim whitespace (fast)
+  const trimmedId = userId.trim();
+
+  // 3. Empty check (fast)
+  if (trimmedId.length === 0) {
+    return { valid: false, error: 'userId cannot be empty or whitespace' };
+  }
+
+  // 4. Length check BEFORE regex (prevents ReDoS on very long strings)
+  if (trimmedId.length > MAX_USER_ID_LENGTH) {
+    return { valid: false, error: `userId exceeds maximum length of ${MAX_USER_ID_LENGTH} characters` };
+  }
+
+  // 5. Character validation regex (safe after length check)
+  // Supabase UUIDs match this pattern. Prevents:
+  // - Path traversal attacks (no slashes, dots, etc.)
+  // - Database name injection
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
+    return {
+      valid: false,
+      error: 'userId contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.',
+    };
+  }
+
+  return { valid: true, trimmedId };
+}
+
+/**
+ * Get the database name for a specific user.
+ *
+ * IMPORTANT: userId is expected to be a UUID from Supabase Auth (e.g., 'f47ac10b-58cc-4372-a567-0e02b2c3d479').
+ * Supabase UUIDs are safe for database names (alphanumeric + hyphens only).
+ * Do NOT pass user-controlled input directly - always use the authenticated user's ID from Supabase.
+ *
+ * @param userId - The authenticated user's ID (UUID from Supabase Auth)
+ * @returns Database name in format `matchops_user_{userId}`
+ * @throws {Error} If userId is empty or contains invalid characters
+ *
+ * @example
+ * ```typescript
+ * const dbName = getUserDatabaseName('f47ac10b-58cc-4372-a567-0e02b2c3d479');
+ * // Returns: 'matchops_user_f47ac10b-58cc-4372-a567-0e02b2c3d479'
+ * ```
+ */
+export function getUserDatabaseName(userId: string): string {
+  const result = validateUserId(userId);
+  if (!result.valid) {
+    throw new Error(result.error);
+  }
+  return `${USER_DATABASE_PREFIX}${result.trimmedId}`;
+}
+
+/**
+ * Check if a database name is user-scoped (vs legacy).
+ *
+ * @param databaseName - The database name to check
+ * @returns true if the database is user-scoped
+ */
+export function isUserScopedDatabase(databaseName: string): boolean {
+  return databaseName.startsWith(USER_DATABASE_PREFIX);
+}
+
+/**
+ * Extract userId from a user-scoped database name.
+ *
+ * @param databaseName - The database name
+ * @returns The userId, or null if not a user-scoped database
+ */
+export function extractUserIdFromDatabaseName(databaseName: string): string | null {
+  if (!isUserScopedDatabase(databaseName)) {
+    return null;
+  }
+  return databaseName.slice(USER_DATABASE_PREFIX.length);
+}
+
+/** Timeout for legacy database check (5 seconds) */
+const LEGACY_DB_CHECK_TIMEOUT_MS = 5000;
+
+/**
+ * Options for legacyDatabaseExists check.
+ */
+export interface LegacyDatabaseCheckOptions {
+  /**
+   * If true, the function ALWAYS returns after exactly LEGACY_DB_CHECK_TIMEOUT_MS (5000ms),
+   * regardless of when the actual database check completes.
+   *
+   * This eliminates timing side-channels that could reveal database existence:
+   * - Without constantTime: Fast return = database exists, Slow return = timeout
+   * - With constantTime: Always 5000ms, no timing information leaks
+   *
+   * Default: false (for better UX in normal usage - most apps don't need this)
+   */
+  constantTime?: boolean;
+}
+
+/**
+ * Check if the legacy database exists.
+ * Used during migration to detect if there's data to migrate.
+ *
+ * ## Timing Consideration (Security Analysis)
+ *
+ * This function uses a 5-second timeout. Response times vary:
+ * - Fast response: database exists (or doesn't, from onupgradeneeded)
+ * - Timeout: IndexedDB unresponsive (returns false)
+ *
+ * This timing variance is **acceptable** because:
+ * 1. This is for migration UX, not security-critical operations
+ * 2. IndexedDB databases can already be enumerated via browser APIs
+ *    (e.g., indexedDB.databases() in Chrome)
+ * 3. Knowing whether a legacy database exists reveals no sensitive data
+ *    (only that the user has used the app before)
+ * 4. The attacker would need local code execution, which already grants
+ *    full IndexedDB access
+ *
+ * For paranoid deployments, use `constantTime: true` to always wait the
+ * full timeout before returning, eliminating timing variance.
+ *
+ * @param options - Optional configuration for the check
+ * @returns Promise resolving to true if legacy database exists
+ */
+export async function legacyDatabaseExists(
+  options?: LegacyDatabaseCheckOptions
+): Promise<boolean> {
+  const startTime = Date.now();
+
+  if (typeof window === 'undefined' || !window.indexedDB) {
+    // Still honor constantTime option even for early returns
+    if (options?.constantTime) {
+      await new Promise(resolve => setTimeout(resolve, LEGACY_DB_CHECK_TIMEOUT_MS));
+    }
+    return false;
+  }
+
+  const result = await new Promise<boolean>((resolve) => {
+    let resolved = false;
+    let request: IDBOpenDBRequest | null = null;
+
+    // Timeout to prevent hanging if IndexedDB is unresponsive
+    const timeoutId = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        logger.warn('[userDatabase] legacyDatabaseExists timed out after 5 seconds');
+        resolve(false);
+      }
+    }, LEGACY_DB_CHECK_TIMEOUT_MS);
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+    };
+
+    try {
+      request = window.indexedDB.open(LEGACY_DATABASE_NAME);
+      let existed = true;
+
+      request.onupgradeneeded = () => {
+        // Database didn't exist, was just created
+        existed = false;
+      };
+
+      request.onsuccess = () => {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+
+        try {
+          request!.result.close();
+          if (!existed) {
+            // Clean up the database we just created
+            window.indexedDB.deleteDatabase(LEGACY_DATABASE_NAME);
+          }
+        } catch (closeError) {
+          logger.warn('[userDatabase] Error closing legacy database check', closeError);
+        }
+        resolve(existed);
+      };
+
+      request.onerror = (event) => {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+
+        const error = (event.target as IDBOpenDBRequest)?.error;
+        logger.warn('[userDatabase] Error checking legacy database existence', error);
+        resolve(false);
+      };
+    } catch (error) {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        logger.warn('[userDatabase] Exception checking legacy database existence', error);
+        resolve(false);
+      }
+    }
+  });
+
+  // If constantTime is requested, wait until the full timeout has elapsed
+  // This eliminates timing side-channel that could reveal database existence
+  if (options?.constantTime) {
+    const elapsed = Date.now() - startTime;
+    const remainingWait = LEGACY_DB_CHECK_TIMEOUT_MS - elapsed;
+    if (remainingWait > 0) {
+      await new Promise(resolve => setTimeout(resolve, remainingWait));
+    }
+  }
+
+  return result;
+}

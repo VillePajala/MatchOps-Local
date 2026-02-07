@@ -17,14 +17,18 @@ import type {
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
+import { DEFAULT_APP_SETTINGS } from '@/types/settings';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
-import type { DataStore } from '@/interfaces/DataStore';
+import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import {
   AlreadyExistsError,
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
+import { validateGame, normalizeOptionalString } from '@/datastore/validation';
+import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
+import { validateUserId } from '@/datastore/userDatabase';
 import {
   APP_SETTINGS_KEY,
   LAST_HOME_TEAM_NAME_KEY,
@@ -43,19 +47,18 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import {
   clearAdapterCacheWithCleanup,
-  getStorageItem,
-  getStorageJSON,
   isIndexedDBAvailable,
-  removeStorageItem,
-  setStorageItem,
-  setStorageJSON,
+  getUserStorageAdapter,
+  closeUserStorageAdapter,
+  getStorageAdapter,
 } from '@/utils/storage';
+import type { StorageAdapter } from '@/utils/storageAdapter';
 import { withKeyLock } from '@/utils/storageKeyLock';
 import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
 import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
-import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
+// Club season defaults are accessed via DEFAULT_APP_SETTINGS from '@/types/settings'
 
 // Team index storage format: { [teamId: string]: Team }
 type TeamsIndex = Record<string, Team>;
@@ -65,17 +68,6 @@ type TeamRostersIndex = Record<string, TeamPlayer[]>;
 
 // Player adjustments storage format: { [playerId: string]: PlayerStatAdjustment[] }
 type PlayerAdjustmentsIndex = Record<string, PlayerStatAdjustment[]>;
-
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  currentGameId: null,
-  lastHomeTeamName: '',
-  language: 'fi',
-  hasSeenAppGuide: false,
-  useDemandCorrection: false,
-  hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
-  clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
-};
 
 /**
  * Calculate club season label from a date string.
@@ -168,12 +160,6 @@ const isValidWarmupPlan = (value: unknown): boolean => {
   return true;
 };
 
-const normalizeOptionalString = (value?: string): string | undefined => {
-  if (value === undefined) return undefined;
-  const trimmed = value.trim();
-  return trimmed === '' ? undefined : trimmed;
-};
-
 // Team-specific aliases for semantic clarity (use shared normalization utilities)
 const normalizeTeamName = normalizeName;
 const normalizeTeamNameForCompare = normalizeNameForCompare;
@@ -206,11 +192,15 @@ const createTeamCompositeKey = (
   boundTournamentSeriesId?: string,
   gameType?: string
 ): string => {
-  const parts = [normalizeTeamNameForCompare(name)];
-  if (boundSeasonId) parts.push(`season:${boundSeasonId}`);
-  if (boundTournamentId) parts.push(`tournament:${boundTournamentId}`);
-  if (boundTournamentSeriesId) parts.push(`series:${boundTournamentSeriesId}`);
-  if (gameType) parts.push(`type:${gameType}`);
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
+  const parts = [
+    normalizeTeamNameForCompare(name),
+    `season:${boundSeasonId ?? ''}`,
+    `tournament:${boundTournamentId ?? ''}`,
+    `series:${boundTournamentSeriesId ?? ''}`,
+    `type:${gameType ?? ''}`,
+  ];
   return parts.join('::');
 };
 
@@ -241,13 +231,15 @@ const createSeasonCompositeKey = (
   ageGroup?: string,
   leagueId?: string
 ): string => {
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
   const parts = [
     normalizeNameForCompare(name),
-    `clubSeason:${clubSeason ?? 'none'}`,
-    `gameType:${gameType ?? 'none'}`,
-    `gender:${gender ?? 'none'}`,
-    `ageGroup:${ageGroup ?? 'none'}`,
-    `leagueId:${leagueId ?? 'none'}`,
+    `clubSeason:${clubSeason ?? ''}`,
+    `gameType:${gameType ?? ''}`,
+    `gender:${gender ?? ''}`,
+    `ageGroup:${ageGroup ?? ''}`,
+    `leagueId:${leagueId ?? ''}`,
   ];
   return parts.join('::');
 };
@@ -276,12 +268,14 @@ const createTournamentCompositeKey = (
   gender?: string,
   ageGroup?: string
 ): string => {
+  // Always include all fields to match SupabaseDataStore behavior
+  // Empty string '' used for missing values (matches DB COALESCE default)
   const parts = [
     normalizeNameForCompare(name),
-    `clubSeason:${clubSeason ?? 'none'}`,
-    `gameType:${gameType ?? 'none'}`,
-    `gender:${gender ?? 'none'}`,
-    `ageGroup:${ageGroup ?? 'none'}`,
+    `clubSeason:${clubSeason ?? ''}`,
+    `gameType:${gameType ?? ''}`,
+    `gender:${gender ?? ''}`,
+    `ageGroup:${ageGroup ?? ''}`,
   ];
   return parts.join('::');
 };
@@ -313,52 +307,65 @@ const migrateTournamentLevel = (tournament: Tournament): Tournament => {
   return tournament;
 };
 
-/**
- * Validate a game's required and optional fields.
- * Throws ValidationError if validation fails.
- * Used by both saveGame and saveAllGames for consistent validation.
- *
- * @param game - The game state to validate
- * @param context - Optional context for error messages (e.g., gameId for batch operations)
- */
-const validateGame = (game: AppState, context?: string): void => {
-  const prefix = context ? `Game ${context}: ` : '';
-
-  // Validate required fields
-  if (!game.teamName || !game.opponentName || !game.gameDate) {
-    throw new ValidationError(
-      `${prefix}Missing required game fields`,
-      'game',
-      { hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
-    );
-  }
-
-  // Validate gameNotes length
-  if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
-    throw new ValidationError(
-      `${prefix}Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`,
-      'gameNotes',
-      game.gameNotes
-    );
-  }
-
-  // Validate ageGroup if present
-  if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
-    throw new ValidationError(`${prefix}Invalid age group`, 'ageGroup', game.ageGroup);
-  }
-};
-
 // Type for parsed settings with legacy month fields
 type ParsedSettingsWithLegacy = AppSettings & {
   clubSeasonStartMonth?: number;
   clubSeasonEndMonth?: number;
 };
 
+/**
+ * LocalDataStore - IndexedDB-backed implementation of DataStore.
+ *
+ * ## Immutability Contract
+ *
+ * Methods that accept entity objects (upsertPlayer, upsertTeam, saveGame, etc.)
+ * perform shallow copies of the input data. Callers MUST NOT mutate input objects
+ * after method calls return, as this could corrupt stored data.
+ *
+ * This is a deliberate design choice for performance - deep cloning large game
+ * objects (with hundreds of events) would be expensive. The current usage in
+ * the codebase is safe as callers create fresh objects or use spread operators.
+ */
 export class LocalDataStore implements DataStore {
   private initialized = false;
   private settingsMigrated = false;
   private settingsMigrationPromise: Promise<void> | null = null;
   private seasonDatesCache: { start: string; end: string } | null = null;
+
+  /**
+   * User ID for user-scoped storage.
+   * If set, this LocalDataStore uses a user-specific IndexedDB database.
+   * If undefined, uses the legacy global database (anonymous mode).
+   */
+  private readonly userId?: string;
+
+  /**
+   * Storage adapter for this LocalDataStore instance.
+   * Set during initialize() based on userId.
+   */
+  private adapter: StorageAdapter | null = null;
+
+  /**
+   * Creates a new LocalDataStore instance.
+   *
+   * @param userId - Optional user ID for user-scoped storage.
+   *                 If provided, uses database `matchops_user_{userId}`.
+   *                 If omitted, uses legacy global database `MatchOpsLocal`.
+   * @throws {ValidationError} If userId is provided but invalid (empty, whitespace-only,
+   *                           too long, or contains invalid characters).
+   */
+  constructor(userId?: string) {
+    // Validate userId early if provided (fail fast)
+    // This catches invalid userIds at construction time rather than deferring to initialize()
+    if (userId !== undefined) {
+      // Use shared validation from userDatabase.ts to avoid duplication
+      const validationResult = validateUserId(userId);
+      if (!validationResult.valid) {
+        throw new ValidationError(validationResult.error ?? 'Invalid userId');
+      }
+    }
+    this.userId = userId;
+  }
 
   /**
    * Gets cached season dates or loads from settings.
@@ -440,9 +447,34 @@ export class LocalDataStore implements DataStore {
   }
 
   async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    // Get the appropriate storage adapter based on userId
+    if (this.userId) {
+      // User-scoped storage: each user gets their own IndexedDB database
+      this.adapter = await getUserStorageAdapter(this.userId);
+      logger.info('[LocalDataStore] Initialized with user-scoped storage', { userId: this.userId });
+    } else {
+      // Legacy anonymous mode: use global database
+      this.adapter = await getStorageAdapter();
+      logger.info('[LocalDataStore] Initialized with legacy global storage');
+    }
+
     this.initialized = true;
   }
 
+  /**
+   * Close the DataStore and release resources.
+   *
+   * This method delegates IndexedDB connection cleanup to the storage layer:
+   * - For user-scoped mode: calls closeUserStorageAdapter() to close user's database
+   * - For legacy mode: calls clearAdapterCacheWithCleanup() to close global database
+   *
+   * The storage layer manages the actual IndexedDB connections and caching.
+   * LocalDataStore just tracks initialization state and delegates cleanup.
+   */
   async close(): Promise<void> {
     if (!this.initialized) {
       return;
@@ -452,7 +484,18 @@ export class LocalDataStore implements DataStore {
     this.settingsMigrated = false;
     this.settingsMigrationPromise = null;
     this.seasonDatesCache = null;
-    await clearAdapterCacheWithCleanup();
+
+    // Delegate IndexedDB connection cleanup to the storage layer
+    // The storage layer manages connection caching and proper disposal
+    if (this.userId) {
+      // User-scoped: close this user's specific database connection
+      await closeUserStorageAdapter(this.userId);
+      this.adapter = null;
+    } else {
+      // Legacy mode: clear the global adapter cache
+      await clearAdapterCacheWithCleanup();
+      this.adapter = null;
+    }
   }
 
   getBackendName(): string {
@@ -461,6 +504,122 @@ export class LocalDataStore implements DataStore {
 
   async isAvailable(): Promise<boolean> {
     return isIndexedDBAvailable();
+  }
+
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+
+  // ==========================================================================
+  // PRIVATE STORAGE HELPERS
+  // These methods use the instance adapter when available (user-scoped mode)
+  // or fall back to global storage functions (legacy mode).
+  // ==========================================================================
+
+  /**
+   * Get an item from storage.
+   * Uses user-scoped adapter if available, otherwise falls back to global.
+   *
+   * ## When is adapter null?
+   *
+   * The adapter should NEVER be null at runtime after successful initialize().
+   * All public methods call ensureInitialized() which throws if not initialized.
+   *
+   * The fallback exists for:
+   * 1. **Test scenarios**: Some tests may call private methods directly
+   * 2. **Defensive coding**: Ensures graceful behavior if adapter is unexpectedly null
+   *
+   * If this fallback is ever hit in production, it indicates a bug where a method
+   * was called without proper initialization. The global storage fallback prevents
+   * a crash but could cause data isolation issues (reading wrong user's data).
+   *
+   * @see ensureInitialized() - throws NotInitializedError if not initialized
+   */
+  private async storageGetItem(key: string): Promise<string | null> {
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
+    }
+    return this.adapter.getItem(key);
+  }
+
+  /**
+   * Set an item in storage.
+   * Uses user-scoped adapter if available, otherwise falls back to global.
+   *
+   * Note: Checks both `initialized` and `adapter` because there's a race condition
+   * where operations can start before close() but complete after:
+   * 1. Operation starts, passes ensureInitialized() (initialized=true, adapter exists)
+   * 2. Operation waits for key lock
+   * 3. User logout triggers close() - sets initialized=false, adapter=null
+   * 4. Operation gets lock, tries to use adapter - null!
+   *
+   * This is expected behavior during user transitions, not a bug.
+   */
+  private async storageSetItem(key: string, value: string): Promise<void> {
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
+    }
+    return this.adapter.setItem(key, value);
+  }
+
+  /**
+   * Remove an item from storage.
+   * Uses user-scoped adapter if available, otherwise falls back to global.
+   */
+  private async storageRemoveItem(key: string): Promise<void> {
+    // Defensive: DataStore may have been closed while operation was waiting for lock
+    if (!this.initialized || !this.adapter) {
+      throw new NotInitializedError(
+        'DataStore was closed during operation (expected during user logout/switch)'
+      );
+    }
+    return this.adapter.removeItem(key);
+  }
+
+  /**
+   * Clear all items from storage.
+   * Uses user-scoped adapter if available, otherwise falls back to global.
+   */
+  private async storageClear(): Promise<void> {
+    if (!this.adapter) {
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    }
+    return this.adapter.clear();
+  }
+
+  /**
+   * Get and parse JSON from storage.
+   */
+  private async storageGetJSON<T>(key: string): Promise<T | null> {
+    if (!this.adapter) {
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    }
+    const value = await this.adapter.getItem(key);
+    if (value === null) return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch (parseError) {
+      // Log at warn level so corrupted data is visible in production.
+      // Without this, corrupted storage silently appears as "empty" to the user.
+      logger.warn(`[LocalDataStore] JSON parse error for key "${key}" - data may be corrupted`, parseError);
+      return null;
+    }
+  }
+
+  /**
+   * Set JSON value in storage.
+   */
+  private async storageSetJSON<T>(key: string, value: T): Promise<void> {
+    if (!this.adapter) {
+      throw new NotInitializedError('Storage adapter is null - LocalDataStore bug detected');
+    }
+    return this.adapter.setItem(key, JSON.stringify(value));
   }
 
   async getPlayers(): Promise<Player[]> {
@@ -492,7 +651,7 @@ export class LocalDataStore implements DataStore {
       };
 
       roster.push(newPlayer);
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
+      await this.storageSetItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
       return newPlayer;
     });
   }
@@ -533,7 +692,7 @@ export class LocalDataStore implements DataStore {
       }
 
       roster[playerIndex] = updatedPlayer;
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
+      await this.storageSetItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
 
       return updatedPlayer;
     });
@@ -550,8 +709,51 @@ export class LocalDataStore implements DataStore {
         return false;
       }
 
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(updatedRoster));
+      await this.storageSetItem(MASTER_ROSTER_KEY, JSON.stringify(updatedRoster));
       return true;
+    });
+  }
+
+  /**
+   * Upsert a player (insert or update if exists).
+   * Used by reverse migration to preserve IDs from cloud.
+   *
+   * @param player - Player data to upsert. Caller must not mutate this object
+   *   after the call returns, as timestamp fields are shallow-copied.
+   * @returns The upserted player with normalized fields
+   */
+  async upsertPlayer(player: Player): Promise<Player> {
+    this.ensureInitialized();
+
+    const trimmedName = player.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Player name cannot be empty', 'name', player.name);
+    }
+
+    return withKeyLock(MASTER_ROSTER_KEY, async () => {
+      const roster = await this.loadPlayers();
+      const existingIndex = roster.findIndex((p) => p.id === player.id);
+      const now = new Date().toISOString();
+
+      const normalizedPlayer: Player = {
+        ...player,
+        name: trimmedName,
+        nickname: player.nickname?.trim() || undefined,
+        isGoalie: player.isGoalie ?? false,
+        receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: player.createdAt ?? (existingIndex !== -1 ? roster[existingIndex].createdAt : now),
+        updatedAt: now,
+      };
+
+      if (existingIndex !== -1) {
+        roster[existingIndex] = normalizedPlayer;
+      } else {
+        roster.push(normalizedPlayer);
+      }
+
+      await this.storageSetItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
+      return normalizedPlayer;
     });
   }
 
@@ -639,7 +841,7 @@ export class LocalDataStore implements DataStore {
       };
 
       teamsIndex[newTeam.id] = newTeam;
-      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       await this.setTeamRoster(newTeam.id, []);
 
       return newTeam;
@@ -722,7 +924,7 @@ export class LocalDataStore implements DataStore {
       };
 
       teamsIndex[id] = updatedTeam;
-      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       return updatedTeam;
     });
   }
@@ -737,8 +939,36 @@ export class LocalDataStore implements DataStore {
       }
 
       delete teamsIndex[id];
-      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       return true;
+    });
+  }
+
+  /**
+   * Upsert a team (insert or update if exists).
+   * Used by reverse migration to preserve IDs from cloud.
+   */
+  async upsertTeam(team: Team): Promise<Team> {
+    this.ensureInitialized();
+
+    const trimmedName = normalizeTeamName(team.name);
+    if (!trimmedName) {
+      throw new ValidationError('Team name cannot be empty', 'name', team.name);
+    }
+
+    return withKeyLock(TEAMS_INDEX_KEY, async () => {
+      const teamsIndex = await this.loadTeamsIndex();
+
+      const normalizedTeam: Team = {
+        ...team,
+        name: trimmedName,
+        notes: normalizeOptionalString(team.notes),
+        ageGroup: normalizeOptionalString(team.ageGroup),
+      };
+
+      teamsIndex[team.id] = normalizedTeam;
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      return normalizedTeam;
     });
   }
 
@@ -754,15 +984,40 @@ export class LocalDataStore implements DataStore {
   }
 
   /**
-   * Set team roster. Raw storage operation - no locking.
-   * Callers (teams.ts) are responsible for atomicity via withRosterLock.
+   * Set team roster. Raw storage operation - no locking for roster key.
+   * Callers (teams.ts) are responsible for roster atomicity via withRosterLock.
+   *
+   * Also updates the parent Team's updatedAt timestamp for conflict resolution.
+   * The teams index update IS locked to prevent race conditions with other
+   * operations that modify the teams index.
    */
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
 
-    const rostersIndex = await this.loadTeamRosters();
-    rostersIndex[teamId] = roster;
-    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    // Update both team timestamp and roster under the SAME lock to prevent race conditions.
+    // Without this, another operation could modify the team between releasing the teams lock
+    // and saving the roster, causing the timestamp to not reflect the actual roster state.
+    await withKeyLock(TEAMS_INDEX_KEY, async () => {
+      const teamsIndex = await this.loadTeamsIndex();
+      const rostersIndex = await this.loadTeamRosters();
+
+      if (teamsIndex[teamId]) {
+        teamsIndex[teamId] = {
+          ...teamsIndex[teamId],
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        // Team not found - will still save roster but log warning
+        // This could indicate orphaned roster data or race condition during team creation
+        logger.warn('[LocalDataStore] Cannot update roster timestamp - team not found', { teamId });
+      }
+
+      rostersIndex[teamId] = roster;
+
+      // Save both atomically under the same lock
+      await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    });
   }
 
   /**
@@ -845,7 +1100,7 @@ export class LocalDataStore implements DataStore {
         clubSeason: newClubSeason,
       };
 
-      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify([...currentSeasons, newSeason]));
+      await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify([...currentSeasons, newSeason]));
       return newSeason;
     });
   }
@@ -911,7 +1166,7 @@ export class LocalDataStore implements DataStore {
         clubSeason: newClubSeason,
       };
       currentSeasons[seasonIndex] = updatedSeason;
-      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
+      await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
 
       return updatedSeason;
     });
@@ -928,8 +1183,69 @@ export class LocalDataStore implements DataStore {
         return false;
       }
 
-      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(nextSeasons));
+      await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(nextSeasons));
       return true;
+    });
+  }
+
+  /**
+   * Upsert a season - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   *
+   * @param season - The season to upsert (must have an ID)
+   * @returns The upserted season
+   */
+  async upsertSeason(season: Season): Promise<Season> {
+    this.ensureInitialized();
+
+    const trimmedName = season.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Season name cannot be empty', 'name', season.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.SEASON_NAME_MAX) {
+      throw new ValidationError(
+        `Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters (got ${trimmedName.length})`,
+        'name',
+        season.name
+      );
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(season.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', season.ageGroup);
+    }
+
+    const { start, end } = await this.getSeasonDates();
+
+    return withKeyLock(SEASONS_LIST_KEY, async () => {
+      const currentSeasons = await this.loadSeasons();
+      const existingIndex = currentSeasons.findIndex((s) => s.id === season.id);
+      const now = new Date().toISOString();
+
+      const clubSeason = calculateClubSeason(season.startDate, start, end);
+
+      const normalizedSeason: Season = {
+        ...season,
+        name: trimmedName,
+        ageGroup: normalizedAgeGroup ?? undefined,
+        notes: normalizeOptionalString(season.notes) ?? undefined,
+        clubSeason,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: season.createdAt ?? (existingIndex !== -1 ? currentSeasons[existingIndex].createdAt : now),
+        updatedAt: now,
+      };
+
+      if (existingIndex !== -1) {
+        // Update existing
+        currentSeasons[existingIndex] = normalizedSeason;
+      } else {
+        // Insert new
+        currentSeasons.push(normalizedSeason);
+      }
+
+      await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
+      return normalizedSeason;
     });
   }
 
@@ -1013,7 +1329,7 @@ export class LocalDataStore implements DataStore {
         clubSeason: newClubSeason,
       };
 
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify([...currentTournaments, newTournament]));
+      await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify([...currentTournaments, newTournament]));
       return newTournament;
     });
   }
@@ -1079,7 +1395,7 @@ export class LocalDataStore implements DataStore {
       };
 
       currentTournaments[tournamentIndex] = updatedTournament;
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
+      await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
 
       return updatedTournament;
     });
@@ -1096,8 +1412,70 @@ export class LocalDataStore implements DataStore {
         return false;
       }
 
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(nextTournaments));
+      await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(nextTournaments));
       return true;
+    });
+  }
+
+  /**
+   * Upsert a tournament - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   *
+   * @param tournament - The tournament to upsert (must have an ID)
+   * @returns The upserted tournament
+   */
+  async upsertTournament(tournament: Tournament): Promise<Tournament> {
+    this.ensureInitialized();
+
+    const trimmedName = tournament.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Tournament name cannot be empty', 'name', tournament.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.TOURNAMENT_NAME_MAX) {
+      throw new ValidationError(
+        `Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters (got ${trimmedName.length})`,
+        'name',
+        tournament.name
+      );
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(tournament.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', tournament.ageGroup);
+    }
+
+    const { start, end } = await this.getSeasonDates();
+
+    return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
+      const currentTournaments = await this.loadTournaments();
+      const existingIndex = currentTournaments.findIndex((t) => t.id === tournament.id);
+      const now = new Date().toISOString();
+
+      const clubSeason = calculateClubSeason(tournament.startDate, start, end);
+
+      const normalizedTournament: Tournament = {
+        ...tournament,
+        name: trimmedName,
+        ageGroup: normalizedAgeGroup ?? undefined,
+        level: normalizeOptionalString(tournament.level) ?? undefined,
+        notes: normalizeOptionalString(tournament.notes) ?? undefined,
+        clubSeason,
+        // Set timestamps: preserve createdAt if exists, always update updatedAt
+        createdAt: tournament.createdAt ?? (existingIndex !== -1 ? currentTournaments[existingIndex].createdAt : now),
+        updatedAt: now,
+      };
+
+      if (existingIndex !== -1) {
+        // Update existing
+        currentTournaments[existingIndex] = normalizedTournament;
+      } else {
+        // Insert new
+        currentTournaments.push(normalizedTournament);
+      }
+
+      await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
+      return normalizedTournament;
     });
   }
 
@@ -1153,7 +1531,7 @@ export class LocalDataStore implements DataStore {
       };
 
       collection[newPersonnel.id] = newPersonnel;
-      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+      await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(collection));
       return newPersonnel;
     });
   }
@@ -1203,8 +1581,50 @@ export class LocalDataStore implements DataStore {
       };
 
       collection[id] = updated;
-      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+      await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(collection));
       return updated;
+    });
+  }
+
+  /**
+   * Upsert a personnel member - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   *
+   * @param personnel - The personnel to upsert (must have an ID)
+   * @returns The upserted personnel
+   */
+  async upsertPersonnelMember(personnel: Personnel): Promise<Personnel> {
+    this.ensureInitialized();
+
+    const trimmedName = personnel.name?.trim();
+    if (!trimmedName) {
+      throw new ValidationError('Personnel name cannot be empty', 'name', personnel.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.PERSONNEL_NAME_MAX) {
+      throw new ValidationError(
+        `Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters (got ${trimmedName.length})`,
+        'name',
+        personnel.name
+      );
+    }
+
+    return withKeyLock(PERSONNEL_KEY, async () => {
+      const collection = await this.loadPersonnelCollection();
+      const existing = collection[personnel.id];
+
+      const now = new Date().toISOString();
+
+      const normalizedPersonnel: Personnel = {
+        ...personnel,
+        name: trimmedName,
+        createdAt: existing?.createdAt ?? personnel.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      collection[personnel.id] = normalizedPersonnel;
+      await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(collection));
+      return normalizedPersonnel;
     });
   }
 
@@ -1251,17 +1671,17 @@ export class LocalDataStore implements DataStore {
           }
 
           if (gamesUpdated > 0) {
-            await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+            await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
           }
 
           delete collection[id];
-          await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+          await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(collection));
 
           return true;
         } catch (error) {
           try {
-            await setStorageItem(PERSONNEL_KEY, JSON.stringify(backup.personnel));
-            await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(backup.games));
+            await this.storageSetItem(PERSONNEL_KEY, JSON.stringify(backup.personnel));
+            await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(backup.games));
 
             // Verify rollback succeeded by re-reading data
             const restoredPersonnel = await this.loadPersonnelCollection();
@@ -1372,9 +1792,19 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
       const games = await this.loadSavedGames();
-      games[id] = game;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
-      return game;
+      const now = new Date().toISOString();
+      const existingGame = games[id];
+
+      // Set timestamps: preserve createdAt if exists, always update updatedAt
+      const gameWithTimestamps: AppState = {
+        ...game,
+        createdAt: game.createdAt ?? existingGame?.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      games[id] = gameWithTimestamps;
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      return gameWithTimestamps;
     });
   }
 
@@ -1397,7 +1827,7 @@ export class LocalDataStore implements DataStore {
     }
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
     });
   }
 
@@ -1411,7 +1841,7 @@ export class LocalDataStore implements DataStore {
       }
 
       delete games[id];
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
       return true;
     });
   }
@@ -1433,7 +1863,7 @@ export class LocalDataStore implements DataStore {
       };
 
       games[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
 
       return updatedGame;
     });
@@ -1466,7 +1896,7 @@ export class LocalDataStore implements DataStore {
       };
 
       games[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
 
       return updatedGame;
     });
@@ -1495,7 +1925,7 @@ export class LocalDataStore implements DataStore {
       };
 
       games[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
 
       return updatedGame;
     });
@@ -1512,7 +1942,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      const settingsJson = await getStorageItem(APP_SETTINGS_KEY);
+      const settingsJson = await this.storageGetItem(APP_SETTINGS_KEY);
       if (!settingsJson) {
         this.settingsMigrated = false; // Reset so migration runs when settings restored
         return { ...DEFAULT_APP_SETTINGS };
@@ -1567,7 +1997,7 @@ export class LocalDataStore implements DataStore {
             // Create migration promise to synchronize concurrent calls
             this.settingsMigrationPromise = withKeyLock(APP_SETTINGS_KEY, async () => {
               try {
-                await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+                await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
                 logger.info('[LocalDataStore] Successfully migrated app settings to new format');
                 this.settingsMigrated = true;
               } catch (saveError) {
@@ -1593,7 +2023,7 @@ export class LocalDataStore implements DataStore {
 
       if (!settings.lastHomeTeamName) {
         try {
-          const legacyValue = await getStorageItem(LAST_HOME_TEAM_NAME_KEY);
+          const legacyValue = await this.storageGetItem(LAST_HOME_TEAM_NAME_KEY);
           if (legacyValue) {
             settings.lastHomeTeamName = legacyValue;
           }
@@ -1613,7 +2043,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     await withKeyLock(APP_SETTINGS_KEY, async () => {
-      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+      // Set updatedAt for conflict resolution
+      const toSave = { ...settings, updatedAt: new Date().toISOString() };
+      await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
     });
 
     // Invalidate season dates cache in case dates were changed
@@ -1629,7 +2061,7 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(APP_SETTINGS_KEY, async () => {
       // Read directly from storage (avoid nested lock)
-      const stored = await getStorageItem(APP_SETTINGS_KEY);
+      const stored = await this.storageGetItem(APP_SETTINGS_KEY);
 
       // Parse with validation - fall back to defaults on corruption
       // Use same validation as getSettings() for consistency
@@ -1656,12 +2088,20 @@ export class LocalDataStore implements DataStore {
         current = this.migrateSeasonDates(parsed).settings;
       }
 
-      const updated = { ...current, ...updates };
+      // Preserve cloud timestamp if present (cloud-wins scenario), otherwise generate new
+      // Destructure updatedAt to handle explicit undefined from spread operators
+      // (e.g., updates = { ...obj, updatedAt: undefined } would overwrite before nullish coalescing)
+      const { updatedAt: newUpdatedAt, ...restUpdates } = updates;
+      const updated = {
+        ...current,
+        ...restUpdates,
+        updatedAt: newUpdatedAt ?? current.updatedAt ?? new Date().toISOString(),
+      };
 
       // Remove legacy fields before saving
       const toSave = this.removeLegacyMonthFields(updated);
 
-      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+      await this.storageSetItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
       // Legacy fields removed from storage - mark as migrated
       this.settingsMigrated = true;
 
@@ -1681,42 +2121,87 @@ export class LocalDataStore implements DataStore {
     return all[playerId] || [];
   }
 
+  /**
+   * Helper to build a PlayerStatAdjustment with defaults.
+   * Extracted to avoid duplication between add and upsert methods.
+   */
+  private buildPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): PlayerStatAdjustment {
+    return {
+      id: adjustment.id || generateId('adj'),
+      appliedAt: adjustment.appliedAt || new Date().toISOString(),
+      playerId: adjustment.playerId,
+      seasonId: adjustment.seasonId,
+      teamId: adjustment.teamId,
+      tournamentId: adjustment.tournamentId,
+      externalTeamName: adjustment.externalTeamName,
+      opponentName: adjustment.opponentName,
+      scoreFor: adjustment.scoreFor,
+      scoreAgainst: adjustment.scoreAgainst,
+      gameDate: adjustment.gameDate,
+      homeOrAway: adjustment.homeOrAway,
+      includeInSeasonTournament: adjustment.includeInSeasonTournament,
+      gamesPlayedDelta: adjustment.gamesPlayedDelta || 0,
+      goalsDelta: adjustment.goalsDelta || 0,
+      assistsDelta: adjustment.assistsDelta || 0,
+      fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
+      note: adjustment.note,
+      createdBy: adjustment.createdBy,
+    };
+  }
+
+  /**
+   * Validate adjustment note length.
+   */
+  private validateAdjustmentNote(note: string | undefined): void {
+    if (note && note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
+      throw new ValidationError(
+        `Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${note.length})`,
+        'note',
+        note
+      );
+    }
+  }
+
   async addPlayerAdjustment(
     adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment> {
     this.ensureInitialized();
-
-    if (adjustment.note && adjustment.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
-      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${adjustment.note.length})`, 'note', adjustment.note);
-    }
+    this.validateAdjustmentNote(adjustment.note);
 
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
       const all = await this.loadPlayerAdjustments();
-      const newAdjustment: PlayerStatAdjustment = {
-        id: adjustment.id || generateId('adj'),
-        appliedAt: adjustment.appliedAt || new Date().toISOString(),
-        playerId: adjustment.playerId,
-        seasonId: adjustment.seasonId,
-        teamId: adjustment.teamId,
-        tournamentId: adjustment.tournamentId,
-        externalTeamName: adjustment.externalTeamName,
-        opponentName: adjustment.opponentName,
-        scoreFor: adjustment.scoreFor,
-        scoreAgainst: adjustment.scoreAgainst,
-        gameDate: adjustment.gameDate,
-        homeOrAway: adjustment.homeOrAway,
-        includeInSeasonTournament: adjustment.includeInSeasonTournament,
-        gamesPlayedDelta: adjustment.gamesPlayedDelta || 0,
-        goalsDelta: adjustment.goalsDelta || 0,
-        assistsDelta: adjustment.assistsDelta || 0,
-        fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
-        note: adjustment.note,
-        createdBy: adjustment.createdBy,
-      };
+      const newAdjustment = this.buildPlayerAdjustment(adjustment);
 
       const list = all[newAdjustment.playerId] || [];
       all[newAdjustment.playerId] = [...list, newAdjustment];
-      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+      await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+
+      return newAdjustment;
+    });
+  }
+
+  async upsertPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): Promise<PlayerStatAdjustment> {
+    this.ensureInitialized();
+    this.validateAdjustmentNote(adjustment.note);
+
+    return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
+      const all = await this.loadPlayerAdjustments();
+      const newAdjustment = this.buildPlayerAdjustment(adjustment);
+
+      const list = all[newAdjustment.playerId] || [];
+      // Upsert: Replace existing if found, otherwise append
+      const existingIndex = list.findIndex((item) => item.id === newAdjustment.id);
+      if (existingIndex !== -1) {
+        list[existingIndex] = newAdjustment;
+      } else {
+        list.push(newAdjustment);
+      }
+      all[newAdjustment.playerId] = list;
+      await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
 
       return newAdjustment;
     });
@@ -1745,7 +2230,7 @@ export class LocalDataStore implements DataStore {
       const updated = { ...list[index], ...patch } as PlayerStatAdjustment;
       list[index] = updated;
       all[playerId] = list;
-      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+      await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
 
       return updated;
     });
@@ -1764,16 +2249,36 @@ export class LocalDataStore implements DataStore {
       }
 
       all[playerId] = nextList;
-      await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+      await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
       return true;
     });
+  }
+
+  /**
+   * Get all player adjustments in a single batch operation.
+   * Returns a Map of playerId -> PlayerStatAdjustment[] for efficient bulk access.
+   * Used by migration services to avoid N+1 queries when fetching adjustments for all players.
+   */
+  async getAllPlayerAdjustments(): Promise<Map<string, PlayerStatAdjustment[]>> {
+    this.ensureInitialized();
+
+    const adjustmentsIndex = await this.loadPlayerAdjustments();
+    const result = new Map<string, PlayerStatAdjustment[]>();
+
+    for (const [playerId, adjustments] of Object.entries(adjustmentsIndex)) {
+      if (adjustments.length > 0) {
+        result.set(playerId, adjustments);
+      }
+    }
+
+    return result;
   }
 
   async getWarmupPlan(): Promise<WarmupPlan | null> {
     this.ensureInitialized();
 
     try {
-      const planJson = await getStorageItem(WARMUP_PLAN_KEY);
+      const planJson = await this.storageGetItem(WARMUP_PLAN_KEY);
       if (!planJson) {
         return null;
       }
@@ -1802,18 +2307,11 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(WARMUP_PLAN_KEY, async () => {
-      try {
-        const planToSave: WarmupPlan = {
-          ...plan,
-          lastModified: new Date().toISOString(),
-          isDefault: false,
-        };
-        await setStorageItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
-        return true;
-      } catch (error) {
-        logger.error('[LocalDataStore] Error saving warmup plan', error);
-        return false;
-      }
+      // Let storage errors propagate so callers (React Query mutations) can
+      // handle them via onError — silently returning false masks real failures.
+      const planToSave = normalizeWarmupPlanForSave(plan);
+      await this.storageSetItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
+      return true;
     });
   }
 
@@ -1821,13 +2319,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(WARMUP_PLAN_KEY, async () => {
-      try {
-        await setStorageItem(WARMUP_PLAN_KEY, '');
-        return true;
-      } catch (error) {
-        logger.error('[LocalDataStore] Error deleting warmup plan', error);
-        return false;
-      }
+      // Let storage errors propagate so callers can handle them properly.
+      await this.storageSetItem(WARMUP_PLAN_KEY, '');
+      return true;
     });
   }
 
@@ -1835,7 +2329,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      return await getStorageJSON<TimerState>(TIMER_STATE_KEY);
+      return await this.storageGetJSON<TimerState>(TIMER_STATE_KEY);
     } catch (error) {
       logger.debug('[LocalDataStore] Failed to load timer state', error);
       return null;
@@ -1846,9 +2340,11 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      await setStorageJSON(TIMER_STATE_KEY, state);
+      await this.storageSetJSON(TIMER_STATE_KEY, state);
     } catch (error) {
-      logger.debug('[LocalDataStore] Failed to save timer state', error);
+      // Use warn level so timer save failures are visible in production logs and Sentry.
+      // Timer state during active games is important — loss means timer resets on reload.
+      logger.warn('[LocalDataStore] Failed to save timer state', error);
     }
   }
 
@@ -1856,10 +2352,156 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     try {
-      await removeStorageItem(TIMER_STATE_KEY);
+      await this.storageRemoveItem(TIMER_STATE_KEY);
     } catch (error) {
       logger.debug('[LocalDataStore] Failed to clear timer state', error);
     }
+  }
+
+  // ==========================================================================
+  // DATA MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Clear all user data from local storage.
+   *
+   * Deletes all data from IndexedDB for this user's database.
+   * Does NOT clear localStorage settings (backend mode, migration flags).
+   *
+   * IMPORTANT: Uses this instance's adapter (user-scoped or legacy) to ensure
+   * the correct database is cleared. Previously this called the global
+   * clearStorage() which would clear the wrong database for user-scoped instances.
+   *
+   * @throws {NotInitializedError} If DataStore not initialized
+   * @throws {Error} If deletion fails
+   */
+  async clearAllUserData(): Promise<void> {
+    this.ensureInitialized();
+
+    // Use the instance's adapter to clear the correct database
+    // - User-scoped mode: clears matchops_user_{userId} database
+    // - Legacy mode: clears MatchOpsLocal database
+    await this.storageClear();
+
+    logger.info('[LocalDataStore] All user data cleared from local storage', {
+      userId: this.userId ?? '(legacy)',
+    });
+  }
+
+  // ==========================================================================
+  // ENTITY REFERENCE CHECKS
+  // ==========================================================================
+
+  /**
+   * Check if a season can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   */
+  async getSeasonReferences(seasonId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+
+    const games = await this.getGames();
+    const teams = await this.getTeams(true); // include archived
+
+    const gameCount = Object.values(games).filter(g => g.seasonId === seasonId).length;
+    const teamCount = teams.filter(t => t.boundSeasonId === seasonId).length;
+
+    // Adjustments: count for info, but don't block (SET NULL handles deletion gracefully)
+    const adjustments = await this.getAllPlayerAdjustments();
+    let adjustmentCount = 0;
+    for (const [, playerAdj] of adjustments) {
+      adjustmentCount += playerAdj.filter(a => a.seasonId === seasonId).length;
+    }
+
+    const counts = { games: gameCount, teams: teamCount, adjustments: adjustmentCount };
+
+    // Only GAMES and TEAMS block deletion (hard references)
+    const canDelete = gameCount === 0 && teamCount === 0;
+
+    const parts: string[] = [];
+    if (gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+    if (teamCount > 0) parts.push(`${teamCount} team${teamCount > 1 ? 's' : ''}`);
+    // Show adjustments in summary for awareness, but they don't block
+    if (adjustmentCount > 0) parts.push(`${adjustmentCount} stat adjustment${adjustmentCount > 1 ? 's' : ''} (will be unlinked)`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
+  }
+
+  /**
+   * Check if a tournament can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   */
+  async getTournamentReferences(tournamentId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+
+    const games = await this.getGames();
+    const teams = await this.getTeams(true); // include archived
+
+    // Get the tournament's actual series IDs (don't rely on naming pattern)
+    // Series created via TournamentSeriesManager use arbitrary IDs like series_${timestamp}_${uuid}
+    const tournaments = await this.getTournaments(true);
+    const tournament = tournaments.find(t => t.id === tournamentId);
+    const seriesIds = new Set(tournament?.series?.map((s: { id: string }) => s.id) ?? []);
+
+    // Check both tournamentId and tournamentSeriesId (series belong to tournament)
+    const gameCount = Object.values(games).filter(
+      g => g.tournamentId === tournamentId || (g.tournamentSeriesId && g.tournamentId === tournamentId)
+    ).length;
+    const teamCount = teams.filter(
+      t => t.boundTournamentId === tournamentId ||
+           (t.boundTournamentSeriesId && seriesIds.has(t.boundTournamentSeriesId))
+    ).length;
+
+    // Adjustments: count for info, but don't block
+    const adjustments = await this.getAllPlayerAdjustments();
+    let adjustmentCount = 0;
+    for (const [, playerAdj] of adjustments) {
+      adjustmentCount += playerAdj.filter(a => a.tournamentId === tournamentId).length;
+    }
+
+    const counts = { games: gameCount, teams: teamCount, adjustments: adjustmentCount };
+
+    // Only GAMES and TEAMS block deletion
+    const canDelete = gameCount === 0 && teamCount === 0;
+
+    const parts: string[] = [];
+    if (gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+    if (teamCount > 0) parts.push(`${teamCount} team${teamCount > 1 ? 's' : ''}`);
+    if (adjustmentCount > 0) parts.push(`${adjustmentCount} stat adjustment${adjustmentCount > 1 ? 's' : ''} (will be unlinked)`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
+  }
+
+  /**
+   * Check if a team can be safely deleted (no game references).
+   * Team rosters CASCADE delete and don't block deletion.
+   */
+  async getTeamReferences(teamId: string): Promise<EntityReferences> {
+    this.ensureInitialized();
+
+    const games = await this.getGames();
+    const gameCount = Object.values(games).filter(g => g.teamId === teamId).length;
+
+    const counts = { games: gameCount };
+
+    // Only GAMES block deletion (rosters CASCADE delete with team)
+    const canDelete = gameCount === 0;
+
+    const parts: string[] = [];
+    if (gameCount > 0) parts.push(`${gameCount} game${gameCount > 1 ? 's' : ''}`);
+
+    return {
+      canDelete,
+      counts,
+      summary: parts.length > 0 ? `Used by ${parts.join(' and ')}` : 'Not used by any other data',
+    };
   }
 
   private ensureInitialized(): void {
@@ -1870,7 +2512,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadPlayers(): Promise<Player[]> {
     try {
-      const rosterJson = await getStorageItem(MASTER_ROSTER_KEY);
+      const rosterJson = await this.storageGetItem(MASTER_ROSTER_KEY);
       if (!rosterJson) {
         return [];
       }
@@ -1885,7 +2527,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadTeamsIndex(): Promise<TeamsIndex> {
     try {
-      const json = await getStorageItem(TEAMS_INDEX_KEY);
+      const json = await this.storageGetItem(TEAMS_INDEX_KEY);
       if (!json) {
         return {};
       }
@@ -1904,7 +2546,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadTeamRosters(): Promise<TeamRostersIndex> {
     try {
-      const json = await getStorageItem(TEAM_ROSTERS_KEY);
+      const json = await this.storageGetItem(TEAM_ROSTERS_KEY);
       if (!json) {
         return {};
       }
@@ -1923,7 +2565,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadSeasons(): Promise<Season[]> {
     try {
-      const seasonsJson = await getStorageItem(SEASONS_LIST_KEY);
+      const seasonsJson = await this.storageGetItem(SEASONS_LIST_KEY);
       if (!seasonsJson) {
         return [];
       }
@@ -1938,7 +2580,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadTournaments(): Promise<Tournament[]> {
     try {
-      const tournamentsJson = await getStorageItem(TOURNAMENTS_LIST_KEY);
+      const tournamentsJson = await this.storageGetItem(TOURNAMENTS_LIST_KEY);
       if (!tournamentsJson) {
         return [];
       }
@@ -1953,7 +2595,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadPersonnelCollection(): Promise<PersonnelCollection> {
     try {
-      const personnelJson = await getStorageItem(PERSONNEL_KEY);
+      const personnelJson = await this.storageGetItem(PERSONNEL_KEY);
       if (!personnelJson) {
         return {};
       }
@@ -1972,7 +2614,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadSavedGames(): Promise<SavedGamesCollection> {
     try {
-      const gamesJson = await getStorageItem(SAVED_GAMES_KEY);
+      const gamesJson = await this.storageGetItem(SAVED_GAMES_KEY);
       if (!gamesJson) {
         return {};
       }
@@ -1991,7 +2633,7 @@ export class LocalDataStore implements DataStore {
 
   private async loadPlayerAdjustments(): Promise<PlayerAdjustmentsIndex> {
     try {
-      const json = await getStorageItem(PLAYER_ADJUSTMENTS_KEY);
+      const json = await this.storageGetItem(PLAYER_ADJUSTMENTS_KEY);
       if (!json) {
         return {};
       }

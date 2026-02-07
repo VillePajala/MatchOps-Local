@@ -68,7 +68,7 @@
   "seo": {
     "home": {
       "title": "MatchOps - Local-First Soccer Coaching App",
-      "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics. No signup required. Your data stays private and secure."
+      "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics. No signup required. Optional cloud sync for cross-device access."
     },
     "technical": {
       "title": "Technical Specifications - MatchOps",
@@ -95,7 +95,7 @@
       "typescript": "TypeScript Strict Mode",
       "typescriptDesc": "Full strict mode enabled with no-explicit-any rule",
       "testing": "Test Coverage",
-      "testingDesc": "1600+ tests with Jest and React Testing Library",
+      "testingDesc": "4,400+ tests with Jest and React Testing Library",
       "linting": "Linting & Formatting",
       "lintingDesc": "ESLint with strict rules, Prettier for formatting",
       "cicd": "CI/CD",
@@ -166,7 +166,7 @@
     "techStack": {
       "title": "Technology Stack",
       "frontend": "Frontend Framework",
-      "frontendDesc": "React 19 with Next.js 15 (Pages Router)",
+      "frontendDesc": "React 19 with Next.js 16 (Pages Router)",
       "language": "Language",
       "languageDesc": "TypeScript for type safety and better developer experience",
       "styling": "Styling",
@@ -220,7 +220,7 @@
     "whatIsThis": {
       "title": "What is MatchOps?",
       "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup and positions before the game. During the match, track substitution intervals, log goals and assists with a tap. Your statistics build automatically—game results, scoring leaders, season trends.",
-      "oneLine": "No signup required. Install once and your data stays private and secure. Works anywhere, even without internet."
+      "oneLine": "Start instantly with no signup. Optional cloud sync for cross-device access. Works anywhere, even without internet."
     },
     "whoIsThisFor": {
       "title": "Who Is This For?",
@@ -272,7 +272,7 @@
     "faq": {
       "title": "Common Questions",
       "q1": "How do I install the app?",
-      "a1": "The app is available on Google Play. We're currently in beta testing - use the contact button below or email hello@match-ops.com to request access.",
+      "a1": "The app is coming soon to Google Play. Contact us at hello@match-ops.com for more information.",
       "q2": "Where is my data stored?",
       "a2": "Your data is stored securely and stays private.",
       "q3": "Can I use it on multiple devices?",
@@ -293,7 +293,9 @@
       "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
     },
     "cta": {
-      "title": "The app is in beta testing. Get in touch to join."
+      "title": "Coming Soon to Google Play",
+      "subtitle": "Have questions? Get in touch.",
+      "button": "Contact Us"
     }
   },
   "screenshots": {
@@ -335,6 +337,9 @@
       "memorable": "Every game remembered.",
       "toolkit": "Your game day toolkit",
       "threePillars": "Plan Lineups • Track Games • Build Statistics"
+    },
+    "badges": {
+      "cloudSync": "NEW: Cloud Sync"
     },
     "painPoints": {
       "soundFamiliar": "Sound familiar?",
@@ -378,7 +383,7 @@
       "offlinePrivate": "Works offline. Your data stays private."
     },
     "cta": {
-      "inTesting": "Currently in Limited Testing",
+      "inTesting": "Coming Soon",
       "contact": "Contact: hello@match-ops.com"
     },
     "descriptions": {
@@ -489,7 +494,9 @@
       "futsal": "Futsal",
       "futsalDesc": "Futsal court view and game labeling for accurate stats and filtering.",
       "officialRules": "Official Rules",
-      "officialRulesDesc": "Quick access to official soccer and futsal rules from the Finnish FA."
+      "officialRulesDesc": "Quick access to official soccer and futsal rules from the Finnish FA.",
+      "cloudSync": "Cloud Sync",
+      "cloudSyncDesc": "Sign in to sync your data across devices. Your data stays safe in the cloud and syncs automatically."
     },
     "techCards": {
       "development": "DEVELOPMENT",

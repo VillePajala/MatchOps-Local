@@ -44,24 +44,26 @@ export interface GameData {
 
 /**
  * Gets all saved games from storage (IndexedDB)
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to an Object containing saved games mapped by ID
  *
  * @note Delegates to DataStore which implements graceful degradation -
  * if JSON is corrupted, returns empty collection and logs error.
  */
-export const getSavedGames = async (): Promise<SavedGamesCollection> => {
-  const dataStore = await getDataStore();
+export const getSavedGames = async (userId?: string): Promise<SavedGamesCollection> => {
+  const dataStore = await getDataStore(userId);
   return dataStore.getGames();
 };
 
 /**
  * Saves all games to storage (IndexedDB)
  * @param games - Collection of games to save
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving when complete
  * @remarks Delegates to DataStore.saveAllGames() for atomic bulk save.
  */
-export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
-  const dataStore = await getDataStore();
+export const saveGames = async (games: SavedGamesCollection, userId?: string): Promise<void> => {
+  const dataStore = await getDataStore(userId);
   return dataStore.saveAllGames(games);
 };
 
@@ -69,41 +71,44 @@ export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
  * Saves a single game to storage (IndexedDB)
  * @param gameId - ID of the game to save
  * @param gameData - Game data to save
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the saved game data
  */
-export const saveGame = async (gameId: string, gameData: AppState): Promise<AppState> => {
+export const saveGame = async (gameId: string, gameData: AppState, userId?: string): Promise<AppState> => {
   if (!gameId || !gameId.trim()) {
     throw new Error('Game ID is required');
   }
-  const dataStore = await getDataStore();
+  const dataStore = await getDataStore(userId);
   return dataStore.saveGame(gameId, gameData);
 };
 
 /**
  * Gets a single game by ID
  * @param gameId - ID of the game to retrieve
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the game data, or null if not found
  */
-export const getGame = async (gameId: string): Promise<AppState | null> => {
+export const getGame = async (gameId: string, userId?: string): Promise<AppState | null> => {
   if (!gameId) {
     return null;
   }
-  const dataStore = await getDataStore();
+  const dataStore = await getDataStore(userId);
   return dataStore.getGameById(gameId);
 };
 
 /**
  * Deletes a game from storage (IndexedDB)
  * @param gameId - ID of the game to delete
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the gameId if the game was deleted, null otherwise
  */
-export const deleteGame = async (gameId: string): Promise<string | null> => {
+export const deleteGame = async (gameId: string, userId?: string): Promise<string | null> => {
   if (!gameId) {
     logger.warn('deleteGame: gameId is null or empty.');
     return null;
   }
 
-  const dataStore = await getDataStore();
+  const dataStore = await getDataStore(userId);
   const deleted = await dataStore.deleteGame(gameId);
 
   if (deleted) {
@@ -118,21 +123,23 @@ export const deleteGame = async (gameId: string): Promise<string | null> => {
 /**
  * Creates a new game with the given data
  * @param gameData - Initial game data
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the ID of the new game and the game data
  * @remarks Delegates to DataStore.createGame() which handles ID generation and defaults.
  */
-export const createGame = async (gameData: Partial<AppState>): Promise<{ gameId: string, gameData: AppState }> => {
-  const dataStore = await getDataStore();
+export const createGame = async (gameData: Partial<AppState>, userId?: string): Promise<{ gameId: string, gameData: AppState }> => {
+  const dataStore = await getDataStore(userId);
   return dataStore.createGame(gameData);
 };
 
 /**
  * Gets all game IDs
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to an Array of game IDs
  */
-export const getAllGameIds = async (): Promise<string[]> => {
+export const getAllGameIds = async (userId?: string): Promise<string[]> => {
   try {
-    const allGames = await getSavedGames();
+    const allGames = await getSavedGames(userId);
     return Object.keys(allGames);
   } catch (error) {
     logger.error('Error getting all game IDs:', error);
@@ -143,16 +150,17 @@ export const getAllGameIds = async (): Promise<string[]> => {
 /**
  * Gets games filtered by season and/or tournament
  * @param filters - Filter criteria
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to an Array of filtered games as [gameId, gameData] tuples
  */
 export const getFilteredGames = async (filters: {
   seasonId?: string,
   tournamentId?: string
-}): Promise<[string, AppState][]> => {
+}, userId?: string): Promise<[string, AppState][]> => {
   try {
-    const allGames = await getSavedGames();
+    const allGames = await getSavedGames(userId);
     const gameEntries = Object.entries(allGames);
-    
+
     const filtered = gameEntries.filter(([, game]) => {
       const gameData = game as AppState;
       const seasonFilter = filters.seasonId?.trim() ?? '';
@@ -263,13 +271,15 @@ export const getLatestGameId = (games: SavedGamesCollection): string | null => {
  * Updates game details (metadata only, not events)
  * @param gameId - ID of the game to update
  * @param updateData - Data to update
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the updated game data, or null on error
  */
 export const updateGameDetails = async (
   gameId: string,
-  updateData: Partial<Omit<AppState, 'id' | 'events'>>
+  updateData: Partial<Omit<AppState, 'id' | 'events'>>,
+  userId?: string
 ): Promise<AppState | null> => {
-  const dataStore = await getDataStore();
+  const dataStore = await getDataStore(userId);
   const game = await dataStore.getGameById(gameId);
 
   if (!game) {
@@ -289,10 +299,11 @@ export const updateGameDetails = async (
  * Adds an event to a game
  * @param gameId - ID of the game
  * @param event - Event data to add
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the updated game data, or null on error
  */
-export const addGameEvent = async (gameId: string, event: PageGameEvent): Promise<AppState | null> => {
-  const dataStore = await getDataStore();
+export const addGameEvent = async (gameId: string, event: PageGameEvent, userId?: string): Promise<AppState | null> => {
+  const dataStore = await getDataStore(userId);
   return dataStore.addGameEvent(gameId, event);
 };
 
@@ -301,10 +312,11 @@ export const addGameEvent = async (gameId: string, event: PageGameEvent): Promis
  * @param gameId - ID of the game
  * @param eventIndex - Index of the event to update
  * @param eventData - New event data
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the updated game data, or null on error
  */
-export const updateGameEvent = async (gameId: string, eventIndex: number, eventData: PageGameEvent): Promise<AppState | null> => {
-  const dataStore = await getDataStore();
+export const updateGameEvent = async (gameId: string, eventIndex: number, eventData: PageGameEvent, userId?: string): Promise<AppState | null> => {
+  const dataStore = await getDataStore(userId);
   return dataStore.updateGameEvent(gameId, eventIndex, eventData);
 };
 
@@ -312,20 +324,22 @@ export const updateGameEvent = async (gameId: string, eventIndex: number, eventD
  * Removes an event from a game
  * @param gameId - ID of the game
  * @param eventIndex - Index of the event to remove
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the updated game data, or null on error
  */
-export const removeGameEvent = async (gameId: string, eventIndex: number): Promise<AppState | null> => {
-  const dataStore = await getDataStore();
+export const removeGameEvent = async (gameId: string, eventIndex: number, userId?: string): Promise<AppState | null> => {
+  const dataStore = await getDataStore(userId);
   return dataStore.removeGameEvent(gameId, eventIndex);
 };
 
 /**
  * Exports all games as a JSON string
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to a JSON string of all games, or null on error
  */
-export const exportGamesAsJson = async (): Promise<string | null> => {
+export const exportGamesAsJson = async (userId?: string): Promise<string | null> => {
   try {
-    const allGames = await getSavedGames();
+    const allGames = await getSavedGames(userId);
     if (Object.keys(allGames).length === 0) {
       logger.log('No games to export.');
       return null; // Or an empty JSON object string like '{}'
@@ -341,6 +355,7 @@ export const exportGamesAsJson = async (): Promise<string | null> => {
  * Import games from a JSON string, supporting overwrite option
  * @param jsonData - JSON string of games to import
  * @param overwrite - Whether to overwrite existing games with the same ID
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to detailed import results
  */
 
@@ -356,7 +371,8 @@ export interface ImportResult {
 
 export const importGamesFromJson = async (
   jsonData: string,
-  overwrite: boolean = false
+  overwrite: boolean = false,
+  userId?: string
 ): Promise<ImportResult> => {
   const result: ImportResult = {
     successful: 0,
@@ -367,7 +383,7 @@ export const importGamesFromJson = async (
 
   try {
     const parsedData = JSON.parse(jsonData);
-    
+
     // Handle both single game and collection formats
     let gamesToImport: SavedGamesCollection;
     if (parsedData.savedSoccerGames) {
@@ -383,7 +399,7 @@ export const importGamesFromJson = async (
       throw new Error('Invalid JSON data format for import.');
     }
 
-    const existingGames = await getSavedGames();
+    const existingGames = await getSavedGames(userId);
     const gamesToSave: SavedGamesCollection = { ...existingGames };
 
     for (const [gameId, gameData] of Object.entries(gamesToImport)) {
@@ -438,7 +454,7 @@ export const importGamesFromJson = async (
 
         gamesToSave[gameId] = validatedData;
         result.successful++;
-        
+
       } catch (error) {
         result.failed.push({
           gameId,
@@ -452,7 +468,7 @@ export const importGamesFromJson = async (
     // This double validation is intentional to ensure data integrity at the storage layer,
     // even if future callers of saveAllGames forget to validate first.
     if (result.successful > 0) {
-      await saveGames(gamesToSave);
+      await saveGames(gamesToSave, userId);
       logger.log(`Successfully imported ${result.successful} games`);
     }
 
@@ -465,7 +481,7 @@ export const importGamesFromJson = async (
     }
 
     return result;
-    
+
   } catch (error) {
     logger.error('Import games error:', error);
     throw new Error(`Failed to parse import file: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -478,9 +494,10 @@ export const importGamesFromJson = async (
  */
 export const importGamesFromJsonLegacy = async (
   jsonData: string,
-  overwrite: boolean = false
+  overwrite: boolean = false,
+  userId?: string
 ): Promise<number> => {
-  const result = await importGamesFromJson(jsonData, overwrite);
+  const result = await importGamesFromJson(jsonData, overwrite, userId);
   return result.successful;
 };
 
@@ -496,11 +513,13 @@ export interface GameValidationResult {
  * Validates a game's data structure and determines if it can be resumed
  * @param gameId - The ID of the game to validate
  * @param gameData - Optional game data to validate (if not provided, fetches from storage)
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to validation results
  */
 export const validateAndGetResumableGame = async (
-  gameId: string, 
-  gameData?: AppState
+  gameId: string,
+  gameData?: AppState,
+  userId?: string
 ): Promise<GameValidationResult> => {
   const result: GameValidationResult = {
     isValid: false,
@@ -515,7 +534,7 @@ export const validateAndGetResumableGame = async (
     if (gameData) {
       game = gameData;
     } else {
-      const games = await getSavedGames();
+      const games = await getSavedGames(userId);
       const foundGame = games[gameId];
       if (!foundGame) {
         result.errors.push(`Game with ID ${gameId} not found`);
@@ -552,7 +571,7 @@ export const validateAndGetResumableGame = async (
     if (!game.teamName?.trim()) {
       result.errors.push('Team name is missing or empty');
     }
-    
+
     if (!game.opponentName?.trim()) {
       result.errors.push('Opponent name is missing or empty');
     }

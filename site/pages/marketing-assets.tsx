@@ -18,11 +18,13 @@ const SECTIONS = [
   { id: 'opengraph', label: 'Open Graph' },
   { id: 'instagram-posts', label: 'Instagram Posts' },
   { id: 'instagram-stories', label: 'Instagram Stories' },
+  { id: 'playstore', label: 'Play Store Listing' },
   { id: 'appstore', label: 'App Store' },
   { id: 'cards', label: 'Cards' },
   { id: 'tech-stats', label: 'Tech Stats' },
   { id: 'logos', label: 'Logos' },
   { id: 'heroes', label: 'Heroes' },
+  { id: 'youtube', label: 'YouTube' },
 ];
 
 // Floating navigation for mobile
@@ -84,7 +86,7 @@ const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
     // Main hero screenshots
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en&fi.jpg', // Language agnostic
+    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en_fi.jpg', // Language agnostic
     timer: isEnglish
       ? '/screenshots/MatchOps_main_timer_en.jpg'
       : '/screenshots/MatchOps_Main_timer_full.jpg',
@@ -92,7 +94,7 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
       : '/screenshots/MatchOps_Main_playerstats_full.jpg',
     // Feature card screenshots
-    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi&en.jpg', // Both languages
+    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi_en.jpg', // Both languages
     formations: isEnglish
       ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
       : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
@@ -126,6 +128,9 @@ const getScreenshots = (locale: string | undefined) => {
     personnel: isEnglish
       ? '/screenshots/MatcOps_main_personnel_en.jpg'
       : '/screenshots/MatchOps_main_personnel_fi.jpg',
+    cloudSync: isEnglish
+      ? '/screenshots/MatchOps_main_cloudSync_en.jpg'
+      : '/screenshots/MatchOps_main_CloudSync_fi.jpg',
   };
 };
 
@@ -139,6 +144,7 @@ const FORMATS = {
   instagramStory: { width: 1080, height: 1920, name: 'Instagram Story' },
   openGraph: { width: 1200, height: 630, name: 'Open Graph / Social Share' },
   appStoreFeature: { width: 1024, height: 500, name: 'App Store Feature Graphic' },
+  playStoreIcon: { width: 512, height: 512, name: 'Play Store App Icon' },
 };
 
 // PhoneMockup imported from @/components/marketing
@@ -262,9 +268,7 @@ function AssetContainer({
       await document.fonts.ready;
 
       const dataUrl = await toPng(element, {
-        width: width,
-        height: height,
-        pixelRatio: window.devicePixelRatio || 1,
+        pixelRatio: (1 / scale),
         cacheBust: true,
       });
 
@@ -406,6 +410,7 @@ function SiteUrl({
 export default function MarketingAssets() {
   const router = useRouter();
   const { t } = useTranslation('common');
+  const isEnglish = router.locale === 'en';
   const screenshots = getScreenshots(router.locale);
 
   return (
@@ -2140,6 +2145,154 @@ export default function MarketingAssets() {
           </section>
 
           {/* ============================================ */}
+          {/* PLAY STORE LISTING ASSETS */}
+          {/* ============================================ */}
+          <section id="playstore" className="mb-24 scroll-mt-8">
+            <h2 className="text-2xl font-bold text-primary mb-2 border-b border-gray-800 pb-4">
+              Google Play Store Listing Assets
+            </h2>
+            <p className="text-gray-400 text-sm mb-8">
+              All required and recommended assets for Play Store listing. Download each and upload to Play Console.
+            </p>
+
+            {/* Feature Graphic */}
+            <h3 className="text-lg font-semibold text-white mb-4">Feature Graphic (1024×500) — Required</h3>
+            <div className="space-y-8 mb-12">
+
+              {/* V1: Phones + text — classic layout */}
+              <AssetContainer id="ps-feature-v1" {...FORMATS.appStoreFeature}>
+                <div className="w-full h-full bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 flex items-center justify-between px-16 relative overflow-hidden">
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-5 mb-4">
+                      <Logo size={70} />
+                      <TitleText size="xl" />
+                    </div>
+                    <p className="text-gray-300 text-xl mb-4">{t('marketing.taglines.toolkit')}</p>
+                    <p className="text-gray-500 mb-3">{t('marketing.taglines.threePillars')}</p>
+                    <SiteUrl size="sm" />
+                  </div>
+                  <div className="relative z-10">
+                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={16} screenshots={screenshots} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* V2: Sign-in page background — bold centered text */}
+              <AssetContainer id="ps-feature-v2" {...FORMATS.appStoreFeature}>
+                <div className="w-full h-full relative overflow-hidden" style={{ backgroundColor: '#0f172a' }}>
+                  {/* Sky-blue glows matching sign-in page */}
+                  <div className="absolute rounded-full" style={{ top: '-30%', right: '-10%', width: '50%', height: '80%', backgroundColor: 'rgba(14,165,233,0.10)', filter: 'blur(80px)' }} />
+                  <div className="absolute rounded-full" style={{ bottom: '-25%', left: '-5%', width: '45%', height: '70%', backgroundColor: 'rgba(14,165,233,0.15)', filter: 'blur(80px)' }} />
+                  <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+                    <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 80 }}>MatchOps</span>
+                    <p className="text-gray-300 text-xl mt-3 tracking-wide">The all-in-one app for soccer &amp; futsal coaches</p>
+                    <span className="text-gray-500 text-sm mt-4 tracking-widest">match-ops.com</span>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* V3: Sign-in bg + phones on right */}
+              <AssetContainer id="ps-feature-v3" {...FORMATS.appStoreFeature}>
+                <div className="w-full h-full relative overflow-hidden flex items-center justify-between px-14" style={{ backgroundColor: '#0f172a' }}>
+                  <div className="absolute rounded-full" style={{ top: '-30%', right: '-10%', width: '50%', height: '80%', backgroundColor: 'rgba(14,165,233,0.10)', filter: 'blur(80px)' }} />
+                  <div className="absolute rounded-full" style={{ bottom: '-25%', left: '-5%', width: '45%', height: '70%', backgroundColor: 'rgba(14,165,233,0.15)', filter: 'blur(80px)' }} />
+                  <div className="relative z-10 flex flex-col">
+                    <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 64 }}>MatchOps</span>
+                    <p className="text-gray-300 text-lg mt-1">Soccer &amp; futsal coaching app</p>
+                    <div className="flex gap-3 mt-5">
+                      {['Plan', 'Track', 'Assess'].map((f) => (
+                        <span key={f} className="px-3 py-1 rounded-full text-xs font-medium bg-amber-400/10 text-amber-400 border border-amber-400/20">{f}</span>
+                      ))}
+                    </div>
+                    <span className="text-gray-500 text-sm mt-5 tracking-wide">match-ops.com</span>
+                  </div>
+                  <div className="relative z-10">
+                    <ThreePhonesBalanced sideSize="md" middleSize="lg" overlap={16} screenshots={screenshots} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* V4: Clean minimal — logo + tagline centered, amber accent line */}
+              <AssetContainer id="ps-feature-v4" {...FORMATS.appStoreFeature}>
+                <div className="w-full h-full relative overflow-hidden" style={{ backgroundColor: '#0f172a' }}>
+                  <div className="absolute rounded-full" style={{ top: '-30%', right: '-10%', width: '50%', height: '80%', backgroundColor: 'rgba(14,165,233,0.10)', filter: 'blur(80px)' }} />
+                  <div className="absolute rounded-full" style={{ bottom: '-25%', left: '-5%', width: '45%', height: '70%', backgroundColor: 'rgba(14,165,233,0.15)', filter: 'blur(80px)' }} />
+                  <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+                    <div className="flex items-center gap-5 mb-5">
+                      <Logo size={65} />
+                      <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 72 }}>MatchOps</span>
+                    </div>
+                    <div className="w-16 h-0.5 bg-amber-400/50 mb-5" />
+                    <p className="text-gray-400 text-lg tracking-wide">For soccer &amp; futsal coaches</p>
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* V5: Dark gradient + single large phone center */}
+              <AssetContainer id="ps-feature-v5" {...FORMATS.appStoreFeature}>
+                <div className="w-full h-full relative overflow-hidden flex items-center justify-center gap-16" style={{ backgroundColor: '#0f172a' }}>
+                  <div className="absolute rounded-full" style={{ top: '-30%', right: '-10%', width: '50%', height: '80%', backgroundColor: 'rgba(14,165,233,0.10)', filter: 'blur(80px)' }} />
+                  <div className="absolute rounded-full" style={{ bottom: '-25%', left: '-5%', width: '45%', height: '70%', backgroundColor: 'rgba(14,165,233,0.15)', filter: 'blur(80px)' }} />
+                  <div className="relative z-10 flex flex-col items-end text-right">
+                    <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 56 }}>MatchOps</span>
+                    <p className="text-gray-400 mt-1">Plan lineups. Track matches.</p>
+                    <p className="text-gray-400">Build player statistics.</p>
+                  </div>
+                  <div className="relative z-10">
+                    <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={1} />
+                  </div>
+                </div>
+              </AssetContainer>
+            </div>
+
+            {/* Phone Screenshots */}
+            <h3 className="text-lg font-semibold text-white mb-4">Phone Screenshots — Min 2, Max 8</h3>
+            <p className="text-gray-400 text-sm mb-6">Right-click → Save Image, or click the download button. Google Play displays these in a device frame automatically.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+              {[
+                { key: 'soccerfield', label: isEnglish ? 'Lineup' : 'Kokoonpano' },
+                { key: 'timer', label: isEnglish ? 'Timer' : 'Ajastin' },
+                { key: 'playerstats', label: isEnglish ? 'Statistics' : 'Tilastot' },
+                { key: 'tacticalBoard', label: isEnglish ? 'Tactics' : 'Taktiikka' },
+                { key: 'goalTimeline', label: isEnglish ? 'Match Log' : 'Otteluloki' },
+                { key: 'assessment', label: isEnglish ? 'Assessment' : 'Arviointi' },
+                { key: 'trends', label: isEnglish ? 'Trends' : 'Trendit' },
+                { key: 'archive', label: isEnglish ? 'Archive' : 'Historia' },
+              ].map((item) => {
+                const src = screenshots[item.key as keyof typeof screenshots];
+                const filename = `MatchOps-PlayStore-${item.key}.jpg`;
+                return (
+                  <div key={item.key} className="mb-4">
+                    <div className="mb-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
+                      <Image src={src} alt={item.label} width={270} height={480} className="w-full h-auto" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-300">{item.label}</span>
+                      <a
+                        href={src}
+                        download={filename}
+                        className="text-xs px-2 py-1 rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+                      >
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* App Icon */}
+            <h3 className="text-lg font-semibold text-white mb-4">App Icon (512×512) — Required</h3>
+            <div className="space-y-8">
+              <AssetContainer id="ps-icon" {...FORMATS.playStoreIcon}>
+                <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                  <Logo size={380} />
+                </div>
+              </AssetContainer>
+            </div>
+          </section>
+
+          {/* ============================================ */}
           {/* APP STORE FEATURE GRAPHICS */}
           {/* ============================================ */}
           <section id="appstore" className="mb-24 scroll-mt-8">
@@ -2535,7 +2688,7 @@ export default function MarketingAssets() {
             </div>
 
             {/* ===== EXTENDED FEATURE CARDS (12 new features) ===== */}
-            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Extended Feature Cards (12 features)</h3>
+            <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Extended Feature Cards (13 features)</h3>
             <div className="flex flex-wrap gap-8">
               {/* 1. Tactical Board */}
               <AssetContainer id="card-tactical" width={600} height={400} name="Feature Card - Tactical Board">
@@ -2737,6 +2890,23 @@ export default function MarketingAssets() {
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
                     <PhoneMockup screenshot={screenshots.personnel} size="lg" zIndex={10} />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* 13. Cloud Sync */}
+              <AssetContainer id="card-cloudsync" width={600} height={400} name="Feature Card - Cloud Sync">
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
+                  <div className="w-1/2 flex flex-col justify-center">
+                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
+                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.cloudSync')}</h3>
+                    <p className="text-gray-400 mb-3">
+                      {t('marketing.featureCards.cloudSyncDesc')}
+                    </p>
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                  <div className="w-1/2 flex items-center justify-center">
+                    <PhoneMockup screenshot={screenshots.cloudSync} size="lg" zIndex={10} />
                   </div>
                 </div>
               </AssetContainer>
@@ -3022,6 +3192,32 @@ export default function MarketingAssets() {
                     <SiteUrl className="mt-4" size="md" />
                   </div>
                   <PhoneMockup screenshot={screenshots.soccerfield} size="2xl" zIndex={10} />
+                </div>
+              </AssetContainer>
+            </div>
+          </section>
+
+          {/* ==================== YOUTUBE BANNERS ==================== */}
+          <section id="youtube" className="mb-24 scroll-mt-8">
+            <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
+              YouTube Channel Banner (2560×1440)
+            </h2>
+            <p className="text-gray-500 text-sm mb-8">
+              Full canvas: 2560×1440. Safe area (all devices): center 1546×423. Text centered in safe zone.
+            </p>
+
+            <div className="space-y-8">
+              {/* Clean text banner — MatchOps centered in safe zone */}
+              <AssetContainer id="yt-banner" width={2560} height={1440} name="YouTube Banner" scale={0.5}>
+                <div className="w-full h-full relative overflow-hidden" style={{
+                  background: 'linear-gradient(180deg, #080d1c 0%, #131b30 45%, #131b30 55%, #0b1122 100%)',
+                }}>
+                  {/* Content — centered in safe zone */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 100 }}>
+                      MatchOps
+                    </span>
+                  </div>
                 </div>
               </AssetContainer>
             </div>

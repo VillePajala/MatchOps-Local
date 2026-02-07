@@ -1,12 +1,12 @@
- 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 
 import SettingsModal from './SettingsModal';
 import { ToastProvider } from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
+import { AuthProvider } from '@/contexts/AuthProvider';
 
 // Create test query client
 const createTestQueryClient = () => new QueryClient({
@@ -21,33 +21,36 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = createTestQueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      <PremiumProvider>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
-      </PremiumProvider>
+      <AuthProvider>
+        <PremiumProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </PremiumProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, fallbackOrOpts?: any) => {
-      if (typeof fallbackOrOpts === 'string') return fallbackOrOpts;
-      if (key === 'settingsModal.storageUsageDetails' && fallbackOrOpts) {
-        return `${fallbackOrOpts.used} of ${fallbackOrOpts.quota} used`;
-      }
+    t: (key: string, fallbackOrOpts?: unknown) => {
       // Return English translations for common keys
       const translations: Record<string, string> = {
         'settingsModal.title': 'App Settings',
+        'settingsModal.tabs.general': 'General',
+        'settingsModal.tabs.season': 'Season',
+        'settingsModal.tabs.data': 'Data',
+        'settingsModal.tabs.premium': 'Premium',
+        'settingsModal.tabs.about': 'About',
         'settingsModal.languageLabel': 'Language',
         'settingsModal.defaultTeamNameLabel': 'Default Team Name',
         'settingsModal.storageUsageLabel': 'Storage Usage',
-        'settingsModal.storageUsageUnavailable': 'Storage usage information unavailable.',
+        'settingsModal.storageUsageUnavailable': 'Unavailable',
         'settingsModal.doneButton': 'Done',
         'settingsModal.dangerZoneTitle': 'Danger Zone',
         'settingsModal.hardResetButton': 'Hard Reset App',
-        'settingsModal.resetGuideButton': 'Reset App Guide',
+        'settingsModal.resetButton': 'Reset',
         'settingsModal.confirmResetLabel': 'Type RESET to confirm',
         'settingsModal.backupButton': 'Backup All Data',
         'settingsModal.restoreButton': 'Restore from Backup',
@@ -58,8 +61,18 @@ jest.mock('react-i18next', () => ({
         'settingsModal.installUpdate': 'Install',
         'settingsModal.updateReadyReload': 'Update installed! Reload the app when ready to apply.',
         'settingsModal.upToDate': 'App is up to date!',
+        'common.reset': 'Reset',
       };
-      return translations[key] || fallbackOrOpts || key;
+      // Check translations map first
+      if (translations[key]) return translations[key];
+      // Handle interpolation objects (e.g., storageUsageDetails)
+      if (key === 'settingsModal.storageUsageDetails' && fallbackOrOpts && typeof fallbackOrOpts === 'object') {
+        const opts = fallbackOrOpts as Record<string, string>;
+        return `${opts.used} of ${opts.quota} used`;
+      }
+      // Fall back to string fallback or key
+      if (typeof fallbackOrOpts === 'string') return fallbackOrOpts;
+      return key;
     },
   }),
 }));
@@ -71,9 +84,15 @@ const defaultProps = {
   onLanguageChange: jest.fn(),
   defaultTeamName: 'My Team',
   onDefaultTeamNameChange: jest.fn(),
-  onResetGuide: jest.fn(),
   onHardResetApp: jest.fn(),
   onCreateBackup: jest.fn(),
+};
+
+// Helper to navigate to a specific tab
+// Note: Season settings are now in General tab, Premium renamed to Account
+const navigateToTab = (tabName: 'General' | 'Data' | 'Account' | 'About') => {
+  const tab = screen.getByRole('button', { name: tabName });
+  fireEvent.click(tab);
 };
 
 describe('<SettingsModal />', () => {
@@ -92,8 +111,12 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
     expect(screen.getByText('App Settings')).toBeInTheDocument();
-    expect(screen.getByLabelText('Language')).toBeInTheDocument();
-    expect(screen.getByLabelText('Default Team Name')).toBeInTheDocument();
+    // Language label is a <p> element, select has id="language-select"
+    expect(screen.getByText('Language')).toBeInTheDocument();
+    expect(document.getElementById('language-select')).toBeInTheDocument();
+    // Default Team Name label is a <p> element, input has id="team-name-input"
+    expect(screen.getByText('Default Team Name')).toBeInTheDocument();
+    expect(document.getElementById('team-name-input')).toBeInTheDocument();
   });
 
   test('displays storage unavailable message when navigator.storage is not supported', () => {
@@ -104,8 +127,11 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
+    navigateToTab('About');
+
     expect(screen.getByText('Storage Usage')).toBeInTheDocument();
-    expect(screen.getByText('Storage usage information unavailable.')).toBeInTheDocument();
+    // Component uses t('settingsModal.storageUsageUnavailable', 'Unavailable')
+    expect(screen.getByText('Unavailable')).toBeInTheDocument();
   });
 
   test('displays storage usage when available', async () => {
@@ -122,6 +148,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    navigateToTab('About');
 
     // Wait for the storage section to appear
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
@@ -151,6 +179,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    navigateToTab('About');
 
     // Wait for the storage section to appear
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
@@ -183,6 +213,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+    // Hard Reset is in the Account tab (Danger Zone section)
+    navigateToTab('Account');
     const resetBtn = screen.getByRole('button', { name: /Hard Reset App/i });
     expect(resetBtn).toBeDisabled();
     fireEvent.change(
@@ -193,23 +225,17 @@ describe('<SettingsModal />', () => {
     expect(defaultProps.onHardResetApp).toHaveBeenCalled();
   });
 
-  test('calls onResetGuide when Reset App Guide clicked', () => {
-    render(
-      <TestWrapper>
-        <SettingsModal {...defaultProps} />
-      </TestWrapper>
-    );
-    fireEvent.click(screen.getByRole('button', { name: /Reset App Guide/i }));
-    expect(defaultProps.onResetGuide).toHaveBeenCalled();
-  });
-
   test('backup button triggers callback', () => {
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    const backupButton = screen.getByRole('button', { name: /Backup All Data/i });
+    // Backup button is in Data tab - button has icon only, text is in a sibling <p>
+    navigateToTab('Data');
+    const backupLabel = screen.getByText('Backup All Data');
+    const card = backupLabel.closest('.flex.items-start')!;
+    const backupButton = within(card as HTMLElement).getByRole('button');
     fireEvent.click(backupButton);
     expect(defaultProps.onCreateBackup).toHaveBeenCalled();
   });
@@ -220,7 +246,8 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    const input = screen.getByLabelText('Default Team Name');
+    // Input has id="team-name-input", no <label> association
+    const input = document.getElementById('team-name-input')!;
     expect(input).not.toHaveFocus();
   });
 
@@ -235,20 +262,25 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
-    // Check for period start label
-    const startLabel = screen.getByText(/Period Start/i);
+    navigateToTab('General');
+
+    // Check for season start label
+    const startLabel = screen.getByText(/New season starts/i);
     expect(startLabel).toBeInTheDocument();
 
-    // Check for period end label
-    const endLabel = screen.getByText(/Period End/i);
+    // Check for season ends label (read-only display)
+    const endLabel = screen.getByText(/Season ends/i);
     expect(endLabel).toBeInTheDocument();
 
-    // Verify month and day dropdowns exist
+    // Verify month and day dropdowns exist for start date only (end date is auto-calculated, read-only)
     const monthSelects = screen.getAllByLabelText(/Month/i);
-    expect(monthSelects.length).toBeGreaterThanOrEqual(2); // At least 2 month selects (start and end)
+    expect(monthSelects.length).toBe(1); // Only 1 month select (start)
 
     const daySelects = screen.getAllByLabelText(/Day/i);
-    expect(daySelects.length).toBeGreaterThanOrEqual(2); // At least 2 day selects (start and end)
+    expect(daySelects.length).toBe(1); // Only 1 day select (start)
+
+    // Verify auto-calculated text is shown
+    expect(screen.getByText(/auto-calculated/i)).toBeInTheDocument();
   });
 
   /**
@@ -262,18 +294,21 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
+    navigateToTab('General');
+
     // Wait for component to render
     await waitFor(() => {
-      expect(screen.getByText(/Period Start/i)).toBeInTheDocument();
+      expect(screen.getByText(/New season starts/i)).toBeInTheDocument();
     });
 
-    // Find the month and day select elements
+    // Find the month and day select elements (only for start date)
     const monthSelects = screen.getAllByLabelText(/Month/i);
     const daySelects = screen.getAllByLabelText(/Day/i);
 
     // Verify the dropdown elements are rendered and can be interacted with
-    expect(monthSelects.length).toBeGreaterThanOrEqual(2);
-    expect(daySelects.length).toBeGreaterThanOrEqual(2);
+    // Only 1 month and 1 day select (end date is auto-calculated, read-only)
+    expect(monthSelects.length).toBe(1);
+    expect(daySelects.length).toBe(1);
 
     // Note: We're not testing the actual save functionality here as that's
     // tested at the unit level in appSettings.test.ts and requires complex mocking
@@ -336,6 +371,13 @@ describe('<SettingsModal />', () => {
       global.fetch = originalFetch;
     });
 
+    // Helper to find the "Check for Updates" icon-only button via its card label
+    const getCheckForUpdatesButton = () => {
+      const label = screen.getByText('Check for Updates');
+      const card = label.closest('.flex.items-center')!;
+      return within(card as HTMLElement).getByRole('button');
+    };
+
     /**
      * Tests that update check triggers registration.update()
      * @critical
@@ -350,8 +392,10 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      // Find and click the "Check for Updates" button
-      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      navigateToTab('About');
+
+      // Find and click the "Check for Updates" button (icon-only button in card)
+      const checkButton = getCheckForUpdatesButton();
       fireEvent.click(checkButton);
 
       // Wait for registration.update() to be called
@@ -375,16 +419,18 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      navigateToTab('About');
+
+      const checkButton = getCheckForUpdatesButton();
 
       // Button should be enabled initially
       expect(checkButton).not.toBeDisabled();
 
       fireEvent.click(checkButton);
 
-      // Button should be disabled while checking
+      // Button should be disabled while checking (icon changes to spinning)
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Checking/i })).toBeDisabled();
+        expect(getCheckForUpdatesButton()).toBeDisabled();
       });
 
       // Resolve the update promise
@@ -392,7 +438,7 @@ describe('<SettingsModal />', () => {
 
       // Button should be enabled again after check completes
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Check for Updates/i })).not.toBeDisabled();
+        expect(getCheckForUpdatesButton()).not.toBeDisabled();
       });
     });
 
@@ -411,8 +457,10 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      // Click "Check for Updates"
-      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      navigateToTab('About');
+
+      // Click "Check for Updates" (icon-only button)
+      const checkButton = getCheckForUpdatesButton();
       fireEvent.click(checkButton);
 
       // Wait for registration.update() to be called
@@ -441,7 +489,9 @@ describe('<SettingsModal />', () => {
         </TestWrapper>
       );
 
-      const checkButton = screen.getByRole('button', { name: /Check for Updates/i });
+      navigateToTab('About');
+
+      const checkButton = getCheckForUpdatesButton();
       fireEvent.click(checkButton);
 
       // Wait for registration.update() to be called
@@ -456,4 +506,5 @@ describe('<SettingsModal />', () => {
       });
     });
   });
+
 });

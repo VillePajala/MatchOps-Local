@@ -1,27 +1,48 @@
 # Dual-Backend Architecture
 
-**Status**: ✅ **Phase 1-3 Implemented** (Local backend complete, Supabase planned)
-**Last Updated**: 2025-12-19
+**Status**: ✅ **Phase 1-4 Implemented** (Local + Cloud backends complete, Local-First Sync added)
+**Last Updated**: 2026-01-28
 **Purpose**: Comprehensive architectural plan for supporting both IndexedDB (free/local) and Supabase (premium/cloud) backends
-**Related**: [DataStore Interface](./datastore-interface.md) | [AuthService Interface](./auth-service-interface.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md)
+**Related**: [DataStore Interface](./datastore-interface.md) | [AuthService Interface](./auth-service-interface.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md) | [Auth/Data/Sync Runtime Architecture](./auth-data-sync-architecture.md)
 
 ## Executive Summary
 
 MatchOps-Local will evolve from a local-first, single-backend application to a **dual-backend architecture** supporting both:
 
-1. **Local Mode (Free)**: IndexedDB storage, no authentication, single-device, complete offline
-2. **Cloud Mode (Premium)**: Supabase PostgreSQL, authentication, multi-device sync, cloud backup
+1. **Local Mode**: IndexedDB storage, single-device, complete offline, unlimited features
+2. **Cloud Mode**: Supabase PostgreSQL, multi-device sync, cloud backup (subscriber-only)
 
-### Implementation Status (December 2025)
+### Key Principle: Authentication ≠ Cloud Mode (Issue #336)
+
+**Sign-in and sync are separate concepts:**
+- **Authentication** = Create/access an account (enables future features, smooth upgrade path)
+- **Cloud sync** = Enable cloud mode (subscriber-only, explicitly toggled)
+
+A user can be signed in but still use local mode. This is the **correct design** because:
+- Free accounts prepare users for upgrade (no friction when subscribing)
+- Accounts enable support tickets, crash reports, future community features
+- Cloud sync is a clear premium value proposition
+
+### Mode/Sync Matrix (Source of Truth)
+
+| User State | Mode | Sync | Storage | Limits |
+|------------|------|------|---------|--------|
+| No account | Local | OFF | IndexedDB | None |
+| Free account (signed in) | Local | OFF | IndexedDB | None |
+| Subscriber + sync OFF | Local | OFF | IndexedDB | None |
+| Subscriber + sync ON | Cloud | ON | Supabase | None |
+
+### Implementation Status (January 2026)
 
 | Phase | Status | Description |
 |-------|--------|-------------|
 | Phase 1: Foundation | ✅ Complete | Storage calls centralized, timerStateManager created |
 | Phase 2: DataStore Interface | ✅ Complete | `src/interfaces/DataStore.ts`, `src/interfaces/AuthService.ts` |
 | Phase 3: LocalDataStore | ✅ Complete | `src/datastore/LocalDataStore.ts`, `src/auth/LocalAuthService.ts`, factory |
-| Phase 4: Supabase | 📋 Planned | SupabaseDataStore, SupabaseAuthService (optional) |
+| Phase 4: Supabase | ✅ Complete | `src/datastore/SupabaseDataStore.ts`, `src/auth/SupabaseAuthService.ts` |
+| Phase 5: Local-First Sync | ✅ Complete | `src/datastore/SyncedDataStore.ts`, `src/sync/SyncEngine.ts`, `src/sync/SyncQueue.ts` |
 
-**PR #137** ready to merge `feature/backend-abstraction` → `master`.
+**All Supabase PRs (1-11)** merged to `feature/supabase-cloud-backend`. **PR #324** added local-first sync infrastructure.
 
 **Key Goals**:
 - ✅ Maintain local-first benefits (privacy, offline, performance)
@@ -29,10 +50,11 @@ MatchOps-Local will evolve from a local-first, single-backend application to a *
 - ✅ Support both modes in same codebase (feature flag/user selection)
 - ✅ Provide smooth migration path (local → cloud)
 - ✅ Preserve backward compatibility with current local-only version
+- ✅ Separate authentication from sync mode (Issue #336)
 
 **Business Model**:
-- **Free Tier**: Local mode, full features, 1 device
-- **Premium Tier**: Cloud mode, multi-device sync, cloud backup, Play Store in-app purchase
+- **Free Tier**: Local mode, full features, 1 device, optional account
+- **Premium Tier**: Cloud sync (explicit toggle), multi-device, cloud backup, Play Store in-app purchase
 
 ## Current Architecture (Baseline)
 
@@ -59,13 +81,14 @@ MatchOps-Local will evolve from a local-first, single-backend application to a *
 │  (getItem, setItem, removeItem, clear, getKeys)        │
 └────────────────┬────────────────────────────────────────┘
                  │
-     ┌───────────┴───────────┐
-     │                       │
-┌────┴──────┐         ┌──────┴─────┐
-│ IndexedDB │         │ localStorage│
-│  Adapter  │         │   Adapter  │
-└───────────┘         └────────────┘
-   (Available)         (Current Prod)
+                 │
+          ┌──────┴──────┐
+          │  IndexedDB  │
+          │   Adapter   │
+          └─────────────┘
+           (Current Prod)
+
+Note: localStorage adapter removed. IndexedDB is the exclusive storage backend.
 ```
 
 **Characteristics**:
@@ -194,37 +217,46 @@ export async function getDataStore(): Promise<DataStore> {
 
 ### Feature Matrix
 
-| Feature | Local Mode (Free) | Cloud Mode (Premium) |
-|---------|-------------------|----------------------|
+| Feature | Local Mode | Cloud Mode (Subscriber + Sync ON) |
+|---------|------------|-----------------------------------|
 | **Storage** | IndexedDB (50+ MB) | PostgreSQL (500 MB free tier) |
-| **Authentication** | None (single-user) | Email/password + OAuth |
+| **Authentication** | Optional (can have account) | Required (subscriber) |
 | **Multi-Device Sync** | ❌ No | ✅ Yes |
 | **Offline Support** | ✅ Full (always offline) | ✅ Cached session + queued ops |
 | **Data Privacy** | ✅ Never leaves device | ✅ Encrypted, user-isolated (RLS) |
 | **Performance** | ✅ <50ms (no network) | ~200-500ms (network latency) |
 | **Cloud Backup** | ❌ Manual export/import | ✅ Automatic (database) |
 | **Data Ownership** | ✅ Full (local storage) | ✅ Full (can export/delete) |
-| **Cost** | Free forever | Supabase free tier / paid |
-| **Setup** | Zero | Email signup |
+| **Cost** | Free forever | Subscription required |
+| **Setup** | Zero (account optional) | Subscribe + enable sync |
 
 ### User Experience Comparison
 
-**Local Mode**:
+**Local Mode (No Account)**:
 ```
-Install App → No Sign Up → Start Using Immediately
+Install App → Start Fresh → Start Using Immediately
                             ↓
               All data on device, works offline
                             ↓
                 Export data manually for backup
 ```
 
-**Cloud Mode**:
+**Local Mode (With Free Account)** - Issue #336:
 ```
-Install App → Sign Up/Sign In → Sync Devices
+Install App → Sign In → Create Account
+                            ↓
+              "Welcome! Your data stays on this device."
+                            ↓
+              Same as above, but ready for upgrade
+```
+
+**Cloud Mode (Subscriber + Sync Enabled)**:
+```
+Subscribe → "Enable sync now?" → Yes
                                    ↓
-                   Data synced across devices automatically
+              Migration wizard (if local data exists)
                                    ↓
-                       Cloud backup included
+              Data synced across devices automatically
 ```
 
 ## Key Design Decisions
@@ -505,74 +537,110 @@ Component
         → COMMIT
 ```
 
-### Example 3: Sign In (Cloud Only)
+### Example 3: Sign In (Authentication Only - Does NOT Change Mode)
+
+**Important (Issue #336)**: Sign-in creates/accesses an account but does NOT enable cloud mode. User stays in their current mode (typically local).
 
 ```
 Component
-  → signIn(email, password)
-    → authService.signIn(email, password)
+  → signIn(email)
+    → authService.signIn(email)
       → SupabaseAuthService
-        → supabase.auth.signInWithPassword({email, password})
+        → supabase.auth.signInWithOtp({email})  // Magic link
           → Supabase Auth API
             → Returns: { user, session }
               → Store session in localStorage
               → Trigger onAuthStateChange → invalidate queries
+              → MODE STAYS 'local' (sync not enabled)
+```
+
+### Example 4: Enable Cloud Sync (Subscriber + Enable Toggle)
+
+**This is when mode actually changes** - requires subscription + explicit action.
+
+```
+Component (CloudSyncSection)
+  → enableSync() [subscriber clicks toggle]
+    → Check subscription status (must be subscriber)
+    → Check local data exists?
+       → YES: Show MigrationWizard
+       → NO: enableCloudMode() directly
+    → If migration chosen:
+       → Upload local data to cloud
+       → enableCloudMode()
+       → Reinitialize DataStore (SupabaseDataStore)
+       → Invalidate all queries → refetch from cloud
 ```
 
 ## Migration Architecture
 
-### Local → Cloud Migration Flow
+### Local → Cloud Migration Flow (Issue #336 Model)
+
+**Key Principle**: Authentication and sync are separate. A user may already have an account (from previous sign-in) but be in local mode. Migration happens when a subscriber explicitly enables sync.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  STEP 1: User in Local Mode                                 │
+│  STEP 1: User in Local Mode (May or May Not Have Account)   │
 │  - Has existing data in IndexedDB                           │
-│  - Wants to upgrade to Cloud Mode                           │
+│  - Is a subscriber who wants to enable cloud sync           │
 └───────────────────────┬─────────────────────────────────────┘
                         │
 ┌───────────────────────┴─────────────────────────────────────┐
-│  STEP 2: Sign Up for Cloud Account                          │
-│  - User creates Supabase account                            │
-│  - SupabaseAuthService.signUp(email, password)              │
-│  - User now authenticated                                   │
+│  STEP 2: Authenticate (If Not Already Signed In)            │
+│  - User signs in via magic link                             │
+│  - SupabaseAuthService.signIn(email)                        │
+│  - User is authenticated but STILL IN LOCAL MODE            │
+│  - (Sync not enabled yet)                                   │
 └───────────────────────┬─────────────────────────────────────┘
                         │
 ┌───────────────────────┴─────────────────────────────────────┐
-│  STEP 3: Export Local Data                                  │
+│  STEP 3: Enable Cloud Sync (Subscriber-Only)                │
+│  - User clicks "Enable Cloud Sync" toggle in Settings       │
+│  - Check subscription status (must be subscriber)           │
+│  - Check if local data exists → trigger migration wizard    │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+┌───────────────────────┴─────────────────────────────────────┐
+│  STEP 4: Migration Wizard (Upload Choice)                   │
+│  - Show data comparison: Local vs Cloud                     │
+│  - User chooses: Upload Local → Cloud                       │
 │  - LocalDataStore.exportAllData()                           │
-│  - Returns: DataExport { players, teams, games, ... }       │
 └───────────────────────┬─────────────────────────────────────┘
                         │
 ┌───────────────────────┴─────────────────────────────────────┐
-│  STEP 4: Upload to Cloud                                    │
+│  STEP 5: Upload to Cloud                                    │
 │  - SupabaseDataStore.importData(exportedData)               │
 │  - Transforms: Key-value → Relational                       │
 │  - Inserts into PostgreSQL tables                           │
 └───────────────────────┬─────────────────────────────────────┘
                         │
 ┌───────────────────────┴─────────────────────────────────────┐
-│  STEP 5: Verify Migration                                   │
+│  STEP 6: Verify Migration                                   │
 │  - Count records: local vs cloud                            │
 │  - Validate key entities (games, players, seasons)          │
 │  - Show migration report to user                            │
 └───────────────────────┬─────────────────────────────────────┘
                         │
 ┌───────────────────────┴─────────────────────────────────────┐
-│  STEP 6: Switch to Cloud Mode                               │
-│  - Set mode preference: 'cloud'                             │
+│  STEP 7: Enable Cloud Mode                                  │
+│  - enableCloudMode() called                                 │
+│  - Set syncEnabled = true                                   │
 │  - Reinitialize app with SupabaseDataStore                  │
-│  - User now in Cloud Mode                                   │
+│  - User now in Cloud Mode with sync active                  │
 └───────────────────────┬─────────────────────────────────────┘
                         │
 ┌───────────────────────┴─────────────────────────────────────┐
-│  STEP 7: (Optional) Clear Local Data                        │
+│  STEP 8: (Optional) Clear Local Data                        │
 │  - LocalDataStore.clearAllData()                            │
 │  - Free up device storage                                   │
 │  - Keep local data as backup option                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+**Important**: Step 2 (authentication) may have happened days/weeks earlier. The user could have signed in, remained in local mode, and only later decided to enable sync after subscribing.
+
 **See**: [Migration Strategy](../../03-active-plans/backend-evolution/migration-strategy.md) for detailed implementation
+**See**: [Cloud Sync User Flows](../../03-active-plans/cloud-sync-user-flows.md) for all sync scenarios
 
 ## Testing Strategy
 
@@ -793,11 +861,12 @@ SELECT * FROM games WHERE season_id = 'season_123';
 - 2,700+ tests passing
 - **Result**: Same functionality, new interfaces
 
-### Phase 4: Supabase Implementation 📋 PLANNED (Future)
+### Phase 4: Supabase Implementation ✅ COMPLETE
 - Set up Supabase project (database, auth)
-- Implement SupabaseDataStore
-- Implement SupabaseAuthService
-- Add UI for mode selection
+- Implemented SupabaseDataStore with full DataStore interface
+- Implemented SupabaseAuthService with Supabase Auth
+- Added UI for mode selection and migration wizard
+- Added optimistic locking for concurrent save protection (Issue #330)
 - **Result**: Cloud features available
 
 **See**: [REALISTIC-IMPLEMENTATION-PLAN.md](../../03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md) for detailed plan

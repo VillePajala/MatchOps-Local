@@ -318,7 +318,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Goal Log')}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects (standard 4-layer pattern) */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { primaryButtonStyle } from '@/styles/modalStyles';
+import { primaryButtonStyle, DialogBackdrop } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineCheckCircle,
@@ -59,8 +59,8 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
   const { statistics, warnings } = result;
 
   return (
-    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-stretch justify-center z-[60] font-display p-4" onClick={handleBackdropClick}>
-      <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full flex flex-col text-slate-100" role="dialog" aria-modal="true">
+    <DialogBackdrop className="z-[60]" onClick={handleBackdropClick}>
+      <div ref={modalRef} className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full flex flex-col text-slate-100 max-h-[85vh]" role="dialog" aria-modal="true">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm flex-shrink-0">
           <div className="flex items-center space-x-3">
@@ -140,13 +140,13 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
           )}
         </div>
 
-        <div className="px-4 py-2 border-t border-slate-700/50 bg-slate-900/20 backdrop-blur-sm flex justify-end flex-shrink-0">
+        <div className="px-4 py-2 border-t border-slate-600 bg-slate-900/20 backdrop-blur-sm flex justify-end flex-shrink-0">
           <button onClick={onClose} className={primaryButtonStyle}>
             {t('common.continue', 'Continue')}
           </button>
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 };
 

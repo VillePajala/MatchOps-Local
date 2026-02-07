@@ -27,11 +27,19 @@ test('showToast displays and hides a toast message', () => {
     fireEvent.click(screen.getByText('Error'));
     expect(screen.getByText('Error!')).toHaveClass('bg-red-600');
 
+    // Success toast disappears after 3s
     act(() => {
       jest.advanceTimersByTime(3000);
     });
-
     expect(screen.queryByText('Saved!')).not.toBeInTheDocument();
+
+    // Error toast stays longer (5s total), still visible at 3s
+    expect(screen.getByText('Error!')).toBeInTheDocument();
+
+    // Error toast disappears after remaining 2s (5s total)
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
     expect(screen.queryByText('Error!')).not.toBeInTheDocument();
   } finally {
     jest.useRealTimers();

@@ -16,7 +16,7 @@ export default function TechnicalPage() {
         <meta name="description" content={t('seo.technical.description')} />
         <meta property="og:title" content={t('seo.technical.title')} />
         <meta property="og:description" content={t('seo.technical.description')} />
-        <meta property="og:url" content={`https://matchops-local.vercel.app${router.locale === 'en' ? '/en' : ''}/technical`} />
+        <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}/technical`} />
       </Head>
 
       {/* Hero */}

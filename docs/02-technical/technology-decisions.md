@@ -1,17 +1,18 @@
 # Technology Decisions: Architecture Rationale for MatchOps-Local
 
-**Why we chose specific technologies and how they support our local-first philosophy**
+**Why we chose specific technologies and how they support our dual-mode architecture**
 
 ## Decision Framework
 
 All technology decisions for MatchOps-Local are evaluated against our core principles:
 
 1. **Local-First Compatibility**: Does this technology support offline-first operation?
-2. **Performance**: Does this optimize for instant local data access?  
-3. **Privacy**: Does this avoid external dependencies and data transmission?
-4. **User Experience**: Does this deliver a professional, native-like experience?
-5. **Long-Term Viability**: Will this technology remain stable and supported?
-6. **Developer Experience**: Can we build and maintain this efficiently?
+2. **Cloud Sync Option**: Can this integrate with optional cloud backend?
+3. **Performance**: Does this optimize for instant local data access?
+4. **Privacy**: Does this preserve user choice between local and cloud?
+5. **User Experience**: Does this deliver a professional, native-like experience?
+6. **Long-Term Viability**: Will this technology remain stable and supported?
+7. **Developer Experience**: Can we build and maintain this efficiently?
 
 ## Core Technology Stack
 
@@ -91,32 +92,35 @@ const { data: players, isLoading, error } = useQuery({
 - **Optimistic Updates**: Immediate UI feedback with rollback on failure
 - **Invalidation**: Intelligent cache updates after mutations
 
-**Why localStorage over alternatives?**
+**Why IndexedDB for storage?**
 
 | Storage Option | Capacity | Persistence | Sync API | Complexity | Privacy |
 |----------------|----------|-------------|----------|------------|---------|
-| **localStorage** | ~10MB | ✅ Permanent | ✅ Simple | ✅ Minimal | ✅ Local only |
-| **IndexedDB** | ~GB+ | ✅ Permanent | ❌ Async only | ❌ Complex | ✅ Local only |
+| **IndexedDB** | ~GB+ | ✅ Permanent | ❌ Async only | ⚠️ Moderate | ✅ Local only |
+| **localStorage** | ~5-10MB | ✅ Permanent | ✅ Simple | ✅ Minimal | ✅ Local only |
 | **WebSQL** | ~5MB | ✅ Permanent | ✅ SQL | ❌ Deprecated | ✅ Local only |
 | **Memory** | RAM limited | ❌ Session only | ✅ Instant | ✅ Simple | ✅ Local only |
 | **Cloud DB** | Unlimited | ✅ Permanent | ❌ Async | ❌ Complex | ❌ External |
 
-**localStorage Advantages:**
-- **Simplicity**: Synchronous API perfect for React Query integration
-- **Capacity**: 10MB+ sufficient for years of coaching data
+**IndexedDB Advantages (Current Implementation):**
+- **Capacity**: 50MB+ quota vs localStorage's 5-10MB limit - essential for 100+ games with events
+- **Async Operations**: Non-blocking storage operations don't freeze the UI
+- **Structured Data**: Native support for complex objects without JSON serialization overhead
 - **Browser Support**: Universal support across all modern browsers
-- **No Dependencies**: Zero external libraries or configuration required
 - **Local-First Perfect**: Data never leaves the device
+- **Transaction Support**: Atomic operations for data integrity
+
+**Note**: The app originally used localStorage but migrated to IndexedDB exclusively (no localStorage fallback) due to capacity constraints. See `src/utils/storage.ts` for the adapter implementation and `src/utils/migration.ts` for the localStorage → IndexedDB migration.
 
 #### **Trade-offs Accepted**
-- **Capacity Limits**: 10MB storage limit (acceptable for coaching data)
-- **Synchronous Only**: Can block main thread for large operations (mitigated by data size)
-- **No Complex Queries**: No SQL-like querying (acceptable for simple data structures)
+- **Async API**: All operations are asynchronous (well-suited for React Query integration)
+- **More Complex**: Requires adapter layer (handled by `LocalDataStore`)
+- **No Private Mode**: IndexedDB is restricted in private browsing (PWA requires persistent storage anyway)
 
 #### **Alternatives Considered**
 - **Redux Toolkit**: Excellent for complex state but adds complexity for simple data operations
 - **Zustand**: Lightweight but requires custom persistence implementation
-- **IndexedDB**: More capacity and features but significantly more complex for our needs
+- **localStorage**: Simpler API but insufficient capacity (5-10MB) for production data volumes
 - **Custom Context**: Simple but requires reimplementing caching and error handling
 
 ---
@@ -316,37 +320,94 @@ npm install https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 
 ---
 
+## Cloud Backend: Supabase
+
+### Why Supabase for Optional Cloud Sync?
+
+When we added cloud sync as a premium feature, we evaluated several backend options:
+
+| Consideration | Supabase | Firebase | Custom Backend | AWS Amplify |
+|---------------|----------|----------|----------------|-------------|
+| **PostgreSQL** | ✅ Native | ❌ NoSQL | ✅ Choice | ❌ DynamoDB |
+| **Row-Level Security** | ✅ Built-in | ⚠️ Rules | ✅ Manual | ⚠️ IAM-based |
+| **Auth Integration** | ✅ Included | ✅ Included | ❌ Build it | ✅ Cognito |
+| **Edge Functions** | ✅ Deno | ✅ Functions | ❌ Deploy it | ✅ Lambda |
+| **EU Data Residency** | ✅ Available | ⚠️ Limited | ✅ Choice | ✅ Available |
+| **Pricing** | ✅ Generous free tier | ⚠️ Pay-per-use | ❌ Infrastructure | ⚠️ Complex |
+| **Self-Host Option** | ✅ Yes | ❌ No | ✅ Yes | ❌ No |
+
+**Key Advantages for Our Use Case:**
+- **PostgreSQL**: Relational data model matches our IndexedDB schema conceptually
+- **Row-Level Security**: Users can only access their own data without app-level checks
+- **Supabase Auth**: Email/password authentication without building auth infrastructure
+- **Edge Functions**: Server-side subscription verification and account deletion
+- **TypeScript SDK**: Type-safe client that matches our codebase
+- **EU Region**: GDPR compliance for European users
+
+### Supabase Components Used
+
+**Supabase Auth:**
+- Email/password authentication
+- JWT-based sessions with automatic refresh
+- User management (signup, login, password reset)
+
+**Supabase Database (PostgreSQL):**
+- 15 tables mirroring IndexedDB schema
+- RLS policies on all tables
+- Stored procedures for atomic multi-table operations
+- JSONB columns for complex nested data
+
+**Supabase Edge Functions (Deno):**
+- `verify-subscription`: Validates Play Store purchases
+- `delete-account`: GDPR-compliant account removal
+
+**Not Using:**
+- Supabase Storage (no file uploads needed)
+- Supabase Realtime (not needed for single-user sync)
+- Supabase Vector (no AI features)
+
+---
+
 ## Architecture Decision Records (ADRs)
 
-### ADR-001: LocalStorage over IndexedDB
-**Context**: Need persistent storage for coaching data  
-**Decision**: Use localStorage despite capacity limitations  
-**Rationale**: Simplicity and synchronous API outweigh capacity benefits of IndexedDB for our data size requirements  
-**Consequences**: 10MB storage limit, but sufficient for years of coaching data  
+### ADR-001: IndexedDB for Local Storage
+**Context**: Need persistent storage for coaching data with capacity for 100+ games
+**Decision**: Use IndexedDB as the primary local storage (migrated from localStorage)
+**Rationale**: 50MB+ quota vs 5-10MB localStorage limit; supports complex queries; async API integrates well with React Query
+**Status**: ✅ Implemented (localStorage migration complete)
+**Consequences**: Async-only API, no private browsing support, but sufficient capacity for years of coaching data
 
 ### ADR-002: PWA over Native Apps
-**Context**: Cross-platform deployment strategy  
-**Decision**: Progressive Web App instead of native mobile apps  
-**Rationale**: Single codebase, no app store dependencies, easier updates, web-based local-first architecture  
-**Consequences**: Some native features unavailable, but local-first benefits preserved  
+**Context**: Cross-platform deployment strategy
+**Decision**: Progressive Web App instead of native mobile apps
+**Rationale**: Single codebase, no app store dependencies, easier updates, web-based local-first architecture
+**Consequences**: Some native features unavailable, but local-first benefits preserved
 
 ### ADR-003: React Query for Async State
-**Context**: Managing localStorage operations and caching  
-**Decision**: React Query instead of traditional state management  
-**Rationale**: Async operations, caching, and error handling built-in for localStorage interactions  
-**Consequences**: Additional dependency but significantly simplified data management  
+**Context**: Managing IndexedDB/Supabase operations and caching
+**Decision**: React Query instead of traditional state management
+**Rationale**: Async operations, caching, and error handling built-in for both local and cloud backends
+**Consequences**: Additional dependency but significantly simplified data management
 
 ### ADR-004: TypeScript Mandatory
-**Context**: Data integrity without server-side validation  
-**Decision**: TypeScript required for all code  
-**Rationale**: Local-first applications need compile-time guarantees of data structure integrity  
-**Consequences**: Learning curve for contributors but critical for data safety  
+**Context**: Data integrity without server-side validation (especially in local mode)
+**Decision**: TypeScript required for all code
+**Rationale**: Local-first applications need compile-time guarantees of data structure integrity
+**Consequences**: Learning curve for contributors but critical for data safety
 
-### ADR-005: No External APIs
-**Context**: Maintaining local-first architecture  
-**Decision**: Zero external API dependencies  
-**Rationale**: Preserve privacy, offline capability, and performance benefits  
-**Consequences**: Some features require manual implementation but architectural benefits preserved  
+### ADR-005: Backend Abstraction via DataStore Interface
+**Context**: Supporting both local and cloud modes without code duplication
+**Decision**: Define DataStore interface with LocalDataStore and SupabaseDataStore implementations
+**Rationale**: Single interface allows seamless mode switching; same React Query hooks work with both backends
+**Status**: ✅ Implemented
+**Consequences**: More abstraction overhead, but clean separation and easy testing
+
+### ADR-006: Supabase for Cloud Backend
+**Context**: Adding optional cloud sync for cross-device access
+**Decision**: Supabase (PostgreSQL + Auth + Edge Functions) instead of Firebase or custom backend
+**Rationale**: PostgreSQL matches our data model; built-in RLS; TypeScript SDK; EU data residency; generous free tier
+**Status**: ✅ Implemented
+**Consequences**: Vendor dependency for cloud mode, but self-host option available if needed  
 
 ## Future Technology Considerations
 
@@ -365,6 +426,6 @@ We continuously evaluate our technology stack against:
 
 ## Conclusion
 
-Our technology stack is carefully chosen to support local-first architecture while delivering professional-grade user experience. Each decision prioritizes user privacy, performance, and data ownership while maintaining developer productivity and long-term maintainability.
+Our technology stack is carefully chosen to support dual-mode architecture (local-first with optional cloud sync) while delivering professional-grade user experience. Each decision prioritizes user choice, privacy, performance, and data ownership while maintaining developer productivity and long-term maintainability.
 
-The combination of Next.js, React Query, localStorage, and TypeScript creates a robust foundation for local-first applications that can serve as a model for privacy-focused software development in sports and beyond.
+The combination of Next.js, React Query, IndexedDB, Supabase, and TypeScript creates a robust foundation that serves as a model for privacy-focused software development — proving that users can have both the privacy benefits of local-first AND the convenience of cloud sync when they choose.

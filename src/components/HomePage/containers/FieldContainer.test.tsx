@@ -29,9 +29,6 @@ jest.mock('@/components/SoccerField', () => {
   SoccerField.displayName = 'SoccerField';
   return { __esModule: true, default: SoccerField };
 });
-jest.mock('@/components/HomePage/components/FirstGameGuide', () => ({
-  FirstGameGuide: () => <div data-testid="first-game-guide" />,
-}));
 jest.mock('@/components/ErrorBoundary', () => ({
   __esModule: true,
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -68,6 +65,66 @@ jest.mock('@/utils/logger', () => ({
     warn: jest.fn(),
     debug: jest.fn(),
   },
+  createLogger: jest.fn(() => ({
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+  })),
+}));
+
+// Mock AuthProvider context (required by useSyncStatus used in SyncStatusIndicator)
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: () => ({
+    isAuthenticated: false,
+    isLoading: false,
+    mode: 'local' as const,
+    user: null,
+    isSigningOut: false,
+    initTimedOut: false,
+    retryAuthInit: jest.fn(),
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+    switchToLocalMode: jest.fn(),
+    switchToCloudMode: jest.fn(),
+  }),
+}));
+
+// Mock useSyncStatus hook (used by SyncStatusIndicator)
+jest.mock('@/hooks/useSyncStatus', () => ({
+  useSyncStatus: () => ({
+    status: null,
+    isInitialized: false,
+  }),
+}));
+
+// Mock ModalProvider context (required by SyncStatusIndicator used in children)
+jest.mock('@/contexts/ModalProvider', () => ({
+  useModalContext: () => ({
+    isGameSettingsModalOpen: false,
+    setIsGameSettingsModalOpen: jest.fn(),
+    isLoadGameModalOpen: false,
+    setIsLoadGameModalOpen: jest.fn(),
+    isRosterModalOpen: false,
+    setIsRosterModalOpen: jest.fn(),
+    isStatsModalOpen: false,
+    setIsStatsModalOpen: jest.fn(),
+    isNewGameSetupModalOpen: false,
+    setIsNewGameSetupModalOpen: jest.fn(),
+    isTeamModalOpen: false,
+    setIsTeamModalOpen: jest.fn(),
+    isSeasonTournamentModalOpen: false,
+    setIsSeasonTournamentModalOpen: jest.fn(),
+    isPersonnelModalOpen: false,
+    setIsPersonnelModalOpen: jest.fn(),
+    isSettingsModalOpen: false,
+    setIsSettingsModalOpen: jest.fn(),
+    openSettingsToTab: jest.fn(),
+    settingsInitialTab: undefined,
+    isPlayerAssessmentModalOpen: false,
+    setIsPlayerAssessmentModalOpen: jest.fn(),
+  }),
 }));
 
 const baseProps = () => ({
@@ -96,16 +153,11 @@ const baseProps = () => ({
   teams: [],
   seasons: [],
   tournaments: [],
-  showFirstGameGuide: false,
-  hasCheckedFirstGameGuide: false,
-  firstGameGuideStep: 0,
   orphanedGameInfo: null,
   onOpenNewGameSetup: jest.fn(),
   onOpenRosterModal: jest.fn(),
   onOpenSeasonTournamentModal: jest.fn(),
   onOpenTeamManagerModal: jest.fn(),
-  onGuideStepChange: jest.fn(),
-  onGuideClose: jest.fn(),
   onOpenTeamReassignModal: jest.fn(),
   onTeamNameChange: jest.fn(),
   onOpponentNameChange: jest.fn(),
@@ -143,6 +195,7 @@ const baseProps = () => ({
       playerDragCancel: jest.fn(),
     },
   },
+  onTogglePositionLabels: jest.fn(),
   timerInteractions: {
     toggleLargeOverlay: jest.fn(),
     toggleGoalLogModal: jest.fn(),
@@ -160,19 +213,6 @@ describe('FieldContainer', () => {
     expect(screen.getByText('Set Up Team Roster')).toBeInTheDocument();
   });
 
-  it('shows first game guide when configured for non-default game', () => {
-    render(
-      <FieldContainer
-        {...baseProps()}
-        currentGameId="game-123"
-        showFirstGameGuide
-        hasCheckedFirstGameGuide
-      />,
-    );
-
-    expect(screen.getByTestId('first-game-guide')).toBeInTheDocument();
-  });
-
   it('invokes roster callback when CTA is used without a roster', () => {
     const props = baseProps();
     render(<FieldContainer {...props} />);
@@ -181,19 +221,33 @@ describe('FieldContainer', () => {
     expect(props.onOpenRosterModal).toHaveBeenCalledTimes(1);
   });
 
-  it('invokes new game and season callbacks when roster exists', () => {
+  it('invokes new game callback when roster exists', () => {
     const props = {
       ...baseProps(),
       availablePlayers: [TestFixtures.players.fieldPlayer()],
-      seasons: [TestFixtures.seasons.current()],
     };
     render(<FieldContainer {...props} />);
 
     fireEvent.click(screen.getByRole('button', { name: /create your first match/i }));
     expect(props.onOpenNewGameSetup).toHaveBeenCalledTimes(1);
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: /manage seasons & tournaments/i }));
-    expect(props.onOpenSeasonTournamentModal).toHaveBeenCalledTimes(1);
+  it('allows dismissing the setup overlay', () => {
+    const props = {
+      ...baseProps(),
+      availablePlayers: [TestFixtures.players.fieldPlayer()],
+    };
+    render(<FieldContainer {...props} />);
+
+    // Overlay should be visible
+    expect(screen.getByText(/Ready to track your first game/i)).toBeInTheDocument();
+
+    // Click dismiss button
+    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
+
+    // Overlay should be gone, banner should appear
+    expect(screen.queryByText(/Ready to track your first game/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/No game created/i)).toBeInTheDocument();
   });
 
   describe('Export Button', () => {
@@ -248,7 +302,7 @@ describe('FieldContainer', () => {
       // Wait for async operation
       await screen.findByRole('button', { name: /export field as image/i });
 
-      expect(mockShowToast).toHaveBeenCalledWith('Field exported successfully', 'success');
+      expect(mockExportFieldAsImage).toHaveBeenCalled();
     });
 
     it('shows error toast when export fails', async () => {

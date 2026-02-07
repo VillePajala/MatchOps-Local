@@ -27,6 +27,16 @@ import {
 import { queryKeys } from '@/config/queryKeys';
 import type { Team, TeamPlayer } from '@/types';
 
+// Mock useDataStore hook to provide userId for user-scoped storage
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 // Mock the teams utility functions
 jest.mock('@/utils/teams', () => ({
   getTeams: jest.fn(),
@@ -145,6 +155,8 @@ describe('useTeamQueries', () => {
 
       expect(result.current.data).toEqual(mockTeams);
       expect(getTeams).toHaveBeenCalledTimes(1);
+      // Verify userId is passed to utility function
+      expect(getTeams).toHaveBeenCalledWith(TEST_USER_ID);
     });
 
     /**
@@ -156,11 +168,13 @@ describe('useTeamQueries', () => {
       const wrapper = createTestWrapper(queryClient);
       renderHook(() => useTeamsQuery(), { wrapper });
 
+      // Query key now includes userId for cache isolation
+      const queryKeyWithUserId = [...queryKeys.teams, TEST_USER_ID];
       await waitFor(() => {
-        expect(queryClient.getQueryData(queryKeys.teams)).toBeDefined();
+        expect(queryClient.getQueryData(queryKeyWithUserId)).toBeDefined();
       });
 
-      expect(queryClient.getQueryData(queryKeys.teams)).toEqual(mockTeams);
+      expect(queryClient.getQueryData(queryKeyWithUserId)).toEqual(mockTeams);
     });
   });
 
@@ -179,7 +193,8 @@ describe('useTeamQueries', () => {
       });
 
       expect(result.current.data).toEqual(mockPlayers);
-      expect(getTeamRoster).toHaveBeenCalledWith('team-1');
+      // Verify userId is passed to utility function
+      expect(getTeamRoster).toHaveBeenCalledWith('team-1', TEST_USER_ID);
     });
 
     /**
@@ -205,11 +220,13 @@ describe('useTeamQueries', () => {
       const wrapper = createTestWrapper(queryClient);
       renderHook(() => useTeamRosterQuery('team-1'), { wrapper });
 
+      // Query key now includes userId for cache isolation
+      const queryKeyWithUserId = [...queryKeys.teamRoster('team-1'), TEST_USER_ID];
       await waitFor(() => {
-        expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toBeDefined();
+        expect(queryClient.getQueryData(queryKeyWithUserId)).toBeDefined();
       });
 
-      expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toEqual(mockPlayers);
+      expect(queryClient.getQueryData(queryKeyWithUserId)).toEqual(mockPlayers);
     });
   });
 
@@ -222,8 +239,8 @@ describe('useTeamQueries', () => {
       const queryClient = createTestQueryClient();
       const wrapper = createTestWrapper(queryClient);
 
-      // Pre-populate cache
-      queryClient.setQueryData(queryKeys.teams, mockTeams);
+      // Pre-populate cache with userId in key
+      queryClient.setQueryData([...queryKeys.teams, TEST_USER_ID], mockTeams);
 
       const { result } = renderHook(() => useAddTeamMutation(), { wrapper });
 
@@ -234,6 +251,8 @@ describe('useTeamQueries', () => {
       });
 
       expect(addTeam).toHaveBeenCalled();
+      // Verify userId is passed to utility function
+      expect(addTeam).toHaveBeenCalledWith({ name: 'New Team' }, TEST_USER_ID);
 
       // Verify mutation succeeded
       await waitFor(() => {
@@ -251,7 +270,7 @@ describe('useTeamQueries', () => {
       const queryClient = createTestQueryClient();
       const wrapper = createTestWrapper(queryClient);
 
-      queryClient.setQueryData(queryKeys.teams, mockTeams);
+      queryClient.setQueryData([...queryKeys.teams, TEST_USER_ID], mockTeams);
 
       const { result } = renderHook(() => useUpdateTeamMutation(), { wrapper });
 
@@ -262,7 +281,8 @@ describe('useTeamQueries', () => {
         });
       });
 
-      expect(updateTeam).toHaveBeenCalledWith('team-1', { name: 'Updated Team Name' });
+      // Verify userId is passed to utility function
+      expect(updateTeam).toHaveBeenCalledWith('team-1', { name: 'Updated Team Name' }, TEST_USER_ID);
 
       // Verify mutation succeeded
       await waitFor(() => {
@@ -280,10 +300,10 @@ describe('useTeamQueries', () => {
       const queryClient = createTestQueryClient();
       const wrapper = createTestWrapper(queryClient);
 
-      // Pre-populate caches
-      queryClient.setQueryData(queryKeys.teams, mockTeams);
-      queryClient.setQueryData(queryKeys.teamRoster('team-1'), mockPlayers);
-      queryClient.setQueryData(queryKeys.savedGames, { game1: {} });
+      // Pre-populate caches with userId in keys
+      queryClient.setQueryData([...queryKeys.teams, TEST_USER_ID], mockTeams);
+      queryClient.setQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID], mockPlayers);
+      queryClient.setQueryData([...queryKeys.savedGames, TEST_USER_ID], { game1: {} });
 
       const { result } = renderHook(() => useDeleteTeamMutation(), { wrapper });
 
@@ -291,9 +311,9 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync('team-1');
       });
 
-      // Check that deleteTeam was called (first arg should be 'team-1')
+      // Check that deleteTeam was called with correct arguments including userId
       expect(deleteTeam).toHaveBeenCalled();
-      expect(deleteTeam.mock.calls[0][0]).toBe('team-1');
+      expect(deleteTeam).toHaveBeenCalledWith('team-1', TEST_USER_ID);
 
       // Verify mutation succeeded
       await waitFor(() => {
@@ -301,7 +321,7 @@ describe('useTeamQueries', () => {
       });
 
       // Team roster should be removed (not just invalidated)
-      expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toBeUndefined();
+      expect(queryClient.getQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID])).toBeUndefined();
     });
 
     /**
@@ -313,8 +333,8 @@ describe('useTeamQueries', () => {
       const queryClient = createTestQueryClient();
       const wrapper = createTestWrapper(queryClient);
 
-      queryClient.setQueryData(queryKeys.teams, mockTeams);
-      queryClient.setQueryData(queryKeys.teamRoster('team-1'), mockPlayers);
+      queryClient.setQueryData([...queryKeys.teams, TEST_USER_ID], mockTeams);
+      queryClient.setQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID], mockPlayers);
 
       // Clear mock call count before mutation
       getTeams.mockClear();
@@ -325,14 +345,12 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync('team-1');
       });
 
-      // Allow any pending async operations to settle
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      });
+      // Flush async queue for negative assertions
+      await act(async () => {});
 
       // Cache data should still exist (not removed or refetched)
-      expect(queryClient.getQueryData(queryKeys.teams)).toEqual(mockTeams);
-      expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toEqual(mockPlayers);
+      expect(queryClient.getQueryData([...queryKeys.teams, TEST_USER_ID])).toEqual(mockTeams);
+      expect(queryClient.getQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID])).toEqual(mockPlayers);
       // getTeams should NOT have been called for refetch
       expect(getTeams).not.toHaveBeenCalled();
     });
@@ -353,9 +371,9 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync('team-1');
       });
 
-      // Check that duplicateTeam was called with correct argument
+      // Check that duplicateTeam was called with correct arguments including userId
       expect(duplicateTeam).toHaveBeenCalled();
-      expect(duplicateTeam.mock.calls[0][0]).toBe('team-1');
+      expect(duplicateTeam).toHaveBeenCalledWith('team-1', TEST_USER_ID);
     });
   });
 
@@ -378,7 +396,8 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync({ teamId: 'team-1', roster: newRoster });
       });
 
-      expect(setTeamRoster).toHaveBeenCalledWith('team-1', newRoster);
+      // Verify userId is passed to utility function
+      expect(setTeamRoster).toHaveBeenCalledWith('team-1', newRoster, TEST_USER_ID);
     });
 
     /**
@@ -404,8 +423,8 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync({ teamId: 'team-1', player: newPlayer });
       });
 
-      // Verify the utility function was called with correct arguments
-      expect(addPlayerToRoster).toHaveBeenCalledWith('team-1', newPlayer);
+      // Verify userId is passed to utility function
+      expect(addPlayerToRoster).toHaveBeenCalledWith('team-1', newPlayer, TEST_USER_ID);
     });
 
     /**
@@ -426,7 +445,8 @@ describe('useTeamQueries', () => {
         });
       });
 
-      expect(updatePlayerInRoster).toHaveBeenCalledWith('team-1', 'player-1', { name: 'Updated Name' });
+      // Verify userId is passed to utility function
+      expect(updatePlayerInRoster).toHaveBeenCalledWith('team-1', 'player-1', { name: 'Updated Name' }, TEST_USER_ID);
     });
 
     /**
@@ -438,7 +458,7 @@ describe('useTeamQueries', () => {
       const queryClient = createTestQueryClient();
       const wrapper = createTestWrapper(queryClient);
 
-      queryClient.setQueryData(queryKeys.teamRoster('team-1'), mockPlayers);
+      queryClient.setQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID], mockPlayers);
 
       // Clear mock call count before mutation
       getTeamRoster.mockClear();
@@ -453,13 +473,11 @@ describe('useTeamQueries', () => {
         });
       });
 
-      // Allow any pending async operations to settle
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
+      // Flush async queue for negative assertions
+      await act(async () => {});
 
       // Cache data should still exist unchanged
-      expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toEqual(mockPlayers);
+      expect(queryClient.getQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID])).toEqual(mockPlayers);
       // getTeamRoster should NOT have been called for refetch
       expect(getTeamRoster).not.toHaveBeenCalled();
     });
@@ -478,7 +496,8 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync({ teamId: 'team-1', playerId: 'player-1' });
       });
 
-      expect(removePlayerFromRoster).toHaveBeenCalledWith('team-1', 'player-1');
+      // Verify userId is passed to utility function
+      expect(removePlayerFromRoster).toHaveBeenCalledWith('team-1', 'player-1', TEST_USER_ID);
     });
 
     /**
@@ -490,7 +509,7 @@ describe('useTeamQueries', () => {
       const queryClient = createTestQueryClient();
       const wrapper = createTestWrapper(queryClient);
 
-      queryClient.setQueryData(queryKeys.teamRoster('team-1'), mockPlayers);
+      queryClient.setQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID], mockPlayers);
 
       // Clear mock call count before mutation
       getTeamRoster.mockClear();
@@ -501,13 +520,11 @@ describe('useTeamQueries', () => {
         await result.current.mutateAsync({ teamId: 'team-1', playerId: 'player-1' });
       });
 
-      // Allow any pending async operations to settle
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
+      // Flush async queue for negative assertions
+      await act(async () => {});
 
       // Cache data should still exist unchanged
-      expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toEqual(mockPlayers);
+      expect(queryClient.getQueryData([...queryKeys.teamRoster('team-1'), TEST_USER_ID])).toEqual(mockPlayers);
       // getTeamRoster should NOT have been called for refetch
       expect(getTeamRoster).not.toHaveBeenCalled();
     });
@@ -538,9 +555,9 @@ describe('useTeamQueries', () => {
         ]);
       });
 
-      // Both should have been called
-      expect(addTeam).toHaveBeenCalled();
-      expect(updateTeam).toHaveBeenCalled();
+      // Both should have been called with userId
+      expect(addTeam).toHaveBeenCalledWith({ name: 'New Team' }, TEST_USER_ID);
+      expect(updateTeam).toHaveBeenCalledWith('team-1', { name: 'Updated' }, TEST_USER_ID);
 
       // Wait for mutations to settle and verify success
       await waitFor(() => {

@@ -99,11 +99,19 @@ Local-First Response Time: <50ms (consistent)
 
 **Challenge**: How to access data across multiple devices?
 
-**Solutions**:
+**Local Mode Solutions**:
 - **Primary Device Approach**: Designate one device as the primary coaching device
 - **Manual Sync**: Export/import functionality for data transfer when needed
 - **Backup Strategy**: Regular local backups with manual cloud storage if desired
-- **Future Enhancement**: Optional encrypted peer-to-peer synchronization
+
+**Optional Cloud Mode** (Premium Feature):
+For coaches who need cross-device access, MatchOps-Local offers an optional cloud mode via Supabase:
+- **User Choice**: Cloud sync is opt-in, never forced
+- **Data Portability**: Migrate data between local and cloud modes anytime
+- **Privacy Preserved**: EU data residency, RLS-protected, GDPR compliant
+- **Local-First Preserved**: Users who prefer local-only operation are never disadvantaged
+
+See "Optional Cloud Sync: Preserving Local-First Values" section below for how cloud mode maintains local-first principles.
 
 ### Data Backup & Recovery
 
@@ -225,15 +233,49 @@ Local-first software has implications beyond individual applications:
 - **Cost Transparency**: Clear, predictable costs without hidden data monetization
 - **Sustainable Business Models**: Software value based on utility, not data extraction
 
+## Optional Cloud Sync: Preserving Local-First Values
+
+When we added optional cloud sync, we ensured it maintains local-first principles:
+
+### User Choice is Paramount
+
+| Principle | How We Preserve It |
+|-----------|-------------------|
+| **Data Ownership** | Users can export all data anytime; can migrate cloud → local |
+| **Privacy by Default** | Local mode is the default; cloud requires explicit opt-in |
+| **Offline Capability** | Local mode remains fully offline; cloud mode clearly indicates when offline |
+| **Performance Priority** | Local mode unchanged; cloud mode still fast due to edge infrastructure |
+| **Durability** | Data portable between modes; never locked into cloud |
+
+### Why Cloud Doesn't Compromise Local-First
+
+1. **It's Truly Optional**: Local mode is complete and fully featured
+2. **No Feature Gating**: Local users get 100% of features
+3. **Data Portability**: Bidirectional migration (local ↔ cloud) at any time
+4. **Transparent Tradeoffs**: Clear documentation of what cloud mode means for privacy
+5. **EU Data Residency**: Cloud data stored in EU for GDPR compliance
+
+### The Business Reality
+
+Premium cloud sync (€4.99/month) enables sustainable development while keeping the core local-first experience free. This is healthier than:
+- ❌ Ad-supported models (privacy violation)
+- ❌ Freemium with locked features (punishes local-first users)
+- ❌ One-time purchase (unsustainable long-term)
+
+Cloud subscribers choose convenience; local users choose privacy. Both are first-class citizens.
+
+---
+
 ## Implementation Lessons
 
 ### What We've Learned Building MatchOps-Local
 
 #### **Technical Insights**
-- **LocalStorage is Sufficient**: Modern browser storage handles complex applications well
+- **IndexedDB is Sufficient**: Modern browser storage handles complex applications well (migrated from localStorage for capacity)
 - **Performance Exceeds Expectations**: Local-first is faster than cloud in most scenarios
 - **PWA is the Right Platform**: Progressive web apps ideal for local-first architecture
 - **Type Safety is Critical**: TypeScript essential for data integrity without server validation
+- **Backend Abstraction Works**: DataStore interface allows local and cloud to share UI code
 
 #### **User Experience Insights**
 - **Privacy Sells Itself**: Coaches immediately understand local-first privacy benefits

@@ -65,6 +65,20 @@ export interface DataStore {
    */
   isAvailable(): Promise<boolean>;
 
+  /**
+   * Check if the data store has been initialized.
+   * Synchronous check for defensive programming - no network calls.
+   * @returns true if initialize() has completed successfully
+   */
+  isInitialized(): boolean;
+
+  /**
+   * Clear user-specific caches.
+   * Called when auth state changes (user sign out / sign in).
+   * Optional - only implemented by cloud backends with user caches.
+   */
+  clearUserCaches?(): void;
+
   // ==========================================================================
   // PLAYERS (Master Roster)
   // Note: No getPlayerById - filter from getPlayers() in consuming code.
@@ -98,6 +112,14 @@ export interface DataStore {
    * @returns true if deleted, false if not found
    */
   deletePlayer(id: string): Promise<boolean>;
+
+  /**
+   * Upsert a player - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param player - Player with ID to upsert
+   * @returns The upserted player
+   */
+  upsertPlayer(player: Player): Promise<Player>;
 
   // ==========================================================================
   // TEAMS
@@ -140,6 +162,14 @@ export interface DataStore {
    * @returns true if deleted, false if not found
    */
   deleteTeam(id: string): Promise<boolean>;
+
+  /**
+   * Upsert a team - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param team - Team with ID to upsert
+   * @returns The upserted team
+   */
+  upsertTeam(team: Team): Promise<Team>;
 
   // ==========================================================================
   // TEAM ROSTERS
@@ -200,6 +230,14 @@ export interface DataStore {
    */
   deleteSeason(id: string): Promise<boolean>;
 
+  /**
+   * Upsert a season - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param season - Season with ID to upsert
+   * @returns The upserted season
+   */
+  upsertSeason(season: Season): Promise<Season>;
+
   // ==========================================================================
   // TOURNAMENTS
   // Note: No getTournamentById - filter from getTournaments() in consuming code.
@@ -234,6 +272,14 @@ export interface DataStore {
    * @returns true if deleted, false if not found
    */
   deleteTournament(id: string): Promise<boolean>;
+
+  /**
+   * Upsert a tournament - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param tournament - Tournament with ID to upsert
+   * @returns The upserted tournament
+   */
+  upsertTournament(tournament: Tournament): Promise<Tournament>;
 
   // ==========================================================================
   // PERSONNEL
@@ -288,6 +334,14 @@ export interface DataStore {
    * @throws {Error} If storage operation fails
    */
   removePersonnelMember(id: string): Promise<boolean>;
+
+  /**
+   * Upsert a personnel member - insert if not exists, update if exists.
+   * Used for reverse migration to preserve cloud IDs.
+   * @param personnel - Personnel with ID to upsert
+   * @returns The upserted personnel
+   */
+  upsertPersonnelMember(personnel: Personnel): Promise<Personnel>;
 
   // ==========================================================================
   // GAMES
@@ -428,11 +482,33 @@ export interface DataStore {
   getPlayerAdjustments(playerId: string): Promise<PlayerStatAdjustment[]>;
 
   /**
+   * Batch fetch ALL player adjustments for the current user.
+   * Returns a Map keyed by playerId for efficient lookup.
+   *
+   * This avoids the N+1 query problem when fetching adjustments for many players.
+   * Use this for migration/bulk operations instead of calling getPlayerAdjustments in a loop.
+   *
+   * @returns Map from playerId to array of adjustments
+   */
+  getAllPlayerAdjustments(): Promise<Map<string, PlayerStatAdjustment[]>>;
+
+  /**
    * Add a new player adjustment.
    * @param adjustment - Adjustment data (id and appliedAt will be generated if not provided)
    * @returns The created adjustment
+   * @throws {Error} If adjustment with same id already exists (use upsertPlayerAdjustment for merge)
    */
   addPlayerAdjustment(
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+  ): Promise<PlayerStatAdjustment>;
+
+  /**
+   * Upsert a player adjustment (insert or update if exists).
+   * Used by migration service for merge mode to handle re-migration scenarios.
+   * @param adjustment - Adjustment data (id and appliedAt will be generated if not provided)
+   * @returns The created or updated adjustment
+   */
+  upsertPlayerAdjustment(
     adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
   ): Promise<PlayerStatAdjustment>;
 
@@ -501,6 +577,74 @@ export interface DataStore {
    * Clear timer state.
    */
   clearTimerState(): Promise<void>;
+
+  // ==========================================================================
+  // DATA MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Clear all user data.
+   *
+   * For cloud backends: Deletes all data from cloud storage.
+   * For local backends: Clears all IndexedDB data.
+   *
+   * IMPORTANT: This is destructive and irreversible!
+   *
+   * @throws {Error} If deletion fails
+   */
+  clearAllUserData(): Promise<void>;
+
+  // ==========================================================================
+  // ENTITY REFERENCE CHECKS
+  // Used for safe deletion - check if entity is referenced before allowing delete.
+  // Returns counts and summary for UI display.
+  // ==========================================================================
+
+  /**
+   * Check if a season can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   * @param seasonId - Season ID to check
+   * @returns Reference counts and delete safety status
+   */
+  getSeasonReferences(seasonId: string): Promise<EntityReferences>;
+
+  /**
+   * Check if a tournament can be safely deleted (no game/team references).
+   * Player adjustments use SET NULL and don't block deletion.
+   * @param tournamentId - Tournament ID to check
+   * @returns Reference counts and delete safety status
+   */
+  getTournamentReferences(tournamentId: string): Promise<EntityReferences>;
+
+  /**
+   * Check if a team can be safely deleted (no game references).
+   * Team rosters CASCADE delete and don't block deletion.
+   * @param teamId - Team ID to check
+   * @returns Reference counts and delete safety status
+   */
+  getTeamReferences(teamId: string): Promise<EntityReferences>;
+}
+
+/**
+ * Result of entity reference check.
+ * Used by UI to show why deletion is blocked and offer archive alternative.
+ */
+export interface EntityReferences {
+  /** True if entity can be safely deleted (no blocking references) */
+  canDelete: boolean;
+
+  /** Counts of different reference types */
+  counts: {
+    /** Number of games referencing this entity */
+    games?: number;
+    /** Number of teams bound to this entity (season/tournament only) */
+    teams?: number;
+    /** Number of player adjustments referencing this entity (info only, doesn't block) */
+    adjustments?: number;
+  };
+
+  /** Human-readable summary for UI display */
+  summary: string;
 }
 
 // =============================================================================

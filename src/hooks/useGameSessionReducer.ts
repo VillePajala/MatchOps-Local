@@ -1,4 +1,4 @@
-import { GameEvent, SubAlertLevel, GameType, Gender } from '@/types';
+import { GameEvent, SubAlertLevel, GameType, Gender, IntervalLog } from '@/types';
 import logger from '@/utils/logger';
 
 // --- State Definition ---
@@ -23,6 +23,8 @@ export interface GameSessionState {
   teamId?: string; // Optional team ID for multi-team support
   gameType?: GameType; // Sport type: 'soccer' or 'futsal' (defaults to 'soccer')
   gender?: Gender; // Gender: 'boys' or 'girls' (optional for backward compatibility)
+  wentToOvertime?: boolean; // Game went to overtime/extra time
+  wentToPenalties?: boolean; // Game decided by penalty shootout
   ageGroup?: string;
   tournamentLevel?: string;
   tournamentSeriesId?: string;
@@ -40,17 +42,10 @@ export interface GameSessionState {
   lastSubConfirmationTimeSeconds: number;
   completedIntervalDurations?: IntervalLog[]; // Made optional to align with AppState
   showPlayerNames: boolean;
+  showPositionLabels?: boolean; // Whether to show position labels on the field (default: true)
 }
 
-// Define IntervalLog if it's not globally available from AppState import
-// For now, assuming AppState might not be directly importable or could cause circular deps
-// So, defining it locally or ensuring it's available via a shared types file is better.
-export interface IntervalLog {
-  period: number;
-  duration: number; // Duration in seconds
-  timestamp: number; // Unix timestamp when the interval ended
-}
-
+// IntervalLog is imported from @/types (canonical definition in types/game.ts)
 
 // --- Initial State ---
 // The actual initial state will be derived from page.tsx's initialState object.
@@ -87,6 +82,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   lastSubConfirmationTimeSeconds: 0,
   completedIntervalDurations: [],
   showPlayerNames: true,
+  showPositionLabels: true,
   gameType: 'soccer',
 };
 
@@ -118,6 +114,9 @@ export type GameSessionAction =
   | { type: 'SET_CUSTOM_LEAGUE_NAME'; payload: string | undefined }
   | { type: 'SET_GAME_TYPE'; payload: GameType }
   | { type: 'SET_GENDER'; payload: Gender | undefined }
+  | { type: 'SET_WENT_TO_OVERTIME'; payload: boolean }
+  | { type: 'SET_WENT_TO_PENALTIES'; payload: boolean }
+  | { type: 'SET_SHOW_POSITION_LABELS'; payload: boolean }
   | { type: 'SET_GAME_LOCATION'; payload: string }
   | { type: 'SET_GAME_TIME'; payload: string }
   | { type: 'SET_AGE_GROUP'; payload: string }
@@ -133,7 +132,7 @@ export type GameSessionAction =
   | { type: 'SET_TIMER_RUNNING'; payload: boolean }
   | { type: 'SET_SUB_INTERVAL'; payload: number } // subIntervalMinutes
   | { type: 'CONFIRM_SUBSTITUTION' }
-  | { type: 'RESET_TIMER_AND_GAME_PROGRESS'; payload?: Partial<GameSessionState> } // Optional payload for selective reset
+  | { type: 'RESET_TIMER_AND_GAME_PROGRESS'; payload?: Partial<GameSessionState> } // Optional payload overrides reset defaults (e.g., preserve subIntervalMinutes)
   | { type: 'RESET_TIMER_ONLY' }
   | { type: 'LOAD_GAME_SESSION_STATE'; payload: Partial<GameSessionState> }
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
@@ -143,7 +142,7 @@ export type GameSessionAction =
 
 // --- Reducer Function ---
 export const gameSessionReducer = (state: GameSessionState, action: GameSessionAction): GameSessionState => {
-  logger.log('[gameSessionReducer] action type:', action.type);
+  logger.debug('[gameSessionReducer] action type:', action.type);
   switch (action.type) {
     case 'LOAD_STATE_FROM_HISTORY':
     case 'LOAD_GAME_SESSION_STATE':
@@ -275,6 +274,12 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, gameType: action.payload };
     case 'SET_GENDER':
       return { ...state, gender: action.payload };
+    case 'SET_WENT_TO_OVERTIME':
+      return { ...state, wentToOvertime: action.payload || undefined };
+    case 'SET_WENT_TO_PENALTIES':
+      return { ...state, wentToPenalties: action.payload || undefined };
+    case 'SET_SHOW_POSITION_LABELS':
+      return { ...state, showPositionLabels: action.payload };
     case 'SET_GAME_LOCATION':
       return { ...state, gameLocation: action.payload };
     case 'SET_GAME_TIME':
@@ -363,6 +368,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
           ...state,
           timeElapsedInSeconds: Math.round(savedTime),
           isTimerRunning: true,
+          startTimestamp: Date.now(),
         };
       }
       return state;
@@ -432,10 +438,15 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       };
     }
     case 'RESET_TIMER_AND_GAME_PROGRESS': {
+        // Resets game progress to initial state. Optional payload fields override
+        // the defaults below (e.g., to preserve subIntervalMinutes from settings).
+        // The spread `...(action.payload || {})` at the end means any field in the
+        // payload takes priority over the hardcoded reset values.
         const subIntervalMins = action.payload?.subIntervalMinutes || state.subIntervalMinutes || 5;
         return {
             ...state,
             timeElapsedInSeconds: 0,
+            startTimestamp: null,
             isTimerRunning: false,
             currentPeriod: 1,
             gameStatus: 'notStarted',
@@ -453,7 +464,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     case 'RESET_GAME_SESSION_STATE':
       return action.payload;
     case 'LOAD_PERSISTED_GAME_DATA': {
-      logger.log('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - Received action.payload:', JSON.parse(JSON.stringify(action.payload)));
+      logger.debug('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - Received action.payload:', action.payload);
       const loadedData = action.payload as Partial<GameSessionState>;
 
       const teamName = loadedData.teamName ?? initialGameSessionStatePlaceholder.teamName;
@@ -481,6 +492,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const customLeagueName = loadedData.customLeagueName;
       const gameType = loadedData.gameType;
       const gender = loadedData.gender;
+      const wentToOvertime = loadedData.wentToOvertime;
+      const wentToPenalties = loadedData.wentToPenalties;
       const ageGroup = loadedData.ageGroup;
       const tournamentLevel = loadedData.tournamentLevel;
       const gameLocation = loadedData.gameLocation ?? '';
@@ -489,6 +502,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const gameEvents = loadedData.gameEvents ?? [];
       const subIntervalMinutes = loadedData.subIntervalMinutes ?? initialGameSessionStatePlaceholder.subIntervalMinutes;
       const showPlayerNames = loadedData.showPlayerNames ?? initialGameSessionStatePlaceholder.showPlayerNames;
+      const showPositionLabels = loadedData.showPositionLabels ?? true;
       const completedIntervalDurations = loadedData.completedIntervalDurations ?? [];
       const gamePersonnel = loadedData.gamePersonnel ?? [];
 
@@ -539,6 +553,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         customLeagueName,
         gameType,
         gender,
+        wentToOvertime,
+        wentToPenalties,
         ageGroup,
         tournamentLevel,
         gameLocation,
@@ -547,6 +563,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         gameEvents,
         subIntervalMinutes,
         showPlayerNames,
+        showPositionLabels,
         completedIntervalDurations,
 
         timeElapsedInSeconds: timeElapsedAtLoad,
@@ -556,7 +573,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         subAlertLevel: recalculatedAlertLevel,
         lastSubConfirmationTimeSeconds: lastSubConfirmation,
       };
-      logger.log('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - state to be returned:', JSON.parse(JSON.stringify(stateToBeReturned)));
+      logger.debug('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - state to be returned:', stateToBeReturned);
       return stateToBeReturned;
     }
     default:

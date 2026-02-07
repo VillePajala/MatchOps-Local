@@ -54,6 +54,7 @@ import { storageConfigManager, type StorageConfig, type StorageMode, DEFAULT_STO
 import { MutexManager } from './storageMutex';
 import { storageMetrics, OperationType } from './storageMetrics';
 import { storageRecovery } from './storageRecovery';
+import { getUserDatabaseName, LEGACY_DATABASE_NAME } from '@/datastore/userDatabase';
 
 /**
  * Extended interface for storage adapters that support connection disposal
@@ -124,6 +125,10 @@ export class StorageFactory {
   );
 
 
+  // Maximum recovery attempts to prevent infinite recursion
+  private static readonly MAX_RECOVERY_ATTEMPTS = 3;
+  private recoveryAttemptCount = 0;
+
   /**
    * Create and return the appropriate storage adapter based on configuration
    *
@@ -177,6 +182,8 @@ export class StorageFactory {
 
         // Create new adapter
         const adapter = await this.createAdapterInternal(forceMode);
+        // Reset recovery counter on successful creation
+        this.recoveryAttemptCount = 0;
         timer.success({ cached: false, mode: adapter.getBackendName() });
         return adapter;
 
@@ -192,18 +199,30 @@ export class StorageFactory {
 
       this.logger.error('Failed to create storage adapter', { error, forceMode });
 
-      // Attempt recovery for corruption errors
+      // Attempt recovery for corruption errors (with retry limit to prevent infinite loops)
       if (error instanceof StorageError && error.type === StorageErrorType.CORRUPTED_DATA) {
-        this.logger.info('Attempting automatic recovery from corruption');
-        try {
-          const recoveryResult = await storageRecovery.repairCorruption(error, this.cachedAdapter || new IndexedDBKvAdapter());
-          if (recoveryResult.success) {
-            this.logger.info('Recovery successful', recoveryResult);
-            // Retry adapter creation after recovery
-            return this.createAdapter(forceMode);
+        if (this.recoveryAttemptCount < StorageFactory.MAX_RECOVERY_ATTEMPTS) {
+          this.recoveryAttemptCount++;
+          this.logger.info('Attempting automatic recovery from corruption', {
+            attempt: this.recoveryAttemptCount,
+            maxAttempts: StorageFactory.MAX_RECOVERY_ATTEMPTS
+          });
+          try {
+            const recoveryResult = await storageRecovery.repairCorruption(error, this.cachedAdapter || new IndexedDBKvAdapter());
+            if (recoveryResult.success) {
+              this.logger.info('Recovery successful', recoveryResult);
+              // Retry adapter creation after recovery
+              return this.createAdapter(forceMode);
+            }
+          } catch (recoveryError) {
+            this.logger.error('Recovery failed', { recoveryError });
           }
-        } catch (recoveryError) {
-          this.logger.error('Recovery failed', { recoveryError });
+        } else {
+          this.logger.error('Max recovery attempts reached, giving up', {
+            attempts: this.recoveryAttemptCount
+          });
+          // Reset counter for future attempts (e.g., after page reload)
+          this.recoveryAttemptCount = 0;
         }
       }
 
@@ -714,6 +733,142 @@ export class StorageFactory {
       );
     }
   }
+
+  /**
+   * Create a user-scoped IndexedDB adapter.
+   *
+   * Each user gets their own IndexedDB database for complete data isolation.
+   * The database name format is: `matchops_user_{userId}`
+   *
+   * @param userId - The authenticated user's ID
+   * @returns Promise resolving to a user-scoped storage adapter
+   * @throws {Error} If userId is invalid or IndexedDB is not available
+   *
+   * @example
+   * ```typescript
+   * const adapter = await storageFactory.createUserAdapter('user123');
+   * await adapter.setItem('settings', JSON.stringify({ theme: 'dark' }));
+   * ```
+   */
+  async createUserAdapter(userId: string): Promise<StorageAdapter> {
+    const timer = storageMetrics.startOperation(OperationType.ADAPTER_CREATE);
+
+    try {
+      this.logger.debug('Creating user-scoped adapter', { userId });
+
+      // Validate userId and get database name
+      const dbName = getUserDatabaseName(userId);
+
+      // Check IndexedDB support
+      const isSupported = await this.isIndexedDBSupported();
+      if (!isSupported) {
+        throw new Error('IndexedDB not supported. This application requires IndexedDB to function.');
+      }
+
+      // Create IndexedDB adapter with user-specific database name
+      const adapter = new IndexedDBKvAdapter({ dbName });
+
+      // Test the adapter
+      await this.testAdapter(adapter);
+
+      timer.success({ userId, dbName });
+      this.logger.debug('User-scoped adapter created successfully', { userId, dbName });
+
+      return adapter;
+    } catch (error) {
+      timer.failure(
+        error instanceof Error ? error.message : 'Unknown error',
+        error instanceof StorageError ? error.type : StorageErrorType.ACCESS_DENIED
+      );
+
+      this.logger.error('Failed to create user-scoped adapter', { userId, error });
+
+      // Capture detailed error info to Sentry for debugging
+      try {
+        // Dynamic import to avoid circular dependencies
+        import('@sentry/nextjs').then((Sentry) => {
+          Sentry.addBreadcrumb({
+            category: 'storage',
+            message: 'User-scoped adapter creation failed',
+            level: 'error',
+            data: {
+              userId,
+              errorMessage: error instanceof Error ? error.message : String(error),
+              errorName: error instanceof Error ? error.name : 'Unknown',
+              errorStack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
+            },
+          });
+          Sentry.captureException(error, {
+            tags: { component: 'storageFactory', action: 'createUserAdapter' },
+            extra: {
+              userId,
+              errorDetails: error instanceof Error ? {
+                message: error.message,
+                name: error.name,
+                stack: error.stack,
+              } : String(error),
+            },
+          });
+        }).catch(() => {
+          // Sentry import failed - continue without reporting
+        });
+      } catch {
+        // Sentry not available - continue
+      }
+
+      throw new StorageError(
+        StorageErrorType.ACCESS_DENIED,
+        `Failed to create user-scoped storage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  /**
+   * Create a legacy (anonymous) IndexedDB adapter.
+   *
+   * Uses the global `MatchOpsLocal` database for backward compatibility
+   * and anonymous/local-only mode.
+   *
+   * @returns Promise resolving to the legacy storage adapter
+   */
+  async createLegacyAdapter(): Promise<StorageAdapter> {
+    const timer = storageMetrics.startOperation(OperationType.ADAPTER_CREATE);
+
+    try {
+      this.logger.debug('Creating legacy adapter', { dbName: LEGACY_DATABASE_NAME });
+
+      // Check IndexedDB support
+      const isSupported = await this.isIndexedDBSupported();
+      if (!isSupported) {
+        throw new Error('IndexedDB not supported. This application requires IndexedDB to function.');
+      }
+
+      // Create IndexedDB adapter with legacy database name
+      const adapter = new IndexedDBKvAdapter({ dbName: LEGACY_DATABASE_NAME });
+
+      // Test the adapter
+      await this.testAdapter(adapter);
+
+      timer.success({ dbName: LEGACY_DATABASE_NAME });
+      this.logger.debug('Legacy adapter created successfully', { dbName: LEGACY_DATABASE_NAME });
+
+      return adapter;
+    } catch (error) {
+      timer.failure(
+        error instanceof Error ? error.message : 'Unknown error',
+        error instanceof StorageError ? error.type : StorageErrorType.ACCESS_DENIED
+      );
+
+      this.logger.error('Failed to create legacy adapter', { error });
+
+      throw new StorageError(
+        StorageErrorType.ACCESS_DENIED,
+        `Failed to create legacy storage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
 }
 
 /**
@@ -758,4 +913,35 @@ export async function getStorageConfig(): Promise<StorageConfig> {
  */
 export async function updateStorageConfig(updates: Partial<StorageConfig>): Promise<void> {
   return storageFactory.updateStorageConfig(updates);
+}
+
+/**
+ * Create a user-scoped storage adapter.
+ *
+ * Each user gets their own IndexedDB database (`matchops_user_{userId}`)
+ * for complete data isolation between users.
+ *
+ * @param userId - The authenticated user's ID
+ * @returns Promise resolving to user-scoped storage adapter
+ *
+ * @example
+ * ```typescript
+ * const adapter = await createUserAdapter('user123');
+ * await adapter.setItem('settings', JSON.stringify({ theme: 'dark' }));
+ * ```
+ */
+export async function createUserAdapter(userId: string): Promise<StorageAdapter> {
+  return storageFactory.createUserAdapter(userId);
+}
+
+/**
+ * Create a legacy (anonymous) storage adapter.
+ *
+ * Uses the global `MatchOpsLocal` database for backward compatibility
+ * and anonymous/local-only mode.
+ *
+ * @returns Promise resolving to legacy storage adapter
+ */
+export async function createLegacyAdapter(): Promise<StorageAdapter> {
+  return storageFactory.createLegacyAdapter();
 }

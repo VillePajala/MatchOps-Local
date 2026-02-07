@@ -52,6 +52,8 @@ interface SeasonTournamentMutations {
   deleteTournament?: UseMutationResult<boolean, Error, string, unknown>;
 }
 
+type SettingsTab = 'general' | 'data' | 'account' | 'about';
+
 interface ModalManagerState {
   isTrainingResourcesOpen: boolean;
   isRulesDirectoryOpen: boolean;
@@ -66,6 +68,7 @@ interface ModalManagerState {
   isSeasonTournamentModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
   isSettingsModalOpen: boolean;
+  settingsInitialTab?: SettingsTab;
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
@@ -182,6 +185,8 @@ interface ModalManagerHandlers {
   setCustomLeagueName: (name: string | undefined) => void;
   setGameType: (gameType: import('@/types').GameType) => void;
   setGender: (gender: import('@/types').Gender | undefined) => void;
+  setWentToOvertime: (value: boolean) => void;
+  setWentToPenalties: (value: boolean) => void;
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
@@ -191,6 +196,8 @@ interface ModalManagerHandlers {
   setDefaultTeamName: (name: string) => void;
   showAppGuide: () => void;
   hardResetApp: () => void;
+  resyncFromCloud: () => void;
+  factoryReset: () => void;
   closePlayerAssessmentModal: () => void;
   savePlayerAssessment: (playerId: string, assessment: Partial<PlayerAssessment>) => void;
   deletePlayerAssessment: (playerId: string) => void;
@@ -281,6 +288,8 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
             gameTime={data.gameSessionState.gameTime}
             numPeriods={data.gameSessionState.numberOfPeriods}
             periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
+            wentToOvertime={data.gameSessionState.wentToOvertime}
+            wentToPenalties={data.gameSessionState.wentToPenalties}
             availablePlayers={data.playersForCurrentGame}
             gameEvents={data.gameSessionState.gameEvents}
             gameNotes={data.gameSessionState.gameNotes}
@@ -432,6 +441,10 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onSetHomeOrAway={handlers.setHomeOrAway}
           isPlayed={data.isPlayed}
           onIsPlayedChange={handlers.setIsPlayed}
+          wentToOvertime={data.gameSessionState.wentToOvertime}
+          wentToPenalties={data.gameSessionState.wentToPenalties}
+          onWentToOvertimeChange={handlers.setWentToOvertime}
+          onWentToPenaltiesChange={handlers.setWentToPenalties}
           gameType={data.gameSessionState.gameType}
           onGameTypeChange={handlers.setGameType}
           gender={data.gameSessionState.gender}
@@ -452,10 +465,12 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onLanguageChange={handlers.setAppLanguage}
           defaultTeamName={data.defaultTeamNameSetting}
           onDefaultTeamNameChange={handlers.setDefaultTeamName}
-          onResetGuide={handlers.showAppGuide}
           onHardResetApp={handlers.hardResetApp}
           onCreateBackup={handlers.onCreateBackup}
           onDataImportSuccess={handlers.onDataImportSuccess}
+          initialTab={state.settingsInitialTab}
+          onResyncFromCloud={handlers.resyncFromCloud}
+          onFactoryReset={handlers.factoryReset}
         />
 
         <PlayerAssessmentModal

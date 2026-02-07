@@ -1,7 +1,7 @@
 # Supabase PostgreSQL Schema
 
-**Status**: Proposed Design (Revised v15)
-**Last Updated**: 2026-01-12 (v15: RPC upsert lists all columns explicitly)
+**Status**: ✅ Implemented (Revised v17)
+**Last Updated**: 2026-01-26 (v17: Schema deployed, Edge Function complete, Local-First Sync merged)
 **Target**: Premium/Cloud Backend
 **Related**: [Current Storage Schema](./current-storage-schema.md) | [Dual-Backend Architecture](../architecture/dual-backend-architecture.md) | [Migration Strategy](../../03-active-plans/backend-evolution/migration-strategy.md)
 
@@ -17,6 +17,44 @@ This document defines the **target PostgreSQL schema** for MatchOps-Local's clou
 - **Normalization**: Avoid data duplication while maintaining query performance
 - **Soft Deletes**: `archived` flags instead of hard deletes for seasons/tournaments
 - **Timestamps**: Track creation and modification times
+
+## Scale Limits & Capacity
+
+### Supabase Plan Limits
+
+| Resource | Free Plan | Pro Plan ($25/mo) |
+|----------|-----------|-------------------|
+| Database size | 500 MB | 8 GB (auto-scales to 60 TB) |
+| Bandwidth | 10 GB/mo | 250 GB/mo |
+| File storage | 1 GB | 100 GB |
+
+### Estimated Data Sizes (Single User)
+
+| Entity | Size Each | Typical Count | Total |
+|--------|-----------|---------------|-------|
+| Game (with events, players, assessments) | ~10 KB | 100/season | ~1 MB |
+| Player | ~0.5 KB | 50 | ~25 KB |
+| Team | ~1 KB | 10 | ~10 KB |
+| Season | ~1 KB | 5 | ~5 KB |
+| Tournament | ~2 KB | 10 | ~20 KB |
+
+**Realistic maximum for power user**: 500 games × 10 KB = **~5-10 MB**
+
+### Practical Limits
+
+| Resource | Limit | Bottleneck |
+|----------|-------|------------|
+| Games per user | **50,000+** | Free tier (500 MB) can store this easily |
+| Players | **1,000+** | No practical limit |
+| Events per game | **500+** | UI list rendering, not database |
+| Concurrent tabs | **1 recommended** | App doesn't support multi-tab sync |
+
+### Implications
+
+1. **Free tier is sufficient** for any individual coach - database will never exceed 500 MB
+2. **UI is the bottleneck**, not Supabase - loading 500+ games in a list is a rendering issue
+3. **Multi-user/team accounts** would require Pro Plan and pagination strategies
+4. **Bandwidth is generous** - 10 GB/mo covers thousands of sync operations
 
 ## Critical: ID Strategy
 
@@ -63,7 +101,9 @@ users (Supabase Auth)
  │    └── game_tactical_data
  ├── player_adjustments
  ├── warmup_plans
- └── user_settings
+ ├── user_settings
+ ├── user_consents (GDPR compliance)
+ └── subscriptions (Play Store billing)
 ```
 
 ## Core Tables
@@ -811,6 +851,167 @@ CREATE POLICY "Users can only access their own settings"
   - `encryptionEnabled`, `encryptionPassphrase`, `backupIntervalDays`, `lastBackupAt`
   - These were experimental/unused features in older app versions. Cloud mode has server-side backups.
 
+### 16. `user_consents`
+
+Tracks user consent for Terms of Service and Privacy Policy (GDPR compliance).
+
+```sql
+CREATE TABLE user_consents (
+  id text PRIMARY KEY,  -- Format: consent_{timestamp}_{random}
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  consent_type text NOT NULL CHECK (consent_type IN ('terms_and_privacy', 'marketing')),
+  policy_version text NOT NULL,  -- e.g., '2025-01' for January 2025 policy
+  consented_at timestamptz NOT NULL DEFAULT now(),
+  ip_address text,  -- Optional: for audit trail
+  user_agent text,  -- Optional: browser/device info
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_user_consents_user_id ON user_consents(user_id);
+
+-- Unique constraint prevents duplicate consent records for same user/type/version
+-- This is defense-in-depth: RPC also uses ON CONFLICT DO NOTHING
+CREATE UNIQUE INDEX idx_user_consents_unique
+  ON user_consents(user_id, consent_type, policy_version);
+
+-- RLS Policy
+ALTER TABLE user_consents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can only access their own consents"
+  ON user_consents FOR ALL
+  USING (auth.uid() = user_id);
+```
+
+**GDPR Compliance Notes**:
+- **Consent is demonstrable**: Server-side record with timestamp proves when user agreed
+- **Policy versioning**: `policy_version` tracks which version of Terms/Privacy was accepted
+- **Re-consent required**: When policies change, check if user has consented to new version
+- **Audit trail**: Optional IP/user agent for legal compliance
+- **Data retention**: Consent records should be retained even after account deletion (legal requirement)
+
+**Usage Pattern**:
+- Record consent during sign-up via `record_user_consent()` RPC
+- Check consent version on login to detect outdated consent
+- Query latest consent for a user: `SELECT * FROM user_consents WHERE user_id = ? AND consent_type = 'terms_and_privacy' ORDER BY consented_at DESC LIMIT 1`
+
+### 17. `subscriptions`
+
+Tracks user subscription status for Play Store billing.
+
+```sql
+-- Subscription status enum
+CREATE TYPE subscription_status AS ENUM (
+  'none',       -- Never subscribed
+  'active',     -- Paid and valid
+  'cancelled',  -- User cancelled, but period not ended
+  'grace',      -- Payment failed, in grace period (7 days)
+  'expired'     -- Grace ended, no access
+);
+
+CREATE TABLE subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status subscription_status NOT NULL DEFAULT 'none',
+
+  -- Google Play fields
+  google_purchase_token TEXT,
+  google_order_id TEXT,
+  product_id TEXT,
+
+  -- Period tracking
+  period_start TIMESTAMPTZ,
+  period_end TIMESTAMPTZ,
+  grace_end TIMESTAMPTZ,
+
+  -- Audit
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  last_verified_at TIMESTAMPTZ,
+
+  -- Ensure one subscription per user
+  CONSTRAINT unique_user_subscription UNIQUE (user_id)
+);
+
+CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX idx_subscriptions_status ON subscriptions(status);
+
+-- RLS Policy: Users can only READ their own subscription
+-- No INSERT/UPDATE policy - only Edge Functions (service role) can write
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own subscription"
+  ON subscriptions FOR SELECT
+  USING (auth.uid() = user_id);
+```
+
+**RPC Functions**:
+
+```sql
+-- Get subscription status (used by app)
+CREATE OR REPLACE FUNCTION get_subscription_status()
+RETURNS TABLE (
+  status subscription_status,
+  period_end TIMESTAMPTZ,
+  grace_end TIMESTAMPTZ,
+  is_active BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    s.status,
+    s.period_end,
+    s.grace_end,
+    (s.status IN ('active', 'cancelled', 'grace')) AS is_active
+  FROM subscriptions s
+  WHERE s.user_id = auth.uid();
+
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT
+      'none'::subscription_status AS status,
+      NULL::TIMESTAMPTZ AS period_end,
+      NULL::TIMESTAMPTZ AS grace_end,
+      FALSE AS is_active;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_subscription_status() TO authenticated;
+
+-- Upsert subscription (called by Edge Function with service role)
+-- NOT exposed to regular users
+CREATE OR REPLACE FUNCTION upsert_subscription(
+  p_user_id UUID,
+  p_status subscription_status,
+  p_google_purchase_token TEXT DEFAULT NULL,
+  p_google_order_id TEXT DEFAULT NULL,
+  p_product_id TEXT DEFAULT NULL,
+  p_period_start TIMESTAMPTZ DEFAULT NULL,
+  p_period_end TIMESTAMPTZ DEFAULT NULL,
+  p_grace_end TIMESTAMPTZ DEFAULT NULL
+)
+RETURNS subscriptions
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$ ... $$;
+
+REVOKE EXECUTE ON FUNCTION upsert_subscription FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION upsert_subscription FROM authenticated;
+```
+
+**Security Model**:
+- Users can only **read** their own subscription (RLS)
+- Users **cannot** insert/update subscriptions directly
+- Only Edge Functions with service role can modify subscriptions
+- This prevents subscription tampering from client side
+
+**Usage Pattern**:
+- App calls `get_subscription_status()` to check if user has active subscription
+- Edge Function (verify-purchase) calls `upsert_subscription()` to update status
+- Edge Function (RTDN webhook) calls `upsert_subscription()` for status changes
+
 ### Timer State: LOCAL ONLY
 
 **Timer state is NOT stored in Supabase.** It remains in local storage because:
@@ -1057,6 +1258,183 @@ GRANT EXECUTE ON FUNCTION delete_personnel_cascade TO authenticated;
 ```
 
 **Note**: The `p_user_id` parameter was removed - the function now uses `auth.uid()` exclusively to prevent cross-user operations.
+
+### Clear All User Data (Atomic)
+
+```sql
+-- Function to atomically delete ALL user data
+-- SECURITY: Uses auth.uid() exclusively - no client-provided user_id
+-- ATOMIC: All deletions in single transaction - all-or-nothing semantics
+-- ORDER: Child tables first to respect FK constraints (CASCADE would handle it, but explicit is clearer)
+CREATE OR REPLACE FUNCTION clear_all_user_data()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- REQUIRED: Prevents search_path injection
+AS $$
+DECLARE
+  v_user_id uuid;
+BEGIN
+  -- CRITICAL: Get authenticated user ID from Supabase Auth
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  -- Delete in order: child tables first, then parent tables
+  -- This respects FK constraints even though CASCADE would handle most
+
+  -- Game child tables (would CASCADE from games, but explicit is clearer)
+  DELETE FROM game_events WHERE user_id = v_user_id;
+  DELETE FROM game_players WHERE user_id = v_user_id;
+  DELETE FROM game_tactical_data WHERE user_id = v_user_id;
+  DELETE FROM player_assessments WHERE user_id = v_user_id;
+
+  -- Games (SET NULL on seasons/tournaments/teams)
+  DELETE FROM games WHERE user_id = v_user_id;
+
+  -- Player adjustments (SET NULL on seasons/tournaments)
+  DELETE FROM player_adjustments WHERE user_id = v_user_id;
+
+  -- Team players (would CASCADE from teams)
+  DELETE FROM team_players WHERE user_id = v_user_id;
+
+  -- Independent entities
+  DELETE FROM teams WHERE user_id = v_user_id;
+  DELETE FROM tournaments WHERE user_id = v_user_id;
+  DELETE FROM seasons WHERE user_id = v_user_id;
+  DELETE FROM personnel WHERE user_id = v_user_id;
+  DELETE FROM players WHERE user_id = v_user_id;
+  DELETE FROM warmup_plans WHERE user_id = v_user_id;
+  DELETE FROM user_settings WHERE user_id = v_user_id;
+
+  -- Success - transaction commits automatically
+END;
+$$;
+
+-- Restrict execute to authenticated users only
+REVOKE ALL ON FUNCTION clear_all_user_data FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION clear_all_user_data TO authenticated;
+```
+
+**Note**: `user_consents` is intentionally NOT deleted by `clear_all_user_data()`. Consent records must be retained for GDPR compliance even after account deletion to prove consent was given.
+
+**Why RPC instead of sequential client-side deletes?**
+- **Atomicity**: Single PostgreSQL transaction ensures all-or-nothing semantics
+- **Network resilience**: One round-trip instead of 14 (one per table)
+- **No partial state**: If any delete fails, entire transaction rolls back
+- **Performance**: Database executes deletes in sequence without network latency
+
+### Record User Consent (GDPR)
+
+```sql
+-- Function to record user consent for Terms/Privacy Policy
+-- SECURITY: Uses auth.uid() exclusively - cannot record consent for other users
+-- IDEMPOTENT: Safe to call multiple times with same version
+CREATE OR REPLACE FUNCTION record_user_consent(
+  p_consent_type text,
+  p_policy_version text,
+  p_ip_address text DEFAULT NULL,
+  p_user_agent text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- REQUIRED: Prevents search_path injection
+AS $$
+DECLARE
+  v_user_id uuid;
+  v_consent_id text;
+  v_result jsonb;
+BEGIN
+  -- CRITICAL: Get authenticated user ID from Supabase Auth
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  -- Validate consent_type
+  IF p_consent_type NOT IN ('terms_and_privacy', 'marketing') THEN
+    RAISE EXCEPTION 'Invalid consent_type: %', p_consent_type;
+  END IF;
+
+  -- Generate consent ID
+  v_consent_id := 'consent_' || extract(epoch from now())::bigint || '_' || substr(md5(random()::text), 1, 8);
+
+  -- Insert consent record (idempotent: ON CONFLICT DO NOTHING)
+  -- If user already consented to this version, no duplicate is created
+  INSERT INTO user_consents (id, user_id, consent_type, policy_version, ip_address, user_agent)
+  VALUES (v_consent_id, v_user_id, p_consent_type, p_policy_version, p_ip_address, p_user_agent)
+  ON CONFLICT (user_id, consent_type, policy_version) DO NOTHING;
+
+  -- Return the consent record (either newly inserted or existing)
+  SELECT jsonb_build_object(
+    'id', uc.id,
+    'user_id', uc.user_id,
+    'consent_type', uc.consent_type,
+    'policy_version', uc.policy_version,
+    'consented_at', uc.consented_at
+  ) INTO v_result
+  FROM user_consents uc
+  WHERE uc.user_id = v_user_id
+    AND uc.consent_type = p_consent_type
+    AND uc.policy_version = p_policy_version;
+
+  RETURN v_result;
+END;
+$$;
+
+-- Restrict execute to authenticated users only
+REVOKE ALL ON FUNCTION record_user_consent FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION record_user_consent TO authenticated;
+```
+
+**Check User Consent Version**:
+
+```sql
+-- Function to check if user has consented to a specific policy version
+-- Returns the latest consent record for the given type, or null if none exists
+CREATE OR REPLACE FUNCTION get_user_consent(
+  p_consent_type text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_user_id uuid;
+  v_consent record;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT id, consent_type, policy_version, consented_at
+  INTO v_consent
+  FROM user_consents
+  WHERE user_id = v_user_id AND consent_type = p_consent_type
+  ORDER BY consented_at DESC
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'id', v_consent.id,
+    'consent_type', v_consent.consent_type,
+    'policy_version', v_consent.policy_version,
+    'consented_at', v_consent.consented_at
+  );
+END;
+$$;
+
+-- Restrict execute to authenticated users only
+REVOKE ALL ON FUNCTION get_user_consent FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION get_user_consent TO authenticated;
+```
 
 ---
 
@@ -1366,6 +1744,62 @@ LANGUAGE plpgsql SECURITY DEFINER;
 - **Anon Key**: Public, embedded in client (safe with RLS)
 - **Service Key**: Server-only, never exposed to client
 - **User JWT**: Generated by Supabase Auth, expires after session
+
+---
+
+## Edge Functions
+
+Supabase Edge Functions handle operations that require service role access or external API calls.
+
+### delete-account
+
+**Purpose**: Securely delete user account and all data.
+
+**Location**: `supabase/functions/delete-account/index.ts`
+
+**Security**:
+- Requires valid user JWT
+- Uses service role to delete auth user
+- Calls `delete_all_user_data()` RPC first
+
+**Endpoint**: `POST /functions/v1/delete-account`
+
+### verify-subscription
+
+**Purpose**: Verify Google Play subscription purchases and store status in Supabase.
+
+**Location**: `supabase/functions/verify-subscription/index.ts`
+
+**Security**:
+- Requires valid user JWT
+- Uses service role to upsert subscription record
+- Verifies purchase token with Google Play Developer API
+
+**Environment Variables**:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MOCK_BILLING` | No | Set to `true` to accept test tokens (prefix: `test-`) |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Production | Google Cloud service account JSON |
+
+**Endpoint**: `POST /functions/v1/verify-subscription`
+
+**Request Body**:
+```json
+{
+  "purchaseToken": "string",
+  "productId": "matchops_premium_monthly"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "status": "active",
+  "periodEnd": "2026-02-23T12:00:00.000Z",
+  "graceEnd": "2026-03-02T12:00:00.000Z"
+}
+```
 
 ---
 

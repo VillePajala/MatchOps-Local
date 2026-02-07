@@ -24,7 +24,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="pointer-events-none absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
       <Head>
-        <title>MatchOps-Local — Local-first match management</title>
+        <title>MatchOps — Soccer & Futsal Coaching App</title>
         <meta name="description" content={t('footer.tagline')} />
         <meta property="og:title" content="MatchOps" />
         <meta property="og:description" content="Soccer & futsal coaching toolkit. Tactical board, game timer, stats | Jalkapallo- ja futsalvalmentajan työkalu" />

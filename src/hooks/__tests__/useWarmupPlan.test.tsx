@@ -42,6 +42,16 @@ jest.mock('@/contexts/ToastProvider', () => ({
   }),
 }));
 
+// Mock useDataStore
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 const {
   getWarmupPlan,
   saveWarmupPlan,
@@ -197,7 +207,7 @@ describe('useWarmupPlan', () => {
       // React Query may pass additional context to mutationFn, so check the first argument
       expect(saveWarmupPlan).toHaveBeenCalled();
       expect(saveWarmupPlan.mock.calls[0][0]).toEqual(updatedPlan);
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.warmupPlan });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [...queryKeys.warmupPlan, TEST_USER_ID] });
     });
 
     it('sets isSaving to true during mutation', async () => {
@@ -260,7 +270,7 @@ describe('useWarmupPlan', () => {
       });
 
       expect(deleteWarmupPlan).toHaveBeenCalledTimes(1);
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.warmupPlan });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [...queryKeys.warmupPlan, TEST_USER_ID] });
     });
 
     it('sets isResetting to true during mutation', async () => {

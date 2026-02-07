@@ -40,6 +40,16 @@ jest.mock('@/utils/logger', () => {
   };
 });
 
+// Mock useDataStore
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 // Test data fixtures
 const mockPersonnel: Personnel[] = [
   {
@@ -206,7 +216,7 @@ describe('usePersonnelManager', () => {
       });
 
       expect(addedPersonnel).toEqual(expectedResult);
-      expect(addPersonnelMember).toHaveBeenCalledWith(newPersonnelData);
+      expect(addPersonnelMember).toHaveBeenCalledWith(newPersonnelData, TEST_USER_ID);
     });
 
     /**
@@ -269,7 +279,7 @@ describe('usePersonnelManager', () => {
       });
 
       expect(updatedPersonnel).toEqual(expectedResult);
-      expect(updatePersonnelMember).toHaveBeenCalledWith('personnel-1', updates);
+      expect(updatePersonnelMember).toHaveBeenCalledWith('personnel-1', updates, TEST_USER_ID);
     });
 
     /**
@@ -338,7 +348,7 @@ describe('usePersonnelManager', () => {
         await result.current.removePersonnel('personnel-1');
       });
 
-      expect(removePersonnelMember).toHaveBeenCalledWith('personnel-1');
+      expect(removePersonnelMember).toHaveBeenCalledWith('personnel-1', TEST_USER_ID);
     });
   });
 

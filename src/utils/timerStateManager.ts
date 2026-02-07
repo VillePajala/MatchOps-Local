@@ -44,10 +44,11 @@ export interface TimerState {
  * 2. Immediate save when tab becomes hidden (with wasRunning: true)
  *
  * @param state - Timer state to persist
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  */
-export async function saveTimerState(state: TimerState): Promise<void> {
+export async function saveTimerState(state: TimerState, userId?: string): Promise<void> {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     await dataStore.saveTimerState(state);
   } catch (error) {
     // Timer state save is not critical - log and continue
@@ -62,11 +63,12 @@ export async function saveTimerState(state: TimerState): Promise<void> {
  * - Tab becomes visible to restore timer position
  * - Game loads to check for existing timer state
  *
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Timer state if exists, null otherwise
  */
-export async function loadTimerState(): Promise<TimerState | null> {
+export async function loadTimerState(userId?: string): Promise<TimerState | null> {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     return await dataStore.getTimerState();
   } catch (error) {
     logger.debug('[timerStateManager] Failed to load timer state (non-critical)', { error });
@@ -83,10 +85,11 @@ export async function loadTimerState(): Promise<TimerState | null> {
  * - Loading a different game
  *
  * Silently handles errors since timer state is not critical.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  */
-export async function clearTimerState(): Promise<void> {
+export async function clearTimerState(userId?: string): Promise<void> {
   try {
-    const dataStore = await getDataStore();
+    const dataStore = await getDataStore(userId);
     await dataStore.clearTimerState();
   } catch (error) {
     // Timer state clear is not critical - silent fail
@@ -97,10 +100,11 @@ export async function clearTimerState(): Promise<void> {
 /**
  * Check if timer state exists in IndexedDB.
  *
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns true if timer state exists, false otherwise
  */
-export async function hasTimerState(): Promise<boolean> {
-  const state = await loadTimerState();
+export async function hasTimerState(userId?: string): Promise<boolean> {
+  const state = await loadTimerState(userId);
   return state !== null;
 }
 
@@ -110,10 +114,11 @@ export async function hasTimerState(): Promise<boolean> {
  * Useful for checking if there's resumable timer state for a specific game.
  *
  * @param gameId - Game ID to match
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Timer state if exists and matches game ID, null otherwise
  */
-export async function loadTimerStateForGame(gameId: string): Promise<TimerState | null> {
-  const state = await loadTimerState();
+export async function loadTimerStateForGame(gameId: string, userId?: string): Promise<TimerState | null> {
+  const state = await loadTimerState(userId);
   if (state && state.gameId === gameId) {
     return state;
   }

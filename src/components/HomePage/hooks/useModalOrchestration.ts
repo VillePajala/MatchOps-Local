@@ -149,11 +149,15 @@ export interface ModalHandlers {
   handleSetCustomLeagueName: (customLeagueName: string | undefined) => void;
   handleSetGameType: (gameType: import('@/types').GameType) => void;
   handleSetGender: (gender: import('@/types').Gender | undefined) => void;
+  handleSetWentToOvertime: (value: boolean) => void;
+  handleSetWentToPenalties: (value: boolean) => void;
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
   handleShowAppGuide: () => void;
   handleHardResetApp: () => void;
+  handleResyncFromCloud: () => void;
+  handleFactoryReset: () => void;
   handleSavePlayerAssessment: (playerId: string, assessment: Partial<import('@/types').PlayerAssessment>) => void;
   handleDeletePlayerAssessment: (playerId: string) => void;
   handleTeamReassignment: (teamId: string | null) => void;
@@ -290,11 +294,15 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetCustomLeagueName,
     handleSetGameType,
     handleSetGender,
+    handleSetWentToOvertime,
+    handleSetWentToPenalties,
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
     handleSetGamePersonnel,
     handleShowAppGuide,
     handleHardResetApp,
+    handleResyncFromCloud,
+    handleFactoryReset,
     handleSavePlayerAssessment,
     handleDeletePlayerAssessment,
     handleTeamReassignment,
@@ -330,6 +338,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     // setIsNewGameSetupModalOpen not used - modal controlled by game orchestration
     isSettingsModalOpen,
     setIsSettingsModalOpen,
+    settingsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
@@ -489,6 +498,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       isSeasonTournamentModalOpen,
       isGameSettingsModalOpen,
       isSettingsModalOpen,
+      settingsInitialTab,
       isPlayerAssessmentModalOpen,
       isTeamReassignModalOpen,
       showNoPlayersConfirm,
@@ -599,6 +609,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setCustomLeagueName: handleSetCustomLeagueName,
       setGameType: handleSetGameType,
       setGender: handleSetGender,
+      setWentToOvertime: handleSetWentToOvertime,
+      setWentToPenalties: handleSetWentToPenalties,
       setHomeOrAway: handleSetHomeOrAway,
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,
@@ -608,6 +620,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setDefaultTeamName: setDefaultTeamNameSetting,
       showAppGuide: handleShowAppGuide,
       hardResetApp: handleHardResetApp,
+      resyncFromCloud: handleResyncFromCloud,
+      factoryReset: handleFactoryReset,
       closePlayerAssessmentModal,
       savePlayerAssessment: handleSavePlayerAssessment,
       deletePlayerAssessment: handleDeletePlayerAssessment,

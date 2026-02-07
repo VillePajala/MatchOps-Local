@@ -22,7 +22,14 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Report error to Sentry
-    Sentry.captureException(error);
+    // Wrapped in try/catch to prevent Sentry SDK failures from breaking error boundary
+    try {
+      Sentry.captureException(error, {
+        tags: { handler: 'global-error-boundary' },
+      });
+    } catch {
+      // Sentry failure must not affect error boundary rendering
+    }
   }, [error]);
 
   return (

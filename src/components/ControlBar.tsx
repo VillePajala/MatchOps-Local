@@ -15,7 +15,6 @@ import {
   HiOutlineClipboard,
   HiOutlineBookOpen,
   HiOutlineDocumentArrowDown,
-  HiOutlineQuestionMarkCircle,
   HiOutlineArrowTopRightOnSquare,
   HiOutlineCog6Tooth,
   HiOutlineArrowUturnLeft,
@@ -27,6 +26,7 @@ import {
   HiOutlineIdentification,
   HiOutlineScale,
   HiOutlineHome,
+  HiOutlineArrowRightOnRectangle,
 } from 'react-icons/hi2';
 import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
@@ -109,6 +109,9 @@ interface ControlBarProps {
   onOpenTeamManagerModal: () => void;
   onOpenPersonnelManager: () => void;
   onGoToStartScreen?: () => void;
+  // Cloud mode
+  onSignOut?: () => void;
+  isCloudMode?: boolean;
 }
 
 const ControlBar: React.FC<ControlBarProps> = React.memo(({
@@ -144,12 +147,14 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenGameSettingsModal,
   isGameLoaded,
   onOpenSeasonTournamentModal,
-  onToggleInstructionsModal,
+  onToggleInstructionsModal: _onToggleInstructionsModal,
   onOpenSettingsModal,
   onOpenPlayerAssessmentModal,
   onOpenTeamManagerModal,
   onOpenPersonnelManager,
   onGoToStartScreen,
+  onSignOut,
+  isCloudMode = false,
 }) => {
   const { t } = useTranslation();
   const { openSettingsToTab } = useModalContext();
@@ -660,6 +665,16 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <button onClick={wrapModal(onOpenSettingsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineCog6Tooth className="w-5 h-5 mr-2" /> {t('controlBar.appSettings', 'App Settings')}
             </button>
+            {/* Sign Out - only shown in cloud mode */}
+            {isCloudMode && onSignOut && (
+              <button
+                onClick={wrapImmediate(onSignOut)}
+                className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+              >
+                <HiOutlineArrowRightOnRectangle className="w-5 h-5 mr-2" />
+                {t('controlBar.signOut', 'Sign Out')}
+              </button>
+            )}
           </div>
         </nav>
       </div>

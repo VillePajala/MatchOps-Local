@@ -50,18 +50,25 @@ describe('usePrecisionTimer', () => {
     expect(currentTime).toBeGreaterThanOrEqual(10);
   });
 
-  it('should accept onTick callback', () => {
+  it('should accept onTick callback and call it when timer ticks', () => {
     const mockOnTick = jest.fn();
-    
-    expect(() => {
-      renderHook(() =>
-        usePrecisionTimer({ 
-          isRunning: true, 
-          startTime: 0, 
-          onTick: mockOnTick 
-        })
-      );
-    }).not.toThrow();
+
+    renderHook(() =>
+      usePrecisionTimer({
+        isRunning: true,
+        startTime: 0,
+        onTick: mockOnTick
+      })
+    );
+
+    // Simulate 1.5 seconds passing (cross a second boundary to trigger onTick)
+    jest.spyOn(performance, 'now').mockReturnValue(1500);
+    act(() => {
+      jest.advanceTimersByTime(150); // Advance past at least one interval tick (default 100ms)
+    });
+
+    // onTick should have been called when crossing the 0→1 second boundary
+    expect(mockOnTick).toHaveBeenCalledWith(1);
   });
 
   describe('Timer Precision and Accuracy', () => {
@@ -114,12 +121,12 @@ describe('usePrecisionTimer', () => {
 
     it('should handle start and stop correctly', () => {
       const mockOnTick = jest.fn();
-      
+
       const { result, rerender } = renderHook(
-        ({ isRunning }) => usePrecisionTimer({ 
-          isRunning, 
+        ({ isRunning }) => usePrecisionTimer({
+          isRunning,
           startTime: 0,
-          onTick: mockOnTick 
+          onTick: mockOnTick
         }),
         { initialProps: { isRunning: false } }
       );
@@ -129,16 +136,31 @@ describe('usePrecisionTimer', () => {
 
       // Start timer
       rerender({ isRunning: true });
-      
-      // Should start correctly
-      expect(result.current.getCurrentTime()).toBeGreaterThanOrEqual(0);
+
+      // Simulate 2.5 seconds of wall-clock time passing
+      jest.spyOn(performance, 'now').mockReturnValue(2500);
+      act(() => {
+        jest.advanceTimersByTime(200); // Advance to trigger interval ticks
+      });
+
+      // Timer should report elapsed time > 0 after advancing
+      expect(result.current.getCurrentTime()).toBeGreaterThan(0);
 
       // Stop timer
       rerender({ isRunning: false });
-      
-      // Should stop correctly
+
+      // Record the stopped time
       const stoppedTime = result.current.getCurrentTime();
-      expect(typeof stoppedTime).toBe('number');
+      expect(stoppedTime).toBeGreaterThanOrEqual(0);
+
+      // Simulate more wall-clock time passing after stop
+      jest.spyOn(performance, 'now').mockReturnValue(5000);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      // Time should NOT advance further after stop
+      expect(result.current.getCurrentTime()).toBe(stoppedTime);
     });
 
     it('should clean up on unmount', () => {

@@ -49,6 +49,10 @@ jest.mock('./indexedDbKvAdapter', () => {
           return Array.from(mockStore.keys());
         }),
         getBackendName: jest.fn().mockReturnValue('indexedDB'),
+        // close method for proper disposal (optional per interface)
+        close: jest.fn().mockImplementation(async () => {
+          mockStore.clear();
+        }),
         // Add a unique ID to ensure different instances
         _mockId: Math.random()
       };

@@ -1,6 +1,8 @@
 import React, { Component, ReactNode } from 'react';
 import { HiExclamationTriangle } from 'react-icons/hi2';
+import * as Sentry from '@sentry/nextjs';
 import logger from '@/utils/logger';
+import i18n from '@/i18n';
 
 interface Props {
   children: ReactNode;
@@ -91,6 +93,15 @@ class ErrorBoundary extends Component<Props, State> {
     // Log error details
     logger.error('ErrorBoundary caught an error:', error, errorInfo);
 
+    // Report to Sentry for production monitoring (matches global-error.tsx pattern)
+    try {
+      Sentry.captureException(error, {
+        extra: { componentStack: errorInfo.componentStack },
+      });
+    } catch {
+      // Sentry failure must not break error boundary
+    }
+
     // Update state with error info
     this.setState({
       error,
@@ -141,17 +152,17 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex flex-col items-center justify-center min-h-[200px] p-6 bg-slate-800 rounded-lg border border-slate-700">
           <div className="flex items-center mb-4">
-            <HiExclamationTriangle 
-              className="w-8 h-8 text-amber-400 mr-3" 
+            <HiExclamationTriangle
+              className="w-8 h-8 text-amber-400 mr-3"
               aria-hidden="true"
             />
             <h3 className="text-xl font-semibold text-slate-200">
-              Something went wrong
+              {i18n.t('errors.somethingWentWrong', 'Something went wrong')}
             </h3>
           </div>
-          
+
           <p className="text-slate-400 text-center mb-4 max-w-md">
-            An unexpected error occurred. This has been logged and will be investigated.
+            {i18n.t('errors.unexpectedError', 'An unexpected error occurred. This has been logged and will be investigated.')}
           </p>
 
           <div className="flex gap-3">
@@ -159,13 +170,13 @@ class ErrorBoundary extends Component<Props, State> {
               onClick={this.handleRetry}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm font-medium transition-colors border border-indigo-400/30"
             >
-              Try Again
+              {i18n.t('errors.tryAgain', 'Try Again')}
             </button>
             <button
               onClick={this.handleRefresh}
               className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm font-medium transition-colors border border-slate-400/30"
             >
-              Refresh Page
+              {i18n.t('errors.refreshPage', 'Refresh Page')}
             </button>
           </div>
 
@@ -173,7 +184,7 @@ class ErrorBoundary extends Component<Props, State> {
           {(this.props.showErrorDetails || process.env.NODE_ENV === 'development') && this.state.error && (
             <details className="mt-6 w-full">
               <summary className="cursor-pointer text-sm text-slate-400 hover:text-slate-300">
-                Show error details (dev only)
+                {i18n.t('errors.showErrorDetails', 'Show error details (dev only)')}
               </summary>
               <div className="mt-2 p-3 bg-slate-900 rounded text-xs text-slate-300 overflow-auto">
                 <div className="mb-2">

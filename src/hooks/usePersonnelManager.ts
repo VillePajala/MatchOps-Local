@@ -87,10 +87,10 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
   // Wrapped operations with logging
   const addPersonnel = useCallback(
     async (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>): Promise<Personnel> => {
-      logger.log('[usePersonnelManager] Adding personnel:', data.name);
+      logger.debug('[usePersonnelManager] Adding personnel:', data.name);
       try {
         const result = await addMutation.mutateAsync(data);
-        logger.log('[usePersonnelManager] Personnel added successfully');
+        logger.debug('[usePersonnelManager] Personnel added successfully');
         return result;
       } catch (error) {
         logger.error('[usePersonnelManager] Error adding personnel:', error);
@@ -105,13 +105,13 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
       personnelId: string,
       updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>
     ): Promise<Personnel | null> => {
-      logger.log('[usePersonnelManager] Updating personnel:', personnelId, updates);
+      logger.debug('[usePersonnelManager] Updating personnel:', personnelId, updates);
       try {
         const result = await updateMutation.mutateAsync({ personnelId, updates });
         if (result) {
-          logger.log('[usePersonnelManager] Personnel updated successfully');
+          logger.debug('[usePersonnelManager] Personnel updated successfully');
         } else {
-          logger.log('[usePersonnelManager] Personnel not found');
+          logger.debug('[usePersonnelManager] Personnel not found');
         }
         return result;
       } catch (error) {
@@ -124,10 +124,10 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
 
   const removePersonnel = useCallback(
     async (personnelId: string) => {
-      logger.log('[usePersonnelManager] Removing personnel:', personnelId);
+      logger.debug('[usePersonnelManager] Removing personnel:', personnelId);
       try {
         await removeMutation.mutateAsync(personnelId);
-        logger.log('[usePersonnelManager] Personnel removed successfully');
+        logger.debug('[usePersonnelManager] Personnel removed successfully');
       } catch (error) {
         logger.error('[usePersonnelManager] Error removing personnel:', error);
         throw error; // DataStore guarantees Error types

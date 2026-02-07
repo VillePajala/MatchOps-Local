@@ -82,7 +82,12 @@ const eslintConfig = [
             }
           ]
         }
-      ]
+      ],
+      // Allow underscore-prefixed unused args (common pattern for interface compliance)
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }]
     },
   },
   {
@@ -95,7 +100,8 @@ const eslintConfig = [
       "src/utils/fullBackup.ts",       // Backup utility needs direct localStorage access
       "src/utils/localStorageAdapter.ts", // Storage adapter implementation
       "src/utils/storageConfigManager.ts", // Config manager bootstrap phase needs direct access
-      "src/utils/storageAdapter.ts"    // Base storage adapter types
+      "src/utils/storageAdapter.ts",   // Base storage adapter types
+      "src/i18n.ts"                    // Language pref is device-level, loads before DataStore (avoids MATCHOPS-LOCAL-2P)
     ],
     rules: {
       "no-console": "off",

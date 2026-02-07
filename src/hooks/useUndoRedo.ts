@@ -29,18 +29,19 @@ export function useUndoRedo<T>(initialState: T): UseUndoRedoReturn<T> {
   }, [index]);
 
   const set = useCallback((next: T) => {
-    setHistory(prev => {
-      const current = historyRef.current[indexRef.current];
-      if (JSON.stringify(current) === JSON.stringify(next)) {
-        return prev;
-      }
-      const newHistory = prev.slice(0, indexRef.current + 1);
-      newHistory.push(next);
-      historyRef.current = newHistory;
-      indexRef.current = newHistory.length - 1;
-      setIndex(indexRef.current);
-      return newHistory;
-    });
+    const current = historyRef.current[indexRef.current];
+    if (JSON.stringify(current) === JSON.stringify(next)) {
+      return;
+    }
+    const newHistory = historyRef.current.slice(0, indexRef.current + 1);
+    newHistory.push(next);
+    const newIndex = newHistory.length - 1;
+    // Update refs first for immediate reads by other callbacks
+    historyRef.current = newHistory;
+    indexRef.current = newIndex;
+    // Schedule React state updates (batched in React 18+/19)
+    setHistory(newHistory);
+    setIndex(newIndex);
   }, []);
 
   const reset = useCallback((next: T) => {

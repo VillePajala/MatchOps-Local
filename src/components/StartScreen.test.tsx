@@ -11,11 +11,11 @@ jest.mock('@/i18n', () => ({
     on: jest.fn(),
     off: jest.fn(),
   },
+  saveLanguagePreference: jest.fn(),
 }));
 
 jest.mock('@/utils/appSettings', () => ({
   __esModule: true,
-  getAppSettings: jest.fn().mockResolvedValue({ language: 'en' }),
   updateAppSettings: jest.fn().mockResolvedValue({}),
 }));
 
@@ -24,6 +24,14 @@ jest.mock('@/utils/fullBackup', () => ({
   exportFullBackup: jest.fn().mockResolvedValue('{}'),
 }));
 
+const mockSignOut = jest.fn();
+jest.mock('@/contexts/AuthProvider', () => ({
+  useAuth: jest.fn(() => ({
+    user: null,
+    mode: 'local',
+    signOut: mockSignOut,
+  })),
+}));
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -115,5 +123,75 @@ describe('StartScreen', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
     expect(handlers.onGetStarted).toHaveBeenCalled();
+  });
+
+  it('shows Sign Out footer when in cloud mode', () => {
+    const { useAuth } = jest.requireMock('@/contexts/AuthProvider');
+    useAuth.mockReturnValue({
+      user: { email: 'test@example.com' },
+      mode: 'cloud',
+      signOut: mockSignOut,
+    });
+
+    const handlers = {
+      onLoadGame: jest.fn(),
+      onResumeGame: jest.fn(),
+      onGetStarted: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
+    };
+
+    render(
+      <StartScreen
+        onLoadGame={handlers.onLoadGame}
+        onResumeGame={handlers.onResumeGame}
+        onGetStarted={handlers.onGetStarted}
+        onViewStats={handlers.onViewStats}
+        onOpenSettings={handlers.onOpenSettings}
+        canResume={false}
+        hasSavedGames={true}
+        isFirstTimeUser={false}
+      />
+    );
+
+    expect(screen.getByText('Signed in as')).toBeInTheDocument();
+    expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign Out' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
+    expect(mockSignOut).toHaveBeenCalled();
+  });
+
+  it('does not show Sign Out footer when in local mode', () => {
+    const { useAuth } = jest.requireMock('@/contexts/AuthProvider');
+    useAuth.mockReturnValue({
+      user: null,
+      mode: 'local',
+      signOut: mockSignOut,
+    });
+
+    const handlers = {
+      onLoadGame: jest.fn(),
+      onResumeGame: jest.fn(),
+      onGetStarted: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
+    };
+
+    render(
+      <StartScreen
+        onLoadGame={handlers.onLoadGame}
+        onResumeGame={handlers.onResumeGame}
+        onGetStarted={handlers.onGetStarted}
+        onViewStats={handlers.onViewStats}
+        onOpenSettings={handlers.onOpenSettings}
+        canResume={false}
+        hasSavedGames={true}
+        isFirstTimeUser={false}
+      />
+    );
+
+    expect(screen.queryByText('Signed in as')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sign Out' })).not.toBeInTheDocument();
   });
 });

@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  getPremiumLicense,
   grantPremium,
   revokePremium,
   canCreateResource,
@@ -52,12 +51,28 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const loadPremiumStatus = useCallback(async () => {
     try {
       setIsLoading(true);
-      const license = await getPremiumLicense();
-      setIsPremium(license.isPremium);
-      logger.debug('Premium status loaded', { isPremium: license.isPremium });
+
+      // LIMITS DISABLED: Always grant premium (no resource limits enforced)
+      // The limit infrastructure is preserved for potential future use.
+      // To re-enable limits in cloud mode, restore the mode check and license lookup below.
+      setIsPremium(true);
+      logger.debug('Premium status: limits disabled - always premium');
+
+      // --- COMMENTED OUT: Original cloud mode limit enforcement ---
+      // const mode = getBackendMode();
+      // if (mode === 'local') {
+      //   setIsPremium(true);
+      //   logger.debug('Premium status: local mode = always premium');
+      //   return;
+      // }
+      // // Cloud mode: check actual license
+      // const license = await getPremiumLicense();
+      // setIsPremium(license.isPremium);
+      // logger.debug('Premium status loaded', { isPremium: license.isPremium, mode });
     } catch (error) {
       logger.error('Failed to load premium status', error);
-      setIsPremium(false);
+      // Even on error, grant premium since limits are disabled
+      setIsPremium(true);
     } finally {
       setIsLoading(false);
     }

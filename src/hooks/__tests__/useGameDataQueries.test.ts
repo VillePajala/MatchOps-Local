@@ -2,6 +2,16 @@ import { renderHook } from '@testing-library/react';
 import { useGameDataQueries } from '../useGameDataQueries';
 import { useQuery } from '@tanstack/react-query';
 
+// Mock useDataStore hook to provide userId for user-scoped storage
+const TEST_USER_ID = 'test-user-123';
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: TEST_USER_ID,
+    getStore: jest.fn(),
+    isUserScoped: true,
+  }),
+}));
+
 jest.mock('@tanstack/react-query', () => ({
   useQuery: jest.fn(),
 }));

@@ -27,7 +27,7 @@ jest.mock('@/hooks/usePremium', () => ({
     hasLimits: true,
     grantPremiumAccess: jest.fn(),
     revokePremiumAccess: jest.fn(),
-    PREMIUM_PRICE: '9,99 €',
+    PREMIUM_PRICE: '€ 4,99/kk',
   }),
   useResourceLimit: () => ({
     canAdd: true,
@@ -35,6 +35,19 @@ jest.mock('@/hooks/usePremium', () => ({
     limit: 10,
     current: 0,
     checkAndPrompt: jest.fn().mockReturnValue(true),
+  }),
+}));
+
+// Mock useDataStore for user-scoped storage
+const mockStore = {
+  getSeasonReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: { games: 0, teams: 0 }, summary: '' }),
+  getTournamentReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: { games: 0, teams: 0 }, summary: '' }),
+};
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => ({
+    userId: 'test-user-123',
+    getStore: jest.fn().mockResolvedValue(mockStore),
+    isUserScoped: true,
   }),
 }));
 

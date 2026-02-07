@@ -61,16 +61,21 @@ const logger: Logger = {
     console.error(message, ...data);
 
     // Send to Sentry - extract Error object if present in data
-    const error = data.find((d): d is Error => d instanceof Error);
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { message, data: data.filter(d => !(d instanceof Error)) },
-      });
-    } else {
-      Sentry.captureMessage(message, {
-        level: 'error',
-        extra: { data },
-      });
+    // Wrapped in try/catch to prevent Sentry SDK failures from crashing app
+    try {
+      const error = data.find((d): d is Error => d instanceof Error);
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { message, data: data.filter(d => !(d instanceof Error)) },
+        });
+      } else {
+        Sentry.captureMessage(message, {
+          level: 'error',
+          extra: { data },
+        });
+      }
+    } catch {
+      // Sentry failure must not affect error logging - console.error already done above
     }
   },
 };

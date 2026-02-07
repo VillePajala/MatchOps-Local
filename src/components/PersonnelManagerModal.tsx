@@ -24,7 +24,6 @@ import {
   titleStyle,
   cardStyle,
   primaryButtonStyle,
-  secondaryButtonStyle,
   iconButtonBaseStyle,
 } from '@/styles/modalStyles';
 
@@ -213,7 +212,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('personnelManager.title', 'Personnel Manager')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -334,7 +333,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                             onClick={(e) => handleActionsMenuToggle(e, person.id)}
                             className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                             disabled={isUpdating}
-                            aria-label="More options"
+                            aria-label={t('common.moreOptions', 'More options')}
                           >
                             <HiOutlineEllipsisVertical className="h-5 w-5" />
                           </button>
