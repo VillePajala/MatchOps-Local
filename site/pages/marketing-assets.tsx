@@ -128,6 +128,9 @@ const getScreenshots = (locale: string | undefined) => {
     personnel: isEnglish
       ? '/screenshots/MatcOps_main_personnel_en.jpg'
       : '/screenshots/MatchOps_main_personnel_fi.jpg',
+    cloudSync: isEnglish
+      ? '/screenshots/MatchOps_main_cloudSync_en.jpg'
+      : '/screenshots/MatchOps_main_CloudSync_fi.jpg',
   };
 };
 
