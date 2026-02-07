@@ -1216,6 +1216,8 @@ export type TranslationKey =
   | 'orphanedGame.reassignDescription'
   | 'orphanedGame.reassignTitle'
   | 'orphanedGame.unknownTeam'
+  | 'page.alreadyOpen'
+  | 'page.alreadyOpenDesc'
   | 'page.cloudModeEnabledReloading'
   | 'page.cloudSyncNotAvailable'
   | 'page.connectionTimeout'

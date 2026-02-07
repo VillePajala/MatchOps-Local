@@ -278,8 +278,9 @@ describe('Translation File Validation', () => {
       // Migration wizard simplified: syncDescription, notNow, syncToCloud, loadDataFailed, canRetryOrCancel, dataIsSafe, errorGeneric, syncFailedUnknown (migration)
       // Common keys: done, retry
       // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262 → 2268 → 2280
-      expect(enKeys.length).toBe(2280);
+      // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262 → 2268 → 2280 → 2282
+      expect(enKeys.length).toBe(2282);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -289,8 +290,9 @@ describe('Translation File Validation', () => {
       // Common keys: done, retry
       // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
       // Reset functionality: resync + factory reset keys for cloud mode
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262 → 2268 → 2280
-      expect(fiKeys.length).toBe(2280);
+      // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
+      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262 → 2268 → 2280 → 2282
+      expect(fiKeys.length).toBe(2282);
     });
   });
 });
