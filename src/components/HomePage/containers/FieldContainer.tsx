@@ -193,7 +193,7 @@ export function FieldContainer({
         includeOverlay: true,
         scale: 1, // Already rendered at high res, no additional scaling needed
       });
-      showToast(t('export.success', 'Field exported successfully'), 'success');
+      // Download triggered — no success toast needed
     } catch (error) {
       logger.error('[FieldContainer] Export failed:', error);
       showToast(t('export.failed', 'Failed to export field'), 'error');

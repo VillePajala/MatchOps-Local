@@ -23,6 +23,7 @@ import { getDataStore } from '@/datastore';
 import { setMigrationCompleted } from '@/config/backendConfig';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
+import type { GameType } from '@/types/game';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
 import { setPlayerFairPlayCardStatus } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -103,6 +104,9 @@ export interface UseGameOrchestrationProps {
   onDataImportSuccess?: () => void;
   isFirstTimeUser?: boolean;
   onGoToStartScreen?: () => void;
+  /** Pre-fetched game type from the last loaded game. Used to set correct field color on first render,
+   *  preventing a green→blue flash when resuming a futsal game. */
+  initialGameType?: GameType;
 }
 
 export interface UseGameOrchestrationReturn {
@@ -112,15 +116,20 @@ export interface UseGameOrchestrationReturn {
   isResetting: boolean;
 }
 
-export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
+export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen, initialGameType }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
 
   // --- Game Session Coordination (Step 2.6.2) ---
+  // Override initialState's gameType with pre-fetched value to prevent field color flash
+  // (e.g., green soccer field briefly showing before blue futsal field loads)
+  const effectiveInitialState = useMemo(() =>
+    initialGameType ? { ...initialState, gameType: initialGameType } : initialState,
+  [initialGameType]);
   const sessionCoordination = useGameSessionCoordination({
-    initialState,
+    initialState: effectiveInitialState,
   });
 
   // Destructure commonly used values for convenience
@@ -1732,6 +1741,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleSetCustomLeagueName = sessionCoordination.handlers.setCustomLeagueName;
   const handleSetGameType = sessionCoordination.handlers.setGameType;
   const handleSetGender = sessionCoordination.handlers.setGender;
+  const handleSetWentToOvertime = sessionCoordination.handlers.setWentToOvertime;
+  const handleSetWentToPenalties = sessionCoordination.handlers.setWentToPenalties;
   const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
 
   // --- AGGREGATE EXPORT HANDLERS ---
@@ -2251,6 +2262,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetCustomLeagueName,
       handleSetGameType,
       handleSetGender,
+      handleSetWentToOvertime,
+      handleSetWentToPenalties,
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
       handleSetGamePersonnel,

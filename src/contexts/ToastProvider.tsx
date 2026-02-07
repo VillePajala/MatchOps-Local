@@ -26,10 +26,12 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     setToasts(prev => [...prev, { id, message, type }]);
 
     // Store timeout reference for potential cleanup
+    // Error toasts display longer (5s) to ensure users see them, others fade faster (3s)
+    const duration = type === 'error' ? 5000 : 3000;
     const timeoutId = setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
       timeoutRefs.current.delete(id);
-    }, 3000);
+    }, duration);
 
     timeoutRefs.current.set(id, timeoutId);
   };

@@ -185,6 +185,8 @@ interface ModalManagerHandlers {
   setCustomLeagueName: (name: string | undefined) => void;
   setGameType: (gameType: import('@/types').GameType) => void;
   setGender: (gender: import('@/types').Gender | undefined) => void;
+  setWentToOvertime: (value: boolean) => void;
+  setWentToPenalties: (value: boolean) => void;
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
@@ -286,6 +288,8 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
             gameTime={data.gameSessionState.gameTime}
             numPeriods={data.gameSessionState.numberOfPeriods}
             periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
+            wentToOvertime={data.gameSessionState.wentToOvertime}
+            wentToPenalties={data.gameSessionState.wentToPenalties}
             availablePlayers={data.playersForCurrentGame}
             gameEvents={data.gameSessionState.gameEvents}
             gameNotes={data.gameSessionState.gameNotes}
@@ -437,6 +441,10 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onSetHomeOrAway={handlers.setHomeOrAway}
           isPlayed={data.isPlayed}
           onIsPlayedChange={handlers.setIsPlayed}
+          wentToOvertime={data.gameSessionState.wentToOvertime}
+          wentToPenalties={data.gameSessionState.wentToPenalties}
+          onWentToOvertimeChange={handlers.setWentToOvertime}
+          onWentToPenaltiesChange={handlers.setWentToPenalties}
           gameType={data.gameSessionState.gameType}
           onGameTypeChange={handlers.setGameType}
           gender={data.gameSessionState.gender}

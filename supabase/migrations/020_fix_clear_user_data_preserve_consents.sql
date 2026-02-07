@@ -1,23 +1,17 @@
 -- ============================================================================
--- RPC Function: clear_all_user_data
+-- Migration: Fix clear_all_user_data to preserve consent records
 -- ============================================================================
 --
--- Atomically deletes ALL data for the authenticated user across ALL tables.
--- This is used by the "Clear All Cloud Data" feature in Settings.
+-- GDPR FIX: The clear_all_user_data() RPC was incorrectly deleting
+-- user_consents records. Per migration 008 design, consent records must
+-- be retained for legal compliance:
+--   - "Clear Cloud Data" scenario: User keeps account, consents stay
+--   - Account deletion scenario: ON DELETE SET NULL anonymizes records
 --
--- CRITICAL: Uses a single PostgreSQL transaction to ensure all-or-nothing
--- semantics. If any DELETE fails, the entire operation rolls back.
+-- This migration updates the RPC to remove the user_consents DELETE.
 --
--- SECURITY NOTES:
--- 1. Uses SECURITY DEFINER with search_path restriction
--- 2. auth.uid() is used for user identification - no client-provided user_id
--- 3. Execute permissions restricted to 'authenticated' role only
---
--- DEPLOYMENT:
--- Run this SQL in Supabase Dashboard > SQL Editor, or via:
---   supabase db push
---
--- @see docs/02-technical/database/supabase-schema.md
+-- @see supabase/migrations/008_user_consents.sql (design intent)
+-- @see supabase/migrations/005_clear_all_user_data.sql (original RPC)
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION clear_all_user_data()
@@ -81,7 +75,6 @@ BEGIN
   -- - "Clear Cloud Data": User keeps account, consents remain linked
   -- - Account deletion: ON DELETE SET NULL anonymizes (user_id → NULL)
   -- See migration 008_user_consents.sql for design rationale.
-  -- Fixed in migration 020_fix_clear_user_data_preserve_consents.sql
 
 END;
 $$;

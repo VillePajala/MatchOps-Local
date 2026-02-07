@@ -2374,11 +2374,10 @@ describe('LocalDataStore', () => {
         expect(savedPlan.isDefault).toBe(false);
       });
 
-      it('should return false on save error', async () => {
+      it('should throw on save error', async () => {
         mockSetStorageItem.mockRejectedValueOnce(new Error('Storage error'));
 
-        const result = await dataStore.saveWarmupPlan(mockPlan);
-        expect(result).toBe(false);
+        await expect(dataStore.saveWarmupPlan(mockPlan)).rejects.toThrow('Storage error');
       });
     });
 
@@ -2389,11 +2388,10 @@ describe('LocalDataStore', () => {
         expect(mockSetStorageItem).toHaveBeenCalledWith('soccerWarmupPlan', '');
       });
 
-      it('should return false on delete error', async () => {
+      it('should throw on delete error', async () => {
         mockSetStorageItem.mockRejectedValueOnce(new Error('Storage error'));
 
-        const result = await dataStore.deleteWarmupPlan();
-        expect(result).toBe(false);
+        await expect(dataStore.deleteWarmupPlan()).rejects.toThrow('Storage error');
       });
     });
   });

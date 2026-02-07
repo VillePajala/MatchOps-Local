@@ -88,6 +88,8 @@ export interface UseGameSessionCoordinationReturn {
     setCustomLeagueName: (customLeagueName: string | undefined) => void;
     setGameType: (gameType: import('@/types').GameType) => void;
     setGender: (gender: import('@/types').Gender | undefined) => void;
+    setWentToOvertime: (value: boolean) => void;
+    setWentToPenalties: (value: boolean) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
   };
 }
@@ -428,6 +430,14 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_GENDER', payload: newGender });
   }, [dispatchGameSession]);
 
+  const handleSetWentToOvertime = useCallback((value: boolean) => {
+    dispatchGameSession({ type: 'SET_WENT_TO_OVERTIME', payload: value });
+  }, [dispatchGameSession]);
+
+  const handleSetWentToPenalties = useCallback((value: boolean) => {
+    dispatchGameSession({ type: 'SET_WENT_TO_PENALTIES', payload: value });
+  }, [dispatchGameSession]);
+
   const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
     dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
   }, [dispatchGameSession]);
@@ -543,6 +553,8 @@ export function useGameSessionCoordination({
       setCustomLeagueName: handleSetCustomLeagueName,
       setGameType: handleSetGameType,
       setGender: handleSetGender,
+      setWentToOvertime: handleSetWentToOvertime,
+      setWentToPenalties: handleSetWentToPenalties,
       setGamePersonnel: handleSetGamePersonnel,
     },
   };

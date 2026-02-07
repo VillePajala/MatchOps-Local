@@ -176,6 +176,8 @@ const defaultProps: GameSettingsModalProps = {
   onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
+  onWentToOvertimeChange: jest.fn(),
+  onWentToPenaltiesChange: jest.fn(),
   gameType: 'soccer',
   onGameTypeChange: jest.fn(),
   gender: undefined,

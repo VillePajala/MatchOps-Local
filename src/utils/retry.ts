@@ -12,6 +12,7 @@
  */
 
 import logger from '@/utils/logger';
+import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
 
 /**
  * HTTP status codes that indicate transient failures worth retrying.
@@ -24,41 +25,6 @@ const TRANSIENT_STATUS_CODES = new Set([
   503, // Service Unavailable
   504, // Gateway Timeout
 ]);
-
-/**
- * Error message patterns that indicate transient failures.
- */
-const TRANSIENT_ERROR_PATTERNS = [
-  // AbortError from Supabase auth locks
-  'aborterror',
-  'signal is aborted',
-  // Network errors
-  'fetch failed',
-  'network error',
-  'network request failed',
-  'failed to fetch',
-  'load failed',
-  'networkerror',
-  // Connection errors
-  'connection refused',
-  'connection reset',
-  'connection timed out',
-  'econnrefused',
-  'econnreset',
-  'etimedout',
-  'socket hang up',
-  // Server overload (message-based fallback)
-  'service unavailable',
-  'too many requests',
-  // Timeout
-  'timeout',
-  'timed out',
-  'request timeout',
-  // Temporary failures
-  'temporary failure',
-  'try again',
-  'temporarily unavailable',
-] as const;
 
 /**
  * Extract error message from various error types.

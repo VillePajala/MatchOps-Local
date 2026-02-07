@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
 import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard, HiOutlineArrowUpTray, HiOutlinePause, HiOutlinePlay } from 'react-icons/hi2';
 import {
   getBackendMode,
@@ -19,10 +18,9 @@ import { hasLocalDataToMigrate } from '@/services/migrationService';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
-import { getDataStore } from '@/datastore/factory';
-import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
-import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
+import { NetworkError } from '@/interfaces/DataStoreErrors';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import CloudAuthModal from './CloudAuthModal';
@@ -60,7 +58,6 @@ export default function CloudSyncSection({
 }: CloudSyncSectionProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
 
   // Subscription status for cloud mode (null in local mode)
@@ -81,10 +78,6 @@ export default function CloudSyncSection({
   const [cloudAvailable] = useState(() => isCloudAvailable());
   const [isChangingMode, setIsChangingMode] = useState(false);
 
-  // Clear cloud data confirmation state
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [clearConfirmText, setClearConfirmText] = useState('');
-  const [isClearingCloud, setIsClearingCloud] = useState(false);
 
   // Cloud account info (for showing cloud account section in local mode)
   const [cloudAccountInfo] = useState<CloudAccountInfo | null>(() => getCloudAccountInfo());
@@ -256,85 +249,6 @@ export default function CloudSyncSection({
    */
   const handleReverseMigrationCancel = () => {
     setShowReverseMigrationWizard(false);
-  };
-
-  const handleClearCloudData = async () => {
-    if (clearConfirmText !== 'DELETE') {
-      return;
-    }
-
-    // Safety check: Ensure cloud is actually available
-    // This prevents accidentally clearing local data if cloud config is missing
-    if (!cloudAvailable) {
-      logger.error('[CloudSyncSection] Attempted to clear cloud data but cloud is unavailable');
-      showToast(
-        t('cloudSync.cloudUnavailable', 'Cloud is not available. Cannot clear cloud data.'),
-        'error'
-      );
-      return;
-    }
-
-    setIsClearingCloud(true);
-    try {
-      if (!user?.id) {
-        logger.error('[CloudSyncSection] Cannot clear cloud data: no user ID');
-        showToast(t('cloudSync.noUser', 'Cannot clear: not signed in.'), 'error');
-        return;
-      }
-      const dataStore = await getDataStore(user.id);
-
-      // Defense-in-depth: Verify we're actually using cloud backend
-      // This catches edge cases where cloudAvailable is true but factory returned LocalDataStore
-      // Valid cloud backends: 'supabase' (direct) or 'synced' (local-first with cloud sync)
-      const backendName = dataStore.getBackendName();
-      if (backendName !== 'supabase' && backendName !== 'synced') {
-        logger.error(`[CloudSyncSection] Expected cloud backend but got ${backendName}`);
-        showToast(
-          t('cloudSync.wrongBackend', 'Cannot clear: not connected to cloud storage.'),
-          'error'
-        );
-        return;
-      }
-
-      await dataStore.clearAllUserData();
-
-      // Invalidate all React Query cache to refresh UI with empty state
-      // This avoids page reload which could lose unsaved work
-      await queryClient.invalidateQueries();
-
-      showToast(
-        t('cloudSync.clearSuccess', 'All cloud data deleted.'),
-        'success'
-      );
-
-      // Reset the confirmation dialog
-      setShowClearConfirm(false);
-      setClearConfirmText('');
-    } catch (error) {
-      logger.error('[CloudSyncSection] Failed to clear cloud data:', error);
-
-      // Provide actionable feedback based on error type
-      if (error instanceof NetworkError) {
-        showToast(
-          t('cloudSync.clearNetworkError', 'Network error. Please check your connection and try again.'),
-          'error'
-        );
-      } else if (error instanceof AuthError) {
-        showToast(
-          t('cloudSync.clearAuthError', 'Session expired. Please sign out and sign in again.'),
-          'error'
-        );
-      } else {
-        showToast(
-          t('cloudSync.clearError', 'Failed to clear cloud data. Please try again.'),
-          'error'
-        );
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setIsClearingCloud(false);
-      }
-    }
   };
 
   /**
@@ -658,16 +572,16 @@ export default function CloudSyncSection({
             <button
               onClick={syncStatus.syncNow}
               disabled={!syncStatus.isOnline || syncStatus.pendingCount === 0 || syncStatus.isSyncing || syncStatus.isPaused}
-              className={`${secondaryButtonStyle} flex-1 flex items-center justify-center gap-2 py-2 text-sm`}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-600 text-white hover:bg-slate-500 border border-slate-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {syncStatus.isSyncing ? (
                 <>
-                  <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                  <HiOutlineArrowPath className="h-3.5 w-3.5 animate-spin" />
                   {t('cloudSync.syncDetails.syncing', 'Syncing...')}
                 </>
               ) : (
                 <>
-                  <HiOutlineArrowPath className="h-4 w-4" />
+                  <HiOutlineArrowPath className="h-3.5 w-3.5" />
                   {t('cloudSync.syncDetails.syncNow', 'Sync Now')}
                 </>
               )}
@@ -677,8 +591,10 @@ export default function CloudSyncSection({
             <button
               onClick={syncStatus.isPaused ? syncStatus.resume : syncStatus.pause}
               disabled={syncStatus.isSyncing}
-              className={`${secondaryButtonStyle} flex items-center justify-center gap-2 px-4 py-2 text-sm ${
-                syncStatus.isPaused ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : ''
+              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                syncStatus.isPaused
+                  ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+                  : 'bg-slate-600 text-white hover:bg-slate-500 border border-slate-500/30'
               }`}
               title={syncStatus.isPaused
                 ? t('cloudSync.syncDetails.resumeTitle', 'Resume automatic sync')
@@ -687,12 +603,12 @@ export default function CloudSyncSection({
             >
               {syncStatus.isPaused ? (
                 <>
-                  <HiOutlinePlay className="h-4 w-4" />
+                  <HiOutlinePlay className="h-3.5 w-3.5" />
                   {t('cloudSync.syncDetails.resume', 'Resume')}
                 </>
               ) : (
                 <>
-                  <HiOutlinePause className="h-4 w-4" />
+                  <HiOutlinePause className="h-3.5 w-3.5" />
                   {t('cloudSync.syncDetails.pause', 'Pause')}
                 </>
               )}
@@ -720,13 +636,13 @@ export default function CloudSyncSection({
               <div className="flex gap-2">
                 <button
                   onClick={syncStatus.retryFailed}
-                  className={`${secondaryButtonStyle} flex-1 py-1.5 text-xs`}
+                  className="flex-1 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-600 text-white hover:bg-slate-500 border border-slate-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('cloudSync.syncDetails.retry', 'Retry')}
                 </button>
                 <button
                   onClick={syncStatus.clearFailed}
-                  className={`${dangerButtonStyle} flex-1 py-1.5 text-xs !bg-red-600/20 hover:!bg-red-600/30 !text-red-400`}
+                  className="flex-1 px-3 py-1.5 rounded-md text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('cloudSync.syncDetails.discard', 'Discard')}
                 </button>
@@ -890,94 +806,11 @@ export default function CloudSyncSection({
         </p>
       )}
 
-      {/* Clear Cloud Data Section - Only shown when cloud mode is active AND cloud is available */}
-      {/* Safety: If cloudAvailable is false, getDataStore() falls back to LocalDataStore */}
-      {/* which would clear local IndexedDB instead of cloud data - so we must gate on both */}
-      {currentMode === 'cloud' && cloudAvailable && (
-        <div className="pt-4 mt-4 border-t border-slate-700">
-          <h4 className="text-sm font-medium text-red-300 mb-2">
-            {t('cloudSync.dangerZone', 'Danger Zone')}
-          </h4>
-
-          {!showClearConfirm ? (
-            <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md border border-red-700/30">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-200">
-                  {t('cloudSync.clearCloudData', 'Clear All Cloud Data')}
-                </p>
-                <p className="text-xs text-slate-400">
-                  {t('cloudSync.clearNote', 'This will delete all your data from the cloud. Local data on this device will not be affected.')}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowClearConfirm(true)}
-                disabled={isChangingMode}
-                aria-label={t('cloudSync.clearCloudData', 'Clear All Cloud Data')}
-                className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/50 rounded text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                <HiOutlineTrash className="h-5 w-5" />
-              </button>
-            </div>
-          ) : (
-            <div className="p-3 bg-slate-800/50 rounded-md border border-red-500/50 space-y-3">
-              <div className="flex items-start gap-2">
-                <HiOutlineExclamationTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm text-red-300 font-medium">
-                    {t('cloudSync.clearWarningTitle', 'This action cannot be undone!')}
-                  </p>
-                  <p className="text-xs text-red-300/80 mt-1">
-                    {t('cloudSync.clearWarningDescription', 'All your games, players, teams, seasons, and other data will be permanently deleted from the cloud.')}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 mb-1">
-                  {t('cloudSync.clearConfirmLabel', 'Type DELETE to confirm:')}
-                </label>
-                <input
-                  type="text"
-                  value={clearConfirmText}
-                  onChange={(e) => setClearConfirmText(e.target.value)}
-                  placeholder="DELETE"
-                  disabled={isClearingCloud}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowClearConfirm(false);
-                    setClearConfirmText('');
-                  }}
-                  disabled={isClearingCloud}
-                  className={`${secondaryButtonStyle} flex-1 py-1.5 text-sm`}
-                >
-                  {t('common.cancel', 'Cancel')}
-                </button>
-                <button
-                  onClick={handleClearCloudData}
-                  disabled={clearConfirmText !== 'DELETE' || isClearingCloud}
-                  className={`${dangerButtonStyle} flex-1 py-1.5 text-sm flex items-center justify-center gap-2`}
-                >
-                  {isClearingCloud ? (
-                    <>
-                      <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
-                      {t('cloudSync.clearing', 'Clearing...')}
-                    </>
-                  ) : (
-                    <>
-                      <HiOutlineTrash className="h-4 w-4" />
-                      {t('cloudSync.confirmClear', 'Clear All Data')}
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Switch to Local Mode note - explains the cloud data deletion option */}
+      {currentMode === 'cloud' && (
+        <p className="text-xs text-slate-500">
+          {t('cloudSync.switchToLocalNote', 'When switching to local mode, you can choose to keep or delete your cloud data.')}
+        </p>
       )}
 
       {/* Cloud Account Section - Shown in LOCAL mode when user has cloud account info */}

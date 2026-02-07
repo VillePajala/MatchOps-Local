@@ -620,7 +620,10 @@ export class LocalDataStore implements DataStore {
     if (value === null) return null;
     try {
       return JSON.parse(value) as T;
-    } catch {
+    } catch (parseError) {
+      // Log at warn level so corrupted data is visible in production.
+      // Without this, corrupted storage silently appears as "empty" to the user.
+      logger.warn(`[LocalDataStore] JSON parse error for key "${key}" - data may be corrupted`, parseError);
       return null;
     }
   }
@@ -2320,14 +2323,11 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(WARMUP_PLAN_KEY, async () => {
-      try {
-        const planToSave = normalizeWarmupPlanForSave(plan);
-        await this.storageSetItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
-        return true;
-      } catch (error) {
-        logger.error('[LocalDataStore] Error saving warmup plan', error);
-        return false;
-      }
+      // Let storage errors propagate so callers (React Query mutations) can
+      // handle them via onError — silently returning false masks real failures.
+      const planToSave = normalizeWarmupPlanForSave(plan);
+      await this.storageSetItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
+      return true;
     });
   }
 
@@ -2335,13 +2335,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(WARMUP_PLAN_KEY, async () => {
-      try {
-        await this.storageSetItem(WARMUP_PLAN_KEY, '');
-        return true;
-      } catch (error) {
-        logger.error('[LocalDataStore] Error deleting warmup plan', error);
-        return false;
-      }
+      // Let storage errors propagate so callers can handle them properly.
+      await this.storageSetItem(WARMUP_PLAN_KEY, '');
+      return true;
     });
   }
 
@@ -2362,7 +2358,9 @@ export class LocalDataStore implements DataStore {
     try {
       await this.storageSetJSON(TIMER_STATE_KEY, state);
     } catch (error) {
-      logger.debug('[LocalDataStore] Failed to save timer state', error);
+      // Use warn level so timer save failures are visible in production logs and Sentry.
+      // Timer state during active games is important — loss means timer resets on reload.
+      logger.warn('[LocalDataStore] Failed to save timer state', error);
     }
   }
 

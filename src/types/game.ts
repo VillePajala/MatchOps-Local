@@ -159,6 +159,10 @@ export interface AppState {
    * Used for filtering and organizing games.
    */
   gender?: Gender;
+  /** Whether the game went to overtime/extra time */
+  wentToOvertime?: boolean;
+  /** Whether the game was decided by penalty shootout */
+  wentToPenalties?: boolean;
   /**
    * ISO timestamp when the game was created.
    * Optional for backwards compatibility with legacy data.

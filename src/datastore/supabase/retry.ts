@@ -14,6 +14,7 @@
  */
 
 import logger from '@/utils/logger';
+import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
 
 /**
  * Configuration for retry behavior.
@@ -37,49 +38,6 @@ const DEFAULT_CONFIG: Required<Omit<RetryConfig, 'operationName'>> = {
   maxDelayMs: 10000,
   logRetries: true,
 };
-
-/**
- * Error codes/messages that indicate transient failures worth retrying.
- *
- * These are errors that may succeed on retry due to:
- * - Network instability (mobile, wifi handoff)
- * - Server overload (503, 429)
- * - Temporary connection issues
- */
-const TRANSIENT_ERROR_PATTERNS = [
-  // AbortError from browser fetch cancellation (common on Chrome Mobile Android)
-  // Aligned with src/utils/retry.ts which also includes these patterns
-  'aborterror',
-  'signal is aborted',
-  // Network errors
-  'fetch failed',
-  'network error',
-  'network request failed',
-  'failed to fetch',
-  'load failed',
-  'networkerror',
-  // Connection errors
-  'connection refused',
-  'connection reset',
-  'connection timed out',
-  'econnrefused',
-  'econnreset',
-  'etimedout',
-  'socket hang up',
-  // Server overload
-  'service unavailable',
-  '503',
-  'too many requests',
-  '429',
-  // Timeout
-  'timeout',
-  'timed out',
-  'request timeout',
-  // Temporary failures
-  'temporary failure',
-  'try again',
-  'temporarily unavailable',
-] as const;
 
 /**
  * HTTP status codes that indicate transient failures.

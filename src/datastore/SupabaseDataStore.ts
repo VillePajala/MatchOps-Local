@@ -547,6 +547,18 @@ export class SupabaseDataStore implements DataStore {
     }
 
     // 3. Default to NetworkError for other database/network issues
+    // Log unclassified error to Sentry for debugging - the default NetworkError may mask the real issue
+    try {
+      Sentry.addBreadcrumb({
+        category: 'error.unclassified',
+        message: `Unclassified Supabase error defaulted to NetworkError: ${message}`,
+        level: 'warning',
+        data: { code, status, originalMessage: error.message },
+      });
+    } catch {
+      /* monitoring must never crash the app */
+    }
+
     throw new NetworkError(`${context}: ${error.message}`, status);
   }
 
@@ -2808,6 +2820,8 @@ export class SupabaseDataStore implements DataStore {
         demand_factor: normalizeDemandFactor(game.demandFactor),
         game_type: normalizeGameType(game.gameType),
         gender: normalizeGender(game.gender),
+        went_to_overtime: game.wentToOvertime ?? false,
+        went_to_penalties: game.wentToPenalties ?? false,
         // === Array/object fields ===
         game_personnel: Array.isArray(game.gamePersonnel)
           ? game.gamePersonnel.filter((id): id is string => typeof id === 'string' && id.trim() !== '')
@@ -2957,6 +2971,8 @@ export class SupabaseDataStore implements DataStore {
       demandFactor: game.demand_factor ?? undefined,
       gameType: normalizeGameType(game.game_type) ?? undefined,
       gender: normalizeGender(game.gender) ?? undefined,
+      wentToOvertime: game.went_to_overtime ?? undefined,
+      wentToPenalties: game.went_to_penalties ?? undefined,
       // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
       gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
       formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as unknown as Point[] : undefined,

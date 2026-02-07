@@ -22,6 +22,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
+import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
@@ -56,6 +57,7 @@ export default function Home() {
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
+  const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
@@ -155,6 +157,9 @@ export default function Home() {
 
       if (lastId && games[lastId]) {
         setCanResume(true);
+        // Extract gameType from last game to prevent field color flash on mount
+        // (avoids defaulting to soccer green when last game was futsal blue)
+        setLastGameType(games[lastId].gameType);
       } else {
         // Fallback: if currentGameId is missing or stale but there are games, select the latest game
         const ids = Object.keys(games || {}).filter(id => id !== 'unsaved_game');
@@ -163,6 +168,7 @@ export default function Home() {
           if (latestId) {
             await utilSaveCurrentGameIdSetting(latestId, userId);
             setCanResume(true);
+            setLastGameType(games[latestId].gameType);
           } else {
             setCanResume(false);
           }
@@ -1181,6 +1187,7 @@ export default function Home() {
               onDataImportSuccess={handleDataImportSuccess}
               isFirstTimeUser={isFirstTimeUser}
               onGoToStartScreen={() => setScreen('start')}
+              initialGameType={lastGameType}
             />
           </ErrorBoundary>
         )}

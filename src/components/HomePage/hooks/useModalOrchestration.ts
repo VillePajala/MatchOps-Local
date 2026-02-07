@@ -149,6 +149,8 @@ export interface ModalHandlers {
   handleSetCustomLeagueName: (customLeagueName: string | undefined) => void;
   handleSetGameType: (gameType: import('@/types').GameType) => void;
   handleSetGender: (gender: import('@/types').Gender | undefined) => void;
+  handleSetWentToOvertime: (value: boolean) => void;
+  handleSetWentToPenalties: (value: boolean) => void;
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
@@ -292,6 +294,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetCustomLeagueName,
     handleSetGameType,
     handleSetGender,
+    handleSetWentToOvertime,
+    handleSetWentToPenalties,
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
     handleSetGamePersonnel,
@@ -605,6 +609,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setCustomLeagueName: handleSetCustomLeagueName,
       setGameType: handleSetGameType,
       setGender: handleSetGender,
+      setWentToOvertime: handleSetWentToOvertime,
+      setWentToPenalties: handleSetWentToPenalties,
       setHomeOrAway: handleSetHomeOrAway,
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,
