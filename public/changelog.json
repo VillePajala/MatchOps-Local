@@ -1,8 +1,8 @@
 {
-  "version": "a2d0fc59",
+  "version": "360345eb",
   "date": "2026-02-06",
   "notes": {
-    "en": "Robustness improvements for auth, sync, and migration",
-    "fi": "Robustness improvements for auth, sync, and migration"
+    "en": "Refactor authentication components and hooks",
+    "fi": "Refactor authentication components and hooks"
   }
 }

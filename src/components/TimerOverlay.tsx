@@ -202,11 +202,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   if (gameStatus === 'gameEnd') {
     periodPillLabel = t('timerOverlay.fullTime', 'FT');
   } else {
-    if (numberOfPeriods === 2) {
-      periodPillLabel = `${currentPeriod}/2`;
-    } else {
-      periodPillLabel = `${t('timerOverlay.periodShort', 'P')}${currentPeriod}`;
-    }
+    periodPillLabel = `${currentPeriod}/${numberOfPeriods}`;
   }
 
   const handleOpponentGoalClick = () => {

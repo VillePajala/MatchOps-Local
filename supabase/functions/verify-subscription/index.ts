@@ -9,6 +9,11 @@
  * 3. Function verifies purchase with Google Play API (or mock mode)
  * 4. Function upserts subscription record using service role
  *
+ * JWT Verification:
+ * Deployed with verify_jwt=false because Supabase's gateway-level JWT check
+ * is incompatible with the new asymmetric JWT Signing Keys (2025+).
+ * JWT verification is handled in-function via supabaseAdmin.auth.getUser(jwt).
+ *
  * Mock Mode:
  * Set MOCK_BILLING=true in Supabase secrets to accept test tokens (for development/staging).
  * Test tokens must start with 'test-' prefix.
@@ -20,30 +25,7 @@
 // Console logging is appropriate for Edge Functions (server-side Deno runtime)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-// Allowed origins for CORS (exact match)
-const ALLOWED_ORIGINS = [
-  'https://matchops.app',
-  'https://www.matchops.app',
-  'https://match-ops-local.vercel.app',
-  // Allow localhost for development (ports 3000-3009)
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3002',
-  'http://localhost:3003',
-  'http://localhost:3004',
-  'http://localhost:3005',
-  'http://localhost:3006',
-  'http://localhost:3007',
-  'http://localhost:3008',
-  'http://localhost:3009',
-];
-
-// Vercel preview deployment pattern: match-ops-local-*.vercel.app
-// Security note: This only matches our specific project prefix (match-ops-local).
-// Vercel generates unique subdomains per deployment (e.g., match-ops-local-abc123.vercel.app).
-// An attacker would need access to our Vercel project to create a matching deployment.
-const VERCEL_PREVIEW_PATTERN = /^https:\/\/match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/;
+import { getCorsHeaders, ALLOWED_ORIGINS } from '../_shared/cors.ts';
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -89,36 +71,6 @@ function isRateLimited(ip: string): boolean {
   // Increment counter
   record.count++;
   return false;
-}
-
-/**
- * Check if origin is allowed
- */
-function isOriginAllowed(origin: string | null): boolean {
-  if (!origin) return false;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  // Allow Vercel preview deployments
-  if (VERCEL_PREVIEW_PATTERN.test(origin)) {
-    console.log(`[CORS] Allowed Vercel preview origin: ${origin}`);
-    return true;
-  }
-  // Log rejected origins for debugging
-  console.warn(`[CORS] Origin not allowed: ${origin}`);
-  return false;
-}
-
-/**
- * Get CORS headers with origin validation
- */
-function getCorsHeaders(origin: string | null): Record<string, string> {
-  // Use request origin if allowed, otherwise default to production
-  const allowedOrigin = isOriginAllowed(origin) ? origin! : ALLOWED_ORIGINS[0];
-
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
 }
 
 // Google Play package and product configuration

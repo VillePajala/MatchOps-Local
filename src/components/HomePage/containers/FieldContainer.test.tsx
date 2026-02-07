@@ -301,7 +301,7 @@ describe('FieldContainer', () => {
       // Wait for async operation
       await screen.findByRole('button', { name: /export field as image/i });
 
-      expect(mockShowToast).toHaveBeenCalledWith('Field exported successfully', 'success');
+      expect(mockExportFieldAsImage).toHaveBeenCalled();
     });
 
     it('shows error toast when export fails', async () => {

@@ -1919,6 +1919,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     >
       <canvas
         ref={canvasRef}
+        role="img"
+        aria-label={t('soccerField.ariaLabel', 'Soccer field with player positions and tactical drawings')}
         className="absolute top-0 left-0 w-full h-full touch-none" // Added touch-none
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

@@ -76,8 +76,12 @@ BEGIN
   DELETE FROM warmup_plans WHERE user_id = v_user_id;
   DELETE FROM user_settings WHERE user_id = v_user_id;
 
-  -- User consent records (GDPR: must be deleted when user clears all data)
-  DELETE FROM user_consents WHERE user_id = v_user_id;
+  -- NOTE: user_consents are intentionally NOT deleted here.
+  -- GDPR compliance requires retaining consent records:
+  -- - "Clear Cloud Data": User keeps account, consents remain linked
+  -- - Account deletion: ON DELETE SET NULL anonymizes (user_id → NULL)
+  -- See migration 008_user_consents.sql for design rationale.
+  -- Fixed in migration 020_fix_clear_user_data_preserve_consents.sql
 
 END;
 $$;

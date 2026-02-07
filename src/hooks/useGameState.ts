@@ -147,6 +147,10 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [drawingEndVersion, setDrawingEndVersion] = useState(0);
     const pendingDrawingEndRef = useRef<Point[][] | null>(null);
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialState.availablePlayers || []);
+    // Ref tracking latest availablePlayers for use in stable callbacks (handleToggleGoalie)
+    // that need to read current state without adding it as a dependency
+    const availablePlayersRef = useRef<Player[]>(initialState.availablePlayers || []);
+    availablePlayersRef.current = availablePlayers;
     const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
     // ... (more state will be moved here)
 
@@ -297,10 +301,13 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
     // Drawing Handlers (Moved here)
     const handleDrawingStart = useCallback((point: Point) => {
-        const newDrawings = [...drawings, [point]];
-        setDrawings(newDrawings); // Use setter from this hook
-        saveStateToHistory({ drawings: newDrawings }); 
-    }, [drawings, saveStateToHistory]);
+        // Use functional setState to avoid dependency on drawings (prevents stale closure)
+        setDrawings(prevDrawings => {
+            const newDrawings = [...prevDrawings, [point]];
+            saveStateToHistory({ drawings: newDrawings });
+            return newDrawings;
+        });
+    }, [saveStateToHistory]);
 
     const handleDrawingAddPoint = useCallback((point: Point) => {
         // Continuous update for visual feedback - no history save needed here
@@ -335,10 +342,13 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
             relX: 0.5,
             relY: 0.5, // Center of the field initially
         };
-        const updatedOpponents = [...opponents, newOpponent];
-        setOpponents(updatedOpponents);
-        saveStateToHistory({ opponents: updatedOpponents });
-    }, [opponents, saveStateToHistory]);
+        // Use functional setState to avoid dependency on opponents (prevents stale closure)
+        setOpponents(prevOpponents => {
+            const updatedOpponents = [...prevOpponents, newOpponent];
+            saveStateToHistory({ opponents: updatedOpponents });
+            return updatedOpponents;
+        });
+    }, [saveStateToHistory]);
 
     const handleOpponentMove = useCallback((opponentId: string, relX: number, relY: number) => {
         // Continuous update - no history save needed here
@@ -360,49 +370,53 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     }, []);
 
     const handleOpponentRemove = useCallback((opponentId: string) => {
-        const updatedOpponents = opponents.filter(opp => opp.id !== opponentId);
-        setOpponents(updatedOpponents);
-        saveStateToHistory({ opponents: updatedOpponents });
-    }, [opponents, saveStateToHistory]);
+        // Use functional setState to avoid dependency on opponents (prevents stale closure)
+        setOpponents(prevOpponents => {
+            const updatedOpponents = prevOpponents.filter(opp => opp.id !== opponentId);
+            saveStateToHistory({ opponents: updatedOpponents });
+            return updatedOpponents;
+        });
+    }, [saveStateToHistory]);
 
     // Player Management Handlers (Moved here)
     const handleRenamePlayer = useCallback(async (playerId: string, playerData: { name: string; nickname: string }) => {
         logger.log(`[useGameState] handleRenamePlayer called for ID: ${playerId}, with data:`, playerData);
         try {
-            const updatedPlayerFromManager = await updatePlayerInMasterRoster(playerId, { 
-                name: playerData.name, 
-                nickname: playerData.nickname 
+            const updatedPlayerFromManager = await updatePlayerInMasterRoster(playerId, {
+                name: playerData.name,
+                nickname: playerData.nickname
             });
 
-        if (updatedPlayerFromManager) {
-            const latestRoster = await getMasterRosterFromManager();
-            setAvailablePlayers(latestRoster);
+            if (updatedPlayerFromManager) {
+                const latestRoster = await getMasterRosterFromManager();
+                setAvailablePlayers(latestRoster);
 
-            let updatedPlayersOnFieldState: Player[] = playersOnField;
-            setPlayersOnField(prevPlayersOnField => {
-                updatedPlayersOnFieldState = prevPlayersOnField.map(p =>
-                    p.id === playerId ? { ...p, name: playerData.name, nickname: playerData.nickname } : p
-                );
-                return updatedPlayersOnFieldState;
-            });
-
-            saveStateToHistory({
-                playersOnField: updatedPlayersOnFieldState,
-                availablePlayers: latestRoster,
-            });
-            logger.log(`[useGameState] Player ${playerId} renamed to ${playerData.name}. Roster and field updated.`);
-        } else {
+                // Use functional setState to avoid dependency on playersOnField (prevents stale closure)
+                setPlayersOnField(prevPlayersOnField => {
+                    const updatedPlayersOnField = prevPlayersOnField.map(p =>
+                        p.id === playerId ? { ...p, name: playerData.name, nickname: playerData.nickname } : p
+                    );
+                    saveStateToHistory({
+                        playersOnField: updatedPlayersOnField,
+                        availablePlayers: latestRoster,
+                    });
+                    return updatedPlayersOnField;
+                });
+                logger.log(`[useGameState] Player ${playerId} renamed to ${playerData.name}. Roster and field updated.`);
+            } else {
                 logger.error(`[useGameState] Failed to update player ${playerId} via masterRosterManager.`);
             }
         } catch (error) {
             logger.error(`[useGameState] Error in handleRenamePlayer for ID ${playerId}:`, error);
         }
-    }, [playersOnField, saveStateToHistory, setAvailablePlayers, setPlayersOnField]);
+    }, [saveStateToHistory, setAvailablePlayers, setPlayersOnField]);
 
     // --- Add Goalie Handler Here ---
     const handleToggleGoalie = useCallback(async (playerId: string) => {
         logger.log(`[useGameState:handleToggleGoalie] Per-game toggle called for ${playerId}`);
-        const playerToToggle = availablePlayers.find(p => p.id === playerId);
+        // Read from ref to get latest availablePlayers without adding it as a dependency
+        const currentAvailablePlayers = availablePlayersRef.current;
+        const playerToToggle = currentAvailablePlayers.find(p => p.id === playerId);
         if (!playerToToggle) {
             logger.error(`[useGameState:handleToggleGoalie] Player ${playerId} not found.`);
             return;
@@ -411,7 +425,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
         try {
             // Update goalie status per-game instead of globally
-            const updatedAvailablePlayers = availablePlayers.map(p => {
+            const updatedAvailablePlayers = currentAvailablePlayers.map(p => {
                 if (p.id === playerId) {
                     return { ...p, isGoalie: targetGoalieStatus };
                 }
@@ -424,25 +438,24 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
             setAvailablePlayers(updatedAvailablePlayers);
 
-            // Update players on field to match the goalie change
-            const newPlayersOnFieldState = playersOnField.map(fieldPlayer => {
-                const updatedPlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
-                return updatedPlayer ? { ...fieldPlayer, isGoalie: updatedPlayer.isGoalie } : fieldPlayer;
+            // Use functional setState to avoid dependency on playersOnField (prevents stale closure)
+            setPlayersOnField(prevPlayersOnField => {
+                const newPlayersOnField = prevPlayersOnField.map(fieldPlayer => {
+                    const updatedPlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
+                    return updatedPlayer ? { ...fieldPlayer, isGoalie: updatedPlayer.isGoalie } : fieldPlayer;
+                });
+                saveStateToHistory({
+                    playersOnField: newPlayersOnField,
+                    availablePlayers: updatedAvailablePlayers,
+                });
+                return newPlayersOnField;
             });
 
-            setPlayersOnField(newPlayersOnFieldState);
-
-            // Save history for playersOnField change using the computed state
-            saveStateToHistory({ 
-                playersOnField: newPlayersOnFieldState,
-                availablePlayers: updatedAvailablePlayers 
-            });
-    
             logger.log(`[useGameState:handleToggleGoalie] Per-game goalie status for ${playerId} to ${targetGoalieStatus}. Local state updated.`);
         } catch (error) {
             logger.error(`[useGameState:handleToggleGoalie] Error toggling goalie for ID ${playerId}:`, error);
         }
-    }, [availablePlayers, playersOnField, saveStateToHistory, setAvailablePlayers, setPlayersOnField]);
+    }, [saveStateToHistory, setAvailablePlayers, setPlayersOnField]);
 
     // ... (more handlers will be moved here later)
 

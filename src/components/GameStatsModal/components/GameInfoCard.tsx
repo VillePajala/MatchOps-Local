@@ -16,6 +16,8 @@ interface GameInfoCardProps {
   gameLocation?: string;
   numPeriods?: number;
   periodDurationMinutes?: number;
+  wentToOvertime?: boolean;
+  wentToPenalties?: boolean;
 }
 
 export function GameInfoCard({
@@ -28,6 +30,8 @@ export function GameInfoCard({
   gameLocation,
   numPeriods,
   periodDurationMinutes,
+  wentToOvertime,
+  wentToPenalties,
 }: GameInfoCardProps) {
   const { t } = useTranslation();
 
@@ -44,6 +48,14 @@ export function GameInfoCard({
             </span>
             <span className="text-2xl text-yellow-400 font-bold mx-4">
               {homeScore} - {awayScore}
+              {(wentToOvertime || wentToPenalties) && (
+                <span className="text-sm text-slate-400 font-medium ml-2">
+                  ({[
+                    wentToOvertime && t('gameResult.overtime', 'OT'),
+                    wentToPenalties && t('gameResult.penalties', 'PKs'),
+                  ].filter(Boolean).join(', ')})
+                </span>
+              )}
             </span>
             <span className="font-semibold text-slate-100 flex-1 text-left">
               {awayTeamName}

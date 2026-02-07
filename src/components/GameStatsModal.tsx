@@ -58,6 +58,8 @@ interface GameStatsModalProps {
   gameTime?: string;
   numPeriods?: number;
   periodDurationMinutes?: number;
+  wentToOvertime?: boolean;
+  wentToPenalties?: boolean;
   availablePlayers: Player[];
   gameEvents: GameEvent[];
   gameNotes?: string;
@@ -91,6 +93,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   gameTime,
   numPeriods,
   periodDurationMinutes,
+  wentToOvertime,
+  wentToPenalties,
   availablePlayers,
   gameEvents,
   gameNotes = '',
@@ -913,6 +917,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       gameLocation={gameLocation}
                       numPeriods={numPeriods}
                       periodDurationMinutes={periodDurationMinutes}
+                      wentToOvertime={wentToOvertime}
+                      wentToPenalties={wentToPenalties}
                     />
                   )}
 

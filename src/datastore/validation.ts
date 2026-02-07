@@ -35,6 +35,24 @@ export const validateGame = (game: AppState, context?: string): void => {
     );
   }
 
+  // Validate teamName length
+  if (game.teamName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
+    throw new ValidationError(
+      `${prefix}Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters (got ${game.teamName.length})`,
+      'teamName',
+      game.teamName
+    );
+  }
+
+  // Validate opponentName length
+  if (game.opponentName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
+    throw new ValidationError(
+      `${prefix}Opponent name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters (got ${game.opponentName.length})`,
+      'opponentName',
+      game.opponentName
+    );
+  }
+
   // Validate gameNotes length
   if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
     throw new ValidationError(
