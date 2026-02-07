@@ -152,7 +152,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onGoToStartScreen,
 }) => {
   const { t } = useTranslation();
-  const { openSettingsToTab } = useModalContext();
+  const { setIsSettingsModalOpen } = useModalContext();
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
@@ -600,7 +600,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <button onClick={wrapModal(onToggleRulesDirectory)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineScale className="w-5 h-5 mr-2" />{t('controlBar.rulesDirectory', 'Rules')}
             </button>
-            <button onClick={wrapModal(() => openSettingsToTab('data'))} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(() => setIsSettingsModalOpen(true))} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineDocumentArrowDown className="w-5 h-5 mr-2" />{t('controlBar.backupRestore', 'Backup & Restore')}
             </button>
           </div>
