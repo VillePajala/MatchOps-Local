@@ -14,6 +14,11 @@ export function PrivacyPolicyClient() {
         <p className="text-slate-500 text-sm mb-8">{t('privacyPolicy.version')}</p>
 
         <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.dataController.title')}</h2>
+          <p className="text-slate-300">{t('privacyPolicy.dataController.content')}</p>
+        </section>
+
+        <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.overview.title')}</h2>
           <p className="text-slate-300">{t('privacyPolicy.overview.content')}</p>
         </section>
@@ -27,6 +32,7 @@ export function PrivacyPolicyClient() {
             <li>{t('privacyPolicy.dataStorage.localDataItems.gameRecords')}</li>
             <li>{t('privacyPolicy.dataStorage.localDataItems.settings')}</li>
             <li>{t('privacyPolicy.dataStorage.localDataItems.seasonData')}</li>
+            <li>{t('privacyPolicy.dataStorage.localDataItems.personnelInfo')}</li>
           </ul>
           <p className="text-slate-300 font-medium mb-4">{t('privacyPolicy.dataStorage.localDataNote')}</p>
           <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataStorage.noAccountTitle')}</h3>
@@ -37,6 +43,7 @@ export function PrivacyPolicyClient() {
           <ul className="list-disc list-inside text-slate-300 mb-4 space-y-1">
             <li>{t('privacyPolicy.dataStorage.cloudDataItems.syncedData')}</li>
             <li>{t('privacyPolicy.dataStorage.cloudDataItems.encryption')}</li>
+            <li>{t('privacyPolicy.dataStorage.cloudDataItems.rowLevelSecurity')}</li>
             <li>{t('privacyPolicy.dataStorage.cloudDataItems.multiDevice')}</li>
             <li>{t('privacyPolicy.dataStorage.cloudDataItems.dataOwnership')}</li>
           </ul>
@@ -44,6 +51,16 @@ export function PrivacyPolicyClient() {
 
           <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataStorage.dataRetentionTitle')}</h3>
           <p className="text-slate-300">{t('privacyPolicy.dataStorage.dataRetentionContent')}</p>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.legalBasis.title')}</h2>
+          <p className="text-slate-300 mb-3">{t('privacyPolicy.legalBasis.intro')}</p>
+          <ul className="list-disc list-inside text-slate-300 space-y-1">
+            <li>{t('privacyPolicy.legalBasis.contract')}</li>
+            <li>{t('privacyPolicy.legalBasis.consent')}</li>
+            <li>{t('privacyPolicy.legalBasis.legitimateInterest')}</li>
+          </ul>
         </section>
 
         <section className="mb-8">
@@ -67,46 +84,56 @@ export function PrivacyPolicyClient() {
             <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.ipAddress')}</li>
             <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.userAgent')}</li>
           </ul>
-          <p className="text-slate-300">{t('privacyPolicy.dataWeCollect.consentTrackingNote')}</p>
+          <p className="text-slate-300 mb-4">{t('privacyPolicy.dataWeCollect.consentTrackingNote')}</p>
+          <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataWeCollect.personnelDataTitle')}</h3>
+          <p className="text-slate-300 mb-2">{t('privacyPolicy.dataWeCollect.personnelDataIntro')}</p>
+          <ul className="list-disc list-inside text-slate-300 mb-3 space-y-1">
+            <li>{t('privacyPolicy.dataWeCollect.personnelDataItems.name')}</li>
+            <li>{t('privacyPolicy.dataWeCollect.personnelDataItems.email')}</li>
+            <li>{t('privacyPolicy.dataWeCollect.personnelDataItems.phone')}</li>
+            <li>{t('privacyPolicy.dataWeCollect.personnelDataItems.certifications')}</li>
+          </ul>
+          <p className="text-slate-300">{t('privacyPolicy.dataWeCollect.personnelDataNote')}</p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.dataWeDoNotCollect.title')}</h2>
           <ul className="list-disc list-inside text-slate-300 space-y-1">
-            <li>{t('privacyPolicy.dataWeDoNotCollect.items.playerNames')}</li>
             <li>{t('privacyPolicy.dataWeDoNotCollect.items.gameContent')}</li>
             <li>{t('privacyPolicy.dataWeDoNotCollect.items.location')}</li>
             <li>{t('privacyPolicy.dataWeDoNotCollect.items.photos')}</li>
-            <li>{t('privacyPolicy.dataWeDoNotCollect.items.contacts')}</li>
             <li>{t('privacyPolicy.dataWeDoNotCollect.items.deviceIds')}</li>
+            <li>{t('privacyPolicy.dataWeDoNotCollect.items.playerNames')}</li>
           </ul>
+          <p className="text-slate-400 text-sm mt-3 italic">{t('privacyPolicy.dataWeDoNotCollect.personnelNote')}</p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.thirdPartyServices.title')}</h2>
+          <p className="text-slate-300 mb-3">{t('privacyPolicy.thirdPartyServices.intro')}</p>
           <div className="space-y-3 text-slate-300">
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.googlePlay')}</strong> - {t('privacyPolicy.thirdPartyServices.googlePlayDesc')}{' '}
               <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
-                Google&apos;s Privacy Policy
+                {t('privacyPolicy.thirdPartyServices.googlePlayLink')}
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.sentry')}</strong> - {t('privacyPolicy.thirdPartyServices.sentryDesc')}{' '}
               <a href="https://sentry.io/privacy/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
-                Sentry&apos;s Privacy Policy
-              </a>
-            </p>
-            <p>
-              <strong>{t('privacyPolicy.thirdPartyServices.vercel')}</strong> - {t('privacyPolicy.thirdPartyServices.vercelDesc')}{' '}
-              <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
-                Vercel&apos;s Privacy Policy
+                {t('privacyPolicy.thirdPartyServices.sentryLink')}
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.supabase')}</strong> - {t('privacyPolicy.thirdPartyServices.supabaseDesc')}{' '}
               <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
-                Supabase&apos;s Privacy Policy
+                {t('privacyPolicy.thirdPartyServices.supabaseLink')}
+              </a>
+            </p>
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.vercel')}</strong> - {t('privacyPolicy.thirdPartyServices.vercelDesc')}{' '}
+              <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                {t('privacyPolicy.thirdPartyServices.vercelLink')}
               </a>
             </p>
           </div>
@@ -122,10 +149,22 @@ export function PrivacyPolicyClient() {
             <li><strong>{t('privacyPolicy.yourRights.portability')}</strong></li>
             <li><strong>{t('privacyPolicy.yourRights.restriction')}</strong></li>
             <li><strong>{t('privacyPolicy.yourRights.objection')}</strong></li>
+            <li><strong>{t('privacyPolicy.yourRights.withdrawConsent')}</strong></li>
           </ul>
           <p className="text-slate-300 mb-2">{t('privacyPolicy.yourRights.deleteLocal')}</p>
           <p className="text-slate-300 mb-2">{t('privacyPolicy.yourRights.deleteCloud')}</p>
-          <p className="text-slate-300">{t('privacyPolicy.yourRights.contactUs')}</p>
+          <p className="text-slate-300 mb-4">{t('privacyPolicy.yourRights.contactUs')}</p>
+          <p className="text-slate-300">
+            {t('privacyPolicy.yourRights.supervisoryAuthority')}:{' '}
+            <a
+              href={t('privacyPolicy.yourRights.supervisoryAuthorityUrl')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400 hover:underline"
+            >
+              tietosuoja.fi
+            </a>
+          </p>
         </section>
 
         <section className="mb-8">
@@ -136,18 +175,21 @@ export function PrivacyPolicyClient() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.dataSecurity.title')}</h2>
           <p className="text-slate-300 mb-2">{t('privacyPolicy.dataSecurity.localIntro')}</p>
-          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-4">
-            <li>{t('privacyPolicy.dataSecurity.localItems.encryption')}</li>
-            <li>{t('privacyPolicy.dataSecurity.localItems.localStorage')}</li>
+          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-3">
+            <li>{t('privacyPolicy.dataSecurity.localItems.deviceProtection')}</li>
+            <li>{t('privacyPolicy.dataSecurity.localItems.noAdditionalEncryption')}</li>
             <li>{t('privacyPolicy.dataSecurity.localItems.noTransmission')}</li>
           </ul>
+          <p className="text-slate-300 font-medium mb-4">{t('privacyPolicy.dataSecurity.localNote')}</p>
           <p className="text-slate-300 mb-2">{t('privacyPolicy.dataSecurity.cloudIntro')}</p>
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
+          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-4">
             <li>{t('privacyPolicy.dataSecurity.cloudItems.tlsEncryption')}</li>
             <li>{t('privacyPolicy.dataSecurity.cloudItems.atRestEncryption')}</li>
             <li>{t('privacyPolicy.dataSecurity.cloudItems.rowLevelSecurity')}</li>
-            <li>{t('privacyPolicy.dataSecurity.cloudItems.secureAuth')}</li>
+            <li>{t('privacyPolicy.dataSecurity.cloudItems.soc2')}</li>
           </ul>
+          <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataSecurity.backupTitle')}</h3>
+          <p className="text-slate-300">{t('privacyPolicy.dataSecurity.backupContent')}</p>
         </section>
 
         <section className="mb-8">
@@ -157,26 +199,13 @@ export function PrivacyPolicyClient() {
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.contact.title')}</h2>
-          <p className="text-slate-300">{t('privacyPolicy.contact.intro')}</p>
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
-            <li>
-              {t('privacyPolicy.contact.email')}:{' '}
-              <a href="mailto:support@match-ops.com" className="text-indigo-400 hover:underline">
-                support@match-ops.com
-              </a>
-            </li>
-            <li>
-              {t('privacyPolicy.contact.github')}:{' '}
-              <a
-                href="https://github.com/VillePajala/MatchOps-Local/issues"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-400 hover:underline"
-              >
-                github.com/VillePajala/MatchOps-Local/issues
-              </a>
-            </li>
-          </ul>
+          <p className="text-slate-300 mb-2">{t('privacyPolicy.contact.intro')}</p>
+          <p className="text-slate-300">
+            {t('privacyPolicy.contact.email')}:{' '}
+            <a href="mailto:valoraami@gmail.com" className="text-indigo-400 hover:underline">
+              valoraami@gmail.com
+            </a>
+          </p>
         </section>
 
         <hr className="border-slate-700 my-8" />

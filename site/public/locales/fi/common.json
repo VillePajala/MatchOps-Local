@@ -49,7 +49,7 @@
   "seo": {
     "home": {
       "title": "MatchOps - Jalkapallovalmentajan sovellus",
-      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Hallitse joukkueita, seuraa pelejä reaaliaikaisesti, kerää tilastoja. Ei rekisteröitymistä. Tietosi pysyvät yksityisinä ja turvassa."
+      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Hallitse joukkueita, seuraa pelejä reaaliaikaisesti, kerää tilastoja. Ei rekisteröitymistä. Valinnainen pilvisynkronointi laitteiden välillä."
     },
     "technical": {
       "title": "Tekniset tiedot - MatchOps",
@@ -76,7 +76,7 @@
       "typescript": "TypeScript Strict Mode",
       "typescriptDesc": "Täysi strict-tila käytössä no-explicit-any-säännöllä",
       "testing": "Testikattavuus",
-      "testingDesc": "1600+ testiä Jest- ja React Testing Library -kirjastoilla",
+      "testingDesc": "4 400+ testiä Jest- ja React Testing Library -kirjastoilla",
       "linting": "Linttaus ja muotoilu",
       "lintingDesc": "ESLint tiukoilla säännöillä, Prettier muotoiluun",
       "cicd": "CI/CD",
@@ -147,7 +147,7 @@
     "techStack": {
       "title": "Teknologiapino",
       "frontend": "Frontend-kehys",
-      "frontendDesc": "React 19 ja Next.js 15 (Pages Router)",
+      "frontendDesc": "React 19 ja Next.js 16 (Pages Router)",
       "language": "Ohjelmointikieli",
       "languageDesc": "TypeScript tyyppiturvallisuuden ja paremman kehityskokemuksen vuoksi",
       "styling": "Ulkoasu",
@@ -201,7 +201,7 @@
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
       "description": "MatchOps on mobiilisovellus jalkapallon ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano ja pelipaikat ennen peliä. Pelin aikana seuraa vaihtovälejä, kirjaa maalit ja syötöt napautuksella. Tilastosi kertyvät automaattisesti—ottelutulokset, pistepörssi, kauden trendit.",
-      "oneLine": "Ei rekisteröitymistä. Asenna kerran ja tietosi pysyvät yksityisinä ja turvassa. Toimii kaikkialla, jopa ilman nettiä."
+      "oneLine": "Aloita heti ilman rekisteröitymistä. Valinnainen pilvisynkronointi laitteiden välillä. Toimii kaikkialla, jopa ilman nettiä."
     },
     "whoIsThisFor": {
       "title": "Kenelle tämä on tarkoitettu?",
@@ -253,7 +253,7 @@
     "faq": {
       "title": "Yleisiä kysymyksiä",
       "q1": "Miten asennan sovelluksen?",
-      "a1": "Sovellus on saatavilla Google Playsta. Olemme parhaillaan betatestausvaiheessa - pyydä pääsy alla olevalla yhteydenottopainikkeella tai lähetä kysely osoitteeseen hello@match-ops.com.",
+      "a1": "Sovellus on tulossa pian Google Playhin. Ota yhteyttä osoitteeseen hello@match-ops.com saadaksesi lisätietoja.",
       "q2": "Mihin tietoni tallennetaan?",
       "a2": "Tietosi tallennetaan turvallisesti ja pysyvät yksityisinä.",
       "q3": "Voinko käyttää useammalla laitteella?",
@@ -274,7 +274,9 @@
       "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa."
     },
     "cta": {
-      "title": "Sovellus on betatestausvaiheessa. Ota yhteyttä päästäksesi mukaan."
+      "title": "Tulossa pian Google Playhin",
+      "subtitle": "Kysyttävää? Ota yhteyttä.",
+      "button": "Ota yhteyttä"
     }
   },
   "screenshots": {
@@ -316,6 +318,9 @@
       "memorable": "Yksikään peli ei unohdu.",
       "toolkit": "Ottelupäivän työkalut",
       "threePillars": "Suunnittele · Kirjaa · Arvioi"
+    },
+    "badges": {
+      "cloudSync": "UUTTA: Pilvisynkronointi"
     },
     "painPoints": {
       "soundFamiliar": "Kuulostaako tutulta?",
@@ -359,7 +364,7 @@
       "offlinePrivate": "Toimii ilman nettiä. Tietosi pysyvät yksityisinä."
     },
     "cta": {
-      "inTesting": "Rajoitettu testaus käynnissä",
+      "inTesting": "Tulossa pian",
       "contact": "Yhteydenotot: hello@match-ops.com"
     },
     "descriptions": {
@@ -470,7 +475,9 @@
       "futsal": "Futsal",
       "futsalDesc": "Futsal-kenttänäkymä ja -pelimuotomerkintä tilastointia ja suodatusta varten.",
       "officialRules": "Viralliset säännöt",
-      "officialRulesDesc": "Pikalinkit Palloliiton virallisiin jalkapallo- ja futsal-sääntöihin."
+      "officialRulesDesc": "Pikalinkit Palloliiton virallisiin jalkapallo- ja futsal-sääntöihin.",
+      "cloudSync": "Pilvisynkronointi",
+      "cloudSyncDesc": "Kirjaudu sisään ja synkronoi datasi laitteiden välillä. Datasi pysyy turvassa pilvessä ja synkronoituu automaattisesti."
     },
     "techCards": {
       "development": "KEHITYS",
