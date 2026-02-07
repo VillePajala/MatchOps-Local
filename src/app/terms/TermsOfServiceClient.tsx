@@ -56,12 +56,22 @@ export function TermsOfServiceClient() {
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.dataAndPrivacy.title')}</h2>
-          <p className="text-slate-300">
+          <p className="text-slate-300 mb-4">
             {t('termsOfService.dataAndPrivacy.content')}{' '}
             <Link href="/privacy-policy" className="text-indigo-400 hover:underline">
               {t('settingsModal.privacyPolicy')}
             </Link>
           </p>
+          <h3 className="text-lg font-medium mb-2 text-slate-300">{t('termsOfService.dataAndPrivacy.securityAcknowledgmentTitle')}</h3>
+          <p className="text-slate-300 mb-2">{t('termsOfService.dataAndPrivacy.securityAcknowledgmentIntro')}</p>
+          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-3">
+            <li>{t('termsOfService.dataAndPrivacy.securityAcknowledgmentItems.localMode')}</li>
+            <li>{t('termsOfService.dataAndPrivacy.securityAcknowledgmentItems.deviceSecurity')}</li>
+            <li>{t('termsOfService.dataAndPrivacy.securityAcknowledgmentItems.backupFiles')}</li>
+            <li>{t('termsOfService.dataAndPrivacy.securityAcknowledgmentItems.personnelData')}</li>
+            <li>{t('termsOfService.dataAndPrivacy.securityAcknowledgmentItems.yourResponsibility')}</li>
+          </ul>
+          <p className="text-slate-300">{t('termsOfService.dataAndPrivacy.securityAcknowledgmentNote')}</p>
         </section>
 
         <section className="mb-8">
@@ -110,6 +120,9 @@ export function TermsOfServiceClient() {
             <li>
               <strong>{t('termsOfService.thirdPartyServices.supabase')}</strong> - {t('termsOfService.thirdPartyServices.supabaseDesc')}
             </li>
+            <li>
+              <strong>{t('termsOfService.thirdPartyServices.vercel')}</strong> - {t('termsOfService.thirdPartyServices.vercelDesc')}
+            </li>
           </ul>
           <p className="text-slate-300 mt-2">{t('termsOfService.thirdPartyServices.note')}</p>
         </section>
@@ -145,6 +158,11 @@ export function TermsOfServiceClient() {
         </section>
 
         <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.changesToTerms.title')}</h2>
+          <p className="text-slate-300">{t('termsOfService.changesToTerms.content')}</p>
+        </section>
+
+        <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.termination.title')}</h2>
           <p className="text-slate-300 mb-2">{t('termsOfService.termination.content')}</p>
           <p className="text-slate-300 mb-2">{t('termsOfService.termination.cloudTermination')}</p>
@@ -157,27 +175,24 @@ export function TermsOfServiceClient() {
         </section>
 
         <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.severability.title')}</h2>
+          <p className="text-slate-300">{t('termsOfService.severability.content')}</p>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.entireAgreement.title')}</h2>
+          <p className="text-slate-300">{t('termsOfService.entireAgreement.content')}</p>
+        </section>
+
+        <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.contact.title')}</h2>
-          <p className="text-slate-300">{t('termsOfService.contact.intro')}</p>
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
-            <li>
-              {t('termsOfService.contact.email')}:{' '}
-              <a href="mailto:support@match-ops.com" className="text-indigo-400 hover:underline">
-                support@match-ops.com
-              </a>
-            </li>
-            <li>
-              {t('termsOfService.contact.github')}:{' '}
-              <a
-                href="https://github.com/VillePajala/MatchOps-Local/issues"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-400 hover:underline"
-              >
-                github.com/VillePajala/MatchOps-Local/issues
-              </a>
-            </li>
-          </ul>
+          <p className="text-slate-300 mb-2">{t('termsOfService.contact.intro')}</p>
+          <p className="text-slate-300">
+            {t('termsOfService.contact.email')}:{' '}
+            <a href="mailto:valoraami@gmail.com" className="text-indigo-400 hover:underline">
+              valoraami@gmail.com
+            </a>
+          </p>
         </section>
 
         <hr className="border-slate-700 my-8" />

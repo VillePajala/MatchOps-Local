@@ -14,7 +14,7 @@ const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
     // Main hero screenshots
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en&fi.jpg',
+    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en_fi.jpg',
     timer: isEnglish
       ? '/screenshots/MatchOps_main_timer_en.jpg'
       : '/screenshots/MatchOps_Main_timer_full.jpg',
@@ -22,7 +22,7 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
       : '/screenshots/MatchOps_Main_playerstats_full.jpg',
     // Feature card screenshots
-    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi&en.jpg',
+    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi_en.jpg',
     formations: isEnglish
       ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
       : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
@@ -56,10 +56,13 @@ const getScreenshots = (locale: string | undefined) => {
     personnel: isEnglish
       ? '/screenshots/MatcOps_main_personnel_en.jpg'
       : '/screenshots/MatchOps_main_personnel_fi.jpg',
-    futsal: '/screenshots/MatchOps_main_futsal_new_en&fi.jpg',
+    futsal: '/screenshots/MatchOps_main_futsal_new_en_fi.jpg',
     officialRules: isEnglish
       ? '/screenshots/MatchOps_main_rules_en.jpg'
       : '/screenshots/MatchOps_main_rules_fi.jpg',
+    cloudSync: isEnglish
+      ? '/screenshots/MatchOps_main_cloudSync_en.jpg'
+      : '/screenshots/MatchOps_main_CloudSync_fi.jpg',
   };
 };
 
@@ -176,8 +179,11 @@ export default function HomePage() {
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
               <span className="text-primary">MatchOps</span>
             </h1>
-            <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
+            <p className="text-xl md:text-2xl lg:text-3xl text-white mb-4">
               {t('marketing.taglines.power')}
+            </p>
+            <p className="inline-block px-4 py-1.5 rounded-full text-sm font-semibold bg-primary/15 text-primary border border-primary/30 mb-8">
+              {t('marketing.badges.cloudSync')}
             </p>
 
             {/* ===== 5-PHONE SHOWCASE ===== */}
@@ -387,6 +393,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
+                { key: 'cloudSync', screenshot: screenshots.cloudSync },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
                 { key: 'formations', screenshot: screenshots.formations },
                 { key: 'assessment', screenshot: screenshots.assessment },
@@ -433,8 +440,8 @@ export default function HomePage() {
             </h2>
             <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
               {isEnglish
-                ? 'Enterprise-grade quality with 3,200+ automated tests.'
-                : 'Yritystason laatu ja yli 3 200 automaattista testiä.'}
+                ? 'Enterprise-grade quality with 4,400+ automated tests.'
+                : 'Yritystason laatu ja yli 4 400 automaattista testiä.'}
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
@@ -467,23 +474,17 @@ export default function HomePage() {
       {/* ===== CTA ===== */}
       <section className="section section-divider bg-slate-900 relative overflow-hidden">
         <div className="hidden md:block">
-          <GlowBg color="primary" position="center" size="md" blur={120} />
+          <GlowBg color="primary" position="center" size="sm" blur={160} />
         </div>
         <div className="container-custom relative z-10">
           <div className="max-w-2xl mx-auto text-center">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              {isEnglish ? 'The app is in beta testing' : 'Sovellus on betatestauksessa'}
+              {t('info.cta.title')}
             </h3>
             <p className="text-slate-300 mb-6">
-              {isEnglish ? 'Contact us if you are interested in joining' : 'Ota yhteyttä, mikäli olet kiinnostunut osallistumaan'}
+              {t('info.cta.subtitle')}
             </p>
-            <a
-              href="mailto:hello@match-ops.com"
-              className="inline-block px-8 py-3 bg-primary text-slate-900 font-semibold rounded-lg hover:bg-amber-400 transition-colors"
-            >
-              {isEnglish ? 'Contact for Early Access' : 'Ota yhteyttä'}
-            </a>
-            <p className="text-slate-500 text-sm mt-4">hello@match-ops.com</p>
+            <p className="text-slate-400 text-lg">hello@match-ops.com</p>
           </div>
         </div>
       </section>
