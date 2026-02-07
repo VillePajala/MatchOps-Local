@@ -279,7 +279,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
      * @param position - The position where the player is dropped (relX, relY)
      */
     const handlePlayerDrop = useCallback((player: Player, position: { relX: number; relY: number }) => {
-        logger.log(`Player ${player.name} dropped at`, position);
+        logger.debug(`Player ${player.name} dropped at`, position);
         const newPlayerOnField: Player = {
             ...player,
             relX: position.relX,
@@ -383,7 +383,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
     // Player Management Handlers (Moved here)
     const handleRenamePlayer = useCallback(async (playerId: string, playerData: { name: string; nickname: string }) => {
-        logger.log(`[useGameState] handleRenamePlayer called for ID: ${playerId}, with data:`, playerData);
+        logger.debug(`[useGameState] handleRenamePlayer called for ID: ${playerId}, with data:`, playerData);
         try {
             const updatedPlayerFromManager = await updatePlayerInMasterRoster(playerId, {
                 name: playerData.name,
@@ -405,7 +405,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
                     });
                     return updatedPlayersOnField;
                 });
-                logger.log(`[useGameState] Player ${playerId} renamed to ${playerData.name}. Roster and field updated.`);
+                logger.debug(`[useGameState] Player ${playerId} renamed to ${playerData.name}. Roster and field updated.`);
             } else {
                 logger.error(`[useGameState] Failed to update player ${playerId} via masterRosterManager.`);
             }
@@ -416,7 +416,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
     // --- Add Goalie Handler Here ---
     const handleToggleGoalie = useCallback(async (playerId: string) => {
-        logger.log(`[useGameState:handleToggleGoalie] Per-game toggle called for ${playerId}`);
+        logger.debug(`[useGameState:handleToggleGoalie] Per-game toggle called for ${playerId}`);
         // Read from ref to get latest availablePlayers without adding it as a dependency
         const currentAvailablePlayers = availablePlayersRef.current;
         const playerToToggle = currentAvailablePlayers.find(p => p.id === playerId);
@@ -454,7 +454,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
                 return newPlayersOnField;
             });
 
-            logger.log(`[useGameState:handleToggleGoalie] Per-game goalie status for ${playerId} to ${targetGoalieStatus}. Local state updated.`);
+            logger.debug(`[useGameState:handleToggleGoalie] Per-game goalie status for ${playerId} to ${targetGoalieStatus}. Local state updated.`);
         } catch (error) {
             logger.error(`[useGameState:handleToggleGoalie] Error toggling goalie for ID ${playerId}:`, error);
         }

@@ -106,7 +106,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       if (isReloadingRef.current) return;
       isReloadingRef.current = true;
 
-      logger.log(
+      logger.debug(
         `[useAppResume] ${trigger === 'pageshow_bfcache' ? 'bfcache restore' : 'App was in background'} for`,
         Math.round(backgroundDuration / 1000),
         'seconds - forcing page reload'
@@ -182,7 +182,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
 
       // Strict inequality: refresh only if duration exceeds threshold (not at exactly threshold)
       if (backgroundDuration > minBackgroundTime) {
-        logger.log(
+        logger.debug(
           '[useAppResume] App resumed after',
           Math.round(backgroundDuration / 1000),
           'seconds - triggering refresh'
@@ -231,7 +231,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
           return;
         }
 
-        logger.log('[useAppResume] Page restored from bfcache - triggering refresh');
+        logger.debug('[useAppResume] Page restored from bfcache - triggering refresh');
         // Safe even if visibilitychange also fires - invalidateQueries is idempotent.
         queryClient.invalidateQueries();
 

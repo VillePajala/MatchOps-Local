@@ -38,6 +38,7 @@ import {
   ConflictError,
   NetworkError,
   NotInitializedError,
+  StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
 import { validateGame } from '@/datastore/validation';
@@ -77,6 +78,13 @@ type PlayerAdjustmentRow = Database['public']['Tables']['player_adjustments']['R
 type WarmupPlanRow = Database['public']['Tables']['warmup_plans']['Row'];
 
 // Insert types (data for INSERT operations)
+//
+// Note: `as unknown as never` casts on .insert()/.upsert() calls work around
+// a Supabase codegen limitation where generated Insert types include readonly
+// modifiers or Json type mismatches that prevent direct assignment. The transform
+// functions produce structurally correct data; the cast bypasses the type-level
+// incompatibility without affecting runtime behavior. If supabase-js or codegen
+// improves, these casts can be removed.
 type PlayerInsert = Database['public']['Tables']['players']['Insert'];
 type TeamInsert = Database['public']['Tables']['teams']['Insert'];
 type TeamPlayerInsert = Database['public']['Tables']['team_players']['Insert'];
@@ -515,13 +523,13 @@ export class SupabaseDataStore implements DataStore {
       message.includes('jwt expired') ||
       message.includes('token expired') ||
       message.includes('session expired') ||
-      message.includes('jwt') && (message.includes('invalid') || message.includes('malformed')) ||
+      (message.includes('jwt') && (message.includes('invalid') || message.includes('malformed'))) ||
       message.includes('invalid claim') ||
       message.includes('refresh_token') ||
       // User/session issues
       message.includes('user not found') ||
       message.includes('not authenticated') ||
-      message.includes('session') && message.includes('invalid');
+      (message.includes('session') && message.includes('invalid'));
 
     if (isAuthError) {
       throw new AuthError(`${context}: ${error.message}`, undefined, {
@@ -546,12 +554,12 @@ export class SupabaseDataStore implements DataStore {
       throw new ValidationError(`${context}: ${error.message}`);
     }
 
-    // 3. Default to NetworkError for other database/network issues
-    // Log unclassified error to Sentry for debugging - the default NetworkError may mask the real issue
+    // 3. Distinguish between server errors and network/connectivity errors
+    // Log unclassified errors to Sentry for visibility
     try {
       Sentry.addBreadcrumb({
         category: 'error.unclassified',
-        message: `Unclassified Supabase error defaulted to NetworkError: ${message}`,
+        message: `Unclassified Supabase error: ${message}`,
         level: 'warning',
         data: { code, status, originalMessage: error.message },
       });
@@ -559,6 +567,21 @@ export class SupabaseDataStore implements DataStore {
       /* monitoring must never crash the app */
     }
 
+    // Server-side errors (5xx, PostgreSQL internal errors) → StorageError
+    // These indicate a problem on the server, not a client connectivity issue
+    const isServerError =
+      (status !== undefined && status >= 500) ||
+      code.startsWith('XX') ||  // internal_error class
+      code.startsWith('53') ||  // insufficient_resources class
+      code.startsWith('54') ||  // program_limit_exceeded class
+      code.startsWith('57') ||  // operator_intervention class
+      code === 'PGRST000';      // PostgREST connection error
+
+    if (isServerError) {
+      throw new StorageError(`${context}: ${error.message}`);
+    }
+
+    // Default: true network/connectivity issues
     throw new NetworkError(`${context}: ${error.message}`, status);
   }
 
@@ -3996,7 +4019,10 @@ export class SupabaseDataStore implements DataStore {
   // Warmup plan transforms
   private transformWarmupPlanFromDb(row: WarmupPlanRow): WarmupPlan {
     return {
-      id: row.id,
+      // Return canonical app-side ID, not the user-scoped DB key.
+      // The DB uses `warmup_plan_<userId>` to avoid PK collisions across users,
+      // but the app always expects 'user_warmup_plan'.
+      id: 'user_warmup_plan',
       version: row.version,
       lastModified: row.last_modified ?? new Date().toISOString(),
       isDefault: row.is_default ?? false,

@@ -215,16 +215,16 @@ describe('retry utility', () => {
         maxDelayMs: 10000,
       });
 
-      // After 500ms, still only 1 attempt (waiting for first delay of 1000ms)
+      // After 500ms, still only 1 attempt (delay is 1000ms + up to 500ms jitter)
       await jest.advanceTimersByTimeAsync(500);
       expect(operation).toHaveBeenCalledTimes(1);
 
-      // After 1000ms total (first delay), second attempt
-      await jest.advanceTimersByTimeAsync(600);
+      // Advance past max possible first delay (1000 + 500 jitter = 1500ms)
+      await jest.advanceTimersByTimeAsync(1100);
       expect(operation).toHaveBeenCalledTimes(2);
 
-      // After 2000ms more (second delay = 1000 * 2^1), third attempt
-      await jest.advanceTimersByTimeAsync(2100);
+      // Advance past max possible second delay (2000 + 500 jitter = 2500ms)
+      await jest.advanceTimersByTimeAsync(2600);
 
       const result = await resultPromise;
       expect(result).toBe('success');

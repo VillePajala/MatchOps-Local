@@ -14,6 +14,7 @@ import type { Player } from '@/types';
 
 // Mock logger to avoid console noise
 jest.mock('@/utils/logger', () => ({
+  debug: jest.fn(),
   log: jest.fn(),
   error: jest.fn(),
 }));

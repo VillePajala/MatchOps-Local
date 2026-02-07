@@ -114,7 +114,7 @@ export function useTouchInteractions({
    */
   const handleDragStart = useCallback((playerInfo: Player) => {
     setSelectedPlayer(playerInfo);
-    logger.log('[useTouchInteractions] Drag start:', playerInfo.name);
+    logger.debug('[useTouchInteractions] Drag start:', playerInfo.name);
   }, []);
 
   /**
@@ -128,11 +128,11 @@ export function useTouchInteractions({
     setSelectedPlayer((currentSelected) => {
       // If tapping the already-selected player, deselect
       if (currentSelected?.id === playerInfo?.id) {
-        logger.log('[useTouchInteractions] Tap deselect:', playerInfo?.name);
+        logger.debug('[useTouchInteractions] Tap deselect:', playerInfo?.name);
         return null;
       }
       // Otherwise, select the new player
-      logger.log('[useTouchInteractions] Tap select:', playerInfo?.name || 'none');
+      logger.debug('[useTouchInteractions] Tap select:', playerInfo?.name || 'none');
       return playerInfo;
     });
   }, []);
@@ -154,7 +154,7 @@ export function useTouchInteractions({
       }
 
       try {
-        logger.log('[useTouchInteractions] Drop player:', {
+        logger.debug('[useTouchInteractions] Drop player:', {
           name: selectedPlayer.name,
           relX,
           relY,
@@ -179,7 +179,7 @@ export function useTouchInteractions({
    * Clears selected player and optionally calls onCancel callback.
    */
   const handleCancel = useCallback(() => {
-    logger.log('[useTouchInteractions] Drag cancelled');
+    logger.debug('[useTouchInteractions] Drag cancelled');
     setSelectedPlayer(null);
     onCancel?.();
   }, [onCancel]);
@@ -192,7 +192,7 @@ export function useTouchInteractions({
   const handleDeselect = useCallback(() => {
     setSelectedPlayer((currentSelected) => {
       if (currentSelected) {
-        logger.log('[useTouchInteractions] Deselecting:', currentSelected.name);
+        logger.debug('[useTouchInteractions] Deselecting:', currentSelected.name);
       }
       return null;
     });

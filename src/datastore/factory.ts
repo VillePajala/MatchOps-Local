@@ -573,6 +573,9 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
 
       // Set up cloud in background - DON'T BLOCK the return
       // This eliminates the long loading time after login
+      const CLOUD_SETUP_MAX_RETRIES = 3;
+      const CLOUD_SETUP_RETRY_DELAYS = [5000, 15000, 30000]; // 5s, 15s, 30s
+
       const setupCloudInBackground = async () => {
         const cloudSetupStartTime = Date.now();
         log.info('[factory] Background cloud setup starting', { userId: initUserId });
@@ -588,76 +591,77 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           });
         } catch { /* Sentry optional */ }
 
-        try {
-          // Set up the sync executor to sync to Supabase
-          const { SupabaseDataStore } = await import('./SupabaseDataStore');
-          const cloudStore = new SupabaseDataStore();
-          log.info('[factory] SupabaseDataStore created, initializing...', { elapsedMs: Date.now() - cloudSetupStartTime });
-          await cloudStore.initialize();
-          log.info('[factory] SupabaseDataStore initialized', { elapsedMs: Date.now() - cloudSetupStartTime });
-          // Note: If initialize() succeeds, isInitialized() should return true.
-          // If not, that's a bug in SupabaseDataStore to fix, not work around here.
-
-          // CRITICAL: Check if user switch happened during cloud initialization.
-          // If dataStoreInstance changed (user switched), this background setup is stale.
-          // We must NOT set the executor on the old syncedStore - it could cause:
-          // - SyncEngine processing with wrong user's cloudStore
-          // - Memory leaks from orphaned cloudStore
-          // - Race conditions between old and new user's sync operations
+        for (let attempt = 0; attempt <= CLOUD_SETUP_MAX_RETRIES; attempt++) {
+          // Abort if user switched during setup or between retries
           if (dataStoreInstance !== syncedStore) {
-            const elapsedMs = Date.now() - cloudSetupStartTime;
-            log.warn(
-              `[factory] User switch detected during cloud setup - aborting stale setup ` +
-              `(original: ${initUserId?.slice(0, 8) ?? 'none'}, current: ${dataStoreCreatedForUserId?.slice(0, 8) ?? 'anonymous'}, elapsed: ${elapsedMs}ms)`
-            );
-            // Clean up the orphaned cloudStore
-            try {
-              await cloudStore.close();
-            } catch (closeErr) {
-              log.warn('[factory] Error closing orphaned cloudStore');
-            }
+            log.warn('[factory] User switch detected - aborting cloud setup');
             return;
           }
 
-          const { createSyncExecutor } = await import('@/sync');
-          // Pass local store for conflict resolution (cloud-wins scenarios update local without re-queueing)
-          const localStore = syncedStore.getLocalStore();
-          const executor = createSyncExecutor(cloudStore, localStore);
-          const totalDurationMs = Date.now() - cloudSetupStartTime;
-          log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId, totalDurationMs });
-          syncedStore.setExecutor(executor);
-          // Store reference to cloud store for direct operations (e.g., clearAllUserData)
-          syncedStore.setRemoteStore(cloudStore);
-
-          // Add Sentry breadcrumb for successful setup
           try {
-            const Sentry = await import('@sentry/nextjs');
-            Sentry.addBreadcrumb({
-              category: 'sync',
-              message: 'Cloud setup complete',
-              level: 'info',
-              data: { userId: initUserId, durationMs: totalDurationMs },
-            });
-          } catch { /* Sentry optional */ }
-          // Note: SyncEngine.setExecutor() triggers queue processing automatically
-          // if the engine is already running (which it is - we started it above)
-        } catch (error) {
-          // Cloud setup failed in background - log error but don't crash the app
-          // The DataStore still works in local-only mode. Queued operations will
-          // remain pending until the next app restart or manual retry.
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const err = error instanceof Error ? error : new Error(errorMessage);
-          log.error(`[factory] Background cloud setup failed: ${errorMessage}`, err);
+            // Set up the sync executor to sync to Supabase
+            const { SupabaseDataStore } = await import('./SupabaseDataStore');
+            const cloudStore = new SupabaseDataStore();
+            log.info('[factory] SupabaseDataStore created, initializing...', { attempt, elapsedMs: Date.now() - cloudSetupStartTime });
+            await cloudStore.initialize();
+            log.info('[factory] SupabaseDataStore initialized', { attempt, elapsedMs: Date.now() - cloudSetupStartTime });
 
-          // Report to Sentry for production tracking
-          try {
-            const Sentry = await import('@sentry/nextjs');
-            Sentry.captureException(error, {
-              tags: { component: 'factory', action: 'backgroundCloudSetup' },
-              extra: { userId: initUserId },
-            });
-          } catch {
-            // Sentry failure must not propagate
+            // CRITICAL: Check if user switch happened during cloud initialization.
+            if (dataStoreInstance !== syncedStore) {
+              const elapsedMs = Date.now() - cloudSetupStartTime;
+              log.warn(
+                `[factory] User switch detected during cloud setup - aborting stale setup ` +
+                `(original: ${initUserId?.slice(0, 8) ?? 'none'}, current: ${dataStoreCreatedForUserId?.slice(0, 8) ?? 'anonymous'}, elapsed: ${elapsedMs}ms)`
+              );
+              try {
+                await cloudStore.close();
+              } catch {
+                log.warn('[factory] Error closing orphaned cloudStore');
+              }
+              return;
+            }
+
+            const { createSyncExecutor } = await import('@/sync');
+            const localStore = syncedStore.getLocalStore();
+            const executor = createSyncExecutor(cloudStore, localStore);
+            const totalDurationMs = Date.now() - cloudSetupStartTime;
+            log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId, totalDurationMs, attempts: attempt + 1 });
+            syncedStore.setExecutor(executor);
+            syncedStore.setRemoteStore(cloudStore);
+
+            try {
+              const Sentry = await import('@sentry/nextjs');
+              Sentry.addBreadcrumb({
+                category: 'sync',
+                message: 'Cloud setup complete',
+                level: 'info',
+                data: { userId: initUserId, durationMs: totalDurationMs, attempts: attempt + 1 },
+              });
+            } catch { /* Sentry optional */ }
+            return; // Success - exit retry loop
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+
+            if (attempt < CLOUD_SETUP_MAX_RETRIES) {
+              const retryDelay = CLOUD_SETUP_RETRY_DELAYS[attempt] ?? 30000;
+              log.warn(`[factory] Cloud setup attempt ${attempt + 1} failed, retrying in ${retryDelay}ms: ${errorMessage}`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+              continue;
+            }
+
+            // All retries exhausted
+            const err = error instanceof Error ? error : new Error(errorMessage);
+            log.error(`[factory] Background cloud setup failed after ${attempt + 1} attempts: ${errorMessage}`, err);
+
+            try {
+              const Sentry = await import('@sentry/nextjs');
+              Sentry.captureException(error, {
+                tags: { component: 'factory', action: 'backgroundCloudSetup' },
+                extra: { userId: initUserId, attempts: attempt + 1 },
+              });
+            } catch {
+              // Sentry failure must not propagate
+            }
           }
         }
       };

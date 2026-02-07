@@ -99,9 +99,9 @@ describe('useTacticalHistory', () => {
       expect(result.current.canUndo).toBe(false);
       expect(result.current.canRedo).toBe(true);
 
-      // Wait for undo guard to clear
+      // Flush macrotask queue so the undo guard (setTimeout(0)) clears
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise(resolve => setTimeout(resolve, 0));
       });
 
       // Save new state - should truncate redo history

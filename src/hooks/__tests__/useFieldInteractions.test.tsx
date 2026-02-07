@@ -231,8 +231,8 @@ describe('useFieldInteractions', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
 
-    // Wait a bit for any potential async calls
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Flush async queue to ensure no async calls are pending
+    await act(async () => {});
 
     // getDrawingModeEnabled should NOT be called when going to background
     expect(mockGetDrawingModeEnabled).not.toHaveBeenCalled();
@@ -335,8 +335,8 @@ describe('useFieldInteractions', () => {
       expect(mockGetDrawingModeEnabled).toHaveBeenCalled();
     });
 
-    // Wait a bit for any potential async persistence calls
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Flush async queue to ensure no persistence calls are pending
+    await act(async () => {});
 
     // Should not persist on initial load (value just loaded from storage)
     expect(mockSaveDrawingModeEnabled).not.toHaveBeenCalled();

@@ -68,7 +68,7 @@ const saveWithRetry = async (
 
       // Exponential backoff: 1s, 2s, 4s
       const delay = Math.pow(2, attempt) * 1000;
-      logger.log(`[useAutoSave] ${context} retry ${attempt + 1}/${maxRetries} in ${delay}ms`);
+      logger.debug(`[useAutoSave] ${context} retry ${attempt + 1}/${maxRetries} in ${delay}ms`);
 
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -135,10 +135,17 @@ export const useAutoSave = ({
   // This ensures we always call the latest version even if it changes during debounce
   const saveFunctionRef = useRef(saveFunction);
 
-  // Update ref when saveFunction changes (doesn't trigger effect re-runs)
+  // Ref for enabled state — checked at fire time to avoid saving while disabled
+  const enabledRef = useRef(enabled);
+
+  // Update refs when values change (doesn't trigger effect re-runs)
   useEffect(() => {
     saveFunctionRef.current = saveFunction;
   }, [saveFunction]);
+
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
   /**
    * Serializes state for deep equality comparison via JSON.stringify
@@ -176,7 +183,7 @@ export const useAutoSave = ({
 
     // Check if states changed
     if (prevImmediateRef.current !== null && prevImmediateRef.current !== currentSerialized) {
-      logger.log(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
+      logger.debug(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
 
       // Use async IIFE since useEffect callbacks can't be async
       // Retry transient errors with exponential backoff
@@ -218,9 +225,9 @@ export const useAutoSave = ({
 
       // Set new debounced timer
       shortTimerRef.current = setTimeout(async () => {
-        // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
-        if (enabled) {
-          logger.log(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
+        // Check enabledRef (not closure) at fire time to avoid saving while temporarily disabled
+        if (enabledRef.current) {
+          logger.debug(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
 
           // Retry transient errors with exponential backoff
           try {
@@ -239,7 +246,7 @@ export const useAutoSave = ({
             // Don't re-throw - let app continue running
           }
         } else {
-          logger.log('[useAutoSave] Short-delay skipped: disabled at fire time');
+          logger.debug('[useAutoSave] Short-delay skipped: disabled at fire time');
         }
       }, short.delay);
     }
@@ -263,9 +270,9 @@ export const useAutoSave = ({
 
       // Set new debounced timer
       longTimerRef.current = setTimeout(async () => {
-        // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
-        if (enabled) {
-          logger.log(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
+        // Check enabledRef (not closure) at fire time to avoid saving while temporarily disabled
+        if (enabledRef.current) {
+          logger.debug(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
 
           // Retry transient errors with exponential backoff
           try {
@@ -284,7 +291,7 @@ export const useAutoSave = ({
             // Don't re-throw - let app continue running
           }
         } else {
-          logger.log('[useAutoSave] Long-delay skipped: disabled at fire time');
+          logger.debug('[useAutoSave] Long-delay skipped: disabled at fire time');
         }
       }, long.delay);
     }

@@ -132,7 +132,7 @@ export type GameSessionAction =
   | { type: 'SET_TIMER_RUNNING'; payload: boolean }
   | { type: 'SET_SUB_INTERVAL'; payload: number } // subIntervalMinutes
   | { type: 'CONFIRM_SUBSTITUTION' }
-  | { type: 'RESET_TIMER_AND_GAME_PROGRESS'; payload?: Partial<GameSessionState> } // Optional payload for selective reset
+  | { type: 'RESET_TIMER_AND_GAME_PROGRESS'; payload?: Partial<GameSessionState> } // Optional payload overrides reset defaults (e.g., preserve subIntervalMinutes)
   | { type: 'RESET_TIMER_ONLY' }
   | { type: 'LOAD_GAME_SESSION_STATE'; payload: Partial<GameSessionState> }
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
@@ -142,7 +142,7 @@ export type GameSessionAction =
 
 // --- Reducer Function ---
 export const gameSessionReducer = (state: GameSessionState, action: GameSessionAction): GameSessionState => {
-  logger.log('[gameSessionReducer] action type:', action.type);
+  logger.debug('[gameSessionReducer] action type:', action.type);
   switch (action.type) {
     case 'LOAD_STATE_FROM_HISTORY':
     case 'LOAD_GAME_SESSION_STATE':
@@ -368,6 +368,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
           ...state,
           timeElapsedInSeconds: Math.round(savedTime),
           isTimerRunning: true,
+          startTimestamp: Date.now(),
         };
       }
       return state;
@@ -437,10 +438,15 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       };
     }
     case 'RESET_TIMER_AND_GAME_PROGRESS': {
+        // Resets game progress to initial state. Optional payload fields override
+        // the defaults below (e.g., to preserve subIntervalMinutes from settings).
+        // The spread `...(action.payload || {})` at the end means any field in the
+        // payload takes priority over the hardcoded reset values.
         const subIntervalMins = action.payload?.subIntervalMinutes || state.subIntervalMinutes || 5;
         return {
             ...state,
             timeElapsedInSeconds: 0,
+            startTimestamp: null,
             isTimerRunning: false,
             currentPeriod: 1,
             gameStatus: 'notStarted',
@@ -458,7 +464,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     case 'RESET_GAME_SESSION_STATE':
       return action.payload;
     case 'LOAD_PERSISTED_GAME_DATA': {
-      logger.log('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - Received action.payload:', JSON.parse(JSON.stringify(action.payload)));
+      logger.debug('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - Received action.payload:', action.payload);
       const loadedData = action.payload as Partial<GameSessionState>;
 
       const teamName = loadedData.teamName ?? initialGameSessionStatePlaceholder.teamName;
@@ -567,7 +573,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         subAlertLevel: recalculatedAlertLevel,
         lastSubConfirmationTimeSeconds: lastSubConfirmation,
       };
-      logger.log('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - state to be returned:', JSON.parse(JSON.stringify(stateToBeReturned)));
+      logger.debug('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - state to be returned:', stateToBeReturned);
       return stateToBeReturned;
     }
     default:

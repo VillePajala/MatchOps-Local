@@ -88,7 +88,7 @@ export function isTransientError(error: unknown): boolean {
 export interface RetryOptions {
   /** Name for logging purposes */
   operationName?: string;
-  /** Maximum number of retry attempts (default: 3) */
+  /** Total number of attempts including the initial one (default: 3) */
   maxRetries?: number;
   /** Initial delay in milliseconds (default: 500) */
   initialDelayMs?: number;
@@ -140,8 +140,10 @@ export async function retryWithBackoff<T>(
         throw error;
       }
 
-      const delay = Math.min(initialDelayMs * Math.pow(2, attempt - 1), maxDelayMs);
-      logger.warn(`[${operationName}] Attempt ${attempt} failed, retrying in ${delay}ms...`,
+      const exponentialDelay = initialDelayMs * Math.pow(2, attempt - 1);
+      const jitter = Math.random() * initialDelayMs * 0.5; // 0-50% of base delay
+      const delay = Math.min(exponentialDelay + jitter, maxDelayMs);
+      logger.warn(`[${operationName}] Attempt ${attempt} failed, retrying in ${Math.round(delay)}ms...`,
         getErrorMessage(error));
       await new Promise(resolve => setTimeout(resolve, delay));
     }

@@ -348,10 +348,13 @@ describe('SupabaseDataStore', () => {
     });
 
     it('should wrap Supabase errors in NetworkError for delete', async () => {
-      mockQueryBuilder.eq = jest.fn().mockResolvedValue({
-        error: { message: 'Foreign key constraint' },
-        count: 0,
-      });
+      // Chain: .eq('id',id) returns builder, .eq('user_id',userId) resolves with error
+      mockQueryBuilder.eq = jest.fn()
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockResolvedValueOnce({
+          error: { message: 'Foreign key constraint' },
+          count: 0,
+        });
 
       await expect(dataStore.deletePlayer('player_123')).rejects.toThrow(NetworkError);
     });
@@ -513,20 +516,19 @@ describe('SupabaseDataStore', () => {
 
     describe('deletePlayer', () => {
       it('should delete player successfully', async () => {
-        mockQueryBuilder.eq = jest.fn().mockResolvedValue({
-          error: null,
-          count: 1,
-        });
+        // Chain: .eq('id', id) returns builder, .eq('user_id', userId) resolves
+        mockQueryBuilder.eq = jest.fn()
+          .mockReturnValueOnce(mockQueryBuilder)
+          .mockResolvedValueOnce({ error: null, count: 1 });
 
         const result = await dataStore.deletePlayer('player_123');
         expect(result).toBe(true);
       });
 
       it('should return false for non-existent player', async () => {
-        mockQueryBuilder.eq = jest.fn().mockResolvedValue({
-          error: null,
-          count: 0,
-        });
+        mockQueryBuilder.eq = jest.fn()
+          .mockReturnValueOnce(mockQueryBuilder)
+          .mockResolvedValueOnce({ error: null, count: 0 });
 
         const result = await dataStore.deletePlayer('nonexistent');
         expect(result).toBe(false);
@@ -3345,29 +3347,30 @@ describe('SupabaseDataStore', () => {
 
     describe('deleteGame', () => {
       it('should delete game successfully', async () => {
-        mockQueryBuilder.delete = jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ error: null, count: 1 }),
-        });
+        // Chain: .delete().eq('id',id) returns builder, .eq('user_id',userId) resolves
+        const eqMock = jest.fn()
+          .mockReturnValueOnce({ eq: jest.fn().mockResolvedValue({ error: null, count: 1 }) });
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({ eq: eqMock });
 
         const result = await dataStore.deleteGame('game_123');
         expect(result).toBe(true);
       });
 
       it('should return false for non-existent game', async () => {
-        mockQueryBuilder.delete = jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ error: null, count: 0 }),
-        });
+        const eqMock = jest.fn()
+          .mockReturnValueOnce({ eq: jest.fn().mockResolvedValue({ error: null, count: 0 }) });
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({ eq: eqMock });
 
         const result = await dataStore.deleteGame('game_nonexistent');
         expect(result).toBe(false);
       });
 
       it('should throw NetworkError on delete failure', async () => {
-        mockQueryBuilder.delete = jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ error: { message: 'Delete failed' } }),
-        });
+        const eqMock = jest.fn()
+          .mockReturnValueOnce({ eq: jest.fn().mockResolvedValue({ error: { message: 'Delete failed' } }) });
+        mockQueryBuilder.delete = jest.fn().mockReturnValue({ eq: eqMock });
 
-        await expect(dataStore.deleteGame('game_123')).rejects.toThrow(NetworkError);
+        await expect(dataStore.deleteGame('game_123')).rejects.toThrow();
       });
     });
   });

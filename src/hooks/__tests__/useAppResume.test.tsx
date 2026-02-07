@@ -454,7 +454,7 @@ describe('useAppResume', () => {
    * @critical - Recovery mechanism for corrupted state after very long background periods
    *
    * Note: In JSDOM, window.location.reload cannot be reliably mocked, so we test the
-   * behavior via logger.log calls that indicate the force reload path was executed.
+   * behavior via logger.debug calls that indicate the force reload path was executed.
    */
   it('should attempt force page reload after forceReloadTime threshold', async () => {
     const logger = require('@/utils/logger').default;
@@ -482,13 +482,11 @@ describe('useAppResume', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
 
-    // Wait for async IIFE to complete
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
-    });
+    // Flush async queue for IIFE completion
+    await act(async () => {});
 
     // Verify the force reload code path was executed via logger
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(logger.debug).toHaveBeenCalledWith(
       '[useAppResume] App was in background for',
       360, // 360 seconds = 6 minutes
       'seconds - forcing page reload'
@@ -500,7 +498,7 @@ describe('useAppResume', () => {
    * @critical - Recovery for very long background periods with bfcache
    *
    * Note: In JSDOM, window.location.reload cannot be reliably mocked, so we test the
-   * behavior via logger.log calls that indicate the force reload path was executed.
+   * behavior via logger.debug calls that indicate the force reload path was executed.
    */
   it('should attempt force page reload on pageshow after forceReloadTime', async () => {
     const logger = require('@/utils/logger').default;
@@ -526,13 +524,11 @@ describe('useAppResume', () => {
       window.dispatchEvent(pageShowEvent);
     });
 
-    // Wait for async IIFE to complete
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
-    });
+    // Flush async queue for IIFE completion
+    await act(async () => {});
 
     // Verify the force reload code path was executed via logger
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(logger.debug).toHaveBeenCalledWith(
       '[useAppResume] bfcache restore for',
       360, // 360 seconds = 6 minutes
       'seconds - forcing page reload'
@@ -624,7 +620,7 @@ describe('useAppResume', () => {
    */
   it('should NOT force reload for background under forceReloadTime', async () => {
     const logger = require('@/utils/logger').default;
-    logger.log.mockClear();
+    logger.debug.mockClear();
 
     renderHook(() => useAppResume({ forceReloadTime: 300000 }), { wrapper });
 
@@ -655,7 +651,7 @@ describe('useAppResume', () => {
     });
 
     // Verify the force reload code path was NOT executed
-    expect(logger.log).not.toHaveBeenCalledWith(
+    expect(logger.debug).not.toHaveBeenCalledWith(
       expect.stringContaining('forcing page reload'),
       expect.anything(),
       expect.anything()
@@ -667,7 +663,7 @@ describe('useAppResume', () => {
    * @integration
    *
    * Note: In JSDOM, window.location.reload cannot be reliably mocked, so we test the
-   * behavior via logger.log calls that indicate the force reload path was executed.
+   * behavior via logger.debug calls that indicate the force reload path was executed.
    */
   it('should respect custom forceReloadTime', async () => {
     const logger = require('@/utils/logger').default;
@@ -696,13 +692,11 @@ describe('useAppResume', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
 
-    // Wait for async IIFE to complete
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
-    });
+    // Flush async queue for IIFE completion
+    await act(async () => {});
 
     // Verify the force reload code path was executed via logger
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(logger.debug).toHaveBeenCalledWith(
       '[useAppResume] App was in background for',
       120, // 120 seconds = 2 minutes
       'seconds - forcing page reload'
