@@ -90,6 +90,7 @@ export interface UseGameSessionCoordinationReturn {
     setGender: (gender: import('@/types').Gender | undefined) => void;
     setWentToOvertime: (value: boolean) => void;
     setWentToPenalties: (value: boolean) => void;
+    setShowPositionLabels: (value: boolean) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
   };
 }
@@ -288,6 +289,7 @@ export function useGameSessionCoordination({
       completedIntervalDurations: state.completedIntervalDurations,
       lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
       showPlayerNames: state.showPlayerNames,
+      showPositionLabels: state.showPositionLabels,
       timeElapsedInSeconds: state.timeElapsedInSeconds,
     } satisfies Partial<AppState>;
     return slice;
@@ -438,6 +440,10 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_WENT_TO_PENALTIES', payload: value });
   }, [dispatchGameSession]);
 
+  const handleSetShowPositionLabels = useCallback((value: boolean) => {
+    dispatchGameSession({ type: 'SET_SHOW_POSITION_LABELS', payload: value });
+  }, [dispatchGameSession]);
+
   const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
     dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
   }, [dispatchGameSession]);
@@ -555,6 +561,7 @@ export function useGameSessionCoordination({
       setGender: handleSetGender,
       setWentToOvertime: handleSetWentToOvertime,
       setWentToPenalties: handleSetWentToPenalties,
+      setShowPositionLabels: handleSetShowPositionLabels,
       setGamePersonnel: handleSetGamePersonnel,
     },
   };

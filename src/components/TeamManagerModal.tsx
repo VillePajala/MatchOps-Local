@@ -31,6 +31,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import UnifiedTeamModal from './UnifiedTeamModal';
 import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
+import { useToast } from '@/contexts/ToastProvider';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { userId, getStore } = useDataStore();
+  const { showToast } = useToast();
 
   // Premium limit check for team creation (count non-archived teams)
   const activeTeamCount = teams.filter(team => !team.archived).length;
@@ -87,6 +89,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     },
     onError: (error) => {
       logger.error('[TeamManager] Error deleting team:', error);
+      showToast(t('teams.deleteError', 'Failed to delete team. Please try again.'), 'error');
     }
   });
 
@@ -202,6 +205,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     },
     onError: (error) => {
       logger.error('[TeamManager] Error updating team:', error);
+      showToast(t('teams.updateError', 'Failed to update team. Please try again.'), 'error');
     }
   });
 

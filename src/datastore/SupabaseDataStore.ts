@@ -925,10 +925,12 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
+    const userId = await this.getUserId();
     const { error, count } = await this.getClient()
       .from('players')
       .delete({ count: 'exact' })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete player');
@@ -1031,6 +1033,10 @@ export class SupabaseDataStore implements DataStore {
       }
       return throwIfTransient(await query.order('created_at', { ascending: false }));
     }, 'getTeams');
+
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to load teams');
+    }
 
     return (result.data || []).map(this.transformTeamFromDb);
   }
@@ -1279,10 +1285,12 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
+    const userId = await this.getUserId();
     const { error, count } = await this.getClient()
       .from('teams')
       .delete({ count: 'exact' })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete team');
@@ -1537,6 +1545,10 @@ export class SupabaseDataStore implements DataStore {
       return throwIfTransient(await query.order('created_at', { ascending: false }));
     }, 'getSeasons');
 
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to load seasons');
+    }
+
     const rows = (result.data || []) as SeasonRow[];
     const { start, end } = await this.getSeasonDates();
     return rows.map((row) => ({
@@ -1737,10 +1749,12 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
+    const userId = await this.getUserId();
     const { error, count } = await this.getClient()
       .from('seasons')
       .delete({ count: 'exact' })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete season');
@@ -1875,6 +1889,10 @@ export class SupabaseDataStore implements DataStore {
       }
       return throwIfTransient(await query.order('created_at', { ascending: false }));
     }, 'getTournaments');
+
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to load tournaments');
+    }
 
     const rows = (result.data || []) as TournamentRow[];
     const { start, end } = await this.getSeasonDates();
@@ -2081,10 +2099,12 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
+    const userId = await this.getUserId();
     const { error, count } = await this.getClient()
       .from('tournaments')
       .delete({ count: 'exact' })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete tournament');
@@ -2822,6 +2842,7 @@ export class SupabaseDataStore implements DataStore {
         gender: normalizeGender(game.gender),
         went_to_overtime: game.wentToOvertime ?? false,
         went_to_penalties: game.wentToPenalties ?? false,
+        show_position_labels: game.showPositionLabels ?? true,
         // === Array/object fields ===
         game_personnel: Array.isArray(game.gamePersonnel)
           ? game.gamePersonnel.filter((id): id is string => typeof id === 'string' && id.trim() !== '')
@@ -2973,6 +2994,7 @@ export class SupabaseDataStore implements DataStore {
       gender: normalizeGender(game.gender) ?? undefined,
       wentToOvertime: game.went_to_overtime ?? undefined,
       wentToPenalties: game.went_to_penalties ?? undefined,
+      showPositionLabels: game.show_position_labels ?? true,
       // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
       gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
       formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as unknown as Point[] : undefined,
@@ -3499,10 +3521,12 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     // Child tables have ON DELETE CASCADE, so just delete the game
+    const userId = await this.getUserId();
     const { error, count } = await this.getClient()
       .from('games')
       .delete({ count: 'exact' })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     const deleteDuration = Date.now() - deleteStartTime;
     logger.info('[SupabaseDataStore] deleteGame COMPLETE', {

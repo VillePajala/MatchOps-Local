@@ -195,6 +195,7 @@ const baseProps = () => ({
       playerDragCancel: jest.fn(),
     },
   },
+  onTogglePositionLabels: jest.fn(),
   timerInteractions: {
     toggleLargeOverlay: jest.fn(),
     toggleGoalLogModal: jest.fn(),

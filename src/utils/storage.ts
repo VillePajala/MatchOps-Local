@@ -972,11 +972,11 @@ export async function setStorageItems(
 
     const batchResults = await Promise.all(batchPromises);
 
-    // Check for failures
+    // Check for failures and throw if any writes failed
     const failures = batchResults.filter(result => !result.success);
     if (failures.length > 0) {
       const failedKeys = failures.map(f => f.key).join(', ');
-      logger.warn(`Batch write had ${failures.length} failures for keys: ${failedKeys}`);
+      throw new Error(`Failed to write ${failures.length} storage key(s): ${failedKeys}`);
     }
 
     // Small delay between batches

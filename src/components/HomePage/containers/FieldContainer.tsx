@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
-import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark } from 'react-icons/hi2';
+import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } from 'react-icons/hi2';
 import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
@@ -134,6 +134,7 @@ export interface FieldContainerProps {
   onOpenRulesModal?: () => void;
   onTeamNameChange: (name: string) => void;
   onOpponentNameChange: (name: string) => void;
+  onTogglePositionLabels: (value: boolean) => void;
   interactions: FieldInteractions;
   timerInteractions: TimerInteractions;
 }
@@ -156,6 +157,7 @@ export function FieldContainer({
   onOpenRulesModal,
   onTeamNameChange,
   onOpponentNameChange,
+  onTogglePositionLabels,
   interactions,
   timerInteractions,
 }: FieldContainerProps) {
@@ -287,6 +289,7 @@ export function FieldContainer({
           onOpponentRemove={opponents.remove}
           onPlayerDrop={players.drop}
           showPlayerNames={gameSessionState.showPlayerNames}
+          showPositionLabels={gameSessionState.showPositionLabels ?? true}
           onDrawingStart={fcIsTactics ? tactical.drawingStart : drawing.start}
           onDrawingAddPoint={fcIsTactics ? tactical.drawingAddPoint : drawing.addPoint}
           onDrawingEnd={fcIsTactics ? tactical.drawingEnd : drawing.end}
@@ -344,6 +347,16 @@ export function FieldContainer({
             <HiOutlineCamera className="w-5 h-5" />
           </button>
         )}
+        {/* Position labels toggle */}
+        <button
+          onClick={() => onTogglePositionLabels(!(gameSessionState.showPositionLabels ?? true))}
+          className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+          title={t('field.togglePositionLabels', 'Toggle position labels')}
+          aria-label={t('field.togglePositionLabels', 'Toggle position labels')}
+          aria-pressed={gameSessionState.showPositionLabels ?? true}
+        >
+          <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-slate-400'}`} />
+        </button>
       </div>
 
       {/* First game setup guidance - dismissible overlay */}
