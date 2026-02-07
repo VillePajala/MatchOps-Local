@@ -1,8 +1,8 @@
 {
-  "version": "0324c335",
-  "date": "2026-01-16",
+  "version": "87d9b5f2",
+  "date": "2026-02-07",
   "notes": {
-    "en": "Address code review feedback",
-    "fi": "Address code review feedback"
+    "en": "Local-only snapshot (pre-cloud)",
+    "fi": "Paikallinen versio (ennen pilvipalvelua)"
   }
 }
