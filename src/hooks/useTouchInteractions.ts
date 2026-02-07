@@ -18,7 +18,7 @@
  * @category Hooks
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { TFunction } from 'i18next';
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
@@ -102,6 +102,14 @@ export function useTouchInteractions({
   // --- State ---
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
+  // Ref to keep selectedPlayer stable for handleDrop callback.
+  // This avoids handleDrop re-creating on every selectedPlayer change,
+  // which would cause unnecessary re-renders in consumers.
+  const selectedPlayerRef = useRef<Player | null>(null);
+  useEffect(() => {
+    selectedPlayerRef.current = selectedPlayer;
+  }, [selectedPlayer]);
+
   // Derived state
   const isDragging = selectedPlayer !== null;
 
@@ -148,18 +156,19 @@ export function useTouchInteractions({
    */
   const handleDrop = useCallback(
     (relX: number, relY: number) => {
-      if (!selectedPlayer) {
+      const player = selectedPlayerRef.current;
+      if (!player) {
         logger.warn('[useTouchInteractions] Drop called with no selected player');
         return;
       }
 
       try {
         logger.debug('[useTouchInteractions] Drop player:', {
-          name: selectedPlayer.name,
+          name: player.name,
           relX,
           relY,
         });
-        onDrop(selectedPlayer.id, relX, relY);
+        onDrop(player.id, relX, relY);
         setSelectedPlayer(null); // Clear selection after successful drop
       } catch (error) {
         logger.error('[useTouchInteractions] Drop failed:', error);
@@ -170,7 +179,7 @@ export function useTouchInteractions({
         // Keep player selected so user can try again
       }
     },
-    [selectedPlayer, onDrop, showToast, t]
+    [onDrop, showToast, t]
   );
 
   /**

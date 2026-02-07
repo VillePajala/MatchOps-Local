@@ -993,13 +993,16 @@ export default function Home() {
     }
   }, [showToast, t]);
 
+  // Memoize onResume to avoid re-subscribing to visibility events on every render
+  const handleAppResume = useCallback(() => {
+    logger.log('[page.tsx] App resumed - triggering state refresh');
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
+
   // Handle app resume from background (Android TWA blank screen fix)
   // Triggers refreshTrigger to re-run checkAppState when returning from extended background
   useAppResume({
-    onResume: () => {
-      logger.log('[page.tsx] App resumed - triggering state refresh');
-      setRefreshTrigger((prev) => prev + 1);
-    },
+    onResume: handleAppResume,
     onBeforeForceReload: () => {
       // Show notification before force reload (5+ minute background)
       showToast(t('page.refreshingAfterBackground', 'Refreshing app after extended background period...'), 'info');

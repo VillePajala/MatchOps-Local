@@ -42,9 +42,10 @@ export const TRANSIENT_ERROR_PATTERNS = [
   'socket hang up',
   // Server overload
   'service unavailable',
-  '503',
   'too many requests',
-  '429',
+  // Note: HTTP 503/429 are handled by explicit status code checks in both retry
+  // modules (TRANSIENT_STATUS_CODES set). Bare '503'/'429' strings are NOT included
+  // here to avoid false positives (e.g., "Error in record 503").
   // Timeout
   'timeout',
   'timed out',

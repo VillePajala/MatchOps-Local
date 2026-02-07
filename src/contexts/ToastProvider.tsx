@@ -21,7 +21,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
 
   const showToast = useCallback((message: string, type: Toast['type'] = 'success') => {
     // Create a robust unique ID: timestamp + global counter + random component
-    const id = `toast-${Date.now()}-${++globalToastCounter}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = `toast-${Date.now()}-${++globalToastCounter}-${Math.random().toString(36).substring(2, 11)}`;
 
     setToasts(prev => {
       // Cap at 5 visible toasts to prevent accumulation during rapid errors

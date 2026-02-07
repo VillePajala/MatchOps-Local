@@ -360,7 +360,14 @@ export function getCloudAccountInfo(): CloudAccountInfo | null {
     return null;
   }
   try {
-    return JSON.parse(stored) as CloudAccountInfo;
+    const parsed = JSON.parse(stored) as CloudAccountInfo;
+    // Validate email length per RFC 5321 (max 254 characters) to prevent
+    // storing/displaying excessively long strings from corrupted localStorage
+    if (parsed.email && parsed.email.length > 254) {
+      log.warn('[backendConfig] Cloud account email exceeds RFC 5321 limit - discarding');
+      return null;
+    }
+    return parsed;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     // Log preview of malformed data for debugging (safe to log - not sensitive auth data)

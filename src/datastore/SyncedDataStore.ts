@@ -61,6 +61,8 @@ function isDataEqual<T extends { createdAt?: string; updatedAt?: string }>(a: T,
 
   // Sort keys before comparing to handle different key ordering between local/cloud objects.
   // Without sorting, identical data with different key order would trigger unnecessary syncs.
+  // NOTE: This sorts top-level keys only, which is sufficient for the current use case
+  // (flat AppSettings objects). Deeper nesting would require recursive key sorting.
   try {
     const sortedStringify = (obj: unknown) => JSON.stringify(obj, Object.keys(obj as object).sort());
     return sortedStringify(restA) === sortedStringify(restB);
@@ -256,6 +258,9 @@ export class SyncedDataStore implements DataStore {
     // - Result: operations never sync
     // Note: resetSyncEngine() calls dispose() internally, which waits for in-flight ops
     // and clears listeners.
+    // Note: factory.ts also calls resetSyncEngine() as a defense-in-depth fallback.
+    // The double-reset is intentional: close() handles normal shutdown, factory handles
+    // edge cases where close() might not complete (e.g., user switch during close).
     if (this.syncEngine) {
       logger.info('[SyncedDataStore] Resetting sync engine...');
       // Null the reference BEFORE reset to prevent race conditions where
@@ -383,6 +388,8 @@ export class SyncedDataStore implements DataStore {
     }
     // DIAGNOSTIC: Log queue state before starting to help debug sync issues
     this.syncQueue.getStats().then(stats => {
+      // Guard: store may have been closed while getStats() was in-flight
+      if (this.closed) return;
       logger.info('[SyncedDataStore] Starting sync engine', {
         userId: this.userId || '(none)',
         queueStats: stats,

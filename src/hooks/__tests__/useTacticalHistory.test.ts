@@ -16,6 +16,15 @@ import { useTacticalHistory, TacticalState } from '../useTacticalHistory';
 import type { Point, TacticalDisc } from '@/types';
 
 describe('useTacticalHistory', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
   const createInitialState = (): TacticalState => ({
     tacticalDrawings: [],
     tacticalDiscs: [],
@@ -73,7 +82,7 @@ describe('useTacticalHistory', () => {
       expect(result.current.state.tacticalDiscs).toHaveLength(1);
     });
 
-    it('should truncate redo history when saving after undo', async () => {
+    it('should truncate redo history when saving after undo', () => {
       const initial = createInitialState();
       const { result } = renderHook(() => useTacticalHistory(initial));
 
@@ -99,9 +108,9 @@ describe('useTacticalHistory', () => {
       expect(result.current.canUndo).toBe(false);
       expect(result.current.canRedo).toBe(true);
 
-      // Flush macrotask queue so the undo guard (setTimeout(0)) clears
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+      // Flush the setTimeout(0) guard in safeUndo so isApplyingRef clears
+      act(() => {
+        jest.runAllTimers();
       });
 
       // Save new state - should truncate redo history
@@ -237,7 +246,7 @@ describe('useTacticalHistory', () => {
   });
 
   describe('save during apply guard (isApplyingRef)', () => {
-    it('should block save during undo application', async () => {
+    it('should block save during undo application', () => {
       const initial = createInitialState();
       const { result } = renderHook(() => useTacticalHistory(initial));
 
@@ -263,7 +272,7 @@ describe('useTacticalHistory', () => {
       expect(result.current.state.tacticalDrawings?.[0][0].relX).toBe(0.1);
     });
 
-    it('should block save during redo application', async () => {
+    it('should block save during redo application', () => {
       const initial = createInitialState();
       const { result } = renderHook(() => useTacticalHistory(initial));
 
@@ -294,7 +303,7 @@ describe('useTacticalHistory', () => {
       expect(result.current.state.tacticalDrawings?.[0][0].relX).toBe(0.2);
     });
 
-    it('should allow save after guard clears', async () => {
+    it('should allow save after guard clears', () => {
       const initial = createInitialState();
       const { result } = renderHook(() => useTacticalHistory(initial));
 
@@ -308,9 +317,9 @@ describe('useTacticalHistory', () => {
         result.current.undo();
       });
 
-      // Wait for microtask to clear guard
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+      // Flush the setTimeout(0) guard in safeUndo so isApplyingRef clears
+      act(() => {
+        jest.runAllTimers();
       });
 
       // Now save should work

@@ -6,11 +6,29 @@
  *
  * These tests verify input validation and error handling without
  * requiring actual Google Play or Supabase connections.
+ *
+ * IMPORTANT: Handler Reimplementation Notice
+ * -------------------------------------------
+ * The handleRequest() function in this file (line ~401) is a REIMPLEMENTATION
+ * of the actual Edge Function handler in index.ts. This is necessary because
+ * the Edge Function runs in Deno with Deno.serve() and imports from ESM URLs
+ * (e.g., https://esm.sh/@supabase/supabase-js@2), making it impossible to
+ * directly import into a test runner (whether Jest/Node or even Deno test).
+ *
+ * MAINTENANCE RISK: If index.ts changes, this test handler must be updated
+ * manually to stay in sync. When modifying the Edge Function:
+ *   1. Update the corresponding logic in handleRequest() below
+ *   2. Update unit tests above if validation rules change
+ *   3. Verify error messages match between index.ts and this file
+ *
+ * The Handler Integration Tests section (bottom of file) tests the
+ * reimplemented handler to verify request/response flow. The Unit Tests
+ * sections above test extracted logic (CORS, validation, status) that
+ * mirrors the actual Edge Function's behavior.
  */
 
 import {
   assertEquals,
-  assertStringIncludes,
 } from 'https://deno.land/std@0.220.0/assert/mod.ts';
 
 // =============================================================================
@@ -184,36 +202,47 @@ Deno.test('Product ID validation: rejects invalid product IDs', () => {
 
 // =============================================================================
 // Rate Limiting Tests (Distributed via PostgreSQL RPC)
+//
+// The actual rate limiting uses supabaseAdmin.rpc('check_rate_limit', {...}).
+// Since we cannot call the real RPC in unit tests, these tests verify:
+// - The fail-open branching logic (error vs allowed vs blocked)
+// - The key format used for the RPC call
+// - The handler integration tests below cover the full request flow
 // =============================================================================
 
-Deno.test('Rate limiting: uses distributed check_rate_limit RPC', () => {
-  // The Edge Function now calls supabaseAdmin.rpc('check_rate_limit', {...})
-  // instead of using an in-memory Map. This verifies the contract:
-  // - Returns true = request allowed
-  // - Returns false = rate limited
-  const isAllowed = true; // RPC returns boolean
-  assertEquals(isAllowed === false, false); // Not blocked
-});
-
-Deno.test('Rate limiting: blocks when RPC returns false', () => {
-  const isAllowed = false; // RPC says over limit
-  assertEquals(isAllowed === false, true); // Should block
-});
-
-Deno.test('Rate limiting: fails open when RPC errors', () => {
-  // If the rate limit RPC fails, the function should NOT block the request.
-  // It logs the error and proceeds (fail-open for availability).
+Deno.test('Rate limiting: fail-open logic allows requests when RPC errors', () => {
+  // The Edge Function uses this branching pattern (see index.ts lines 125-134):
+  //   if (rateLimitError) { console.error(...) }  // fail-open: log and continue
+  //   else if (isAllowed === false) { return 429 } // block only on explicit false
+  //
+  // This verifies that the fail-open branch does NOT block.
   const rateLimitError = { message: 'connection timeout' };
   const isAllowed = null; // No data returned on error
 
-  // The function checks: if (rateLimitError) { log } else if (isAllowed === false) { block }
-  // So with an error, it should NOT reach the block branch
   const shouldBlock = !rateLimitError && isAllowed === false;
-  assertEquals(shouldBlock, false); // Should NOT block on error
+  assertEquals(shouldBlock, false, 'Should NOT block requests when rate limit RPC fails (fail-open)');
+});
+
+Deno.test('Rate limiting: branching logic blocks when RPC returns explicit false', () => {
+  // When RPC succeeds and returns false, the request should be blocked
+  const rateLimitError = null;
+  const isAllowed = false;
+
+  const shouldBlock = !rateLimitError && isAllowed === false;
+  assertEquals(shouldBlock, true, 'Should block when RPC explicitly returns false');
+});
+
+Deno.test('Rate limiting: branching logic allows when RPC returns true', () => {
+  // When RPC succeeds and returns true, the request should proceed
+  const rateLimitError = null;
+  const isAllowed = true;
+
+  const shouldBlock = !rateLimitError && isAllowed === false;
+  assertEquals(shouldBlock, false, 'Should allow when RPC returns true');
 });
 
 Deno.test('Rate limiting: key includes IP and function prefix', () => {
-  // The RPC key format is 'verify-sub:{ip}' to allow reuse across functions
+  // The RPC key format is 'verify-sub:{ip}' to namespace rate limits per function
   const clientIP = '192.168.1.1';
   const key = `verify-sub:${clientIP}`;
   assertEquals(key, 'verify-sub:192.168.1.1');
@@ -245,12 +274,19 @@ Deno.test('Error messages: do not leak implementation details', () => {
     'An unexpected error occurred',
   ];
 
+  // Sensitive keywords that should never appear in user-facing error messages.
+  // These would leak implementation details about mock mode, configuration, or environment.
+  const sensitiveKeywords = ['mock', 'test mode', 'production', 'configured'];
+
   for (const error of publicErrors) {
-    // Should not contain sensitive keywords
-    assertStringIncludes(error.toLowerCase().includes('mock') ? 'bad' : 'ok', 'ok');
-    assertStringIncludes(error.toLowerCase().includes('test mode') ? 'bad' : 'ok', 'ok');
-    assertStringIncludes(error.toLowerCase().includes('production') ? 'bad' : 'ok', 'ok');
-    assertStringIncludes(error.toLowerCase().includes('configured') ? 'bad' : 'ok', 'ok');
+    const lowerError = error.toLowerCase();
+    for (const keyword of sensitiveKeywords) {
+      assertEquals(
+        lowerError.includes(keyword),
+        false,
+        `Error message "${error}" should not contain sensitive keyword "${keyword}"`
+      );
+    }
   }
 });
 

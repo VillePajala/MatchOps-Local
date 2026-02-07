@@ -215,18 +215,23 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
    * Separates concerns: field coordination restores field state,
    * session coordination restores game session state.
    */
+  // Destructure stable methods to avoid depending on full coordination objects
+  // (which are recreated every render, defeating useCallback memoization)
+  const { applyFieldHistoryState } = fieldCoordination;
+  const { applyHistoryState } = sessionCoordination;
+
   const handleUndo = useCallback(() => {
     const prevState = undoHistory();
     if (prevState) {
       logger.log('Undoing...');
       // Apply field state (players, opponents, drawings, tactical)
-      fieldCoordination.applyFieldHistoryState(prevState);
+      applyFieldHistoryState(prevState);
       // Apply session state (score, timer, periods, etc.)
-      sessionCoordination.applyHistoryState(prevState);
+      applyHistoryState(prevState);
     } else {
       logger.log('Cannot undo: at beginning of history');
     }
-  }, [undoHistory, fieldCoordination, sessionCoordination]);
+  }, [undoHistory, applyFieldHistoryState, applyHistoryState]);
 
   /**
    * Orchestrate redo across both field and session state
@@ -239,13 +244,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     if (nextState) {
       logger.log('Redoing...');
       // Apply field state (players, opponents, drawings, tactical)
-      fieldCoordination.applyFieldHistoryState(nextState);
+      applyFieldHistoryState(nextState);
       // Apply session state (score, timer, periods, etc.)
-      sessionCoordination.applyHistoryState(nextState);
+      applyHistoryState(nextState);
     } else {
       logger.log('Cannot redo: at end of history');
     }
-  }, [redoHistory, fieldCoordination, sessionCoordination]);
+  }, [redoHistory, applyFieldHistoryState, applyHistoryState]);
 
   // --- Persistence State ---
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
@@ -344,10 +349,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     [setIsSeasonTournamentModalOpen],
   );
 
-  // Wrapper around reducer-backed modals (load/new). This mirrors the old setState-style API
-  // so consumers can migrate incrementally before ModalManager adopts reducer helpers in 2.4.8.
-  // Note: callbacks are already memoized via useCallback, so no useMemo needed for the object itself
-  const reducerDrivenModals: ReducerDrivenModals = {
+  // Wrapper around reducer-backed modals (load/new). Memoized to prevent
+  // child re-renders when modal states haven't changed.
+  const reducerDrivenModals: ReducerDrivenModals = useMemo(() => ({
     loadGame: {
       isOpen: isLoadGameModalOpen,
       open: openLoadGameViaReducer,
@@ -368,7 +372,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       open: openSeasonTournamentViaReducer,
       close: closeSeasonTournamentViaReducer,
     },
-  };
+  }), [
+    isLoadGameModalOpen, openLoadGameViaReducer, closeLoadGameViaReducer,
+    isNewGameSetupModalOpen, openNewGameViaReducer, closeNewGameViaReducer,
+    isRosterModalOpen, openRosterViaReducer, closeRosterViaReducer,
+    isSeasonTournamentModalOpen, openSeasonTournamentViaReducer, closeSeasonTournamentViaReducer,
+  ]);
 
   // showToast already defined earlier (needed by useFieldCoordination)
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
@@ -960,7 +969,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         completedIntervalDurations: gameData.completedIntervalDurations,
         lastSubConfirmationTimeSeconds: gameData.lastSubConfirmationTimeSeconds,
         showPlayerNames: gameData.showPlayerNames,
+        showPositionLabels: gameData.showPositionLabels,
         timeElapsedInSeconds: gameData.timeElapsedInSeconds,
+        ageGroup: gameData.ageGroup,
+        tournamentLevel: gameData.tournamentLevel,
+        tournamentSeriesId: gameData.tournamentSeriesId,
+        wentToOvertime: gameData.wentToOvertime,
+        wentToPenalties: gameData.wentToPenalties,
       };
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
     } else {

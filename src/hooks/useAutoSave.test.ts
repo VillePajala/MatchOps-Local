@@ -14,9 +14,12 @@ import type { Player } from '@/types';
 
 // Mock logger to avoid console noise
 jest.mock('@/utils/logger', () => ({
-  debug: jest.fn(),
-  log: jest.fn(),
-  error: jest.fn(),
+  __esModule: true,
+  default: {
+    debug: jest.fn(),
+    log: jest.fn(),
+    error: jest.fn(),
+  },
 }));
 
 describe('useAutoSave', () => {

@@ -51,9 +51,11 @@ const isTransientError = (error: unknown): boolean => {
 const saveWithRetry = async (
   saveFn: () => void | Promise<void>,
   maxRetries: number = 3,
-  context: string = 'auto-save'
+  context: string = 'auto-save',
+  isCancelled?: () => boolean
 ): Promise<void> => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (isCancelled?.()) return; // Effect cleaned up — abort silently
     try {
       await saveFn();
       return; // Success
@@ -181,6 +183,8 @@ export const useAutoSave = ({
     const currentSerialized = serializeStates(immediate.states);
     if (currentSerialized === null) return;
 
+    let cancelled = false;
+
     // Check if states changed
     if (prevImmediateRef.current !== null && prevImmediateRef.current !== currentSerialized) {
       logger.debug(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
@@ -189,8 +193,9 @@ export const useAutoSave = ({
       // Retry transient errors with exponential backoff
       (async () => {
         try {
-          await saveWithRetry(saveFunctionRef.current, 3, 'immediate');
+          await saveWithRetry(saveFunctionRef.current, 3, 'immediate', () => cancelled);
         } catch (error) {
+          if (cancelled) return; // Unmounted or deps changed — discard
           // All retries failed or error was not transient
           logger.error('[useAutoSave] Save failed after retries (immediate):', error);
           try {
@@ -207,6 +212,7 @@ export const useAutoSave = ({
     }
 
     prevImmediateRef.current = currentSerialized;
+    return () => { cancelled = true; };
   }, [enabled, immediate, currentGameId]);
 
   // --- Short Delay Save (500ms) ---
