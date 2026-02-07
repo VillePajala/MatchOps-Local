@@ -24,7 +24,9 @@ export default function GlobalError({
     // Report error to Sentry
     // Wrapped in try/catch to prevent Sentry SDK failures from breaking error boundary
     try {
-      Sentry.captureException(error);
+      Sentry.captureException(error, {
+        tags: { handler: 'global-error-boundary' },
+      });
     } catch {
       // Sentry failure must not affect error boundary rendering
     }

@@ -697,7 +697,7 @@
       "notFound": "Tallennettua peliä ei löytynyt: {gameId}",
       "cannotDeleteDefault": "Et voi poistaa nykyistä tallentamatonta peliä.",
       "deleteFailedNotFound": "Pelin poistaminen epäonnistui: {gameId}. Peliä ei löytynyt tai tunnus oli virheellinen.",
-      "deleteFailedCatch": "Tallennetun pelin poistaminen epäonnistui: {gameId}. Virhe: {errorMessage}",
+      "deleteFailedCatch": "Pelin poistaminen epäonnistui. Yritä uudelleen.",
       "quickSaveFailed": "Pelin pikallennus epäonnistui.",
       "createGameFailed": "Uuden pelin luominen epäonnistui."
     }
