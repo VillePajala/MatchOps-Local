@@ -66,8 +66,10 @@ export function isTransientError(error: unknown): boolean {
 
     // Check PostgreSQL/PostgREST error codes
     const code = errorObj.code;
-    if (code === 'PGRST301' || code === 'PGRST000') {
-      // Connection errors from PostgREST
+    if (code === 'PGRST000') {
+      // PGRST000 = PostgREST connection error (transient)
+      // Note: PGRST301 (JWT expired/invalid) is NOT transient — it must be
+      // classified as an auth error, not retried
       return true;
     }
 

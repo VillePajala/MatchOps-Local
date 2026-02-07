@@ -20,7 +20,10 @@ import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
  * Configuration for retry behavior.
  */
 export interface RetryConfig {
-  /** Maximum number of retry attempts (default: 3) */
+  /** Maximum number of retry attempts AFTER the initial try (default: 3).
+   *  maxRetries=3 means 4 total attempts (1 initial + 3 retries).
+   *  Note: src/utils/retry.ts uses different semantics where maxRetries means
+   *  total attempts including the initial one. */
   maxRetries?: number;
   /** Base delay in milliseconds for exponential backoff (default: 1000) */
   baseDelayMs?: number;
@@ -72,8 +75,10 @@ export function isTransientError(error: unknown): boolean {
 
     // PostgrestError code
     const code = errorObj.code;
-    if (code === 'PGRST301' || code === 'PGRST000') {
-      // Connection errors from PostgREST
+    if (code === 'PGRST000') {
+      // PGRST000 = PostgREST connection error (transient)
+      // Note: PGRST301 (JWT expired/invalid) is NOT transient — it must reach
+      // classifyAndThrowError() to be properly classified as AuthError
       return true;
     }
   }

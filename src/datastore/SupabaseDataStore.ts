@@ -51,7 +51,7 @@ import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/
 import logger from '@/utils/logger';
 import { setStorageItem, removeStorageItem, getAllStorageData } from '@/utils/storage';
 import * as Sentry from '@sentry/nextjs';
-import { withRetry, throwIfTransient, TransientSupabaseError, type RetryConfig } from '@/datastore/supabase/retry';
+import { withRetry, throwIfTransient, TransientSupabaseError, isTransientError, type RetryConfig } from '@/datastore/supabase/retry';
 
 // Type-safe database types using the Database schema from supabase.ts
 // These types provide full type safety for all database operations.
@@ -863,10 +863,13 @@ export class SupabaseDataStore implements DataStore {
     };
 
     const userId = await this.getUserId();
-    const { error } = await this.getClient()
-      .from('players')
-       
-      .insert(this.transformPlayerToDb(newPlayer, now, userId) as unknown as never);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('players')
+        .insert(this.transformPlayerToDb(newPlayer, now, userId) as unknown as never);
+      throwIfTransient(result);
+      return result;
+    }, 'createPlayer');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create player');
@@ -899,11 +902,19 @@ export class SupabaseDataStore implements DataStore {
       updates.nickname = trimmed || undefined;
     }
 
-    const { data: existing, error: fetchError } = await this.getClient()
-      .from('players')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const userId = await this.getUserId();
+    const { data: existing, error: fetchError } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('players')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'updatePlayer-fetch');
 
     // PGRST116 = row not found - return null
     // Other errors should be classified appropriately
@@ -932,10 +943,15 @@ export class SupabaseDataStore implements DataStore {
       updated_at: now,
     };
 
-    const { error: updateError } = await this.getClient()
-      .from('players')
-      .update(updatePayload)
-      .eq('id', id);
+    const { error: updateError } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('players')
+        .update(updatePayload)
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'updatePlayer');
 
     if (updateError) {
       this.classifyAndThrowError(updateError, 'Failed to update player');
@@ -949,11 +965,15 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const userId = await this.getUserId();
-    const { error, count } = await this.getClient()
-      .from('players')
-      .delete({ count: 'exact' })
-      .eq('id', id)
-      .eq('user_id', userId);
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('players')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlayer');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete player');
@@ -1028,11 +1048,15 @@ export class SupabaseDataStore implements DataStore {
       receivedFairPlayCard: player.receivedFairPlayCard ?? false,
     };
 
-    const { error } = await this.getClient()
-      .from('players')
-      .upsert(this.transformPlayerToDb(playerToUpsert, now, userId) as unknown as never, {
-        onConflict: 'user_id,id',
-      });
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('players')
+        .upsert(this.transformPlayerToDb(playerToUpsert, now, userId) as unknown as never, {
+          onConflict: 'user_id,id',
+        });
+      throwIfTransient(result);
+      return result;
+    }, 'upsertPlayer');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to upsert player');
@@ -1182,10 +1206,13 @@ export class SupabaseDataStore implements DataStore {
     };
 
     const userId = await this.getUserId();
-    const { error } = await this.getClient()
-      .from('teams')
-       
-      .insert(this.transformTeamToDb(newTeam, userId) as unknown as never);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('teams')
+        .insert(this.transformTeamToDb(newTeam, userId) as unknown as never);
+      throwIfTransient(result);
+      return result;
+    }, 'createTeam');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create team');
@@ -1292,10 +1319,14 @@ export class SupabaseDataStore implements DataStore {
       updated_at: updatedTeam.updatedAt,
     };
 
-    const { error } = await this.getClient()
-      .from('teams')
-      .update(updatePayload)
-      .eq('id', id);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('teams')
+        .update(updatePayload)
+        .eq('id', id);
+      throwIfTransient(result);
+      return result;
+    }, 'updateTeam');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to update team');
@@ -1309,11 +1340,15 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const userId = await this.getUserId();
-    const { error, count } = await this.getClient()
-      .from('teams')
-      .delete({ count: 'exact' })
-      .eq('id', id)
-      .eq('user_id', userId);
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('teams')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deleteTeam');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete team');
@@ -1397,11 +1432,15 @@ export class SupabaseDataStore implements DataStore {
       updatedAt: now,
     };
 
-    const { error } = await this.getClient()
-      .from('teams')
-      .upsert(this.transformTeamToDb(teamToUpsert, userId) as unknown as never, {
-        onConflict: 'user_id,id',
-      });
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('teams')
+        .upsert(this.transformTeamToDb(teamToUpsert, userId) as unknown as never, {
+          onConflict: 'user_id,id',
+        });
+      throwIfTransient(result);
+      return result;
+    }, 'upsertTeam');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to upsert team');
@@ -1455,13 +1494,18 @@ export class SupabaseDataStore implements DataStore {
 
     // Use RPC for atomic delete + insert within a single PostgreSQL transaction
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
-    const { error } = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string; code?: string } | null }>)(
-      'set_team_roster',
-      {
-        p_team_id: teamId,
-        p_roster: rows,
-      }
-    );
+    // Wrapped with retry for transient network errors (e.g., AbortError on Chrome Mobile Android)
+    const { error } = await this.withRetry(async () => {
+      const result = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string; code?: string } | null }>)(
+        'set_team_roster',
+        {
+          p_team_id: teamId,
+          p_roster: rows,
+        }
+      );
+      throwIfTransient(result);
+      return result;
+    }, 'setTeamRoster');
 
     if (error) {
       const errorMessage = error.message.toLowerCase();
@@ -1495,10 +1539,14 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('team_players')
-      .select('*')
-      .order('created_at', { ascending: true });
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('team_players')
+        .select('*')
+        .order('created_at', { ascending: true });
+      throwIfTransient(result);
+      return result;
+    }, 'getAllTeamRosters');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to fetch team rosters');
@@ -1642,10 +1690,13 @@ export class SupabaseDataStore implements DataStore {
     };
 
     const userId = await this.getUserId();
-    const { error } = await this.getClient()
-      .from('seasons')
-       
-      .insert(this.transformSeasonToDb(newSeason, now, userId) as unknown as never);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('seasons')
+        .insert(this.transformSeasonToDb(newSeason, now, userId) as unknown as never);
+      throwIfTransient(result);
+      return result;
+    }, 'createSeason');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create season');
@@ -1676,12 +1727,21 @@ export class SupabaseDataStore implements DataStore {
       throw new ValidationError('Invalid age group', 'ageGroup', season.ageGroup);
     }
 
-    // Check if season exists
-    const { data: existing, error: fetchError } = await this.getClient()
-      .from('seasons')
-      .select('*')
-      .eq('id', season.id)
-      .single();
+    const userId = await this.getUserId();
+
+    // Check if season exists (defense-in-depth: user_id filter)
+    const { data: existing, error: fetchError } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('seasons')
+        .select('*')
+        .eq('id', season.id)
+        .eq('user_id', userId)
+        .single();
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'updateSeason-fetch');
 
     // PGRST116 = row not found - return null
     // Other errors should be thrown as NetworkError
@@ -1756,10 +1816,15 @@ export class SupabaseDataStore implements DataStore {
       updated_at: new Date().toISOString(),
     };
 
-    const { error: updateError } = await this.getClient()
-      .from('seasons')
-      .update(updatePayload)
-      .eq('id', season.id);
+    const { error: updateError } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('seasons')
+        .update(updatePayload)
+        .eq('id', season.id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'updateSeason');
 
     if (updateError) {
       this.classifyAndThrowError(updateError, 'Failed to update season');
@@ -1773,11 +1838,15 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const userId = await this.getUserId();
-    const { error, count } = await this.getClient()
-      .from('seasons')
-      .delete({ count: 'exact' })
-      .eq('id', id)
-      .eq('user_id', userId);
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('seasons')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deleteSeason');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete season');
@@ -1882,11 +1951,15 @@ export class SupabaseDataStore implements DataStore {
       archived: season.archived ?? false,
     };
 
-    const { error } = await this.getClient()
-      .from('seasons')
-      .upsert(this.transformSeasonToDb(seasonToUpsert, now, userId) as unknown as never, {
-        onConflict: 'user_id,id',
-      });
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('seasons')
+        .upsert(this.transformSeasonToDb(seasonToUpsert, now, userId) as unknown as never, {
+          onConflict: 'user_id,id',
+        });
+      throwIfTransient(result);
+      return result;
+    }, 'upsertSeason');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to upsert season');
@@ -1993,10 +2066,13 @@ export class SupabaseDataStore implements DataStore {
     };
 
     const userId = await this.getUserId();
-    const { error } = await this.getClient()
-      .from('tournaments')
-       
-      .insert(this.transformTournamentToDb(newTournament, now, userId) as unknown as never);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('tournaments')
+        .insert(this.transformTournamentToDb(newTournament, now, userId) as unknown as never);
+      throwIfTransient(result);
+      return result;
+    }, 'createTournament');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create tournament');
@@ -2027,12 +2103,21 @@ export class SupabaseDataStore implements DataStore {
       throw new ValidationError('Invalid age group', 'ageGroup', tournament.ageGroup);
     }
 
-    // Check if tournament exists
-    const { data: existing, error: fetchError } = await this.getClient()
-      .from('tournaments')
-      .select('*')
-      .eq('id', tournament.id)
-      .single();
+    const userId = await this.getUserId();
+
+    // Check if tournament exists (defense-in-depth: user_id filter)
+    const { data: existing, error: fetchError } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('tournaments')
+        .select('*')
+        .eq('id', tournament.id)
+        .eq('user_id', userId)
+        .single();
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'updateTournament-fetch');
 
     // PGRST116 = row not found - return null
     // Other errors should be thrown as NetworkError
@@ -2106,10 +2191,15 @@ export class SupabaseDataStore implements DataStore {
       updated_at: new Date().toISOString(),
     };
 
-    const { error: updateError } = await this.getClient()
-      .from('tournaments')
-      .update(updatePayload)
-      .eq('id', tournament.id);
+    const { error: updateError } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('tournaments')
+        .update(updatePayload)
+        .eq('id', tournament.id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'updateTournament');
 
     if (updateError) {
       this.classifyAndThrowError(updateError, 'Failed to update tournament');
@@ -2123,11 +2213,15 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const userId = await this.getUserId();
-    const { error, count } = await this.getClient()
-      .from('tournaments')
-      .delete({ count: 'exact' })
-      .eq('id', id)
-      .eq('user_id', userId);
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('tournaments')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deleteTournament');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete tournament');
@@ -2235,11 +2329,15 @@ export class SupabaseDataStore implements DataStore {
       archived: tournament.archived ?? false,
     };
 
-    const { error } = await this.getClient()
-      .from('tournaments')
-      .upsert(this.transformTournamentToDb(tournamentToUpsert, now, userId) as unknown as never, {
-        onConflict: 'user_id,id',
-      });
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('tournaments')
+        .upsert(this.transformTournamentToDb(tournamentToUpsert, now, userId) as unknown as never, {
+          onConflict: 'user_id,id',
+        });
+      throwIfTransient(result);
+      return result;
+    }, 'upsertTournament');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to upsert tournament');
@@ -2350,10 +2448,13 @@ export class SupabaseDataStore implements DataStore {
     };
 
     const userId = await this.getUserId();
-    const { error } = await this.getClient()
-      .from('personnel')
-       
-      .insert(this.transformPersonnelToDb(newPersonnel, userId) as unknown as never);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('personnel')
+        .insert(this.transformPersonnelToDb(newPersonnel, userId) as unknown as never);
+      throwIfTransient(result);
+      return result;
+    }, 'addPersonnelMember');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to create personnel');
@@ -2418,10 +2519,14 @@ export class SupabaseDataStore implements DataStore {
       updated_at: updated.updatedAt,
     };
 
-    const { error } = await this.getClient()
-      .from('personnel')
-      .update(updatePayload)
-      .eq('id', id);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('personnel')
+        .update(updatePayload)
+        .eq('id', id);
+      throwIfTransient(result);
+      return result;
+    }, 'updatePersonnelMember');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to update personnel');
@@ -2445,12 +2550,17 @@ export class SupabaseDataStore implements DataStore {
 
     // Use RPC for atomic cascade delete within a single PostgreSQL transaction
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
-    const { data, error } = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ data: boolean | null; error: { message: string } | null }>)(
-      'delete_personnel_cascade',
-      {
-        p_personnel_id: id,
-      }
-    );
+    // Wrapped with retry for transient network errors (e.g., AbortError on Chrome Mobile Android)
+    const { data, error } = await this.withRetry(async () => {
+      const result = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ data: boolean | null; error: { message: string } | null }>)(
+        'delete_personnel_cascade',
+        {
+          p_personnel_id: id,
+        }
+      );
+      throwIfTransient(result);
+      return result;
+    }, 'removePersonnelMember');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete personnel');
@@ -2516,11 +2626,15 @@ export class SupabaseDataStore implements DataStore {
       updatedAt: now,
     };
 
-    const { error } = await this.getClient()
-      .from('personnel')
-      .upsert(this.transformPersonnelToDb(personnelToUpsert, userId) as unknown as never, {
-        onConflict: 'user_id,id',
-      });
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('personnel')
+        .upsert(this.transformPersonnelToDb(personnelToUpsert, userId) as unknown as never, {
+          onConflict: 'user_id,id',
+        });
+      throwIfTransient(result);
+      return result;
+    }, 'upsertPersonnelMember');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to upsert personnel');
@@ -2574,10 +2688,13 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const userId = await this.getUserId();
-    const { error } = await this.getClient()
-      .from('user_settings')
-       
-      .upsert(this.transformSettingsToDb(settings, userId) as unknown as never);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('user_settings')
+        .upsert(this.transformSettingsToDb(settings, userId) as unknown as never);
+      throwIfTransient(result);
+      return result;
+    }, 'saveSettings');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to save settings');
@@ -3179,8 +3296,11 @@ export class SupabaseDataStore implements DataStore {
           // CRITICAL: Wrap in try/catch so single corrupted game doesn't crash entire operation
           // A game with null/undefined version shouldn't prevent loading other valid games
           try {
+            const gameData = this.transformTablesToGame(tables);
+            // Cache version AFTER successful transform — a failed transform with
+            // a cached version could cause spurious ConflictError on subsequent saves
             this.cacheGameVersion(id, tables.game.version);
-            collection[id] = this.transformTablesToGame(tables);
+            collection[id] = gameData;
           } catch (transformErr) {
             // Log and track, but DON'T stop processing other games
             const errorMsg = transformErr instanceof Error ? transformErr.message : 'Unknown transform error';
@@ -3545,11 +3665,15 @@ export class SupabaseDataStore implements DataStore {
 
     // Child tables have ON DELETE CASCADE, so just delete the game
     const userId = await this.getUserId();
-    const { error, count } = await this.getClient()
-      .from('games')
-      .delete({ count: 'exact' })
-      .eq('id', id)
-      .eq('user_id', userId);
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('games')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deleteGame');
 
     const deleteDuration = Date.now() - deleteStartTime;
     logger.info('[SupabaseDataStore] deleteGame COMPLETE', {
@@ -3709,10 +3833,14 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { data, error } = await this.getClient()
-      .from('player_adjustments')
-      .select('*')
-      .order('applied_at', { ascending: false });
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('player_adjustments')
+        .select('*')
+        .order('applied_at', { ascending: false });
+      throwIfTransient(result);
+      return result;
+    }, 'getAllPlayerAdjustments');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to fetch all player adjustments');
@@ -3748,10 +3876,13 @@ export class SupabaseDataStore implements DataStore {
       userId
     );
 
-    const { error } = await this.getClient()
-      .from('player_adjustments')
-       
-      .insert(dbAdjustment as unknown as never);
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('player_adjustments')
+        .insert(dbAdjustment as unknown as never);
+      throwIfTransient(result);
+      return result;
+    }, 'addPlayerAdjustment');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to add player adjustment');
@@ -3780,9 +3911,13 @@ export class SupabaseDataStore implements DataStore {
       userId
     );
 
-    const { error } = await this.getClient()
-      .from('player_adjustments')
-      .upsert(dbAdjustment as unknown as never, { onConflict: 'user_id,id' });
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('player_adjustments')
+        .upsert(dbAdjustment as unknown as never, { onConflict: 'user_id,id' });
+      throwIfTransient(result);
+      return result;
+    }, 'upsertPlayerAdjustment');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to upsert player adjustment');
@@ -3802,13 +3937,22 @@ export class SupabaseDataStore implements DataStore {
       this.validateAdjustmentNote(patch.note);
     }
 
-    // Fetch existing adjustment
-    const { data: existing, error: fetchError } = await this.getClient()
-      .from('player_adjustments')
-      .select('*')
-      .eq('id', adjustmentId)
-      .eq('player_id', playerId)
-      .single();
+    const userId = await this.getUserId();
+
+    // Fetch existing adjustment (defense-in-depth: user_id filter matches delete pattern)
+    const { data: existing, error: fetchError } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('player_adjustments')
+        .select('*')
+        .eq('id', adjustmentId)
+        .eq('player_id', playerId)
+        .eq('user_id', userId)
+        .single();
+      if (result.error && result.error.code !== 'PGRST116') {
+        throwIfTransient(result);
+      }
+      return result;
+    }, 'updatePlayerAdjustment-fetch');
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
@@ -3825,14 +3969,17 @@ export class SupabaseDataStore implements DataStore {
 
     const existingAdjustment = this.transformAdjustmentFromDb(existing as PlayerAdjustmentRow);
     const updated = { ...existingAdjustment, ...patch };
-    const userId = await this.getUserId();
 
-    const { error: updateError } = await this.getClient()
-      .from('player_adjustments')
-       
-      .update(this.transformAdjustmentToDb(updated, userId) as unknown as never)
-      .eq('id', adjustmentId)
-      .eq('player_id', playerId);
+    const { error: updateError } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('player_adjustments')
+        .update(this.transformAdjustmentToDb(updated, userId) as unknown as never)
+        .eq('id', adjustmentId)
+        .eq('player_id', playerId)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'updatePlayerAdjustment');
 
     if (updateError) {
       this.classifyAndThrowError(updateError, 'Failed to update player adjustment');
@@ -3845,11 +3992,18 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    const { error, count } = await this.getClient()
-      .from('player_adjustments')
-      .delete({ count: 'exact' })
-      .eq('id', adjustmentId)
-      .eq('player_id', playerId);
+    const userId = await this.getUserId();
+
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('player_adjustments')
+        .delete({ count: 'exact' })
+        .eq('id', adjustmentId)
+        .eq('player_id', playerId)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlayerAdjustment');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete player adjustment');
@@ -3985,9 +4139,13 @@ export class SupabaseDataStore implements DataStore {
 
     // Use onConflict: 'user_id' since warmup_plans has UNIQUE(user_id) constraint
     // This ensures upsert finds existing row by user_id (not by 'id' which may differ)
-    const { error } = await this.getClient()
-      .from('warmup_plans')
-      .upsert(dbPlan as unknown as never, { onConflict: 'user_id' });
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('warmup_plans')
+        .upsert(dbPlan as unknown as never, { onConflict: 'user_id' });
+      throwIfTransient(result);
+      return result;
+    }, 'saveWarmupPlan');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to save warmup plan');
@@ -4004,10 +4162,14 @@ export class SupabaseDataStore implements DataStore {
     const userId = await this.getUserId();
 
     // Delete warmup plan for current user only (should be only one)
-    const { error, count } = await this.getClient()
-      .from('warmup_plans')
-      .delete({ count: 'exact' })
-      .eq('user_id', userId);
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('warmup_plans')
+        .delete({ count: 'exact' })
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deleteWarmupPlan');
 
     if (error) {
       this.classifyAndThrowError(error, 'Failed to delete warmup plan');
@@ -4111,13 +4273,9 @@ export class SupabaseDataStore implements DataStore {
     }
 
     const errorMessage = error.message.toLowerCase();
-    const isNetworkLike =
-      errorMessage.includes('fetch') ||
-      errorMessage.includes('network') ||
-      errorMessage.includes('offline') ||
-      errorMessage.includes('connection') ||
-      errorMessage.includes('abort') ||
-      errorMessage.includes('signal is aborted');
+    // Use shared transient error detection instead of hardcoded patterns
+    // This stays aligned with TRANSIENT_ERROR_PATTERNS from transientErrors.ts
+    const isNetworkLikeError = isTransientError(error);
     const isMissingRpc =
       error.code === 'PGRST202' ||
       errorMessage.includes('does not exist') ||
@@ -4129,7 +4287,7 @@ export class SupabaseDataStore implements DataStore {
       errorMessage.includes('permission denied');
 
     // For network-like errors, use standard error classification
-    if (isNetworkLike) {
+    if (isNetworkLikeError) {
       this.classifyAndThrowError(error, 'Failed to clear user data');
     }
 
@@ -4175,21 +4333,25 @@ export class SupabaseDataStore implements DataStore {
 
     const client = this.getClient();
 
-    // Use parallel COUNT queries for efficiency
-    const [gamesResult, teamsResult, adjustmentsResult] = await Promise.all([
-      client
-        .from('games')
-        .select('id', { count: 'exact', head: true })
-        .eq('season_id', seasonId),
-      client
-        .from('teams')
-        .select('id', { count: 'exact', head: true })
-        .eq('bound_season_id', seasonId),
-      client
-        .from('player_adjustments')
-        .select('id', { count: 'exact', head: true })
-        .eq('season_id', seasonId),
-    ]);
+    // Use parallel COUNT queries for efficiency, wrapped with retry for transient errors
+    const [gamesResult, teamsResult, adjustmentsResult] = await this.withRetry(async () => {
+      const results = await Promise.all([
+        client
+          .from('games')
+          .select('id', { count: 'exact', head: true })
+          .eq('season_id', seasonId),
+        client
+          .from('teams')
+          .select('id', { count: 'exact', head: true })
+          .eq('bound_season_id', seasonId),
+        client
+          .from('player_adjustments')
+          .select('id', { count: 'exact', head: true })
+          .eq('season_id', seasonId),
+      ]);
+      results.forEach((r) => throwIfTransient(r as { data: unknown; error: { message: string } | null }));
+      return results;
+    }, 'getSeasonReferences');
 
     const gameCount = gamesResult.count ?? 0;
     const teamCount = teamsResult.count ?? 0;
@@ -4229,29 +4391,38 @@ export class SupabaseDataStore implements DataStore {
     const seriesIds = tournament?.series?.map((s: { id: string }) => s.id) ?? [];
 
     // For games, we only need to check tournament_id (series refs are within tournament)
-    const [gamesResult, teamsResult, adjustmentsResult] = await Promise.all([
-      client
-        .from('games')
-        .select('id', { count: 'exact', head: true })
-        .eq('tournament_id', tournamentId),
-      // Teams bound directly to tournament
-      client
-        .from('teams')
-        .select('id', { count: 'exact', head: true })
-        .eq('bound_tournament_id', tournamentId),
-      client
-        .from('player_adjustments')
-        .select('id', { count: 'exact', head: true })
-        .eq('tournament_id', tournamentId),
-    ]);
+    // Wrapped with retry for transient network errors
+    const [gamesResult, teamsResult, adjustmentsResult] = await this.withRetry(async () => {
+      const results = await Promise.all([
+        client
+          .from('games')
+          .select('id', { count: 'exact', head: true })
+          .eq('tournament_id', tournamentId),
+        // Teams bound directly to tournament
+        client
+          .from('teams')
+          .select('id', { count: 'exact', head: true })
+          .eq('bound_tournament_id', tournamentId),
+        client
+          .from('player_adjustments')
+          .select('id', { count: 'exact', head: true })
+          .eq('tournament_id', tournamentId),
+      ]);
+      results.forEach((r) => throwIfTransient(r as { data: unknown; error: { message: string } | null }));
+      return results;
+    }, 'getTournamentReferences');
 
     // For teams bound to tournament series, check against actual series IDs
     let teamsSeriesCount = 0;
     if (seriesIds.length > 0) {
-      const teamsSeriesResult = await client
-        .from('teams')
-        .select('id', { count: 'exact', head: true })
-        .in('bound_tournament_series_id', seriesIds);
+      const teamsSeriesResult = await this.withRetry(async () => {
+        const result = await client
+          .from('teams')
+          .select('id', { count: 'exact', head: true })
+          .in('bound_tournament_series_id', seriesIds);
+        throwIfTransient(result as { data: unknown; error: { message: string } | null });
+        return result;
+      }, 'getTournamentReferences-series');
       teamsSeriesCount = teamsSeriesResult.count ?? 0;
     }
 
@@ -4286,10 +4457,14 @@ export class SupabaseDataStore implements DataStore {
 
     const client = this.getClient();
 
-    const { count: gameCount } = await client
-      .from('games')
-      .select('id', { count: 'exact', head: true })
-      .eq('team_id', teamId);
+    const { count: gameCount } = await this.withRetry(async () => {
+      const result = await client
+        .from('games')
+        .select('id', { count: 'exact', head: true })
+        .eq('team_id', teamId);
+      throwIfTransient(result as { data: unknown; error: { message: string } | null });
+      return result;
+    }, 'getTeamReferences');
 
     const counts = { games: gameCount ?? 0 };
 

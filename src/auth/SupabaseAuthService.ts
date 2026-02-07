@@ -264,7 +264,10 @@ export class SupabaseAuthService implements AuthService {
   // Promise deduplication for initialize() to prevent race conditions
   private initPromise: Promise<void> | null = null;
 
-  // Rate limiting state for sign-in attempts
+  // Rate limiting state for sign-in attempts.
+  // NOTE: These are per-instance and reset on page refresh, providing UX-level
+  // protection only (prevents rapid retry loops in the UI). Server-side rate
+  // limiting via Supabase Auth Dashboard is the real security control.
   private failedSignInAttempts = 0;
   private lastFailedSignInTime = 0;
 

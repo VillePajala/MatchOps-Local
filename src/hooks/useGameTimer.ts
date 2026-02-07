@@ -80,7 +80,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   // Update ref in effect to comply with React 19 hooks rules
   useEffect(() => {
     stateRef.current = state;
-  });
+  }, [state]);
 
   const { handleVisibilityChange } = useTimerRestore();
 

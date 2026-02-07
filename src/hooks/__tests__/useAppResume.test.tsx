@@ -645,10 +645,8 @@ describe('useAppResume', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
 
-    // Wait for any potential async operations
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
-    });
+    // Flush async queue for any potential async operations
+    await act(async () => {});
 
     // Verify the force reload code path was NOT executed
     expect(logger.debug).not.toHaveBeenCalledWith(

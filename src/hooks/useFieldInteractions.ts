@@ -106,6 +106,9 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     const previousValue = previousValueRef.current;
     const newValue = isDrawingEnabled;
 
+    // Skip persistence if value hasn't changed (prevents redundant save on rollback)
+    if (newValue === previousValue) return;
+
     let isMounted = true;
     // Attempt to persist the change
     (async () => {

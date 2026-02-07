@@ -33,44 +33,6 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 requests per minute per IP (stricter for destructive operation)
 
-// In-memory rate limit store (cleared when function instance restarts)
-// KNOWN LIMITATION: This is per-instance only, not distributed across Edge Function instances.
-// Current implementation provides basic protection against single-source abuse.
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
-
-/**
- * Check if request is rate limited
- * @returns true if request should be blocked
- */
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const record = rateLimitStore.get(ip);
-
-  // Clean up expired entries periodically
-  if (rateLimitStore.size > 1000) {
-    for (const [key, value] of rateLimitStore.entries()) {
-      if (value.resetAt < now) {
-        rateLimitStore.delete(key);
-      }
-    }
-  }
-
-  if (!record || record.resetAt < now) {
-    // First request or window expired - start new window
-    rateLimitStore.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    // Over limit
-    return true;
-  }
-
-  // Increment counter
-  record.count++;
-  return false;
-}
-
 Deno.serve(async (req: Request) => {
   // Get origin for CORS
   const origin = req.headers.get('Origin');
@@ -87,18 +49,6 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: 'Method not allowed' }),
         { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Rate limiting check
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-                     req.headers.get('x-real-ip') ||
-                     'unknown';
-    if (isRateLimited(clientIp)) {
-      console.warn(`Rate limit exceeded for IP: ${clientIp}`);
-      return new Response(
-        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -133,6 +83,34 @@ Deno.serve(async (req: Request) => {
         persistSession: false,
       },
     });
+
+    // Distributed rate limiting via PostgreSQL (works across all Edge Function instances)
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('cf-connecting-ip')
+      || 'unknown';
+
+    const { data: isAllowed, error: rateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+      p_key: `delete-acct:${clientIP}`,
+      p_window_ms: RATE_LIMIT_WINDOW_MS,
+      p_max_requests: RATE_LIMIT_MAX_REQUESTS,
+    });
+
+    if (rateLimitError) {
+      // Fail-closed for delete-account: if rate limiting check fails, block the request.
+      // Unlike verify-subscription (which has additional Google token validation),
+      // delete-account has no secondary validation and must not be brute-forced.
+      console.error('Rate limit check failed:', rateLimitError.message);
+      return new Response(
+        JSON.stringify({ error: 'Service temporarily unavailable. Please try again.' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else if (isAllowed === false) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+      );
+    }
 
     // Create user-scoped client with anon key + user's JWT
     // CRITICAL: The clear_all_user_data RPC uses auth.uid() which returns NULL

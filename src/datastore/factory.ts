@@ -20,12 +20,12 @@ import { LocalAuthService } from '@/auth/LocalAuthService';
 import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 
-// Safe logger wrapper for test environments
-// Supports structured data logging and optional Error objects for Sentry stack traces
+// Logger wrapper supporting structured data logging and optional Error objects for Sentry stack traces.
+// logger is always defined (module-level import), so no null-checks needed.
 const log = {
-  info: (msg: string, data?: Record<string, unknown>) => data ? logger?.info?.(msg, data) : logger?.info?.(msg),
-  warn: (msg: string, error?: Error) => error ? logger?.warn?.(msg, error) : logger?.warn?.(msg),
-  error: (msg: string, error?: Error) => error ? logger?.error?.(msg, error) : logger?.error?.(msg),
+  info: (msg: string, data?: Record<string, unknown>) => data ? logger.info(msg, data) : logger.info(msg),
+  warn: (msg: string, error?: Error) => error ? logger.warn(msg, error) : logger.warn(msg),
+  error: (msg: string, error?: Error) => error ? logger.error(msg, error) : logger.error(msg),
 };
 
 // Singleton instances
@@ -601,6 +601,13 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
           try {
             // Set up the sync executor to sync to Supabase
             const { SupabaseDataStore } = await import('./SupabaseDataStore');
+
+            // Abort check: user may have switched during the dynamic import
+            if (dataStoreInstance !== syncedStore) {
+              log.warn('[factory] User switch detected after import - aborting cloud setup');
+              return;
+            }
+
             const cloudStore = new SupabaseDataStore();
             log.info('[factory] SupabaseDataStore created, initializing...', { attempt, elapsedMs: Date.now() - cloudSetupStartTime });
             await cloudStore.initialize();

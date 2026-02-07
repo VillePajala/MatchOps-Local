@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 import { HiExclamationTriangle } from 'react-icons/hi2';
+import * as Sentry from '@sentry/nextjs';
 import logger from '@/utils/logger';
 import i18n from '@/i18n';
 
@@ -91,6 +92,15 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error details
     logger.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    // Report to Sentry for production monitoring (matches global-error.tsx pattern)
+    try {
+      Sentry.captureException(error, {
+        extra: { componentStack: errorInfo.componentStack },
+      });
+    } catch {
+      // Sentry failure must not break error boundary
+    }
 
     // Update state with error info
     this.setState({

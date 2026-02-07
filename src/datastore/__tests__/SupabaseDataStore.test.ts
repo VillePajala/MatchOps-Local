@@ -48,7 +48,7 @@ const createMockQueryBuilder = (): MockQueryBuilder => {
     delete: jest.fn().mockReturnThis(),
     upsert: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
-    in: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
+    in: jest.fn().mockResolvedValue({ data: [], error: null }),
     is: jest.fn().mockResolvedValue({ data: null, error: null }),
     single: jest.fn().mockReturnThis(),
     maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
