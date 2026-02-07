@@ -1,11 +1,11 @@
 /**
  * Supabase Database Types
  *
- * AUTO-GENERATED from Supabase project: matchops-cloud (aybjmnxxtgspqesdiqxd)
- * Generated: 2026-01-27
+ * AUTO-GENERATED from Supabase project: matchops-staging (hwcqpvvqnmetjrwvzlfr)
+ * Generated: 2026-02-07
  *
  * To regenerate:
- *   npx supabase gen types typescript --project-id aybjmnxxtgspqesdiqxd > src/types/supabase.ts
+ *   npx supabase gen types typescript --project-id hwcqpvvqnmetjrwvzlfr > src/types/supabase.ts
  *
  * Or use the MCP tool: generate_typescript_types
  *
@@ -67,11 +67,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "game_events_game_id_fkey"
-            columns: ["game_id"]
+            foreignKeyName: "game_events_game_fkey"
+            columns: ["user_id", "game_id"]
             isOneToOne: false
             referencedRelation: "games"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -132,11 +132,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "game_players_game_id_fkey"
-            columns: ["game_id"]
+            foreignKeyName: "game_players_game_fkey"
+            columns: ["user_id", "game_id"]
             isOneToOne: false
             referencedRelation: "games"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -185,11 +185,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "game_tactical_data_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: true
+            foreignKeyName: "game_tactical_data_game_fkey"
+            columns: ["user_id", "game_id"]
+            isOneToOne: false
             referencedRelation: "games"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -220,6 +220,7 @@ export type Database = {
           period_duration_minutes: number
           season_id: string | null
           show_player_names: boolean
+          show_position_labels: boolean
           sub_interval_minutes: number | null
           team_id: string | null
           team_name: string
@@ -230,6 +231,8 @@ export type Database = {
           updated_at: string | null
           user_id: string
           version: number
+          went_to_overtime: boolean
+          went_to_penalties: boolean
         }
         Insert: {
           age_group?: string | null
@@ -257,6 +260,7 @@ export type Database = {
           period_duration_minutes?: number
           season_id?: string | null
           show_player_names?: boolean
+          show_position_labels?: boolean
           sub_interval_minutes?: number | null
           team_id?: string | null
           team_name: string
@@ -267,6 +271,8 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           version?: number
+          went_to_overtime?: boolean
+          went_to_penalties?: boolean
         }
         Update: {
           age_group?: string | null
@@ -294,6 +300,7 @@ export type Database = {
           period_duration_minutes?: number
           season_id?: string | null
           show_player_names?: boolean
+          show_position_labels?: boolean
           sub_interval_minutes?: number | null
           team_id?: string | null
           team_name?: string
@@ -304,28 +311,30 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           version?: number
+          went_to_overtime?: boolean
+          went_to_penalties?: boolean
         }
         Relationships: [
           {
-            foreignKeyName: "games_season_id_fkey"
-            columns: ["season_id"]
+            foreignKeyName: "games_season_fkey"
+            columns: ["user_id", "season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
           {
-            foreignKeyName: "games_team_id_fkey"
-            columns: ["team_id"]
+            foreignKeyName: "games_team_fkey"
+            columns: ["user_id", "team_id"]
             isOneToOne: false
             referencedRelation: "teams"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
           {
-            foreignKeyName: "games_tournament_id_fkey"
-            columns: ["tournament_id"]
+            foreignKeyName: "games_tournament_fkey"
+            columns: ["user_id", "tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -440,18 +449,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "player_adjustments_season_id_fkey"
-            columns: ["season_id"]
+            foreignKeyName: "player_adjustments_season_fkey"
+            columns: ["user_id", "season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
           {
-            foreignKeyName: "player_adjustments_tournament_id_fkey"
-            columns: ["tournament_id"]
+            foreignKeyName: "player_adjustments_tournament_fkey"
+            columns: ["user_id", "tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -521,11 +530,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "player_assessments_game_id_fkey"
-            columns: ["game_id"]
+            foreignKeyName: "player_assessments_game_fkey"
+            columns: ["user_id", "game_id"]
             isOneToOne: false
             referencedRelation: "games"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -739,11 +748,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "team_players_team_id_fkey"
-            columns: ["team_id"]
+            foreignKeyName: "team_players_team_fkey"
+            columns: ["user_id", "team_id"]
             isOneToOne: false
             referencedRelation: "teams"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -989,13 +998,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      clear_all_user_data: { Args: Record<PropertyKey, never>; Returns: undefined }
+      clear_all_user_data: { Args: never; Returns: undefined }
       delete_personnel_cascade: {
         Args: { p_personnel_id: string }
         Returns: boolean
       }
       get_subscription_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           grace_end: string
           is_active: boolean
@@ -1052,6 +1061,12 @@ export type Database = {
           status: Database["public"]["Enums"]["subscription_status"]
           updated_at: string | null
           user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscriptions"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
     }

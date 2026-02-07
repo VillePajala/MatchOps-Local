@@ -2114,7 +2114,7 @@
     "signUp": "Rekisteröidy",
     "createAccount": "Luo tili",
     "resetPassword": "Nollaa salasana",
-    "signInSubtitle": "Kirjaudu sisään synkronoidaksesi tietosi laitteiden välillä",
+    "signInSubtitle": "Kirjaudu sisään synkronoidaksesi tietosi laitteidesi välillä",
     "signUpSubtitle": "Luo tili ottaaksesi pilvisynkronoinnin käyttöön",
     "resetSubtitle": "Syötä sähköpostiosoitteesi saadaksesi nollausohjeet",
     "email": "Sähköposti",
