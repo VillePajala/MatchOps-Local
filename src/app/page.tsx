@@ -1053,7 +1053,7 @@ export default function Home() {
   ) => {
     setAction(action);
     setScreen('home');
-  }, []);
+  }, [setAction, setScreen]);
 
   // Show login screen in cloud mode when not authenticated
   const needsAuth = mode === 'cloud' && !isAuthenticated;

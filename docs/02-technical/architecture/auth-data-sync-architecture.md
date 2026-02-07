@@ -262,8 +262,10 @@ syncedStore.setExecutor(executor); // Enable actual cloud sync
 **In factory.ts:**
 ```typescript
 async function getDataStore(userId?: string): Promise<DataStore> {
-  // userId comes from authenticated user
-  if (shouldUseCloudSync && userId) {
+  const mode = getBackendMode();
+  // Cloud sync only when user explicitly chose cloud mode, cloud is available, and authenticated
+  const shouldUseCloudSync = mode === 'cloud' && isCloudAvailable() && !!userId;
+  if (shouldUseCloudSync) {
     const syncedStore = new SyncedDataStore(userId);
     // SyncedDataStore passes userId to LocalDataStore
     // LocalDataStore uses matchops_user_{userId} database
@@ -371,7 +373,7 @@ if (dataStoreCreatedForUserId !== initUserId) {
 ### Cloud Mode Initialization
 
 ```typescript
-if (shouldUseCloudSync && userId) {
+if (shouldUseCloudSync) {
   // 1. Create SyncedDataStore (wraps LocalDataStore)
   const syncedStore = new SyncedDataStore(userId);
   await syncedStore.initialize();

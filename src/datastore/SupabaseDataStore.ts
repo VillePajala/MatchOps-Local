@@ -1480,7 +1480,7 @@ export class SupabaseDataStore implements DataStore {
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
     // Wrapped with retry for transient network errors (e.g., AbortError on Chrome Mobile Android)
     const { error } = await this.withRetry(async () => {
-      const result = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ error: { message: string; code?: string } | null }>)(
+      const result = await (this.getClient().rpc as unknown as (fn: string, params: unknown) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>)(
         'set_team_roster',
         {
           p_team_id: teamId,

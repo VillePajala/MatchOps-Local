@@ -45,8 +45,11 @@ describe('retry utility', () => {
     });
 
     it('should return true for PostgreSQL connection errors', () => {
-      expect(isTransientError({ code: 'PGRST301' })).toBe(true);
       expect(isTransientError({ code: 'PGRST000' })).toBe(true);
+    });
+
+    it('should return false for PGRST301 (JWT expired - auth error, not transient)', () => {
+      expect(isTransientError({ code: 'PGRST301' })).toBe(false);
     });
 
     it('should return false for non-transient errors', () => {

@@ -57,8 +57,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
     saveLanguagePreference(language);
   }, [language]);
 
-  const isEnglish = language === 'en';
-
   return (
     <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
       {/* === AMBIENT BACKGROUND GLOWS === */}

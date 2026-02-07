@@ -443,11 +443,10 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
   // Check if mode changed since the DataStore was created
   // This handles the case where user enables/disables cloud sync
   //
-  // IMPORTANT: Don't trigger mode switch if authenticated user should use cloud.
-  // The shouldUseCloudSync logic (line ~470) creates SyncedDataStore for authenticated
-  // users even when getBackendMode() returns 'local'. We must use the same logic here
-  // to avoid false mode switches that would throw "pending sync operations" errors.
-  const effectiveMode = (isCloudAvailable() && !!userId) ? 'cloud' : currentMode;
+  // Use the raw mode from getBackendMode() — this is the user's explicit choice.
+  // When mode changes (e.g., disableCloudMode() sets 'local'), the existing
+  // DataStore is closed and a new one created matching the new mode.
+  const effectiveMode = currentMode;
 
   if (dataStoreInstance && dataStoreCreatedForMode !== effectiveMode) {
     // Capture metrics BEFORE close for production diagnostics
@@ -545,18 +544,18 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
 
     let instance: DataStore;
 
-    // CRITICAL FIX: Use SyncedDataStore when user is authenticated AND cloud is available.
-    // This fixes the bug where:
-    // 1. User session is restored (auto-signin from cookies)
-    // 2. But localStorage mode setting was cleared or never set
-    // 3. getBackendMode() returns 'local' (default)
-    // 4. LocalDataStore is created instead of SyncedDataStore
-    // 5. Operations aren't queued for sync
+    // Use SyncedDataStore only when user explicitly chose cloud mode,
+    // cloud is available, and user is authenticated.
     //
-    // The fix: If user is authenticated (userId exists) AND cloud is available,
-    // use SyncedDataStore regardless of the mode setting. An authenticated user
-    // clearly went through the sign-in flow and expects cloud sync.
-    const shouldUseCloudSync = isCloudAvailable() && !!initUserId;
+    // IMPORTANT: We respect getBackendMode() as the source of truth.
+    // An authenticated user who switched to local mode (via disableCloudMode())
+    // must NOT get SyncedDataStore, otherwise cloud sync continues silently
+    // and can recreate data after a "delete cloud data" migration.
+    //
+    // Auth ≠ sync (Issue #336): users stay signed in regardless of data mode.
+    // If localStorage is cleared and mode defaults to 'local', that is the
+    // correct safe fallback — the user can re-enable cloud from settings.
+    const shouldUseCloudSync = mode === 'cloud' && isCloudAvailable() && !!initUserId;
 
     if (shouldUseCloudSync) {
       // Cloud mode uses SyncedDataStore (local-first with background sync)

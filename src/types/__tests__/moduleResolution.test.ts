@@ -14,8 +14,8 @@ import type {
   AppState,
   TacticalDisc,
   SavedGamesCollection,
-  TimerState,
 } from '@/types';
+import type { TimerState } from '@/utils/timerStateManager';
 
 // Dummy variable to ensure type imports are used
 const _dummy: {

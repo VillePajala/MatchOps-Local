@@ -279,20 +279,16 @@ describe('Translation File Validation', () => {
       // Common keys: done, retry
       // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
       // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262 → 2268 → 2280 → 2282
-      expect(enKeys.length).toBe(2282);
+      // Previous: 2055 → ... → 2282 → 2323
+      // Legal/GDPR: privacy policy, terms of service, consent management translations
+      expect(enKeys.length).toBe(2323);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Import loading overlay: restoring, restoringTitle, restoringDescription, deleteDescriptionAccount (settingsModal)
-      // Migration wizard simplified: syncDescription, notNow, syncToCloud, loadDataFailed, canRetryOrCancel, dataIsSafe, errorGeneric, syncFailedUnknown (migration)
-      // Common keys: done, retry
-      // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
-      // Reset functionality: resync + factory reset keys for cloud mode
-      // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
-      // Previous: 2055 → 2069 → 2074 → 2077 → 2083 → 2089 → 2093 → 2101 → 2130 → 2140 → 2144 → 2146 → 2165 → 2167 → 2168 → 2172 → 2178 → 2237 → 2248 → 2262 → 2268 → 2280 → 2282
-      expect(fiKeys.length).toBe(2282);
+      // Previous: 2055 → ... → 2282 → 2323
+      // Legal/GDPR: privacy policy, terms of service, consent management translations
+      expect(fiKeys.length).toBe(2323);
     });
   });
 });

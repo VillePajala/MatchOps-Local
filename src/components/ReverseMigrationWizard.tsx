@@ -83,6 +83,8 @@ export interface ReverseMigrationWizardProps {
   onComplete: () => void;
   /** Called when user cancels the wizard */
   onCancel: () => void;
+  /** Authenticated user's ID for user-scoped local storage */
+  userId?: string;
 }
 
 /**
@@ -104,6 +106,7 @@ export interface ReverseMigrationWizardProps {
 const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
   onComplete,
   onCancel,
+  userId,
 }) => {
   const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -199,7 +202,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
     });
 
     try {
-      const result = await migrateCloudToLocal(handleProgress, migrationMode);
+      const result = await migrateCloudToLocal(handleProgress, migrationMode, userId);
       setMigrationResult(result);
 
       if (result.success) {
@@ -231,7 +234,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
     } finally {
       setIsMigrating(false);
     }
-  }, [isMigrating, handleProgress, t, migrationMode]);
+  }, [isMigrating, handleProgress, t, migrationMode, userId]);
 
   // Retry migration with cooldown and limit
   const RETRY_COOLDOWN_SECONDS = 3;

@@ -265,7 +265,6 @@ export class SyncedDataStore implements DataStore {
       logger.info('[SyncedDataStore] Resetting sync engine...');
       // Null the reference BEFORE reset to prevent race conditions where
       // setExecutor() is called on the old engine during dispose
-      const engineRef = this.syncEngine;
       this.syncEngine = null;
       await resetSyncEngine();
       logger.info('[SyncedDataStore] Sync engine reset', { elapsedMs: Date.now() - closeStartTime });

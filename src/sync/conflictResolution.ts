@@ -238,7 +238,9 @@ export class ConflictResolver {
       // Race condition: Another process created the record between our fetch and write.
       // If the record now exists in cloud, that's our goal achieved - treat as success.
       // This also handles edge cases where RPC UPSERT semantics are not perfect.
-      if (error instanceof AlreadyExistsError) {
+      // Use both instanceof check and message-based fallback to handle any DataStore
+      // implementation that may throw a generic Error instead of AlreadyExistsError.
+      if (error instanceof AlreadyExistsError || isAutoResolvableConflict(error)) {
         logger.info('[ConflictResolver] writeToCloud returned already exists - record created by another process', {
           entityType,
           entityId,
@@ -349,7 +351,9 @@ export class ConflictResolver {
         // we should ideally update the cloud record. But if the RPC doesn't support UPSERT,
         // we accept that cloud has the data (possibly stale) rather than fail the sync entirely.
         // The next sync attempt will try again.
-        if (error instanceof AlreadyExistsError) {
+        // Use both instanceof check and message-based fallback to handle any DataStore
+        // implementation that may throw a generic Error instead of AlreadyExistsError.
+        if (error instanceof AlreadyExistsError || isAutoResolvableConflict(error)) {
           logger.warn('[ConflictResolver] writeToCloud returned already exists during local-wins - RPC may not support UPSERT', {
             entityType,
             entityId,
