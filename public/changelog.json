@@ -1,8 +1,8 @@
 {
-  "version": "360345eb",
-  "date": "2026-02-06",
+  "version": "694437a1",
+  "date": "2026-02-07",
   "notes": {
-    "en": "Refactor authentication components and hooks",
-    "fi": "Refactor authentication components and hooks"
+    "en": "Security and stability improvements",
+    "fi": "Tietoturva- ja vakausparannuksia"
   }
 }
