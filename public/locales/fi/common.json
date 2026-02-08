@@ -824,7 +824,7 @@
     "existingSubscriber": "Oletko jo tilaaja? Kirjaudu sisään →",
     "newToCloud": "Uusi käyttäjä? Tilaa Android-sovelluksen kautta.",
     "getAndroidApp": "Lataa Google Playsta",
-    "welcomeScreen": "Tervetuloa & asetukset"
+    "welcomeScreen": "Tervetuloa"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
