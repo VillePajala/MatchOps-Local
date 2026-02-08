@@ -42,7 +42,7 @@ export default function AuthForm({
   titleId,
 }: AuthFormProps) {
   const { t } = useTranslation();
-  const { signIn, signUp, resetPassword, setMarketingConsent, verifySignUpOtp, resendSignUpConfirmation } = useAuth();
+  const { signIn, signUp, resetPassword, verifySignUpOtp, resendSignUpConfirmation } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
@@ -57,15 +57,10 @@ export default function AuthForm({
   const [isLoading, setIsLoading] = useState(false);
   // GDPR consent checkbox for sign up
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
-  // Marketing consent checkbox for sign up (unchecked by default, GDPR)
-  const [wantsMarketing, setWantsMarketing] = useState(false);
-
   // OTP verification state (shown after successful sign-up)
   const [pendingVerification, setPendingVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  // Track if marketing consent was desired (persists across sign-up → OTP flow)
-  const [pendingWantsMarketing, setPendingWantsMarketing] = useState(false);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,19 +102,12 @@ export default function AuthForm({
           } else {
             // New user — transition to OTP verification screen
             setPendingEmail(normalizedEmail);
-            setPendingWantsMarketing(wantsMarketing);
             setPendingVerification(true);
             setPassword('');
             setConfirmPassword('');
           }
         } else {
           // Success - user signed up and logged in (auto-confirmed)
-          // Record marketing consent if checkbox was checked (non-blocking)
-          if (wantsMarketing) {
-            setMarketingConsent(true).catch((err) => {
-              logger.warn('[AuthForm] Failed to record marketing consent after sign-up:', err);
-            });
-          }
           onSuccess?.();
         }
       } else if (mode === 'signIn') {
@@ -166,7 +154,7 @@ export default function AuthForm({
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, confirmPassword, mode, hasAcceptedTerms, wantsMarketing, signIn, signUp, resetPassword, setMarketingConsent, onSuccess, t]);
+  }, [email, password, confirmPassword, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t]);
 
   const handleVerifyOtp = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,12 +175,6 @@ export default function AuthForm({
         setError(result.error);
       } else {
         // Success — user verified and logged in
-        // Record marketing consent if checkbox was checked during sign-up (non-blocking)
-        if (pendingWantsMarketing) {
-          setMarketingConsent(true).catch((err) => {
-            logger.warn('[AuthForm] Failed to record marketing consent after OTP verification:', err);
-          });
-        }
         onSuccess?.();
       }
     } catch (error) {
@@ -212,7 +194,7 @@ export default function AuthForm({
     } finally {
       setIsLoading(false);
     }
-  }, [otpCode, pendingEmail, pendingWantsMarketing, verifySignUpOtp, setMarketingConsent, onSuccess, t]);
+  }, [otpCode, pendingEmail, verifySignUpOtp, onSuccess, t]);
 
   const handleResendCode = useCallback(async () => {
     setError(null);
@@ -249,7 +231,6 @@ export default function AuthForm({
     setPassword('');
     setConfirmPassword('');
     setHasAcceptedTerms(false);
-    setWantsMarketing(false);
   }, [allowRegistration]);
 
   const exitVerification = useCallback(() => {
@@ -459,19 +440,6 @@ export default function AuthForm({
               </span>
             </label>
 
-            {/* Marketing Consent Checkbox (optional, unchecked by default) */}
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={wantsMarketing}
-                onChange={(e) => setWantsMarketing(e.target.checked)}
-                disabled={isLoading}
-                className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
-              />
-              <span className="text-slate-400 text-xs leading-relaxed group-hover:text-slate-300 transition-colors">
-                {t('auth.marketingConsent', 'Send me product updates and tips via email')}
-              </span>
-            </label>
           </>
         )}
 
