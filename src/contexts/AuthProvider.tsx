@@ -72,6 +72,10 @@ interface AuthContextValue {
   verifySignUpOtp: (email: string, token: string) => Promise<{ error?: string; confirmationRequired?: boolean; existingUser?: boolean }>;
   /** Resend sign-up confirmation email with a new OTP code */
   resendSignUpConfirmation: (email: string) => Promise<{ error?: string }>;
+  /** Verify a password reset OTP code to establish a recovery session */
+  verifyPasswordResetOtp: (email: string, token: string) => Promise<{ error?: string }>;
+  /** Update password after verifying reset OTP */
+  updatePassword: (newPassword: string) => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -784,6 +788,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authService]);
 
+  /**
+   * Verify a password reset OTP code to establish a recovery session.
+   * Called from AuthForm after user enters the 8-digit code from the reset email.
+   */
+  const verifyPasswordResetOtp = useCallback(async (email: string, token: string) => {
+    if (!authService) return { error: 'Auth not initialized' };
+
+    try {
+      await authService.verifyPasswordResetOtp(email, token);
+      return {};
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Verification failed' };
+    }
+  }, [authService]);
+
+  /**
+   * Update the user's password after verifying the reset OTP.
+   * The recovery session from verifyPasswordResetOtp() must be active.
+   */
+  const updatePassword = useCallback(async (newPassword: string) => {
+    if (!authService) return { error: 'Auth not initialized' };
+
+    try {
+      await authService.updatePassword(newPassword);
+      return {};
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Password update failed' };
+    }
+  }, [authService]);
+
   // Memoize the context value to prevent unnecessary re-renders
   // Compute whether to show the marketing prompt:
   // - Cloud must be available
@@ -820,7 +854,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dismissMarketingPrompt,
     verifySignUpOtp,
     resendSignUpConfirmation,
-  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, marketingConsent, showMarketingPrompt, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit, setMarketingConsent, dismissMarketingPrompt, verifySignUpOtp, resendSignUpConfirmation]);
+    verifyPasswordResetOtp,
+    updatePassword,
+  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, marketingConsent, showMarketingPrompt, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit, setMarketingConsent, dismissMarketingPrompt, verifySignUpOtp, resendSignUpConfirmation, verifyPasswordResetOtp, updatePassword]);
 
   return (
     <AuthContext.Provider value={value}>

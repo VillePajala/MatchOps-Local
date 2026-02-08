@@ -126,6 +126,34 @@ export interface AuthService {
    */
   resetPassword(email: string): Promise<void>;
 
+  /**
+   * Verify a password reset OTP code to establish a recovery session.
+   *
+   * Called after resetPassword() sends the email. The user enters the
+   * 8-digit code from the email, and this creates a recovery session
+   * that allows updatePassword() to be called.
+   *
+   * @param email - The email address used for the reset request
+   * @param token - The 8-digit OTP code from the reset email
+   * @throws NotSupportedError in local mode
+   * @throws AuthError if the code is invalid or expired
+   * @throws NetworkError if connection fails
+   */
+  verifyPasswordResetOtp(email: string, token: string): Promise<void>;
+
+  /**
+   * Update the authenticated user's password.
+   *
+   * Called after verifyPasswordResetOtp() establishes a recovery session.
+   * Validates password complexity before sending to server.
+   *
+   * @param newPassword - The new password (must meet complexity requirements)
+   * @throws NotSupportedError in local mode
+   * @throws AuthError if password is too weak or update fails
+   * @throws NetworkError if connection fails
+   */
+  updatePassword(newPassword: string): Promise<void>;
+
   // ==========================================================================
   // SESSION MANAGEMENT (Cloud mode only)
   // ==========================================================================

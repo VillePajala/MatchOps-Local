@@ -137,6 +137,14 @@ export class LocalAuthService implements AuthService {
     throw new NotSupportedError('resendSignUpConfirmation', 'local');
   }
 
+  async verifyPasswordResetOtp(_email: string, _token: string): Promise<void> {
+    throw new NotSupportedError('verifyPasswordResetOtp', 'local');
+  }
+
+  async updatePassword(_newPassword: string): Promise<void> {
+    throw new NotSupportedError('updatePassword', 'local');
+  }
+
   // ==========================================================================
   // ACCOUNT MANAGEMENT (Not applicable in local mode)
   // Local mode users should use "Hard Reset" to clear local data
