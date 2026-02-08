@@ -30,7 +30,8 @@ const STATIC_RESOURCES = [
   '/offline.js',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  '/logos/app-logo.png'
+  '/logos/app-logo.png',
+  '/logos/app-logo-yellow.png'
 ];
 
 // Environment check - reduce logging in production

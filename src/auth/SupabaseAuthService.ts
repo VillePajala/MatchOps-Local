@@ -563,7 +563,8 @@ export class SupabaseAuthService implements AuthService {
         throw new AuthError('This email is already registered');
       }
 
-      throw new AuthError(error.message);
+      // Sanitize: don't expose raw Supabase/PostgreSQL error details to users
+      throw new AuthError('Sign up failed. Please try again.');
     }
 
     if (!data.user) {
@@ -688,7 +689,8 @@ export class SupabaseAuthService implements AuthService {
         throw new AuthError('Invalid email or password. If you recently signed up, please check your email for confirmation.');
       }
 
-      throw new AuthError(error.message);
+      // Sanitize: don't expose raw Supabase/PostgreSQL error details to users
+      throw new AuthError('Sign in failed. Please try again.');
     }
 
     if (!data.user || !data.session) {
@@ -713,14 +715,26 @@ export class SupabaseAuthService implements AuthService {
   async signOut(): Promise<void> {
     this.ensureInitialized();
 
-    const { error } = await this.client!.auth.signOut();
+    // Add timeout to prevent hanging if server is unreachable
+    let error;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const result = await this.client!.auth.signOut();
+      clearTimeout(timeout);
+      error = result.error;
+    } catch (e) {
+      // Timeout or network error — treat as failed API signout
+      logger.warn('[SupabaseAuthService] Sign out timed out or failed:', e);
+      error = e;
+    }
 
     // Clear local state regardless of error
     this.currentSession = null;
     this.currentUser = null;
 
     if (error) {
-      logger.warn('[SupabaseAuthService] Sign out API error:', error.message);
+      logger.warn('[SupabaseAuthService] Sign out API error:', error instanceof Error ? error.message : String(error));
       // API call failed (network error), but we still need to clear local session.
       // Supabase client should clear local storage on signOut(), but to be safe,
       // explicitly try local-scope signout which doesn't require network.
@@ -744,7 +758,24 @@ export class SupabaseAuthService implements AuthService {
 
     // Note: Not specifying redirectTo lets Supabase use its default flow.
     // A custom /reset-password page can be added in PR #8 if needed.
-    const { error } = await this.client!.auth.resetPasswordForEmail(email);
+    let error;
+    try {
+      const result = await withRetry(async () => {
+        const r = await this.client!.auth.resetPasswordForEmail(email);
+        // Retry transient network errors (e.g., AbortError on Chrome Mobile Android)
+        if (r.error && isNetworkError(r.error)) {
+          throw new TransientSupabaseError({ message: r.error.message, code: r.error.code, status: r.error.status });
+        }
+        return r;
+      }, { operationName: 'resetPassword' });
+      error = result.error;
+    } catch (e) {
+      // withRetry exhausted all retries — convert to NetworkError
+      if (e instanceof TransientSupabaseError) {
+        throw new NetworkError('Password reset failed: network error');
+      }
+      throw e;
+    }
 
     if (error) {
       logger.warn('[SupabaseAuthService] Password reset failed:', error.message);
@@ -753,7 +784,8 @@ export class SupabaseAuthService implements AuthService {
         throw new NetworkError('Password reset failed: network error');
       }
 
-      throw new AuthError(error.message);
+      // Sanitize: don't expose raw Supabase/PostgreSQL error details to users
+      throw new AuthError('Password reset failed. Please try again.');
     }
 
     logger.info('[SupabaseAuthService] Password reset email sent');

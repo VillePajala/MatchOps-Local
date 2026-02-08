@@ -40,6 +40,9 @@ export function getSupabaseClient(): SupabaseClient<Database> {
     );
   }
 
+  // Default request timeout (30s) prevents indefinite hangs on slow/unreachable servers
+  const REQUEST_TIMEOUT_MS = 30000;
+
   supabaseClient = createClient<Database>(url, anonKey, {
     auth: {
       // Persist session in localStorage
@@ -53,6 +56,17 @@ export function getSupabaseClient(): SupabaseClient<Database> {
       // Add request headers for debugging
       headers: {
         'x-client-info': 'matchops-web',
+      },
+      // Custom fetch with timeout to prevent requests from hanging indefinitely
+      fetch: (input, init) => {
+        // If caller already provided a signal, respect it and skip our timeout
+        // (the caller is managing their own abort lifecycle)
+        if (init?.signal) {
+          return fetch(input, init);
+        }
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeout));
       },
     },
     // Realtime configured but not used (rate-limited to 2 events/sec if enabled later)

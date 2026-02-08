@@ -42,7 +42,6 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
 import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
 import { exportJson } from '@/utils/exportGames';
-import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from '@/utils/exportExcel';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
@@ -864,9 +863,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
             const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
             const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
 
-            dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
-            // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
-            dispatchGameSession({ type: 'START_TIMER' });
+            // Use RESTORE_TIMER_STATE which atomically sets elapsed time + starts timer
+            // (SET_TIMER_ELAPSED is a no-op when timer is not running)
+            dispatchGameSession({ type: 'RESTORE_TIMER_STATE', payload: { savedTime: correctedElapsedSeconds } });
           } else {
             // Clear any stale timer state (might be for a different game)
             await clearTimerState(userId);
@@ -1382,13 +1381,15 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     exportJson(gameId, gameData, gameDataManagement.seasons, gameDataManagement.tournaments);
   };
 
-  const handleExportOneExcel = (gameId: string) => {
+  const handleExportOneExcel = async (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
       showToast(t('page.gameDataNotFound', { gameId, defaultValue: `Error: Could not find game data for ${gameId}` }), 'error');
       return;
     }
     try {
+      // Dynamic import: xlsx (~7.8MB) is only loaded when user actually exports
+      const { exportCurrentGameExcel } = await import('@/utils/exportExcel');
       // Wrap t() to match TranslationFn signature
       const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
       exportCurrentGameExcel(gameId, gameData, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments, translate);
@@ -1776,6 +1777,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       return acc;
     }, {} as SavedGamesCollection);
     try {
+      const { exportAggregateExcel } = await import('@/utils/exportExcel');
       // Wrap t() to match TranslationFn signature
       const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
       exportAggregateExcel(gamesData, aggregateStats, gameDataManagement.seasons, gameDataManagement.tournaments, [], undefined, undefined, translate);
@@ -1794,7 +1796,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       return acc;
     }, {} as SavedGamesCollection);
     try {
-      const { getAdjustmentsForPlayer } = await import('@/utils/playerAdjustments');
+      const [{ exportPlayerExcel }, { getAdjustmentsForPlayer }] = await Promise.all([
+        import('@/utils/exportExcel'),
+        import('@/utils/playerAdjustments'),
+      ]);
       const adjustments = await getAdjustmentsForPlayer(playerId, userId);
       // Wrap t() to match TranslationFn signature
       const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);

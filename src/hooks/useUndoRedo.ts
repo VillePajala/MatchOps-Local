@@ -14,6 +14,10 @@ export interface UseUndoRedoReturn<T> {
   canRedo: boolean;
 }
 
+// Cap history to prevent unbounded memory growth on mobile devices.
+// Each entry is a full AppState snapshot (~10-50KB), so 150 entries ≈ 1.5-7.5MB.
+const MAX_HISTORY_SIZE = 150;
+
 export function useUndoRedo<T>(initialState: T): UseUndoRedoReturn<T> {
   const [history, setHistory] = useState<T[]>([initialState]);
   const [index, setIndex] = useState(0);
@@ -33,8 +37,12 @@ export function useUndoRedo<T>(initialState: T): UseUndoRedoReturn<T> {
     if (JSON.stringify(current) === JSON.stringify(next)) {
       return;
     }
-    const newHistory = historyRef.current.slice(0, indexRef.current + 1);
+    let newHistory = historyRef.current.slice(0, indexRef.current + 1);
     newHistory.push(next);
+    // Trim oldest entries if exceeding max size
+    if (newHistory.length > MAX_HISTORY_SIZE) {
+      newHistory = newHistory.slice(newHistory.length - MAX_HISTORY_SIZE);
+    }
     const newIndex = newHistory.length - 1;
     // Update refs first for immediate reads by other callbacks
     historyRef.current = newHistory;

@@ -184,8 +184,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
             );
           }
         },
-        onError: (error) => {
-          setErrorMessage(error.message || t('tournamentDetailsModal.errors.createFailed', 'Failed to create tournament. Please try again.'));
+        onError: () => {
+          setErrorMessage(t('tournamentDetailsModal.errors.createFailed', 'Failed to create tournament. Please try again.'));
         }
       });
     } else {
@@ -233,8 +233,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
             );
           }
         },
-        onError: (error) => {
-          setErrorMessage(error.message || t('tournamentDetailsModal.errors.updateFailed', 'Failed to update tournament. Please try again.'));
+        onError: () => {
+          setErrorMessage(t('tournamentDetailsModal.errors.updateFailed', 'Failed to update tournament. Please try again.'));
         }
       });
     }

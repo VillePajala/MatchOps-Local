@@ -113,7 +113,7 @@ const securityHeaders = [
     // Permissions Policy (formerly Feature-Policy)
     // Disable features we don't need
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+    value: 'camera=(), microphone=(), geolocation=()',
   },
   {
     // Preconnect hints for Sentry error reporting

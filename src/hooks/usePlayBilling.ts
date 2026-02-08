@@ -77,9 +77,9 @@ const SESSION_REFRESH_TIMEOUT_MS = 10000;
 /**
  * Ensure we have a fresh, valid session for Edge Function calls.
  *
- * The Edge Function has verify_jwt: true, so Supabase's API gateway validates
- * the JWT before the function code runs. We must ensure the access token is
- * fresh to avoid 401 errors.
+ * The Edge Function uses verify_jwt=false but performs in-function JWT verification
+ * via supabaseAdmin.auth.getUser(jwt). We must ensure the access token is
+ * fresh to avoid authentication failures.
  *
  * Uses a module-level lock to prevent concurrent refresh calls from causing
  * auth state conflicts (e.g., multiple simultaneous purchases).
@@ -197,7 +197,7 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyRe
     const supabase = getSupabaseClient();
 
     // Ensure we have a fresh, valid session before calling Edge Function
-    // The Edge Function has verify_jwt: true, so expired tokens cause 401 at gateway level
+    // The Edge Function performs in-function JWT verification, so expired tokens cause auth failure
     const session = await ensureFreshSession();
     if (!session) {
       return { success: false, error: 'Not logged in. Please sign in first.' };

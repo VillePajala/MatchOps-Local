@@ -1,21 +1,25 @@
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
-import TrainingResourcesModal from '@/components/TrainingResourcesModal';
-import RulesDirectoryModal from '@/components/RulesDirectoryModal';
-import InstructionsModal from '@/components/InstructionsModal';
 import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import GoalLogModal from '@/components/GoalLogModal';
-import GameStatsModal from '@/components/GameStatsModal';
-import LoadGameModal from '@/components/LoadGameModal';
 import NewGameSetupModal from '@/components/NewGameSetupModal';
 import RosterSettingsModal from '@/components/RosterSettingsModal';
-import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import GameSettingsModal from '@/components/GameSettingsModal';
-import SettingsModal from '@/components/SettingsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
+
+// Lazy-loaded modals: these pull in heavy dependencies (recharts, xlsx, etc.)
+// and are not visible on initial render
+const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
+const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
+const SeasonTournamentManagementModal = dynamic(() => import('@/components/SeasonTournamentManagementModal'));
+const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
+const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
+const RulesDirectoryModal = dynamic(() => import('@/components/RulesDirectoryModal'));
+const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
 import type {
   Player,
   GameEvent,

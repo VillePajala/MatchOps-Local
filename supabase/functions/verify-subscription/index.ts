@@ -422,7 +422,9 @@ async function getGoogleAccessToken(credentials: {
   const signature = await signWithPrivateKey(signatureInput, credentials.private_key);
   const jwt = `${signatureInput}.${signature}`;
 
-  // Exchange JWT for access token
+  // Exchange JWT for access token (with timeout to prevent hanging)
+  const tokenController = new AbortController();
+  const tokenTimeout = setTimeout(() => tokenController.abort(), 15000);
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: {
@@ -432,7 +434,9 @@ async function getGoogleAccessToken(credentials: {
       grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
       assertion: jwt,
     }),
+    signal: tokenController.signal,
   });
+  clearTimeout(tokenTimeout);
 
   if (!tokenResponse.ok) {
     const errorText = await tokenResponse.text();
