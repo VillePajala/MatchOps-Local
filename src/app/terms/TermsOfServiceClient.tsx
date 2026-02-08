@@ -7,7 +7,7 @@ export function TermsOfServiceClient() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 py-12 px-4">
+    <div className="fixed inset-0 overflow-y-auto bg-slate-900 text-slate-100 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">{t('termsOfService.title')}</h1>
         <p className="text-slate-400 mb-1">{t('termsOfService.lastUpdated')}</p>
