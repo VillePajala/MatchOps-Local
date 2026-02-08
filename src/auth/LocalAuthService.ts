@@ -113,6 +113,19 @@ export class LocalAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // MARKETING CONSENT (Not applicable in local mode)
+  // ==========================================================================
+
+  async getMarketingConsentStatus(): Promise<'granted' | 'withdrawn' | null> {
+    // Local mode has no marketing consent - return null (never set)
+    return null;
+  }
+
+  async setMarketingConsent(_granted: boolean): Promise<void> {
+    // No-op in local mode - no cloud account to track consent for
+  }
+
+  // ==========================================================================
   // ACCOUNT MANAGEMENT (Not applicable in local mode)
   // Local mode users should use "Hard Reset" to clear local data
   // ==========================================================================

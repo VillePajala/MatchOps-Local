@@ -998,6 +998,102 @@ export class SupabaseAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // MARKETING CONSENT
+  // ==========================================================================
+
+  async getMarketingConsentStatus(): Promise<'granted' | 'withdrawn' | null> {
+    this.ensureInitialized();
+
+    if (!this.currentUser) {
+      throw new AuthError('Must be authenticated to get marketing consent status');
+    }
+
+    try {
+      const { data, error } = await withRetry(async () => {
+        const result = await this.client!.rpc('get_marketing_consent_status');
+        return throwIfTransient(result as { data: unknown; error: { message: string } | null });
+      }, { operationName: 'getMarketingConsentStatus' });
+
+      if (error) {
+        logger.error('[SupabaseAuthService] Failed to get marketing consent status:', error.message);
+        throw new AuthError(`Failed to get marketing consent status: ${error.message}`);
+      }
+
+      // RPC returns null if no record, or 'granted'/'withdrawn'
+      if (data === null || data === undefined) {
+        return null;
+      }
+
+      const status = data as string;
+      if (status !== 'granted' && status !== 'withdrawn') {
+        logger.warn('[SupabaseAuthService] Unexpected marketing consent status:', status);
+        return null;
+      }
+
+      return status;
+    } catch (error) {
+      if (error instanceof TransientSupabaseError) {
+        throw new NetworkError('Failed to get marketing consent status: network error after retries');
+      }
+      throw error;
+    }
+  }
+
+  async setMarketingConsent(granted: boolean): Promise<void> {
+    this.ensureInitialized();
+
+    if (!this.currentUser) {
+      throw new AuthError('Must be authenticated to set marketing consent');
+    }
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : undefined;
+    // Resolve POLICY_VERSION once, outside the retry loop
+    const { POLICY_VERSION } = await import('@/config/constants');
+
+    try {
+      if (granted) {
+        // Record marketing consent as granted
+        const { error } = await withRetry(async () => {
+          const result = await this.client!.rpc('record_user_consent', {
+            p_consent_type: 'marketing',
+            p_policy_version: POLICY_VERSION,
+            p_user_agent: userAgent,
+            p_status: 'granted',
+          });
+          return throwIfTransient(result as { data: unknown; error: { message: string } | null });
+        }, { operationName: 'setMarketingConsent(grant)' });
+
+        if (error) {
+          logger.error('[SupabaseAuthService] Failed to grant marketing consent:', error.message);
+          throw new AuthError(`Failed to grant marketing consent: ${error.message}`);
+        }
+      } else {
+        // Revoke marketing consent
+        const { error } = await withRetry(async () => {
+          const result = await this.client!.rpc('revoke_user_consent', {
+            p_consent_type: 'marketing',
+            p_policy_version: POLICY_VERSION,
+            p_user_agent: userAgent,
+          });
+          return throwIfTransient(result as { data: unknown; error: { message: string } | null });
+        }, { operationName: 'setMarketingConsent(revoke)' });
+
+        if (error) {
+          logger.error('[SupabaseAuthService] Failed to revoke marketing consent:', error.message);
+          throw new AuthError(`Failed to revoke marketing consent: ${error.message}`);
+        }
+      }
+
+      logger.info('[SupabaseAuthService] Marketing consent updated:', granted ? 'granted' : 'withdrawn');
+    } catch (error) {
+      if (error instanceof TransientSupabaseError) {
+        throw new NetworkError('Failed to update marketing consent: network error after retries');
+      }
+      throw error;
+    }
+  }
+
+  // ==========================================================================
   // ACCOUNT MANAGEMENT
   // ==========================================================================
 

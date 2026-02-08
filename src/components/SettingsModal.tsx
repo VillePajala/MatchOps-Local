@@ -19,6 +19,71 @@ import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import CloudSyncSection from './CloudSyncSection';
 
+/**
+ * MarketingConsentToggle - Toggle for granting/withdrawing marketing consent.
+ * Shown in the Account tab for cloud mode users only.
+ */
+function MarketingConsentToggle() {
+  const { t } = useTranslation();
+  const { marketingConsent, setMarketingConsent } = useAuth();
+  const { showToast } = useToast();
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
+  const isGranted = marketingConsent === 'granted';
+
+  const handleToggle = async () => {
+    setIsUpdating(true);
+    try {
+      const result = await setMarketingConsent(!isGranted);
+      if (result.error) {
+        showToast(t('marketingConsent.updateFailed', 'Failed to update marketing preferences'), 'error');
+      } else {
+        showToast(
+          isGranted
+            ? t('marketingConsent.withdrawn', 'Marketing emails disabled')
+            : t('marketingConsent.granted', 'Marketing emails enabled'),
+          'success'
+        );
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+      <h3 className="text-lg font-semibold text-slate-200">
+        {t('marketingConsent.settingsTitle', 'Email Preferences')}
+      </h3>
+      <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-slate-200">
+            {t('marketingConsent.settingsLabel', 'Product updates & tips')}
+          </p>
+          <p className="text-xs text-slate-400">
+            {t('marketingConsent.settingsDescription', 'Receive occasional emails about new features, tips, and announcements.')}
+          </p>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={isUpdating}
+          role="switch"
+          aria-checked={isGranted}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 ${
+            isGranted ? 'bg-indigo-600' : 'bg-slate-600'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              isGranted ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
 
 interface SettingsModalProps {
@@ -554,6 +619,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             {activeTab === 'account' && (
             <>
               <CloudSyncSection />
+
+              {/* Marketing Consent Toggle - cloud mode only */}
+              {authMode === 'cloud' && <MarketingConsentToggle />}
 
               {/* Danger Zone - All destructive actions in one place */}
               <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-red-700/50 shadow-inner">
