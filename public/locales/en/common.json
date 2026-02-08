@@ -924,7 +924,8 @@
     "enableCloudSync": "Enable Cloud Sync →",
     "existingSubscriber": "Already a subscriber? Sign in →",
     "newToCloud": "New here? Subscribe via the Android app.",
-    "getAndroidApp": "Get on Google Play"
+    "getAndroidApp": "Get on Google Play",
+    "welcomeScreen": "Welcome & Setup"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
