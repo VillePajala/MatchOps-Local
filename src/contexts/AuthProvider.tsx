@@ -121,16 +121,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initTimedOut, setInitTimedOut] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [marketingConsent, setMarketingConsentState] = useState<'granted' | 'withdrawn' | null>(null);
-  const [hasSeenMarketingPrompt, setHasSeenMarketingPrompt] = useState(() => {
-    // Check localStorage for dismissed state
-    if (typeof window !== 'undefined') {
-      // eslint-disable-next-line no-restricted-globals -- Marketing prompt dismissal flag (not app data)
-      return localStorage.getItem('matchops_marketing_prompt_seen') === 'true';
-    }
-    return false;
-  });
+  const [hasSeenMarketingPrompt, setHasSeenMarketingPrompt] = useState(false);
   // Trigger for re-running auth initialization (increments to force useEffect re-run)
   const [initRetryTrigger, setInitRetryTrigger] = useState(0);
+
+  // Sync hasSeenMarketingPrompt from user-scoped localStorage when user changes.
+  // The key is scoped per user ID so different accounts get independent prompt state.
+  useEffect(() => {
+    if (!user?.id) {
+      setHasSeenMarketingPrompt(false);
+      return;
+    }
+    try {
+      // eslint-disable-next-line no-restricted-globals -- Marketing prompt dismissal flag (not app data)
+      const seen = localStorage.getItem(`matchops_marketing_prompt_seen_${user.id}`) === 'true';
+      setHasSeenMarketingPrompt(seen);
+    } catch {
+      setHasSeenMarketingPrompt(false);
+    }
+  }, [user?.id]);
 
   // Track if user has explicitly signed in during this session
   // This prevents auth state flickering from clearing the session after successful login
@@ -688,18 +697,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * Dismiss the marketing consent prompt without making a choice.
-   * Sets a localStorage flag so the prompt is not shown again.
+   * Sets a user-scoped localStorage flag so the prompt is not shown again for this user.
    */
   const dismissMarketingPrompt = useCallback(() => {
     setHasSeenMarketingPrompt(true);
-    try {
-      // eslint-disable-next-line no-restricted-globals -- Marketing prompt dismissal flag (not app data)
-      localStorage.setItem('matchops_marketing_prompt_seen', 'true');
-    } catch {
-      // localStorage failure is non-critical
+    if (user?.id) {
+      try {
+        // eslint-disable-next-line no-restricted-globals -- Marketing prompt dismissal flag (not app data)
+        localStorage.setItem(`matchops_marketing_prompt_seen_${user.id}`, 'true');
+      } catch {
+        // localStorage failure is non-critical
+      }
     }
     logger.info('[AuthProvider] Marketing consent prompt dismissed');
-  }, []);
+  }, [user?.id]);
 
   /**
    * Verify sign-up OTP code and establish session.
