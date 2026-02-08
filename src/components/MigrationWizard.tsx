@@ -349,7 +349,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         {/* Status message */}
         <div className="text-center">
           <HiOutlineArrowPath className="h-8 w-8 text-sky-400 mx-auto animate-spin mb-2" />
-          <p className="text-slate-300">{translateMessage(message)}</p>
+          <p className="text-slate-300">{message ? translateMessage(message) : ''}</p>
           {currentEntity && (
             <p className="text-sm text-slate-500 mt-1">
               {t('migration.progress.entity', 'Syncing {{entity}}...', { entity: translateEntity(currentEntity) })}
