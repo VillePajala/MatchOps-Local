@@ -1404,6 +1404,17 @@ export class SupabaseAuthService implements AuthService {
 
       logger.info('[SupabaseAuthService] Account deleted successfully');
 
+      // Clear the Supabase GoTrue client's internally cached session (stored in localStorage).
+      // Without this, the old session token lingers and can fire auth state change events
+      // when the user re-registers, causing the app to bypass OTP verification.
+      // scope: 'local' avoids calling the server (user is already deleted from auth.users).
+      try {
+        await this.client!.auth.signOut({ scope: 'local' });
+      } catch (signOutError) {
+        // Non-critical — user is already deleted, just clearing local cache
+        logger.warn('[SupabaseAuthService] Failed to clear local session after account deletion:', signOutError);
+      }
+
       // Clear local state
       this.currentSession = null;
       this.currentUser = null;
