@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import Link from 'next/link';
 
 export function PrivacyPolicyClient() {
   const { t } = useTranslation();
@@ -212,9 +211,12 @@ export function PrivacyPolicyClient() {
         <p className="text-slate-500 text-sm italic">{t('privacyPolicy.footer')}</p>
 
         <div className="mt-8">
-          <Link href="/" className="text-indigo-400 hover:underline">
+          <button
+            onClick={() => window.close()}
+            className="text-indigo-400 hover:underline"
+          >
             ← {t('common.backButton')}
-          </Link>
+          </button>
         </div>
       </div>
     </div>
