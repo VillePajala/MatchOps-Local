@@ -2,7 +2,7 @@
  * AuthForm - Shared authentication form component.
  *
  * Renders email/password form with sign in, sign up, and password reset modes.
- * After sign-up, shows OTP code verification (6-digit code from email).
+ * After sign-up, shows OTP code verification (8-digit code from email).
  * Used by LoginScreen (full-page) and AuthModal (dialog overlay).
  *
  * Extracted to eliminate ~200 lines of duplication between LoginScreen and AuthModal.
@@ -14,7 +14,7 @@ import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthProvider';
-import { isNetworkErrorMessage, normalizeEmail } from '@/utils/authHelpers';
+import { isNetworkErrorMessage, normalizeEmail, translateAuthError } from '@/utils/authHelpers';
 import { AuthError, NetworkError } from '@/interfaces/DataStoreErrors';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
@@ -271,7 +271,7 @@ export default function AuthForm({
         {/* Error/Success Messages */}
         {error && (
           <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
-            <p>{error}</p>
+            <p>{translateAuthError(error, t)}</p>
             {isNetworkErrorMessage(error) && (
               <p className="mt-1 text-red-300/80">
                 {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
@@ -352,7 +352,7 @@ export default function AuthForm({
       {/* Error/Success Messages */}
       {error && (
         <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
-          <p>{error}</p>
+          <p>{translateAuthError(error, t)}</p>
           {isNetworkErrorMessage(error) && (
             <p className="mt-1 text-red-300/80">
               {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}

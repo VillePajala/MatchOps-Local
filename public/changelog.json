@@ -1,8 +1,8 @@
 {
-  "version": "694437a1",
-  "date": "2026-02-07",
+  "version": "9e55025a",
+  "date": "2026-02-08",
   "notes": {
-    "en": "Security and stability improvements",
-    "fi": "Tietoturva- ja vakausparannuksia"
+    "en": "Remove redundant migration 027",
+    "fi": "Remove redundant migration 027"
   }
 }

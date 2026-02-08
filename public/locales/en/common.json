@@ -2205,7 +2205,27 @@
     "otpInvalidLength": "Please enter the 8-digit code from your email",
     "otpResent": "A new code has been sent to your email",
     "otpResendLink": "Didn't receive a code? Resend",
-    "unexpectedError": "An unexpected error occurred"
+    "unexpectedError": "An unexpected error occurred",
+    "errors": {
+      "passwordTooShort": "Password must be at least 12 characters",
+      "passwordTooWeak": "Password must contain at least 3 of: uppercase, lowercase, number, special character",
+      "invalidEmail": "Invalid email format",
+      "emailTooLong": "Email address is too long",
+      "authInProgress": "Authentication already in progress. Please wait.",
+      "emailAlreadyRegistered": "This email is already registered",
+      "signUpFailed": "Sign up failed. Please try again.",
+      "invalidCredentials": "Invalid email or password. If you recently signed up, please check your email for confirmation.",
+      "signInFailed": "Sign in failed. Please try again.",
+      "rateLimited": "Too many failed attempts. Please wait {{seconds}} seconds before trying again.",
+      "supabaseRateLimited": "Too many requests. Please wait a few minutes and try again.",
+      "resetFailed": "Password reset failed. Please try again.",
+      "networkError": "Network error. Please check your connection and try again.",
+      "otpInvalid": "Verification code is invalid or has expired. Please request a new one.",
+      "verificationFailed": "Verification failed. Please try again.",
+      "resendRateLimited": "Please wait before requesting another code.",
+      "resendFailed": "Failed to resend confirmation email. Please try again.",
+      "notInitialized": "Authentication service is not ready. Please wait a moment and try again."
+    }
   },
   "marketingConsent": {
     "promptTitle": "Stay in the loop?",
