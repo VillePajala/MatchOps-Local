@@ -47,6 +47,10 @@ interface AuthContextValue {
   initTimedOut: boolean;
   /** True when sign-out is in progress (prevents UI interaction during logout) */
   isSigningOut: boolean;
+  /** Marketing consent status: 'granted', 'withdrawn', or null (never set) */
+  marketingConsent: 'granted' | 'withdrawn' | null;
+  /** True when existing cloud user has never been asked about marketing consent */
+  showMarketingPrompt: boolean;
 
   // Actions
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
@@ -60,6 +64,10 @@ interface AuthContextValue {
   deleteAccount: () => Promise<{ error?: string }>;
   /** Retry auth initialization after a timeout (resets initTimedOut state) */
   retryAuthInit: () => void;
+  /** Set marketing consent (true = grant, false = withdraw) */
+  setMarketingConsent: (granted: boolean) => Promise<{ error?: string }>;
+  /** Dismiss the marketing consent prompt without making a choice */
+  dismissMarketingPrompt: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -108,6 +116,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsReConsent, setNeedsReConsent] = useState(false);
   const [initTimedOut, setInitTimedOut] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [marketingConsent, setMarketingConsentState] = useState<'granted' | 'withdrawn' | null>(null);
+  const [hasSeenMarketingPrompt, setHasSeenMarketingPrompt] = useState(() => {
+    // Check localStorage for dismissed state
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line no-restricted-globals -- Marketing prompt dismissal flag (not app data)
+      return localStorage.getItem('matchops_marketing_prompt_seen') === 'true';
+    }
+    return false;
+  });
   // Trigger for re-running auth initialization (increments to force useEffect re-run)
   const [initRetryTrigger, setInitRetryTrigger] = useState(0);
 
@@ -150,6 +167,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setUser(currentUser);
         setSession(currentSession);
+
+        // Fetch marketing consent status if authenticated (non-blocking)
+        if (currentSession && isCloudAvailable()) {
+          try {
+            const mcStatus = await service.getMarketingConsentStatus();
+            if (mounted) setMarketingConsentState(mcStatus);
+          } catch (mcError) {
+            logger.warn('[AuthProvider] Failed to fetch marketing consent status on init:', mcError);
+          }
+        }
 
         // Subscribe to auth changes (cloud mode fires events, local mode is no-op)
         unsubscribe = service.onAuthStateChange(async (state: AuthState, newSession: Session | null) => {
@@ -388,6 +415,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hasSignedInThisSessionRef.current = true;
       logger.info('[AuthProvider] Sign-in successful, session locked');
 
+      // Fetch marketing consent status (non-blocking, don't fail sign-in)
+      if (isCloudAvailable()) {
+        try {
+          const status = await authService.getMarketingConsentStatus();
+          setMarketingConsentState(status);
+        } catch (mcError) {
+          logger.warn('[AuthProvider] Failed to fetch marketing consent status on sign-in:', mcError);
+        }
+      }
+
       return {};
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Sign in failed' };
@@ -504,6 +541,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setNeedsReConsent(false);  // Clear re-consent flag so modal doesn't persist
+    setMarketingConsentState(null);  // Clear marketing consent state
     setIsSigningOut(false);  // Clear signing out state
   }, [authService, user]);
 
@@ -625,7 +663,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setInitRetryTrigger(prev => prev + 1);
   }, []);
 
+  /**
+   * Set marketing consent (grant or withdraw).
+   * Updates both the server and local state.
+   */
+  const setMarketingConsent = useCallback(async (granted: boolean) => {
+    if (!authService) return { error: 'Auth not initialized' };
+    if (!isCloudAvailable()) return { error: 'Marketing consent requires cloud mode' };
+
+    try {
+      await authService.setMarketingConsent(granted);
+      setMarketingConsentState(granted ? 'granted' : 'withdrawn');
+      logger.info('[AuthProvider] Marketing consent updated:', granted ? 'granted' : 'withdrawn');
+      return {};
+    } catch (error) {
+      logger.error('[AuthProvider] Failed to set marketing consent:', error);
+      return { error: error instanceof Error ? error.message : 'Failed to update marketing consent' };
+    }
+  }, [authService]);
+
+  /**
+   * Dismiss the marketing consent prompt without making a choice.
+   * Sets a localStorage flag so the prompt is not shown again.
+   */
+  const dismissMarketingPrompt = useCallback(() => {
+    setHasSeenMarketingPrompt(true);
+    try {
+      // eslint-disable-next-line no-restricted-globals -- Marketing prompt dismissal flag (not app data)
+      localStorage.setItem('matchops_marketing_prompt_seen', 'true');
+    } catch {
+      // localStorage failure is non-critical
+    }
+    logger.info('[AuthProvider] Marketing consent prompt dismissed');
+  }, []);
+
   // Memoize the context value to prevent unnecessary re-renders
+  // Compute whether to show the marketing prompt:
+  // - Cloud must be available
+  // - User must be authenticated
+  // - Marketing consent must be null (never asked)
+  // - User must not have dismissed the prompt already
+  // - Not during loading or sign-out
+  const showMarketingPrompt = isCloudAvailable() && !!session && marketingConsent === null && !hasSeenMarketingPrompt && !isLoading && !isSigningOut;
+
   const value: AuthContextValue = useMemo(() => ({
     user,
     session,
@@ -639,6 +719,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     needsReConsent,
     initTimedOut,
     isSigningOut,
+    marketingConsent,
+    showMarketingPrompt,
     signIn,
     signUp,
     signOut,
@@ -647,7 +729,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     acceptReConsent,
     deleteAccount,
     retryAuthInit,
-  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit]);
+    setMarketingConsent,
+    dismissMarketingPrompt,
+  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, marketingConsent, showMarketingPrompt, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit, setMarketingConsent, dismissMarketingPrompt]);
 
   return (
     <AuthContext.Provider value={value}>

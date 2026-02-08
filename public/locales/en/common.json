@@ -2195,7 +2195,20 @@
     "privacyLink": "Privacy Policy",
     "consentRequired": "You must accept the Terms of Service and Privacy Policy",
     "androidOnlyRegistration": "Don't have an account? Subscribe via the Android app.",
-    "getAndroidApp": "Get on Google Play"
+    "getAndroidApp": "Get on Google Play",
+    "marketingConsent": "Send me product updates and tips via email"
+  },
+  "marketingConsent": {
+    "promptTitle": "Stay in the loop?",
+    "promptDescription": "Get occasional product updates, tips, and new feature announcements via email. You can change this anytime in Settings.",
+    "promptYes": "Yes, keep me updated",
+    "promptNo": "No thanks",
+    "settingsTitle": "Email Preferences",
+    "settingsLabel": "Product updates & tips",
+    "settingsDescription": "Receive occasional emails about new features, tips, and announcements.",
+    "granted": "Marketing emails enabled",
+    "withdrawn": "Marketing emails disabled",
+    "updateFailed": "Failed to update marketing preferences"
   },
   "reConsent": {
     "title": "Updated Terms & Privacy Policy",

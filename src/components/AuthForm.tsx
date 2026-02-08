@@ -41,7 +41,7 @@ export default function AuthForm({
   titleId,
 }: AuthFormProps) {
   const { t } = useTranslation();
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, signUp, resetPassword, setMarketingConsent } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
@@ -56,6 +56,8 @@ export default function AuthForm({
   const [isLoading, setIsLoading] = useState(false);
   // GDPR consent checkbox for sign up
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
+  // Marketing consent checkbox for sign up (unchecked by default, GDPR)
+  const [wantsMarketing, setWantsMarketing] = useState(false);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +102,12 @@ export default function AuthForm({
           setConfirmPassword('');
         } else {
           // Success - user signed up and logged in
+          // Record marketing consent if checkbox was checked (non-blocking)
+          if (wantsMarketing) {
+            setMarketingConsent(true).catch((err) => {
+              logger.warn('[AuthForm] Failed to record marketing consent after sign-up:', err);
+            });
+          }
           onSuccess?.();
         }
       } else if (mode === 'signIn') {
@@ -146,7 +154,7 @@ export default function AuthForm({
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, confirmPassword, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t]);
+  }, [email, password, confirmPassword, mode, hasAcceptedTerms, wantsMarketing, signIn, signUp, resetPassword, setMarketingConsent, onSuccess, t]);
 
   const switchMode = useCallback((newMode: AuthMode) => {
     if (newMode === 'signUp' && !allowRegistration) {
@@ -159,6 +167,7 @@ export default function AuthForm({
     setPassword('');
     setConfirmPassword('');
     setHasAcceptedTerms(false);
+    setWantsMarketing(false);
   }, [allowRegistration]);
 
   // Shared style definitions
@@ -279,6 +288,20 @@ export default function AuthForm({
                 >
                   {t('auth.privacyLink', 'Privacy Policy')}
                 </Link>
+              </span>
+            </label>
+
+            {/* Marketing Consent Checkbox (optional, unchecked by default) */}
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={wantsMarketing}
+                onChange={(e) => setWantsMarketing(e.target.checked)}
+                disabled={isLoading}
+                className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+              />
+              <span className="text-slate-400 text-xs leading-relaxed group-hover:text-slate-300 transition-colors">
+                {t('auth.marketingConsent', 'Send me product updates and tips via email')}
               </span>
             </label>
           </>

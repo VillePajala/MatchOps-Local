@@ -6,6 +6,7 @@ import QueryProvider from './QueryProvider';
 import { AuthProvider } from '@/contexts/AuthProvider';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import ReConsentModal from '@/components/ReConsentModal';
+import MarketingConsentPrompt from '@/components/MarketingConsentPrompt';
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
@@ -62,6 +63,7 @@ export default function RootLayout({
               <SubscriptionProvider>
                 <ClientWrapper>{children}</ClientWrapper>
                 <ReConsentModal />
+                <MarketingConsentPrompt />
               </SubscriptionProvider>
             </AuthProvider>
           </QueryProvider>

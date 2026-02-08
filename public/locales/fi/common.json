@@ -2195,7 +2195,20 @@
     "privacyLink": "tietosuojakäytännön",
     "consentRequired": "Sinun on hyväksyttävä käyttöehdot ja tietosuojakäytäntö",
     "androidOnlyRegistration": "Eikö sinulla ole tiliä? Tilaa Android-sovelluksen kautta.",
-    "getAndroidApp": "Lataa Google Playsta"
+    "getAndroidApp": "Lataa Google Playsta",
+    "marketingConsent": "Lähetä minulle tuotepäivityksiä ja vinkkejä sähköpostitse"
+  },
+  "marketingConsent": {
+    "promptTitle": "Pysy ajan tasalla?",
+    "promptDescription": "Saat sähköpostitse tietoa uusista ominaisuuksista, vinkkejä ja ilmoituksia. Voit muuttaa tämän milloin tahansa Asetuksissa.",
+    "promptYes": "Kyllä, pidä minut ajan tasalla",
+    "promptNo": "Ei kiitos",
+    "settingsTitle": "Sähköpostiasetukset",
+    "settingsLabel": "Tuotepäivitykset ja vinkit",
+    "settingsDescription": "Saat sähköpostitse tietoa uusista ominaisuuksista, vinkkejä ja ilmoituksia.",
+    "granted": "Markkinointisähköpostit käytössä",
+    "withdrawn": "Markkinointisähköpostit poistettu käytöstä",
+    "updateFailed": "Markkinointiasetusten päivittäminen epäonnistui"
   },
   "reConsent": {
     "title": "Päivitetyt käyttöehdot ja tietosuojakäytäntö",

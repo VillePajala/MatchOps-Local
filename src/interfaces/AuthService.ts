@@ -229,6 +229,35 @@ export interface AuthService {
   getLatestConsent(): Promise<{ policyVersion: string; consentedAt: string } | null>;
 
   // ==========================================================================
+  // MARKETING CONSENT
+  // ==========================================================================
+
+  /**
+   * Get the current marketing consent status for the authenticated user.
+   *
+   * @returns 'granted' if user has opted in, 'withdrawn' if opted out, null if never set
+   * @throws NotSupportedError in local mode (no marketing consent needed)
+   * @throws AuthError if user is not authenticated
+   * @throws NetworkError if connection fails
+   */
+  getMarketingConsentStatus(): Promise<'granted' | 'withdrawn' | null>;
+
+  /**
+   * Set marketing consent for the authenticated user.
+   *
+   * @param granted - true to grant consent, false to withdraw
+   * @throws NotSupportedError in local mode
+   * @throws AuthError if user is not authenticated
+   * @throws NetworkError if connection fails
+   *
+   * @remarks
+   * - Creates an audit trail entry (granted or withdrawn) in user_consents
+   * - Previous entries are retained for GDPR compliance
+   * - Uses POLICY_VERSION from src/config/constants.ts
+   */
+  setMarketingConsent(granted: boolean): Promise<void>;
+
+  // ==========================================================================
   // ACCOUNT MANAGEMENT
   // ==========================================================================
 
