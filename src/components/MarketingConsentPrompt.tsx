@@ -59,8 +59,17 @@ export default function MarketingConsentPrompt() {
     }
   };
 
-  const handleDecline = () => {
-    dismissMarketingPrompt();
+  const handleDecline = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await setMarketingConsent(false);
+      if (result.error) {
+        logger.warn('[MarketingConsentPrompt] Failed to record decline:', result.error);
+      }
+    } finally {
+      setIsSubmitting(false);
+      dismissMarketingPrompt();
+    }
   };
 
   const handleDismiss = () => {
