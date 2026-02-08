@@ -126,6 +126,18 @@ export class LocalAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // EMAIL VERIFICATION (Not applicable in local mode)
+  // ==========================================================================
+
+  async verifySignUpOtp(_email: string, _token: string): Promise<AuthResult> {
+    throw new NotSupportedError('verifySignUpOtp', 'local');
+  }
+
+  async resendSignUpConfirmation(_email: string): Promise<void> {
+    throw new NotSupportedError('resendSignUpConfirmation', 'local');
+  }
+
+  // ==========================================================================
   // ACCOUNT MANAGEMENT (Not applicable in local mode)
   // Local mode users should use "Hard Reset" to clear local data
   // ==========================================================================

@@ -2,6 +2,7 @@
  * AuthForm - Shared authentication form component.
  *
  * Renders email/password form with sign in, sign up, and password reset modes.
+ * After sign-up, shows OTP code verification (6-digit code from email).
  * Used by LoginScreen (full-page) and AuthModal (dialog overlay).
  *
  * Extracted to eliminate ~200 lines of duplication between LoginScreen and AuthModal.
@@ -41,7 +42,7 @@ export default function AuthForm({
   titleId,
 }: AuthFormProps) {
   const { t } = useTranslation();
-  const { signIn, signUp, resetPassword, setMarketingConsent } = useAuth();
+  const { signIn, signUp, resetPassword, setMarketingConsent, verifySignUpOtp, resendSignUpConfirmation } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
@@ -58,6 +59,13 @@ export default function AuthForm({
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
   // Marketing consent checkbox for sign up (unchecked by default, GDPR)
   const [wantsMarketing, setWantsMarketing] = useState(false);
+
+  // OTP verification state (shown after successful sign-up)
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  // Track if marketing consent was desired (persists across sign-up → OTP flow)
+  const [pendingWantsMarketing, setPendingWantsMarketing] = useState(false);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,18 +98,22 @@ export default function AuthForm({
             logger.warn('[AuthForm] Network error during sign up:', result.error);
           }
         } else if (result.confirmationRequired) {
-          // Show different message if email might already exist
           if (result.existingUser) {
+            // Possibly existing user — show generic message and go to sign-in
             setSuccess(t('auth.emailMayExist', 'If this email is not already registered, check your inbox for confirmation. If you already have an account, please sign in instead.'));
+            setMode('signIn');
+            setPassword('');
+            setConfirmPassword('');
           } else {
-            setSuccess(t('auth.checkEmail', 'Check your email to confirm your account'));
+            // New user — transition to OTP verification screen
+            setPendingEmail(normalizedEmail);
+            setPendingWantsMarketing(wantsMarketing);
+            setPendingVerification(true);
+            setPassword('');
+            setConfirmPassword('');
           }
-          setMode('signIn');
-          // Clear password fields
-          setPassword('');
-          setConfirmPassword('');
         } else {
-          // Success - user signed up and logged in
+          // Success - user signed up and logged in (auto-confirmed)
           // Record marketing consent if checkbox was checked (non-blocking)
           if (wantsMarketing) {
             setMarketingConsent(true).catch((err) => {
@@ -156,6 +168,74 @@ export default function AuthForm({
     }
   }, [email, password, confirmPassword, mode, hasAcceptedTerms, wantsMarketing, signIn, signUp, resetPassword, setMarketingConsent, onSuccess, t]);
 
+  const handleVerifyOtp = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    const trimmedCode = otpCode.trim();
+    if (!trimmedCode || trimmedCode.length !== 6) {
+      setError(t('auth.otpInvalidLength', 'Please enter the 6-digit code from your email'));
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const result = await verifySignUpOtp(pendingEmail, trimmedCode);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        // Success — user verified and logged in
+        // Record marketing consent if checkbox was checked during sign-up (non-blocking)
+        if (pendingWantsMarketing) {
+          setMarketingConsent(true).catch((err) => {
+            logger.warn('[AuthForm] Failed to record marketing consent after OTP verification:', err);
+          });
+        }
+        onSuccess?.();
+      }
+    } catch (error) {
+      const errorMessage = (error instanceof NetworkError || error instanceof AuthError)
+        ? error.message
+        : t('auth.unexpectedError', 'An unexpected error occurred');
+      setError(errorMessage);
+      logger.error('[AuthForm] OTP verification error:', error);
+      try {
+        Sentry.captureException(error, {
+          tags: { flow: 'auth-form-verify-otp' },
+          level: 'error',
+        });
+      } catch {
+        // Sentry failure must not affect error handling
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [otpCode, pendingEmail, pendingWantsMarketing, verifySignUpOtp, setMarketingConsent, onSuccess, t]);
+
+  const handleResendCode = useCallback(async () => {
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    try {
+      const result = await resendSignUpConfirmation(pendingEmail);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSuccess(t('auth.otpResent', 'A new code has been sent to your email'));
+      }
+    } catch (error) {
+      const errorMessage = (error instanceof NetworkError || error instanceof AuthError)
+        ? error.message
+        : t('auth.unexpectedError', 'An unexpected error occurred');
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pendingEmail, resendSignUpConfirmation, t]);
+
   const switchMode = useCallback((newMode: AuthMode) => {
     if (newMode === 'signUp' && !allowRegistration) {
       return;
@@ -163,12 +243,22 @@ export default function AuthForm({
     setMode(newMode);
     setError(null);
     setSuccess(null);
+    setPendingVerification(false);
+    setOtpCode('');
     // Keep email but clear passwords and consent
     setPassword('');
     setConfirmPassword('');
     setHasAcceptedTerms(false);
     setWantsMarketing(false);
   }, [allowRegistration]);
+
+  const exitVerification = useCallback(() => {
+    setPendingVerification(false);
+    setOtpCode('');
+    setError(null);
+    setSuccess(null);
+    setMode('signIn');
+  }, []);
 
   // Shared style definitions
   const primaryButtonStyle =
@@ -185,6 +275,84 @@ export default function AuthForm({
     'w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-white ' +
     'placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent';
 
+  // --- OTP Verification Screen ---
+  if (pendingVerification) {
+    return (
+      <>
+        <h2 id={titleId} className="text-2xl font-bold text-center mb-2">
+          {t('auth.otpTitle', 'Enter Verification Code')}
+        </h2>
+
+        <p className="text-slate-400 text-center mb-6 text-sm">
+          {t('auth.otpSubtitle', 'We sent a 6-digit code to {{email}}. Enter it below to verify your account.', { email: pendingEmail })}
+        </p>
+
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
+            <p>{error}</p>
+            {isNetworkErrorMessage(error) && (
+              <p className="mt-1 text-red-300/80">
+                {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
+              </p>
+            )}
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 p-3 rounded-md bg-green-900/50 border border-green-500/50 text-green-200 text-sm">
+            {success}
+          </div>
+        )}
+
+        <form onSubmit={handleVerifyOtp} className="space-y-4">
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            placeholder={t('auth.otpPlaceholder', '000000')}
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            className={inputStyle + ' text-center text-2xl tracking-[0.5em] font-mono'}
+            required
+            autoComplete="one-time-code"
+            autoFocus
+            disabled={isLoading}
+          />
+
+          <button type="submit" className={primaryButtonStyle} disabled={isLoading || otpCode.length !== 6}>
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                {t('auth.otpVerifying', 'Verifying...')}
+              </span>
+            ) : (
+              t('auth.otpVerify', 'Verify')
+            )}
+          </button>
+        </form>
+
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={handleResendCode}
+            className={linkButtonStyle}
+            disabled={isLoading}
+          >
+            {t('auth.otpResendLink', "Didn't receive a code? Resend")}
+          </button>
+          <button type="button" onClick={exitVerification} className={linkButtonStyle}>
+            {t('auth.backToSignIn', 'Back to sign in')}
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // --- Normal Auth Form ---
   return (
     <>
       {/* Title */}
