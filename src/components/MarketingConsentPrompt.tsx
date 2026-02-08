@@ -68,12 +68,12 @@ export default function MarketingConsentPrompt() {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto animate-in slide-in-from-bottom duration-300">
-      <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 animate-in fade-in duration-300">
+      <div className="relative bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-5 max-w-sm w-full">
         {/* Dismiss button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-2 right-2 text-slate-400 hover:text-slate-200 p-1 transition-colors"
+          className="absolute top-3 right-3 text-slate-400 hover:text-slate-200 p-1 transition-colors"
           aria-label={t('common.close', 'Close')}
           disabled={isSubmitting}
         >
@@ -82,10 +82,10 @@ export default function MarketingConsentPrompt() {
           </svg>
         </button>
 
-        <h3 className="text-sm font-semibold text-slate-100 pr-6">
+        <h3 className="text-base font-semibold text-slate-100 pr-6">
           {t('marketingConsent.promptTitle', 'Stay in the loop?')}
         </h3>
-        <p className="text-xs text-slate-400 mt-1 mb-3">
+        <p className="text-sm text-slate-400 mt-2 mb-4">
           {t('marketingConsent.promptDescription', 'Get occasional product updates, tips, and new feature announcements via email. You can change this anytime in Settings.')}
         </p>
 
@@ -93,14 +93,14 @@ export default function MarketingConsentPrompt() {
           <button
             onClick={handleAccept}
             disabled={isSubmitting}
-            className="flex-1 px-3 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+            className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
           >
             {t('marketingConsent.promptYes', 'Yes, keep me updated')}
           </button>
           <button
             onClick={handleDecline}
             disabled={isSubmitting}
-            className="flex-1 px-3 py-1.5 text-sm font-medium rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50 transition-colors"
+            className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50 transition-colors"
           >
             {t('marketingConsent.promptNo', 'No thanks')}
           </button>
