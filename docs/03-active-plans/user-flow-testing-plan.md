@@ -82,14 +82,23 @@
 - [ ] Error message shown
 - [ ] Can switch to sign up
 
-### 2.7 Password Reset
+### 2.7 Password Reset (OTP Code Flow)
 - [ ] From login screen, click "Forgot password"
-- [ ] Enter email address
-- [ ] Confirmation shown ("check your email")
-- [ ] Email arrives with reset link
-- [ ] Click link → set new password (must pass same validation rules)
+- [ ] Enter email address, click "Send Reset Email"
+- [ ] OTP code input screen appears ("Enter Reset Code")
+- [ ] Email arrives with 8-digit code (NOT a link)
+- [ ] Enter wrong code → clear error message
+- [ ] Enter correct 8-digit code → "Set New Password" form appears
+- [ ] Try mismatched passwords → "Passwords do not match" error
+- [ ] Try weak password (< 12 chars) → rejected with clear message
+- [ ] Enter valid matching passwords → success message
+- [ ] Redirected to sign-in screen
 - [ ] Can sign in with new password
 - [ ] Old password no longer works
+- [ ] "Didn't receive a code? Resend" sends a new code
+- [ ] "Back to sign in" from OTP screen returns to sign-in form
+- [ ] "Back to sign in" from new password form returns to sign-in form
+- [ ] Test in Play Store installed app (not just browser) — OTP flow works without link clicking
 
 ### 2.8 Session Persistence
 - [ ] Sign in to cloud mode
@@ -119,14 +128,18 @@
 - [ ] Local cache cleared
 - [ ] Refresh → cannot access cloud data without signing back in
 
-### 2.12 Sign Up — Marketing Consent Checkbox
-- [ ] On sign-up form, marketing consent checkbox appears (separate from Terms checkbox)
-- [ ] Marketing checkbox is **unchecked by default** (GDPR requirement)
-- [ ] Can sign up without checking marketing checkbox → no marketing consent recorded
-- [ ] Check marketing checkbox, sign up → marketing consent recorded in Supabase (`user_consents` with `consent_type = 'marketing'`, `status = 'granted'`)
-- [ ] Switching from sign-up to sign-in mode clears the checkbox
-- [ ] Checkbox label is clear and non-misleading ("Send me product updates and tips via email")
-- [ ] Checkbox appears in both EN and FI
+### 2.12 Marketing Consent Prompt (Post-Login)
+- [ ] Sign in with an account that has never been asked about marketing consent
+- [ ] After ~5 seconds, marketing consent prompt appears as a centered modal overlay
+- [ ] Prompt has "Yes, keep me updated" and "No thanks" buttons
+- [ ] Click "Yes" → consent recorded in Supabase (`user_consents` with `consent_type = 'marketing'`, `status = 'granted'`)
+- [ ] Sign out, sign back in → prompt does NOT reappear (dismissed flag persists per user)
+- [ ] Repeat with new account, click "No thanks" → decline recorded (`status = 'withdrawn'`), prompt does not reappear
+- [ ] Repeat with new account, ignore prompt (don't click either button) → prompt dismissed on next sign-in (localStorage flag)
+- [ ] Marketing preference can be changed later in Settings → Email Preferences
+- [ ] Prompt appears in both EN and FI
+- [ ] Prompt does NOT appear during loading, sign-out, or on the welcome/start screen
+- [ ] Deleting account clears the per-user dismissal flag from localStorage
 
 ---
 
