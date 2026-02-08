@@ -73,8 +73,24 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* === MAIN CONTENT === */}
       <div className="relative z-10 flex-1 flex flex-col px-6 py-8 pb-safe">
 
-        {/* === TOP: Language Switcher === */}
-        <div className="flex justify-end mb-4">
+        {/* === TOP: Welcome Link + Language Switcher === */}
+        <div className="flex justify-between items-center mb-4">
+          {/* Welcome screen link - local mode only */}
+          {!isCloudMode && onShowWelcome ? (
+            <button
+              type="button"
+              onClick={onShowWelcome}
+              className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {t('startScreen.welcomeScreen', 'Welcome')}
+            </button>
+          ) : (
+            <div />
+          )}
+
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => setLanguage('en')}
@@ -247,19 +263,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </div>
             )
           ) : null}
-
-          {/* Welcome screen link - local mode only */}
-          {!isCloudMode && onShowWelcome && (
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={onShowWelcome}
-                className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                {t('startScreen.welcomeScreen', 'Welcome & Setup')}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
