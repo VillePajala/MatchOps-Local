@@ -1816,28 +1816,28 @@
       "noAccountTitle": "Tiliä ei tarvita (paikallinen tila)",
       "noAccountContent": "MatchOps toimii täysin offline-tilassa paikallisessa tilassa. Tilin luomista, kirjautumista tai henkilötietoja ei tarvita.",
       "cloudDataTitle": "Pilvisynkronointi (valinnainen)",
-      "cloudDataIntro": "Jos otat käyttöön pilvisynkronoinnin Premium-tilauksella, tietosi tallennetaan turvallisille pilvipalvelimille:",
+      "cloudDataIntro": "Jos otat käyttöön pilvisynkronoinnin, tietosi tallennetaan lisäksi turvallisille pilvipalvelimille:",
       "cloudDataItems": {
         "syncedData": "Kopioidaan turvallisille EU-palvelimille (Supabase, EU)",
-        "encryption": "Salataan siirron aikana (HTTPS/TLS) ja levossa",
+        "encryption": "Salataan siirron aikana (HTTPS/TLS) ja tallennettuna palvelimella",
         "rowLevelSecurity": "Suojattu rivitason suojauksella (vain sinä pääset tietoihisi)",
         "multiDevice": "Synkronoitu laitteidesi välillä",
         "dataOwnership": "Säilytetään täydessä omistuksessasi"
       },
       "cloudDataNote": "Pilvitiedot tallennetaan turvallisiin EU-datakeskuksiin. Voit poistaa pilvitietosi milloin tahansa Asetuksista.",
       "dataRetentionTitle": "Tietojen säilytys",
-      "dataRetentionContent": "Pilvitiedot säilytetään niin kauan kuin tilisi on aktiivinen. Kun poistat pilvitietosi tai tilisi, tiedot poistetaan pysyvästi 30 päivän kuluessa. Tilauksen peruutuksen jälkeen pilvitiedot pysyvät luettavissa vain luku -tilassa; 90 päivän tilin käyttämättömyyden jälkeen ne voidaan poistaa. Paikalliset tiedot säilyvät laitteellasi kunnes tyhjennät ne. Suostumustiedot säilytetään tilin poistamisen jälkeenkin GDPR-vaatimustenmukaisuutta varten."
+      "dataRetentionContent": "Pilvitiedot säilytetään niin kauan kuin tilisi on aktiivinen. Kun poistat pilvitietosi tai tilisi, tiedot poistetaan pysyvästi kohtuullisen ajan kuluessa. Jos tilisi on käyttämättömänä pitkän aikaa, saatamme poistaa pilvitiedot ennakkoilmoituksella. Paikalliset tiedot säilyvät laitteellasi kunnes tyhjennät ne. Suostumustiedot säilytetään tilin poistamisen jälkeenkin GDPR-vaatimustenmukaisuutta varten."
     },
     "legalBasis": {
       "title": "Tietojenkäsittelyn oikeusperuste (GDPR 6 art.)",
       "intro": "Käsittelemme henkilötietoja seuraavilla oikeusperusteilla:",
       "contract": "Sopimus (6(1)(b) art.): Pilvisynkronointipalvelun toteuttamiseksi välttämätön käsittely",
       "consent": "Suostumus (6(1)(a) art.): Käyttöehtojen ja tietosuojakäytännön hyväksyminen pilvitilan käyttäjille. Suostumustiedot tallennetaan vaatimustenmukaisuuden osoittamiseksi",
-      "legitimateInterest": "Oikeutettu etu (6(1)(f) art.): Virheraportit Sentryn kautta sovelluksen laadun ylläpitämiseksi ja virheiden korjaamiseksi. Käsittely koskee vähäisiä anonymisoituja tietoja eikä sisällä profilointia tai seurantaa. Voit poistaa käytöstä asetuksista milloin tahansa"
+      "legitimateInterest": "Oikeutettu etu (6(1)(f) art.): Virheraportit Sentryn kautta sovelluksen laadun ylläpitämiseksi ja virheiden korjaamiseksi. Käsittely koskee vähäisiä anonymisoituja tietoja eikä sisällä profilointia tai seurantaa"
     },
     "dataWeCollect": {
       "title": "Tiedot, joita saatamme kerätä",
-      "errorReportingTitle": "Virheraportit (Opt-Out)",
+      "errorReportingTitle": "Virheraportit",
       "errorReportingIntro": "Kun sovelluksessa tapahtuu virhe, saatamme kerätä:",
       "errorReportingItems": {
         "errorType": "Virhetyyppi ja pinojälki",
@@ -1845,9 +1845,9 @@
         "appVersion": "Sovelluksen versio",
         "sessionInfo": "Anonymisoitu istuntotieto"
       },
-      "errorReportingNote": "Tämä auttaa meitä korjaamaan virheitä ja parantamaan sovellusta. Virheraportit eivät sisällä pelitietojasi tai pelaajatietoja. Ne käsittelee Sentry.io (tietoja voidaan käsitellä Yhdysvalloissa vakiosopimuslausekkeiden nojalla). Voit poistaa virheraportit käytöstä sovelluksen asetuksista milloin tahansa.",
+      "errorReportingNote": "Tämä auttaa meitä korjaamaan virheitä ja parantamaan sovellusta. Virheraportit eivät sisällä pelitietojasi tai pelaajatietoja. Ne käsittelee Sentry.io (tietoja voidaan käsitellä Yhdysvalloissa vakiosopimuslausekkeiden nojalla).",
       "licenseValidationTitle": "Play Kaupan lisenssivahvistus",
-      "licenseValidationContent": "Kun ostat premium-ominaisuuksia, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi.",
+      "licenseValidationContent": "Jos maksullisia ominaisuuksia otetaan käyttöön, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi.",
       "consentTrackingTitle": "Suostumustiedot (Pilvisynkronointi)",
       "consentTrackingIntro": "Kun hyväksyt käyttöehtomme ja tietosuojakäytäntömme pilvisynkronoinnissa, tallennamme:",
       "consentTrackingItems": {
@@ -1902,8 +1902,8 @@
       "erasure": "Poistaminen (17 art.): Poistaa paikalliset tai pilvitietosi milloin tahansa",
       "portability": "Siirrettävyys (20 art.): Viedä tietosi standardissa JSON-muodossa",
       "restriction": "Rajoittaminen (18 art.): Vaihtaa vain paikalliseen tilaan lopettaaksesi pilvikäsittelyn",
-      "objection": "Vastustaminen (21 art.): Lopeta pilvikäsittely vaihtamalla paikalliseen tilaan tai poista virheraportit käytöstä asetuksista",
-      "withdrawConsent": "Suostumuksen peruuttaminen: Poista virheraportit käytöstä asetuksista; poista pilvitilisi peruuttaaksesi suostumuksen pilvikäsittelyyn",
+      "objection": "Vastustaminen (21 art.): Lopeta pilvikäsittely vaihtamalla paikalliseen tilaan",
+      "withdrawConsent": "Suostumuksen peruuttaminen: Poista pilvitilisi peruuttaaksesi suostumuksen pilvikäsittelyyn",
       "deleteLocal": "Paikallisille tiedoille: Käytä Asetukset → Tiedot → Tietojesi oikeudet",
       "deleteCloud": "Pilvitiedoille: Käytä Asetukset → Tiedot → Tietojesi oikeudet",
       "contactUs": "Kaikki tiedonhallintavaihtoehdot löytyvät suoraan sovelluksesta Asetukset → Tiedot-välilehdeltä. Sähköpostipyyntöä ei tarvita.",
@@ -1919,14 +1919,14 @@
       "localIntro": "Paikallisessa tilassa tietosi tallennetaan selaimesi IndexedDB-tietokantaan:",
       "localItems": {
         "deviceProtection": "Suojattu laitteesi pääsynvalvonnalla (näytön lukitus, salasana, biometriikka)",
-        "noAdditionalEncryption": "Ei lisäsalausta levossa laitteesi/selaimesi tarjoaman lisäksi",
+        "noAdditionalEncryption": "Ei lisäsalausta tallennettuna laitteesi/selaimesi tarjoaman lisäksi",
         "noTransmission": "Ei verkkolähetystä, ellet ota käyttöön pilvisynkronointia"
       },
       "localNote": "Laitteesi suojaus on ensisijainen suoja paikallisille tiedoillesi. Suosittelemme vahvan näytön lukituksen käyttöä.",
       "cloudIntro": "Pilvitilassa tietosi on suojattu:",
       "cloudItems": {
         "tlsEncryption": "Salattu siirron aikana (HTTPS/TLS)",
-        "atRestEncryption": "Salattu levossa turvallisissa EU-palvelimissa (Supabase, Frankfurt)",
+        "atRestEncryption": "Salattu tallennettuna turvallisissa EU-palvelimissa (Supabase, Frankfurt)",
         "rowLevelSecurity": "Rivitason suojaus varmistaa, että pääset vain omiin tietoihisi",
         "soc2": "Supabasen turvainfrastruktuuri ja SOC 2 -vaatimustenmukaisuus"
       },
@@ -1987,7 +1987,7 @@
     },
     "dataAndPrivacy": {
       "title": "Tiedot ja yksityisyys",
-      "content": "Tietosi tallennetaan paikallisesti laitteellesi (paikallinen tila) tai turvalliseen pilvitietokantaamme (pilvitila tilauksella). Katso tietosuojakäytännöstämme tarkemmat tiedot tietojen käsittelystä, turvallisuudesta, GDPR-oikeuksista ja siitä, mitä rajallisia tietoja saatamme kerätä.",
+      "content": "Tietosi tallennetaan paikallisesti laitteellesi (paikallinen tila) tai turvalliseen pilvitietokantaamme (pilvitila). Katso tietosuojakäytännöstämme tarkemmat tiedot tietojen käsittelystä, turvallisuudesta, GDPR-oikeuksista ja siitä, mitä rajallisia tietoja saatamme kerätä.",
       "securityAcknowledgmentTitle": "Tietoturvatiedote",
       "securityAcknowledgmentIntro": "Käyttämällä MatchOpsia hyväksyt seuraavat:",
       "securityAcknowledgmentItems": {
@@ -2034,24 +2034,24 @@
       "googlePlay": "Google Play Kauppa",
       "googlePlayDesc": "Sovelluksen jakeluun ja maksuihin",
       "sentry": "Sentry",
-      "sentryDesc": "Virheraportointiin (valinnainen, voidaan poistaa käytöstä)",
+      "sentryDesc": "Automaattiseen virheraportointiin tuotannossa",
       "supabase": "Supabase",
-      "supabaseDesc": "Pilvisynkronointiin ja todennukseen (Premium-ominaisuus)",
+      "supabaseDesc": "Pilvisynkronointiin ja todennukseen (pilvitila)",
       "vercel": "Vercel",
       "vercelDesc": "PWA-version isännöintiin",
       "note": "Näiden palveluiden käyttöäsi koskevat niiden omat ehdot ja käytännöt."
     },
     "premiumSubscription": {
-      "title": "Premium-tilaus",
-      "intro": "MatchOps Premium on valinnainen tilaus, joka tarjoaa lisäominaisuuksia:",
+      "title": "Maksulliset ominaisuudet",
+      "intro": "Saatamme tulevaisuudessa ottaa käyttöön maksullisia tilaussuunnitelmia. Jos niitä tarjotaan, maksulliset ominaisuudet voivat sisältää:",
       "features": {
         "cloudSync": "Pilvisynkronointi: Pääsy tietoihisi useilta laitteilta",
         "unlimitedEntities": "Rajattomat pelaajat, joukkueet, kaudet ja turnaukset",
         "prioritySupport": "Ensisijainen tuki"
       },
-      "billing": "Tilaukset laskutetaan Google Play Kaupan kautta. Katso Google Playn ehdot laskutuksesta, peruutuksesta ja hyvityksistä.",
-      "cancellation": "Voit peruuttaa tilauksesi milloin tahansa Google Playn kautta. Peruutuksen jälkeen säilytät pääsyn laskutusjakson loppuun asti.",
-      "dataAfterCancel": "Jos peruutat Premiumin, pilvitietosi pysyvät luettavissa vain luku -tilassa. Voit viedä tai poistaa ne milloin tahansa. 90 päivän käyttämättömyyden jälkeen pilvitiedot voidaan poistaa."
+      "billing": "Jos maksullisia tilauksia otetaan käyttöön, ne laskutetaan Google Play Kaupan kautta. Katso Google Playn ehdot laskutuksesta, peruutuksesta ja hyvityksistä.",
+      "cancellation": "Jos sinulla on aktiivinen tilaus, voit peruuttaa sen milloin tahansa Google Playn kautta. Peruutuksen jälkeen säilytät pääsyn laskutusjakson loppuun asti.",
+      "dataAfterCancel": "Jos maksullinen tilaus peruutetaan, pilvitietosi pysyvät saatavilla. Voit viedä tai poistaa ne milloin tahansa. Pidätämme oikeuden poistaa pilvitiedot pitkittyneen tilin käyttämättömyyden jälkeen ennakkoilmoituksella."
     },
     "cloudSync": {
       "title": "Pilvisynkronoinnin ehdot",
@@ -2075,7 +2075,7 @@
     "termination": {
       "title": "Päättäminen",
       "content": "Voimme lopettaa tai keskeyttää pääsysi sovellukseen välittömästi ilman ennakkoilmoitusta, jos rikot näitä ehtoja. Päättämisen jälkeen oikeutesi käyttää sovellusta päättyy.",
-      "cloudTermination": "Jos tilisi päätetään, menetät pääsyn pilvisynkronointiominaisuuksiin. Paikalliset tietosi säilyvät laitteellasi. Pilvitiedot poistetaan 30 päivän kuluessa päättämisestä.",
+      "cloudTermination": "Jos tilisi päätetään, menetät pääsyn pilvisynkronointiominaisuuksiin. Paikalliset tietosi säilyvät laitteellasi. Pilvitiedot poistetaan kohtuullisen ajan kuluessa päättämisestä.",
       "voluntaryDeletion": "Voit vapaaehtoisesti poistaa pilvitilisi ja -tietosi milloin tahansa Asetukset-valikosta."
     },
     "governingLaw": {
@@ -2509,7 +2509,14 @@
     }
   },
   "reverseMigration": {
-    "title": "Vaihda paikalliseen tilaan",
+    "title": {
+      "preview": "Vaihda paikalliseen tilaan",
+      "choose": "Vaihda paikalliseen tilaan",
+      "confirm": "Vahvista pilven poisto",
+      "progress": "Vaihdetaan paikalliseen tilaan",
+      "complete": "Vaihto valmis",
+      "error": "Lataus epäonnistui"
+    },
     "description": "Lataa pilvitietosi tälle laitteelle ja vaihda paikalliseen tilaan.",
     "preparing": "Valmistellaan latausta...",
     "noData": "Pilvitietoja ei löytynyt.",
@@ -2597,14 +2604,6 @@
       "confirm": "Vahvista",
       "startMigration": "Aloita siirto",
       "done": "Valmis"
-    },
-    "title": {
-      "preview": "Vaihda paikalliseen tilaan",
-      "choose": "Vaihda paikalliseen tilaan",
-      "confirm": "Vahvista pilven poisto",
-      "progress": "Vaihdetaan paikalliseen tilaan",
-      "complete": "Vaihto valmis",
-      "error": "Lataus epäonnistui"
     }
   },
   "welcome": {
