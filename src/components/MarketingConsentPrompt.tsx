@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import logger from '@/utils/logger';
@@ -12,13 +12,39 @@ import logger from '@/utils/logger';
  * NOT a blocking modal - user can freely dismiss without answering.
  *
  * Visibility controlled by AuthProvider's `showMarketingPrompt` computed value.
+ * Includes a render delay to avoid appearing on auth/start screens during
+ * the post-login transition.
  */
 export default function MarketingConsentPrompt() {
   const { t } = useTranslation();
   const { showMarketingPrompt, setMarketingConsent, dismissMarketingPrompt } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (!showMarketingPrompt) return null;
+  // Delay rendering by 5 seconds after showMarketingPrompt becomes true.
+  // This avoids the prompt appearing over auth/start screens during post-login transitions.
+  useEffect(() => {
+    if (showMarketingPrompt) {
+      timerRef.current = setTimeout(() => {
+        setIsReady(true);
+      }, 5000);
+    } else {
+      setIsReady(false);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [showMarketingPrompt]);
+
+  if (!showMarketingPrompt || !isReady) return null;
 
   const handleAccept = async () => {
     setIsSubmitting(true);
