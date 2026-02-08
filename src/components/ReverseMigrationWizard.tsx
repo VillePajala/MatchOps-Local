@@ -392,7 +392,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             <HiOutlineArrowPath className="h-8 w-8 text-sky-400 mx-auto animate-spin mb-2" />
           )}
           <p className="text-slate-300">
-            {message || t(`reverseMigration.${stage}`, stage)}
+            {t(`reverseMigration.progress.${stage}`, message || stage)}
           </p>
           {currentEntity && (
             <p className="text-sm text-slate-500 mt-1">

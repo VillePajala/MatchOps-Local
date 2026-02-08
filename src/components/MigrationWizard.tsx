@@ -257,6 +257,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
   const titleId = 'migration-wizard-title';
 
   // Translate entity names for display
+  // Handles both plain names ("games") and names with counts ("games (3/78)")
   const translateEntity = (entity: string): string => {
     const translationMap: Record<string, string> = {
       'players': t('migration.summary.players', 'Players'),
@@ -269,7 +270,28 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       'warmupPlan': t('migration.summary.warmupPlan', 'Warmup Plans'),
       'settings': t('migration.summary.settings', 'Settings'),
     };
+    // Handle "games (3/78)" format — extract base name and preserve count suffix
+    const match = entity.match(/^(\w+)\s*(\(.+\))$/);
+    if (match) {
+      const baseName = match[1];
+      const suffix = match[2];
+      return `${translationMap[baseName] || baseName} ${suffix}`;
+    }
     return translationMap[entity] || entity;
+  };
+
+  // Translate progress messages from migrationService (which uses hardcoded English strings)
+  const translateMessage = (message: string): string => {
+    const messageMap: Record<string, string> = {
+      'Preparing migration...': t('migration.preparing', 'Preparing migration...'),
+      'Exporting local data...': t('migration.exporting', 'Exporting local data...'),
+      'Validating data integrity...': t('migration.validating', 'Validating data integrity...'),
+      'Uploading to cloud...': t('migration.uploading', 'Uploading to cloud...'),
+      'Checking cloud status...': t('migration.uploading', 'Uploading to cloud...'),
+      'Clearing existing cloud data...': t('migration.clearing', 'Clearing existing cloud data...'),
+      'Verifying migration...': t('migration.verifying', 'Verifying migration...'),
+    };
+    return messageMap[message] || message;
   };
 
   // Render data summary grid
@@ -327,7 +349,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         {/* Status message */}
         <div className="text-center">
           <HiOutlineArrowPath className="h-8 w-8 text-sky-400 mx-auto animate-spin mb-2" />
-          <p className="text-slate-300">{message}</p>
+          <p className="text-slate-300">{translateMessage(message)}</p>
           {currentEntity && (
             <p className="text-sm text-slate-500 mt-1">
               {t('migration.progress.entity', 'Syncing {{entity}}...', { entity: translateEntity(currentEntity) })}
