@@ -20,92 +20,92 @@
 ## 1. Fresh Install Flows
 
 ### 1.1 Fresh Install → Local Mode
-- [ ] Open app for first time (clear all data first)
-- [ ] Welcome screen appears with 2 primary options
-- [ ] Click "Continue Locally"
-- [ ] Main app loads with empty state overlay
-- [ ] Can dismiss overlay and explore field
-- [ ] Banner shows "No game created yet"
-- [ ] Refresh page — Welcome screen does NOT reappear
+- [x] Open app for first time (clear all data first)
+- [x] Welcome screen appears with 2 primary options
+- [x] Click "Continue Locally"
+- [x] Main app loads with empty state overlay
+- [x] Can dismiss overlay and explore field
+- [x] Banner shows "No game created yet"
+- [x] Refresh page — Welcome screen does NOT reappear
 
 ### 1.2 Fresh Install → Create Account → Cloud Mode
-- [ ] Open app for first time
-- [ ] Click "Continue with Cloud"
-- [ ] Login screen appears
-- [ ] Create new account with email/password
-- [ ] Verify email (check inbox, or auto-verify in staging)
-- [ ] Main app loads with empty state
-- [ ] Sync indicator shows cloud mode active
-- [ ] Refresh page — Welcome screen does NOT reappear
+- [x] Open app for first time
+- [x] Click "Continue with Cloud"
+- [x] Login screen appears
+- [x] Create new account with email/password
+- [x] Verify email (check inbox, or auto-verify in staging)
+- [x] Main app loads with empty state
+- [x] Sync indicator shows cloud mode active
+- [x] Refresh page — Welcome screen does NOT reappear
 
 ### 1.3 Fresh Install → Import Backup (via footer link)
-- [ ] Open app for first time
-- [ ] Use "Import a backup" link
-- [ ] Select valid backup file
-- [ ] Data imports successfully
-- [ ] Main app loads with imported data visible
-- [ ] Players appear in roster, games in list
+- [x] Open app for first time
+- [x] Use "Import a backup" link
+- [x] Select valid backup file
+- [x] Data imports successfully
+- [x] Main app loads with imported data visible
+- [x] Players appear in roster, games in list
 
 ---
 
 ## 2. Authentication Flows
 
 ### 2.1 Sign Up — New Account
-- [ ] Enter valid email and strong password (12+ chars, 3 of 4 char types)
-- [ ] Account created successfully
-- [ ] Redirected to main app or email verification prompt
+- [x] Enter valid email and strong password (12+ chars, 3 of 4 char types)
+- [x] Account created successfully
+- [x] Redirected to main app or email verification prompt
 
 ### 2.2 Sign Up — Password Validation
-- [ ] Try password < 12 characters → rejected with clear message
-- [ ] Try password with only lowercase letters → rejected (needs 3 of 4 types)
-- [ ] Try password "abcdefghijkl" → rejected (only 1 character type)
-- [ ] Try "Abcdefgh1234" → accepted (uppercase + lowercase + digits)
-- [ ] Validation feedback appears client-side (before server round-trip)
+- [x] Try password < 12 characters → rejected with clear message
+- [x] Try password with only lowercase letters → rejected (needs 3 of 4 types)
+- [x] Try password "abcdefghijkl" → rejected (only 1 character type)
+- [x] Try "Abcdefgh1234" → accepted (uppercase + lowercase + digits)
+- [x] Validation feedback appears client-side (before server round-trip)
 
 ### 2.3 Sign Up — Existing Email
-- [ ] Try to sign up with already-used email
-- [ ] Error message shown (not leaking whether account exists, or clear "account exists")
-- [ ] Prompted to sign in instead
+- [x] Try to sign up with already-used email
+- [x] Error message shown (not leaking whether account exists, or clear "account exists")
+- [x] Prompted to sign in instead
 
 ### 2.4 Sign In — Valid Credentials
-- [ ] Enter correct email/password
-- [ ] Sign in succeeds
-- [ ] User data loads (if any exists in cloud)
+- [x] Enter correct email/password
+- [x] Sign in succeeds
+- [x] User data loads (if any exists in cloud)
 
 ### 2.5 Sign In — Wrong Password
-- [ ] Enter correct email, wrong password
-- [ ] Clear error message shown (not leaking implementation details)
-- [ ] Can retry
+- [x] Enter correct email, wrong password
+- [x] Clear error message shown (not leaking implementation details)
+- [x] Can retry
 
 ### 2.6 Sign In — Non-existent Account
-- [ ] Enter email that doesn't exist
-- [ ] Error message shown
-- [ ] Can switch to sign up
+- [x] Enter email that doesn't exist
+- [x] Error message shown
+- [x] Can switch to sign up
 
 ### 2.7 Password Reset (OTP Code Flow)
-- [ ] From login screen, click "Forgot password"
-- [ ] Enter email address, click "Send Reset Email"
-- [ ] OTP code input screen appears ("Enter Reset Code")
-- [ ] Email arrives with 8-digit code (NOT a link)
-- [ ] Enter wrong code → clear error message
-- [ ] Enter correct 8-digit code → "Set New Password" form appears
-- [ ] Try mismatched passwords → "Passwords do not match" error
-- [ ] Try weak password (< 12 chars) → rejected with clear message
-- [ ] Enter valid matching passwords → success message
-- [ ] Redirected to sign-in screen
-- [ ] Can sign in with new password
-- [ ] Old password no longer works
-- [ ] "Didn't receive a code? Resend" sends a new code
-- [ ] "Back to sign in" from OTP screen returns to sign-in form
-- [ ] "Back to sign in" from new password form returns to sign-in form
-- [ ] Test in Play Store installed app (not just browser) — OTP flow works without link clicking
+- [x] From login screen, click "Forgot password"
+- [x] Enter email address, click "Send Reset Email"
+- [x] OTP code input screen appears ("Enter Reset Code")
+- [x] Email arrives with 8-digit code (NOT a link)
+- [x] Enter wrong code → clear error message
+- [x] Enter correct 8-digit code → "Set New Password" form appears
+- [x] Try mismatched passwords → "Passwords do not match" error
+- [x] Try weak password (< 12 chars) → rejected with clear message
+- [x] Enter valid matching passwords → success message
+- [x] Redirected to sign-in screen
+- [x] Can sign in with new password
+- [x] Old password no longer works
+- [x] "Didn't receive a code? Resend" sends a new code
+- [x] "Back to sign in" from OTP screen returns to sign-in form
+- [x] "Back to sign in" from new password form returns to sign-in form
+- [x] Test in Play Store installed app (not just browser) — OTP flow works without link clicking
 
 ### 2.8 Session Persistence
-- [ ] Sign in to cloud mode
-- [ ] Close browser tab completely
-- [ ] Reopen app → session restored automatically (no sign-in required)
-- [ ] Refresh page → session persists
-- [ ] Cloud data loads without re-authentication
+- [x] Sign in to cloud mode
+- [x] Close browser tab completely
+- [x] Reopen app → session restored automatically (no sign-in required)
+- [x] Refresh page → session persists
+- [x] Cloud data loads without re-authentication
 
 ### 2.9 Session Expiry
 - [ ] Sign in to cloud mode
@@ -121,12 +121,12 @@
 - [ ] Clicking retry → auth initializes successfully
 
 ### 2.11 Sign Out
-- [ ] While signed in, go to Settings
-- [ ] Click Sign Out
-- [ ] Returned to Welcome screen (or local mode)
-- [ ] Cloud data NOT deleted (preserved in Supabase)
-- [ ] Local cache cleared
-- [ ] Refresh → cannot access cloud data without signing back in
+- [x] While signed in, go to Settings
+- [x] Click Sign Out
+- [x] Returned to Welcome screen (or local mode)
+- [x] Cloud data NOT deleted (preserved in Supabase)
+- [x] Local cache cleared
+- [x] Refresh → cannot access cloud data without signing back in
 
 ### 2.12 Marketing Consent Prompt (Post-Login)
 - [ ] Sign in with an account that has never been asked about marketing consent
