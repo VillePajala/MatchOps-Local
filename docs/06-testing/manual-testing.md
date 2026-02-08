@@ -14,4 +14,8 @@ Use this short checklist to manually verify key workflows after making changes t
 10. **Toggle demand correction** – In Player Stats view, enable the *Weight by Difficulty* option and verify averages change when games use different difficulty factors.
 11. **Game type empty state** – In Game Stats, switch the sport filter from **Soccer** to **Futsal** when there are no futsal games. Confirm the list shows an appropriate "No games found" message instead of staying blank.
 
+12. **Marketing consent on sign-up** – During cloud sign-up, verify a marketing consent checkbox appears (unchecked by default). Sign up without checking it, then check Settings → Account — no "Email Preferences" toggle should show as granted. Sign up again and check the box — toggle in Settings should reflect "granted" state.
+13. **Marketing consent prompt for existing users** – Sign in as an existing cloud user with no marketing consent. A banner should appear at the bottom. Clicking "No thanks" or X should dismiss it permanently (survives refresh). The banner should not appear for local-mode users.
+14. **Marketing consent toggle** – In cloud mode, go to Settings → Account. An "Email Preferences" toggle should appear. Toggle it on/off and verify toast messages appear. The toggle should not be visible in local mode.
+
 Running through these steps after updates helps catch regressions before deploying.
