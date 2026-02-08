@@ -1003,6 +1003,10 @@ export type Database = {
         Args: { p_personnel_id: string }
         Returns: boolean
       }
+      get_marketing_consent_status: {
+        Args: Record<string, never>
+        Returns: string | null
+      }
       get_subscription_status: {
         Args: never
         Returns: {
@@ -1014,6 +1018,16 @@ export type Database = {
       }
       get_user_consent: { Args: { p_consent_type: string }; Returns: Json }
       record_user_consent: {
+        Args: {
+          p_consent_type: string
+          p_ip_address?: string
+          p_policy_version: string
+          p_status?: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      revoke_user_consent: {
         Args: {
           p_consent_type: string
           p_ip_address?: string
