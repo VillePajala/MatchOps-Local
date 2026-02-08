@@ -647,6 +647,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isCloudAvailable()) return { error: 'Account deletion requires cloud configuration' };
 
     try {
+      // Capture user ID before deletion clears it
+      const deletedUserId = user?.id;
+
       await authService.deleteAccount();
 
       // Reset session lock BEFORE clearing state
@@ -656,6 +659,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setSession(null);
       setNeedsReConsent(false);
+      setMarketingConsentState(null);
+
+      // Clean up user-scoped localStorage flags
+      if (deletedUserId) {
+        try {
+          // eslint-disable-next-line no-restricted-globals -- Cleanup on account deletion
+          localStorage.removeItem(`matchops_marketing_prompt_seen_${deletedUserId}`);
+        } catch {
+          // non-critical
+        }
+      }
 
       logger.info('[AuthProvider] Account deleted successfully');
       return {};
@@ -663,7 +677,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logger.error('[AuthProvider] Account deletion failed:', error);
       return { error: error instanceof Error ? error.message : 'Failed to delete account' };
     }
-  }, [authService]);
+  }, [authService, user?.id]);
 
   /**
    * Retry auth initialization after a timeout.
