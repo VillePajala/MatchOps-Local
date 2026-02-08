@@ -505,14 +505,7 @@ export default function Home() {
 
         switch (result.status) {
           case 'migrated':
-            // Show success toast with entity count
             logger.info('[page.tsx] Legacy migration completed', result);
-            showToast(
-              t('page.legacyDataMigrated', 'Your data has been migrated to your account ({{count}} items)', {
-                count: result.entityCount ?? 0,
-              }),
-              'success'
-            );
             // Trigger app state refresh to pick up migrated data
             setRefreshTrigger(prev => prev + 1);
             break;
