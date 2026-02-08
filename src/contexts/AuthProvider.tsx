@@ -68,6 +68,10 @@ interface AuthContextValue {
   setMarketingConsent: (granted: boolean) => Promise<{ error?: string }>;
   /** Dismiss the marketing consent prompt without making a choice */
   dismissMarketingPrompt: () => void;
+  /** Verify a sign-up OTP code to confirm email and log in */
+  verifySignUpOtp: (email: string, token: string) => Promise<{ error?: string; confirmationRequired?: boolean; existingUser?: boolean }>;
+  /** Resend sign-up confirmation email with a new OTP code */
+  resendSignUpConfirmation: (email: string) => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -697,6 +701,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logger.info('[AuthProvider] Marketing consent prompt dismissed');
   }, []);
 
+  /**
+   * Verify sign-up OTP code and establish session.
+   * Called from AuthForm after user enters the 6-digit code from their email.
+   */
+  const verifySignUpOtp = useCallback(async (email: string, token: string) => {
+    if (!authService) return { error: 'Auth not initialized' };
+
+    try {
+      const result = await authService.verifySignUpOtp(email, token);
+
+      // Record consent (user already checked the checkbox during sign-up)
+      if (isCloudAvailable()) {
+        try {
+          const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : undefined;
+          await authService.recordConsent(POLICY_VERSION, { userAgent });
+          logger.info('[AuthProvider] Consent recorded after OTP verification for version:', POLICY_VERSION);
+        } catch (consentError) {
+          if (consentError instanceof NetworkError) {
+            logger.warn('[AuthProvider] Network error recording consent after OTP verification (non-blocking):', consentError);
+          } else {
+            logger.error('[AuthProvider] Failed to record consent after OTP verification:', consentError);
+            try {
+              Sentry.captureException(consentError, {
+                tags: { flow: 'otp-verification-consent' },
+                level: 'warning',
+              });
+            } catch {
+              // Sentry failure is acceptable
+            }
+          }
+        }
+      }
+
+      setUser(result.user);
+      setSession(result.session);
+      hasSignedInThisSessionRef.current = true;
+      logger.info('[AuthProvider] OTP verification successful, session locked');
+
+      return {};
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Verification failed' };
+    }
+  }, [authService]);
+
+  /**
+   * Resend sign-up confirmation email with a new OTP code.
+   */
+  const resendSignUpConfirmation = useCallback(async (email: string) => {
+    if (!authService) return { error: 'Auth not initialized' };
+
+    try {
+      await authService.resendSignUpConfirmation(email);
+      return {};
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to resend' };
+    }
+  }, [authService]);
+
   // Memoize the context value to prevent unnecessary re-renders
   // Compute whether to show the marketing prompt:
   // - Cloud must be available
@@ -731,7 +793,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     retryAuthInit,
     setMarketingConsent,
     dismissMarketingPrompt,
-  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, marketingConsent, showMarketingPrompt, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit, setMarketingConsent, dismissMarketingPrompt]);
+    verifySignUpOtp,
+    resendSignUpConfirmation,
+  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, marketingConsent, showMarketingPrompt, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit, setMarketingConsent, dismissMarketingPrompt, verifySignUpOtp, resendSignUpConfirmation]);
 
   return (
     <AuthContext.Provider value={value}>

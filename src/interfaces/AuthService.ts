@@ -258,6 +258,35 @@ export interface AuthService {
   setMarketingConsent(granted: boolean): Promise<void>;
 
   // ==========================================================================
+  // EMAIL VERIFICATION (OTP Code Flow)
+  // ==========================================================================
+
+  /**
+   * Verify a sign-up OTP code to confirm the user's email.
+   *
+   * Called after signUp() returns confirmationRequired: true.
+   * The user receives a 6-digit code via email and enters it in the app.
+   *
+   * @param email - The email address used during sign-up
+   * @param token - The 6-digit OTP code from the confirmation email
+   * @returns Authentication result with user and session on success
+   * @throws NotSupportedError in local mode
+   * @throws AuthError if the code is invalid or expired
+   * @throws NetworkError if connection fails
+   */
+  verifySignUpOtp(email: string, token: string): Promise<AuthResult>;
+
+  /**
+   * Resend the sign-up confirmation email with a new OTP code.
+   *
+   * @param email - The email address used during sign-up
+   * @throws NotSupportedError in local mode
+   * @throws AuthError if resend fails (rate limited, user not found, etc.)
+   * @throws NetworkError if connection fails
+   */
+  resendSignUpConfirmation(email: string): Promise<void>;
+
+  // ==========================================================================
   // ACCOUNT MANAGEMENT
   // ==========================================================================
 

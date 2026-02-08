@@ -2196,7 +2196,16 @@
     "consentRequired": "Sinun on hyväksyttävä käyttöehdot ja tietosuojakäytäntö",
     "androidOnlyRegistration": "Eikö sinulla ole tiliä? Tilaa Android-sovelluksen kautta.",
     "getAndroidApp": "Lataa Google Playsta",
-    "marketingConsent": "Lähetä minulle tuotepäivityksiä ja vinkkejä sähköpostitse"
+    "marketingConsent": "Lähetä minulle tuotepäivityksiä ja vinkkejä sähköpostitse",
+    "otpTitle": "Syötä vahvistuskoodi",
+    "otpSubtitle": "Lähetimme 6-numeroisen koodin osoitteeseen {{email}}. Syötä se alle vahvistaaksesi tilisi.",
+    "otpPlaceholder": "000000",
+    "otpVerify": "Vahvista",
+    "otpVerifying": "Vahvistetaan...",
+    "otpInvalidLength": "Syötä 6-numeroinen koodi sähköpostistasi",
+    "otpResent": "Uusi koodi on lähetetty sähköpostiisi",
+    "otpResendLink": "Etkö saanut koodia? Lähetä uudelleen",
+    "unexpectedError": "Tapahtui odottamaton virhe"
   },
   "marketingConsent": {
     "promptTitle": "Pysy ajan tasalla?",

@@ -1126,6 +1126,101 @@ export class SupabaseAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // EMAIL VERIFICATION (OTP Code Flow)
+  // ==========================================================================
+
+  async verifySignUpOtp(email: string, token: string): Promise<AuthResult> {
+    this.ensureInitialized();
+
+    let data, error;
+    try {
+      const result = await withRetry(async () => {
+        const r = await this.client!.auth.verifyOtp({
+          email,
+          token,
+          type: 'signup',
+        });
+        if (r.error && isNetworkError(r.error)) {
+          throw new TransientSupabaseError({ message: r.error.message, code: r.error.code, status: r.error.status });
+        }
+        return r;
+      }, { operationName: 'verifySignUpOtp' });
+      data = result.data;
+      error = result.error;
+    } catch (e) {
+      if (e instanceof TransientSupabaseError) {
+        throw new NetworkError('Verification failed: network error');
+      }
+      throw e;
+    }
+
+    if (error) {
+      logger.warn('[SupabaseAuthService] OTP verification failed:', error.message);
+
+      if (isNetworkError(error)) {
+        throw new NetworkError('Verification failed: network error');
+      }
+
+      if (error.message.includes('expired') || error.message.includes('invalid')) {
+        throw new AuthError('Verification code is invalid or has expired. Please request a new one.');
+      }
+
+      throw new AuthError('Verification failed. Please try again.');
+    }
+
+    if (!data.user || !data.session) {
+      throw new AuthError('Verification failed: no session returned');
+    }
+
+    const user = transformUser(data.user);
+    const session = transformSession(data.session);
+    this.currentSession = session;
+    this.currentUser = user;
+
+    logger.info('[SupabaseAuthService] OTP verification successful');
+
+    return { user, session, confirmationRequired: false };
+  }
+
+  async resendSignUpConfirmation(email: string): Promise<void> {
+    this.ensureInitialized();
+
+    try {
+      const { error } = await withRetry(async () => {
+        const r = await this.client!.auth.resend({
+          type: 'signup',
+          email,
+        });
+        if (r.error && isNetworkError(r.error)) {
+          throw new TransientSupabaseError({ message: r.error.message, code: r.error.code, status: r.error.status });
+        }
+        return r;
+      }, { operationName: 'resendSignUpConfirmation' });
+
+      if (error) {
+        logger.warn('[SupabaseAuthService] Resend confirmation failed:', error.message);
+
+        if (isNetworkError(error)) {
+          throw new NetworkError('Resend failed: network error');
+        }
+
+        if (error.message.includes('rate') || error.message.includes('limit')) {
+          throw new AuthError('Please wait before requesting another code.');
+        }
+
+        throw new AuthError('Failed to resend confirmation email. Please try again.');
+      }
+
+      logger.info('[SupabaseAuthService] Confirmation email resent to:', email);
+    } catch (e) {
+      if (e instanceof TransientSupabaseError) {
+        throw new NetworkError('Resend failed: network error');
+      }
+      throw e;
+    }
+  }
+
+  // ==========================================================================
   // ACCOUNT MANAGEMENT
   // ==========================================================================
 
