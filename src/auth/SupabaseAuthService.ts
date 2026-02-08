@@ -558,6 +558,11 @@ export class SupabaseAuthService implements AuthService {
         throw new NetworkError('Sign up failed: network error');
       }
 
+      // Detect Supabase email rate limiting (429)
+      if (error.status === 429 || error.message?.toLowerCase().includes('rate limit')) {
+        throw new AuthError('Too many requests. Please wait a few minutes and try again.');
+      }
+
       // Map Supabase errors to user-friendly messages
       if (error.message.includes('already registered')) {
         throw new AuthError('This email is already registered');
@@ -682,6 +687,11 @@ export class SupabaseAuthService implements AuthService {
         throw new NetworkError('Sign in failed: network error');
       }
 
+      // Detect Supabase rate limiting (429)
+      if (error.status === 429 || error.message?.toLowerCase().includes('rate limit')) {
+        throw new AuthError('Too many requests. Please wait a few minutes and try again.');
+      }
+
       // Map Supabase errors to user-friendly messages
       // Use unified message to prevent user enumeration attacks
       if (error.message.includes('Invalid login credentials') ||
@@ -782,6 +792,11 @@ export class SupabaseAuthService implements AuthService {
 
       if (isNetworkError(error)) {
         throw new NetworkError('Password reset failed: network error');
+      }
+
+      // Detect Supabase rate limiting (429)
+      if (error.status === 429 || error.message?.toLowerCase().includes('rate limit')) {
+        throw new AuthError('Too many requests. Please wait a few minutes and try again.');
       }
 
       // Sanitize: don't expose raw Supabase/PostgreSQL error details to users

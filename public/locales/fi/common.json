@@ -2205,7 +2205,27 @@
     "otpInvalidLength": "Syötä 8-numeroinen koodi sähköpostistasi",
     "otpResent": "Uusi koodi on lähetetty sähköpostiisi",
     "otpResendLink": "Etkö saanut koodia? Lähetä uudelleen",
-    "unexpectedError": "Tapahtui odottamaton virhe"
+    "unexpectedError": "Tapahtui odottamaton virhe",
+    "errors": {
+      "passwordTooShort": "Salasanan on oltava vähintään 12 merkkiä",
+      "passwordTooWeak": "Salasanan on sisällettävä vähintään 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit",
+      "invalidEmail": "Virheellinen sähköpostiosoite",
+      "emailTooLong": "Sähköpostiosoite on liian pitkä",
+      "authInProgress": "Todennus on jo käynnissä. Odota hetki.",
+      "emailAlreadyRegistered": "Tämä sähköpostiosoite on jo rekisteröity",
+      "signUpFailed": "Rekisteröityminen epäonnistui. Yritä uudelleen.",
+      "invalidCredentials": "Virheellinen sähköposti tai salasana. Jos rekisteröidyit äskettäin, tarkista sähköpostistasi vahvistusviesti.",
+      "signInFailed": "Kirjautuminen epäonnistui. Yritä uudelleen.",
+      "rateLimited": "Liian monta epäonnistunutta yritystä. Odota {{seconds}} sekuntia ennen uutta yritystä.",
+      "supabaseRateLimited": "Liian monta pyyntöä. Odota muutama minuutti ja yritä uudelleen.",
+      "resetFailed": "Salasanan nollaus epäonnistui. Yritä uudelleen.",
+      "networkError": "Verkkovirhe. Tarkista yhteytesi ja yritä uudelleen.",
+      "otpInvalid": "Vahvistuskoodi on virheellinen tai vanhentunut. Pyydä uusi koodi.",
+      "verificationFailed": "Vahvistus epäonnistui. Yritä uudelleen.",
+      "resendRateLimited": "Odota hetki ennen uuden koodin pyytämistä.",
+      "resendFailed": "Vahvistussähköpostin uudelleenlähetys epäonnistui. Yritä uudelleen.",
+      "notInitialized": "Todennuspalvelu ei ole vielä valmis. Odota hetki ja yritä uudelleen."
+    }
   },
   "marketingConsent": {
     "promptTitle": "Pysy ajan tasalla?",
