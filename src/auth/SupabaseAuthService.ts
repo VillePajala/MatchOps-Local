@@ -1197,6 +1197,90 @@ export class SupabaseAuthService implements AuthService {
     return { user, session, confirmationRequired: false };
   }
 
+  async verifyPasswordResetOtp(email: string, token: string): Promise<void> {
+    this.ensureInitialized();
+
+    let error;
+    try {
+      const result = await withRetry(async () => {
+        const r = await this.client!.auth.verifyOtp({
+          email,
+          token,
+          type: 'recovery',
+        });
+        if (r.error && isNetworkError(r.error)) {
+          throw new TransientSupabaseError({ message: r.error.message, code: r.error.code, status: r.error.status });
+        }
+        return r;
+      }, { operationName: 'verifyPasswordResetOtp' });
+
+      // Update session from recovery verification
+      if (result.data.session) {
+        this.currentSession = transformSession(result.data.session);
+        this.currentUser = this.currentSession.user;
+      }
+      error = result.error;
+    } catch (e) {
+      if (e instanceof TransientSupabaseError) {
+        throw new NetworkError('Verification failed: network error');
+      }
+      throw e;
+    }
+
+    if (error) {
+      logger.warn('[SupabaseAuthService] Password reset OTP verification failed:', error.message);
+
+      if (isNetworkError(error)) {
+        throw new NetworkError('Verification failed: network error');
+      }
+
+      if (error.message.includes('expired') || error.message.includes('invalid')) {
+        throw new AuthError('Reset code is invalid or has expired. Please request a new one.');
+      }
+
+      throw new AuthError('Verification failed. Please try again.');
+    }
+
+    logger.info('[SupabaseAuthService] Password reset OTP verification successful');
+  }
+
+  async updatePassword(newPassword: string): Promise<void> {
+    this.ensureInitialized();
+
+    // Validate password complexity (same rules as sign-up)
+    validatePassword(newPassword);
+
+    let error;
+    try {
+      const result = await withRetry(async () => {
+        const r = await this.client!.auth.updateUser({ password: newPassword });
+        if (r.error && isNetworkError(r.error)) {
+          throw new TransientSupabaseError({ message: r.error.message, code: r.error.code, status: r.error.status });
+        }
+        return r;
+      }, { operationName: 'updatePassword' });
+      error = result.error;
+    } catch (e) {
+      if (e instanceof TransientSupabaseError) {
+        throw new NetworkError('Password update failed: network error');
+      }
+      throw e;
+    }
+
+    if (error) {
+      logger.warn('[SupabaseAuthService] Password update failed:', error.message);
+
+      if (isNetworkError(error)) {
+        throw new NetworkError('Password update failed: network error');
+      }
+
+      // Sanitize: don't expose raw Supabase/PostgreSQL error details to users
+      throw new AuthError('Password update failed. Please try again.');
+    }
+
+    logger.info('[SupabaseAuthService] Password updated successfully');
+  }
+
   async resendSignUpConfirmation(email: string): Promise<void> {
     this.ensureInitialized();
 

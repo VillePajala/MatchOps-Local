@@ -42,7 +42,7 @@ export default function AuthForm({
   titleId,
 }: AuthFormProps) {
   const { t } = useTranslation();
-  const { signIn, signUp, resetPassword, verifySignUpOtp, resendSignUpConfirmation } = useAuth();
+  const { signIn, signUp, resetPassword, verifySignUpOtp, resendSignUpConfirmation, verifyPasswordResetOtp, updatePassword } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
@@ -61,6 +61,13 @@ export default function AuthForm({
   const [pendingVerification, setPendingVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  // Password reset OTP flow state
+  const [pendingPasswordReset, setPendingPasswordReset] = useState(false);
+  const [pendingResetEmail, setPendingResetEmail] = useState('');
+  const [resetOtpCode, setResetOtpCode] = useState('');
+  const [showNewPasswordForm, setShowNewPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,8 +136,10 @@ export default function AuthForm({
             logger.warn('[AuthForm] Network error during password reset:', result.error);
           }
         } else {
-          setSuccess(t('auth.resetEmailSent', 'Check your email for reset instructions'));
-          setMode('signIn');
+          // Transition to reset OTP input screen
+          setPendingResetEmail(normalizedEmail);
+          setPendingPasswordReset(true);
+          setPassword('');
         }
       }
     } catch (error) {
@@ -218,6 +227,127 @@ export default function AuthForm({
     }
   }, [pendingEmail, resendSignUpConfirmation, t]);
 
+  const handleVerifyResetOtp = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    const trimmedCode = resetOtpCode.trim();
+    if (!trimmedCode || trimmedCode.length !== 8) {
+      setError(t('auth.otpInvalidLength', 'Please enter the 8-digit code from your email'));
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const result = await verifyPasswordResetOtp(pendingResetEmail, trimmedCode);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        // OTP verified — transition to set new password form
+        setShowNewPasswordForm(true);
+        setResetOtpCode('');
+      }
+    } catch (error) {
+      const errorMessage = (error instanceof NetworkError || error instanceof AuthError)
+        ? error.message
+        : t('auth.unexpectedError', 'An unexpected error occurred');
+      setError(errorMessage);
+      logger.error('[AuthForm] Reset OTP verification error:', error);
+      try {
+        Sentry.captureException(error, {
+          tags: { flow: 'auth-form-verify-reset-otp' },
+          level: 'error',
+        });
+      } catch {
+        // Sentry failure must not affect error handling
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [resetOtpCode, pendingResetEmail, verifyPasswordResetOtp, t]);
+
+  const handleSetNewPassword = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (newPassword !== confirmNewPassword) {
+      setError(t('auth.passwordMismatch', 'Passwords do not match'));
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await updatePassword(newPassword);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        // Password updated successfully — return to sign-in
+        setSuccess(t('auth.passwordUpdated', 'Password updated successfully. Please sign in with your new password.'));
+        setPendingPasswordReset(false);
+        setShowNewPasswordForm(false);
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setResetOtpCode('');
+        setPendingResetEmail('');
+        setMode('signIn');
+      }
+    } catch (error) {
+      const errorMessage = (error instanceof NetworkError || error instanceof AuthError)
+        ? error.message
+        : t('auth.unexpectedError', 'An unexpected error occurred');
+      setError(errorMessage);
+      logger.error('[AuthForm] Password update error:', error);
+      try {
+        Sentry.captureException(error, {
+          tags: { flow: 'auth-form-update-password' },
+          level: 'error',
+        });
+      } catch {
+        // Sentry failure must not affect error handling
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [newPassword, confirmNewPassword, updatePassword, t]);
+
+  const handleResendResetCode = useCallback(async () => {
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    try {
+      const result = await resetPassword(pendingResetEmail);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSuccess(t('auth.resetOtpResent', 'A new reset code has been sent to your email'));
+      }
+    } catch (error) {
+      const errorMessage = (error instanceof NetworkError || error instanceof AuthError)
+        ? error.message
+        : t('auth.unexpectedError', 'An unexpected error occurred');
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pendingResetEmail, resetPassword, t]);
+
+  const exitPasswordReset = useCallback(() => {
+    setPendingPasswordReset(false);
+    setShowNewPasswordForm(false);
+    setResetOtpCode('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setPendingResetEmail('');
+    setError(null);
+    setSuccess(null);
+    setMode('signIn');
+  }, []);
+
   const switchMode = useCallback((newMode: AuthMode) => {
     if (newMode === 'signUp' && !allowRegistration) {
       return;
@@ -227,6 +357,12 @@ export default function AuthForm({
     setSuccess(null);
     setPendingVerification(false);
     setOtpCode('');
+    setPendingPasswordReset(false);
+    setShowNewPasswordForm(false);
+    setResetOtpCode('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setPendingResetEmail('');
     // Keep email but clear passwords and consent
     setPassword('');
     setConfirmPassword('');
@@ -256,7 +392,158 @@ export default function AuthForm({
     'w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-white ' +
     'placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent';
 
-  // --- OTP Verification Screen ---
+  // --- Set New Password Screen (after reset OTP verified) ---
+  if (pendingPasswordReset && showNewPasswordForm) {
+    return (
+      <>
+        <h2 id={titleId} className="text-2xl font-bold text-center mb-2">
+          {t('auth.newPasswordTitle', 'Set New Password')}
+        </h2>
+
+        <p className="text-slate-400 text-center mb-6 text-sm">
+          {t('auth.newPasswordSubtitle', 'Enter your new password below.')}
+        </p>
+
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
+            <p>{translateAuthError(error, t)}</p>
+            {isNetworkErrorMessage(error) && (
+              <p className="mt-1 text-red-300/80">
+                {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
+              </p>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleSetNewPassword} className="space-y-4">
+          <input
+            type="password"
+            placeholder={t('auth.newPasswordPlaceholder', 'New password')}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className={inputStyle}
+            required
+            autoComplete="new-password"
+            autoFocus
+            disabled={isLoading}
+          />
+          <input
+            type="password"
+            placeholder={t('auth.confirmNewPasswordPlaceholder', 'Confirm new password')}
+            value={confirmNewPassword}
+            onChange={(e) => setConfirmNewPassword(e.target.value)}
+            className={inputStyle}
+            required
+            autoComplete="new-password"
+            disabled={isLoading}
+          />
+          <p className="text-slate-500 text-xs">
+            {t('auth.passwordRequirements', 'Password must be at least 12 characters and include 3 of: uppercase, lowercase, numbers, special characters.')}
+          </p>
+
+          <button type="submit" className={primaryButtonStyle} disabled={isLoading}>
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                {t('common.loading', 'Loading...')}
+              </span>
+            ) : (
+              t('auth.setNewPassword', 'Set New Password')
+            )}
+          </button>
+        </form>
+
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <button type="button" onClick={exitPasswordReset} className={linkButtonStyle}>
+            {t('auth.backToSignIn', 'Back to sign in')}
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // --- Password Reset OTP Verification Screen ---
+  if (pendingPasswordReset) {
+    return (
+      <>
+        <h2 id={titleId} className="text-2xl font-bold text-center mb-2">
+          {t('auth.resetOtpTitle', 'Enter Reset Code')}
+        </h2>
+
+        <p className="text-slate-400 text-center mb-6 text-sm">
+          {t('auth.resetOtpSubtitle', 'We sent a reset code to {{email}}. Enter it below to reset your password.', { email: pendingResetEmail })}
+        </p>
+
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
+            <p>{translateAuthError(error, t)}</p>
+            {isNetworkErrorMessage(error) && (
+              <p className="mt-1 text-red-300/80">
+                {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
+              </p>
+            )}
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 p-3 rounded-md bg-green-900/50 border border-green-500/50 text-green-200 text-sm">
+            {success}
+          </div>
+        )}
+
+        <form onSubmit={handleVerifyResetOtp} className="space-y-4">
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={8}
+            placeholder={t('auth.otpPlaceholder', '00000000')}
+            value={resetOtpCode}
+            onChange={(e) => setResetOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+            className={inputStyle + ' text-center text-2xl tracking-[0.5em] font-mono'}
+            required
+            autoComplete="one-time-code"
+            autoFocus
+            disabled={isLoading}
+          />
+
+          <button type="submit" className={primaryButtonStyle} disabled={isLoading || resetOtpCode.length !== 8}>
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                {t('auth.otpVerifying', 'Verifying...')}
+              </span>
+            ) : (
+              t('auth.otpVerify', 'Verify')
+            )}
+          </button>
+        </form>
+
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={handleResendResetCode}
+            className={linkButtonStyle}
+            disabled={isLoading}
+          >
+            {t('auth.resendResetCode', "Didn't receive a code? Resend")}
+          </button>
+          <button type="button" onClick={exitPasswordReset} className={linkButtonStyle}>
+            {t('auth.backToSignIn', 'Back to sign in')}
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // --- Sign-Up OTP Verification Screen ---
   if (pendingVerification) {
     return (
       <>
