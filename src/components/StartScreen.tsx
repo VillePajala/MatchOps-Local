@@ -19,6 +19,8 @@ interface StartScreenProps {
   onEnableCloudSync?: () => void;
   /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
   onSignInExistingSubscriber?: () => void;
+  /** Called to navigate back to the welcome/setup screen */
+  onShowWelcome?: () => void;
   canResume?: boolean;
   hasSavedGames?: boolean;
   isFirstTimeUser?: boolean;
@@ -33,6 +35,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onOpenSettings,
   onEnableCloudSync,
   onSignInExistingSubscriber,
+  onShowWelcome,
   canResume = false,
   hasSavedGames = false,
   isFirstTimeUser = false,
@@ -244,6 +247,19 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </div>
             )
           ) : null}
+
+          {/* Welcome screen link - local mode only */}
+          {!isCloudMode && onShowWelcome && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={onShowWelcome}
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                {t('startScreen.welcomeScreen', 'Welcome & Setup')}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -823,7 +823,8 @@
     "enableCloudSync": "Ota pilvisynkronointi käyttöön →",
     "existingSubscriber": "Oletko jo tilaaja? Kirjaudu sisään →",
     "newToCloud": "Uusi käyttäjä? Tilaa Android-sovelluksen kautta.",
-    "getAndroidApp": "Lataa Google Playsta"
+    "getAndroidApp": "Lataa Google Playsta",
+    "welcomeScreen": "Tervetuloa & asetukset"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

@@ -1172,6 +1172,7 @@ export default function Home() {
               isFirstTimeUser={isFirstTimeUser}
               onEnableCloudSync={handleEnableCloudSync}
               onSignInExistingSubscriber={handleSignInExistingSubscriber}
+              onShowWelcome={() => setShowWelcome(true)}
               isCloudAvailable={isCloudAvailable()}
             />
           </ErrorBoundary>
