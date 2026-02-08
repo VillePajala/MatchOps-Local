@@ -119,6 +119,15 @@
 - [ ] Local cache cleared
 - [ ] Refresh → cannot access cloud data without signing back in
 
+### 2.12 Sign Up — Marketing Consent Checkbox
+- [ ] On sign-up form, marketing consent checkbox appears (separate from Terms checkbox)
+- [ ] Marketing checkbox is **unchecked by default** (GDPR requirement)
+- [ ] Can sign up without checking marketing checkbox → no marketing consent recorded
+- [ ] Check marketing checkbox, sign up → marketing consent recorded in Supabase (`user_consents` with `consent_type = 'marketing'`, `status = 'granted'`)
+- [ ] Switching from sign-up to sign-in mode clears the checkbox
+- [ ] Checkbox label is clear and non-misleading ("Send me product updates and tips via email")
+- [ ] Checkbox appears in both EN and FI
+
 ---
 
 ## 3. Data Creation Flows
@@ -442,6 +451,36 @@ These tests verify the 19 transform rules between app state and Supabase tables.
 - [ ] New account created successfully
 - [ ] Starts with empty data (no ghost data from old account)
 
+### 10.5 Marketing Consent — Prompt for Existing Users
+- [ ] Sign in as an existing cloud user who has NOT been asked about marketing consent
+- [ ] After sign-in, a non-blocking banner appears at the bottom of the screen
+- [ ] Banner shows "Stay in the loop?" with Yes/No buttons and a dismiss (X)
+- [ ] Click "Yes, keep me updated" → consent recorded in Supabase (`status = 'granted'`), banner disappears
+- [ ] OR click "No thanks" → banner disappears, no consent recorded, prompt does not reappear
+- [ ] OR click X (dismiss) → banner disappears, no consent recorded, prompt does not reappear
+- [ ] Refresh page → prompt does NOT reappear (localStorage flag persists)
+- [ ] Banner does NOT appear for local mode users
+- [ ] Banner does NOT appear for users who already have a marketing consent record
+
+### 10.6 Marketing Consent — Settings Toggle
+- [ ] In cloud mode, go to Settings → Account tab
+- [ ] "Email Preferences" section visible between Cloud Sync and Danger Zone
+- [ ] Toggle switch shows current marketing consent state
+- [ ] Toggle OFF → consent withdrawn (verify in Supabase: new row with `status = 'withdrawn'`)
+- [ ] Toast shows "Marketing emails disabled"
+- [ ] Toggle ON → consent granted (verify in Supabase: new row with `status = 'granted'`)
+- [ ] Toast shows "Marketing emails enabled"
+- [ ] Toggle NOT visible in local mode (Settings → Account tab)
+- [ ] Labels appear correctly in both EN and FI
+
+### 10.7 Marketing Consent — Audit Trail
+- [ ] Grant marketing consent (via sign-up checkbox or Settings toggle)
+- [ ] In Supabase dashboard: `user_consents` has a row with `consent_type = 'marketing'`, `status = 'granted'`
+- [ ] Withdraw consent via Settings toggle
+- [ ] In Supabase dashboard: new row added with `status = 'withdrawn'` (old `granted` row retained)
+- [ ] Grant again → another `granted` row added
+- [ ] All rows have timestamps — full history of consent changes visible
+
 ---
 
 ## 11. Security & RLS Verification
@@ -470,7 +509,7 @@ These tests verify the 19 transform rules between app state and Supabase tables.
 | Section | Tests | Passed | Failed | Status |
 |---------|-------|--------|--------|--------|
 | 1. Fresh Install | 3 flows | | | Not started |
-| 2. Authentication | 11 flows | | | Not started |
+| 2. Authentication | 12 flows | | | Not started |
 | 3. Data Creation | 3 flows | | | Not started |
 | 4. Migration | 4 flows | | | Not started |
 | 5. Data Transforms | 9 flows | | | Not started |
@@ -478,9 +517,9 @@ These tests verify the 19 transform rules between app state and Supabase tables.
 | 7. Multi-Device / Isolation | 3 flows | | | Not started |
 | 8. Import/Export | 4 flows | | | Not started |
 | 9. Edge Cases | 7 flows | | | Not started |
-| 10. Settings & Account | 4 flows | | | Not started |
+| 10. Settings & Account | 7 flows | | | Not started |
 | 11. Security & RLS | 3 flows | | | Not started |
-| **Total** | **56 flows** | | | **Not started** |
+| **Total** | **60 flows** | | | **Not started** |
 
 ### Suggested Testing Order
 
