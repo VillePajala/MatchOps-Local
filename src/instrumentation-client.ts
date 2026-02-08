@@ -145,8 +145,16 @@ if (dsn && (isProduction || isForceEnabled)) {
         return null;
       }
 
-      // Filter out network errors that might be user-network related
-      if (event.exception?.values?.[0]?.value?.includes('NetworkError')) {
+      // Filter out raw browser network errors (user connectivity issues).
+      // Only match known browser-level patterns, NOT app-level NetworkError instances
+      // from retry exhaustion (which are actionable and should be reported).
+      const exceptionValue = event.exception?.values?.[0]?.value ?? '';
+      if (
+        exceptionValue === 'NetworkError when attempting to fetch resource.' ||
+        exceptionValue === 'Failed to fetch' ||
+        exceptionValue === 'Network request failed' ||
+        exceptionValue === 'Load failed'
+      ) {
         return null;
       }
 

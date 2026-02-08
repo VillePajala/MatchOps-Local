@@ -38,23 +38,31 @@ export default function GlobalError({
         <div className={styles.errorContainer}>
           <div className={styles.errorCard}>
             <h1 className={styles.errorTitle}>
-              Something went wrong!
+              <span lang="fi">Jokin meni pieleen!</span>
+              {' / '}
+              <span lang="en">Something went wrong!</span>
             </h1>
             <p className={styles.errorMessage}>
-              An unexpected error occurred. The error has been reported and we&apos;re working to fix it.
+              <span lang="fi">Odottamaton virhe tapahtui. Virhe on raportoitu ja korjaamme sen.</span>
+              <br />
+              <span lang="en">An unexpected error occurred. The error has been reported and we&apos;re working to fix it.</span>
             </p>
             <div className={styles.buttonGroup}>
               <button
                 onClick={reset}
                 className={`${styles.button} ${styles.buttonPrimary}`}
               >
-                Try again
+                <span lang="fi">Yrit&auml; uudelleen</span>
+                {' / '}
+                <span lang="en">Try again</span>
               </button>
               <button
                 onClick={() => window.location.href = '/'}
                 className={`${styles.button} ${styles.buttonSecondary}`}
               >
-                Go home
+                <span lang="fi">Etusivulle</span>
+                {' / '}
+                <span lang="en">Go home</span>
               </button>
             </div>
           </div>

@@ -355,8 +355,15 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     case 'SET_TIMER_RUNNING':
       return { ...state, isTimerRunning: action.payload };
     case 'PAUSE_TIMER_FOR_HIDDEN':
-      if (state.isTimerRunning && state.gameStatus === 'inProgress') {
-        return { ...state, isTimerRunning: false };
+      if (state.isTimerRunning && state.gameStatus === 'inProgress' && state.startTimestamp) {
+        // Capture elapsed time and clear startTimestamp, matching PAUSE_TIMER pattern
+        const elapsedAtHide = state.timeElapsedInSeconds + (Date.now() - state.startTimestamp) / 1000;
+        return {
+          ...state,
+          isTimerRunning: false,
+          startTimestamp: null,
+          timeElapsedInSeconds: elapsedAtHide,
+        };
       }
       return state;
     case 'RESTORE_TIMER_STATE': {

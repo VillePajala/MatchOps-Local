@@ -222,6 +222,8 @@ export const useAutoSave = ({
     const currentSerialized = serializeStates(short.states);
     if (currentSerialized === null) return;
 
+    let cancelled = false;
+
     // Check if states changed
     if (prevShortRef.current !== null && prevShortRef.current !== currentSerialized) {
       // Clear existing timer
@@ -232,13 +234,14 @@ export const useAutoSave = ({
       // Set new debounced timer
       shortTimerRef.current = setTimeout(async () => {
         // Check enabledRef (not closure) at fire time to avoid saving while temporarily disabled
-        if (enabledRef.current) {
+        if (enabledRef.current && !cancelled) {
           logger.debug(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
 
           // Retry transient errors with exponential backoff
           try {
-            await saveWithRetry(saveFunctionRef.current, 3, 'short-delay');
+            await saveWithRetry(saveFunctionRef.current, 3, 'short-delay', () => cancelled);
           } catch (error) {
+            if (cancelled) return;
             // All retries failed or error was not transient
             logger.error('[useAutoSave] Save failed after retries (short-delay):', error);
             try {
@@ -258,6 +261,8 @@ export const useAutoSave = ({
     }
 
     prevShortRef.current = currentSerialized;
+
+    return () => { cancelled = true; };
   }, [enabled, short, currentGameId]);
 
   // --- Long Delay Save (2000ms) ---
@@ -266,6 +271,8 @@ export const useAutoSave = ({
 
     const currentSerialized = serializeStates(long.states);
     if (currentSerialized === null) return;
+
+    let cancelled = false;
 
     // Check if states changed
     if (prevLongRef.current !== null && prevLongRef.current !== currentSerialized) {
@@ -277,13 +284,14 @@ export const useAutoSave = ({
       // Set new debounced timer
       longTimerRef.current = setTimeout(async () => {
         // Check enabledRef (not closure) at fire time to avoid saving while temporarily disabled
-        if (enabledRef.current) {
+        if (enabledRef.current && !cancelled) {
           logger.debug(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
 
           // Retry transient errors with exponential backoff
           try {
-            await saveWithRetry(saveFunctionRef.current, 3, 'long-delay');
+            await saveWithRetry(saveFunctionRef.current, 3, 'long-delay', () => cancelled);
           } catch (error) {
+            if (cancelled) return;
             // All retries failed or error was not transient
             logger.error('[useAutoSave] Save failed after retries (long-delay):', error);
             try {
@@ -303,6 +311,8 @@ export const useAutoSave = ({
     }
 
     prevLongRef.current = currentSerialized;
+
+    return () => { cancelled = true; };
   }, [enabled, long, currentGameId]);
 
   // --- Cleanup on unmount ---

@@ -512,7 +512,7 @@ export class SupabaseDataStore implements DataStore {
       (message.includes('session') && message.includes('invalid'));
 
     if (isAuthError) {
-      throw new AuthError(`${context}: ${error.message}`, undefined, {
+      throw new AuthError(`${context}: Authentication failed`, undefined, {
         code: code as import('@/interfaces/AuthTypes').AuthErrorCode,
         message: error.message ?? 'Authentication error',
         status,
@@ -531,7 +531,11 @@ export class SupabaseDataStore implements DataStore {
       code.startsWith('22');  // data exception class (invalid input)
 
     if (isConstraintError) {
-      throw new ValidationError(`${context}: ${error.message}`);
+      // Sanitize: don't expose PostgreSQL table/constraint names to users
+      const safeMessage = code === '23503'
+        ? `${context}: This item is referenced elsewhere and cannot be modified`
+        : `${context}: Invalid data provided`;
+      throw new ValidationError(safeMessage);
     }
 
     // 3. Distinguish between server errors and network/connectivity errors
@@ -558,11 +562,11 @@ export class SupabaseDataStore implements DataStore {
       code === 'PGRST000';      // PostgREST connection error
 
     if (isServerError) {
-      throw new StorageError(`${context}: ${error.message}`);
+      throw new StorageError(`${context}: Server error, please try again later`);
     }
 
     // Default: true network/connectivity issues
-    throw new NetworkError(`${context}: ${error.message}`, status);
+    throw new NetworkError(`${context}: Network error, please check your connection`, status);
   }
 
   // ==========================================================================

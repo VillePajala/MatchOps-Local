@@ -200,8 +200,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
             );
           }
         },
-        onError: (error) => {
-          setErrorMessage(error.message || t('seasonDetailsModal.errors.createFailed', 'Failed to create season. Please try again.'));
+        onError: () => {
+          setErrorMessage(t('seasonDetailsModal.errors.createFailed', 'Failed to create season. Please try again.'));
         }
       });
     } else {
@@ -235,8 +235,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
             );
           }
         },
-        onError: (error) => {
-          setErrorMessage(error.message || t('seasonDetailsModal.errors.updateFailed', 'Failed to update season. Please try again.'));
+        onError: () => {
+          setErrorMessage(t('seasonDetailsModal.errors.updateFailed', 'Failed to update season. Please try again.'));
         }
       });
     }

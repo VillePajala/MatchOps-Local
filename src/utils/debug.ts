@@ -54,7 +54,9 @@ export function exposeSupabaseDiagnostics(): void {
     return runSupabaseDiagnostics();
   };
 
-  // Log instructions to console (eslint-disable needed for user-facing debug instruction)
-  // eslint-disable-next-line no-console
-  console.log('[Debug] Supabase diagnostics available. Run: await window.runSupabaseDiagnostics()');
+  // Log instructions to console only in development
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.log('[Debug] Supabase diagnostics available. Run: await window.runSupabaseDiagnostics()');
+  }
 }
