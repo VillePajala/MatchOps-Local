@@ -175,8 +175,8 @@ export default function AuthForm({
     setIsLoading(true);
 
     const trimmedCode = otpCode.trim();
-    if (!trimmedCode || trimmedCode.length !== 6) {
-      setError(t('auth.otpInvalidLength', 'Please enter the 6-digit code from your email'));
+    if (!trimmedCode || trimmedCode.length !== 8) {
+      setError(t('auth.otpInvalidLength', 'Please enter the 8-digit code from your email'));
       setIsLoading(false);
       return;
     }
@@ -284,7 +284,7 @@ export default function AuthForm({
         </h2>
 
         <p className="text-slate-400 text-center mb-6 text-sm">
-          {t('auth.otpSubtitle', 'We sent a 6-digit code to {{email}}. Enter it below to verify your account.', { email: pendingEmail })}
+          {t('auth.otpSubtitle', 'We sent a verification code to {{email}}. Enter it below to verify your account.', { email: pendingEmail })}
         </p>
 
         {/* Error/Success Messages */}
@@ -309,10 +309,10 @@ export default function AuthForm({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            maxLength={6}
-            placeholder={t('auth.otpPlaceholder', '000000')}
+            maxLength={8}
+            placeholder={t('auth.otpPlaceholder', '00000000')}
             value={otpCode}
-            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
             className={inputStyle + ' text-center text-2xl tracking-[0.5em] font-mono'}
             required
             autoComplete="one-time-code"
@@ -320,7 +320,7 @@ export default function AuthForm({
             disabled={isLoading}
           />
 
-          <button type="submit" className={primaryButtonStyle} disabled={isLoading || otpCode.length !== 6}>
+          <button type="submit" className={primaryButtonStyle} disabled={isLoading || otpCode.length !== 8}>
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
