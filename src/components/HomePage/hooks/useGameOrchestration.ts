@@ -865,7 +865,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
             // Use RESTORE_TIMER_STATE which atomically sets elapsed time + starts timer
             // (SET_TIMER_ELAPSED is a no-op when timer is not running)
-            dispatchGameSession({ type: 'RESTORE_TIMER_STATE', payload: { savedTime: correctedElapsedSeconds } });
+            dispatchGameSession({ type: 'RESTORE_TIMER_STATE', payload: { savedTime: correctedElapsedSeconds, timestamp: Date.now() } });
           } else {
             // Clear any stale timer state (might be for a different game)
             await clearTimerState(userId);
@@ -1764,7 +1764,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // --- AGGREGATE EXPORT HANDLERS ---
 
-  const handleExportAggregateExcel = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
+  const handleExportAggregateExcel = useCallback(async (gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
     if (gameIds.length === 0) {
       showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
       return;
