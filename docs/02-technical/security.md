@@ -73,10 +73,12 @@ When cloud mode is enabled, additional security measures apply.
 ### Authentication
 
 **Supabase Auth with Email/Password:**
-- User registration with email verification
+- User registration with email verification (OTP code via email)
 - Secure password hashing (bcrypt via Supabase)
 - JWT-based session management
 - Automatic token refresh
+- Auth emails sent via Resend SMTP (`noreply@auth.match-ops.com`)
+- Email rate limit: 100/hour (configurable in Supabase Dashboard → Auth → Rate Limits)
 
 **Session Management:**
 ```typescript

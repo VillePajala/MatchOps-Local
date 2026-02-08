@@ -58,7 +58,8 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
 | velomoai.com domain | Namecheap | ~$12/year | ✅ Done |
 | DNS (both domains) | Cloudflare | Free | ✅ Done |
 | Email receiving | Cloudflare Email Routing | Free | ✅ Done |
-| Email sending | Brevo (optional, later) | Free tier | ⏸️ Skipped |
+| Auth email sending | Resend (SMTP) | Free tier (3k/mo) | ✅ Done |
+| Business email sending | Brevo (optional, later) | Free tier | ⏸️ Skipped |
 | velomoai.com website | Vercel | Free tier | ✅ Done |
 | match-ops.com website | Vercel | Free tier | ✅ Done |
 | Social media | LinkedIn + personal X | Free | ✅ Done |
@@ -164,7 +165,34 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
    - Route all other addresses to your Gmail
    - Helps catch typos and unexpected emails
 
-### Step 2.2: Set Up Zoho Mail for matchops.com (Sending)
+### Step 2.2: Resend SMTP for Supabase Auth Emails ✅ DONE
+
+**Purpose**: Transactional auth emails (sign-up OTP codes, password reset) sent by Supabase Auth.
+
+**Setup (completed 2026-02-08):**
+1. Created Resend account at resend.com
+2. Added domain `auth.match-ops.com` (DNS records auto-configured via Cloudflare integration)
+3. Created sending-only API key (`supabase-auth`)
+4. Configured in Supabase Dashboard → Authentication → SMTP Settings:
+   - **Sender email**: `noreply@auth.match-ops.com`
+   - **Sender name**: `MatchOps`
+   - **Host**: `smtp.resend.com`
+   - **Port**: `465`
+   - **Username**: `resend`
+   - **Password**: Resend API key
+5. Increased Supabase email rate limit from 30 → 100 emails/hour
+
+**Applied to**: Production project (`aybjmnxxtgspqesdiqxd` / matchops-cloud)
+
+**Scaling notes**:
+- Free tier: 3,000 emails/month (sufficient for early launch)
+- Current rate limit: 100/hour = 2,400/day capacity
+- If >3k signups/month: upgrade to Resend Pro ($20/month for 50k emails)
+- Rate limit can be increased further in Supabase Dashboard → Auth → Rate Limits
+
+**Important**: Staging project (`hwcqpvvqnmetjrwvzlfr`) still uses built-in SMTP (fine for testing with team member emails).
+
+### Step 2.3: Set Up Zoho Mail for matchops.com (Sending)
 
 **Why Zoho:** Free tier allows sending from custom domain, which Cloudflare alone cannot do.
 
@@ -225,7 +253,7 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
    - In Zoho Mail settings, you can forward copies to Gmail
    - This way you receive in Gmail but can still send from Zoho webmail
 
-### Step 2.3: Alternative - Gmail "Send As" with SMTP Relay
+### Step 2.4: Alternative - Gmail "Send As" with SMTP Relay
 
 If you prefer managing everything from Gmail:
 
@@ -518,6 +546,7 @@ Do this:
 |---------|----------|-------|
 | Namecheap | email | Domain registrar |
 | Cloudflare | email | DNS, email routing |
+| Resend | email | Auth transactional emails (SMTP for Supabase) |
 | Zoho Mail | support@matchops.com | Email sending |
 | Sentry | email | Error monitoring |
 | Vercel | email | Hosting |
@@ -565,7 +594,7 @@ Do this:
 - [x] Move velomoai.com DNS to Cloudflare
 - [x] Verify match-ops.com still works on Vercel
 
-### Phase 2: Email ✅ COMPLETE (Receive Only)
+### Phase 2: Email ✅ COMPLETE
 - [x] Set up Cloudflare Email Routing for velomoai.com
 - [x] Create alerts@velomoai.com forwarding
 - [x] Create dev@velomoai.com forwarding
@@ -573,8 +602,11 @@ Do this:
 - [x] Set up Cloudflare Email Routing for match-ops.com
 - [x] Create support@match-ops.com forwarding
 - [x] Create hello@match-ops.com forwarding
+- [x] Set up Resend SMTP for Supabase auth emails (noreply@auth.match-ops.com)
+- [x] Configure auth.match-ops.com subdomain DNS (DKIM/SPF via Resend auto-setup)
+- [x] Increase Supabase email rate limit to 100/hour
 - [ ] ~~Set up Zoho Mail for sending~~ (skipped - using receive-only for now)
-- [ ] Add Brevo SMTP for sending (optional, later if needed)
+- [ ] Add Brevo SMTP for business email sending (optional, later if needed)
 
 ### Phase 3: Sentry ✅ COMPLETE
 - [x] Update Sentry notification email to alerts@velomoai.com
@@ -609,6 +641,7 @@ Do this:
 | hello@velomoai.com | Company inquiries | Cloudflare → Gmail ✅ |
 | support@match-ops.com | User support | Cloudflare → Gmail ✅ |
 | hello@match-ops.com | Product inquiries | Cloudflare → Gmail ✅ |
+| noreply@auth.match-ops.com | Supabase auth emails (OTP, password reset) | Resend SMTP ✅ |
 
 ### DNS Records Quick Reference
 

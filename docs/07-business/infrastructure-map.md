@@ -208,6 +208,21 @@
 │                        OUTBOUND EMAIL                                    │
 └─────────────────────────────────────────────────────────────────────────┘
 
+    Auth Emails (automated):
+    ┌─────────────────────┐
+    │   SUPABASE AUTH     │
+    │  (OTP, pwd reset)   │
+    │         │           │
+    │         ▼           │
+    │   RESEND SMTP       │
+    │  smtp.resend.com    │
+    │         │           │
+    │         ▼           │
+    │  noreply@auth.      │
+    │  match-ops.com      │
+    └─────────────────────┘
+
+    Business Emails:
     Reply from Gmail (personal address)
 
     Note: To send AS support@match-ops.com, would need:
@@ -284,8 +299,8 @@
 │                                                                          │
 │   Data:                                                                  │
 │   • IndexedDB (local storage)                                           │
+│   • Supabase PostgreSQL (cloud mode)                                    │
 │   • React Query (state management)                                      │
-│   • No backend database                                                 │
 │                                                                          │
 │   PWA:                                                                   │
 │   • Custom Service Worker (public/sw.js)                                │
@@ -313,12 +328,13 @@
 | match-ops.com domain | Namecheap | ~$12/year | Annual |
 | velomoai.com domain | Namecheap | ~$12/year | Annual |
 | DNS & Email Routing | Cloudflare | Free | - |
+| Auth transactional email | Resend | Free (3k/mo) | - |
 | Hosting (both sites) | Vercel | Free | - |
 | Error Monitoring | Sentry | Free tier | - |
 | Source Control | GitHub | Free | - |
 | Play Store | Google | $25 one-time | - |
 
-**Total Recurring: ~$24/year**
+**Total Recurring: ~$24/year** (Resend free tier sufficient for early launch; Pro $20/mo if >3k signups/month)
 
 ---
 
@@ -328,6 +344,8 @@
 |---------|---------|---------|
 | Namecheap | [email] | Domain registrar |
 | Cloudflare | [email] | DNS, email routing |
+| Resend | [email] | Auth transactional emails (Supabase SMTP) |
+| Supabase | [email] | Cloud backend (auth, database, edge functions) |
 | Vercel | [email] | Hosting |
 | GitHub | VillePajala | Source control |
 | Google Play Console | [email] | App distribution |
