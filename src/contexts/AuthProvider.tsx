@@ -150,6 +150,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Only explicit signOut() resets this flag
   const hasSignedInThisSessionRef = useRef(false);
 
+  // Track if password reset flow is in progress (OTP verified, waiting for new password).
+  // When true, onAuthStateChange ignores the recovery session — prevents the app from
+  // treating the recovery session as a real sign-in and navigating away from the
+  // "Set New Password" form.
+  const isPasswordResetFlowRef = useRef(false);
+
   // Initialize auth service
   useEffect(() => {
     let mounted = true;
@@ -198,6 +204,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Subscribe to auth changes (cloud mode fires events, local mode is no-op)
         unsubscribe = service.onAuthStateChange(async (state: AuthState, newSession: Session | null) => {
           logger.debug('[AuthProvider] Auth state changed:', state, { hasSession: !!newSession });
+
+          // During password reset flow, verifyOtp({type:'recovery'}) creates a recovery
+          // session that fires auth events. We must NOT treat this as a real sign-in,
+          // otherwise the app navigates away before the user sets their new password.
+          if (isPasswordResetFlowRef.current) {
+            logger.debug('[AuthProvider] Ignoring auth state change during password reset flow:', state);
+            return;
+          }
 
           // DEFENSIVE: Only clear session on explicit signed_out event
           // This prevents login loops caused by:
@@ -430,6 +444,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Mark that user has signed in this session - prevents spurious sign-out events
       // from clearing the session (login loop protection)
       hasSignedInThisSessionRef.current = true;
+      isPasswordResetFlowRef.current = false; // Clear in case user abandoned reset flow
       logger.info('[AuthProvider] Sign-in successful, session locked');
 
       // Fetch marketing consent status (non-blocking, don't fail sign-in)
@@ -552,6 +567,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Reset session lock BEFORE clearing state - allows onAuthStateChange to process signed_out
     hasSignedInThisSessionRef.current = false;
+    isPasswordResetFlowRef.current = false;
     logger.info('[AuthProvider] Sign-out initiated, session lock released');
 
     // Always clear local state, even if API call failed
@@ -791,14 +807,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Verify a password reset OTP code to establish a recovery session.
    * Called from AuthForm after user enters the 8-digit code from the reset email.
+   *
+   * Sets isPasswordResetFlowRef to block onAuthStateChange from treating
+   * the recovery session as a real sign-in (which would navigate away from
+   * the "Set New Password" form).
    */
   const verifyPasswordResetOtp = useCallback(async (email: string, token: string) => {
     if (!authService) return { error: 'Auth not initialized' };
+
+    // Set BEFORE the call — verifyOtp fires onAuthStateChange synchronously
+    isPasswordResetFlowRef.current = true;
 
     try {
       await authService.verifyPasswordResetOtp(email, token);
       return {};
     } catch (error) {
+      // Clear on failure — no recovery session was created
+      isPasswordResetFlowRef.current = false;
       return { error: error instanceof Error ? error.message : 'Verification failed' };
     }
   }, [authService]);
@@ -806,14 +831,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Update the user's password after verifying the reset OTP.
    * The recovery session from verifyPasswordResetOtp() must be active.
+   * After success, signs out the recovery session — user must sign in with new password.
    */
   const updatePassword = useCallback(async (newPassword: string) => {
     if (!authService) return { error: 'Auth not initialized' };
 
     try {
       await authService.updatePassword(newPassword);
+
+      // Clear the password reset flow flag BEFORE sign-out so the sign-out
+      // event is processed normally by onAuthStateChange
+      isPasswordResetFlowRef.current = false;
+
+      // Sign out the recovery session — user must sign in with their new password
+      try {
+        await authService.signOut();
+      } catch {
+        // Non-critical: recovery session will expire naturally
+      }
+      setUser(null);
+      setSession(null);
+
       return {};
     } catch (error) {
+      // Keep flag set on failure — user can retry setting password
       return { error: error instanceof Error ? error.message : 'Password update failed' };
     }
   }, [authService]);
