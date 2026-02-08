@@ -4,147 +4,249 @@
 
 # MatchOps-Local
 
-**Local-first soccer coaching PWA with optional cloud sync — your data, your choice.**
+**Local-first soccer & futsal coaching PWA with optional cloud sync — your data, your choice.**
 
 [![License](https://img.shields.io/badge/license-All_Rights_Reserved-red.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2-blue.svg)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Cloud_Backend-3ECF8E.svg)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/tests-3500+-green.svg)](#)
+[![Tests](https://img.shields.io/badge/tests-4500+-green.svg)](#testing)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
 [![Privacy](https://img.shields.io/badge/Privacy-No_Tracking-green.svg)](#)
 
 MatchOps-Local is built for coaches who need privacy, offline reliability, and soccer-specific workflows. Start locally with zero setup, or enable cloud sync to access your data across devices.
 
-- 🔒 **Local mode**: All data on-device (IndexedDB) — works offline, no account needed
-- ☁️ **Cloud mode**: Optional Supabase backend for cross-device sync
-- 🔑 **Auth**: Email/password authentication via Supabase Auth
-- ⚡ Sub-second performance with local caching
-- 📴 Full offline + PWA install
-- ⚽ Purpose-built for match prep, live tracking, and post-game analysis
+- **Local mode**: All data on-device (IndexedDB) — works offline, no account needed
+- **Cloud mode**: Optional Supabase backend for cross-device sync with local-first caching
+- **Auth**: Email/password authentication via Supabase Auth
+- **Performance**: Sub-second operations with IndexedDB + React Query caching
+- **PWA**: Installable, full offline support, auto-update detection
+- **Purpose-built**: Match prep, live tracking, post-game analysis for soccer and futsal
 
 ---
 
-## Feature Tour
+## Features
 
-- **Plan**: Personnel pool, multi-team rosters from a master player list, seasons/tournaments with Finnish league presets, bilingual UI (EN/FI).
-- **Track**: Interactive field with undo/redo, live game timer with substitution alerts and history, real-time event logging (goals/assists/opponent), tactics board with drawings.
-- **Assess**: Per-player stats across games/seasons/tournaments, weighted assessments (technical/tactical/physical/mental), filters by season/tournament/team, backups/import/export.
-- **PWA**: Installable, offline-first, wake-lock support, auto-update prompt; HTML served network-first to avoid stale versions, offline fallback page.
+### Plan
+- Master player pool shared across teams
+- Multiple team rosters with drag-and-drop assignment
+- Seasons and tournaments with Finnish league presets
+- Personnel management (coaches, physios, managers) per game
+- Formation presets (4-4-2, 4-3-3, 3-5-2, etc.)
+- Bilingual UI: English and Finnish
 
-## What You Can Do (Highlights)
+### Track
+- Interactive soccer/futsal field with player drag-and-drop
+- Live game timer with configurable periods and sub-intervals
+- Substitution alerts with interval tracking and history
+- Event logging: goals, assists, opponent events, notes
+- Tactics board with drawings, discs, and ball placement
+- Full undo/redo for all field and game actions
+- Wake-lock to keep screen on during matches
 
-- **Rosters & Personnel:** Build a master player pool, assemble multiple teams, assign staff roles (coach/physio/manager) per game, and switch rosters quickly.
-- **Game Day Control:** Drag-and-drop players on the field, run the live timer with substitution alerts/history, log goals/assists/opponent events, and undo/redo every action.
-- **Tactics & Communication:** Sketch plays on the tactics board, toggle between tactical and player views, and keep the screen awake with wake-lock while coaching.
-- **Stats & Assessment:** Track appearances/goals/assists/playtime, slice by season/tournament/team, and run structured player assessments with contextual weighting.
-- **Seasons & Tournaments:** Organize fixtures by season/tournament, including Finnish league presets, and capture awards/winners.
-- **Backup & Recovery:** Export/import full backups or individual games; migrations handle legacy localStorage to IndexedDB with pause/resume/cancel.
-- **Cloud Sync:** Optional Supabase backend — sign in to sync data across devices, migrate local data to cloud or vice versa, switch modes anytime.
-- **Authentication:** Email/password sign-up/sign-in via Supabase Auth; account deletion with full data removal (GDPR compliant).
-- **Accessibility & Localization:** WCAG AA-focused UI with keyboard navigation and ARIA labeling; bilingual EN/FI out of the box.
-- **Offline-first PWA:** Install to home screen, run fully offline, and rely on the service worker + offline fallback page for poor connectivity.
+### Assess
+- Per-player appearance, goal, assist, and playtime stats
+- Structured player assessments with 10 weighted criteria
+- Filter stats by season, tournament, team, or date range
+- Excel export via SheetJS
+
+### Sync & Auth
+- Optional Supabase cloud backend for cross-device access
+- Local-first sync: work offline, changes sync when online
+- SyncQueue with persistent IndexedDB storage, retry with backoff
+- Bidirectional migration: local-to-cloud and cloud-to-local
+- Email/password sign-up/sign-in
+- Account deletion with full data removal (GDPR compliant)
+- Re-consent flow for updated terms and privacy policy
+
+### Data Management
+- Full backup/restore (JSON export/import)
+- Individual game import/export
+- Automatic IndexedDB migration from legacy localStorage
+- Orphan detection and repair during cloud sync
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16.0.10, App Router |
+| UI | React 19.2, TypeScript 5, Tailwind CSS 4 |
+| State | React Query 5, useReducer, useState |
+| Local Storage | IndexedDB via custom adapter (`src/utils/storage.ts`) |
+| Cloud Backend | Supabase (PostgreSQL + Auth + Edge Functions) |
+| Sync | SyncQueue + SyncEngine (IndexedDB-persisted operation queue) |
+| i18n | i18next 25 (English/Finnish) |
+| Testing | Jest 30, React Testing Library |
+| Error Monitoring | Sentry 10 (production only) |
+| PWA | Custom service worker, dynamic manifest generation |
+| Deployment | Vercel |
+
+---
+
+## Architecture
+
+```
+src/
+├── app/                    # Next.js App Router (page.tsx is main orchestrator)
+├── auth/                   # Auth implementations
+│   ├── LocalAuthService    #   No-op for local mode
+│   └── SupabaseAuthService #   Supabase Auth wrapper
+├── components/             # 100+ React components
+├── config/                 # App configuration (backend, query keys, limits)
+├── contexts/               # React contexts (Auth, Modal, Toast, Premium)
+├── datastore/              # Data layer implementations
+│   ├── LocalDataStore      #   IndexedDB (offline, no account)
+│   ├── SupabaseDataStore   #   Supabase PostgreSQL (cloud)
+│   ├── SyncedDataStore     #   Local-first wrapper (local + cloud sync)
+│   └── factory             #   Mode-aware singleton factory
+├── hooks/                  # 35+ custom hooks
+├── interfaces/             # DataStore, AuthService contracts
+├── sync/                   # Background sync engine
+│   ├── SyncQueue           #   Persistent operation queue (IndexedDB)
+│   ├── SyncEngine          #   Background processor with retry
+│   └── createSyncExecutor  #   Entity-specific sync operations
+├── styles/                 # Shared style constants
+├── types/                  # TypeScript type definitions
+└── utils/                  # Utilities (storage, retry, logger, etc.)
+
+supabase/
+├── functions/              # Edge Functions
+│   ├── verify-subscription #   Play Store billing verification
+│   ├── delete-account      #   GDPR account + data deletion
+│   └── _shared/            #   Shared utilities (CORS)
+└── migrations/             # 25 PostgreSQL migrations with RLS
+```
+
+### Data Flow
+
+The app uses a **dual-mode architecture** selected at first launch:
+
+- **Local mode**: `LocalDataStore` reads/writes IndexedDB directly. Zero network, zero auth.
+- **Cloud mode**: `SyncedDataStore` wraps both `LocalDataStore` and `SupabaseDataStore`. Writes go to local first (instant), then queue for cloud sync via `SyncEngine`. Reads come from local cache, refreshed from cloud periodically.
+
+All data access goes through the `DataStore` interface (`src/interfaces/DataStore.ts`), accessed via `getDataStore()` factory. Components never interact with storage directly.
+
+### Database
+
+PostgreSQL on Supabase with Row-Level Security on all tables. Key tables: `players`, `teams`, `seasons`, `tournaments`, `games` (with `game_players`, `game_events`, `game_personnel` child tables), `personnel`, `player_adjustments`, `team_rosters`, `user_settings`, `warmup_plans`, `user_consents`, `subscriptions`.
+
+Game saves use an RPC (`save_game_with_relations`) for atomic multi-table writes with optimistic locking.
 
 ---
 
 ## Quick Start
 
-**Prereqs:** Node 20.x, npm.
+**Prerequisites:** Node 22.x, npm
 
 ```bash
 git clone https://github.com/VillePajala/MatchOps-Local.git
 cd MatchOps-Local
 npm install
-cp .env.example .env.local   # fill in Sentry values if you use error reporting
-npm run dev                  # start the app on http://localhost:3000
+cp .env.example .env.local   # configure as needed (see below)
+npm run dev                   # http://localhost:3000
 ```
 
 Production build:
 
 ```bash
-npm run build                # generates manifest, service worker, release-notes
+npm run build    # generates manifest, service worker, changelog
 npm run start
 ```
 
-## Environment & Config
+## Environment Variables
 
 Copy `.env.example` to `.env.local`:
 
-**Cloud Backend (optional):**
-- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL (enables cloud mode)
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon/public key
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | For cloud mode | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | For cloud mode | Supabase anon/public key |
+| `NEXT_PUBLIC_SENTRY_DSN` | No | Sentry DSN for error reporting |
+| `SENTRY_AUTH_TOKEN` | No | Sentry auth for source map uploads |
+| `ANALYZE` | No | `true` to enable bundle analyzer |
+| `NEXT_PUBLIC_MOCK_BILLING` | Dev only | Mock Play Store billing (never in production) |
 
-**Error Reporting (optional):**
-- `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_*`: for error reporting
+Local mode requires no environment variables at all.
 
-**Development:**
-- `ANALYZE=true`: enable bundle analyzer during builds
-- `NEXT_PUBLIC_DEBUG` / `NEXT_PUBLIC_DEBUG_ALL`: optional debug flags
+---
 
-## Development Workflow
+## Development
 
-Key scripts:
-- `npm run dev` – start Next dev server.
-- `npm run lint` / `npm run type-check` – static checks.
-- `npm run test:unit` / `npm run test:integration` – unit & integration suites.
-- `npm run test:critical` – core workflows (CI gate).
-- `npm run test:smoke` – component smoke tests (CI gate).
-- `npm run test:a11y` – accessibility suites (covers Privacy Policy, Terms, offline page).
-- `npm run test:performance` – perf tests (best-effort in CI).
-- `npm run test:ci` – full Jest CI config with reporting.
-- `npm run build` – production build (runs manifest + release-notes generators).
-- `npm run build:analyze` – `ANALYZE=true` build with bundle analyzer + summary.
-- `npm run e2e` – Playwright (opt-in; CI job is off by default).
+### Key Scripts
 
-Reports:
-- Jest JUnit: `test-results/results.xml`
-- Jest HTML: `test-results/report.html`
-- Coverage: `coverage/lcov-report/index.html`
-- Playwright: `playwright-report/`
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Next.js dev server |
+| `npm run build` | Production build (manifest + service worker + changelog) |
+| `npm run lint` | ESLint |
+| `npm run type-check` | TypeScript type checking |
+| `npm test` | Run all Jest tests |
+| `npm run test:unit` | Unit tests only (`src/`) |
+| `npm run test:integration` | Integration tests (`tests/integration/`) |
+| `npm run test:critical` | Core workflow tests (CI gate) |
+| `npm run test:smoke` | Component smoke tests (CI gate) |
+| `npm run test:a11y` | Accessibility tests |
+| `npm run test:performance` | Performance benchmarks |
+| `npm run test:ci` | Full CI suite with bail-on-first-failure |
+| `npm run build:analyze` | Bundle analysis (outputs to `.next/analyze/`) |
+| `npm run e2e` | Playwright end-to-end tests |
+| `npm run generate:i18n-types` | Regenerate i18n TypeScript types |
 
-Known test noise: Next.js `Link` triggers a one-time `act(...)` warning in jsdom during a11y tests; allowed by our console filters.
+### Testing
 
-## Quality Gates (P3 Play Store)
+4,500+ tests across 220+ suites. Configuration in `jest.config.js`:
 
-- **Accessibility:** `npm run test:a11y` validates static pages (Privacy Policy, Terms) and offline fallback; includes WCAG AA contrast checks.
-- **Performance/bundle:** `npm run build:analyze` (ANALYZE=true) produces `.next/analyze`; bundle size summary is reported in CI.
-- **Baseline targets:** `docs/06-quality/performance-baseline.md` (LCP < 2.5s, INP < 200ms, CLS < 0.1, TTFB < 800ms; Lighthouse >90 all categories, PWA pass).
-- **Critical path CI:** `.github/workflows/test-guards.yml` runs type-check, critical, smoke, performance, a11y, lint, and build on PRs.
+- `detectOpenHandles: true` — catches resource leaks
+- `testTimeout: 30000` — 30s default
+- Coverage thresholds: 60% lines, 55% functions, 45% branches
 
-## Architecture & Docs
+Test fixtures in `tests/fixtures/` provide deterministic mock data for players, games, seasons, tournaments, and settings.
 
-- **Roadmap:** `docs/03-active-plans/UNIFIED-ROADMAP.md` and `docs/03-active-plans/PLAY-STORE-IMPLEMENTATION-PLAN.md`.
-- **Architecture:** `docs/02-technical/architecture/` (local-first design), `docs/02-technical/database/` (storage schema), `docs/02-technical/security.md`.
-- **Testing:** `docs/06-testing/` (strategy, coverage goals), `docs/06-quality/performance-baseline.md`.
-- **Features:** `docs/04-features/` for deeper specs.
+### CI/CD
 
-## Feature Snapshot
+GitHub Actions workflows (`.github/workflows/`):
 
-- **Plan:** personnel pool, multi-team rosters, seasons/tournaments, bilingual (EN/FI).
-- **Track:** interactive field with undo/redo, live timer with substitution alerts, event logging, tactics board.
-- **Assess:** per-player stats across games/seasons/tournaments, assessments with weighted context, backups/import/export.
-- **Sync:** optional cloud backend (Supabase) for cross-device access, bidirectional migration between local and cloud.
-- **Auth:** email/password authentication, account management, data deletion (GDPR).
-- **PWA:** installable, offline-first, wake-lock support, auto-update prompt.
+- **test-guards.yml**: Runs on PRs — type-check, lint, critical, smoke, a11y, performance, build
+- **ci.yml**: Full CI pipeline
+- **full-test-suite.yml**: Complete test suite
 
-## Build & Deploy
+Deployment via Vercel (auto-deploy on push to master).
 
-- `npm run build` generates `public/manifest.json`, `public/sw.js`, and `public/release-notes.json` (last commit message).
-- Deploy `.next` with any static host or run `npm run start` on Node.
-- Bundle analyzer output: `.next/analyze/` when `ANALYZE=true`.
-- Service worker caches static assets; HTML is network-first to avoid stale app versions. Offline fallback: `public/offline.html`.
+---
+
+## Project Structure (Key Files)
+
+| File | Purpose |
+|------|---------|
+| `src/app/page.tsx` | Main orchestrator — hooks, reducers, data fetching |
+| `src/hooks/useGameSessionReducer.ts` | Core game logic (timer, score, periods) |
+| `src/hooks/useGameState.ts` | Interactive field state (positions, drawings) |
+| `src/interfaces/DataStore.ts` | Backend-agnostic data access contract |
+| `src/datastore/factory.ts` | Mode-aware singleton factory |
+| `src/sync/SyncEngine.ts` | Background sync processor |
+| `src/auth/SupabaseAuthService.ts` | Authentication wrapper |
+| `src/config/backendConfig.ts` | Backend mode detection |
+| `src/types/index.ts` | Core TypeScript interfaces |
+| `src/utils/storage.ts` | IndexedDB adapter |
+
+---
 
 ## Troubleshooting
 
-- Use Node 20.x; mismatched Node versions can break `npm ci`.
-- Sentry is optional; remove `NEXT_PUBLIC_SENTRY_DSN` locally to disable reporting.
-- If bundle analysis fails, set `ANALYZE=true` for that build step.
-- A11y tests emit a benign React `act(...)` warning from Next `Link`; suite still passes.
+- **Node version**: Use Node 22.x (matches development environment).
+- **Sentry**: Optional — remove `NEXT_PUBLIC_SENTRY_DSN` from `.env.local` to disable.
+- **Bundle analysis**: Run `npm run build:analyze` with `ANALYZE=true`.
+- **IndexedDB in private mode**: PWAs require persistent storage — private/incognito mode is not supported.
+- **Service worker updates**: The SW uses a timestamped cache name; a new Vercel build triggers update detection in installed PWAs.
+
+---
 
 ## License
 
-All rights reserved © 2025 Ville Pajala. See [LICENSE](LICENSE) for details.
+All rights reserved &copy; 2025 Ville Pajala. See [LICENSE](LICENSE) for details.
 
 ---
 
