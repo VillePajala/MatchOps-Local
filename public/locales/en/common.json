@@ -1816,7 +1816,7 @@
       "noAccountTitle": "No Account Required (Local Mode)",
       "noAccountContent": "MatchOps works entirely offline in local mode. No account creation, login, or personal information is required.",
       "cloudDataTitle": "Cloud Sync (Optional)",
-      "cloudDataIntro": "If you enable Cloud Sync with a Premium subscription, your data is stored on secure cloud servers:",
+      "cloudDataIntro": "If you enable Cloud Sync, your data is additionally stored on secure cloud servers:",
       "cloudDataItems": {
         "syncedData": "Copied to our secure EU-based servers (Supabase, hosted in EU)",
         "encryption": "Encrypted in transit (HTTPS/TLS) and at rest",
@@ -1826,18 +1826,18 @@
       },
       "cloudDataNote": "Cloud data is stored in secure EU-based data centers. You can delete your cloud data at any time from Settings.",
       "dataRetentionTitle": "Data Retention",
-      "dataRetentionContent": "Cloud data is retained while your account is active. When you delete your cloud data or your account, data is permanently removed within 30 days. After cancellation, cloud data remains in read-only mode; after 90 days of account inactivity, it may be deleted. Local data remains on your device until you clear it. Consent records are retained even after account deletion for GDPR compliance."
+      "dataRetentionContent": "Cloud data is retained while your account is active. When you delete your cloud data or your account, data is permanently removed within a reasonable period. If your account becomes inactive for an extended period, we may delete cloud data with prior notice. Local data remains on your device until you clear it. Consent records are retained even after account deletion for GDPR compliance."
     },
     "legalBasis": {
       "title": "Legal Basis for Data Processing (GDPR Art. 6)",
       "intro": "We process personal data on the following legal bases:",
       "contract": "Contract (Art. 6(1)(b)): Processing necessary for cloud sync service delivery",
       "consent": "Consent (Art. 6(1)(a)): Acceptance of Terms of Service and Privacy Policy for cloud mode users. Consent records are stored to demonstrate compliance",
-      "legitimateInterest": "Legitimate interest (Art. 6(1)(f)): Error reporting via Sentry to maintain app quality and fix bugs. This processing involves minimal anonymized data and does not involve profiling or tracking. You can opt out in settings at any time"
+      "legitimateInterest": "Legitimate interest (Art. 6(1)(f)): Error reporting via Sentry to maintain app quality and fix bugs. This processing involves minimal anonymized data and does not involve profiling or tracking"
     },
     "dataWeCollect": {
       "title": "Data We May Collect",
-      "errorReportingTitle": "Error Reporting (Opt-Out)",
+      "errorReportingTitle": "Error Reporting",
       "errorReportingIntro": "When the app encounters an error, we may collect:",
       "errorReportingItems": {
         "errorType": "Error type and stack trace",
@@ -1845,9 +1845,9 @@
         "appVersion": "App version",
         "sessionInfo": "Anonymized session information"
       },
-      "errorReportingNote": "This helps us fix bugs and improve the app. Error reports do not contain your game data or player information. They are processed by Sentry.io (data may be processed in the US under Standard Contractual Clauses). You can disable error reporting in app settings at any time.",
+      "errorReportingNote": "This helps us fix bugs and improve the app. Error reports do not contain your game data or player information. They are processed by Sentry.io (data may be processed in the US under Standard Contractual Clauses).",
       "licenseValidationTitle": "Play Store License Validation",
-      "licenseValidationContent": "When you purchase premium features, Google Play handles all payment processing. We verify license status through Play Store API but do not receive your payment information.",
+      "licenseValidationContent": "If paid features are introduced, Google Play will handle all payment processing. We verify license status through Play Store API but do not receive your payment information.",
       "consentTrackingTitle": "Consent Records (Cloud Mode)",
       "consentTrackingIntro": "When you accept our Terms of Service and Privacy Policy in Cloud Mode, we record:",
       "consentTrackingItems": {
@@ -1902,8 +1902,8 @@
       "erasure": "Erasure (Art. 17): Delete your local data or cloud data at any time",
       "portability": "Portability (Art. 20): Export your data in standard JSON format",
       "restriction": "Restriction (Art. 18): Switch to local-only mode to stop cloud processing",
-      "objection": "Objection (Art. 21): Stop cloud processing by switching to local mode, or disable error reporting in settings",
-      "withdrawConsent": "Withdraw consent: Disable error reporting in settings; delete your cloud account to withdraw consent to cloud processing",
+      "objection": "Objection (Art. 21): Stop cloud processing by switching to local mode",
+      "withdrawConsent": "Withdraw consent: Delete your cloud account to withdraw consent to cloud processing",
       "deleteLocal": "For local data: Use Settings → Data → Your Data Rights",
       "deleteCloud": "For cloud data: Use Settings → Data → Your Data Rights",
       "contactUs": "All data management options are available directly in the app under Settings → Data tab. No email request is needed — you can self-serve all GDPR rights through the app interface.",
@@ -1987,7 +1987,7 @@
     },
     "dataAndPrivacy": {
       "title": "Data and Privacy",
-      "content": "Your data is stored locally on your device (local mode) or in our secure cloud database (cloud mode with subscription). See our Privacy Policy for details on data handling, security, GDPR rights, and what limited data we may collect.",
+      "content": "Your data is stored locally on your device (local mode) or in our secure cloud database (cloud mode). See our Privacy Policy for details on data handling, security, GDPR rights, and what limited data we may collect.",
       "securityAcknowledgmentTitle": "Data Security Acknowledgment",
       "securityAcknowledgmentIntro": "By using MatchOps, you acknowledge that:",
       "securityAcknowledgmentItems": {
@@ -2034,24 +2034,24 @@
       "googlePlay": "Google Play Store",
       "googlePlayDesc": "For app distribution and payments",
       "sentry": "Sentry",
-      "sentryDesc": "For error reporting (optional, can be disabled)",
+      "sentryDesc": "For automatic error reporting in production",
       "supabase": "Supabase",
-      "supabaseDesc": "For cloud sync and authentication (Premium feature)",
+      "supabaseDesc": "For cloud sync and authentication (cloud mode)",
       "vercel": "Vercel",
       "vercelDesc": "For PWA web hosting",
       "note": "Your use of these services is governed by their respective terms and policies."
     },
     "premiumSubscription": {
-      "title": "Premium Subscription",
-      "intro": "MatchOps Premium is an optional subscription that provides additional features:",
+      "title": "Paid Features",
+      "intro": "We may introduce paid subscription plans in the future. If offered, paid features may include:",
       "features": {
         "cloudSync": "Cloud Sync: Access your data across multiple devices",
         "unlimitedEntities": "Unlimited players, teams, seasons, and tournaments",
         "prioritySupport": "Priority support"
       },
-      "billing": "Subscriptions are billed through Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.",
-      "cancellation": "You can cancel your subscription at any time through Google Play. After cancellation, you retain access until the end of your billing period.",
-      "dataAfterCancel": "If you cancel Premium, your cloud data remains accessible in read-only mode. You can export or delete it at any time. After 90 days of inactivity, cloud data may be deleted."
+      "billing": "If paid subscriptions are introduced, they will be billed through Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.",
+      "cancellation": "If you have an active subscription, you can cancel at any time through Google Play. After cancellation, you retain access until the end of your billing period.",
+      "dataAfterCancel": "If a paid subscription is cancelled, your cloud data remains accessible. You can export or delete it at any time. We reserve the right to remove cloud data after an extended period of account inactivity, with prior notice."
     },
     "cloudSync": {
       "title": "Cloud Sync Terms",
@@ -2075,7 +2075,7 @@
     "termination": {
       "title": "Termination",
       "content": "We may terminate or suspend your access to the app immediately, without notice, if you breach these terms. Upon termination, your license to use the app ends.",
-      "cloudTermination": "If your account is terminated, you will lose access to Cloud Sync features. Your local data will remain on your device. Cloud data will be deleted within 30 days of termination.",
+      "cloudTermination": "If your account is terminated, you will lose access to Cloud Sync features. Your local data will remain on your device. Cloud data will be deleted within a reasonable period after termination.",
       "voluntaryDeletion": "You can voluntarily delete your cloud account and data at any time from the Settings menu."
     },
     "governingLaw": {
@@ -2509,7 +2509,14 @@
     }
   },
   "reverseMigration": {
-    "title": "Switch to Local Mode",
+    "title": {
+      "preview": "Switch to Local Mode",
+      "choose": "Switch to Local Mode",
+      "confirm": "Confirm Cloud Deletion",
+      "progress": "Switching to Local Mode",
+      "complete": "Switch Complete",
+      "error": "Download Failed"
+    },
     "description": "Download your cloud data to this device and switch to local mode.",
     "preparing": "Preparing download...",
     "noData": "No cloud data found.",
@@ -2597,14 +2604,6 @@
       "confirm": "Confirm",
       "startMigration": "Start Migration",
       "done": "Done"
-    },
-    "title": {
-      "preview": "Switch to Local Mode",
-      "choose": "Switch to Local Mode",
-      "confirm": "Confirm Cloud Deletion",
-      "progress": "Switching to Local Mode",
-      "complete": "Switch Complete",
-      "error": "Download Failed"
     }
   },
   "welcome": {

@@ -154,11 +154,14 @@ export default function WelcomeScreen({
                 </div>
               </button>
             )}
+            {/* Settings note - refers to local/cloud choice above */}
+            <p className="text-slate-500 text-xs text-center pt-1">
+              {t('welcome.changeInSettings', 'You can change this later in Settings')}
+            </p>
           </div>
 
-          {/* Footer */}
-          <div className="text-center mt-6 space-y-2">
-            {/* Import backup as footer link */}
+          {/* Footer: Import backup */}
+          <div className="text-center mt-6">
             <p className="text-slate-500 text-sm">
               <button
                 onClick={onImportBackup}
@@ -170,10 +173,6 @@ export default function WelcomeScreen({
                   ? t('welcome.importing', 'Importing...')
                   : t('welcome.haveBackup', 'Have a backup file?')}
               </button>
-            </p>
-            {/* Settings note */}
-            <p className="text-slate-500 text-sm">
-              {t('welcome.changeInSettings', 'You can change this later in Settings')}
             </p>
           </div>
         </div>

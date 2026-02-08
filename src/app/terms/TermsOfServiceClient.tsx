@@ -189,8 +189,8 @@ export function TermsOfServiceClient() {
           <p className="text-slate-300 mb-2">{t('termsOfService.contact.intro')}</p>
           <p className="text-slate-300">
             {t('termsOfService.contact.email')}:{' '}
-            <a href="mailto:valoraami@gmail.com" className="text-indigo-400 hover:underline">
-              valoraami@gmail.com
+            <a href="mailto:support@match-ops.com" className="text-indigo-400 hover:underline">
+              support@match-ops.com
             </a>
           </p>
         </section>
