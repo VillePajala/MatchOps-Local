@@ -42,7 +42,7 @@ export default function AuthForm({
   titleId,
 }: AuthFormProps) {
   const { t } = useTranslation();
-  const { signIn, signUp, resetPassword, verifySignUpOtp, resendSignUpConfirmation, verifyPasswordResetOtp, updatePassword } = useAuth();
+  const { signIn, signUp, resetPassword, signOut, verifySignUpOtp, resendSignUpConfirmation, verifyPasswordResetOtp, updatePassword } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
@@ -337,6 +337,12 @@ export default function AuthForm({
   }, [pendingResetEmail, resetPassword, t]);
 
   const exitPasswordReset = useCallback(() => {
+    // If OTP was already verified, a recovery session exists — sign out to clean it up
+    if (showNewPasswordForm) {
+      signOut().catch(() => {
+        // Non-critical: recovery session will expire naturally
+      });
+    }
     setPendingPasswordReset(false);
     setShowNewPasswordForm(false);
     setResetOtpCode('');
@@ -346,7 +352,7 @@ export default function AuthForm({
     setError(null);
     setSuccess(null);
     setMode('signIn');
-  }, []);
+  }, [showNewPasswordForm, signOut]);
 
   const switchMode = useCallback((newMode: AuthMode) => {
     if (newMode === 'signUp' && !allowRegistration) {
