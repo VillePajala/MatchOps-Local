@@ -145,6 +145,7 @@ const FORMATS = {
   openGraph: { width: 1200, height: 630, name: 'Open Graph / Social Share' },
   appStoreFeature: { width: 1024, height: 500, name: 'App Store Feature Graphic' },
   playStoreIcon: { width: 512, height: 512, name: 'Play Store App Icon' },
+  playStoreScreenshot: { width: 1080, height: 2340, name: 'Play Store Screenshot' },
 };
 
 // PhoneMockup imported from @/components/marketing
@@ -2243,11 +2244,138 @@ export default function MarketingAssets() {
                   </div>
                 </div>
               </AssetContainer>
+              {/* V6: Arc Tight - 5 phones in arc (adapted from li-post-arc-tight) */}
+              <AssetContainer id="ps-feature-v6" {...FORMATS.appStoreFeature}>
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Ambient glows */}
+                  <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 w-[420px] h-[420px] bg-primary/20 rounded-full blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[250px] h-[250px] bg-amber-500/15 rounded-full blur-[130px]" />
+
+                  {/* 5 phones in arc arrangement */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    <PhoneMockup
+                      screenshot={screenshots.tacticalBoard}
+                      size="sm"
+                      style={{
+                        position: 'absolute',
+                        left: '12%',
+                        top: '50%',
+                        transform: 'translateY(-50%) rotate(-8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                    <PhoneMockup
+                      screenshot={screenshots.playerstats}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        left: '24%',
+                        top: '50%',
+                        transform: 'translateY(-45%) rotate(-4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    <PhoneMockup
+                      screenshot={screenshots.soccerfield}
+                      size="lg"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translate(-50%, -45%)',
+                      }}
+                      zIndex={10}
+                    />
+                    <PhoneMockup
+                      screenshot={screenshots.timer}
+                      size="md"
+                      style={{
+                        position: 'absolute',
+                        right: '24%',
+                        top: '50%',
+                        transform: 'translateY(-45%) rotate(4deg)',
+                      }}
+                      zIndex={2}
+                    />
+                    <PhoneMockup
+                      screenshot={screenshots.goalTimeline}
+                      size="sm"
+                      style={{
+                        position: 'absolute',
+                        right: '12%',
+                        top: '50%',
+                        transform: 'translateY(-50%) rotate(8deg)',
+                      }}
+                      zIndex={1}
+                    />
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-5 left-0 right-0 flex justify-center z-20">
+                    <TitleText size="xl" />
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-base">Every game remembered.</p>
+                  </div>
+                  <div className="absolute bottom-4 right-6 z-20">
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                </div>
+              </AssetContainer>
+
+              {/* V7: Uniform Row - 5 phones same size with labels (adapted from li-post-uniform) */}
+              <AssetContainer id="ps-feature-v7" {...FORMATS.appStoreFeature}>
+                <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+                  {/* Ambient glows */}
+                  <div className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 w-[420px] h-[420px] bg-primary/20 rounded-full blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[250px] h-[250px] bg-amber-500/15 rounded-full blur-[130px]" />
+
+                  {/* 5 phones in uniform row with labels */}
+                  <div className="relative z-10 w-full h-full flex items-center justify-center gap-3 pt-10" style={{ transform: 'scale(0.82)' }}>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-xs mt-1">Lineup</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.tacticalBoard} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-xs mt-1">Tactics</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.timer} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-xs mt-1">Timer</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.goalTimeline} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-xs mt-1">Log Goal</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={1} />
+                      <span className="text-gray-400 text-xs mt-1">Statistics</span>
+                    </div>
+                  </div>
+
+                  {/* Top branding */}
+                  <div className="absolute top-5 left-0 right-0 flex justify-center z-20">
+                    <TitleText size="xl" />
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-base">Every game remembered.</p>
+                  </div>
+                  <div className="absolute bottom-4 right-6 z-20">
+                    <SiteUrl size="sm" variant="yellow" />
+                  </div>
+                </div>
+              </AssetContainer>
+
             </div>
 
             {/* Phone Screenshots */}
             <h3 className="text-lg font-semibold text-white mb-4">Phone Screenshots — Min 2, Max 8</h3>
-            <p className="text-gray-400 text-sm mb-6">Right-click → Save Image, or click the download button. Google Play displays these in a device frame automatically.</p>
+            <p className="text-gray-400 text-sm mb-6">Google Play displays these in a device frame automatically. Use the Download PNG button on each.</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
               {[
                 { key: 'soccerfield', label: isEnglish ? 'Lineup' : 'Kokoonpano' },
@@ -2258,25 +2386,22 @@ export default function MarketingAssets() {
                 { key: 'assessment', label: isEnglish ? 'Assessment' : 'Arviointi' },
                 { key: 'trends', label: isEnglish ? 'Trends' : 'Trendit' },
                 { key: 'archive', label: isEnglish ? 'Archive' : 'Historia' },
+                { key: 'cloudSync', label: isEnglish ? 'Cloud Sync' : 'Pilvisynkronointi' },
               ].map((item) => {
                 const src = screenshots[item.key as keyof typeof screenshots];
-                const filename = `MatchOps-PlayStore-${item.key}.jpg`;
                 return (
-                  <div key={item.key} className="mb-4">
-                    <div className="mb-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
-                      <Image src={src} alt={item.label} width={270} height={480} className="w-full h-auto" />
+                  <AssetContainer
+                    key={item.key}
+                    id={`ps-screen-${item.key}`}
+                    {...FORMATS.playStoreScreenshot}
+                    name={`Play Store — ${item.label}`}
+                    scale={0.25}
+                  >
+                    <div className="w-full h-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={item.label} crossOrigin="anonymous" className="w-full h-full object-cover" style={{ filter: 'contrast(1.075) saturate(1.025)' }} />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-300">{item.label}</span>
-                      <a
-                        href={src}
-                        download={filename}
-                        className="text-xs px-2 py-1 rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
-                      >
-                        Download
-                      </a>
-                    </div>
-                  </div>
+                  </AssetContainer>
                 );
               })}
             </div>

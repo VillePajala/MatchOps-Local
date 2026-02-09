@@ -265,7 +265,7 @@
     "faq": {
       "title": "Yleisiä kysymyksiä",
       "q1": "Miten asennan sovelluksen?",
-      "a1": "Sovellus on tulossa pian Google Playhin. Ota yhteyttä osoitteeseen hello@match-ops.com saadaksesi lisätietoja.",
+      "a1": "Sovellus on tällä hetkellä suljetussa testauksessa Google Playssa. Liity testausryhmään ottamalla yhteyttä: hello@match-ops.com.",
       "q2": "Mihin tietoni tallennetaan?",
       "a2": "Tietosi tallennetaan turvallisesti ja pysyvät yksityisinä.",
       "q3": "Voinko käyttää useammalla laitteella?",
@@ -286,8 +286,8 @@
       "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa."
     },
     "cta": {
-      "title": "Tulossa pian Google Playhin",
-      "subtitle": "Kysyttävää? Ota yhteyttä.",
+      "title": "Nyt suljetussa testauksessa Google Playssa",
+      "subtitle": "Haluatko mukaan testausryhmään? Ota yhteyttä: hello@match-ops.com",
       "button": "Ota yhteyttä",
       "googlePlayAlt": "Google Play"
     }
@@ -377,7 +377,7 @@
       "offlinePrivate": "Toimii ilman nettiä. Tietosi pysyvät yksityisinä."
     },
     "cta": {
-      "inTesting": "Tulossa pian",
+      "inTesting": "Testauksessa",
       "contact": "Yhteydenotot: hello@match-ops.com"
     },
     "descriptions": {

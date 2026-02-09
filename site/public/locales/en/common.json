@@ -284,7 +284,7 @@
     "faq": {
       "title": "Common Questions",
       "q1": "How do I install the app?",
-      "a1": "The app is coming soon to Google Play. Contact us at hello@match-ops.com for more information.",
+      "a1": "The app is currently in closed testing on Google Play. To join the testing group, contact us at hello@match-ops.com.",
       "q2": "Where is my data stored?",
       "a2": "Your data is stored securely and stays private.",
       "q3": "Can I use it on multiple devices?",
@@ -305,8 +305,8 @@
       "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
     },
     "cta": {
-      "title": "Coming Soon to Google Play",
-      "subtitle": "Have questions? Get in touch.",
+      "title": "Now in Closed Testing on Google Play",
+      "subtitle": "Want to join the testing group? Contact us at hello@match-ops.com",
       "button": "Contact Us",
       "googlePlayAlt": "Google Play"
     }
@@ -396,7 +396,7 @@
       "offlinePrivate": "Works offline. Your data stays private."
     },
     "cta": {
-      "inTesting": "Coming Soon",
+      "inTesting": "In Testing",
       "contact": "Contact: hello@match-ops.com"
     },
     "descriptions": {
