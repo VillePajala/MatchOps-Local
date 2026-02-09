@@ -450,6 +450,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     handleClubSeasonStartChange(month, day);
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't close if the restore confirmation dialog is open
+      if (e.key === 'Escape' && !showRestoreConfirm) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, showRestoreConfirm]);
+
   if (!isOpen) return null;
 
   const getTabStyle = (tab: SettingsTab) => {
@@ -467,7 +479,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full`}>
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />

@@ -725,13 +725,19 @@ export class SupabaseAuthService implements AuthService {
   async signOut(): Promise<void> {
     this.ensureInitialized();
 
-    // Add timeout to prevent hanging if server is unreachable
+    // Add timeout to prevent hanging if server is unreachable.
+    // Uses Promise.race to actually enforce the 10s limit — the Supabase client
+    // does not accept an AbortSignal, so we race against a timeout promise.
     let error;
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      const result = await this.client!.auth.signOut();
-      clearTimeout(timeout);
+      let timeoutId: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<{ error: Error }>((_resolve, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Sign out timed out')), 10000);
+      });
+      const result = await Promise.race([
+        this.client!.auth.signOut(),
+        timeoutPromise,
+      ]).finally(() => clearTimeout(timeoutId!));
       error = result.error;
     } catch (e) {
       // Timeout or network error — treat as failed API signout
@@ -953,7 +959,7 @@ export class SupabaseAuthService implements AuthService {
 
       if (error) {
         logger.error('[SupabaseAuthService] Failed to record consent:', error.message);
-        throw new AuthError(`Failed to record consent: ${error.message}`);
+        throw new AuthError('Failed to record consent. Please try again.');
       }
     } catch (error) {
       if (error instanceof TransientSupabaseError) {
@@ -984,7 +990,7 @@ export class SupabaseAuthService implements AuthService {
 
       if (error) {
         logger.error('[SupabaseAuthService] Failed to get consent:', error.message);
-        throw new AuthError(`Failed to get consent: ${error.message}`);
+        throw new AuthError('Failed to check consent status. Please try again.');
       }
 
       // No consent record exists
@@ -1022,7 +1028,7 @@ export class SupabaseAuthService implements AuthService {
 
       if (error) {
         logger.error('[SupabaseAuthService] Failed to get consent:', error.message);
-        throw new AuthError(`Failed to get consent: ${error.message}`);
+        throw new AuthError('Failed to check consent status. Please try again.');
       }
 
       // No consent record exists
@@ -1112,7 +1118,7 @@ export class SupabaseAuthService implements AuthService {
 
         if (error) {
           logger.error('[SupabaseAuthService] Failed to grant marketing consent:', error.message);
-          throw new AuthError(`Failed to grant marketing consent: ${error.message}`);
+          throw new AuthError('Failed to update marketing preferences. Please try again.');
         }
       } else {
         // Revoke marketing consent
@@ -1127,7 +1133,7 @@ export class SupabaseAuthService implements AuthService {
 
         if (error) {
           logger.error('[SupabaseAuthService] Failed to revoke marketing consent:', error.message);
-          throw new AuthError(`Failed to revoke marketing consent: ${error.message}`);
+          throw new AuthError('Failed to update marketing preferences. Please try again.');
         }
       }
 
@@ -1392,14 +1398,14 @@ export class SupabaseAuthService implements AuthService {
           );
         }
 
-        throw new AuthError(`Account deletion failed: ${error.message}`);
+        throw new AuthError('Account deletion failed. Please try again or contact support.');
       }
 
       // Check if the response indicates success
       if (!data?.success) {
         const errorMessage = data?.error || 'Unknown error';
         logger.error('[SupabaseAuthService] Account deletion failed:', errorMessage);
-        throw new AuthError(`Account deletion failed: ${errorMessage}`);
+        throw new AuthError('Account deletion failed. Please try again or contact support.');
       }
 
       logger.info('[SupabaseAuthService] Account deleted successfully');

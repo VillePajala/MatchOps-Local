@@ -481,6 +481,13 @@ export default function HomePage() {
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
               {t('info.cta.title')}
             </h3>
+            <Image
+              src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
+              alt={t('info.cta.googlePlayAlt')}
+              width={688}
+              height={140}
+              className="mx-auto mb-6 w-40 md:w-48 h-auto opacity-80"
+            />
             <p className="text-slate-300 mb-6">
               {t('info.cta.subtitle')}
             </p>
