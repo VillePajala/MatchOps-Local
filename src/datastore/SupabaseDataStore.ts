@@ -2975,7 +2975,7 @@ export class SupabaseDataStore implements DataStore {
         home_score: game.homeScore,
         away_score: game.awayScore,
         game_notes: game.gameNotes,
-        show_player_names: game.showPlayerNames,
+        show_player_names: game.showPlayerNames ?? true,
         // === Optional fields ===
         sub_interval_minutes: game.subIntervalMinutes ?? null,
         // DEFENSIVE: Guard against invalid values which PostgreSQL rejects

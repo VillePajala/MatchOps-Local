@@ -31,7 +31,7 @@ const StatBadge: React.FC<{ count: number, bgColor: string, positionClasses: str
   </div>
 );
 
-const PlayerDisk: React.FC<PlayerDiskProps> = ({
+const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
   id,
   fullName,
   nickname,
@@ -166,6 +166,8 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
       )}
     </div>
   );
-};
+});
+
+PlayerDisk.displayName = 'PlayerDisk';
 
 export default PlayerDisk;

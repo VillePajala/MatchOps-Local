@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
+import type { GameEvent, GameEventType } from '@/types/game';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
@@ -45,19 +46,8 @@ const deferToNextFrame = (callback: () => void): number => {
   });
 };
 
-export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
-
-export interface GameEvent {
-  id: string;
-  type: GameEventType;
-  time: number; // Gametime in seconds
-  period?: number;
-  scorerId?: string;
-  assisterId?: string;
-  entityId?: string;
-}
-
 // Use shared types from @/types
+export type { GameEvent, GameEventType } from '@/types/game';
 type MutationMetaBase = Omit<UpdateGameDetailsMutationMeta, 'sequence'>;
 
 export interface GameSettingsModalProps {

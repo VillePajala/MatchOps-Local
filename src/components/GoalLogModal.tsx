@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
+import type { GameEvent } from '@/types/game';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { updateGameEvent } from '@/utils/savedGames';
 import logger from '@/utils/logger';
@@ -12,18 +13,8 @@ import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 
-// Game Event Types (matching GameSettingsModal)
-export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
-
-export interface GameEvent {
-  id: string;
-  type: GameEventType;
-  time: number; // Gametime in seconds
-  period?: number;
-  scorerId?: string;
-  assisterId?: string;
-  entityId?: string;
-}
+// Re-export shared types for backward compatibility with test imports
+export type { GameEvent, GameEventType } from '@/types/game';
 
 interface GoalLogModalProps {
   isOpen: boolean;

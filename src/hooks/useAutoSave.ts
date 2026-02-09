@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
+import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
 
 /**
  * State group configuration for auto-save
@@ -12,30 +13,24 @@ interface StateGroup {
 
 /**
  * Check if an error is transient and worth retrying.
- * Transient errors are temporary failures that may succeed on retry.
+ * Uses shared TRANSIENT_ERROR_PATTERNS for consistency with retry modules.
+ * Also checks IndexedDB-specific patterns (quota, locked, busy).
  */
 const isTransientError = (error: unknown): boolean => {
   if (!(error instanceof Error)) return false;
 
   const message = error.message.toLowerCase();
   const name = error.name.toLowerCase();
+  const combined = `${name} ${message}`;
 
-  // Storage quota temporarily exceeded
+  // IndexedDB-specific: storage quota exceeded
   if (message.includes('quota') || name.includes('quota')) return true;
 
-  // IndexedDB locked by another tab/operation
+  // IndexedDB-specific: locked by another tab/operation
   if (message.includes('locked') || message.includes('busy')) return true;
 
-  // Temporary unavailable
-  if (message.includes('temporarily unavailable')) return true;
-
-  // Network errors (if syncing in future)
-  if (message.includes('network') || message.includes('timeout')) return true;
-
-  // AbortError (operation was aborted, may work on retry)
-  if (name === 'aborterror') return true;
-
-  return false;
+  // Check shared transient patterns (network, timeout, abort, etc.)
+  return TRANSIENT_ERROR_PATTERNS.some(pattern => combined.includes(pattern));
 };
 
 /**

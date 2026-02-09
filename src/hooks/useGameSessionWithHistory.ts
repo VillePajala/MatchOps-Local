@@ -28,7 +28,7 @@ import {
 import type { AppState } from '@/types';
 
 // Actions that should trigger history saves (user-initiated changes)
-const HISTORY_SAVING_ACTIONS = new Set([
+export const HISTORY_SAVING_ACTIONS = new Set([
   // Team and game info
   'SET_TEAM_NAME',
   'SET_OPPONENT_NAME',
@@ -51,6 +51,8 @@ const HISTORY_SAVING_ACTIONS = new Set([
   'SET_GAME_TIME',
   'SET_AGE_GROUP',
   'SET_TOURNAMENT_LEVEL',
+  'SET_TOURNAMENT_SERIES_ID',
+  'SET_TEAM_ID',
   'SET_LEAGUE_ID',
   'SET_CUSTOM_LEAGUE_NAME',
   'SET_GAME_TYPE',
@@ -75,7 +77,7 @@ const HISTORY_SAVING_ACTIONS = new Set([
 ]);
 
 // Actions that should NOT trigger history saves (state loads, system actions, timer)
-const NO_HISTORY_ACTIONS = new Set([
+export const NO_HISTORY_ACTIONS = new Set([
   // State restoration (undo/redo, load game)
   'LOAD_STATE_FROM_HISTORY',
   'LOAD_GAME_SESSION_STATE',
