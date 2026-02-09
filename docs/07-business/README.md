@@ -10,6 +10,7 @@ This directory contains business strategy, monetization, and communication infra
 - **[PRIVACY_FIRST_MONETIZATION.md](./PRIVACY_FIRST_MONETIZATION.md)** - Privacy-focused monetization approach
 - **[infrastructure-map.md](./infrastructure-map.md)** - Complete infrastructure overview
 - **[store-listing/](./store-listing/)** - Play Store listing assets and copy
+- **[velomoai-website-spec.md](./velomoai-website-spec.md)** - Velomo AI website specification
 
 ## Quick Start
 

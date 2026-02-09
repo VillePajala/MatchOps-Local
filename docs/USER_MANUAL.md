@@ -24,17 +24,18 @@
 
 ### First Launch
 
-When you first open MatchOps, you'll see the **Adaptive Start Screen**:
+When you first open MatchOps, you'll see the **Welcome Screen** with a choice:
 
-**New Users** see a guided setup:
-1. Language selection (English/Finnish)
-2. Prompt to add your first players
-3. Option to create your first game
+1. **Use Locally** — All data stays on your device, no account needed
+2. **Use Cloud Sync** — Create an account for cross-device sync
 
-**Returning Users** see quick actions:
+**Local Mode** is free with no limits. **Cloud Mode** requires email/password sign-up.
+
+After choosing your mode, the **Start Screen** shows quick actions:
 - Continue last game
 - Start new game
 - Load saved game
+- Manage roster and teams
 
 ### Installing as an App (Recommended)
 
@@ -428,12 +429,17 @@ If something goes wrong:
 
 ### Multi-Device Usage
 
-MatchOps runs locally on each device. To sync:
+**With Cloud Mode (Recommended):**
+If you have a cloud account, your data syncs automatically across devices:
+1. Sign in with the same account on each device
+2. Changes sync in the background when online
+3. Works offline — changes queue and sync when reconnected
+
+**With Local Mode (Manual):**
+In local mode, each device maintains separate data. To transfer:
 1. Create backup on Device A
 2. Transfer backup file (email, cloud storage)
 3. Restore backup on Device B
-
-**Note:** Each device maintains separate data. Backup/restore is the sync method.
 
 ---
 

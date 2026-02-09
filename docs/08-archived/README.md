@@ -43,7 +43,19 @@ This directory contains completed work, superseded plans, and historical documen
 - **security-advisories.md** - Security advisory history
 - **test-fixes.md** - Test fix history
 
-### 📅 Recently Archived (January 2026)
+### 📅 Recently Archived (February 2026)
+
+#### Completed Active Plans (from 03-active-plans/)
+- **[completed-active-plans/](./completed-active-plans/)** - Plans that were fully implemented
+  - supabase-preflight-checklist.md, supabase-verification-matrix.md, supabase-live-verification-report.md
+  - local-first-sync-plan.md, subscription-implementation-plan.md
+  - pr11-reverse-migration-plan.md, wizard-simplification-plan.md
+  - user-scoped-storage-plan.md, user-scoped-storage-plan-v2.md, user-scoped-storage-verification.md
+  - entity-deletion-integrity-plan.md, import-reliability-fix-plan.md, cloud-sync-user-flows.md
+  - supabase-implementation-plan-review.md, supabase-implementation-review.md
+  - **[backend-evolution/](./completed-active-plans/backend-evolution/)** - REALISTIC-IMPLEMENTATION-PLAN.md, STORAGE-AUDIT.md, migration-strategy.md, phased-implementation-roadmap.md
+
+### 📅 Previously Archived (January 2026)
 
 #### Completed Refactoring & Technical Debt (P0/P1/P2 Complete)
 - **[fix-plans/](./fix-plans/)** - All P0/P1/P2 refactoring plans (COMPLETED Dec 2025)

@@ -316,7 +316,7 @@ Acceptance Criteria (for IndexedDB rollout)
 - Target Date: TBD
 - Estimated Duration: 4-6 weeks (Phases 1-3) + 3-4 weeks optional (Phase 4 Supabase)
 - Complexity: Medium (mostly refactoring existing code)
-- Documentation: `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` ⭐ **START HERE**
+- Documentation: `08-archived/completed-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` (archived)
 
 **Overview**: Evolve from IndexedDB-only to dual-backend architecture supporting both local (free) and cloud (premium) modes.
 
@@ -339,8 +339,8 @@ Acceptance Criteria (for IndexedDB rollout)
 - **Architecture**: [Dual-Backend Architecture](../02-technical/architecture/dual-backend-architecture.md)
 - **Interfaces**: [DataStore Interface](../02-technical/architecture/datastore-interface.md) | [AuthService Interface](../02-technical/architecture/auth-service-interface.md)
 - **Database**: [Current Storage Schema](../02-technical/database/current-storage-schema.md) | [Supabase Schema](../02-technical/database/supabase-schema.md)
-- **Migration**: [Migration Strategy](./backend-evolution/migration-strategy.md)
-- **Roadmap**: [Phased Implementation Roadmap](./backend-evolution/phased-implementation-roadmap.md) ⚡ **START HERE**
+- **Migration**: [Migration Strategy](../08-archived/completed-active-plans/backend-evolution/migration-strategy.md) (archived)
+- **Roadmap**: [Phased Implementation Roadmap](../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) (archived)
 
 **Implementation Phases**:
 
@@ -394,7 +394,7 @@ Acceptance Criteria (for IndexedDB rollout)
 
 **Status**: Planned - awaiting stakeholder approval and resource allocation
 
-**See**: [Phased Implementation Roadmap](./backend-evolution/phased-implementation-roadmap.md) for detailed timeline and tasks
+**See**: [Phased Implementation Roadmap](../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) for detailed timeline and tasks (archived)
 
 ---
 
@@ -673,10 +673,10 @@ Acceptance
   - team-final-positions-plan.md (team final position tracking for seasons/tournaments - 6-8 hours)
   - personnel-implementation-plan.md (personnel management with real-time React Query updates - 8-10 hours)
   - personnel-feature-plan.md (older format, superseded by personnel-implementation-plan.md)
-- Backend Architecture Evolution (Priority 2 - after Play Store)
-  - backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md ⚡ **START HERE - PR-CHUNKED EXECUTION PLAN**
-  - backend-evolution/phased-implementation-roadmap.md (theoretical design - superseded by above)
-  - backend-evolution/migration-strategy.md (data transformation: IndexedDB → Supabase)
+- Backend Architecture Evolution (✅ COMPLETE - archived)
+  - 08-archived/completed-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md
+  - 08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md
+  - 08-archived/completed-active-plans/backend-evolution/migration-strategy.md
   - 02-technical/architecture/dual-backend-architecture.md (comprehensive architecture design)
   - 02-technical/architecture/datastore-interface.md (unified data access API)
   - 02-technical/architecture/auth-service-interface.md (authentication abstraction)

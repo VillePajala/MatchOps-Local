@@ -6,27 +6,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Healthy
 
-**Last Updated**: January 5, 2026
+**Last Updated**: February 2026
 
 ### Quick Stats
-- ✅ **3,203 tests** passing across 182 suites
+- ✅ **~4,500+ tests** passing across 220+ suites
 - ✅ **0 security vulnerabilities**
-- ✅ **Next.js 16.0.10 + React 19.2**
-- ✅ **HomePage**: 62 lines (was 3,725)
-- ✅ **9 hooks** extracted and tested
-- ✅ **React.memo** optimization complete
+- ✅ **Next.js 16.0.10 + React 19.2 + Supabase**
+- ✅ **Dual-mode**: Local (IndexedDB) + Cloud (Supabase)
+- ✅ **Auth**: Email/password via Supabase Auth
+- ✅ **Edge Functions**: verify-subscription, delete-account
 
 ### What's Complete
 - All P0/P1/P2 refactoring
 - NPM security updates (xlsx, Sentry, React Query, Jest 30, i18next 16)
 - **Next.js 16.0.10 + React 19.2 upgrade**
 - Layer 3 performance polish
-- Test coverage improvement (+694 tests)
-- **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory (PR #137 ready to merge)
+- Test coverage improvement
+- **Supabase Cloud Backend** - PRs 1-12, DataStore interface, SyncedDataStore, Auth UI
+- **Local-First Sync** - SyncQueue, SyncEngine (PR #324)
 
-### What's Next (Optional)
-- **Backend Abstraction**: Merge PR #137 to master, then optionally add Supabase (Phase 4)
-- **Play Store Release**: See master-execution-guide.md
+### What's Next
+- **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
 
 ### Essential Reading
 - **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** ⭐ **Single source of truth**
@@ -111,15 +111,15 @@ The build process includes a custom manifest generation step that runs before Ne
 
 ### ⚠️ Critical: This is a Local-First PWA, NOT a Traditional Web App
 
-This is a **local-first Progressive Web App** for single-user soccer coaching. No backend, no multi-user features, no enterprise patterns needed.
+This is a **local-first Progressive Web App** for single-user soccer coaching with optional cloud sync. No multi-user features, no enterprise patterns needed.
 
 ### Architecture Context
 
-**Single-User Installation**
-- One soccer coach per installation, no authentication/authorization/RBAC
-- 100% browser-based, no API endpoints or database servers
-- Minimal network: PWA updates, license validation, error reporting only
-- Works completely offline, all data in browser IndexedDB
+**Single-User, Dual-Mode**
+- One coach per account, single-user (no team collaboration features)
+- **Local mode**: 100% browser-based, all data in IndexedDB, works offline
+- **Cloud mode**: Optional Supabase backend for cross-device sync with email/password auth
+- Minimal network in local mode: PWA updates, license validation, error reporting only
 
 **Data Scale & Privacy**
 - 1 user, 50-100 players, 50-100 games/season, <50MB storage

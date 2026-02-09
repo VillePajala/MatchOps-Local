@@ -2,6 +2,7 @@
 
 **Generated**: January 4, 2026
 **Analysis Based On**: Git history, documentation, testing suite, codebase architecture
+**Note**: This is a point-in-time snapshot. Stats (test counts, commit counts, etc.) reflect the state at generation time and are not actively maintained.
 
 ---
 

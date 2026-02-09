@@ -9,9 +9,9 @@
 
 MatchOps-Local uses **IndexedDB** as the production storage backend with a **key-value storage model**. The storage abstraction (`src/utils/storage.ts`) provides async operations over a `StorageAdapter` interface.
 
-**Key Characteristics**:
-- **Single-user, single-device**: No multi-tenancy or user accounts
-- **Local-first**: All data stays on device, no cloud synchronization
+**Key Characteristics** (local mode):
+- **Single-user, single-device**: No multi-tenancy in local mode
+- **Local-first**: All data stays on device (cloud sync available separately via SyncedDataStore)
 - **IndexedDB backend**: Production uses IndexedDB (50+ MB quota)
 - **JSON serialization**: Complex objects stored as stringified JSON
 - **Simple schema**: Flat key-value pairs, no relationships enforced at storage level
@@ -662,7 +662,7 @@ savedSoccerGames['game_123'].assessments['player_456']
 
 **See Also**:
 - [Supabase Schema](./supabase-schema.md) - Target relational design
-- [Migration Strategy](../../03-active-plans/backend-evolution/migration-strategy.md) - Transformation plan
+- [Migration Strategy](../../08-archived/completed-active-plans/backend-evolution/migration-strategy.md) - Transformation plan (archived)
 
 ## Code References
 

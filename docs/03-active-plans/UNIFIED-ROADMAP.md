@@ -10,7 +10,7 @@
 
 | Category | Status |
 |----------|--------|
-| Codebase Health | ✅ Excellent (3,500+ tests, 62-line HomePage, 9 extracted hooks) |
+| Codebase Health | ✅ Excellent (~4,500+ tests, 62-line HomePage, 9 extracted hooks) |
 | Security | ✅ All vulnerabilities fixed |
 | Performance | ✅ React.memo optimization complete |
 | Framework | ✅ Next.js 16.0.10 + React 19.2 |
@@ -27,7 +27,7 @@
 - [x] HomePage refactoring: 3,725 → 62 lines (98% reduction)
 - [x] 9 hooks extracted (all ≤665 lines)
 - [x] Layer 3 Polish: React.memo, useMemo optimization
-- [x] 3,203 tests passing (65% coverage)
+- [x] ~4,500+ tests passing (65%+ coverage)
 - [x] All P0/P1/P2 fixes complete
 
 ### NPM & Security Updates (December 2025)
@@ -527,8 +527,8 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 ### 🏗️ Architecture (Long-term)
 | Item | Effort | Doc |
 |------|--------|-----|
-| Backend Architecture Refactoring | ~4 weeks | `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` |
-| DataStore Interface (IndexedDB ↔ Supabase) | Part of above | Enables cloud sync |
+| Backend Architecture Refactoring | ✅ Complete | Archived to `08-archived/completed-active-plans/backend-evolution/` |
+| DataStore Interface (IndexedDB ↔ Supabase) | ✅ Complete | `02-technical/supabase-implementation-guide.md` |
 
 ---
 
@@ -538,7 +538,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 |---------|------|
 | This roadmap | `UNIFIED-ROADMAP.md` |
 | **Play Store (Priority 1)** | `PLAY-STORE-IMPLEMENTATION-PLAN.md` ⭐ |
-| **Backend refactoring (Priority 2)** | `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` |
+| **Backend refactoring (✅ Complete)** | `../08-archived/completed-active-plans/backend-evolution/` |
 | Play Store master guide | `master-execution-guide.md` |
 | Feature: Tournament/Leagues | `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md` |
 | **Communication & Marketing** | `../07-business/communication-infrastructure-plan.md` ⭐ |

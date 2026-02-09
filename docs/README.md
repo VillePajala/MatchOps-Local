@@ -8,16 +8,17 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 ## ✅ Project Status: Production Ready
 
-**Last Updated**: January 5, 2026
+**Last Updated**: February 2026
 
 | Category | Status |
 |----------|--------|
-| Codebase Health | ✅ Excellent (3,203 tests, 62-line HomePage, 9 extracted hooks) |
+| Codebase Health | ✅ Excellent (~4,500+ tests, 62-line HomePage, 9 extracted hooks) |
 | Security | ✅ 0 vulnerabilities |
 | Framework | ✅ **Next.js 16.0.10 + React 19.2** |
+| Cloud Backend | ✅ **Supabase** (PostgreSQL, Auth, Edge Functions) |
 | Performance | ✅ React.memo optimization complete |
 
-All P0/P1/P2 refactoring work is **complete**. The codebase is healthy and ready for feature development.
+All P0/P1/P2 refactoring and cloud backend work is **complete**. The codebase is healthy and ready for Play Store release.
 
 ---
 
@@ -46,13 +47,12 @@ All P0/P1/P2 refactoring work is **complete**. The codebase is healthy and ready
    - System architecture, technology decisions, security
    - Data freshness & modal data flow: see [02-technical/data-freshness-and-modal-data-flow.md](./02-technical/data-freshness-and-modal-data-flow.md)
    - **Current Implementation**: [IndexedDB Schema](./02-technical/database/current-storage-schema.md) | [Architecture](./02-technical/architecture.md)
-   - **🔮 Future: Dual-Backend Architecture** (Planned Feature - Local + Cloud Premium)
+   - **✅ Dual-Backend Architecture** (Local + Cloud with Supabase)
      - [Architecture Overview](./02-technical/architecture/dual-backend-architecture.md) | [Supabase Schema](./02-technical/database/supabase-schema.md) | [DataStore Interface](./02-technical/architecture/datastore-interface.md) | [AuthService Interface](./02-technical/architecture/auth-service-interface.md)
+   - **Supabase Implementation Guide**: [supabase-implementation-guide.md](./02-technical/supabase-implementation-guide.md) — Transform rules and implementation reference
 
 3. **[03-active-plans/](./03-active-plans/)** - Active Plans & Current Status ⭐
-   - Master execution guide, production readiness, roadmaps, release checklists
-   - **🔮 Future: Backend Evolution** (Long-term plan for cloud features)
-     - [Phased Implementation Roadmap](./03-active-plans/backend-evolution/phased-implementation-roadmap.md) | [Migration Strategy](./03-active-plans/backend-evolution/migration-strategy.md)
+   - Master execution guide, roadmaps, Play Store release checklists
 
 4. **[04-features/](./04-features/)** - Feature Specifications
    - Detailed feature specs and implementation plans
@@ -73,7 +73,7 @@ All P0/P1/P2 refactoring work is **complete**. The codebase is healthy and ready
    - Software requirements, UI design documents
 
 10. **[10-analysis/](./10-analysis/)** - Technical Analysis
-    - Technical research and analysis documents (historical analyses moved to archive)
+    - Technical research and analysis documents
 
 11. **[assets/](./assets/)** - Documentation Assets
     - Screenshots and images
@@ -92,8 +92,8 @@ All data stays on the coach's device, ensuring complete privacy, instant perform
 ### **2. Soccer-Specific Design**
 Purpose-built for soccer coaching workflows with interactive field, tactics board, comprehensive statistics, and season management.
 
-### **3. Zero Ongoing Costs**
-No subscriptions, no per-user fees, no data storage charges - install once, use forever.
+### **3. Flexible Pricing**
+Free local mode with no subscriptions. Optional cloud sync available for cross-device access.
 
 ### **4. Professional Feature Set**
 Advanced analytics, multi-team management, performance tracking, and comprehensive backup capabilities typically only found in expensive enterprise solutions.
@@ -101,20 +101,21 @@ Advanced analytics, multi-team management, performance tracking, and comprehensi
 ### **5. PWA Technology**
 Modern Progressive Web App architecture provides native-like experience across all devices while maintaining web-based flexibility and easy updates.
 
-## 📊 Project Maturity: Beta
+## 📊 Project Maturity: Release Candidate
 
-MatchOps-Local is in **active beta** with core functionality complete and stable. The application is suitable for production use while we continue to refine features and add enhancements.
+MatchOps-Local has completed all feature development and is preparing for **Play Store release** (blocked by business entity setup).
 
-- ✅ **Core Features**: Stable and thoroughly tested
-- ✅ **Data Integrity**: Robust with backup/recovery systems
+- ✅ **Core Features**: Stable and thoroughly tested (~4,500+ tests)
+- ✅ **Cloud Backend**: Supabase with auth, RLS, Edge Functions
+- ✅ **Data Integrity**: Robust with backup/recovery and cloud sync
 - ✅ **Performance**: Optimized for real-world coaching scenarios
 - ✅ **Browser Compatibility**: Works across all modern browsers
 - ✅ **PWA Functionality**: Full offline capability and installation support
 
 ## 🎯 Strategic Vision
 
-### **Short-Term (2025)**
-Establish as the privacy-first choice for soccer coaching with feature parity to major competitors and superior local-first performance.
+### **Near-Term (2026)**
+Play Store release. Establish as the privacy-first choice for soccer coaching in Finland with local-first performance and optional cloud sync.
 
 ### **Medium-Term (2026-2027)**
 Expand internationally with multi-language support and become the recognized leader in local-first sports applications.
@@ -127,19 +128,19 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 ### **Modern Technology Stack**
 - **Next.js 16.0.10** with App Router for cutting-edge performance
 - **React 19.2** with TypeScript for reliability and maintainability
-- **React Query** + **Storage Abstraction** for local-first data management
-  - ✅ Current backend: IndexedDB with automatic localStorage migration (production-ready)
-  - 📦 Storage capacity: 50MB+ quota (vs 5-10MB localStorage limit)
+- **React Query** + **Dual-mode data persistence** for local-first data management
+  - ✅ Local mode: IndexedDB with automatic localStorage migration
+  - ✅ Cloud mode: Supabase PostgreSQL with local-first caching via SyncedDataStore
+  - 📦 Storage capacity: 50MB+ local quota (vs 5-10MB localStorage limit)
   - 🔄 Fresh data pattern: See [Data Freshness and Modal Data Flow](./02-technical/data-freshness-and-modal-data-flow.md)
-  - 📋 Migration history: See [08-archived/indexeddb-foundation/](./08-archived/indexeddb-foundation/) for historical context
 - **Tailwind CSS 4** for responsive, professional design
 - **Comprehensive testing** with Jest and Playwright
 
 ### **Local-First Benefits**
 - **Instant Performance**: <50ms response times vs 200-2000ms for cloud apps
-- **Complete Privacy**: Zero external data transmission or tracking
+- **Complete Privacy**: Local mode has zero external data transmission or tracking
 - **Offline Reliability**: Full functionality without internet connection
-- **Cost Efficiency**: No ongoing subscription or infrastructure costs
+- **User Choice**: Free local mode or optional cloud sync for cross-device access
 
 ## 🌟 Why This Project Matters
 
@@ -172,7 +173,6 @@ In youth sports, where we handle sensitive information about minors, the local-f
 ### **Planning Work?**
 1. Check [03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md) ⭐ - Single source of truth
 2. Review [03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md) - Play Store release plan
-3. See [05-development/todo.md](./05-development/todo.md) - Current tasks
 
 ## 🔄 Documentation Maintenance
 
