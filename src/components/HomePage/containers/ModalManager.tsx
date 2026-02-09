@@ -7,7 +7,7 @@ import TeamManagerModal from '@/components/TeamManagerModal';
 import GoalLogModal from '@/components/GoalLogModal';
 import NewGameSetupModal from '@/components/NewGameSetupModal';
 import RosterSettingsModal from '@/components/RosterSettingsModal';
-import GameSettingsModal from '@/components/GameSettingsModal';
+const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
 

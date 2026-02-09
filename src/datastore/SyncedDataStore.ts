@@ -1188,7 +1188,7 @@ export class SyncedDataStore implements DataStore {
 
         if (game.teamId && !teamIds.has(game.teamId)) {
           orphanWarnings.push(`Game ${gameLabel} had invalid team reference (${game.teamId}) - fixed to empty`);
-          game.teamId = undefined;
+          game.teamId = '';
           modified = true;
         }
 

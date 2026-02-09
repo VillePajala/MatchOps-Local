@@ -38,9 +38,11 @@ export interface Opponent {
   relY: number;
 }
 
+export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
+
 export interface GameEvent {
   id: string;
-  type: 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
+  type: GameEventType;
   time: number;
   scorerId?: string;
   assisterId?: string;
