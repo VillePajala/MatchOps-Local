@@ -66,6 +66,7 @@ function _createMockRequest(
  * CORS origin validation (extracted from main function)
  */
 const ALLOWED_ORIGINS = [
+  'https://app.match-ops.com',
   'https://matchops.app',
   'https://www.matchops.app',
   'https://match-ops-local.vercel.app',
@@ -96,6 +97,7 @@ function isOriginAllowed(origin: string | null): boolean {
 // =============================================================================
 
 Deno.test('CORS: allows production origin', () => {
+  assertEquals(isOriginAllowed('https://app.match-ops.com'), true);
   assertEquals(isOriginAllowed('https://matchops.app'), true);
   assertEquals(isOriginAllowed('https://www.matchops.app'), true);
 });

@@ -70,7 +70,7 @@ Update `public/.well-known/assetlinks.json` with your actual fingerprint:
 1. Deploy the app to production (Vercel)
 2. Verify asset links are accessible:
    ```bash
-   curl -I https://matchops-local.vercel.app/.well-known/assetlinks.json
+   curl -I https://app.match-ops.com/.well-known/assetlinks.json
    ```
 3. Use Google's verification tool:
    https://developers.google.com/digital-asset-links/tools/generator
@@ -80,7 +80,7 @@ Update `public/.well-known/assetlinks.json` with your actual fingerprint:
 The easiest way to build a TWA is using PWABuilder:
 
 1. Go to https://www.pwabuilder.com/
-2. Enter your production URL: `https://matchops-local.vercel.app`
+2. Enter your production URL: `https://app.match-ops.com`
 3. Click "Build My PWA"
 4. Select "Android" → "Generate Package"
 5. Configure:
@@ -96,7 +96,7 @@ The easiest way to build a TWA is using PWABuilder:
 npm install -g @bubblewrap/cli
 
 # Initialize TWA project
-npx bubblewrap init --manifest https://matchops-local.vercel.app/manifest.json
+npx bubblewrap init --manifest https://app.match-ops.com/manifest.json
 
 # Follow the prompts:
 # - Package name: com.matchops.local

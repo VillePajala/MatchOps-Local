@@ -19,6 +19,7 @@ import {
 // =============================================================================
 
 const ALLOWED_ORIGINS = [
+  'https://app.match-ops.com',
   'https://matchops.app',
   'https://www.matchops.app',
   'https://match-ops-local.vercel.app',
@@ -264,6 +265,7 @@ async function handleRequest(req: Request): Promise<Response> {
 // =============================================================================
 
 Deno.test('CORS: allows production origin', () => {
+  assertEquals(isOriginAllowed('https://app.match-ops.com'), true);
   assertEquals(isOriginAllowed('https://matchops.app'), true);
   assertEquals(isOriginAllowed('https://www.matchops.app'), true);
 });

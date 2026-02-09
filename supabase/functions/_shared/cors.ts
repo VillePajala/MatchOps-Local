@@ -7,6 +7,7 @@
 
 // Allowed origins for CORS (exact match)
 export const ALLOWED_ORIGINS = [
+  'https://app.match-ops.com',
   'https://matchops.app',
   'https://www.matchops.app',
   'https://match-ops-local.vercel.app',
