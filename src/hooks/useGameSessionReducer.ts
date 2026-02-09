@@ -275,9 +275,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     case 'SET_GENDER':
       return { ...state, gender: action.payload };
     case 'SET_WENT_TO_OVERTIME':
-      return { ...state, wentToOvertime: action.payload || undefined };
+      return { ...state, wentToOvertime: action.payload ?? undefined };
     case 'SET_WENT_TO_PENALTIES':
-      return { ...state, wentToPenalties: action.payload || undefined };
+      return { ...state, wentToPenalties: action.payload ?? undefined };
     case 'SET_SHOW_POSITION_LABELS':
       return { ...state, showPositionLabels: action.payload };
     case 'SET_GAME_LOCATION':

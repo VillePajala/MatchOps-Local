@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
-import type { GameEvent, GameEventType } from '@/types/game';
+import type { GameEvent } from '@/types/game';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
@@ -481,6 +481,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
+
+  // Ensure we're on the client side to avoid hydration issues
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Modal ref for focus trapping (WCAG 2.1 AA requirement)
   const modalRef = useRef<HTMLDivElement>(null);
@@ -1455,12 +1461,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       onAwardFairPlayCard(null, timeElapsedInSeconds || 0);
     }
   };
-
-  // Ensure we're on the client side to avoid hydration issues
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   // Conditional return MUST come AFTER all hook calls
   if (!isOpen || !isClient) {

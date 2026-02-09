@@ -313,9 +313,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsRosterModalOpen,
     isSeasonTournamentModalOpen,
     setIsSeasonTournamentModalOpen,
-    isTrainingResourcesOpen,
+    isTrainingResourcesOpen: _isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
-    isRulesDirectoryOpen,
+    isRulesDirectoryOpen: _isRulesDirectoryOpen,
     setIsRulesDirectoryOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isGoalLogModalOpen,
@@ -332,6 +332,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
+
+  // Refs for setters declared later (from useModalOrchestration, called after all handlers).
+  // Using refs avoids temporal dead zone while keeping useCallback deps complete.
+  const setIsTeamManagerOpenRef = useRef<(v: boolean) => void>(() => {});
+  const setIsInstructionsModalOpenRef = useRef<(v: boolean | ((prev: boolean) => boolean)) => void>(() => {});
 
   const openLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(true), [setIsLoadGameModalOpen]);
   const closeLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(false), [setIsLoadGameModalOpen]);
@@ -388,14 +393,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     exportFullBackup(showToast, userId);
   }, [showToast, userId]);
 
-  const handleManageTeamRosterFromNewGame = (teamId?: string) => {
+  const handleManageTeamRosterFromNewGame = useCallback((teamId?: string) => {
     closeNewGameViaReducer();
     setPlayerIdsForNewGame(null);
-    setIsTeamManagerOpen(true);
+    setIsTeamManagerOpenRef.current(true);
     if (teamId) {
       setSelectedTeamForRoster(teamId);
     }
-  };
+  }, [closeNewGameViaReducer]);
 
   // --- Timer Management Hook (Step 2.6.5) ---
   const timerManagement = useTimerManagement({
@@ -514,7 +519,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         openRosterViaReducer();
         break;
       case 'teams':
-        setIsTeamManagerOpen(true);
+        setIsTeamManagerOpenRef.current(true);
         break;
       case 'settings':
         setIsSettingsModalOpen(true);
@@ -527,12 +532,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       default:
         break;
     }
-  // All callbacks are stable (useCallback with proper deps).
-  // Intentionally omitting modal setters (setIsGameStatsModalOpen, setIsTeamManagerOpen,
-  // setIsSettingsModalOpen) from deps - they're stable React setters but are not available
-  // at effect registration time due to hook call order (useModalOrchestration called after
-  // useGameOrchestration). Adding them would require restructuring the hook initialization.
-  // The processedInitialActionRef guard prevents stale closure issues.
+  // Omitting stable React setters from deps: setIsGameStatsModalOpen, setIsSettingsModalOpen
+  // (from useModalContext — stable by React guarantee), setShowNoPlayersConfirm, setPlayerIdsForNewGame
+  // (declared after this effect due to hook call order). processedInitialActionRef guard prevents stale closures.
+  // setIsTeamManagerOpen uses ref pattern to avoid TDZ.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAction, availablePlayers.length, gameSessionState.selectedPlayerIds,
       openLoadGameViaReducer, openNewGameViaReducer, openSeasonTournamentViaReducer, openRosterViaReducer]);
@@ -579,7 +582,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [orphanedGameInfo, userId]);
 
   // Handle team reassignment for orphaned games
-  const handleTeamReassignment = async (newTeamId: string | null) => {
+  const handleTeamReassignment = useCallback(async (newTeamId: string | null) => {
     if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
       logger.error('[TEAM REASSIGN] No current game to reassign');
       return;
@@ -619,12 +622,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // Close modal
       setIsTeamReassignModalOpen(false);
 
-      // Show success message (could add a toast notification here)
       logger.log('[TEAM REASSIGN] Game reassigned to team:', newTeamId);
     } catch (error) {
       logger.error('[TEAM REASSIGN] Error reassigning team:', error);
     }
-  };
+  }, [currentGameId, savedGames, userId, queryClient]);
 
   // Mutations for seasons and tournaments are now managed by useGameDataManagement hook
 
@@ -736,52 +738,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Data synchronization effects are now managed by useGameDataManagement hook
 
-  // --- Effect to sync playersOnField details with availablePlayers changes ---
-  // Also removes players that were deleted from the roster
-  useEffect(() => {
-    if (availablePlayers && availablePlayers.length > 0) {
-      setPlayersOnField(prevPlayersOnField => {
-        // Build a lookup map for O(1) access
-        const rosterLookup = new Map(availablePlayers.map(p => [p.id, p]));
-
-        // Filter out deleted players and update details for existing ones
-        const nextPlayersOnField = prevPlayersOnField
-          .filter(fieldPlayer => rosterLookup.has(fieldPlayer.id)) // Remove deleted players
-          .map(fieldPlayer => {
-            const rosterPlayer = rosterLookup.get(fieldPlayer.id)!;
-            // Sync relevant properties from rosterPlayer to fieldPlayer
-            // Only update if there's a difference to avoid unnecessary re-renders / history saves
-            // Note: isGoalie is NOT synced - it's per-game field state, not roster metadata.
-            // A player's goalie status can vary per game (e.g., goalie in one game, defender in another).
-            // isGoalie is set by: formation picker, manual toggle, or player movement.
-            if (fieldPlayer.name !== rosterPlayer.name ||
-                fieldPlayer.jerseyNumber !== rosterPlayer.jerseyNumber ||
-                fieldPlayer.nickname !== rosterPlayer.nickname ||
-                fieldPlayer.notes !== rosterPlayer.notes
-            ) {
-              return {
-                ...fieldPlayer, // Keep position (relX, relY) and isGoalie (per-game state)
-                name: rosterPlayer.name,
-                jerseyNumber: rosterPlayer.jerseyNumber,
-                nickname: rosterPlayer.nickname,
-                notes: rosterPlayer.notes,
-                // Ensure other essential Player properties are maintained if not in rosterPlayer directly
-                receivedFairPlayCard: rosterPlayer.receivedFairPlayCard !== undefined ? rosterPlayer.receivedFairPlayCard : fieldPlayer.receivedFairPlayCard
-              };
-            }
-            return fieldPlayer;
-          });
-
-        // Only save to history if actual changes were made to playersOnField
-        if (JSON.stringify(prevPlayersOnField) !== JSON.stringify(nextPlayersOnField)) {
-          saveStateToHistory({ playersOnField: nextPlayersOnField });
-        }
-        return nextPlayersOnField;
-      });
-    }
-  // setPlayersOnField is stable (React useState setter extracted from fieldCoordination)
-  // saveStateToHistory is stable (ref pattern from useGameSessionCoordination)
-  }, [availablePlayers, setPlayersOnField, saveStateToHistory]);
+  // Roster metadata sync (name, nickname, jerseyNumber, notes, color, receivedFairPlayCard)
+  // is handled by useGameState.ts's roster sync effect via mergeRosterDetails().
+  // That effect also removes players deleted from the roster and saves to history.
+  // Note: isGoalie is intentionally NOT synced from roster — it's per-game field state.
   
   useEffect(() => {
     const loadInitialAppData = async () => {
@@ -1208,18 +1168,19 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // useModalOrchestration hook call moved to line 2138 (after all handlers are defined)
 
   // Legacy handler - delegates to session coordination
-  const handleTeamNameChange = (newName: string) => {
-    sessionCoordination.handlers.setTeamName(newName);
-  };
+  const { setTeamName: setTeamNameHandler } = sessionCoordination.handlers;
+  const handleTeamNameChange = useCallback((newName: string) => {
+    setTeamNameHandler(newName);
+  }, [setTeamNameHandler]);
 
   // Handler to update an existing game event
-  const handleUpdateGameEvent = (updatedEvent: GameEvent) => {
+  const handleUpdateGameEvent = useCallback((updatedEvent: GameEvent) => {
     const cleanUpdatedEvent: GameEvent = { id: updatedEvent.id, type: updatedEvent.type, time: updatedEvent.time, scorerId: updatedEvent.scorerId, assisterId: updatedEvent.assisterId }; // Keep cleaning
-    
+
     dispatchGameSession({ type: 'UPDATE_GAME_EVENT', payload: cleanUpdatedEvent });
-    
+
     logger.log("Updated game event via dispatch:", updatedEvent.id);
-  };
+  }, [dispatchGameSession]);
 
   // Session coordination handlers
   const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
@@ -1230,19 +1191,19 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleSetNumberOfPeriods = sessionCoordination.handlers.setNumberOfPeriods;
   const handleSetPeriodDuration = sessionCoordination.handlers.setPeriodDuration;
 
-  const handleToggleTrainingResources = () => {
-    setIsTrainingResourcesOpen(!isTrainingResourcesOpen);
-  };
+  const handleToggleTrainingResources = useCallback(() => {
+    setIsTrainingResourcesOpen(prev => !prev);
+  }, [setIsTrainingResourcesOpen]);
 
-  const handleToggleRulesDirectory = () => {
-    setIsRulesDirectoryOpen(!isRulesDirectoryOpen);
-  };
+  const handleToggleRulesDirectory = useCallback(() => {
+    setIsRulesDirectoryOpen(prev => !prev);
+  }, [setIsRulesDirectoryOpen]);
 
-  const handleShowAppGuide = () => {
+  const handleShowAppGuide = useCallback(() => {
     saveHasSeenAppGuide(false);
     setIsSettingsModalOpen(false);
-    setIsInstructionsModalOpen(true);
-  };
+    setIsInstructionsModalOpenRef.current(true);
+  }, [setIsSettingsModalOpen]);
 
   // NEW: Handler for Hard Reset
   const handleHardResetApp = useCallback(async () => {
@@ -1372,16 +1333,16 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Helper functions moved to exportGames util
   
   // --- INDIVIDUAL GAME EXPORT HANDLERS ---
-  const handleExportOneJson = (gameId: string) => {
+  const handleExportOneJson = useCallback((gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
       showToast(t('page.gameDataNotFound', { gameId, defaultValue: `Error: Could not find game data for ${gameId}` }), 'error');
       return;
     }
     exportJson(gameId, gameData, gameDataManagement.seasons, gameDataManagement.tournaments);
-  };
+  }, [savedGames, showToast, t, gameDataManagement.seasons, gameDataManagement.tournaments]);
 
-  const handleExportOneExcel = async (gameId: string) => {
+  const handleExportOneExcel = useCallback(async (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
       showToast(t('page.gameDataNotFound', { gameId, defaultValue: `Error: Could not find game data for ${gameId}` }), 'error');
@@ -1397,16 +1358,16 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       logger.error('[handleExportOneExcel] Export failed:', error);
       showToast(t('export.exportGameFailed'), 'error');
     }
-  };
+  }, [savedGames, showToast, t, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments]);
 
-  const openRosterModal = () => {
+  const openRosterModal = useCallback(() => {
     openRosterViaReducer();
     setHighlightRosterButton(false);
-  };
+  }, [openRosterViaReducer, setHighlightRosterButton]);
 
-  const openPlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(true);
+  const openPlayerAssessmentModal = useCallback(() => setIsPlayerAssessmentModalOpen(true), [setIsPlayerAssessmentModalOpen]);
 
-  const handleSavePlayerAssessment = async (
+  const handleSavePlayerAssessment = useCallback(async (
     playerId: string,
     assessment: Partial<PlayerAssessment>,
   ) => {
@@ -1421,15 +1382,15 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     if (updated) {
       setSavedGames(prev => ({ ...prev, [currentGameId]: updated }));
     }
-  };
+  }, [currentGameId, saveAssessment]);
 
-  const handleDeletePlayerAssessment = async (playerId: string) => {
+  const handleDeletePlayerAssessment = useCallback(async (playerId: string) => {
     if (!currentGameId) return;
     const updated = await deleteAssessment(playerId);
     if (updated) {
       setSavedGames(prev => ({ ...prev, [currentGameId]: updated }));
     }
-  };
+  }, [currentGameId, deleteAssessment]);
 
   // --- Roster Management Handlers for RosterSettingsModal ---
   const handleRenamePlayerForModal = useCallback(async (playerId: string, playerData: { name: string; nickname?: string }) => {
@@ -1716,9 +1677,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [availablePlayers, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination]);
 
 
-  const handleUpdateSelectedPlayers = (playerIds: string[]) => {
+  const handleUpdateSelectedPlayers = useCallback((playerIds: string[]) => {
     dispatchGameSession({ type: 'SET_SELECTED_PLAYER_IDS', payload: playerIds });
-  };
+  }, [dispatchGameSession]);
 
   // Deterministic init fallback: auto-select latest real game if default or stale
   useEffect(() => {
@@ -1738,9 +1699,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [initialLoadComplete, currentGameId, savedGames, userId]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in controlBarProps
-  const handleOpenGameSettingsModal = () => {
+  const handleOpenGameSettingsModal = useCallback(() => {
     setIsGameSettingsModalOpen(true);
-  };
+  }, [setIsGameSettingsModalOpen]);
 
   // Handlers for GameSettingsModal (delegate to session coordination)
   const handleGameLocationChange = sessionCoordination.handlers.setGameLocation;
@@ -1963,11 +1924,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [openRosterViaReducer]);
 
   // Handler for "Save Before New" confirmation - user chooses to save
-  const handleSaveBeforeNewConfirmed = useCallback(() => {
-    persistence.handleQuickSaveGame(); // Call quick save directly
+  const handleSaveBeforeNewConfirmed = useCallback(async () => {
+    await persistence.handleQuickSaveGame(); // Await save to ensure it completes
     setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
     setShowSaveBeforeNewConfirm(false);
-    openNewGameViaReducer(); // Open setup modal immediately after
+    openNewGameViaReducer(); // Open setup modal after save completes
   }, [persistence, gameSessionState.selectedPlayerIds, openNewGameViaReducer]);
 
   // Handler for "Save Before New" cancellation - user chooses to discard
@@ -1989,22 +1950,22 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     logger.log('[page.tsx] About to render PlayerBar, gameEvents for PlayerBar:', JSON.stringify(gameSessionState.gameEvents));
   }
 
-  const handleOpenPlayerStats = (playerId: string) => {
+  const handleOpenPlayerStats = useCallback((playerId: string) => {
     const player = availablePlayers.find(p => p.id === playerId);
     if (player) {
       setSelectedPlayerForStats(player);
       setIsGameStatsModalOpen(true);
       closeRosterViaReducer(); // Close the roster modal
     }
-  };
+  }, [availablePlayers, closeRosterViaReducer, setIsGameStatsModalOpen]);
 
   
 
-  const handleGameLogClick = (gameId: string) => {
+  const handleGameLogClick = useCallback((gameId: string) => {
     setCurrentGameId(gameId);
     // handleClosePlayerStats(); // This function no longer exists
     setIsGameStatsModalOpen(prev => !prev); // handleToggleGameStatsModal moved to useModalOrchestration
-  };
+  }, [setIsGameStatsModalOpen]);
 
   // Memoize fieldInteractions with explicit handler dependencies.
   // All handlers are useCallback-wrapped in useFieldCoordination, so they're stable.
@@ -2323,7 +2284,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // removed - these are no longer returned from useModalOrchestration
   } = modalOrchestration;
 
-  // Instructions modal is now only opened explicitly from menu - no auto-open logic
+  // Assign refs now that useModalOrchestration setters are available
+  setIsTeamManagerOpenRef.current = setIsTeamManagerOpen;
+  setIsInstructionsModalOpenRef.current = setIsInstructionsModalOpen;
 
   return {
     gameContainerProps,

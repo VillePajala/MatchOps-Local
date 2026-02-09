@@ -1,8 +1,8 @@
 {
-  "version": "1e322c81",
-  "date": "2026-02-08",
+  "version": "cb9aa392",
+  "date": "2026-02-09",
   "notes": {
-    "en": "Clear Supabase client session on account deletion",
-    "fi": "Clear Supabase client session on account deletion"
+    "en": "Production readiness fixes from round 8 review",
+    "fi": "Production readiness fixes from round 8 review"
   }
 }

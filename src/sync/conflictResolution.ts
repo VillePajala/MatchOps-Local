@@ -434,10 +434,6 @@ export function isAutoResolvableConflict(error: unknown): boolean {
   return false;
 }
 
-/**
- * @deprecated Use isAutoResolvableConflict instead. This alias exists for backwards compatibility.
- */
-export const isConflictError = isAutoResolvableConflict;
 
 /**
  * Detect if an error indicates the record was not found.

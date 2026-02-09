@@ -2,7 +2,9 @@
   "nav": {
     "technical": "Technical",
     "gallery": "Gallery",
-    "guide": "Guide"
+    "guide": "Guide",
+    "backToTop": "Back to top",
+    "backToHome": "Back to Home"
   },
   "features": {
     "gameDay": {
@@ -67,12 +69,20 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps - Local-First Soccer Coaching App",
+      "title": "MatchOps - Soccer & Futsal Coaching App",
       "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics. No signup required. Optional cloud sync for cross-device access."
     },
     "technical": {
       "title": "Technical Specifications - MatchOps",
       "description": "Technical details of MatchOps: Built with React 19, Next.js 16. Offline-capable architecture with secure data storage."
+    },
+    "privacy": {
+      "title": "Privacy Policy - MatchOps",
+      "description": "Privacy policy for MatchOps soccer coaching app. Learn how we handle your data."
+    },
+    "terms": {
+      "title": "Terms of Service - MatchOps",
+      "description": "Terms of service for MatchOps soccer coaching app."
     }
   },
   "footer": {
@@ -83,7 +93,9 @@
     "license": "License",
     "copyright": "© {{year}} Velomo AI. All rights reserved.",
     "dataStays": "Your data stays private and secure.",
-    "marketingAssets": "Marketing Assets"
+    "marketingAssets": "Marketing Assets",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
   },
   "technical": {
     "hero": {
@@ -520,5 +532,313 @@
       "cicd": "Automated CI/CD",
       "cicdDesc": "Lint, types, 4400+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge."
     }
+  },
+  "privacyPolicy": {
+    "title": "Privacy Policy for MatchOps",
+    "version": "Policy Version: 2026-02",
+    "lastUpdated": "Last Updated: February 2026",
+    "dataController": {
+      "title": "Data Controller",
+      "content": "MatchOps is developed and operated by Ville Pajala, based in Finland. As the data controller, we are responsible for the processing of your personal data as described in this policy."
+    },
+    "overview": {
+      "title": "Overview",
+      "content": "MatchOps (\"we\", \"our\", \"the app\") is a local-first soccer coaching application. This privacy policy explains how we handle your information."
+    },
+    "dataStorage": {
+      "title": "Data Storage",
+      "localDataTitle": "Local Data (Default)",
+      "localDataIntro": "By default, all your data is stored locally on your device:",
+      "localDataItems": {
+        "playerRosters": "Player rosters and information",
+        "gameRecords": "Game records and statistics",
+        "settings": "Settings and preferences",
+        "seasonData": "Season and tournament data",
+        "personnelInfo": "Personnel information (names, roles, contact details if you choose to enter them)"
+      },
+      "localDataNote": "We do not have access to this data. It never leaves your device unless you explicitly export it or enable cloud sync.",
+      "noAccountTitle": "No Account Required (Local Mode)",
+      "noAccountContent": "MatchOps works entirely offline in local mode. No account creation, login, or personal information is required.",
+      "cloudDataTitle": "Cloud Sync (Optional)",
+      "cloudDataIntro": "If you enable Cloud Sync, your data is additionally stored on secure cloud servers:",
+      "cloudDataItems": {
+        "syncedData": "Copied to our secure EU-based servers (Supabase, hosted in EU)",
+        "encryption": "Encrypted in transit (HTTPS/TLS) and at rest",
+        "rowLevelSecurity": "Protected by row-level security (only you can access your data)",
+        "multiDevice": "Synced across your devices",
+        "dataOwnership": "Retained under your full ownership"
+      },
+      "cloudDataNote": "Cloud data is stored in secure EU-based data centers. You can delete your cloud data at any time from Settings.",
+      "dataRetentionTitle": "Data Retention",
+      "dataRetentionContent": "Cloud data is retained while your account is active. When you delete your cloud data or your account, data is permanently removed within a reasonable period. If your account becomes inactive for an extended period, we may delete cloud data with prior notice. Local data remains on your device until you clear it. Consent records are retained even after account deletion for GDPR compliance."
+    },
+    "legalBasis": {
+      "title": "Legal Basis for Data Processing (GDPR Art. 6)",
+      "intro": "We process personal data on the following legal bases:",
+      "contract": "Contract (Art. 6(1)(b)): Processing necessary for cloud sync service delivery",
+      "consent": "Consent (Art. 6(1)(a)): Acceptance of Terms of Service and Privacy Policy for cloud mode users. Consent records are stored to demonstrate compliance",
+      "legitimateInterest": "Legitimate interest (Art. 6(1)(f)): Error reporting via Sentry to maintain app quality and fix bugs. This processing involves minimal anonymized data and does not involve profiling or tracking"
+    },
+    "dataWeCollect": {
+      "title": "Data We May Collect",
+      "errorReportingTitle": "Error Reporting",
+      "errorReportingIntro": "When the app encounters an error, we may collect:",
+      "errorReportingItems": {
+        "errorType": "Error type and stack trace",
+        "deviceType": "Device type and OS version",
+        "appVersion": "App version",
+        "sessionInfo": "Anonymized session information"
+      },
+      "errorReportingNote": "This helps us fix bugs and improve the app. Error reports do not contain your game data or player information. They are processed by Sentry.io (data may be processed in the US under Standard Contractual Clauses).",
+      "licenseValidationTitle": "Play Store License Validation",
+      "licenseValidationContent": "If paid features are introduced, Google Play will handle all payment processing. We verify license status through Play Store API but do not receive your payment information.",
+      "consentTrackingTitle": "Consent Records (Cloud Mode)",
+      "consentTrackingIntro": "When you accept our Terms of Service and Privacy Policy in Cloud Mode, we record:",
+      "consentTrackingItems": {
+        "timestamp": "Date and time of consent",
+        "policyVersion": "Which policy version you accepted",
+        "ipAddress": "Your IP address (for legal verification)",
+        "userAgent": "Your browser/device information"
+      },
+      "consentTrackingNote": "This information is required for GDPR compliance to prove that valid consent was obtained (GDPR Art. 7(1)). Consent records are retained even after account deletion for legal purposes.",
+      "personnelDataTitle": "Personnel Data",
+      "personnelDataIntro": "When you add team personnel (coaches, assistants, medical staff), you may optionally enter:",
+      "personnelDataItems": {
+        "name": "Name and role",
+        "email": "Email address (optional)",
+        "phone": "Phone number (optional)",
+        "certifications": "Certifications (optional)"
+      },
+      "personnelDataNote": "This data is stored locally on your device (local mode) or in our secure EU-based database accessible only to you (cloud mode). Personnel contact information (email, phone) is considered personally identifiable information (PII) under GDPR. You are responsible for ensuring you have appropriate grounds to store their contact details."
+    },
+    "dataWeDoNotCollect": {
+      "title": "Data We Do NOT Collect",
+      "items": {
+        "gameContent": "Game content, scores, or statistics (stored locally only, or in your private cloud account)",
+        "location": "Location data",
+        "photos": "Photos or media",
+        "deviceIds": "Device identifiers for tracking or advertising",
+        "playerNames": "Player names or personal details (these are stored locally by you, or in your private cloud account)"
+      },
+      "personnelNote": "Note: If you enter personnel contact information (email, phone), this is stored by your choice and under your control — see the Personnel Data section in our full Privacy Policy."
+    },
+    "thirdPartyServices": {
+      "title": "Third-Party Services (Sub-processors)",
+      "intro": "We use the following third-party services to operate MatchOps. Data processing agreements are in place with each provider where required.",
+      "googlePlay": "Google Play Store",
+      "googlePlayDesc": "App distribution and payments (Google infrastructure).",
+      "sentry": "Sentry",
+      "sentryDesc": "Error reporting and crash analysis (US, Standard Contractual Clauses).",
+      "supabase": "Supabase",
+      "supabaseDesc": "Cloud database and authentication (EU, Frankfurt).",
+      "vercel": "Vercel",
+      "vercelDesc": "PWA web hosting (Global edge network, Standard Contractual Clauses).",
+      "googlePlayLink": "Google's Privacy Policy",
+      "sentryLink": "Sentry's Privacy Policy",
+      "supabaseLink": "Supabase's Privacy Policy",
+      "vercelLink": "Vercel's Privacy Policy"
+    },
+    "yourRights": {
+      "title": "Your Rights (GDPR)",
+      "intro": "Under GDPR and applicable data protection laws, you have the right to:",
+      "access": "Access (Art. 15): View and export all your data at any time",
+      "rectification": "Rectification (Art. 16): Correct any inaccurate data directly in the app",
+      "erasure": "Erasure (Art. 17): Delete your local data or cloud data at any time",
+      "portability": "Portability (Art. 20): Export your data in standard JSON format",
+      "restriction": "Restriction (Art. 18): Switch to local-only mode to stop cloud processing",
+      "objection": "Objection (Art. 21): Stop cloud processing by switching to local mode",
+      "withdrawConsent": "Withdraw consent: Delete your cloud account to withdraw consent to cloud processing",
+      "deleteLocal": "For local data: Use Settings \u2192 Data \u2192 Your Data Rights",
+      "deleteCloud": "For cloud data: Use Settings \u2192 Data \u2192 Your Data Rights",
+      "contactUs": "All data management options are available directly in the app under Settings \u2192 Data tab. No email request is needed \u2014 you can self-serve all GDPR rights through the app interface.",
+      "supervisoryAuthority": "If you believe your data protection rights have been violated, you have the right to lodge a complaint with a supervisory authority. In Finland: Office of the Data Protection Ombudsman (Tietosuojavaltuutetun toimisto)",
+      "supervisoryAuthorityUrl": "https://tietosuoja.fi/en/home"
+    },
+    "childrensPrivacy": {
+      "title": "Children's Privacy",
+      "content": "MatchOps is a tool designed for adult coaches, not for use by children. The app does not knowingly collect personal information from children under 16. Player names and statistics are entered by the coach (the app user), not by the players themselves. This data is stored locally on the coach's device or in their private cloud account and is never transmitted to us or any third party (except when cloud sync is enabled, in which case it is stored securely in the coach's private account). No age verification is required because the app collects data from coaches about their players, not directly from children."
+    },
+    "dataSecurity": {
+      "title": "Data Security",
+      "localIntro": "In local mode, your data is stored in your browser's IndexedDB database:",
+      "localItems": {
+        "deviceProtection": "Protected by your device's access controls (screen lock, password, biometrics)",
+        "noAdditionalEncryption": "Not additionally encrypted at rest beyond what your device/browser provides",
+        "noTransmission": "No network transmission unless you enable Cloud Sync"
+      },
+      "localNote": "Your device's security is your primary protection for local data. We recommend using a strong screen lock.",
+      "cloudIntro": "In cloud mode, your data is protected by:",
+      "cloudItems": {
+        "tlsEncryption": "Encrypted in transit (HTTPS/TLS)",
+        "atRestEncryption": "Encrypted at rest in secure EU-based servers (Supabase, Frankfurt)",
+        "rowLevelSecurity": "Row-level security ensuring you can only access your own data",
+        "soc2": "Backed by Supabase's security infrastructure and SOC 2 compliance"
+      },
+      "backupTitle": "Backup File Security",
+      "backupContent": "When you export your data, the backup file contains all your data including any personnel contact information. Backup files are not encrypted and should be stored securely. We recommend storing backup files in a secure location and deleting them after import."
+    },
+    "changes": {
+      "title": "Changes to This Policy",
+      "content": "We may update this policy when necessary. Material changes will update the \"Last Updated\" date and Policy Version, trigger a re-consent prompt for cloud mode users on their next sign-in, and be available for review before acceptance."
+    },
+    "contact": {
+      "title": "Contact",
+      "intro": "Most data requests can be handled directly in the app (Settings \u2192 Data tab) without contacting us. For other privacy questions or concerns:",
+      "email": "Email"
+    },
+    "footer": "This privacy policy applies to the MatchOps application available on Google Play Store."
+  },
+  "termsOfService": {
+    "title": "Terms of Service for MatchOps",
+    "version": "Terms Version: 2026-02",
+    "lastUpdated": "Last Updated: February 2026",
+    "agreement": {
+      "title": "Agreement to Terms",
+      "content": "By downloading, installing, or using MatchOps (\"the app\"), you agree to these Terms of Service. If you do not agree, do not use the app."
+    },
+    "description": {
+      "title": "Description of Service",
+      "intro": "MatchOps is a local-first soccer coaching application that helps coaches:",
+      "items": {
+        "trackTime": "Track game time and scores",
+        "manageRosters": "Manage player rosters",
+        "recordStats": "Record player statistics",
+        "organizeSeasons": "Organize seasons and tournaments"
+      },
+      "note": "All data is stored locally on your device."
+    },
+    "license": {
+      "title": "License Grant",
+      "intro": "We grant you a limited, non-exclusive, non-transferable, revocable license to use MatchOps for personal, non-commercial purposes in accordance with these terms.",
+      "restrictionsIntro": "You may NOT:",
+      "restrictions": {
+        "reverseEngineer": "Reverse engineer, decompile, or disassemble the app",
+        "modify": "Modify, adapt, or create derivative works",
+        "distribute": "Distribute, sublicense, or transfer the app to others",
+        "illegal": "Use the app for any illegal purpose",
+        "removeNotices": "Remove any copyright or proprietary notices"
+      }
+    },
+    "userResponsibilities": {
+      "title": "User Responsibilities",
+      "intro": "You are responsible for:",
+      "items": {
+        "data": "All data you enter into the app",
+        "backups": "Maintaining backups of your data (using the export feature)",
+        "compliance": "Ensuring your use complies with applicable laws",
+        "activity": "Any activity that occurs through your use of the app"
+      }
+    },
+    "dataAndPrivacy": {
+      "title": "Data and Privacy",
+      "content": "Your data is stored locally on your device (local mode) or in our secure cloud database (cloud mode). See our Privacy Policy for details on data handling, security, GDPR rights, and what limited data we may collect.",
+      "securityAcknowledgmentTitle": "Data Security Acknowledgment",
+      "securityAcknowledgmentIntro": "By using MatchOps, you acknowledge that:",
+      "securityAcknowledgmentItems": {
+        "localMode": "Local mode: Data is stored in your browser's IndexedDB without additional encryption beyond what your device provides",
+        "deviceSecurity": "Device security: Your device's access controls (screen lock, password, biometrics) are your primary protection for local data",
+        "backupFiles": "Backup files: Exported backup files contain unencrypted data and should be stored securely",
+        "personnelData": "Personnel data: If you store personnel contact information (email, phone), it follows the same security model as other app data",
+        "yourResponsibility": "Your responsibility: You are responsible for protecting access to your device and backup files"
+      },
+      "securityAcknowledgmentNote": "For additional security, enable cloud sync which provides server-side encryption, encryption at rest, and row-level security."
+    },
+    "intellectualProperty": {
+      "title": "Intellectual Property",
+      "content": "MatchOps and all related trademarks, logos, and content are the property of the developer (Ville Pajala). You do not acquire any ownership rights by using the app."
+    },
+    "disclaimer": {
+      "title": "Disclaimer of Warranties",
+      "intro": "The app is provided \"as is\" and \"as available\" without warranties of any kind, express or implied, including but not limited to:",
+      "items": {
+        "merchantability": "Merchantability",
+        "fitness": "Fitness for a particular purpose",
+        "nonInfringement": "Non-infringement",
+        "accuracy": "Accuracy or reliability of data"
+      },
+      "note": "We do not warrant that the app will meet your specific requirements, be uninterrupted, timely, secure, or error-free, or that any errors will be corrected."
+    },
+    "liability": {
+      "title": "Limitation of Liability",
+      "intro": "To the maximum extent permitted by law, in no event shall the developer be liable for any indirect, incidental, special, consequential, or punitive damages, loss of data, profits, or business opportunities.",
+      "note": "Our total liability shall not exceed the amount you paid for the app (if any)."
+    },
+    "dataLoss": {
+      "title": "Data Loss",
+      "intro": "You acknowledge that:",
+      "items": {
+        "localStorage": "Data is stored locally on your device (or in cloud if enabled)",
+        "notResponsible": "We are not responsible for data loss due to device failure, app uninstallation, or any other cause",
+        "backupAdvice": "You should regularly export and backup important data"
+      }
+    },
+    "thirdPartyServices": {
+      "title": "Third-Party Services",
+      "intro": "The app may interact with third-party services:",
+      "googlePlay": "Google Play Store",
+      "googlePlayDesc": "For app distribution and payments",
+      "sentry": "Sentry",
+      "sentryDesc": "For automatic error reporting in production",
+      "supabase": "Supabase",
+      "supabaseDesc": "For cloud sync and authentication (cloud mode)",
+      "vercel": "Vercel",
+      "vercelDesc": "For PWA web hosting",
+      "note": "Your use of these services is governed by their respective terms and policies."
+    },
+    "premiumSubscription": {
+      "title": "Paid Features",
+      "intro": "We may introduce paid subscription plans in the future. If offered, paid features may include:",
+      "features": {
+        "cloudSync": "Cloud Sync: Access your data across multiple devices",
+        "unlimitedEntities": "Unlimited players, teams, seasons, and tournaments",
+        "prioritySupport": "Priority support"
+      },
+      "billing": "If paid subscriptions are introduced, they will be billed through Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.",
+      "cancellation": "If you have an active subscription, you can cancel at any time through Google Play. After cancellation, you retain access until the end of your billing period.",
+      "dataAfterCancel": "If a paid subscription is cancelled, your cloud data remains accessible. You can export or delete it at any time. We reserve the right to remove cloud data after an extended period of account inactivity, with prior notice."
+    },
+    "cloudSync": {
+      "title": "Cloud Sync Terms",
+      "intro": "When you enable Cloud Sync:",
+      "items": {
+        "ownership": "You retain ownership of all your data",
+        "availability": "We strive for high availability but do not guarantee uninterrupted access",
+        "backups": "You are responsible for maintaining local backups of critical data",
+        "security": "We implement industry-standard security measures to protect your data"
+      },
+      "deletion": "You can delete all cloud data at any time from Settings. Deletion is permanent and cannot be undone."
+    },
+    "changes": {
+      "title": "Changes to the App",
+      "content": "We reserve the right to modify or discontinue the app at any time and add or remove features."
+    },
+    "changesToTerms": {
+      "title": "Changes to Terms",
+      "content": "We may update these terms when necessary. Material changes will update the \"Last Updated\" date and trigger a re-consent prompt for cloud mode users. Continued use of the app after changes constitutes acceptance of the new terms."
+    },
+    "termination": {
+      "title": "Termination",
+      "content": "We may terminate or suspend your access to the app immediately, without notice, if you breach these terms. Upon termination, your license to use the app ends.",
+      "cloudTermination": "If your account is terminated, you will lose access to Cloud Sync features. Your local data will remain on your device. Cloud data will be deleted within a reasonable period after termination.",
+      "voluntaryDeletion": "You can voluntarily delete your cloud account and data at any time from the Settings menu."
+    },
+    "governingLaw": {
+      "title": "Governing Law and Dispute Resolution",
+      "content": "These terms are governed by the laws of Finland, without regard to conflict of law principles. Any disputes arising from these terms or your use of the app shall be resolved in the courts of Helsinki, Finland."
+    },
+    "severability": {
+      "title": "Severability",
+      "content": "If any provision of these terms is found unenforceable, the remaining provisions will continue in effect."
+    },
+    "entireAgreement": {
+      "title": "Entire Agreement",
+      "content": "These terms, together with our Privacy Policy, constitute the entire agreement between you and us regarding the app."
+    },
+    "contact": {
+      "title": "Contact",
+      "intro": "Most actions (data export, deletion, account management) can be done directly in the app under Settings. For questions about these terms:",
+      "email": "Email"
+    },
+    "footer": "These Terms of Service apply to the MatchOps application available on Google Play Store."
   }
 }

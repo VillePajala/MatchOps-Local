@@ -1,5 +1,6 @@
 // Modal reducer (Layer 2 - Steps 2.0–2.3)
 // Currently managing: loadGame, newGameSetup, settings, gameStats, roster, seasonTournament modals
+import logger from '@/utils/logger';
 
 export type ModalId =
   | 'loadGame'
@@ -57,8 +58,7 @@ function isValidModalId(id: ModalId): boolean {
 
 function warnUnknownModalId(id: ModalId, actionType: ModalAction['type']): void {
   if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-    // eslint-disable-next-line no-console
-    console.warn(`[modalReducer] Unknown modal id "${id}" for action "${actionType}"`);
+    logger.warn(`[modalReducer] Unknown modal id "${id}" for action "${actionType}"`);
   }
 }
 

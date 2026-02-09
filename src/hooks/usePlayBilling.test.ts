@@ -558,6 +558,7 @@ describe('grantMockSubscription', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
 
     mockFunctionsInvoke = jest.fn();
     mockGetSession = jest.fn().mockResolvedValue({

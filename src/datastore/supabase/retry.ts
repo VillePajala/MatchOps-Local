@@ -14,7 +14,7 @@
  */
 
 import logger from '@/utils/logger';
-import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
+import { TRANSIENT_ERROR_PATTERNS, TRANSIENT_STATUS_CODES, getErrorMessage } from '@/utils/transientErrors';
 
 /**
  * Configuration for retry behavior.
@@ -41,18 +41,6 @@ const DEFAULT_CONFIG: Required<Omit<RetryConfig, 'operationName'>> = {
   maxDelayMs: 10000,
   logRetries: true,
 };
-
-/**
- * HTTP status codes that indicate transient failures.
- */
-const TRANSIENT_STATUS_CODES = new Set([
-  408, // Request Timeout
-  429, // Too Many Requests
-  500, // Internal Server Error (sometimes transient)
-  502, // Bad Gateway
-  503, // Service Unavailable
-  504, // Gateway Timeout
-]);
 
 /**
  * Determine if an error is transient and worth retrying.
@@ -86,20 +74,6 @@ export function isTransientError(error: unknown): boolean {
   // Check error message patterns
   const message = getErrorMessage(error).toLowerCase();
   return TRANSIENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
-}
-
-/**
- * Extract error message from various error types.
- */
-function getErrorMessage(error: unknown): string {
-  if (typeof error === 'string') return error;
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error !== null) {
-    const errorObj = error as Record<string, unknown>;
-    if (typeof errorObj.message === 'string') return errorObj.message;
-    if (typeof errorObj.error === 'string') return errorObj.error;
-  }
-  return String(error);
 }
 
 /**

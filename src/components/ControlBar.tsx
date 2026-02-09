@@ -31,6 +31,7 @@ import {
 import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
+import logger from '@/utils/logger';
 import { useModalContext } from '@/contexts/ModalProvider';
 
 // Design tokens for consistent sizing and spacing
@@ -420,10 +421,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               onClick={() => {
                 // P3: Gate logging behind DEBUG flag (hot path performance)
                 if (debug.enabled('tactical')) {
-                  try {
-                    // eslint-disable-next-line no-console
-                    console.debug('[ControlBar] Undo clicked', { isTacticsBoardView });
-                  } catch {}
+                  logger.debug('[ControlBar] Undo clicked', { isTacticsBoardView });
                 }
                 return isTacticsBoardView ? onTacticalUndo() : onUndo();
               }}
@@ -439,10 +437,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               onClick={() => {
                 // P3: Gate logging behind DEBUG flag (hot path performance)
                 if (debug.enabled('tactical')) {
-                  try {
-                    // eslint-disable-next-line no-console
-                    console.debug('[ControlBar] Redo clicked', { isTacticsBoardView });
-                  } catch {}
+                  logger.debug('[ControlBar] Redo clicked', { isTacticsBoardView });
                 }
                 return isTacticsBoardView ? onTacticalRedo() : onRedo();
               }}

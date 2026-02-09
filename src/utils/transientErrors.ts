@@ -55,3 +55,35 @@ export const TRANSIENT_ERROR_PATTERNS = [
   'try again',
   'temporarily unavailable',
 ] as const;
+
+/**
+ * HTTP status codes that indicate transient failures worth retrying.
+ *
+ * Shared between:
+ * - src/utils/retry.ts (general-purpose retry)
+ * - src/datastore/supabase/retry.ts (Supabase-specific retry)
+ */
+export const TRANSIENT_STATUS_CODES = new Set([
+  408, // Request Timeout
+  429, // Too Many Requests
+  500, // Internal Server Error (sometimes transient)
+  502, // Bad Gateway
+  503, // Service Unavailable
+  504, // Gateway Timeout
+]);
+
+/**
+ * Extract error message from various error types.
+ *
+ * Shared between retry modules to ensure consistent error message extraction.
+ */
+export function getErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const errorObj = error as Record<string, unknown>;
+    if (typeof errorObj.message === 'string') return errorObj.message;
+    if (typeof errorObj.error === 'string') return errorObj.error;
+  }
+  return String(error);
+}

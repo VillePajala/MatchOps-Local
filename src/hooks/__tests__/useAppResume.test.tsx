@@ -73,8 +73,8 @@ describe('useAppResume', () => {
     // Mock window.location.reload to prevent actual page reloads in tests
     // JSDOM's location is non-configurable, so we delete and recreate with a minimal mock
     reloadMock = jest.fn();
-    delete (window as any).location;
-    (window as any).location = {
+    delete (window as unknown as { location: unknown }).location;
+    (window as unknown as Record<string, unknown>).location = {
       reload: reloadMock,
       href: 'http://localhost/',
       origin: 'http://localhost',
@@ -104,8 +104,8 @@ describe('useAppResume', () => {
 
   afterAll(() => {
     // Restore original location after all tests
-    delete (window as any).location;
-    (window as any).location = originalLocation;
+    delete (window as unknown as { location: unknown }).location;
+    (window as unknown as Record<string, unknown>).location = originalLocation;
   });
 
   /**

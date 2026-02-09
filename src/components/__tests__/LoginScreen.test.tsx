@@ -13,12 +13,22 @@ import LoginScreen from '../LoginScreen';
 const mockSignIn = jest.fn();
 const mockSignUp = jest.fn();
 const mockResetPassword = jest.fn();
+const mockSignOut = jest.fn();
+const mockVerifySignUpOtp = jest.fn();
+const mockResendSignUpConfirmation = jest.fn();
+const mockVerifyPasswordResetOtp = jest.fn();
+const mockUpdatePassword = jest.fn();
 
 jest.mock('@/contexts/AuthProvider', () => ({
   useAuth: () => ({
     signIn: mockSignIn,
     signUp: mockSignUp,
     resetPassword: mockResetPassword,
+    signOut: mockSignOut,
+    verifySignUpOtp: mockVerifySignUpOtp,
+    resendSignUpConfirmation: mockResendSignUpConfirmation,
+    verifyPasswordResetOtp: mockVerifyPasswordResetOtp,
+    updatePassword: mockUpdatePassword,
   }),
 }));
 
@@ -221,7 +231,7 @@ describe('LoginScreen', () => {
       expect(mockSignUp).not.toHaveBeenCalled();
     });
 
-    it('should show confirmation message when email verification required', async () => {
+    it('should show OTP verification screen when email verification required', async () => {
       mockSignUp.mockResolvedValue({ confirmationRequired: true });
 
       render(<LoginScreen />);
@@ -241,7 +251,7 @@ describe('LoginScreen', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
 
       await waitFor(() => {
-        expect(screen.getByText('Check your email to confirm your account')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Enter Verification Code' })).toBeInTheDocument();
       });
     });
   });
@@ -274,7 +284,7 @@ describe('LoginScreen', () => {
       });
     });
 
-    it('should show success message after sending reset email', async () => {
+    it('should show reset OTP screen after sending reset email', async () => {
       render(<LoginScreen />);
       fireEvent.click(screen.getByText('Forgot password?'));
 
@@ -284,7 +294,7 @@ describe('LoginScreen', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Send Reset Email' }));
 
       await waitFor(() => {
-        expect(screen.getByText('Check your email for reset instructions')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Enter Reset Code' })).toBeInTheDocument();
       });
     });
 

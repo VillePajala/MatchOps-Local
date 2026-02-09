@@ -84,7 +84,10 @@ function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
         jerseyNumber: rosterPlayer.jerseyNumber,
         notes: rosterPlayer.notes,
         color: rosterPlayer.color,
-        isGoalie: rosterPlayer.isGoalie,
+        // Note: isGoalie is NOT synced from roster — it's per-game field state.
+        // A player's goalie status can vary per game (e.g., goalie in one game,
+        // defender in another). isGoalie is set by: formation picker, manual toggle,
+        // or player movement within a specific game.
         receivedFairPlayCard: rosterPlayer.receivedFairPlayCard,
     };
 }
@@ -127,7 +130,7 @@ function playerMetadataChanged(original: Player, updated: Player): boolean {
         original.jerseyNumber !== updated.jerseyNumber ||
         compare(original.notes, updated.notes) ||
         compare(original.color, updated.color) ||
-        original.isGoalie !== updated.isGoalie ||
+        // Note: isGoalie intentionally excluded — it's per-game field state, not roster metadata
         original.receivedFairPlayCard !== updated.receivedFairPlayCard
     );
 }
@@ -495,7 +498,9 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     // }, []);
 
     // Return state values and handlers
-    return {
+    // Memoized to prevent unstable object reference on every render.
+    // State setters from useState are stable and excluded from deps.
+    return useMemo(() => ({
         playersOnField,
         opponents,
         drawings,
@@ -515,6 +520,11 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         handleOpponentRemove,
         handleRenamePlayer,
         handleToggleGoalie,
-        // setHookState,
-    };
+    }), [
+        playersOnField, opponents, drawings, availablePlayers,
+        handlePlayerDrop, handleDrawingStart, handleDrawingAddPoint,
+        handleDrawingEnd, handleClearDrawings, handleAddOpponent,
+        handleOpponentMove, handleOpponentMoveEnd, handleOpponentRemove,
+        handleRenamePlayer, handleToggleGoalie,
+    ]);
 }

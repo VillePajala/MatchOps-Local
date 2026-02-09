@@ -23,7 +23,10 @@ export function isSafePhoneNumber(phone: string | undefined): boolean {
   // Allow only valid phone number characters
   // Digits, spaces, hyphens, parentheses, plus, dots
   const phoneRegex = /^[\d\s\-().+]+$/;
-  return phoneRegex.test(phone);
+  if (!phoneRegex.test(phone)) return false;
+
+  // Must contain at least one digit to be a valid phone number
+  return /\d/.test(phone);
 }
 
 /**

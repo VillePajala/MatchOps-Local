@@ -154,6 +154,8 @@ export default function ServiceWorkerRegistration() {
           const cleanup = (registration as ServiceWorkerRegistration & { _cleanup?: () => void })._cleanup;
           if (cleanup) cleanup();
         }
+      }).catch(() => {
+        // Registration lookup during cleanup is non-critical
       });
     };
   }, []);

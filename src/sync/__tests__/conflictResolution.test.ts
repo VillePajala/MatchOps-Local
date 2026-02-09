@@ -5,7 +5,6 @@
 import {
   ConflictResolver,
   isAutoResolvableConflict,
-  isConflictError, // Deprecated alias - imported to verify it still works
   isNotFoundError,
   type ConflictResolverOptions,
   type CloudRecord,
@@ -419,14 +418,6 @@ describe('isAutoResolvableConflict', () => {
     expect(isAutoResolvableConflict(undefined)).toBe(false);
   });
 
-  /**
-   * Verify the deprecated alias still works for backwards compatibility.
-   */
-  it('should work via deprecated isConflictError alias', () => {
-    // Both should behave identically
-    expect(isConflictError(new Error('already exists'))).toBe(true);
-    expect(isConflictError(new ConflictError('game', 'id', 'msg'))).toBe(false);
-  });
 });
 
 describe('Context Parameter for Efficient Lookups', () => {

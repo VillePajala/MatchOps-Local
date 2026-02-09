@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Player } from '@/types';
 import { addPlayer, updatePlayer, removePlayer, setGoalieStatus } from '@/utils/masterRosterManager';
@@ -25,7 +25,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     [availablePlayers, selectedPlayerIds]
   );
 
-  const handleAddPlayer = async (
+  const handleAddPlayer = useCallback(async (
     data: Omit<Player, 'id' | 'isGoalie' | 'receivedFairPlayCard'>,
   ) => {
     const prev = [...availablePlayers];
@@ -67,9 +67,9 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     } finally {
       setIsRosterUpdating(false);
     }
-  };
+  }, [availablePlayers, userId, queryClient]);
 
-  const handleUpdatePlayer = async (
+  const handleUpdatePlayer = useCallback(async (
     playerId: string,
     updates: Partial<Omit<Player, 'id'>>,
   ) => {
@@ -103,9 +103,9 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     } finally {
       setIsRosterUpdating(false);
     }
-  };
+  }, [availablePlayers, userId, queryClient]);
 
-  const handleRemovePlayer = async (playerId: string) => {
+  const handleRemovePlayer = useCallback(async (playerId: string) => {
     const prev = [...availablePlayers];
     setIsRosterUpdating(true);
     setAvailablePlayers((ps) => ps.filter((p) => p.id !== playerId));
@@ -126,9 +126,9 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     } finally {
       setIsRosterUpdating(false);
     }
-  };
+  }, [availablePlayers, userId, queryClient]);
 
-  const handleSetGoalieStatus = async (playerId: string, isGoalie: boolean) => {
+  const handleSetGoalieStatus = useCallback(async (playerId: string, isGoalie: boolean) => {
     const prev = [...availablePlayers];
     setIsRosterUpdating(true);
     setAvailablePlayers((ps) =>
@@ -155,7 +155,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     } finally {
       setIsRosterUpdating(false);
     }
-  };
+  }, [availablePlayers, userId, queryClient]);
 
   return {
     availablePlayers,

@@ -28,8 +28,22 @@ interface CSPViolationReport {
 }
 
 export async function POST(request: NextRequest) {
+  // Reject oversized payloads to prevent abuse (CSP reports should be small).
+  // Read body as text first to enforce limit even without Content-Length header.
+  const MAX_BODY_SIZE = 10000;
+  let bodyText: string;
   try {
-    const report: CSPViolationReport = await request.json();
+    bodyText = await request.text();
+  } catch {
+    return new NextResponse(null, { status: 400 });
+  }
+
+  if (bodyText.length > MAX_BODY_SIZE) {
+    return new NextResponse(null, { status: 413 });
+  }
+
+  try {
+    const report: CSPViolationReport = JSON.parse(bodyText);
     const violation = report['csp-report'];
 
     // Log to Sentry if available

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 
 interface PrecisionTimerOptions {
   onTick: (elapsedSeconds: number) => void;
@@ -113,12 +113,12 @@ export const usePrecisionTimer = ({
     return initialTimeRef.current + (elapsedMs / 1000);
   }, []);
 
-  return {
+  return useMemo(() => ({
     start,
     stop,
     reset,
     getCurrentTime,
-  };
+  }), [start, stop, reset, getCurrentTime]);
 };
 
 /**

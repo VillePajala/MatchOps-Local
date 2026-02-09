@@ -257,7 +257,12 @@ export const useAutoSave = ({
 
     prevShortRef.current = currentSerialized;
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (shortTimerRef.current) {
+        clearTimeout(shortTimerRef.current);
+      }
+    };
   }, [enabled, short, currentGameId]);
 
   // --- Long Delay Save (2000ms) ---
@@ -307,7 +312,12 @@ export const useAutoSave = ({
 
     prevLongRef.current = currentSerialized;
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (longTimerRef.current) {
+        clearTimeout(longTimerRef.current);
+      }
+    };
   }, [enabled, long, currentGameId]);
 
   // --- Cleanup on unmount ---

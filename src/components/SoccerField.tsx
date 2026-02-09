@@ -1139,8 +1139,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     });
     }
 
-    // --- Restore context ---
-    context.restore();
+    // --- End of draw ---
   }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints]);
 
   // Add the new ResizeObserver effect

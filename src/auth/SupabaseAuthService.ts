@@ -158,7 +158,7 @@ function validatePassword(password: string): void {
   const hasUppercase = /[A-Z]/.test(password);
   const hasLowercase = /[a-z]/.test(password);
   const hasDigit = /\d/.test(password);
-  const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9\s]/.test(password);
 
   const typeCount = [hasUppercase, hasLowercase, hasDigit, hasSpecial].filter(Boolean).length;
 
@@ -730,14 +730,14 @@ export class SupabaseAuthService implements AuthService {
     // does not accept an AbortSignal, so we race against a timeout promise.
     let error;
     try {
-      let timeoutId: ReturnType<typeof setTimeout>;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<{ error: Error }>((_resolve, reject) => {
         timeoutId = setTimeout(() => reject(new Error('Sign out timed out')), 10000);
       });
       const result = await Promise.race([
         this.client!.auth.signOut(),
         timeoutPromise,
-      ]).finally(() => clearTimeout(timeoutId!));
+      ]).finally(() => { if (timeoutId) clearTimeout(timeoutId); });
       error = result.error;
     } catch (e) {
       // Timeout or network error — treat as failed API signout
@@ -1153,6 +1153,11 @@ export class SupabaseAuthService implements AuthService {
   async verifySignUpOtp(email: string, token: string): Promise<AuthResult> {
     this.ensureInitialized();
 
+    // Validate OTP format before sending to Supabase (defense-in-depth)
+    if (!token || !/^\d{6,8}$/.test(token.trim())) {
+      throw new AuthError('Invalid verification code format');
+    }
+
     let data, error;
     try {
       const result = await withRetry(async () => {
@@ -1205,6 +1210,11 @@ export class SupabaseAuthService implements AuthService {
 
   async verifyPasswordResetOtp(email: string, token: string): Promise<void> {
     this.ensureInitialized();
+
+    // Validate OTP format before sending to Supabase (defense-in-depth)
+    if (!token || !/^\d{6,8}$/.test(token.trim())) {
+      throw new AuthError('Invalid verification code format');
+    }
 
     let error;
     try {
@@ -1440,10 +1450,10 @@ export class SupabaseAuthService implements AuthService {
         );
       }
 
-      // Wrap unexpected errors
+      // Wrap unexpected errors with sanitized message
       logger.error('[SupabaseAuthService] Unexpected error during account deletion:', error);
       throw new AuthError(
-        error instanceof Error ? error.message : 'Account deletion failed unexpectedly'
+        'Account deletion failed unexpectedly. Please try again or contact support.'
       );
     }
   }
