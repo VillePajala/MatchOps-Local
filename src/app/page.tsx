@@ -967,28 +967,44 @@ export default function Home() {
     setRefreshTrigger(prev => prev + 1);
   }, [userId, queryClient, showToast, t]);
 
-  // Handle migration wizard cancel - return to local mode
-  const handleMigrationCancel = useCallback(() => {
-    logger.info('[page.tsx] Migration cancelled, switching to local mode');
+  // Handle migration wizard skip - set flag so wizard doesn't reappear, continue in cloud mode
+  const handleMigrationSkip = useCallback(async () => {
+    logger.info('[page.tsx] Migration skipped permanently');
+    if (userId) {
+      setMigrationCompleted(userId);
+    }
     setShowMigrationWizard(false);
 
-    // Disable cloud mode and reload to reinitialize in local mode
-    const result = disableCloudMode();
-    if (result.success) {
-      showToast(t('page.returningToLocalMode', 'Returning to local mode...'), 'info');
-      setTimeout(() => {
-        try {
-          window.location.reload();
-        } catch (error) {
-          logger.error('[page.tsx] Reload blocked', error);
-          showToast(t('page.refreshPageManually', 'Please refresh the page manually'), 'error');
-        }
-      }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
-    } else {
-      logger.error('[page.tsx] Failed to switch to local mode:', result.message);
-      showToast(t('page.failedToSwitchLocalModeRetry', 'Failed to switch to local mode. Please try again.'), 'error');
+    // Continue in cloud mode — refetch data from cloud
+    await queryClient.refetchQueries();
+    setRefreshTrigger(prev => prev + 1);
+  }, [userId, queryClient]);
+
+  // Handle migration wizard discard - clear local data, set flag, continue in cloud mode
+  const handleMigrationDiscard = useCallback(async () => {
+    logger.info('[page.tsx] Discarding local data from migration wizard');
+    try {
+      const { LocalDataStore } = await import('@/datastore/LocalDataStore');
+      const localStore = new LocalDataStore();
+      await localStore.initialize(userId ?? undefined);
+      await localStore.clearAllUserData();
+      logger.info('[page.tsx] Local data cleared successfully');
+    } catch (error) {
+      logger.error('[page.tsx] Failed to clear local data:', error);
+      showToast(t('page.failedToClearLocalData', 'Failed to clear local data. Please try again.'), 'error');
+      return;
     }
-  }, [showToast, t]);
+
+    if (userId) {
+      setMigrationCompleted(userId);
+    }
+    setShowMigrationWizard(false);
+
+    // Continue in cloud mode — refetch data from cloud
+    await queryClient.refetchQueries();
+    setRefreshTrigger(prev => prev + 1);
+    showToast(t('page.localDataDiscarded', 'Local data cleared.'), 'info');
+  }, [userId, queryClient, showToast, t]);
 
   // Memoize onResume to avoid re-subscribing to visibility events on every render
   const handleAppResume = useCallback(() => {
@@ -1162,7 +1178,8 @@ export default function Home() {
           <ErrorBoundary>
             <MigrationWizard
               onComplete={handleMigrationComplete}
-              onCancel={handleMigrationCancel}
+              onSkip={handleMigrationSkip}
+              onDiscard={handleMigrationDiscard}
             />
           </ErrorBoundary>
         ) : screen === 'start' ? (

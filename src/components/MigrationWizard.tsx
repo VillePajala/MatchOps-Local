@@ -99,17 +99,17 @@ function sanitizeErrorMessage(error: unknown, t: (key: string, fallback: string)
   return sanitizeErrorString(error.message, t);
 }
 
-type WizardStep = 'preview' | 'syncing' | 'complete' | 'error';
+type WizardStep = 'preview' | 'syncing' | 'complete' | 'error' | 'confirmDiscard';
 
 export interface MigrationWizardProps {
   /** Called when migration completes successfully */
   onComplete: () => void;
-  /** Called when user cancels (clicks "Not Now") */
-  onCancel: () => void;
-  /** @deprecated No longer used - cloud counts fetching removed for simplification */
-  cloudCounts?: MigrationCounts | null;
-  /** @deprecated No longer used - cloud counts fetching removed for simplification */
-  isLoadingCloudCounts?: boolean;
+  /** Called when user skips migration permanently (clicks "Not Now") */
+  onSkip: () => void;
+  /** Called when user discards local data */
+  onDiscard: () => void;
+  /** @deprecated Use onSkip instead */
+  onCancel?: () => void;
 }
 
 /**
@@ -120,7 +120,8 @@ export interface MigrationWizardProps {
  */
 const MigrationWizard: React.FC<MigrationWizardProps> = ({
   onComplete,
-  onCancel,
+  onSkip,
+  onDiscard,
 }) => {
   const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -420,6 +421,19 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           </>
         );
 
+      case 'confirmDiscard':
+        return (
+          <div className="text-center py-4">
+            <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
+            <p className="text-lg font-medium text-amber-400 mb-2">
+              {t('migration.discardConfirmTitle', 'Discard local data?')}
+            </p>
+            <p className="text-slate-300 mb-3">
+              {t('migration.discardConfirmDescription', 'This will permanently delete all local data from this device. This cannot be undone.')}
+            </p>
+          </div>
+        );
+
       case 'syncing':
         return renderProgress();
 
@@ -466,7 +480,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           return (
             <>
               <button
-                onClick={onCancel}
+                onClick={onSkip}
                 className={secondaryButtonStyle}
               >
                 {t('common.cancel', 'Cancel')}
@@ -481,19 +495,48 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           );
         }
         return (
+          <div className="flex flex-col w-full gap-3">
+            <div className="flex gap-3">
+              <button
+                onClick={onSkip}
+                className={`${secondaryButtonStyle} flex-1`}
+              >
+                {t('migration.notNow', 'Not Now')}
+              </button>
+              <button
+                onClick={handleStartSync}
+                disabled={isLoadingCounts || !localCounts}
+                className={`${primaryButtonStyle} flex-1`}
+              >
+                {t('migration.syncToCloud', 'Sync to Cloud')}
+              </button>
+            </div>
+            <button
+              onClick={() => setStep('confirmDiscard')}
+              className="text-sm text-slate-500 hover:text-red-400 transition-colors"
+            >
+              {t('migration.discardLocalData', 'Discard local data')}
+            </button>
+            <p className="text-xs text-slate-500 text-center">
+              {t('migration.canImportLater', 'You can import local data later from Settings → Cloud Sync.')}
+            </p>
+          </div>
+        );
+
+      case 'confirmDiscard':
+        return (
           <>
             <button
-              onClick={onCancel}
+              onClick={() => setStep('preview')}
               className={secondaryButtonStyle}
             >
-              {t('migration.notNow', 'Not Now')}
+              {t('common.cancel', 'Cancel')}
             </button>
             <button
-              onClick={handleStartSync}
-              disabled={isLoadingCounts || !localCounts}
-              className={primaryButtonStyle}
+              onClick={onDiscard}
+              className={`${primaryButtonStyle} !bg-red-600 hover:!bg-red-700`}
             >
-              {t('migration.syncToCloud', 'Sync to Cloud')}
+              {t('migration.discardConfirm', 'Discard')}
             </button>
           </>
         );
@@ -515,7 +558,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         return (
           <>
             <button
-              onClick={onCancel}
+              onClick={onSkip}
               className={secondaryButtonStyle}
             >
               {t('common.cancel', 'Cancel')}
@@ -550,7 +593,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           </h2>
           {step !== 'syncing' && (
             <button
-              onClick={step === 'complete' ? onComplete : onCancel}
+              onClick={step === 'complete' ? onComplete : onSkip}
               className={wizardCloseButtonStyle}
               aria-label={t('common.close', 'Close')}
             >
