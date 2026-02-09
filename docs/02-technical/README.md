@@ -9,6 +9,7 @@ This directory contains technical architecture documentation covering system des
 - **[security.md](./security.md)** - Security architecture, current state, and planned improvements
 - **[data-freshness-and-modal-data-flow.md](./data-freshness-and-modal-data-flow.md)** - Modal data flow patterns
 - **[excel-export-library.md](./excel-export-library.md)** - Excel export implementation (xlsx)
+- **[supabase-implementation-guide.md](./supabase-implementation-guide.md)** - Supabase cloud backend transform rules and implementation reference
 
 ## Subdirectories
 

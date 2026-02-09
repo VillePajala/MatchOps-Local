@@ -6,7 +6,7 @@ This directory contains technical analysis documents and research.
 
 *No active analysis documents at this time.*
 
-Historical analysis documents (localStorage usage, bundle analysis) have been moved to `docs/08-archived/` as they are no longer actively maintained.
+Historical analysis documents (localStorage usage, bundle analysis, supabase-implementation-review) have been moved to `docs/08-archived/` as they are no longer actively maintained.
 
 ## Purpose
 

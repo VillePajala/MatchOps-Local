@@ -1,6 +1,6 @@
 # Active Plans — START HERE
 
-**Last Updated**: 2026-01-26
+**Last Updated**: February 2026
 
 ---
 
@@ -15,27 +15,31 @@
 | File | Purpose | Status |
 |------|---------|--------|
 | **UNIFIED-ROADMAP.md** | Master roadmap with all tasks | ✅ Updated |
-| **supabase-implementation-guide.md** | Cloud backend implementation | ✅ Complete |
+| **master-execution-guide.md** | Play Store release details | 📋 Active |
 | **billing-implementation-plan.md** | Play Billing & subscriptions | ✅ Phases 1-7 Complete |
-| **local-first-sync-plan.md** | Local-first sync architecture | ✅ Complete (PR #324) |
-| master-execution-guide.md | Play Store release details | 📋 Reference |
-| subscription-implementation-plan.md | Subscription model | ✅ Implemented |
+| **PLAY-STORE-IMPLEMENTATION-PLAN.md** | Play Store distribution | 📋 Active |
+| **branch-review-findings.md** | Code review findings tracker | 📋 Reference |
+| **user-flow-testing-plan.md** | Manual testing plan | 📋 Pre-release |
+| **welcome-screen-simplification-plan.md** | Welcome screen UX | 📋 Reference |
+
+**Note**: Completed plans (supabase-implementation-guide, local-first-sync, subscription, etc.) have been archived to `08-archived/completed-active-plans/`. The supabase-implementation-guide has been relocated to `02-technical/` as permanent reference.
 
 ---
 
-## Current Status (January 2026)
+## Current Status (February 2026)
 
-✅ **Supabase Cloud Backend** — PRs 1-11 Complete
+✅ **Supabase Cloud Backend** — PRs 1-12 Complete
 ✅ **Local-First Sync** — PR #324 Merged
 ✅ **Billing Infrastructure** — Phases 1-7 Complete
-✅ **Staging Environment** — Configured for preview testing
+✅ **Staging Environment** — Configured and tested
+✅ **Code Reviews** — 5 rounds complete, all actionable items fixed
 
 | Metric | Value |
 |--------|-------|
-| Tests | 3,500+ passing |
+| Tests | ~4,500+ passing |
 | Vulnerabilities | 0 |
 | Framework | Next.js 16.0.10 + React 19.2 |
-| Branch | `supabase/billing-implementation` |
+| Cloud Backend | Supabase (PostgreSQL + Auth + Edge Functions) |
 
 ### Supabase Projects
 

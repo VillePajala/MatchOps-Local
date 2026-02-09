@@ -89,7 +89,7 @@ MatchOps-Local combines the best of modern web technology with local data storag
 - TypeScript for reliability and maintainability
 - Tailwind CSS 4 for responsive, professional design
 - Supabase for optional cloud backend (PostgreSQL, Auth, Edge Functions)
-- Comprehensive testing suite (3,500+ tests) for quality assurance
+- Comprehensive testing suite (~4,500+ tests) for quality assurance
 
 ## Project Vision
 

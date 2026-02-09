@@ -962,4 +962,4 @@ const supabase = createClient(url, key, {
 **Next Steps**:
 - Review [DataStore Interface](./datastore-interface.md) for data access layer
 - See [Dual-Backend Architecture](./dual-backend-architecture.md) for complete system design
-- Check [Phased Implementation Roadmap](../../03-active-plans/backend-evolution/phased-implementation-roadmap.md) for rollout plan
+- Check [Phased Implementation Roadmap](../../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) for rollout plan (archived)

@@ -24,7 +24,7 @@ The `DataStore` interface provides a **unified, domain-oriented API** for data o
 | SyncEngine | ✅ Implemented | `src/sync/SyncEngine.ts` |
 | SyncQueue | ✅ Implemented | `src/sync/SyncQueue.ts` |
 
-**Test Coverage**: 3,500+ tests including comprehensive LocalDataStore and sync system test suites.
+**Test Coverage**: ~4,500+ tests including comprehensive LocalDataStore, SupabaseDataStore, and sync system test suites.
 
 **Cloud Mode Architecture**: In cloud mode, the factory returns `SyncedDataStore` which wraps `LocalDataStore` with background sync capabilities. This enables local-first operation where all reads/writes go to IndexedDB first, with changes synced to Supabase in the background via `SyncQueue` and `SyncEngine`. See PR #324 for implementation details.
 
@@ -882,4 +882,4 @@ function RosterList() {
 **Next Steps**:
 - Review [AuthService Interface](./auth-service-interface.md) for authentication layer
 - See [Dual-Backend Architecture](./dual-backend-architecture.md) for complete system design
-- Check [Phased Implementation Roadmap](../../03-active-plans/backend-evolution/phased-implementation-roadmap.md) for rollout plan
+- Check [Phased Implementation Roadmap](../../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) for rollout plan (archived)

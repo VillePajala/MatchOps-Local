@@ -639,8 +639,8 @@ Component (CloudSyncSection)
 
 **Important**: Step 2 (authentication) may have happened days/weeks earlier. The user could have signed in, remained in local mode, and only later decided to enable sync after subscribing.
 
-**See**: [Migration Strategy](../../03-active-plans/backend-evolution/migration-strategy.md) for detailed implementation
-**See**: [Cloud Sync User Flows](../../03-active-plans/cloud-sync-user-flows.md) for all sync scenarios
+**See**: [Migration Strategy](../../08-archived/completed-active-plans/backend-evolution/migration-strategy.md) for detailed implementation
+**See**: [Cloud Sync User Flows](../../08-archived/completed-active-plans/cloud-sync-user-flows.md) for all sync scenarios
 
 ## Testing Strategy
 
@@ -869,11 +869,11 @@ SELECT * FROM games WHERE season_id = 'season_123';
 - Added optimistic locking for concurrent save protection (Issue #330)
 - **Result**: Cloud features available
 
-**See**: [REALISTIC-IMPLEMENTATION-PLAN.md](../../03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md) for detailed plan
+**See**: [REALISTIC-IMPLEMENTATION-PLAN.md](../../08-archived/completed-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md) for detailed plan
 
 ---
 
 **Next Steps**:
-1. Review [Migration Strategy](../../03-active-plans/backend-evolution/migration-strategy.md) for data transformation details
-2. Check [Phased Implementation Roadmap](../../03-active-plans/backend-evolution/phased-implementation-roadmap.md) for execution plan
+1. Review [Migration Strategy](../../08-archived/completed-active-plans/backend-evolution/migration-strategy.md) for data transformation details
+2. Check [Phased Implementation Roadmap](../../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) for execution plan
 3. See [Master Execution Guide](../../03-active-plans/master-execution-guide.md) for integration with overall roadmap

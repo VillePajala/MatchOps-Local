@@ -3,7 +3,7 @@
 **Status**: ✅ Implemented (Revised v17)
 **Last Updated**: 2026-01-26 (v17: Schema deployed, Edge Function complete, Local-First Sync merged)
 **Target**: Premium/Cloud Backend
-**Related**: [Current Storage Schema](./current-storage-schema.md) | [Dual-Backend Architecture](../architecture/dual-backend-architecture.md) | [Migration Strategy](../../03-active-plans/backend-evolution/migration-strategy.md)
+**Related**: [Current Storage Schema](./current-storage-schema.md) | [Dual-Backend Architecture](../architecture/dual-backend-architecture.md) | [Migration Strategy](../../08-archived/completed-active-plans/backend-evolution/migration-strategy.md)
 
 ## Overview
 
@@ -1832,5 +1832,5 @@ Supabase Edge Functions handle operations that require service role access or ex
 ---
 
 **Next Steps**:
-- Review [Migration Strategy](../../03-active-plans/backend-evolution/migration-strategy.md) for transformation logic
+- Review [Migration Strategy](../../08-archived/completed-active-plans/backend-evolution/migration-strategy.md) for transformation logic
 - See [DataStore Interface](../../architecture/datastore-interface.md) for unified API over both backends
