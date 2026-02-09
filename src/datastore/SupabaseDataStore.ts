@@ -1290,6 +1290,8 @@ export class SupabaseDataStore implements DataStore {
       updatedAt: new Date().toISOString(),
     };
 
+    const userId = await this.getUserId();
+
     const updatePayload: TeamUpdate = {
       name: updatedTeam.name,
       color: updatedTeam.color ?? null,
@@ -2505,6 +2507,8 @@ export class SupabaseDataStore implements DataStore {
       ...updates,
       updatedAt: new Date().toISOString(),
     };
+
+    const userId = await this.getUserId();
 
     const updatePayload: PersonnelUpdate = {
       name: updated.name,

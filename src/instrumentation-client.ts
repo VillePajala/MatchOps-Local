@@ -103,8 +103,8 @@ if (dsn && (isProduction || isForceEnabled)) {
       }),
     ],
 
-    // Performance monitoring - 100% sampling for small user base (20 users)
-    tracesSampleRate: 1.0,
+    // Performance monitoring - 10% sampling (sustainable at scale for Play Store release)
+    tracesSampleRate: 0.1,
 
     // Session replay - capture all error replays for debugging
     replaysSessionSampleRate: 0.0, // Disable session replays by default (privacy)
@@ -142,6 +142,11 @@ if (dsn && (isProduction || isForceEnabled)) {
 
       // Filter out ResizeObserver errors (common browser noise)
       if (event.exception?.values?.[0]?.value?.includes('ResizeObserver')) {
+        return null;
+      }
+
+      // Filter out Play Billing errors (expected when app is not installed from Play Store)
+      if (event.exception?.values?.[0]?.value?.includes('clientAppUnavailable')) {
         return null;
       }
 

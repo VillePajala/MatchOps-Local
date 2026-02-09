@@ -1069,7 +1069,7 @@ export class SupabaseAuthService implements AuthService {
 
       if (error) {
         logger.error('[SupabaseAuthService] Failed to get marketing consent status:', error.message);
-        throw new AuthError(`Failed to get marketing consent status: ${error.message}`);
+        throw new AuthError('Failed to get marketing consent status. Please try again.');
       }
 
       // RPC returns null if no record, or 'granted'/'withdrawn'
