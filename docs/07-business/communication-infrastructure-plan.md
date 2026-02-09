@@ -542,16 +542,53 @@ Do this:
 
 ### Credentials to Store (Password Manager)
 
-| Service | Username | Notes |
-|---------|----------|-------|
-| Namecheap | email | Domain registrar |
-| Cloudflare | email | DNS, email routing |
-| Resend | email | Auth transactional emails (SMTP for Supabase) |
-| Zoho Mail | support@matchops.com | Email sending |
-| Sentry | email | Error monitoring |
-| Vercel | email | Hosting |
-| X/Twitter | @MatchOpsApp | Social |
-| LinkedIn | Velomo AI page | Social |
+#### Service Accounts
+
+| Service | Account Email | Notes |
+|---------|--------------|-------|
+| **Bitwarden** | valoraami@gmail.com | **Password manager — all credentials stored here** |
+| Google Play Console | villejohannespajala@gmail.com | Developer account ($25 one-time) |
+| Google Cloud Console | villejohannespajala@gmail.com | OAuth client for Supabase "Sign in with Google" |
+| Vercel | valoraami@gmail.com | Hosting (both app + marketing site) |
+| Sentry | valoraami@gmail.com | Error monitoring |
+| Supabase | valoraami@gmail.com | Cloud backend (staging + production) |
+| Namecheap | valoraami@gmail.com | Domain registrar (match-ops.com, velomoai.com) |
+| Cloudflare | valoraami@gmail.com | DNS, email routing |
+| Resend | villejohannespajala@gmail.com | Auth transactional emails (SMTP for Supabase) |
+| GitHub | valoraami@gmail.com | Source code (VillePajala/MatchOps-Local) |
+| LinkedIn | valoraami@gmail.com | Velomo AI company page (Ville Johannes Pajala) |
+| X/Twitter | (personal account) | Using personal to promote MatchOps |
+
+#### API Keys & Tokens
+
+| Key | Source | Used In |
+|-----|--------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` (staging) | Supabase Dashboard → Settings → API | .env.local, Vercel env vars |
+| `NEXT_PUBLIC_SUPABASE_URL` (production) | Supabase Dashboard → Settings → API | Vercel env vars |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` (staging) | Supabase Dashboard → Settings → API | .env.local, Vercel env vars |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` (production) | Supabase Dashboard → Settings → API | Vercel env vars |
+| Supabase publishable key (staging) | Supabase Dashboard → Settings → API | New-format key (replaces legacy anon) |
+| Supabase publishable key (production) | Supabase Dashboard → Settings → API | New-format key (replaces legacy anon) |
+| Supabase secret key (staging) | Supabase Dashboard → Settings → API | Server-side / edge functions |
+| Supabase secret key (production) | Supabase Dashboard → Settings → API | Server-side / edge functions |
+| Supabase DB password (staging) | Supabase Dashboard → Settings → Database | Direct DB access only |
+| Supabase DB password (production) | Supabase Dashboard → Settings → Database | Direct DB access only |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry → Project → Settings → Client Keys | .env.local, Vercel env vars |
+| `SENTRY_AUTH_TOKEN` | Sentry → Settings → Auth Tokens | Vercel env vars (source map uploads) |
+| Resend API key | resend.com → API Keys | Supabase Dashboard → Auth → SMTP password |
+| Google OAuth Client ID | Google Cloud Console → Credentials | Supabase Auth → Providers → Google |
+| Google OAuth Client Secret | Google Cloud Console → Credentials | Supabase Auth → Providers → Google |
+| Cloudflare Global API Key | Cloudflare → Profile → API Tokens | Programmatic DNS access |
+| Cloudflare Origin CA Key | Cloudflare → Profile → API Tokens | Origin certificate management |
+
+#### Android / TWA Signing (CRITICAL — cannot update app without these)
+
+| Asset | Location | Notes |
+|-------|----------|-------|
+| Keystore file (`.keystore`) | `/home/villepajala/keys/matchops-release.keystore` | Back up securely! |
+| Keystore password | Password manager | Required for every TWA build |
+| Key alias | Password manager | `matchops` |
+| Key password | Password manager | Required for every TWA build |
 
 ---
 
