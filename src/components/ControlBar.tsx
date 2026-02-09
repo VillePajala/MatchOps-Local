@@ -690,7 +690,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   // MAINTAINER NOTE: If you add a new DATA prop (not a callback), add it here!
   // Current data props: timeElapsedInSeconds, isTimerRunning, canUndo, canRedo,
   // canTacticalUndo, canTacticalRedo, isTacticsBoardView, isDrawingEnabled, isGameLoaded,
-  // selectedPlayerCount
+  // selectedPlayerCount, isCloudMode, onGoToStartScreen (truthiness)
   //
   // Return true = props equal (skip re-render), false = props changed (re-render)
   return (
@@ -703,7 +703,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
     prevProps.isTacticsBoardView === nextProps.isTacticsBoardView &&
     prevProps.isDrawingEnabled === nextProps.isDrawingEnabled &&
     prevProps.isGameLoaded === nextProps.isGameLoaded &&
-    prevProps.selectedPlayerCount === nextProps.selectedPlayerCount
+    prevProps.selectedPlayerCount === nextProps.selectedPlayerCount &&
+    prevProps.isCloudMode === nextProps.isCloudMode &&
+    !!prevProps.onGoToStartScreen === !!nextProps.onGoToStartScreen
   );
 });
 

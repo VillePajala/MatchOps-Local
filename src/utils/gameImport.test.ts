@@ -247,8 +247,6 @@ describe('Game Import with Partial Success', () => {
       
       // Check error messages are descriptive
       const errorMessages = result.failed.map(f => f.error);
-      console.log('Error messages:', errorMessages); // Debug output
-      
       // The schema validation will catch missing fields first
       // But our custom validation should catch specific issues
       expect(result.failed.length).toBe(3);

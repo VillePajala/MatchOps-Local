@@ -121,8 +121,7 @@ export function useSyncStatus(): UseSyncStatusResult {
     let healthCheckIntervalId: ReturnType<typeof setInterval> | null = null;
     let isConnected = false;
     // Store reference to the engine we subscribed to, for detecting replacement
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let subscribedEngineRef: any = null;
+    let subscribedEngineRef: unknown = null;
 
     // Polling interval - keeps checking until engine is available
     // This handles the case where DataStore is initialized much later

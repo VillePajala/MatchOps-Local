@@ -43,14 +43,10 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
   onPlayerTapInBar,
   onToggleGoalie // Destructure goalie toggle handler
 }) => {
-  // REMOVED: console.log(`[PlayerDisk id=${id} name=${fullName}] Component RENDER. gameEvents prop:`, JSON.stringify(gameEvents));
-
   // Calculate goals and assists for this player
   const playerStats = useMemo(() => {
-    // REMOVED: console.log(`[PlayerDisk id=${id} name=${fullName}] Recalculating stats. gameEvents:`, JSON.stringify(gameEvents));
     const goals = gameEvents.filter(event => event.type === 'goal' && event.scorerId === id).length;
     const assists = gameEvents.filter(event => event.type === 'goal' && event.assisterId === id).length;
-    // REMOVED: console.log(`[PlayerDisk id=${id} name=${fullName}] Calculated stats - Goals: ${goals}, Assists: ${assists}`);
     return { goals, assists };
   }, [gameEvents, id]);
 

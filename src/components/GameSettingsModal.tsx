@@ -29,6 +29,7 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -490,6 +491,22 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
+
+  // Modal ref for focus trapping (WCAG 2.1 AA requirement)
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, isOpen && isClient);
+
+  // Modal-level Escape key handler (guarded against child state)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && inlineEditingField === null && !showDeleteEventConfirm && editingGoalId === null) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, inlineEditingField, showDeleteEventConfirm, editingGoalId]);
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -1461,7 +1478,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettings.title', 'Game Settings')}>
+    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettings.title', 'Game Settings')}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
