@@ -2,7 +2,8 @@
  * Tests for simplified MigrationWizard component
  *
  * Tests the simplified migration wizard flow:
- * - Preview: Shows local data, "Sync to Cloud" and "Not Now" buttons
+ * - Preview: Shows local data, "Sync to Cloud", "Not Now", and "Discard local data" options
+ * - ConfirmDiscard: Confirmation step for discarding local data
  * - Syncing: Progress during migration
  * - Complete: Success message with "Done" button
  * - Error: Error message with "Retry" and "Cancel" buttons
@@ -79,7 +80,8 @@ async function waitForDataLoaded() {
 
 describe('MigrationWizard', () => {
   const mockOnComplete = jest.fn();
-  const mockOnCancel = jest.fn();
+  const mockOnSkip = jest.fn();
+  const mockOnDiscard = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -99,7 +101,7 @@ describe('MigrationWizard', () => {
     });
     (getLocalDataSummary as jest.Mock).mockReturnValue(delayedPromise);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     // Should show loading initially
     expect(screen.getByText('Loading data...')).toBeInTheDocument();
@@ -118,7 +120,7 @@ describe('MigrationWizard', () => {
   // ============================================================================
 
   it('renders the preview step with local data summary after loading', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     // Wait for loading to complete
     await waitForDataLoaded();
@@ -132,8 +134,8 @@ describe('MigrationWizard', () => {
     expect(screen.getByRole('button', { name: 'Not Now' })).toBeInTheDocument();
   });
 
-  it('calls onCancel when "Not Now" is clicked', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+  it('calls onSkip when "Not Now" is clicked', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -141,11 +143,11 @@ describe('MigrationWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Not Now' }));
     });
 
-    expect(mockOnCancel).toHaveBeenCalledTimes(1);
+    expect(mockOnSkip).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onCancel when close button is clicked in preview step', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+  it('calls onSkip when close button is clicked in preview step', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -155,7 +157,7 @@ describe('MigrationWizard', () => {
       fireEvent.click(closeButton);
     });
 
-    expect(mockOnCancel).toHaveBeenCalledTimes(1);
+    expect(mockOnSkip).toHaveBeenCalledTimes(1);
   });
 
   // ============================================================================
@@ -163,7 +165,7 @@ describe('MigrationWizard', () => {
   // ============================================================================
 
   it('starts migration when "Sync to Cloud" is clicked', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -183,7 +185,7 @@ describe('MigrationWizard', () => {
     });
     (migrateLocalToCloud as jest.Mock).mockReturnValue(migrationPromise);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -210,7 +212,7 @@ describe('MigrationWizard', () => {
   // ============================================================================
 
   it('shows complete step after successful migration', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -227,7 +229,7 @@ describe('MigrationWizard', () => {
   });
 
   it('calls onComplete when Done is clicked', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -247,7 +249,7 @@ describe('MigrationWizard', () => {
   });
 
   it('calls onComplete when close button is clicked in complete step', async () => {
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -265,7 +267,7 @@ describe('MigrationWizard', () => {
       fireEvent.click(closeButton);
     });
 
-    // Should call onComplete (not onCancel) in complete step
+    // Should call onComplete (not onSkip) in complete step
     expect(mockOnComplete).toHaveBeenCalledTimes(1);
   });
 
@@ -282,7 +284,7 @@ describe('MigrationWizard', () => {
     };
     (migrateLocalToCloud as jest.Mock).mockResolvedValue(failedResult);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -313,7 +315,7 @@ describe('MigrationWizard', () => {
       .mockResolvedValueOnce(failedResult)
       .mockResolvedValueOnce(mockMigrationResult);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -346,7 +348,7 @@ describe('MigrationWizard', () => {
     });
   });
 
-  it('calls onCancel when Cancel is clicked in error step', async () => {
+  it('calls onSkip when Cancel is clicked in error step', async () => {
     const failedResult = {
       success: false,
       errors: ['Migration failed'],
@@ -355,7 +357,7 @@ describe('MigrationWizard', () => {
     };
     (migrateLocalToCloud as jest.Mock).mockResolvedValue(failedResult);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -371,7 +373,7 @@ describe('MigrationWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     });
 
-    expect(mockOnCancel).toHaveBeenCalledTimes(1);
+    expect(mockOnSkip).toHaveBeenCalledTimes(1);
   });
 
   // ============================================================================
@@ -382,7 +384,7 @@ describe('MigrationWizard', () => {
     const networkError = new Error('fetch failed: network error');
     (migrateLocalToCloud as jest.Mock).mockRejectedValue(networkError);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -403,7 +405,7 @@ describe('MigrationWizard', () => {
     const authError = new Error('not authenticated: session expired at server');
     (migrateLocalToCloud as jest.Mock).mockRejectedValue(authError);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -423,7 +425,7 @@ describe('MigrationWizard', () => {
     const rateLimitError = new Error('too many requests: rate limit exceeded');
     (migrateLocalToCloud as jest.Mock).mockRejectedValue(rateLimitError);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -443,7 +445,7 @@ describe('MigrationWizard', () => {
     const quotaError = new Error('quota exceeded: storage limit reached');
     (migrateLocalToCloud as jest.Mock).mockRejectedValue(quotaError);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -463,7 +465,7 @@ describe('MigrationWizard', () => {
     // When a string or other non-Error is thrown
     (migrateLocalToCloud as jest.Mock).mockRejectedValue('string error message');
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
 
@@ -488,7 +490,7 @@ describe('MigrationWizard', () => {
   it('handles data loading errors gracefully', async () => {
     (getLocalDataSummary as jest.Mock).mockRejectedValue(new Error('IndexedDB error'));
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     // Should show error state after loading fails
     await waitFor(() => {
@@ -509,7 +511,7 @@ describe('MigrationWizard', () => {
       .mockRejectedValueOnce(new Error('IndexedDB error'))
       .mockResolvedValueOnce(mockDataSummary);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     // Wait for error state
     await waitFor(() => {
@@ -548,7 +550,7 @@ describe('MigrationWizard', () => {
       settings: false,
     });
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitFor(() => {
       expect(screen.getByText('No data to sync')).toBeInTheDocument();
@@ -559,34 +561,23 @@ describe('MigrationWizard', () => {
   // Deprecated Props Tests
   // ============================================================================
 
-  it('accepts deprecated cloudCounts prop without error', async () => {
-    // Old code might still pass these props - ensure they don't cause errors
-    const cloudCounts = {
-      players: 5,
-      teams: 1,
-      games: 10,
-      seasons: 2,
-      tournaments: 1,
-      personnel: 0,
-      teamRosters: 5,
-      playerAdjustments: 0,
-      warmupPlan: false,
-      settings: false,
-    };
+  it('accepts deprecated onCancel prop without error', async () => {
+    // Old code might still pass onCancel — ensure it doesn't cause errors
+    const mockOnCancel = jest.fn();
 
     render(
       <MigrationWizard
         onComplete={mockOnComplete}
+        onSkip={mockOnSkip}
+        onDiscard={mockOnDiscard}
         onCancel={mockOnCancel}
-        cloudCounts={cloudCounts}
-        isLoadingCloudCounts={false}
       />
     );
 
     // Wait for data to load
     await waitForDataLoaded();
 
-    // Should render normally - deprecated props are ignored
+    // Should render normally - deprecated prop is accepted but not used
     expect(screen.getByRole('button', { name: 'Sync to Cloud' })).toBeInTheDocument();
   });
 
@@ -605,7 +596,7 @@ describe('MigrationWizard', () => {
       return migrationPromise;
     });
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
     await waitForDataLoaded();
 
     const syncButton = screen.getByRole('button', { name: 'Sync to Cloud' });
@@ -637,7 +628,7 @@ describe('MigrationWizard', () => {
     const timeoutError = new Error('request timed out after 30000ms');
     (migrateLocalToCloud as jest.Mock).mockRejectedValue(timeoutError);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
     await waitForDataLoaded();
 
     await act(async () => {
@@ -655,7 +646,7 @@ describe('MigrationWizard', () => {
     const permissionError = new Error('row level security policy violation');
     (migrateLocalToCloud as jest.Mock).mockRejectedValue(permissionError);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
     await waitForDataLoaded();
 
     await act(async () => {
@@ -673,7 +664,7 @@ describe('MigrationWizard', () => {
     const validationError = new Error('validation failed: invalid email format');
     (migrateLocalToCloud as jest.Mock).mockRejectedValue(validationError);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
     await waitForDataLoaded();
 
     await act(async () => {
@@ -697,7 +688,7 @@ describe('MigrationWizard', () => {
     };
     (migrateLocalToCloud as jest.Mock).mockResolvedValue(failedResult);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
     await waitForDataLoaded();
 
     await act(async () => {
@@ -712,6 +703,78 @@ describe('MigrationWizard', () => {
     expect(screen.getByText('Permission error. Please try signing out and back in.')).toBeInTheDocument();
     // Should NOT show raw error
     expect(screen.queryByText('RLS policy denied')).not.toBeInTheDocument();
+  });
+
+  // ============================================================================
+  // Discard Flow Tests
+  // ============================================================================
+
+  it('shows confirmDiscard step when "Discard local data" is clicked', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
+
+    await waitForDataLoaded();
+
+    // Click "Discard local data" link
+    await act(async () => {
+      fireEvent.click(screen.getByText('Discard local data'));
+    });
+
+    // Should show confirmation step
+    expect(screen.getByText('Discard local data?')).toBeInTheDocument();
+    expect(screen.getByText(/permanently delete all local data/)).toBeInTheDocument();
+
+    // Should have Cancel and Discard buttons
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeInTheDocument();
+  });
+
+  it('calls onDiscard when Discard is confirmed', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
+
+    await waitForDataLoaded();
+
+    // Click "Discard local data" link
+    await act(async () => {
+      fireEvent.click(screen.getByText('Discard local data'));
+    });
+
+    // Click "Discard" confirmation button
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    });
+
+    expect(mockOnDiscard).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns to preview when Cancel is clicked in confirmDiscard step', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
+
+    await waitForDataLoaded();
+
+    // Click "Discard local data" link
+    await act(async () => {
+      fireEvent.click(screen.getByText('Discard local data'));
+    });
+
+    // Should be on confirmDiscard step
+    expect(screen.getByText('Discard local data?')).toBeInTheDocument();
+
+    // Click Cancel
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    });
+
+    // Should return to preview step
+    expect(screen.getByText('Local Data')).toBeInTheDocument();
+    expect(mockOnDiscard).not.toHaveBeenCalled();
+  });
+
+  it('shows "can import later" hint in preview step', async () => {
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
+
+    await waitForDataLoaded();
+
+    expect(screen.getByText(/You can import local data later from Settings/)).toBeInTheDocument();
   });
 
   // ============================================================================
@@ -735,7 +798,7 @@ describe('MigrationWizard', () => {
       .mockResolvedValueOnce(failedResult)
       .mockResolvedValueOnce(mockMigrationResult);
 
-    render(<MigrationWizard onComplete={mockOnComplete} onCancel={mockOnCancel} />);
+    render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitForDataLoaded();
     expect(loadCallCount).toBe(1); // Initial load
