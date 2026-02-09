@@ -276,7 +276,8 @@
     "cta": {
       "title": "Tulossa pian Google Playhin",
       "subtitle": "Kysyttävää? Ota yhteyttä.",
-      "button": "Ota yhteyttä"
+      "button": "Ota yhteyttä",
+      "googlePlayAlt": "Google Play"
     }
   },
   "screenshots": {

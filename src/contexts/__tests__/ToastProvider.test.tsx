@@ -22,10 +22,10 @@ test('showToast displays and hides a toast message', () => {
     );
 
     fireEvent.click(screen.getByText('Success'));
-    expect(screen.getByText('Saved!')).toHaveClass('bg-green-600');
+    expect(screen.getByText('Saved!').closest('[role="status"]')).toHaveClass('bg-green-600');
 
     fireEvent.click(screen.getByText('Error'));
-    expect(screen.getByText('Error!')).toHaveClass('bg-red-600');
+    expect(screen.getByText('Error!').closest('[role="alert"]')).toHaveClass('bg-red-600');
 
     // Success toast disappears after 3s
     act(() => {

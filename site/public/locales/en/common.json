@@ -295,7 +295,8 @@
     "cta": {
       "title": "Coming Soon to Google Play",
       "subtitle": "Have questions? Get in touch.",
-      "button": "Contact Us"
+      "button": "Contact Us",
+      "googlePlayAlt": "Google Play"
     }
   },
   "screenshots": {

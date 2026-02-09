@@ -1307,7 +1307,8 @@ export class SupabaseDataStore implements DataStore {
       const result = await this.getClient()
         .from('teams')
         .update(updatePayload)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', userId);
       throwIfTransient(result);
       return result;
     }, 'updateTeam');
@@ -2519,7 +2520,8 @@ export class SupabaseDataStore implements DataStore {
       const result = await this.getClient()
         .from('personnel')
         .update(updatePayload)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', userId);
       throwIfTransient(result);
       return result;
     }, 'updatePersonnelMember');

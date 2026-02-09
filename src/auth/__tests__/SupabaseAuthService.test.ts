@@ -46,6 +46,9 @@ const mockAuth = {
   signOut: jest.fn(),
   resetPasswordForEmail: jest.fn(),
   refreshSession: jest.fn(),
+  verifyOtp: jest.fn(),
+  updateUser: jest.fn(),
+  resend: jest.fn(),
   onAuthStateChange: jest.fn((callback) => {
     authStateCallbacks.push(callback);
     return {
@@ -1000,6 +1003,326 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(authService.deleteAccount()).rejects.toThrow(AuthError);
+    });
+  });
+
+  // ==========================================================================
+  // VERIFY SIGN-UP OTP
+  // ==========================================================================
+
+  describe('verifySignUpOtp', () => {
+    beforeEach(async () => {
+      await authService.initialize();
+    });
+
+    it('should verify OTP successfully and return authenticated session', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
+        error: null,
+      });
+
+      const result = await authService.verifySignUpOtp('test@example.com', '123456');
+
+      expect(mockAuth.verifyOtp).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        token: '123456',
+        type: 'signup',
+      });
+      expect(result.user).toBeDefined();
+      expect(result.user.id).toBe('user_123_abc');
+      expect(result.session).toBeDefined();
+      expect(result.session!.accessToken).toBe('mock_access_token');
+      expect(result.confirmationRequired).toBe(false);
+      expect(authService.isAuthenticated()).toBe(true);
+    });
+
+    it('should throw AuthError for invalid or expired token', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Token has expired or is invalid' },
+      });
+
+      await expect(
+        authService.verifySignUpOtp('test@example.com', 'expired_token')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.verifySignUpOtp('test@example.com', 'expired_token')
+      ).rejects.toThrow('invalid or has expired');
+    });
+
+    it('should throw NetworkError on network failure (retry exhaustion)', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'network error: fetch failed' },
+      });
+
+      await expect(
+        authService.verifySignUpOtp('test@example.com', '123456')
+      ).rejects.toThrow(NetworkError);
+    });
+
+    it('should throw AuthError when no user or session returned', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: null,
+      });
+
+      await expect(
+        authService.verifySignUpOtp('test@example.com', '123456')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.verifySignUpOtp('test@example.com', '123456')
+      ).rejects.toThrow('no session returned');
+    });
+
+    it('should throw AuthError for generic Supabase error', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Some unexpected error' },
+      });
+
+      await expect(
+        authService.verifySignUpOtp('test@example.com', '123456')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.verifySignUpOtp('test@example.com', '123456')
+      ).rejects.toThrow('Verification failed. Please try again.');
+    });
+
+    it('should throw NotInitializedError if not initialized', async () => {
+      const uninitializedService = new SupabaseAuthService();
+
+      await expect(
+        uninitializedService.verifySignUpOtp('test@example.com', '123456')
+      ).rejects.toThrow(NotInitializedError);
+    });
+  });
+
+  // ==========================================================================
+  // VERIFY PASSWORD RESET OTP
+  // ==========================================================================
+
+  describe('verifyPasswordResetOtp', () => {
+    beforeEach(async () => {
+      await authService.initialize();
+    });
+
+    it('should verify recovery OTP successfully and update session', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
+        error: null,
+      });
+
+      await expect(
+        authService.verifyPasswordResetOtp('test@example.com', '654321')
+      ).resolves.not.toThrow();
+
+      expect(mockAuth.verifyOtp).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        token: '654321',
+        type: 'recovery',
+      });
+      // Session should be updated after successful recovery verification
+      expect(authService.isAuthenticated()).toBe(true);
+    });
+
+    it('should throw AuthError for invalid or expired reset code', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Token has expired or is invalid' },
+      });
+
+      await expect(
+        authService.verifyPasswordResetOtp('test@example.com', 'expired_code')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.verifyPasswordResetOtp('test@example.com', 'expired_code')
+      ).rejects.toThrow('invalid or has expired');
+    });
+
+    it('should throw NetworkError on network failure (retry exhaustion)', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'network error: connection refused' },
+      });
+
+      await expect(
+        authService.verifyPasswordResetOtp('test@example.com', '654321')
+      ).rejects.toThrow(NetworkError);
+    });
+
+    it('should throw AuthError for generic Supabase error', async () => {
+      mockAuth.verifyOtp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Internal server error' },
+      });
+
+      await expect(
+        authService.verifyPasswordResetOtp('test@example.com', '654321')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.verifyPasswordResetOtp('test@example.com', '654321')
+      ).rejects.toThrow('Verification failed. Please try again.');
+    });
+
+    it('should throw NotInitializedError if not initialized', async () => {
+      const uninitializedService = new SupabaseAuthService();
+
+      await expect(
+        uninitializedService.verifyPasswordResetOtp('test@example.com', '654321')
+      ).rejects.toThrow(NotInitializedError);
+    });
+  });
+
+  // ==========================================================================
+  // UPDATE PASSWORD
+  // ==========================================================================
+
+  describe('updatePassword', () => {
+    beforeEach(async () => {
+      // Sign in to have a current session (updatePassword requires auth session from recovery flow)
+      mockAuth.getSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+      mockAuth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
+      await authService.initialize();
+    });
+
+    it('should update password successfully', async () => {
+      mockAuth.updateUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      await expect(
+        authService.updatePassword('NewPassword123!@#')
+      ).resolves.not.toThrow();
+
+      expect(mockAuth.updateUser).toHaveBeenCalledWith({
+        password: 'NewPassword123!@#',
+      });
+    });
+
+    it('should validate password complexity (too short)', async () => {
+      await expect(
+        authService.updatePassword('Short1!')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.updatePassword('Short1!')
+      ).rejects.toThrow('at least 12 characters');
+    });
+
+    it('should validate password complexity (insufficient character types)', async () => {
+      await expect(
+        authService.updatePassword('passwordonly1234')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.updatePassword('passwordonly1234')
+      ).rejects.toThrow('at least 3 of');
+    });
+
+    it('should throw AuthError on Supabase error', async () => {
+      mockAuth.updateUser.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Password update rejected by server' },
+      });
+
+      await expect(
+        authService.updatePassword('NewPassword123!@#')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.updatePassword('NewPassword123!@#')
+      ).rejects.toThrow('Password update failed. Please try again.');
+    });
+
+    it('should throw NetworkError on network failure (retry exhaustion)', async () => {
+      mockAuth.updateUser.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'network error: fetch failed' },
+      });
+
+      await expect(
+        authService.updatePassword('NewPassword123!@#')
+      ).rejects.toThrow(NetworkError);
+    });
+
+    it('should throw NotInitializedError if not initialized', async () => {
+      const uninitializedService = new SupabaseAuthService();
+
+      await expect(
+        uninitializedService.updatePassword('NewPassword123!@#')
+      ).rejects.toThrow(NotInitializedError);
+    });
+  });
+
+  // ==========================================================================
+  // RESEND SIGN-UP CONFIRMATION
+  // ==========================================================================
+
+  describe('resendSignUpConfirmation', () => {
+    beforeEach(async () => {
+      await authService.initialize();
+    });
+
+    it('should resend confirmation email successfully', async () => {
+      mockAuth.resend.mockResolvedValue({
+        data: {},
+        error: null,
+      });
+
+      await expect(
+        authService.resendSignUpConfirmation('test@example.com')
+      ).resolves.not.toThrow();
+
+      expect(mockAuth.resend).toHaveBeenCalledWith({
+        type: 'signup',
+        email: 'test@example.com',
+      });
+    });
+
+    it('should throw AuthError on rate limit error', async () => {
+      mockAuth.resend.mockResolvedValue({
+        data: null,
+        error: { message: 'rate limit exceeded' },
+      });
+
+      await expect(
+        authService.resendSignUpConfirmation('test@example.com')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.resendSignUpConfirmation('test@example.com')
+      ).rejects.toThrow('Please wait before requesting another code.');
+    });
+
+    it('should throw AuthError on generic Supabase error', async () => {
+      mockAuth.resend.mockResolvedValue({
+        data: null,
+        error: { message: 'Some unexpected error' },
+      });
+
+      await expect(
+        authService.resendSignUpConfirmation('test@example.com')
+      ).rejects.toThrow(AuthError);
+      await expect(
+        authService.resendSignUpConfirmation('test@example.com')
+      ).rejects.toThrow('Failed to resend confirmation email. Please try again.');
+    });
+
+    it('should throw NetworkError on network failure (retry exhaustion)', async () => {
+      mockAuth.resend.mockResolvedValue({
+        data: null,
+        error: { message: 'network error: fetch failed' },
+      });
+
+      await expect(
+        authService.resendSignUpConfirmation('test@example.com')
+      ).rejects.toThrow(NetworkError);
+    });
+
+    it('should throw NotInitializedError if not initialized', async () => {
+      const uninitializedService = new SupabaseAuthService();
+
+      await expect(
+        uninitializedService.resendSignUpConfirmation('test@example.com')
+      ).rejects.toThrow(NotInitializedError);
     });
   });
 });

@@ -1,8 +1,8 @@
 {
-  "version": "9e55025a",
+  "version": "1e322c81",
   "date": "2026-02-08",
   "notes": {
-    "en": "Remove redundant migration 027",
-    "fi": "Remove redundant migration 027"
+    "en": "Clear Supabase client session on account deletion",
+    "fi": "Clear Supabase client session on account deletion"
   }
 }
