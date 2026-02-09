@@ -11,6 +11,8 @@
     "resetField": "Nollaa kenttä",
     "clearDrawings": "Tyhjennä piirrokset",
     "addOpponent": "Lisää vastustaja",
+    "addHomeDisc": "Lisää kotikiekko",
+    "addOpponentDisc": "Lisää vastustajan kiekko",
     "placeAllPlayers": "Sijoita kaikki pelaajat kentälle",
     "timerStart": "Käynnistä",
     "timerPause": "Tauko",
@@ -109,6 +111,23 @@
       "3-5-2": "3-5-2",
       "4-2-3-1": "4-2-3-1"
     }
+  },
+  "fieldTools": {
+    "title": "Kenttätyökalut",
+    "tactics": "Taktiikka",
+    "placeAll": "Aseta kaikki",
+    "addHome": "Lisää koti",
+    "addOpponent": "Lisää vast.",
+    "clear": "Tyhjennä",
+    "reset": "Nollaa"
+  },
+  "gameResult": {
+    "overtime": "JA",
+    "penalties": "RL"
+  },
+  "teams": {
+    "deleteError": "Joukkueen poistaminen epäonnistui. Yritä uudelleen.",
+    "updateError": "Joukkueen päivittäminen epäonnistui. Yritä uudelleen."
   },
   "common": {
     "notSet": "Ei asetettu",
@@ -638,6 +657,12 @@
     "game": "Ottelu",
     "games": "Ottelut"
   },
+  "status": {
+    "loadingGameData": "Ladataan pelitietoja..."
+  },
+  "loadGame": {
+    "title": "Tallennetut pelit"
+  },
   "loadGameModal": {
     "title": "Tallennetut pelit",
     "gameActions": "Pelitoiminnot",
@@ -1103,6 +1128,8 @@
     "namePlaceholder": "Syötä joukkueen nimi",
     "teamColor": "Joukkueen väri",
     "noTeams": "Ei joukkueita vielä. Luo ensimmäinen joukkue aloittaaksesi.",
+    "noSearchResults": "Haku \"{{search}}\" ei löytänyt joukkueita.",
+    "noArchivedTeams": "Ei arkistoituja joukkueita.",
     "searchPlaceholder": "Etsi joukkueita...",
     "searchAriaLabel": "Etsi joukkueita nimen perusteella",
     "onePlayer": "1 pelaaja",
@@ -1251,6 +1278,7 @@
     "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
+    "eventActions": "Tapahtuman toiminnot",
     "gameTypeLabel": "Linkitä kilpailuun",
     "unknownPlayer": "Tuntematon pelaaja",
     "logTypeOpponentGoal": "Vastustajan maali",
@@ -2380,6 +2408,7 @@
     "syncDescription": "Paikalliset tietosi synkronoidaan pilveen varmuuskopiointia ja pääsyä muilta laitteilta varten.",
     "notNow": "Ei nyt",
     "syncToCloud": "Synkronoi pilveen",
+    "previousInterrupted": "Edellinen synkronointi ei ehkä valmistunut. Paina \"Synkronoi pilveen\" yrittääksesi uudelleen — tietosi ovat turvassa.",
     "loadDataFailed": "Tietojen lataaminen epäonnistui. Yritä uudelleen.",
     "canRetryOrCancel": "Voit yrittää uudelleen tai sulkea tämän ikkunan.",
     "dataIsSafe": "Paikalliset tietosi ovat turvassa.",
@@ -2403,6 +2432,9 @@
     "offlineTitle": "Ei internet-yhteyttä - muutokset synkronoidaan kun olet online",
     "paused": "Keskeytetty",
     "pausedTitle": "Synkronointi keskeytetty - tilaus vaaditaan",
+    "pausedWithPending": "Synkronointi keskeytetty - {{count}} muutosta odottaa",
+    "pausedByUser": "Synkronointi keskeytetty",
+    "loadingTitle": "Tarkistetaan synkronoinnin tilaa...",
     "cloud": "Pilvi",
     "cloudTitle": "Tiedot synkronoidaan pilveen",
     "online": "Online"
@@ -2458,6 +2490,7 @@
     "startingOver": "Aloitetaan alusta. Ladataan uudelleen...",
     "startOverError": "Alusta aloittaminen epäonnistui. Yritä uudelleen.",
     "switchedToLocal": "Vaihdettu paikalliseen tilaan. Ladataan uudelleen...",
+    "switchToLocalNote": "Paikalliseen tilaan vaihdettaessa voit valita, säilytetäänkö vai poistetaanko pilvitietosi.",
     "manageSubscription": "Hallitse tilausta",
     "subscriptionSuccess": "Tilaus aktivoitu! Ladataan uudelleen...",
     "importLocalData": {
@@ -2480,7 +2513,8 @@
       "deleteWarning": "Sinun täytyy kirjautua uudelleen poistaaksesi pilvitietosi.",
       "signInToDelete": "Kirjaudu poistaaksesi",
       "deleteNote": "Tämä poistaa pysyvästi kaikki tietosi palvelimiltamme.",
-      "deleteSuccess": "Pilvitiedot poistettu onnistuneesti."
+      "deleteSuccess": "Pilvitiedot poistettu onnistuneesti.",
+      "noAccountInfo": "Pilvitilin tietoja ei löytynyt. Pilvitietoja ei voida poistaa."
     },
     "syncDetails": {
       "status": "Synkronointitila",
@@ -2516,6 +2550,9 @@
     }
   },
   "cloudAuth": {
+    "sendingReset": "Lähetetään...",
+    "forgotPassword": "Unohditko salasanasi?",
+    "resetEmailSent": "Salasanan nollauslinkki lähetetty. Tarkista sähköpostisi ja yritä uudelleen.",
     "title": {
       "auth": "Kirjaudu sisään",
       "confirm": "Vahvista poisto",
@@ -2727,7 +2764,8 @@
     "resyncFailed": "Synkronointi epäonnistui. Yritä uudelleen.",
     "noUserForFactoryReset": "Käyttäjä ei ole kirjautunut",
     "factoryResetFailed": "Palautus epäonnistui. Yritä uudelleen.",
-    "factoryResetOffline": "Pilvitietoja ei voi poistaa offline-tilassa. Tarkista yhteys ja yritä uudelleen."
+    "factoryResetOffline": "Pilvitietoja ei voi poistaa offline-tilassa. Tarkista yhteys ja yritä uudelleen.",
+    "loading": "Ladataan..."
   },
   "positions": {
     "GK": "GK",

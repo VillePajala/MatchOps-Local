@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { GameContainer } from '@/components/HomePage/containers/GameContainer';
 import { ModalManager } from '@/components/HomePage/containers/ModalManager';
 import {
@@ -21,11 +22,7 @@ function HomePage(props: HomePageProps) {
   } = useGameOrchestration(props);
 
   if (isBootstrapping) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-900 text-white">
-        <p>{t('status.loadingGameData', 'Loading Game Data...')}</p>
-      </div>
-    );
+    return <LoadingScreen message={t('status.loadingGameData', 'Loading Game Data...')} />;
   }
 
   if (isResetting) {

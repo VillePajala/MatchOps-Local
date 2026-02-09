@@ -11,6 +11,8 @@
     "resetField": "Reset Field",
     "clearDrawings": "Clear Drawings",
     "addOpponent": "Add Opponent",
+    "addHomeDisc": "Add Home Disc",
+    "addOpponentDisc": "Add Opponent Disc",
     "placeAllPlayers": "Place All Players on Field",
     "timerStart": "Start",
     "timerPause": "Pause",
@@ -109,6 +111,23 @@
       "3-5-2": "3-5-2",
       "4-2-3-1": "4-2-3-1"
     }
+  },
+  "fieldTools": {
+    "title": "Field Tools",
+    "tactics": "Tactics",
+    "placeAll": "Place All",
+    "addHome": "Add Home",
+    "addOpponent": "Add Opp",
+    "clear": "Clear",
+    "reset": "Reset"
+  },
+  "gameResult": {
+    "overtime": "OT",
+    "penalties": "PKs"
+  },
+  "teams": {
+    "deleteError": "Failed to delete team. Please try again.",
+    "updateError": "Failed to update team. Please try again."
   },
   "common": {
     "notSet": "Not Set",
@@ -638,6 +657,12 @@
     "sortByNewest": "Newest",
     "sortByOldest": "Oldest"
   },
+  "status": {
+    "loadingGameData": "Loading Game Data..."
+  },
+  "loadGame": {
+    "title": "Load Game"
+  },
   "loadGameModal": {
     "title": "Load Game",
     "gameActions": "Game actions",
@@ -780,6 +805,7 @@
     "createGame": "Create Game"
   },
   "gameSettingsModal": {
+    "eventActions": "Event actions",
     "gameTypeLabel": "Link to Competition",
     "unknownPlayer": "Unknown Player",
     "logTypeOpponentGoal": "Opponent Goal",
@@ -1204,6 +1230,8 @@
     "namePlaceholder": "Enter team name",
     "teamColor": "Team Color",
     "noTeams": "No teams yet. Create your first team to get started.",
+    "noSearchResults": "No teams match your search for \"{{search}}\".",
+    "noArchivedTeams": "No archived teams to show.",
     "searchPlaceholder": "Search teams...",
     "searchAriaLabel": "Search teams by name",
     "onePlayer": "1 player",
@@ -2380,6 +2408,7 @@
     "syncDescription": "Your local data will be synced to the cloud for backup and access from other devices.",
     "notNow": "Not Now",
     "syncToCloud": "Sync to Cloud",
+    "previousInterrupted": "A previous sync may not have completed. Tap \"Sync to Cloud\" to retry — your data is safe.",
     "loadDataFailed": "Failed to load your data. Please try again.",
     "canRetryOrCancel": "You can retry or close this dialog.",
     "dataIsSafe": "Your local data is safe.",
@@ -2403,6 +2432,9 @@
     "offlineTitle": "No internet connection - changes will sync when online",
     "paused": "Paused",
     "pausedTitle": "Sync paused - subscription required",
+    "pausedWithPending": "Sync paused - {{count}} changes waiting",
+    "pausedByUser": "Sync paused",
+    "loadingTitle": "Checking sync status...",
     "cloud": "Cloud",
     "cloudTitle": "Data syncs to cloud",
     "online": "Online"
@@ -2458,6 +2490,7 @@
     "startingOver": "Starting over. Reloading...",
     "startOverError": "Failed to start over. Please try again.",
     "switchedToLocal": "Switched to local mode. Reloading...",
+    "switchToLocalNote": "When switching to local mode, you can choose to keep or delete your cloud data.",
     "manageSubscription": "Manage Subscription",
     "subscriptionSuccess": "Subscription activated! Reloading...",
     "importLocalData": {
@@ -2480,7 +2513,8 @@
       "deleteWarning": "You will need to sign in again to delete your cloud data.",
       "signInToDelete": "Sign In to Delete",
       "deleteNote": "This will permanently delete all your data from our servers.",
-      "deleteSuccess": "Cloud data deleted successfully."
+      "deleteSuccess": "Cloud data deleted successfully.",
+      "noAccountInfo": "No cloud account information found. Cannot delete cloud data."
     },
     "syncDetails": {
       "status": "Sync Status",
@@ -2516,6 +2550,9 @@
     }
   },
   "cloudAuth": {
+    "sendingReset": "Sending...",
+    "forgotPassword": "Forgot password?",
+    "resetEmailSent": "Password reset email sent. Check your inbox and try again.",
     "title": {
       "auth": "Sign In",
       "confirm": "Confirm Deletion",
@@ -2727,7 +2764,8 @@
     "resyncFailed": "Failed to re-sync. Please try again.",
     "noUserForFactoryReset": "No user logged in",
     "factoryResetFailed": "Failed to reset. Please try again.",
-    "factoryResetOffline": "Cannot delete cloud data while offline. Please check your connection and try again."
+    "factoryResetOffline": "Cannot delete cloud data while offline. Please check your connection and try again.",
+    "loading": "Loading..."
   },
   "positions": {
     "GK": "GK",
