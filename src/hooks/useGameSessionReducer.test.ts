@@ -793,6 +793,7 @@ describe('gameSessionReducer', () => {
       const state = createBaseState({
         isTimerRunning: true,
         gameStatus: 'inProgress',
+        startTimestamp: Date.now(),
       });
       const action: GameSessionAction = { type: 'PAUSE_TIMER_FOR_HIDDEN' };
 

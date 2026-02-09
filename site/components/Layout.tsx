@@ -159,6 +159,15 @@ export default function Layout({ children }: LayoutProps) {
           <p className="text-sm text-slate-300" suppressHydrationWarning>
             {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
+          <div className="flex items-center justify-center gap-4 mt-3 text-sm text-slate-400">
+            <Link href="/privacy" className="hover:text-slate-200 transition-colors">
+              {t('footer.privacyPolicy')}
+            </Link>
+            <span className="text-slate-600">|</span>
+            <Link href="/terms" className="hover:text-slate-200 transition-colors">
+              {t('footer.termsOfService')}
+            </Link>
+          </div>
           <Link
             href="/marketing-assets"
             className="text-transparent select-none mt-4 inline-block"

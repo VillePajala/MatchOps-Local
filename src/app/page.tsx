@@ -10,7 +10,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
@@ -39,8 +39,8 @@ import {
   setPendingPostLoginCheck,
   clearPendingPostLoginCheck,
 } from '@/config/backendConfig';
-import { hasLocalDataToMigrate } from '@/services/migrationService';
-import { hasCloudData, hydrateLocalFromCloud } from '@/services/reverseMigrationService';
+// Migration services are dynamically imported at call sites to avoid pulling
+// Supabase into the bundle for local-mode users (code-splitting optimization)
 import { migrateLegacyData } from '@/services/legacyMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
@@ -632,6 +632,7 @@ export default function Home() {
           // Run cloud check + hydration entirely in background (fire and forget)
           (async () => {
             try {
+              const { hasCloudData, hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
               const cloudResult = await hasCloudData();
               if (cloudResult.checkFailed) {
                 logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
@@ -682,6 +683,7 @@ export default function Home() {
         }
 
         // Check if there's local data to migrate (user-scoped storage)
+        const { hasLocalDataToMigrate } = await import('@/services/migrationService');
         const result = await hasLocalDataToMigrate(userId);
         if (result.checkFailed) {
           // Storage check failed - notify user and allow retry on next effect cycle
@@ -705,6 +707,7 @@ export default function Home() {
           // No local data - check if cloud has data that needs to be loaded
           logger.info('[page.tsx] No local data, checking if cloud has data...');
 
+          const { hasCloudData, hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
             // Cloud check failed - check if it's a transient error that should retry
@@ -935,6 +938,7 @@ export default function Home() {
     // Hydration pulls cloud → local so local has all 86 games
     if (userId) {
       logger.info('[page.tsx] POST-MIGRATION HYDRATION: Starting cloud→local pull', { userId });
+      const { hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
       const hydrationResult = await hydrateLocalFromCloud(userId);
       if (hydrationResult.success) {
         logger.info('[page.tsx] POST-MIGRATION HYDRATION: Success', {
@@ -994,13 +998,15 @@ export default function Home() {
 
   // Handle app resume from background (Android TWA blank screen fix)
   // Triggers refreshTrigger to re-run checkAppState when returning from extended background
+  const handleBeforeForceReload = useCallback(() => {
+    // Show notification before force reload (5+ minute background)
+    showToast(t('page.refreshingAfterBackground', 'Refreshing app after extended background period...'), 'info');
+    return new Promise<void>(resolve => setTimeout(resolve, FORCE_RELOAD_NOTIFICATION_DELAY_MS));
+  }, [showToast, t]);
+
   useAppResume({
     onResume: handleAppResume,
-    onBeforeForceReload: () => {
-      // Show notification before force reload (5+ minute background)
-      showToast(t('page.refreshingAfterBackground', 'Refreshing app after extended background period...'), 'info');
-      return new Promise(resolve => setTimeout(resolve, FORCE_RELOAD_NOTIFICATION_DELAY_MS));
-    },
+    onBeforeForceReload: handleBeforeForceReload,
     minBackgroundTime: 30000, // 30 seconds
     forceReloadTime: 300000,  // 5 minutes - force full page reload
   });
@@ -1052,11 +1058,11 @@ export default function Home() {
   const needsAuth = mode === 'cloud' && !isAuthenticated;
 
   // Determine loading message based on state
-  const getLoadingMessage = () => {
+  const loadingMessage = useMemo(() => {
     if (isSigningOut) return t('page.signingOut', 'Signing out...');
     if (isPostLoginLoading) return t('page.loadingYourData', 'Loading your data...');
     return t('page.loading', 'Loading...');
-  };
+  }, [isSigningOut, isPostLoginLoading, t]);
 
   // Compute whether to show loading screen
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
@@ -1093,7 +1099,7 @@ export default function Home() {
           </div>
         ) : showLoadingScreen ? (
           // Loading state while checking auth, data, or during sign-out
-          <LoadingScreen message={getLoadingMessage()} />
+          <LoadingScreen message={loadingMessage} />
         ) : showWelcome ? (
           // First install: show welcome screen for onboarding choice
           <ErrorBoundary>

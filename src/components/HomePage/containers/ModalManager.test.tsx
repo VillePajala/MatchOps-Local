@@ -256,7 +256,7 @@ describe('ModalManager', () => {
     expect(screen.queryByTestId('season-modal')).toBeNull();
   });
 
-  it('renders season modal when all mutations provided', () => {
+  it('renders season modal when all mutations provided', async () => {
     const props = createProps();
     props.data.seasonTournamentMutations = {
       addSeason: createMutation<Season | null, Partial<Season> & { name: string }>(),
@@ -270,6 +270,6 @@ describe('ModalManager', () => {
 
     renderWithProvider(<ModalManager {...props} />);
 
-    expect(screen.getByTestId('season-modal')).toBeInTheDocument();
+    expect(await screen.findByTestId('season-modal')).toBeInTheDocument();
   });
 });

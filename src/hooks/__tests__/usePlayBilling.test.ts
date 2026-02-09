@@ -272,6 +272,13 @@ describe('usePlayBilling', () => {
 });
 
 describe('grantMockSubscription', () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
+  });
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_INTERNAL_TESTING;
+  });
+
   it('calls verify-subscription Edge Function with test token', async () => {
     const result = await grantMockSubscription('test-token-123');
 

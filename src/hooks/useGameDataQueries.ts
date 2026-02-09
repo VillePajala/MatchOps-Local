@@ -6,6 +6,7 @@
  * - userId is passed to utility functions for correct database selection
  */
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import {
@@ -181,7 +182,7 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
     currentGameId.error ||
     null;
 
-  return {
+  return useMemo(() => ({
     teams: teams.data || [],
     activeTeamId: null, // Active team concept removed
     teamRoster: teamRoster.data || [],
@@ -191,5 +192,8 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
     currentGameId: currentGameId.data || null,
     loading,
     error,
-  };
+  }), [
+    teams.data, teamRoster.data, seasons.data, tournaments.data,
+    savedGames.data, currentGameId.data, loading, error,
+  ]);
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { saveTimerState, loadTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
 import { useWakeLock } from './useWakeLock';
@@ -210,7 +210,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     };
   }, [state.isTimerRunning, currentGameId, dispatch, precisionTimer, handleVisibilityChange, setStableStartTime]);
 
-  return {
+  return useMemo(() => ({
     timeElapsedInSeconds: state.timeElapsedInSeconds,
     isTimerRunning: state.isTimerRunning,
     nextSubDueTimeSeconds: state.nextSubDueTimeSeconds,
@@ -220,5 +220,10 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     reset,
     ackSubstitution,
     setSubInterval,
-  };
+  }), [
+    state.timeElapsedInSeconds, state.isTimerRunning,
+    state.nextSubDueTimeSeconds, state.subAlertLevel,
+    state.lastSubConfirmationTimeSeconds,
+    startPause, reset, ackSubstitution, setSubInterval,
+  ]);
 };

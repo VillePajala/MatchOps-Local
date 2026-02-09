@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import type { PlayerAssessment, IntervalLog } from '@/types';
 import { getPlayerAssessments, savePlayerAssessment, deletePlayerAssessment } from '@/utils/playerAssessments';
 import logger from '@/utils/logger';
@@ -50,7 +50,9 @@ export function usePlayerAssessments(gameId: string, intervals?: IntervalLog[]) 
     return updated;
   }, [gameId]);
 
-  return { assessments, loading, error, saveAssessment, deleteAssessment };
+  return useMemo(() => ({
+    assessments, loading, error, saveAssessment, deleteAssessment,
+  }), [assessments, loading, error, saveAssessment, deleteAssessment]);
 }
 
 export default usePlayerAssessments;

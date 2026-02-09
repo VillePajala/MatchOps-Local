@@ -224,7 +224,7 @@ export default function HomePage() {
               <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1 pointer-events-none">
                 <button
                   type="button"
-                  aria-label="Previous"
+                  aria-label={t('screenshots.aria.prev')}
                   className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/60 border border-slate-700 text-white grid place-items-center shadow hover:bg-slate-800/70"
                   onClick={() => goTo(Math.max(0, activeSlide - 1))}
                 >
@@ -232,7 +232,7 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  aria-label="Next"
+                  aria-label={t('screenshots.aria.next')}
                   className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/60 border border-slate-700 text-white grid place-items-center shadow hover:bg-slate-800/70"
                   onClick={() => goTo(Math.min(4, activeSlide + 1))}
                 >
@@ -382,7 +382,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FEATURE CARDS (14 features) ===== */}
+      {/* ===== FEATURE CARDS (15 features) ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
@@ -491,7 +491,7 @@ export default function HomePage() {
             <p className="text-slate-300 mb-6">
               {t('info.cta.subtitle')}
             </p>
-            <p className="text-slate-400 text-lg">hello@match-ops.com</p>
+            <a href="mailto:hello@match-ops.com" className="text-slate-400 text-lg hover:text-primary transition-colors">hello@match-ops.com</a>
           </div>
         </div>
       </section>
@@ -536,7 +536,7 @@ export default function HomePage() {
           type="button"
           onClick={scrollToTop}
           className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-primary text-slate-900 shadow-lg hover:bg-amber-400 transition-all"
-          aria-label="Back to top"
+          aria-label={t('nav.backToTop')}
         >
           <FaArrowUp />
         </button>

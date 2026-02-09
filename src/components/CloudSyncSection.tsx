@@ -14,7 +14,7 @@ import {
   clearWelcomeSeen,
   type CloudAccountInfo,
 } from '@/config/backendConfig';
-import { hasLocalDataToMigrate } from '@/services/migrationService';
+import type { LocalDataCheckResult } from '@/services/migrationService';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
@@ -398,7 +398,8 @@ export default function CloudSyncSection({
 
     setIsCheckingLocalData(true);
     try {
-      const result = await hasLocalDataToMigrate();
+      const { hasLocalDataToMigrate } = await import('@/services/migrationService');
+      const result: LocalDataCheckResult = await hasLocalDataToMigrate();
 
       if (result.checkFailed) {
         logger.error('[CloudSyncSection] Failed to check local data:', result.error);

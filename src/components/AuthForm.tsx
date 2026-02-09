@@ -716,6 +716,7 @@ export default function AuthForm({
                 <Link
                   href="/terms"
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="text-indigo-400 hover:text-indigo-300 underline"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -725,6 +726,7 @@ export default function AuthForm({
                 <Link
                   href="/privacy-policy"
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="text-indigo-400 hover:text-indigo-300 underline"
                   onClick={(e) => e.stopPropagation()}
                 >

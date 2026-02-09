@@ -2718,7 +2718,7 @@ describe('SupabaseDataStore', () => {
         };
 
         const result = await dataStore.saveGame('game_123', game as unknown as AppState);
-        expect(result).toEqual(game);
+        expect(result).toEqual({ ...game, updatedAt: expect.any(String) });
         expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.objectContaining({
           p_game: expect.any(Object),
           p_players: expect.any(Array),

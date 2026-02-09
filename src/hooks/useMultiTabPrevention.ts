@@ -36,7 +36,9 @@ export function useMultiTabPrevention(): { isBlocked: boolean } {
           check();
         });
       }
-    );
+    ).catch(() => {
+      // Web Locks API failure is non-critical — app works without multi-tab prevention
+    });
 
     return () => { released = true; };
   }, []);

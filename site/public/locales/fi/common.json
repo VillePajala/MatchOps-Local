@@ -2,7 +2,9 @@
   "nav": {
     "technical": "Tekniset tiedot",
     "gallery": "Galleria",
-    "guide": "Opas"
+    "guide": "Opas",
+    "backToTop": "Takaisin ylös",
+    "backToHome": "Takaisin etusivulle"
   },
   "features": {
     "gameDay": {
@@ -54,6 +56,14 @@
     "technical": {
       "title": "Tekniset tiedot - MatchOps",
       "description": "MatchOpsin tekniset tiedot: React 19, Next.js 16. Offline-yhteensopiva arkkitehtuuri ja turvallinen tietojen tallennus."
+    },
+    "privacy": {
+      "title": "Tietosuojakäytäntö - MatchOps",
+      "description": "MatchOps-jalkapallosovelluksen tietosuojakäytäntö. Lue miten käsittelemme tietojasi."
+    },
+    "terms": {
+      "title": "Käyttöehdot - MatchOps",
+      "description": "MatchOps-jalkapallosovelluksen käyttöehdot."
     }
   },
   "footer": {
@@ -64,7 +74,9 @@
     "license": "Lisenssi",
     "copyright": "© {{year}} Velomo AI. Kaikki oikeudet pidätetään.",
     "dataStays": "Tietosi pysyvät yksityisinä ja turvassa.",
-    "marketingAssets": "Markkinointimateriaalit"
+    "marketingAssets": "Markkinointimateriaalit",
+    "privacyPolicy": "Tietosuojakäytäntö",
+    "termsOfService": "Käyttöehdot"
   },
   "technical": {
     "hero": {
@@ -501,5 +513,313 @@
       "cicd": "Automatisoitu CI/CD",
       "cicdDesc": "Lint, tyypit, 4400+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Autom. julkaisu."
     }
+  },
+  "privacyPolicy": {
+    "title": "MatchOpsin tietosuojakäytäntö",
+    "version": "Käytännön versio: 2026-02",
+    "lastUpdated": "Päivitetty: helmikuu 2026",
+    "dataController": {
+      "title": "Rekisterinpitäjä",
+      "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Rekisterinpitäjänä olemme vastuussa henkilötietojesi käsittelystä tässä käytännössä kuvatulla tavalla."
+    },
+    "overview": {
+      "title": "Yleiskatsaus",
+      "content": "MatchOps (\"me\", \"meidän\", \"sovellus\") on paikallisesti toimiva jalkapallovalmennus\u00ADsovellus. Tämä tietosuojakäytäntö selittää, miten käsittelemme tietojasi."
+    },
+    "dataStorage": {
+      "title": "Tietojen tallennus",
+      "localDataTitle": "Paikalliset tiedot (oletus)",
+      "localDataIntro": "Oletuksena kaikki tietosi tallennetaan paikallisesti laitteellesi:",
+      "localDataItems": {
+        "playerRosters": "Pelaajalistat ja -tiedot",
+        "gameRecords": "Pelitallenteet ja tilastot",
+        "settings": "Asetukset ja mieltymykset",
+        "seasonData": "Kausi- ja turnaustiedot",
+        "personnelInfo": "Henkilöstötiedot (nimet, roolit, yhteystiedot jos valitset syöttää ne)"
+      },
+      "localDataNote": "Meillä ei ole pääsyä näihin tietoihin. Ne eivät koskaan poistu laitteeltasi, ellet erikseen vie niitä tai ota käyttöön pilvisynkronointia.",
+      "noAccountTitle": "Tiliä ei tarvita (paikallinen tila)",
+      "noAccountContent": "MatchOps toimii täysin offline-tilassa paikallisessa tilassa. Tilin luomista, kirjautumista tai henkilötietoja ei tarvita.",
+      "cloudDataTitle": "Pilvisynkronointi (valinnainen)",
+      "cloudDataIntro": "Jos otat käyttöön pilvisynkronoinnin, tietosi tallennetaan lisäksi turvallisille pilvipalvelimille:",
+      "cloudDataItems": {
+        "syncedData": "Kopioidaan turvallisille EU-palvelimille (Supabase, EU)",
+        "encryption": "Salataan siirron aikana (HTTPS/TLS) ja tallennettuna palvelimella",
+        "rowLevelSecurity": "Suojattu rivitason suojauksella (vain sinä pääset tietoihisi)",
+        "multiDevice": "Synkronoitu laitteidesi välillä",
+        "dataOwnership": "Säilytetään täydessä omistuksessasi"
+      },
+      "cloudDataNote": "Pilvitiedot tallennetaan turvallisiin EU-datakeskuksiin. Voit poistaa pilvitietosi milloin tahansa Asetuksista.",
+      "dataRetentionTitle": "Tietojen säilytys",
+      "dataRetentionContent": "Pilvitiedot säilytetään niin kauan kuin tilisi on aktiivinen. Kun poistat pilvitietosi tai tilisi, tiedot poistetaan pysyvästi kohtuullisen ajan kuluessa. Jos tilisi on käyttämättömänä pitkän aikaa, saatamme poistaa pilvitiedot ennakkoilmoituksella. Paikalliset tiedot säilyvät laitteellasi kunnes tyhjennät ne. Suostumustiedot säilytetään tilin poistamisen jälkeenkin GDPR-vaatimustenmukaisuutta varten."
+    },
+    "legalBasis": {
+      "title": "Tietojenkäsittelyn oikeusperuste (GDPR 6 art.)",
+      "intro": "Käsittelemme henkilötietoja seuraavilla oikeusperusteilla:",
+      "contract": "Sopimus (6(1)(b) art.): Pilvisynkronointipalvelun toteuttamiseksi välttämätön käsittely",
+      "consent": "Suostumus (6(1)(a) art.): Käyttöehtojen ja tietosuojakäytännön hyväksyminen pilvitilan käyttäjille. Suostumustiedot tallennetaan vaatimustenmukaisuuden osoittamiseksi",
+      "legitimateInterest": "Oikeutettu etu (6(1)(f) art.): Virheraportit Sentryn kautta sovelluksen laadun ylläpitämiseksi ja virheiden korjaamiseksi. Käsittely koskee vähäisiä anonymisoituja tietoja eikä sisällä profilointia tai seurantaa"
+    },
+    "dataWeCollect": {
+      "title": "Tiedot, joita saatamme kerätä",
+      "errorReportingTitle": "Virheraportit",
+      "errorReportingIntro": "Kun sovelluksessa tapahtuu virhe, saatamme kerätä:",
+      "errorReportingItems": {
+        "errorType": "Virhetyyppi ja pinojälki",
+        "deviceType": "Laitetyyppi ja käyttöjärjestelmäversio",
+        "appVersion": "Sovelluksen versio",
+        "sessionInfo": "Anonymisoitu istuntotieto"
+      },
+      "errorReportingNote": "Tämä auttaa meitä korjaamaan virheitä ja parantamaan sovellusta. Virheraportit eivät sisällä pelitietojasi tai pelaajatietoja. Ne käsittelee Sentry.io (tietoja voidaan käsitellä Yhdysvalloissa vakiosopimuslausekkeiden nojalla).",
+      "licenseValidationTitle": "Play Kaupan lisenssivahvistus",
+      "licenseValidationContent": "Jos maksullisia ominaisuuksia otetaan käyttöön, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi.",
+      "consentTrackingTitle": "Suostumustiedot (Pilvisynkronointi)",
+      "consentTrackingIntro": "Kun hyväksyt käyttöehtomme ja tietosuojakäytäntömme pilvisynkronoinnissa, tallennamme:",
+      "consentTrackingItems": {
+        "timestamp": "Suostumuksen päivämäärä ja aika",
+        "policyVersion": "Hyväksytyn käytännön versio",
+        "ipAddress": "IP-osoitteesi (oikeudellista todentamista varten)",
+        "userAgent": "Selain- ja laitetietosi"
+      },
+      "consentTrackingNote": "Nämä tiedot vaaditaan GDPR-vaatimustenmukaisuuteen todisteeksi pätevän suostumuksen antamisesta (GDPR 7(1) art.). Suostumustiedot säilytetään tilin poistamisen jälkeenkin oikeudellisista syistä.",
+      "personnelDataTitle": "Henkilöstötiedot",
+      "personnelDataIntro": "Kun lisäät joukkueen henkilöstöä (valmentajat, avustajat, lääkintähenkilöstö), voit valinnaisesti syöttää:",
+      "personnelDataItems": {
+        "name": "Nimi ja rooli",
+        "email": "Sähköpostiosoite (valinnainen)",
+        "phone": "Puhelinnumero (valinnainen)",
+        "certifications": "Pätevyydet (valinnainen)"
+      },
+      "personnelDataNote": "Nämä tiedot tallennetaan paikallisesti laitteellesi (paikallinen tila) tai turvalliseen EU-tietokantaamme, johon vain sinä pääset (pilvitila). Henkilöstön yhteystiedot (sähköposti, puhelin) ovat GDPR:n mukaisia henkilötietoja. Olet vastuussa siitä, että sinulla on asianmukaiset perusteet yhteystietojen tallentamiselle."
+    },
+    "dataWeDoNotCollect": {
+      "title": "Tiedot, joita EMME kerää",
+      "items": {
+        "gameContent": "Pelisisältöä, tuloksia tai tilastoja (tallennettu vain paikallisesti tai yksityiselle pilvitilillesi)",
+        "location": "Sijaintitietoja",
+        "photos": "Valokuvia tai mediaa",
+        "deviceIds": "Laitetunnisteita seurantaa tai mainontaa varten",
+        "playerNames": "Pelaajien nimiä tai henkilötietoja (ne tallentaa paikallisesti sinä, tai yksityiselle pilvitilillesi)"
+      },
+      "personnelNote": "Huomautus: Jos syötät henkilöstön yhteystietoja (sähköposti, puhelin), ne tallennetaan valintasi mukaan ja sinun hallinnassasi — katso Henkilöstötiedot-osio tietosuojakäytännöstämme."
+    },
+    "thirdPartyServices": {
+      "title": "Kolmannen osapuolen palvelut (alikäsittelijät)",
+      "intro": "Käytämme seuraavia kolmannen osapuolen palveluita MatchOpsin toimintaan. Tietojenkäsittelysopimukset ovat voimassa jokaisen palveluntarjoajan kanssa.",
+      "googlePlay": "Google Play Kauppa",
+      "googlePlayDesc": "Sovelluksen jakelu ja maksut (Googlen infrastruktuuri).",
+      "sentry": "Sentry",
+      "sentryDesc": "Virheraportit ja kaatumisanalyysi (Yhdysvallat, vakiosopimuslausekkeet).",
+      "supabase": "Supabase",
+      "supabaseDesc": "Pilvitietokanta ja todennus (EU, Frankfurt).",
+      "vercel": "Vercel",
+      "vercelDesc": "PWA-verkkopalvelun isännöinti (globaali reunaverkko, vakiosopimuslausekkeet).",
+      "googlePlayLink": "Googlen tietosuojakäytäntö",
+      "sentryLink": "Sentryn tietosuojakäytäntö",
+      "supabaseLink": "Supabasen tietosuojakäytäntö",
+      "vercelLink": "Vercelin tietosuojakäytäntö"
+    },
+    "yourRights": {
+      "title": "Oikeutesi (GDPR)",
+      "intro": "GDPR:n ja sovellettavan tietosuojalainsäädännön mukaan sinulla on oikeus:",
+      "access": "Pääsy (15 art.): Nähdä ja viedä kaikki tietosi milloin tahansa",
+      "rectification": "Oikaisu (16 art.): Korjata virheelliset tiedot suoraan sovelluksessa",
+      "erasure": "Poistaminen (17 art.): Poistaa paikalliset tai pilvitietosi milloin tahansa",
+      "portability": "Siirrettävyys (20 art.): Viedä tietosi standardissa JSON-muodossa",
+      "restriction": "Rajoittaminen (18 art.): Vaihtaa vain paikalliseen tilaan lopettaaksesi pilvikäsittelyn",
+      "objection": "Vastustaminen (21 art.): Lopeta pilvikäsittely vaihtamalla paikalliseen tilaan",
+      "withdrawConsent": "Suostumuksen peruuttaminen: Poista pilvitilisi peruuttaaksesi suostumuksen pilvikäsittelyyn",
+      "deleteLocal": "Paikallisille tiedoille: Käytä Asetukset \u2192 Tiedot \u2192 Tietojesi oikeudet",
+      "deleteCloud": "Pilvitiedoille: Käytä Asetukset \u2192 Tiedot \u2192 Tietojesi oikeudet",
+      "contactUs": "Kaikki tiedonhallintavaihtoehdot löytyvät suoraan sovelluksesta Asetukset \u2192 Tiedot-välilehdeltä. Sähköpostipyyntöä ei tarvita.",
+      "supervisoryAuthority": "Jos uskot tietosuojaoikeuksiasi loukatun, sinulla on oikeus tehdä valitus valvontaviranomaiselle. Suomessa: Tietosuojavaltuutetun toimisto",
+      "supervisoryAuthorityUrl": "https://tietosuoja.fi"
+    },
+    "childrensPrivacy": {
+      "title": "Lasten yksityisyys",
+      "content": "MatchOps on suunniteltu aikuisille valmentajille, ei lasten käyttöön. Sovellus ei tietoisesti kerää alle 16-vuotiaiden henkilötietoja. Pelaajien nimet ja tilastot syöttää valmentaja (sovelluksen käyttäjä), ei pelaajat itse. Nämä tiedot tallennetaan paikallisesti valmentajan laitteelle tai hänen yksityiselle pilvitililleen, eikä niitä koskaan lähetetä meille tai kolmansille osapuolille (paitsi kun pilvisynkronointi on käytössä, jolloin ne tallennetaan turvallisesti valmentajan yksityiselle tilille). Ikävahvistusta ei vaadita, koska sovellus kerää tietoja valmentajilta heidän pelaajistaan, ei suoraan lapsilta."
+    },
+    "dataSecurity": {
+      "title": "Tietoturva",
+      "localIntro": "Paikallisessa tilassa tietosi tallennetaan selaimesi IndexedDB-tietokantaan:",
+      "localItems": {
+        "deviceProtection": "Suojattu laitteesi pääsynvalvonnalla (näytön lukitus, salasana, biometriikka)",
+        "noAdditionalEncryption": "Ei lisäsalausta tallennettuna laitteesi/selaimesi tarjoaman lisäksi",
+        "noTransmission": "Ei verkkolähetystä, ellet ota käyttöön pilvisynkronointia"
+      },
+      "localNote": "Laitteesi suojaus on ensisijainen suoja paikallisille tiedoillesi. Suosittelemme vahvan näytön lukituksen käyttöä.",
+      "cloudIntro": "Pilvitilassa tietosi on suojattu:",
+      "cloudItems": {
+        "tlsEncryption": "Salattu siirron aikana (HTTPS/TLS)",
+        "atRestEncryption": "Salattu tallennettuna turvallisissa EU-palvelimissa (Supabase, Frankfurt)",
+        "rowLevelSecurity": "Rivitason suojaus varmistaa, että pääset vain omiin tietoihisi",
+        "soc2": "Supabasen turvainfrastruktuuri ja SOC 2 -vaatimustenmukaisuus"
+      },
+      "backupTitle": "Varmuuskopiotiedostojen turvallisuus",
+      "backupContent": "Kun viet tietojasi, varmuuskopiotiedosto sisältää kaikki tietosi mukaan lukien mahdolliset henkilöstön yhteystiedot. Varmuuskopiotiedostot eivät ole salattuja ja ne tulee säilyttää turvallisesti. Suosittelemme varmuuskopiotiedostojen tallentamista turvalliseen paikkaan ja poistamista tuonnin jälkeen."
+    },
+    "changes": {
+      "title": "Muutokset tähän käytäntöön",
+      "content": "Saatamme päivittää tätä käytäntöä tarvittaessa. Olennaiset muutokset päivittävät \"Päivitetty\"-päivämäärän ja käytännön version, käynnistävät uudelleensuostumuskyselyn pilvitilan käyttäjille seuraavalla kirjautumiskerralla ja ovat tarkastettavissa ennen hyväksymistä."
+    },
+    "contact": {
+      "title": "Yhteystiedot",
+      "intro": "Useimmat tietopyynnöt voit hoitaa suoraan sovelluksessa (Asetukset \u2192 Tiedot-välilehti) ilman yhteydenottoa. Muihin tietosuojakysymyksiin tai huolenaiheisiin:",
+      "email": "Sähköposti"
+    },
+    "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
+  },
+  "termsOfService": {
+    "title": "MatchOpsin käyttöehdot",
+    "version": "Ehtojen versio: 2026-02",
+    "lastUpdated": "Päivitetty: helmikuu 2026",
+    "agreement": {
+      "title": "Ehtojen hyväksyminen",
+      "content": "Lataamalla, asentamalla tai käyttämällä MatchOpsia (\"sovellus\") hyväksyt nämä käyttöehdot. Jos et hyväksy ehtoja, älä käytä sovellusta."
+    },
+    "description": {
+      "title": "Palvelun kuvaus",
+      "intro": "MatchOps on paikallisesti toimiva jalkapallovalmennus\u00ADsovellus, joka auttaa valmentajia:",
+      "items": {
+        "trackTime": "Seuraamaan peliaikaa ja tuloksia",
+        "manageRosters": "Hallitsemaan pelaajalistoja",
+        "recordStats": "Tallentamaan pelaajatilastoja",
+        "organizeSeasons": "Järjestämään kausia ja turnauksia"
+      },
+      "note": "Kaikki tiedot tallennetaan paikallisesti laitteellesi."
+    },
+    "license": {
+      "title": "Käyttöoikeuden myöntäminen",
+      "intro": "Myönnämme sinulle rajoitetun, ei-yksinomaisen, ei-siirrettävän, peruutettavissa olevan oikeuden käyttää MatchOpsia henkilökohtaisiin, ei-kaupallisiin tarkoituksiin näiden ehtojen mukaisesti.",
+      "restrictionsIntro": "ET saa:",
+      "restrictions": {
+        "reverseEngineer": "Purkaa, dekompilata tai hajottaa sovellusta",
+        "modify": "Muokata, mukauttaa tai luoda muunnelmia",
+        "distribute": "Jakaa, alilisensoida tai siirtää sovellusta muille",
+        "illegal": "Käyttää sovellusta laittomiin tarkoituksiin",
+        "removeNotices": "Poistaa tekijänoikeus- tai omistusoikeusilmoituksia"
+      }
+    },
+    "userResponsibilities": {
+      "title": "Käyttäjän vastuut",
+      "intro": "Olet vastuussa:",
+      "items": {
+        "data": "Kaikista sovellukseen syöttämistäsi tiedoista",
+        "backups": "Varmuuskopioiden ylläpitämisestä (vientitoiminnon avulla)",
+        "compliance": "Käyttösi lainmukaisuuden varmistamisesta",
+        "activity": "Kaikesta toiminnasta, joka tapahtuu sovelluksen käyttösi kautta"
+      }
+    },
+    "dataAndPrivacy": {
+      "title": "Tiedot ja yksityisyys",
+      "content": "Tietosi tallennetaan paikallisesti laitteellesi (paikallinen tila) tai turvalliseen pilvitietokantaamme (pilvitila). Katso tietosuojakäytännöstämme tarkemmat tiedot tietojen käsittelystä, turvallisuudesta, GDPR-oikeuksista ja siitä, mitä rajallisia tietoja saatamme kerätä.",
+      "securityAcknowledgmentTitle": "Tietoturvatiedote",
+      "securityAcknowledgmentIntro": "Käyttämällä MatchOpsia hyväksyt seuraavat:",
+      "securityAcknowledgmentItems": {
+        "localMode": "Paikallinen tila: Tiedot tallennetaan selaimesi IndexedDB:hen ilman lisäsalausta laitteesi tarjoaman lisäksi",
+        "deviceSecurity": "Laitteen suojaus: Laitteesi pääsynvalvonta (näytön lukitus, salasana, biometriikka) on ensisijainen suoja paikallisille tiedoille",
+        "backupFiles": "Varmuuskopiotiedostot: Viedyt varmuuskopiotiedostot sisältävät salaamatonta tietoa ja ne tulee säilyttää turvallisesti",
+        "personnelData": "Henkilöstötiedot: Jos tallennat henkilöstön yhteystietoja (sähköposti, puhelin), ne noudattavat samaa turvamallia kuin muut sovellustiedot",
+        "yourResponsibility": "Sinun vastuullasi: Olet vastuussa laitteesi ja varmuuskopiotiedostojesi pääsyn suojaamisesta"
+      },
+      "securityAcknowledgmentNote": "Lisäturvallisuuden varmistamiseksi ota käyttöön pilvisynkronointi, joka tarjoaa palvelinpuolen salauksen, levyssä olevan salauksen ja rivitason suojauksen."
+    },
+    "intellectualProperty": {
+      "title": "Immateriaalioikeudet",
+      "content": "MatchOps ja kaikki siihen liittyvät tavaramerkit, logot ja sisältö ovat kehittäjän (Ville Pajala) omaisuutta. Et saa omistusoikeuksia käyttämällä sovellusta."
+    },
+    "disclaimer": {
+      "title": "Takuuvapauslauseke",
+      "intro": "Sovellus tarjotaan \"sellaisena kuin se on\" ja \"saatavuuden mukaan\" ilman minkäänlaisia takuita, mukaan lukien mutta ei rajoittuen:",
+      "items": {
+        "merchantability": "Myyntikelpoisuus",
+        "fitness": "Sopivuus tiettyyn tarkoitukseen",
+        "nonInfringement": "Oikeuksien loukkaamattomuus",
+        "accuracy": "Tietojen tarkkuus tai luotettavuus"
+      },
+      "note": "Emme takaa, että sovellus täyttää erityisvaatimuksesi, toimii keskeytyksettä, ajallaan, turvallisesti tai virheettömästi, tai että virheet korjataan."
+    },
+    "liability": {
+      "title": "Vastuunrajoitus",
+      "intro": "Lain sallimissa rajoissa kehittäjä ei missään tapauksessa ole vastuussa mistään epäsuorista, satunnaisista, erityisistä, seuraamuksellisista tai rangaistusluonteisista vahingoista, tietojen menetyksestä, voitoista tai liiketoimintamahdollisuuksista.",
+      "note": "Kokonaisvastuumme ei ylitä sovelluksesta maksamaasi summaa (jos sellainen on)."
+    },
+    "dataLoss": {
+      "title": "Tietojen menetys",
+      "intro": "Hyväksyt seuraavat:",
+      "items": {
+        "localStorage": "Tiedot tallennetaan paikallisesti laitteellesi (tai pilveen, jos käytössä)",
+        "notResponsible": "Emme ole vastuussa tietojen menetyksestä laitevian, sovelluksen poistamisen tai muun syyn vuoksi",
+        "backupAdvice": "Sinun tulisi säännöllisesti viedä ja varmuuskopioida tärkeät tiedot"
+      }
+    },
+    "thirdPartyServices": {
+      "title": "Kolmannen osapuolen palvelut",
+      "intro": "Sovellus voi olla yhteydessä kolmannen osapuolen palveluihin:",
+      "googlePlay": "Google Play Kauppa",
+      "googlePlayDesc": "Sovelluksen jakeluun ja maksuihin",
+      "sentry": "Sentry",
+      "sentryDesc": "Automaattiseen virheraportointiin tuotannossa",
+      "supabase": "Supabase",
+      "supabaseDesc": "Pilvisynkronointiin ja todennukseen (pilvitila)",
+      "vercel": "Vercel",
+      "vercelDesc": "PWA-version isännöintiin",
+      "note": "Näiden palveluiden käyttöäsi koskevat niiden omat ehdot ja käytännöt."
+    },
+    "premiumSubscription": {
+      "title": "Maksulliset ominaisuudet",
+      "intro": "Saatamme tulevaisuudessa ottaa käyttöön maksullisia tilaussuunnitelmia. Jos niitä tarjotaan, maksulliset ominaisuudet voivat sisältää:",
+      "features": {
+        "cloudSync": "Pilvisynkronointi: Pääsy tietoihisi useilta laitteilta",
+        "unlimitedEntities": "Rajattomat pelaajat, joukkueet, kaudet ja turnaukset",
+        "prioritySupport": "Ensisijainen tuki"
+      },
+      "billing": "Jos maksullisia tilauksia otetaan käyttöön, ne laskutetaan Google Play Kaupan kautta. Katso Google Playn ehdot laskutuksesta, peruutuksesta ja hyvityksistä.",
+      "cancellation": "Jos sinulla on aktiivinen tilaus, voit peruuttaa sen milloin tahansa Google Playn kautta. Peruutuksen jälkeen säilytät pääsyn laskutusjakson loppuun asti.",
+      "dataAfterCancel": "Jos maksullinen tilaus peruutetaan, pilvitietosi pysyvät saatavilla. Voit viedä tai poistaa ne milloin tahansa. Pidätämme oikeuden poistaa pilvitiedot pitkittyneen tilin käyttämättömyyden jälkeen ennakkoilmoituksella."
+    },
+    "cloudSync": {
+      "title": "Pilvisynkronoinnin ehdot",
+      "intro": "Kun otat pilvisynkronoinnin käyttöön:",
+      "items": {
+        "ownership": "Säilytät omistusoikeuden kaikkiin tietoihisi",
+        "availability": "Pyrimme korkeaan käytettävyyteen, mutta emme takaa keskeytyksettömyyttä",
+        "backups": "Olet vastuussa kriittisten tietojen paikallisista varmuuskopioista",
+        "security": "Toteutamme alan standardien mukaiset turvatoimet tietojesi suojaamiseksi"
+      },
+      "deletion": "Voit poistaa kaikki pilvitiedot milloin tahansa Asetuksista. Poistaminen on pysyvää eikä sitä voi kumota."
+    },
+    "changes": {
+      "title": "Muutokset sovellukseen",
+      "content": "Pidätämme oikeuden muokata tai lopettaa sovelluksen milloin tahansa ja lisätä tai poistaa ominaisuuksia."
+    },
+    "changesToTerms": {
+      "title": "Ehtojen muutokset",
+      "content": "Saatamme päivittää näitä ehtoja tarvittaessa. Olennaiset muutokset päivittävät \"Päivitetty\"-päivämäärän ja käynnistävät uudelleensuostumuskyselyn pilvitilan käyttäjille. Sovelluksen jatkuva käyttö muutosten jälkeen merkitsee uusien ehtojen hyväksymistä."
+    },
+    "termination": {
+      "title": "Päättäminen",
+      "content": "Voimme lopettaa tai keskeyttää pääsysi sovellukseen välittömästi ilman ennakkoilmoitusta, jos rikot näitä ehtoja. Päättämisen jälkeen oikeutesi käyttää sovellusta päättyy.",
+      "cloudTermination": "Jos tilisi päätetään, menetät pääsyn pilvisynkronointiominaisuuksiin. Paikalliset tietosi säilyvät laitteellasi. Pilvitiedot poistetaan kohtuullisen ajan kuluessa päättämisestä.",
+      "voluntaryDeletion": "Voit vapaaehtoisesti poistaa pilvitilisi ja -tietosi milloin tahansa Asetukset-valikosta."
+    },
+    "governingLaw": {
+      "title": "Sovellettava laki ja riitojen ratkaisu",
+      "content": "Näitä ehtoja sääntelee Suomen laki, ottamatta huomioon lainvalintasääntöjä. Näistä ehdoista tai sovelluksen käytöstä johtuvat riidat ratkaistaan Helsingin käräjäoikeudessa."
+    },
+    "severability": {
+      "title": "Erotettavuus",
+      "content": "Jos jokin näiden ehtojen määräys todetaan täytäntöönpanokelvottomaksi, muut määräykset pysyvät voimassa."
+    },
+    "entireAgreement": {
+      "title": "Koko sopimus",
+      "content": "Nämä ehdot yhdessä tietosuojakäytäntömme kanssa muodostavat koko sopimuksen sinun ja meidän välillämme sovelluksen osalta."
+    },
+    "contact": {
+      "title": "Yhteystiedot",
+      "intro": "Useimmat toiminnot (tietojen vienti, poistaminen, tilin hallinta) voit tehdä suoraan sovelluksen Asetuksissa. Kysymyksiä näistä ehdoista:",
+      "email": "Sähköposti"
+    },
+    "footer": "Nämä käyttöehdot koskevat Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
   }
 }

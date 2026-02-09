@@ -11,7 +11,7 @@ console.error = jest.fn();
 // @ts-ignore
 console.warn = jest.fn();
 
-import { render } from '../../utils/test-utils';
+import { render, waitFor } from '../../utils/test-utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from '@/components/HomePage/containers/ModalManager';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
@@ -226,7 +226,7 @@ const createProps = (): ModalManagerProps => ({
 // NOTE: Skipped in CI/jsdom due to occasional ESM interop issues when layering providers.
 // Manual verification and focused component tests cover portalization behavior.
 describe('Modal portalization (renders to document.body)', () => {
-  it('renders season modal outside the RTL container (via portal)', () => {
+  it('renders season modal outside the RTL container (via portal)', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const props = createProps();
     // Open the season/tournament modal
@@ -247,8 +247,13 @@ describe('Modal portalization (renders to document.body)', () => {
       </QueryClientProvider>
     );
 
-    const modal = document.querySelector('[data-testid="season-modal-portal"]') as HTMLElement | null;
-    expect(modal).not.toBeNull();
+    // next/dynamic loads components asynchronously — wait for resolution
+    let modal: HTMLElement | null = null;
+    await waitFor(() => {
+      modal = document.querySelector('[data-testid="season-modal-portal"]') as HTMLElement | null;
+      expect(modal).not.toBeNull();
+    });
+
     // Ensure the modal element is not inside the RTL container
     expect(container.contains(modal!)).toBe(false);
   });

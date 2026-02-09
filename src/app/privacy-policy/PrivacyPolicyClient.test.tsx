@@ -197,8 +197,8 @@ describe('PrivacyPolicyClient', () => {
   it('should render contact email link', () => {
     render(<PrivacyPolicyClient />);
 
-    const emailLink = screen.getByRole('link', { name: 'valoraami@gmail.com' });
-    expect(emailLink).toHaveAttribute('href', 'mailto:valoraami@gmail.com');
+    const emailLink = screen.getByRole('link', { name: 'support@match-ops.com' });
+    expect(emailLink).toHaveAttribute('href', 'mailto:support@match-ops.com');
   });
 
   it('should render supervisory authority link', () => {
@@ -213,7 +213,7 @@ describe('PrivacyPolicyClient', () => {
   it('should render back navigation link', () => {
     render(<PrivacyPolicyClient />);
 
-    const backLink = screen.getByRole('link', { name: /back/i });
-    expect(backLink).toHaveAttribute('href', '/');
+    const backButton = screen.getByRole('button', { name: /back/i });
+    expect(backButton).toBeInTheDocument();
   });
 });

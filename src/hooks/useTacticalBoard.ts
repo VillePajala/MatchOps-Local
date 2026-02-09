@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import logger from '@/utils/logger';
 import { debug } from '@/utils/debug';
 import type { Point, TacticalDisc, AppState } from '@/types';
@@ -154,7 +154,8 @@ export const useTacticalBoard = ({
     setTacticalDrawings((prev) => {
       const drawings = [...prev];
       if (drawings.length > 0) {
-        drawings[drawings.length - 1].push(point);
+        // Spread to create a new inner array (avoids mutating prev's inner array)
+        drawings[drawings.length - 1] = [...drawings[drawings.length - 1], point];
       }
       // Sync ref eagerly to avoid race between effect update and end handler
       tacticalDrawingsRef.current = drawings;
@@ -186,7 +187,7 @@ export const useTacticalBoard = ({
     saveStateToHistory({ tacticalDiscs: [], tacticalDrawings: [], tacticalBallPosition: resetBall });
   }, [saveStateToHistory]);
 
-  return {
+  return useMemo(() => ({
     isTacticsBoardView,
     setIsTacticsBoardView,
     tacticalDiscs,
@@ -207,5 +208,11 @@ export const useTacticalBoard = ({
     setTacticalDiscs,
     setTacticalDrawings,
     setTacticalBallPosition,
-  };
+  }), [
+    isTacticsBoardView, tacticalDiscs, tacticalDrawings, tacticalBallPosition,
+    handleToggleTacticsBoard, handleAddTacticalDisc, handleTacticalDiscMove,
+    handleTacticalDiscMoveEnd, handleTacticalDiscRemove, handleToggleTacticalDiscType,
+    handleTacticalBallMove, handleTacticalBallMoveEnd, handleTacticalDrawingStart,
+    handleTacticalDrawingAddPoint, handleTacticalDrawingEnd, clearTacticalElements,
+  ]);
 };

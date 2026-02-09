@@ -51,6 +51,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
+  // Ref to avoid effect churn when parent re-renders with new onCancel reference
+  const onCancelRef = useRef(onCancel);
+  useEffect(() => { onCancelRef.current = onCancel; }, [onCancel]);
+
   // Focus trap: keeps Tab cycling within modal
   useFocusTrap(modalRef, isOpen);
 
@@ -66,7 +70,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       // ESC key handler to close modal
       const handleEscape = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
-          onCancel();
+          onCancelRef.current();
         }
       };
 
@@ -81,7 +85,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         }
       };
     }
-  }, [isOpen, onCancel]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

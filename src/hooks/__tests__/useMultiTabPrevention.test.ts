@@ -122,8 +122,6 @@ describe('useMultiTabPrevention', () => {
     it('should release lock on unmount by resolving the holding promise', async () => {
       jest.useFakeTimers();
 
-      let holdingResolve: (() => void) | null = null;
-
       const mockRequest = jest.fn(
         (
           _name: string,

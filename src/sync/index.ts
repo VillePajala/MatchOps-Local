@@ -44,7 +44,6 @@ export {
 export {
   ConflictResolver,
   isAutoResolvableConflict,
-  isConflictError, // Deprecated alias for isAutoResolvableConflict
   isNotFoundError,
   type CloudRecord,
   type CloudRecordFetcher,

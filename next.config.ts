@@ -145,6 +145,13 @@ const securityHeaders = [
     key: 'Cross-Origin-Resource-Policy',
     value: 'same-origin',
   },
+  {
+    // HTTP Strict Transport Security
+    // Tells browsers to always use HTTPS, preventing SSL stripping attacks
+    // Note: Do NOT add 'preload' unless the domain is submitted to the HSTS preload list
+    key: 'Strict-Transport-Security',
+    value: 'max-age=31536000; includeSubDomains',
+  },
 ];
 
 const nextConfig: NextConfig = {

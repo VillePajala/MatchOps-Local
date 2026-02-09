@@ -22,7 +22,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthProvider';
-import { getSupabaseClient } from '@/datastore/supabase/client';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
 import { isCloudAvailable } from '@/config/backendConfig';
 import logger from '@/utils/logger';
@@ -219,7 +218,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         }
       }
 
-      // Fetch from server
+      // Fetch from server (dynamic import to avoid pulling Supabase into local-mode bundle)
+      const { getSupabaseClient } = await import('@/datastore/supabase/client');
       const supabase = getSupabaseClient();
       const { data, error } = await supabase.rpc('get_subscription_status');
 

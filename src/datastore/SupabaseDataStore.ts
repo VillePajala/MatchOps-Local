@@ -3012,14 +3012,16 @@ export class SupabaseDataStore implements DataStore {
     const { game, players, events, assessments, tacticalData } = tables;
 
     // Reconstruct availablePlayers (ALL game_players, NO relX/relY)
+    // Note: nickname and notes use `|| undefined` to match LocalDataStore's shape
+    // where these optional fields are undefined rather than empty string
     const availablePlayers: Player[] = players.map((p) => ({
       id: p.player_id,
       name: p.player_name,
-      nickname: p.nickname ?? '',
+      nickname: p.nickname || undefined,
       jerseyNumber: p.jersey_number ?? '',
       isGoalie: p.is_goalie ?? false,
       color: p.color ?? undefined,
-      notes: p.notes ?? '',
+      notes: p.notes || undefined,
       receivedFairPlayCard: p.received_fair_play_card ?? false,
     }));
 
@@ -3030,11 +3032,11 @@ export class SupabaseDataStore implements DataStore {
       .map((p) => ({
         id: p.player_id,
         name: p.player_name,
-        nickname: p.nickname ?? '',
+        nickname: p.nickname || undefined,
         jerseyNumber: p.jersey_number ?? '',
         isGoalie: p.is_goalie ?? false,
         color: p.color ?? undefined,
-        notes: p.notes ?? '',
+        notes: p.notes || undefined,
         receivedFairPlayCard: p.received_fair_play_card ?? false,
         relX: p.rel_x ?? DEFAULT_FIELD_POSITION.relX,
         relY: p.rel_y ?? DEFAULT_FIELD_POSITION.relY,
@@ -3631,7 +3633,14 @@ export class SupabaseDataStore implements DataStore {
       totalMs: totalDuration,
     });
 
-    return game;
+    // Clear any stale conflict backup for this game (from a previous ConflictError)
+    SupabaseDataStore.clearConflictBackup(id).catch(() => {
+      // Non-critical — don't block save on cleanup failure
+    });
+
+    // Return game with fresh updatedAt timestamp to reflect the actual save time.
+    // This prevents React Query cache from holding stale timestamps.
+    return { ...game, updatedAt: new Date().toISOString() };
   }
 
   /**
@@ -3652,9 +3661,12 @@ export class SupabaseDataStore implements DataStore {
       validateGame(game, gameId);
     }
 
-    // Save each game sequentially to avoid overwhelming the database
-    for (const [id, game] of Object.entries(games)) {
-      await this.saveGame(id, game);
+    // Save games in parallel batches to improve migration speed
+    const BATCH_SIZE = 10;
+    const entries = Object.entries(games);
+    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+      const batch = entries.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(([id, game]) => this.saveGame(id, game)));
     }
   }
 
@@ -3836,12 +3848,12 @@ export class SupabaseDataStore implements DataStore {
     checkOnline();
 
     const { data, error } = await this.withRetry(async () => {
-      const result = await this.getClient()
-        .from('player_adjustments')
-        .select('*')
-        .order('applied_at', { ascending: false });
-      throwIfTransient(result);
-      return result;
+      return throwIfTransient(
+        await this.getClient()
+          .from('player_adjustments')
+          .select('*')
+          .order('applied_at', { ascending: false })
+      );
     }, 'getAllPlayerAdjustments');
 
     if (error) {

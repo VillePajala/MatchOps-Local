@@ -1043,10 +1043,10 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(
-        authService.verifySignUpOtp('test@example.com', 'expired_token')
+        authService.verifySignUpOtp('test@example.com', '12345678')
       ).rejects.toThrow(AuthError);
       await expect(
-        authService.verifySignUpOtp('test@example.com', 'expired_token')
+        authService.verifySignUpOtp('test@example.com', '12345678')
       ).rejects.toThrow('invalid or has expired');
     });
 
@@ -1133,10 +1133,10 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(
-        authService.verifyPasswordResetOtp('test@example.com', 'expired_code')
+        authService.verifyPasswordResetOtp('test@example.com', '12345678')
       ).rejects.toThrow(AuthError);
       await expect(
-        authService.verifyPasswordResetOtp('test@example.com', 'expired_code')
+        authService.verifyPasswordResetOtp('test@example.com', '12345678')
       ).rejects.toThrow('invalid or has expired');
     });
 

@@ -199,13 +199,17 @@ export class SyncEngine {
         // Start periodic sync AFTER stale reset completes (or fails)
         // This prevents race conditions between reset and interval processing
         this.intervalId = setInterval(() => {
-          this.doProcessQueue();
+          this.doProcessQueue().catch((e) => {
+            logger.error('[SyncEngine] Unexpected error in periodic queue processing:', e);
+          });
         }, this.config.syncIntervalMs);
 
         // Sync immediately if online AND reset succeeded
         // If stale reset failed, don't process - operations may be stuck
         if (this.isOnline && !this.staleResetFailed) {
-          this.doProcessQueue();
+          this.doProcessQueue().catch((e) => {
+            logger.error('[SyncEngine] Error in initial queue processing:', e);
+          });
         }
       });
 
@@ -277,6 +281,10 @@ export class SyncEngine {
    * Internal dispose implementation.
    */
   private async performDispose(options: { skipWait?: boolean } = {}): Promise<void> {
+    if (this.isDisposed) {
+      logger.debug('[SyncEngine] Already disposed');
+      return;
+    }
     if (this.isDisposing) {
       logger.debug('[SyncEngine] Already in dispose process');
       return;
@@ -889,7 +897,7 @@ export class SyncEngine {
       const execStartTime = Date.now();
       logger.info(`[SyncEngine] Marked syncing, executing: ${opInfo}`, {
         operationId: op.id.slice(0, 8),
-        dataSize: op.data ? JSON.stringify(op.data).length : 0,
+        hasData: !!op.data,
       });
 
       // Use AbortController for timeout so the error is a proper AbortError,

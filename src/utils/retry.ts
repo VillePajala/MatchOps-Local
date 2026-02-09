@@ -12,33 +12,7 @@
  */
 
 import logger from '@/utils/logger';
-import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
-
-/**
- * HTTP status codes that indicate transient failures worth retrying.
- */
-const TRANSIENT_STATUS_CODES = new Set([
-  408, // Request Timeout
-  429, // Too Many Requests
-  500, // Internal Server Error (sometimes transient)
-  502, // Bad Gateway
-  503, // Service Unavailable
-  504, // Gateway Timeout
-]);
-
-/**
- * Extract error message from various error types.
- */
-function getErrorMessage(error: unknown): string {
-  if (typeof error === 'string') return error;
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error !== null) {
-    const errorObj = error as Record<string, unknown>;
-    if (typeof errorObj.message === 'string') return errorObj.message;
-    if (typeof errorObj.error === 'string') return errorObj.error;
-  }
-  return String(error);
-}
+import { TRANSIENT_ERROR_PATTERNS, TRANSIENT_STATUS_CODES, getErrorMessage } from '@/utils/transientErrors';
 
 /**
  * Check if error is transient and worth retrying.

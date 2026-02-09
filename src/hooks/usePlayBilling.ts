@@ -27,7 +27,6 @@ import {
   SUBSCRIPTION_PRODUCT_ID,
 } from '@/utils/playBilling';
 import type { Session } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@/datastore/supabase/client';
 import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import logger from '@/utils/logger';
 
@@ -97,6 +96,7 @@ async function ensureFreshSession(): Promise<Session | null> {
 
   // The actual refresh logic
   const doRefresh = async (): Promise<Session | null> => {
+    const { getSupabaseClient } = await import('@/datastore/supabase/client');
     const supabase = getSupabaseClient();
 
     // First, get the current cached session
@@ -194,6 +194,7 @@ type VerifyResult =
  */
 async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyResult> {
   try {
+    const { getSupabaseClient } = await import('@/datastore/supabase/client');
     const supabase = getSupabaseClient();
 
     // Ensure we have a fresh, valid session before calling Edge Function
@@ -342,6 +343,7 @@ export function usePlayBilling(): UsePlayBillingResult {
 
     try {
       // Verify auth state before purchase - session could have expired
+      const { getSupabaseClient } = await import('@/datastore/supabase/client');
       const supabase = getSupabaseClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -404,6 +406,7 @@ export function usePlayBilling(): UsePlayBillingResult {
 
     try {
       // Get session for user ID (needed for cache key)
+      const { getSupabaseClient } = await import('@/datastore/supabase/client');
       const supabase = getSupabaseClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
@@ -473,6 +476,9 @@ export default usePlayBilling;
  * @returns BillingResult indicating success or failure
  */
 export async function grantMockSubscription(testToken: string): Promise<BillingResult> {
+  if (process.env.NEXT_PUBLIC_INTERNAL_TESTING !== 'true') {
+    return { success: false, error: 'Mock subscriptions not available' };
+  }
   logger.info('[usePlayBilling] Granting mock subscription with test token');
   const result = await verifyPurchaseWithServer(testToken);
   if (!result.success) {

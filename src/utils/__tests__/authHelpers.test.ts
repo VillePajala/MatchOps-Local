@@ -84,7 +84,6 @@ describe('authHelpers', () => {
       it.each(exactMatchCases)(
         'translates "$message" using key "$expectedKey"',
         ({ message, expectedKey }) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           translateAuthError(message, t as any);
 
           expect(t).toHaveBeenCalledWith(expectedKey, message);
@@ -95,7 +94,6 @@ describe('authHelpers', () => {
     describe('rate-limit pattern matching', () => {
       it('matches "Too many failed attempts. Please wait 30 seconds before trying again."', () => {
         const message = 'Too many failed attempts. Please wait 30 seconds before trying again.';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         translateAuthError(message, t as any);
 
         expect(t).toHaveBeenCalledWith('auth.errors.rateLimited', {
@@ -106,7 +104,6 @@ describe('authHelpers', () => {
 
       it('matches "Please wait 120 seconds before trying again"', () => {
         const message = 'Please wait 120 seconds before trying again';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         translateAuthError(message, t as any);
 
         expect(t).toHaveBeenCalledWith('auth.errors.rateLimited', {
@@ -117,7 +114,6 @@ describe('authHelpers', () => {
 
       it('extracts the seconds value correctly', () => {
         const message = 'Wait 5 seconds please';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         translateAuthError(message, t as any);
 
         expect(t).toHaveBeenCalledWith(
@@ -130,7 +126,6 @@ describe('authHelpers', () => {
     describe('generic network error fallback', () => {
       it('matches a message containing "network error" (case insensitive)', () => {
         const message = 'Something went wrong: Network Error occurred';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         translateAuthError(message, t as any);
 
         expect(t).toHaveBeenCalledWith('auth.errors.networkError', message);
@@ -138,7 +133,6 @@ describe('authHelpers', () => {
 
       it('matches lowercase "network error"', () => {
         const message = 'network error while connecting';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         translateAuthError(message, t as any);
 
         expect(t).toHaveBeenCalledWith('auth.errors.networkError', message);
@@ -148,7 +142,6 @@ describe('authHelpers', () => {
     describe('unknown error fallback', () => {
       it('returns the original message when no match is found', () => {
         const message = 'Something completely unexpected happened';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = translateAuthError(message, t as any);
 
         expect(result).toBe(message);
@@ -157,7 +150,6 @@ describe('authHelpers', () => {
       });
 
       it('returns empty string when given an empty string', () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = translateAuthError('', t as any);
 
         expect(result).toBe('');
@@ -168,7 +160,6 @@ describe('authHelpers', () => {
       it('exact match takes precedence over network error pattern', () => {
         // "Sign in failed: network error" is in the exact map AND contains "network error"
         const message = 'Sign in failed: network error';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         translateAuthError(message, t as any);
 
         // Should use exact match key, not the generic network error fallback

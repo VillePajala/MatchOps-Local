@@ -91,9 +91,8 @@ describe('contactValidation', () => {
     });
 
     it('rejects strings with only spaces', () => {
-      // Regex matches spaces, so a string of spaces technically matches the character class
-      // But from a practical standpoint, the regex allows it since spaces are valid chars
-      expect(isSafePhoneNumber('   ')).toBe(true);
+      // Must contain at least one digit to be a valid phone number
+      expect(isSafePhoneNumber('   ')).toBe(false);
     });
 
     it('handles a very long string of digits', () => {

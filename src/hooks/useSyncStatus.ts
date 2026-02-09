@@ -7,7 +7,7 @@
  * @see docs/03-active-plans/local-first-sync-plan.md
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getBackendMode } from '@/config/backendConfig';
 import { useAuth } from '@/contexts/AuthProvider';
 import type { SyncStatusInfo, SyncStatusState } from '@/sync/types';
@@ -426,25 +426,48 @@ export function useSyncStatus(): UseSyncStatusResult {
     }
   }, [mode]);
 
-  // Return local mode status
-  if (mode !== 'cloud') {
-    return LOCAL_MODE_STATUS;
-  }
+  // Always call useMemo unconditionally (React hooks rules)
+  // Handles all three cases: local mode, loading state, and connected state
+  return useMemo((): UseSyncStatusResult => {
+    // Local mode — return static status
+    if (mode !== 'cloud') {
+      return LOCAL_MODE_STATUS;
+    }
 
-  // Return loading state while initializing
-  // Note: state defaults to 'synced' but isLoading=true indicates actual status is unknown
-  if (!isInitialized || !status) {
+    // Loading state while initializing
+    if (!isInitialized || !status) {
+      return {
+        mode: 'cloud',
+        state: 'synced',
+        pendingCount: 0,
+        failedCount: 0,
+        lastSyncedAt: null,
+        isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+        isSyncing: false,
+        isPaused: false,
+        isLoading: true,
+        cloudConnected: false,
+        syncNow,
+        retryFailed,
+        clearFailed,
+        forceRetryAll,
+        pause,
+        resume,
+      };
+    }
+
+    // Connected state
     return {
       mode: 'cloud',
-      state: 'synced',
-      pendingCount: 0,
-      failedCount: 0,
-      lastSyncedAt: null,
-      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-      isSyncing: false,
-      isPaused: false,
-      isLoading: true,
-      cloudConnected: false, // Unknown while loading
+      state: status.state,
+      pendingCount: status.pendingCount,
+      failedCount: status.failedCount,
+      lastSyncedAt: status.lastSyncedAt,
+      isOnline: status.isOnline,
+      isSyncing: status.state === 'syncing',
+      isPaused: status.isPaused ?? false,
+      isLoading: false,
+      cloudConnected: status.cloudConnected ?? false,
       syncNow,
       retryFailed,
       clearFailed,
@@ -452,24 +475,5 @@ export function useSyncStatus(): UseSyncStatusResult {
       pause,
       resume,
     };
-  }
-
-  return {
-    mode: 'cloud',
-    state: status.state,
-    pendingCount: status.pendingCount,
-    failedCount: status.failedCount,
-    lastSyncedAt: status.lastSyncedAt,
-    isOnline: status.isOnline,
-    isSyncing: status.state === 'syncing',
-    isPaused: status.isPaused ?? false,
-    isLoading: false,
-    cloudConnected: status.cloudConnected ?? false,
-    syncNow,
-    retryFailed,
-    clearFailed,
-    forceRetryAll,
-    pause,
-    resume,
-  };
+  }, [mode, isInitialized, status, syncNow, retryFailed, clearFailed, forceRetryAll, pause, resume]);
 }
