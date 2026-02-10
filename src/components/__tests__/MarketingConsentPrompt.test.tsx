@@ -64,9 +64,14 @@ describe('MarketingConsentPrompt', () => {
     acceptReConsent: jest.fn(),
     deleteAccount: jest.fn(),
     retryAuthInit: jest.fn(),
+    marketingConsent: null,
     showMarketingPrompt: false,
     setMarketingConsent: mockSetMarketingConsent,
     dismissMarketingPrompt: mockDismissMarketingPrompt,
+    verifySignUpOtp: jest.fn(),
+    resendSignUpConfirmation: jest.fn(),
+    verifyPasswordResetOtp: jest.fn(),
+    updatePassword: jest.fn(),
   };
 
   beforeEach(() => {

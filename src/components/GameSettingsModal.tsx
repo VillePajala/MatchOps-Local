@@ -28,7 +28,7 @@ import {
 } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, ModalAmbientGlows } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -1468,8 +1468,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }
 
   return (
-    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettings.title', 'Game Settings')}>
-      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
+    <div ref={modalRef} className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettings.title', 'Game Settings')}>
+      <ModalAmbientGlows />
+      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
@@ -1503,8 +1504,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
 
-            {/* CARD 1: Teams & Roster */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            {/* Desktop 2-column layout */}
+            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
+
+            {/* CARD 1: Teams & Roster (left column on desktop) */}
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0 lg:self-start">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('gameSettingsModal.teamsAndRosterLabel', 'Teams & Roster')}
               </h3>
@@ -1634,8 +1638,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
             </div>
 
-            {/* CARD 2: Game Details */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            {/* CARD 2: Game Details + Config (right column on desktop) */}
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.gameDetailsLabel', 'Game Details')}
               </h3>
@@ -1920,170 +1924,172 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 </select>
               </div>
 
-              {/* Sport Type (Soccer/Futsal) */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('common.gameTypeLabel', 'Sport Type')}
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onGameTypeChange('soccer');
-                      mutateGameDetails(
-                        { gameType: 'soccer' },
-                        { source: 'stateSync' }
-                      );
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gameType === 'soccer'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {t('common.gameTypeSoccer', 'Soccer')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onGameTypeChange('futsal');
-                      mutateGameDetails(
-                        { gameType: 'futsal' },
-                        { source: 'stateSync' }
-                      );
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gameType === 'futsal'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {t('common.gameTypeFutsal', 'Futsal')}
-                  </button>
+              {/* Sport Type + Gender (side by side on desktop) */}
+              <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('common.gameTypeLabel', 'Sport Type')}
+                  </label>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onGameTypeChange('soccer');
+                        mutateGameDetails(
+                          { gameType: 'soccer' },
+                          { source: 'stateSync' }
+                        );
+                      }}
+                      className={`flex-1 px-2 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                        gameType === 'soccer'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {t('common.gameTypeSoccer', 'Soccer')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onGameTypeChange('futsal');
+                        mutateGameDetails(
+                          { gameType: 'futsal' },
+                          { source: 'stateSync' }
+                        );
+                      }}
+                      className={`flex-1 px-2 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                        gameType === 'futsal'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {t('common.gameTypeFutsal', 'Futsal')}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Gender (Boys/Girls) */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('common.genderLabel', 'Gender')}
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onGenderChange(undefined);
-                      mutateGameDetails(
-                        { gender: undefined },
-                        { source: 'stateSync' }
-                      );
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === undefined
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {t('common.genderNotSet', 'Not Set')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onGenderChange('boys');
-                      mutateGameDetails(
-                        { gender: 'boys' },
-                        { source: 'stateSync' }
-                      );
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === 'boys'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {t('common.genderBoys', 'Boys')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onGenderChange('girls');
-                      mutateGameDetails(
-                        { gender: 'girls' },
-                        { source: 'stateSync' }
-                      );
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === 'girls'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {t('common.genderGirls', 'Girls')}
-                  </button>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('common.genderLabel', 'Gender')}
+                  </label>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onGenderChange(undefined);
+                        mutateGameDetails(
+                          { gender: undefined },
+                          { source: 'stateSync' }
+                        );
+                      }}
+                      className={`flex-1 px-2 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                        gender === undefined
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {t('common.genderNotSet', '–')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onGenderChange('boys');
+                        mutateGameDetails(
+                          { gender: 'boys' },
+                          { source: 'stateSync' }
+                        );
+                      }}
+                      className={`flex-1 px-2 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                        gender === 'boys'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {t('common.genderBoys', 'Boys')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onGenderChange('girls');
+                        mutateGameDetails(
+                          { gender: 'girls' },
+                          { source: 'stateSync' }
+                        );
+                      }}
+                      className={`flex-1 px-2 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                        gender === 'girls'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {t('common.genderGirls', 'Girls')}
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                {/* Game Date */}
-                <div className="mb-6">
-                  <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-2">
-                    {t('gameSettingsModal.gameDateLabel', 'Game Date')}
-                  </label>
-                  <input
-                    type="date"
-                    id="gameDateInput"
-                    name="gameDate"
-                    value={gameDate}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      onGameDateChange(value);
-                      mutateGameDetails(
-                        { gameDate: value },
-                        { source: 'stateSync', expectedState: { gameDate: value } }
-                      );
-                    }}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                    autoComplete="off"
-                  />
-                </div>
+                {/* Date + Time (side by side on desktop) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-1">
+                      {t('gameSettingsModal.gameDateLabel', 'Game Date')}
+                    </label>
+                    <input
+                      type="date"
+                      id="gameDateInput"
+                      name="gameDate"
+                      value={gameDate}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        onGameDateChange(value);
+                        mutateGameDetails(
+                          { gameDate: value },
+                          { source: 'stateSync', expectedState: { gameDate: value } }
+                        );
+                      }}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                      autoComplete="off"
+                    />
+                  </div>
 
-                {/* Game Time */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    {t('gameSettingsModal.gameTimeLabel', 'Time (Optional)')}
-                  </label>
-                  <div className="flex items-center space-x-3 max-w-xs">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={2}
-                      value={gameHour}
-                      onChange={handleHourChange}
-                      placeholder={t('gameSettingsModal.hourPlaceholder', 'HH')}
-                      className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      onFocus={(e) => e.target.select()}
-                    />
-                    <span className="text-slate-400 font-mono">:</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={2}
-                      value={gameMinute}
-                      onChange={handleMinuteChange}
-                      placeholder={t('gameSettingsModal.minutePlaceholder', 'MM')}
-                      className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      onFocus={(e) => e.target.select()}
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                      {t('gameSettingsModal.gameTimeLabel', 'Time (Optional)')}
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={2}
+                        value={gameHour}
+                        onChange={handleHourChange}
+                        placeholder={t('gameSettingsModal.hourPlaceholder', 'HH')}
+                        className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        onFocus={(e) => e.target.select()}
+                      />
+                      <span className="text-slate-400 font-mono">:</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={2}
+                        value={gameMinute}
+                        onChange={handleMinuteChange}
+                        placeholder={t('gameSettingsModal.minutePlaceholder', 'MM')}
+                        className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -2157,22 +2163,23 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* CARD 3: Pelin asetukset (Game Configuration) */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <h3 className="text-lg font-semibold text-slate-200 mb-3">
-                {t('gameSettingsModal.gameConfigLabel', 'Pelin asetukset')}
-              </h3>
+              {/* Divider: Game Configuration */}
+              <div className="border-t border-slate-700/50 pt-4 mt-2">
+                <h3 className="text-lg font-semibold text-slate-200 mb-3">
+                  {t('gameSettingsModal.gameConfigLabel', 'Pelin asetukset')}
+                </h3>
+              </div>
 
-              {/* Number of Periods */}
-              <div className="mb-4">
-                <label htmlFor="numPeriodsSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('gameSettingsModal.numPeriodsLabel', 'Number of Periods')}
-                </label>
-                <select
-                  id="numPeriodsSelect"
-                  value={numPeriods}
+              {/* Periods + Duration (side by side on desktop) */}
+              <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="numPeriodsSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('gameSettingsModal.numPeriodsLabel', 'Number of Periods')}
+                  </label>
+                  <select
+                    id="numPeriodsSelect"
+                    value={numPeriods}
                   onChange={(e) => {
                     const periods = parseInt(e.target.value) as 1 | 2;
                       logger.log('[GameSettingsModal] Changing numberOfPeriods to:', periods);
@@ -2186,41 +2193,41 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 >
                   <option value={1}>1</option>
                   <option value={2}>2</option>
-                </select>
-              </div>
+                  </select>
+                </div>
 
-              {/* Period Duration */}
-              <div className="mb-4">
-                <label htmlFor="periodDurationInput" className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('gameSettingsModal.periodDurationLabel', 'Period Duration (minutes)')}
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  id="periodDurationInput"
-                  value={periodDurationMinutes}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    const numericValue = value.replace(/[^0-9]/g, '');
-                    // Allow reasonable period durations (1-999 minutes)
-                    const duration = parseInt(numericValue, 10);
-                    if (numericValue === '' || (duration >= 1 && duration <= 999)) {
-                      const finalDuration = numericValue === '' ? 1 : duration;
-                      onPeriodDurationChange(finalDuration);
-                      mutateGameDetails(
-                        { periodDurationMinutes: finalDuration },
-                        { source: 'stateSync', expectedState: { periodDurationMinutes: finalDuration } }
-                      );
-                    }
-                  }}
-                  className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  placeholder="15"
-                />
+                <div>
+                  <label htmlFor="periodDurationInput" className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('gameSettingsModal.periodDurationLabel', 'Period Duration (minutes)')}
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    id="periodDurationInput"
+                    value={periodDurationMinutes}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const numericValue = value.replace(/[^0-9]/g, '');
+                      // Allow reasonable period durations (1-999 minutes)
+                      const duration = parseInt(numericValue, 10);
+                      if (numericValue === '' || (duration >= 1 && duration <= 999)) {
+                        const finalDuration = numericValue === '' ? 1 : duration;
+                        onPeriodDurationChange(finalDuration);
+                        mutateGameDetails(
+                          { periodDurationMinutes: finalDuration },
+                          { source: 'stateSync', expectedState: { periodDurationMinutes: finalDuration } }
+                        );
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    placeholder="15"
+                  />
+                </div>
               </div>
 
               {/* Demand Factor Slider */}
@@ -2295,8 +2302,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
             </div>
 
+            </div>{/* end 2-column grid */}
+
             {/* Game Events Section */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.eventLogTitle', 'Event Log')}
               </h3>
@@ -2428,7 +2437,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </div>
 
             {/* Game Notes Section */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.notesTitle', 'Game Notes')}
               </h3>

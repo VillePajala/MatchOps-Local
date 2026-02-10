@@ -7,7 +7,8 @@ import {
   titleStyle,
   cardStyle,
   iconButtonBaseStyle,
-  modalContainerStyle
+  modalContainerStyle,
+  ModalAmbientGlows,
 } from '@/styles/modalStyles';
 import type { Player } from '@/types'; // Import Player type from the central types file
 import {
@@ -188,8 +189,9 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('rosterSettings.title', 'Roster Settings')}>
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('rosterSettings.title', 'Roster Settings')}>
+      <ModalAmbientGlows />
+      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg flex flex-col`}>
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
@@ -255,7 +257,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
             {/* Player List */}
             <div className={`${cardStyle} -mx-2 sm:-mx-4 md:-mx-6`}>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {filteredPlayers.map((player) => (
                   <div
                     key={player.id}

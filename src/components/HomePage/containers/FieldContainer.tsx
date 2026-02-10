@@ -21,6 +21,7 @@ import type {
 import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import { DesktopFieldPanel } from './DesktopFieldPanel';
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -233,7 +234,7 @@ export function FieldContainer({
   const tmInitialLoad = timerVM.initialLoadComplete;
 
   return (
-    <div className="flex-grow relative bg-black overflow-hidden">
+    <div className="flex-grow relative overflow-hidden flex flex-col lg:flex-row">
       {tmShowOverlay && (
         <TimerOverlay
           timeElapsedInSeconds={tmTime}
@@ -264,185 +265,189 @@ export function FieldContainer({
         />
       )}
 
-      <ErrorBoundary
-        fallback={
-          <div className="flex items-center justify-center h-full bg-red-900/20 border border-red-700 text-red-300">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">{t('errors.soccerFieldCrashed', 'Soccer Field Crashed')}</h3>
-              <p className="text-sm">{t('errors.pleaseRefreshPage', 'Please refresh the page to continue.')}</p>
-            </div>
-          </div>
-        }
-      >
-        <SoccerField
-          ref={fieldRef}
-          players={fcPlayersOnField}
-          opponents={fcOpponents}
-          drawings={fcIsTactics ? fcTacticalDrawings : fcDrawings}
-          gameType={gameSessionState.gameType}
-          onPlayerMove={players.move}
-          onPlayerMoveEnd={players.moveEnd}
-          onPlayerRemove={players.remove}
-          onPlayersSwap={players.swap}
-          onOpponentMove={opponents.move}
-          onOpponentMoveEnd={opponents.moveEnd}
-          onOpponentRemove={opponents.remove}
-          onPlayerDrop={players.drop}
-          showPlayerNames={gameSessionState.showPlayerNames}
-          showPositionLabels={gameSessionState.showPositionLabels ?? true}
-          onDrawingStart={fcIsTactics ? tactical.drawingStart : drawing.start}
-          onDrawingAddPoint={fcIsTactics ? tactical.drawingAddPoint : drawing.addPoint}
-          onDrawingEnd={fcIsTactics ? tactical.drawingEnd : drawing.end}
-          draggingPlayerFromBarInfo={fcDraggingFromBar}
-          onPlayerDropViaTouch={touch.playerDrop}
-          onPlayerDragCancelViaTouch={touch.playerDragCancel}
-          timeElapsedInSeconds={tmTime}
-          isTacticsBoardView={fcIsTactics}
-          tacticalDiscs={fcTacticalDiscs || []}
-          onTacticalDiscMove={tactical.discMove}
-          onTacticalDiscMoveEnd={tactical.discMoveEnd}
-          onTacticalDiscRemove={tactical.discRemove}
-          onToggleTacticalDiscType={tactical.discToggleType}
-          tacticalBallPosition={fcTacticalBall || { relX: 0.5, relY: 0.5 }}
-          onTacticalBallMove={tactical.ballMove}
-          onTacticalBallMoveEnd={tactical.ballMoveEnd}
-          isDrawingEnabled={fcIsDrawingEnabled}
-          formationSnapPoints={fieldVM.formationSnapPoints}
-          subSlots={fieldVM.subSlots}
-        />
-      </ErrorBoundary>
-
-      {/* Sync status indicator - top left */}
-      <div className="absolute top-4 left-4 z-20">
-        <SyncStatusIndicator variant="field" />
-      </div>
-
-      {/* Field action buttons - always visible */}
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
-        {/* Rules button */}
-        {onOpenRulesModal && (
-          <button
-            onClick={onOpenRulesModal}
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-            title={t('rulesDirectory.buttonTitle', 'View rules')}
-            aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
-          >
-            <HiOutlineBookOpen className="w-5 h-5" />
-          </button>
-        )}
-        {/* Export button */}
-        {isExportSupported() && (
-          <button
-            onClick={handleExportField}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleExportField();
-              }
-            }}
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-            title={t('export.buttonTitle', 'Export field as image')}
-            aria-label={t('export.buttonTitle', 'Export field as image')}
-          >
-            <HiOutlineCamera className="w-5 h-5" />
-          </button>
-        )}
-        {/* Position labels toggle */}
-        <button
-          onClick={() => onTogglePositionLabels(!(gameSessionState.showPositionLabels ?? true))}
-          className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-          title={t('field.togglePositionLabels', 'Toggle position labels')}
-          aria-label={t('field.togglePositionLabels', 'Toggle position labels')}
-          aria-pressed={gameSessionState.showPositionLabels ?? true}
-        >
-          <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-slate-400'}`} />
-        </button>
-      </div>
-
-      {/* First game setup guidance - dismissible overlay */}
-      {tmInitialLoad &&
-        currentGameId === DEFAULT_GAME_ID &&
-        !isSetupOverlayDismissed &&
-        fcPlayersOnField.length === 0 &&
-        fcDrawings.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-            <div className="relative bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
-              {/* Dismiss button */}
-              <button
-                onClick={() => setIsSetupOverlayDismissed(true)}
-                className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-                aria-label={t('common.dismiss', 'Dismiss')}
-              >
-                <HiOutlineXMark className="w-5 h-5" />
-              </button>
-
+      {/* Field — fills remaining width, no aspect-ratio constraint */}
+      <div className="relative flex-1 min-w-0 bg-black overflow-hidden">
+        <ErrorBoundary
+          fallback={
+            <div className="flex items-center justify-center h-full bg-red-900/20 border border-red-700 text-red-300">
               <div className="text-center">
-                <div className="mb-4">
-                  <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
-                    <div className="text-3xl">⚽</div>
-                  </div>
-                  <h3 className="text-2xl font-bold text-indigo-300 mb-2">
-                    {availablePlayers.length === 0
-                      ? t('firstGame.titleNoPlayers', 'Ready to get started?')
-                      : t('firstGame.title', 'Ready to track your first game?')}
-                  </h3>
-                  <p className="text-slate-300 text-sm leading-relaxed mb-6">
-                    {availablePlayers.length === 0
-                      ? t(
-                          'firstGame.descNoPlayersSimple',
-                          'Set up your team roster to start tracking games.'
-                        )
-                      : t(
-                          'firstGame.desc',
-                          "Create a game to start tracking player positions, recording goals, and analyzing your team's performance."
-                        )}
-                  </p>
-                </div>
+                <h3 className="text-lg font-semibold mb-2">{t('errors.soccerFieldCrashed', 'Soccer Field Crashed')}</h3>
+                <p className="text-sm">{t('errors.pleaseRefreshPage', 'Please refresh the page to continue.')}</p>
+              </div>
+            </div>
+          }
+        >
+          <SoccerField
+            ref={fieldRef}
+            players={fcPlayersOnField}
+            opponents={fcOpponents}
+            drawings={fcIsTactics ? fcTacticalDrawings : fcDrawings}
+            gameType={gameSessionState.gameType}
+            onPlayerMove={players.move}
+            onPlayerMoveEnd={players.moveEnd}
+            onPlayerRemove={players.remove}
+            onPlayersSwap={players.swap}
+            onOpponentMove={opponents.move}
+            onOpponentMoveEnd={opponents.moveEnd}
+            onOpponentRemove={opponents.remove}
+            onPlayerDrop={players.drop}
+            showPlayerNames={gameSessionState.showPlayerNames}
+            showPositionLabels={gameSessionState.showPositionLabels ?? true}
+            onDrawingStart={fcIsTactics ? tactical.drawingStart : drawing.start}
+            onDrawingAddPoint={fcIsTactics ? tactical.drawingAddPoint : drawing.addPoint}
+            onDrawingEnd={fcIsTactics ? tactical.drawingEnd : drawing.end}
+            draggingPlayerFromBarInfo={fcDraggingFromBar}
+            onPlayerDropViaTouch={touch.playerDrop}
+            onPlayerDragCancelViaTouch={touch.playerDragCancel}
+            timeElapsedInSeconds={tmTime}
+            isTacticsBoardView={fcIsTactics}
+            tacticalDiscs={fcTacticalDiscs || []}
+            onTacticalDiscMove={tactical.discMove}
+            onTacticalDiscMoveEnd={tactical.discMoveEnd}
+            onTacticalDiscRemove={tactical.discRemove}
+            onToggleTacticalDiscType={tactical.discToggleType}
+            tacticalBallPosition={fcTacticalBall || { relX: 0.5, relY: 0.5 }}
+            onTacticalBallMove={tactical.ballMove}
+            onTacticalBallMoveEnd={tactical.ballMoveEnd}
+            isDrawingEnabled={fcIsDrawingEnabled}
+            formationSnapPoints={fieldVM.formationSnapPoints}
+            subSlots={fieldVM.subSlots}
+          />
+        </ErrorBoundary>
 
-                {/* Single primary CTA */}
-                {availablePlayers.length === 0 ? (
-                  <button
-                    onClick={() => onOpenRosterModal?.()}
-                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
-                  >
-                    {t('firstGame.setupRoster', 'Set Up Team Roster')}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => onOpenNewGameSetup?.()}
-                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
-                  >
-                    {t('firstGame.createGame', 'Create Your First Match')}
-                  </button>
-                )}
+        {/* Sync status indicator - top left */}
+        <div className="absolute top-4 left-4 z-20">
+          <SyncStatusIndicator variant="field" />
+        </div>
+
+        {/* Field action buttons - always visible */}
+        <div className="absolute top-4 right-4 z-20 flex gap-2">
+          {onOpenRulesModal && (
+            <button
+              onClick={onOpenRulesModal}
+              className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+              title={t('rulesDirectory.buttonTitle', 'View rules')}
+              aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
+            >
+              <HiOutlineBookOpen className="w-5 h-5" />
+            </button>
+          )}
+          {isExportSupported() && (
+            <button
+              onClick={handleExportField}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleExportField();
+                }
+              }}
+              className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+              title={t('export.buttonTitle', 'Export field as image')}
+              aria-label={t('export.buttonTitle', 'Export field as image')}
+            >
+              <HiOutlineCamera className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            onClick={() => onTogglePositionLabels(!(gameSessionState.showPositionLabels ?? true))}
+            className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            title={t('field.togglePositionLabels', 'Toggle position labels')}
+            aria-label={t('field.togglePositionLabels', 'Toggle position labels')}
+            aria-pressed={gameSessionState.showPositionLabels ?? true}
+          >
+            <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-slate-400'}`} />
+          </button>
+        </div>
+
+        {/* First game setup guidance - dismissible overlay */}
+        {tmInitialLoad &&
+          currentGameId === DEFAULT_GAME_ID &&
+          !isSetupOverlayDismissed &&
+          fcPlayersOnField.length === 0 &&
+          fcDrawings.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+              <div className="relative bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+                <button
+                  onClick={() => setIsSetupOverlayDismissed(true)}
+                  className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                  aria-label={t('common.dismiss', 'Dismiss')}
+                >
+                  <HiOutlineXMark className="w-5 h-5" />
+                </button>
+
+                <div className="text-center">
+                  <div className="mb-4">
+                    <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
+                      <div className="text-3xl">⚽</div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-indigo-300 mb-2">
+                      {availablePlayers.length === 0
+                        ? t('firstGame.titleNoPlayers', 'Ready to get started?')
+                        : t('firstGame.title', 'Ready to track your first game?')}
+                    </h3>
+                    <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                      {availablePlayers.length === 0
+                        ? t(
+                            'firstGame.descNoPlayersSimple',
+                            'Set up your team roster to start tracking games.'
+                          )
+                        : t(
+                            'firstGame.desc',
+                            "Create a game to start tracking player positions, recording goals, and analyzing your team's performance."
+                          )}
+                    </p>
+                  </div>
+
+                  {availablePlayers.length === 0 ? (
+                    <button
+                      onClick={() => onOpenRosterModal?.()}
+                      className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    >
+                      {t('firstGame.setupRoster', 'Set Up Team Roster')}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onOpenNewGameSetup?.()}
+                      className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    >
+                      {t('firstGame.createGame', 'Create Your First Match')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+        {/* Persistent banner when on default game */}
+        {tmInitialLoad && currentGameId === DEFAULT_GAME_ID && (isSetupOverlayDismissed || fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40">
+            <div className="bg-black/70 border border-white/10 rounded-full px-4 py-2 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-white/90 font-medium">
+                  {fcPlayersOnField.length > 0 || fcDrawings.length > 0
+                    ? t('firstGame.workspaceWarning', "Temporary workspace - won't be saved")
+                    : t('firstGame.noGameCreated', 'No game created')}
+                </span>
+                <button
+                  onClick={() => onOpenNewGameSetup?.()}
+                  className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+                >
+                  + {t('firstGame.createGameShort', 'Create')}
+                </button>
               </div>
             </div>
           </div>
         )}
+      </div>
 
-      {/* Persistent banner when on default game - minimal bottom pill for field visibility */}
-      {tmInitialLoad && currentGameId === DEFAULT_GAME_ID && (isSetupOverlayDismissed || fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40">
-          <div className="bg-black/70 border border-white/10 rounded-full px-4 py-2 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center gap-3 text-sm">
-              <span className="text-white/90 font-medium">
-                {fcPlayersOnField.length > 0 || fcDrawings.length > 0
-                  ? t('firstGame.workspaceWarning', "Temporary workspace - won't be saved")
-                  : t('firstGame.noGameCreated', 'No game created')}
-              </span>
-              <button
-                onClick={() => onOpenNewGameSetup?.()}
-                className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
-              >
-                + {t('firstGame.createGameShort', 'Create')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
-          Functionality (orphanedGameInfo, TeamReassignModal) kept for potential future use. */}
+      {/* Desktop side panel - bench + events */}
+      <DesktopFieldPanel
+        availablePlayers={availablePlayers}
+        playersOnField={fcPlayersOnField}
+        gameSessionState={gameSessionState}
+        seasons={seasons}
+        tournaments={tournaments}
+      />
     </div>
   );
 }

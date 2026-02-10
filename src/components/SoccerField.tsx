@@ -247,6 +247,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   const suppressTapActionRef = useRef<boolean>(false);
   const lastPlayerDragRelPosRef = useRef<Point | null>(null);
   const touchDraggingPlayerIdRef = useRef<string | null>(null);
+  const mouseDraggedRef = useRef<boolean>(false);
 
   useEffect(() => {
     const img = new Image();
@@ -1426,11 +1427,11 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       }
     }
 
-      // Drag check
+      // Drag check (click vs drag is resolved in handleMouseUp via mouseDraggedRef)
       for (const player of players) {
         // Pass event clientX/Y and the player object
         if (isPointInPlayer(e.clientX, e.clientY, player)) {
-          setSelectedPlayerForSwapId(null);
+          mouseDraggedRef.current = false;
           lastPlayerDragRelPosRef.current = { relX: player.relX ?? relPos.relX, relY: player.relY ?? relPos.relY };
           setIsDraggingPlayer(true);
           setDraggingPlayerId(player.id);
@@ -1447,6 +1448,20 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
             return;
           }
         }
+
+      // Click on empty position or empty space with a player selected
+      if (selectedPlayerForSwapId) {
+        const emptyPos = findEmptyPositionAtPoint(e.clientX, e.clientY);
+        if (emptyPos) {
+          onPlayerMove(selectedPlayerForSwapId, emptyPos.relX, emptyPos.relY);
+          onPlayerMoveEnd();
+          setSelectedPlayerForSwapId(null);
+        } else {
+          // Clicked empty space - deselect
+          setSelectedPlayerForSwapId(null);
+        }
+        return;
+      }
     }
 
     // Start drawing (only if drawing mode is enabled AND in tactics mode)
@@ -1467,6 +1482,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       if (isDraggingTacticalDisc && draggingTacticalDiscId) {
         onTacticalDiscMove(draggingTacticalDiscId, relPos.relX, relPos.relY);
       } else if (isDraggingPlayer && draggingPlayerId) {
+        mouseDraggedRef.current = true;
         lastPlayerDragRelPosRef.current = relPos;
         onPlayerMove(draggingPlayerId, relPos.relX, relPos.relY); // Pass relative
       } else if (isDraggingOpponent && draggingOpponentId) {
@@ -1507,11 +1523,24 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         setIsDraggingTacticalDisc(false);
         setDraggingTacticalDiscId(null);
       } else if (isDraggingPlayer) {
-        if (draggingPlayerId) {
-          const currentPos = lastPlayerDragRelPosRef.current ?? null;
-          maybeSnapPlayerToFormation(draggingPlayerId, currentPos);
+        if (!mouseDraggedRef.current && draggingPlayerId && !isTacticsBoardView) {
+          // Mouse click (no drag) on a player — handle select/swap like touch tap
+          if (!selectedPlayerForSwapId) {
+            setSelectedPlayerForSwapId(draggingPlayerId);
+          } else if (selectedPlayerForSwapId === draggingPlayerId) {
+            setSelectedPlayerForSwapId(null);
+          } else {
+            onPlayersSwap?.(selectedPlayerForSwapId, draggingPlayerId);
+            setSelectedPlayerForSwapId(null);
+          }
+        } else {
+          // Actual drag — snap and finalize move
+          if (draggingPlayerId) {
+            const currentPos = lastPlayerDragRelPosRef.current ?? null;
+            maybeSnapPlayerToFormation(draggingPlayerId, currentPos);
+          }
+          onPlayerMoveEnd();
         }
-        onPlayerMoveEnd();
         setIsDraggingPlayer(false);
         setDraggingPlayerId(null);
         lastPlayerDragRelPosRef.current = null;

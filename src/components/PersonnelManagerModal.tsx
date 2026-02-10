@@ -25,6 +25,7 @@ import {
   cardStyle,
   primaryButtonStyle,
   iconButtonBaseStyle,
+  ModalAmbientGlows,
 } from '@/styles/modalStyles';
 
 interface PersonnelManagerModalProps {
@@ -212,8 +213,9 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('personnelManager.title', 'Personnel Manager')}>
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('personnelManager.title', 'Personnel Manager')}>
+      <ModalAmbientGlows />
+      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg flex flex-col`}>
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
@@ -273,7 +275,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
 
             {/* Personnel List */}
             <div className={`${cardStyle} mt-4 -mx-2 sm:-mx-4 md:-mx-6`}>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {filteredPersonnel.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
                     {searchText

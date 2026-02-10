@@ -191,7 +191,7 @@
     "genderGirls": "Tytöt",
     "genderLabel": "Sukupuoli",
     "genderAll": "Kaikki",
-    "genderNotSet": "Ei asetettu",
+    "genderNotSet": "–",
     "selectAgeGroup": "-- Valitse ikäluokka --",
     "selectLevel": "-- Valitse taso --",
     "selectSeries": "-- Valitse sarja --",
@@ -2800,5 +2800,19 @@
     "canRestore": "Voit palauttaa sen myöhemmin",
     "deleteHint": "Poistaaksesi pysyvästi, poista ensin kaikki viittaukset (siirrä pelit toiseen {{type}}n tai poista ne).",
     "archiveInstead": "Arkistoi sen sijaan"
+  },
+  "desktopPanel": {
+    "notStarted": "Ei aloitettu",
+    "periodBreak": "Jakotauko",
+    "gameEnded": "Peli päättynyt",
+    "bench": "Vaihdossa",
+    "noBenchPlayers": "Ei pelaajia vaihtopenkillä",
+    "onField": "Kentällä",
+    "noPlayersOnField": "Ei pelaajia kentällä",
+    "events": "Tapahtumat",
+    "noEvents": "Ei tapahtumia vielä",
+    "substitution": "Vaihto",
+    "fairPlayCard": "Fair Play -kortti",
+    "goalsScored": "Tehdyt maalit"
   }
 }

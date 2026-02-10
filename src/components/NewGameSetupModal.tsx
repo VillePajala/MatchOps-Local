@@ -16,7 +16,7 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter } from '@/styles/modalStyles';
+import { ModalFooter, ModalAmbientGlows } from '@/styles/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -576,8 +576,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
-      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display">
+      <ModalAmbientGlows />
+      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />

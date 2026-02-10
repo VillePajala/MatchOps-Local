@@ -986,7 +986,7 @@ export default function Home() {
     try {
       const { LocalDataStore } = await import('@/datastore/LocalDataStore');
       const localStore = new LocalDataStore();
-      await localStore.initialize(userId ?? undefined);
+      await localStore.initialize();
       await localStore.clearAllUserData();
       logger.info('[page.tsx] Local data cleared successfully');
     } catch (error) {

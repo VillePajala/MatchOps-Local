@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, secondaryButtonStyle, ModalAmbientGlows } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player, TournamentSeries, GameType, Gender } from '@/types';
 import { UseMutationResult, useQuery } from '@tanstack/react-query';
@@ -251,8 +251,9 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const isPending = mode === 'create' ? addTournamentMutation?.isPending : updateTournamentMutation?.isPending;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[70] font-display">
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[70] font-display">
+      <ModalAmbientGlows />
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-2xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />

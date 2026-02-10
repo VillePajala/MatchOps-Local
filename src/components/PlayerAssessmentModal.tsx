@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, ModalAmbientGlows } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import PlayerAssessmentCard from './PlayerAssessmentCard';
@@ -115,8 +115,9 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('playerAssessment.title', 'Player Assessments')}>
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('playerAssessment.title', 'Player Assessments')}>
+      <ModalAmbientGlows />
+      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full lg:max-w-3xl lg:max-h-[90vh] lg:rounded-lg flex flex-col`}>
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />

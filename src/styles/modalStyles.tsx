@@ -27,6 +27,18 @@ export const modalContainerStyle =
  * Background effect layers for modal
  * Use these divs inside the modal container for consistent visual effects
  */
+/**
+ * Ambient glow effects for modal overlays.
+ * Add as first child of the overlay div to create the signature blue glow
+ * that matches the sign-in/welcome screen aesthetic.
+ */
+export const ModalAmbientGlows: React.FC = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+    <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+  </div>
+);
+
 export const ModalBackgroundEffects: React.FC = () => (
   <>
     <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
@@ -139,7 +151,8 @@ export const footerStyle =
 // ============================================================================
 
 export const ModalContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+  <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display">
+    <ModalAmbientGlows />
     <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
       <ModalBackgroundEffects />
       <div className="relative z-10 flex flex-col min-h-0 h-full">

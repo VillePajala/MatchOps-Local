@@ -45,7 +45,7 @@ export function GameContainer({
   const { t } = useTranslation();
 
   return (
-    <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
+    <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50 lg:max-w-5xl lg:mx-auto lg:w-full lg:my-2 lg:min-h-0 lg:h-[calc(100svh-1rem)] lg:rounded-xl lg:border lg:border-slate-700/40 lg:shadow-[0_4px_30px_rgba(0,0,0,0.5),0_0_80px_rgba(99,102,241,0.06)] lg:overflow-hidden" data-testid="home-page">
       <div className={barStyle}>
         <ErrorBoundary
           fallback={

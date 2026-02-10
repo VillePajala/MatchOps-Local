@@ -12,7 +12,7 @@ import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 import { getBackendMode, clearMigrationCompleted } from '@/config/backendConfig';
 import { useAuth } from '@/contexts/AuthProvider';
-import { ModalFooter, modalContainerStyle, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, modalContainerStyle, primaryButtonStyle, dangerButtonStyle, ModalAmbientGlows } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { queryKeys } from '@/config/queryKeys';
@@ -479,8 +479,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full`}>
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
+      <ModalAmbientGlows />
+      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg`}>
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
