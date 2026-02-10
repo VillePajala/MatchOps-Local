@@ -8,5 +8,27 @@
     "enabled": true,
     "autoAlias": true
   },
-  "public": false
+  "public": false,
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" },
+        { "key": "CDN-Cache-Control", "value": "no-store" },
+        { "key": "Vercel-CDN-Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }
+      ]
+    },
+    {
+      "source": "/changelog.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }
+      ]
+    }
+  ]
 }
