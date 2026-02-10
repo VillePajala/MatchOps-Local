@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, ModalAmbientGlows } from '@/styles/modalStyles';
 import packageJson from '../../package.json';
 import {
   HiOutlineSquares2X2,
@@ -36,8 +36,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('instructionsModal.title')}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('instructionsModal.title')}>
+      <ModalAmbientGlows />
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-2xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />

@@ -75,7 +75,12 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/splash/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         <link rel="apple-touch-startup-image" href="/splash/apple-splash-640-1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
       </head>
-      <body className={rajdhani.variable}>
+      <body className={`${rajdhani.variable} bg-slate-900`}>
+        {/* Ambient background - slate-900 base + blue glow lighting, sits behind all content */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none bg-slate-900 -z-10" aria-hidden="true">
+          <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+        </div>
         <I18nInitializer>
           <ServiceWorkerRegistration />
           <InstallPrompt />

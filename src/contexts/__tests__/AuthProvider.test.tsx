@@ -64,6 +64,12 @@ const createMockLocalAuthService = (): AuthService => ({
   hasConsentedToVersion: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
   getLatestConsent: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
   deleteAccount: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  getMarketingConsentStatus: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  setMarketingConsent: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  verifySignUpOtp: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  resendSignUpConfirmation: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  verifyPasswordResetOtp: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
+  updatePassword: jest.fn().mockRejectedValue(new Error('Not supported in local mode')),
 });
 
 const createMockCloudAuthService = (authenticated = true): AuthService => ({
@@ -87,6 +93,12 @@ const createMockCloudAuthService = (authenticated = true): AuthService => ({
   hasConsentedToVersion: jest.fn().mockResolvedValue(true),
   getLatestConsent: jest.fn().mockResolvedValue({ policyVersion: POLICY_VERSION, consentedAt: new Date().toISOString() }),
   deleteAccount: jest.fn().mockResolvedValue(undefined),
+  getMarketingConsentStatus: jest.fn().mockResolvedValue(null),
+  setMarketingConsent: jest.fn().mockResolvedValue(undefined),
+  verifySignUpOtp: jest.fn().mockResolvedValue({ user: mockCloudUser, session: mockSession, confirmationRequired: false }),
+  resendSignUpConfirmation: jest.fn().mockResolvedValue(undefined),
+  verifyPasswordResetOtp: jest.fn().mockResolvedValue(undefined),
+  updatePassword: jest.fn().mockResolvedValue(undefined),
 });
 
 // Mock factory

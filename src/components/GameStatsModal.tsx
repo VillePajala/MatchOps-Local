@@ -18,7 +18,7 @@ import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, ModalAmbientGlows } from '@/styles/modalStyles';
 import { queryKeys } from '@/config/queryKeys';
 
 // Import extracted hooks
@@ -639,9 +639,57 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   if (!isOpen) return null;
 
+  const renderPlayerStatsSection = () => (
+    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+      <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
+      {noGamesInContext ? (
+        <div className="text-center text-slate-400 py-8">
+          <div className="text-lg font-semibold mb-2">
+            {t('gameStatsModal.noTeamGamesTitle', 'No games for the selected team in this context')}
+          </div>
+          <div className="text-sm">
+            {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
+          </div>
+          {hasActiveFilters && (
+            <div className="mt-2 text-xs text-slate-500">
+              {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Search Input */}
+          <div className="relative mb-4">
+            <input
+              type="text"
+              value={filterText}
+              onChange={handleFilterChange}
+              placeholder={t('common.filterByName', 'Filter by name...')}
+              className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <div>
+            <PlayerStatsTable
+              playerStats={playerStats}
+              sortColumn={sortColumn}
+              sortDirection={sortDirection}
+              totals={totals}
+              onSort={handleSort}
+              onPlayerRowClick={handlePlayerRowClick}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={getTabTitle()}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={getTabTitle()}>
+      <ModalAmbientGlows />
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
@@ -934,51 +982,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     />
                   )}
 
-                  {/* Player Stats Table or Empty State */}
-                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                    <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
-                    {noGamesInContext ? (
-                      <div className="text-center text-slate-400 py-8">
-                        <div className="text-lg font-semibold mb-2">
-                          {t('gameStatsModal.noTeamGamesTitle', 'No games for the selected team in this context')}
-                        </div>
-                        <div className="text-sm">
-                          {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
-                        </div>
-                        {hasActiveFilters && (
-                          <div className="mt-2 text-xs text-slate-500">
-                            {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                        {/* Search Input */}
-                        <div className="relative mb-4">
-                          <input
-                            type="text"
-                            value={filterText}
-                            onChange={handleFilterChange}
-                            placeholder={t('common.filterByName', 'Filter by name...')}
-                            className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
-                          />
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <PlayerStatsTable
-                            playerStats={playerStats}
-                            sortColumn={sortColumn}
-                            sortDirection={sortDirection}
-                            totals={totals}
-                            onSort={handleSort}
-                            onPlayerRowClick={handlePlayerRowClick}
-                          />
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  {/* Player Stats Table: always in left column for currentGame, mobile-only for other tabs (moves to right column on desktop) */}
+                  {activeTab === 'currentGame' ? (
+                    renderPlayerStatsSection()
+                  ) : (
+                    <div className="lg:hidden">
+                      {renderPlayerStatsSection()}
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Column */}
@@ -1017,6 +1028,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         onEditNotesChange={setEditGameNotes}
                       />
                     </>
+                  )}
+                  {/* Player Stats Table in right column on desktop (non-currentGame tabs only) */}
+                  {activeTab !== 'currentGame' && (
+                    <div className="hidden lg:block">
+                      {renderPlayerStatsSection()}
+                    </div>
                   )}
                 </div>
               </div>

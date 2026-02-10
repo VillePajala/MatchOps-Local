@@ -115,6 +115,12 @@ describe('AuthService Interface Exports', () => {
         hasConsentedToVersion: async () => true,
         getLatestConsent: async () => null,
         deleteAccount: async () => {},
+        getMarketingConsentStatus: async () => null,
+        setMarketingConsent: async () => {},
+        verifySignUpOtp: async () => ({ user: localUser, session: null }),
+        resendSignUpConfirmation: async () => {},
+        verifyPasswordResetOtp: async () => {},
+        updatePassword: async () => {},
       };
 
       expect(mockAuth).toBeDefined();

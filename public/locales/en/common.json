@@ -191,7 +191,7 @@
     "genderGirls": "Girls",
     "genderLabel": "Gender",
     "genderAll": "All Genders",
-    "genderNotSet": "Not Set",
+    "genderNotSet": "–",
     "selectAgeGroup": "-- Select Age Group --",
     "selectLevel": "-- Select Level --",
     "selectSeries": "-- Select Series --",
@@ -2800,5 +2800,19 @@
     "canRestore": "Allow you to restore it later",
     "deleteHint": "To permanently delete, first remove all references (reassign games to another {{type}} or delete them).",
     "archiveInstead": "Archive Instead"
+  },
+  "desktopPanel": {
+    "notStarted": "Not Started",
+    "periodBreak": "Period Break",
+    "gameEnded": "Game Ended",
+    "bench": "Bench",
+    "noBenchPlayers": "No players on bench",
+    "onField": "On Field",
+    "noPlayersOnField": "No players on field",
+    "events": "Events",
+    "noEvents": "No events yet",
+    "substitution": "Substitution",
+    "fairPlayCard": "Fair Play Card",
+    "goalsScored": "Goals scored"
   }
 }

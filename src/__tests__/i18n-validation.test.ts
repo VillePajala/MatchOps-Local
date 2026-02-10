@@ -279,16 +279,16 @@ describe('Translation File Validation', () => {
       // Common keys: done, retry
       // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
       // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
-      // Previous: 2055 → ... → 2282 → 2323 → 2372
-      // Password reset OTP flow, auth improvements
-      expect(enKeys.length).toBe(2372);
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2400
+      // Custom domain support, credential inventory
+      expect(enKeys.length).toBe(2400);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Previous: 2055 → ... → 2282 → 2323 → 2372
-      // Password reset OTP flow, auth improvements
-      expect(fiKeys.length).toBe(2372);
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2400
+      // Custom domain support, credential inventory
+      expect(fiKeys.length).toBe(2400);
     });
   });
 });

@@ -18,7 +18,7 @@ import {
 } from 'react-icons/hi2';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, ModalAmbientGlows } from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 
 /**
@@ -322,7 +322,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             {gameDeleteError}
           </div>
         )}
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {filteredGameIds.map((gameId) => {
             const game = savedGames[gameId];
             if (!game) return null;
@@ -576,8 +576,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('loadGame.title', 'Load Game')}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('loadGame.title', 'Load Game')}>
+      <ModalAmbientGlows />
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
