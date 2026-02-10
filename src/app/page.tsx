@@ -985,8 +985,8 @@ export default function Home() {
     logger.info('[page.tsx] Discarding local data from migration wizard');
     try {
       const { LocalDataStore } = await import('@/datastore/LocalDataStore');
-      const localStore = new LocalDataStore();
-      await localStore.initialize(userId ?? undefined);
+      const localStore = new LocalDataStore(userId ?? undefined);
+      await localStore.initialize();
       await localStore.clearAllUserData();
       logger.info('[page.tsx] Local data cleared successfully');
     } catch (error) {
