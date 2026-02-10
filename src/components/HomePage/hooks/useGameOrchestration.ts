@@ -2145,9 +2145,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     isCloudMode: authMode === 'cloud',
   };
 
-  const isLoading = gameDataManagement.isLoading;
-
-  const isBootstrapping = isLoading && !initialLoadComplete;
+  const isBootstrapping = !initialLoadComplete;
 
   const gameContainerProps = {
     playerBar: playerBarViewModel,
