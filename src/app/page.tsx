@@ -427,12 +427,13 @@ export default function Home() {
     checkAppState();
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId]);
 
-  // Reset post-login check state when user signs out
-  // This ensures the loading screen shows again on next sign-in
+  // Reset state when user signs out
+  // This ensures the loading screen and start screen show again on next sign-in
   useEffect(() => {
     if (!userId) {
       setPostLoginCheckComplete(false);
       checkAppStateTriggeredRef.current = false;
+      setScreen('start');
     }
   }, [userId]);
 
