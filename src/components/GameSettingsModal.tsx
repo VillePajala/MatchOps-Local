@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useToast } from '@/contexts/ToastProvider';
+
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
@@ -256,7 +256,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
-  const { showToast } = useToast();
+
 
   // Memoize valid series from selected tournament (filter by valid levels)
   const validSeries = useMemo(() => {
@@ -443,6 +443,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [editGoalTime, setEditGoalTime] = useState<string>('');
   const [editGoalScorerId, setEditGoalScorerId] = useState<string>('');
   const [editGoalAssisterId, setEditGoalAssisterId] = useState<string | undefined>(undefined);
+  const [goalTimeError, setGoalTimeError] = useState<string | null>(null);
   const goalTimeInputRef = useRef<HTMLInputElement>(null);
 
   // State for inline editing UI control
@@ -450,6 +451,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     'team' | 'opponent' | 'date' | 'location' | 'time' | 'duration' | 'notes' | null
   >(null);
   const [inlineEditValue, setInlineEditValue] = useState<string>('');
+  const [inlineEditError, setInlineEditError] = useState<string | null>(null);
   const teamInputRef = useRef<HTMLInputElement>(null);
   const opponentInputRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -1158,6 +1160,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     setEditGoalTime(formatTime(goal.time)); // Use MM:SS format for editing time
     setEditGoalScorerId(goal.scorerId || '');
     setEditGoalAssisterId(goal.assisterId || undefined);
+    setGoalTimeError(null);
   };
 
   const handleCancelEditGoal = () => {
@@ -1165,6 +1168,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     setEditGoalTime('');
     setEditGoalScorerId('');
     setEditGoalAssisterId(undefined);
+    setGoalTimeError(null);
   };
 
   // Handle saving edited goal
@@ -1176,6 +1180,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
 
     setError(null);
+    setGoalTimeError(null);
     setIsProcessing(true);
 
     let timeInSeconds = 0;
@@ -1186,11 +1191,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       if (!isNaN(minutes) && !isNaN(seconds)) {
         timeInSeconds = minutes * 60 + seconds;
       } else {
-        showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
+        setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
+        setIsProcessing(false);
         return;
       }
     } else if (editGoalTime) {
-        showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
+        setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
+        setIsProcessing(false);
       return;
     }
 
@@ -1295,6 +1302,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Inline Editing Handlers (Refactored)
   const handleStartInlineEdit = (field: 'team' | 'opponent' | 'date' | 'location' | 'time' | 'duration' | 'notes') => {
     setInlineEditingField(field);
+    setInlineEditError(null);
     // Initialize edit value based on current prop value
     switch (field) {
       case 'team': setInlineEditValue(teamName); break;
@@ -1332,7 +1340,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { teamName: trimmedValue });
             success = true;
           } else {
-            showToast(t('gameSettingsModal.teamNameRequired', "Team name cannot be empty."), 'error');
+            setInlineEditError(t('gameSettingsModal.teamNameRequired', "Team name cannot be empty."));
           }
           break;
         case 'opponent':
@@ -1341,7 +1349,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { opponentName: trimmedValue });
             success = true;
           } else {
-            showToast(t('gameSettingsModal.opponentNameRequired', "Opponent name cannot be empty."), 'error');
+            setInlineEditError(t('gameSettingsModal.opponentNameRequired', "Opponent name cannot be empty."));
           }
           break;
         case 'date':
@@ -1350,7 +1358,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { gameDate: trimmedValue });
             success = true;
           } else {
-            showToast(t('gameSettingsModal.invalidDateFormat', "Invalid date format. Use YYYY-MM-DD."), 'error');
+            setInlineEditError(t('gameSettingsModal.invalidDateFormat', "Invalid date format. Use YYYY-MM-DD."));
           }
           break;
         case 'location':
@@ -1364,7 +1372,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { gameTime: trimmedValue });
             success = true;
           } else {
-            showToast(t('gameSettingsModal.invalidTimeFormatInline', "Invalid time format. Use HH:MM (24-hour)."), 'error');
+            setInlineEditError(t('gameSettingsModal.invalidTimeFormatInline', "Invalid time format. Use HH:MM (24-hour)."));
           }
           break;
         case 'duration':
@@ -1374,7 +1382,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { periodDurationMinutes: duration });
             success = true;
           } else {
-            showToast(t('gameSettingsModal.invalidDurationFormat', "Period duration must be a positive number."), 'error');
+            setInlineEditError(t('gameSettingsModal.invalidDurationFormat', "Period duration must be a positive number."));
           }
           break;
         case 'notes':
@@ -1387,6 +1395,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         logger.log(`[GameSettingsModal] Inline edit for ${fieldProcessed} saved for game ${currentGameId}.`);
         setInlineEditingField(null); // Exit inline edit mode on success
         setInlineEditValue('');
+        setInlineEditError(null);
       }
     } catch (err) {
       logger.error(`[GameSettingsModal] Error saving inline edit for ${fieldProcessed} (Game ID: ${currentGameId}):`, err);
@@ -1399,6 +1408,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const handleCancelInlineEdit = () => {
     setInlineEditingField(null);
     setInlineEditValue('');
+    setInlineEditError(null);
   };
 
   // Handle KeyDown for inline edits (Enter/Escape)
@@ -2324,10 +2334,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                             // Limit to reasonable length for MM:SS format
                             if (filteredValue.length <= 5) {
                               setEditGoalTime(filteredValue);
+                              if (goalTimeError) setGoalTimeError(null);
                             }
                           }}
                           placeholder={t('gameSettingsModal.timeFormatPlaceholder', 'MM:SS')}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${goalTimeError ? 'border-red-500' : 'border-slate-600'}`}
                           autoComplete="off"
                           autoCorrect="off"
                           autoCapitalize="off"
@@ -2335,6 +2346,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                           maxLength={5}
                           onFocus={(e) => e.target.select()}
                         />
+                        {goalTimeError && <p className="mt-1 text-sm text-red-400">{goalTimeError}</p>}
                         {event.type === 'goal' && (
                           <>
                             <select
@@ -2437,12 +2449,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   <textarea
                     ref={notesTextareaRef}
                     value={inlineEditValue}
-                    onChange={(e) => setInlineEditValue(e.target.value)}
+                    onChange={(e) => { setInlineEditValue(e.target.value); if (inlineEditError) setInlineEditError(null); }}
                     onKeyDown={handleInlineEditKeyDown}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm h-32 resize-none"
+                    className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm h-32 resize-none ${inlineEditError ? 'border-red-500' : 'border-slate-600'}`}
                     placeholder={t('gameSettingsModal.notesPlaceholder', 'Write notes...')}
                     disabled={isProcessing}
                   />
+                  {inlineEditError && <p className="mt-1 text-sm text-red-400">{inlineEditError}</p>}
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={handleCancelInlineEdit}

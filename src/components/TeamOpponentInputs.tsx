@@ -15,6 +15,8 @@ export interface TeamOpponentInputsProps {
   opponentInputRef?: React.Ref<HTMLInputElement>;
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   disabled?: boolean;
+  teamError?: string | null;
+  opponentError?: string | null;
 }
 
 const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
@@ -30,6 +32,8 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
   opponentInputRef,
   onKeyDown,
   disabled,
+  teamError,
+  opponentError,
 }) => {
   return (
     <>
@@ -45,7 +49,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           value={teamName}
           onChange={(e) => onTeamNameChange(e.target.value)}
           placeholder={teamPlaceholder}
-          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${teamError ? 'border-red-500' : 'border-slate-600'}`}
           onKeyDown={onKeyDown}
           disabled={disabled}
           autoComplete="off"
@@ -53,6 +57,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           autoCapitalize="words"
           spellCheck="true"
         />
+        {teamError && <p className="mt-1 text-sm text-red-400">{teamError}</p>}
       </div>
       <div className="mb-4">
         <label htmlFor="opponentNameInput" className="block text-sm font-medium text-slate-300 mb-1">
@@ -66,7 +71,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           value={opponentName}
           onChange={(e) => onOpponentNameChange(e.target.value)}
           placeholder={opponentPlaceholder}
-          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${opponentError ? 'border-red-500' : 'border-slate-600'}`}
           onKeyDown={onKeyDown}
           disabled={disabled}
           autoComplete="off"
@@ -74,6 +79,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           autoCapitalize="words"
           spellCheck="true"
         />
+        {opponentError && <p className="mt-1 text-sm text-red-400">{opponentError}</p>}
       </div>
     </>
   );

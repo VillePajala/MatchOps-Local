@@ -245,9 +245,9 @@ describe('FieldContainer', () => {
     // Click dismiss button
     fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
 
-    // Overlay should be gone, banner should appear
+    // Overlay should be gone, Create Game button should appear
     expect(screen.queryByText(/Ready to track your first game/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/No game created/i)).toBeInTheDocument();
+    expect(screen.getByText(/Create Game/i)).toBeInTheDocument();
   });
 
   describe('Export Button', () => {

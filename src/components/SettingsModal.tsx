@@ -18,6 +18,7 @@ import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFA
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import CloudSyncSection from './CloudSyncSection';
+import TransitionOverlay from './TransitionOverlay';
 
 /**
  * MarketingConsentToggle - Toggle for granting/withdrawing marketing consent.
@@ -37,13 +38,6 @@ function MarketingConsentToggle() {
       const result = await setMarketingConsent(!isGranted);
       if (result.error) {
         showToast(t('marketingConsent.updateFailed', 'Failed to update marketing preferences'), 'error');
-      } else {
-        showToast(
-          isGranted
-            ? t('marketingConsent.withdrawn', 'Marketing emails disabled')
-            : t('marketingConsent.granted', 'Marketing emails enabled'),
-          'success'
-        );
       }
     } finally {
       setIsUpdating(false);
@@ -141,6 +135,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isDownloadingCloudData, setIsDownloadingCloudData] = useState(false);
   const [resyncConfirm, setResyncConfirm] = useState('');
   const [factoryResetConfirm, setFactoryResetConfirm] = useState('');
+  const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
   const { deleteAccount, mode: authMode } = useAuth();
 
   // Set initial tab when modal opens
@@ -346,8 +341,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleRestoreResultsClose = () => {
     setShowRestoreResults(false);
     setBackupRestoreResult(null);
-    // Trigger full page reload after user has seen the results
-    // This ensures all state (React Query caches, component state, etc.) is fresh
+    // Show transition overlay while page reloads
+    setTransitionMessage(t('settingsModal.restoringReloading', 'Backup restored. Reloading...'));
     setTimeout(() => {
       window.location.reload();
     }, 100);
@@ -398,7 +393,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account: ') + result.error, 'error');
         logger.error('[SettingsModal] Delete account failed:', result.error);
       } else {
-        showToast(t('settingsModal.deleteAccountSuccess', 'Account deleted successfully'), 'success');
         logger.info('[SettingsModal] Account deleted successfully');
         // Close the modal - user will be redirected to login
         onClose();
@@ -631,250 +625,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </>
             )}
 
-            {/* Account Tab - Cloud sync, subscription, and danger zone */}
+            {/* Account Tab - Cloud sync and account management */}
             {activeTab === 'account' && (
             <>
               <CloudSyncSection />
 
               {/* Marketing Consent Toggle - cloud mode only */}
               {authMode === 'cloud' && <MarketingConsentToggle />}
-
-              {/* Danger Zone - All destructive actions in one place */}
-              <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-red-700/50 shadow-inner">
-                <h3 className="text-lg font-semibold text-red-300">
-                  {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
-                </h3>
-
-                {/* Cloud mode: Show Re-sync and Factory Reset options */}
-                {authMode === 'cloud' ? (
-                  <>
-                    {/* Option 1: Re-sync from Cloud */}
-                    <div className="space-y-2">
-                      <h4 className="text-md font-semibold text-yellow-300">
-                        {t('settingsModal.resyncTitle', 'Re-sync from Cloud')}
-                      </h4>
-                      <p className="text-sm text-yellow-200">
-                        {t('settingsModal.resyncDescription',
-                          'Clear local data and re-download from cloud. Your cloud backup will be restored.')}
-                      </p>
-                      <label htmlFor="resync-confirm" className={labelStyle}>
-                        {t('settingsModal.confirmResyncLabel', 'Type RESYNC to confirm')}
-                      </label>
-                      <input
-                        id="resync-confirm"
-                        type="text"
-                        value={resyncConfirm}
-                        onChange={(e) => setResyncConfirm(e.target.value)}
-                        className={inputStyle}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (resyncConfirm.trim() === 'RESYNC') {
-                            logger.log('[SettingsModal] Re-sync from Cloud clicked');
-                            onResyncFromCloud?.();
-                            setResyncConfirm('');
-                          }
-                        }}
-                        className="w-full py-2 px-4 rounded-md text-sm font-medium bg-yellow-600 text-white hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        disabled={resyncConfirm.trim() !== 'RESYNC'}
-                      >
-                        {t('settingsModal.resyncButton', 'Re-sync from Cloud')}
-                      </button>
-                    </div>
-
-                    {/* Option 2: Factory Reset (All Data) */}
-                    <div className="space-y-2 mt-4 pt-4 border-t border-red-700/30">
-                      <h4 className="text-md font-semibold text-red-300">
-                        {t('settingsModal.factoryResetTitle', 'Factory Reset')}
-                      </h4>
-                      <p className="text-sm text-red-200">
-                        {t('settingsModal.factoryResetDescription',
-                          'Permanently delete ALL data - both local and cloud. This cannot be undone.')}
-                      </p>
-                      <label htmlFor="factory-reset-confirm" className={labelStyle}>
-                        {t('settingsModal.confirmFactoryResetLabel', 'Type FACTORY RESET to confirm')}
-                      </label>
-                      <input
-                        id="factory-reset-confirm"
-                        type="text"
-                        value={factoryResetConfirm}
-                        onChange={(e) => setFactoryResetConfirm(e.target.value)}
-                        className={inputStyle}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (factoryResetConfirm.trim() === 'FACTORY RESET') {
-                            logger.log('[SettingsModal] Factory Reset clicked');
-                            onFactoryReset?.();
-                            setFactoryResetConfirm('');
-                          }
-                        }}
-                        className={dangerButtonStyle}
-                        disabled={factoryResetConfirm.trim() !== 'FACTORY RESET'}
-                      >
-                        {t('settingsModal.factoryResetButton', 'Factory Reset (Delete All)')}
-                      </button>
-                    </div>
-
-                    {/* Delete Account - Still available in cloud mode */}
-                    <div className="mt-4 pt-4 border-t border-red-700/30">
-                      <h4 className="text-md font-semibold text-red-300 mb-2">
-                        {t('settingsModal.deleteAccountTitle', 'Delete Account')}
-                      </h4>
-                      <p className="text-sm text-red-200 mb-3">
-                        {t(
-                          'settingsModal.deleteAccountDescription',
-                          'Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.'
-                        )}
-                      </p>
-                      <label htmlFor="delete-account-confirm" className={labelStyle}>
-                        {t('settingsModal.confirmDeleteLabel', 'Type DELETE to confirm')}
-                      </label>
-                      <input
-                        id="delete-account-confirm"
-                        type="text"
-                        value={deleteAccountConfirm}
-                        onChange={(e) => setDeleteAccountConfirm(e.target.value)}
-                        className={inputStyle}
-                        disabled={isDeletingAccount}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDeleteAccount();
-                        }}
-                        className={dangerButtonStyle}
-                        disabled={deleteAccountConfirm.trim() !== 'DELETE' || isDeletingAccount}
-                      >
-                        {isDeletingAccount
-                          ? t('settingsModal.deletingAccount', 'Deleting...')
-                          : t('settingsModal.deleteAccountButton', 'Delete Account')}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  /* Local mode: Single Hard Reset option */
-                  <div className="space-y-2">
-                    <p className="text-sm text-red-200">
-                      {t(
-                        'settingsModal.hardResetDescription',
-                        'Erase all saved teams, games and settings. This action cannot be undone.'
-                      )}
-                    </p>
-                    <label htmlFor="hard-reset-confirm" className={labelStyle}>
-                      {t('settingsModal.confirmResetLabel', 'Type RESET to confirm')}
-                    </label>
-                    <input
-                      id="hard-reset-confirm"
-                      type="text"
-                      value={resetConfirm}
-                      onChange={(e) => setResetConfirm(e.target.value)}
-                      className={inputStyle}
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        logger.debug('[SettingsModal] Hard Reset button clicked', {
-                          resetConfirm,
-                          matches: resetConfirm === 'RESET',
-                          length: resetConfirm.length,
-                          trimmed: resetConfirm.trim()
-                        });
-                        if (resetConfirm.trim() === 'RESET') {
-                          logger.debug('[SettingsModal] Calling onHardResetApp');
-                          onHardResetApp();
-                          setResetConfirm('');
-                        }
-                      }}
-                      className={dangerButtonStyle}
-                      disabled={resetConfirm.trim() !== 'RESET'}
-                    >
-                      {t('settingsModal.hardResetButton', 'Hard Reset App')}
-                    </button>
-                  </div>
-                )}
-              </div>
             </>
             )}
 
             {/* Data Tab */}
             {activeTab === 'data' && (
             <>
-            {/* GDPR / Your Data Rights Section */}
+            {/* Backup & Export Section */}
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200">
-                {t('settingsModal.gdpr.title', 'Your Data Rights')}
-              </h3>
-              <p className="text-sm text-slate-300">
-                {t('settingsModal.gdpr.description', 'You have full control over your data. Use the options below to exercise your GDPR rights.')}
-              </p>
-              <div className="space-y-2">
-                <div className={`flex items-start gap-3 p-3 bg-slate-800/50 rounded-md${authMode !== 'cloud' ? ' opacity-50' : ''}`}>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
-                      {t('settingsModal.gdpr.downloadTitle', 'Download Your Data')}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {authMode === 'cloud'
-                        ? t('settingsModal.gdpr.downloadDescriptionCloud', 'Download all data stored on the server to a file you can keep.')
-                        : t('settingsModal.gdpr.downloadDescriptionLocal', 'Cloud account required. Your local data can be exported using the Backup option below.')}
-                    </p>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      if (!onCloudDataDownload) return;
-                      setIsDownloadingCloudData(true);
-                      try {
-                        await onCloudDataDownload();
-                      } finally {
-                        setIsDownloadingCloudData(false);
-                      }
-                    }}
-                    disabled={authMode !== 'cloud' || isDownloadingCloudData}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
-                  >
-                    {isDownloadingCloudData
-                      ? t('settingsModal.gdpr.downloading', 'Downloading...')
-                      : t('settingsModal.gdpr.downloadButton', 'Download')}
-                  </button>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
-                      {t('settingsModal.gdpr.deleteTitle', 'Delete Your Data')}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {t('settingsModal.gdpr.deleteDescriptionAccount', 'To delete all your data, use the Danger Zone options in the Account tab.')}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
-                      {t('settingsModal.gdpr.correctTitle', 'Correct Your Data')}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {t('settingsModal.gdpr.correctDescription', 'You can edit player names, game details, and all other data directly in the app at any time.')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Data Management Section */}
-            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-              <h3 className="text-lg font-semibold text-slate-200">
-                {t('settingsModal.backupTitle', 'Data Management')}
+                {t('settingsModal.backupExportTitle', 'Backup & Export')}
               </h3>
               <input
                 type="file"
@@ -901,6 +668,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <HiOutlineDocumentArrowDown className="h-5 w-5" />
                   </button>
                 </div>
+                {/* Download Cloud Data - cloud mode only */}
+                <div className={`flex items-start gap-3 p-3 bg-slate-800/50 rounded-md${authMode !== 'cloud' ? ' opacity-50' : ''}`}>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      {t('settingsModal.gdpr.downloadTitle', 'Download Cloud Data')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {authMode === 'cloud'
+                        ? t('settingsModal.gdpr.downloadDescriptionCloud', 'Download all data stored on the server to a file you can keep.')
+                        : t('settingsModal.gdpr.downloadDescriptionLocal', 'Cloud account required. Your local data can be exported using Backup above.')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!onCloudDataDownload) return;
+                      setIsDownloadingCloudData(true);
+                      try {
+                        await onCloudDataDownload();
+                      } finally {
+                        setIsDownloadingCloudData(false);
+                      }
+                    }}
+                    disabled={authMode !== 'cloud' || isDownloadingCloudData}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {isDownloadingCloudData
+                      ? t('settingsModal.gdpr.downloading', 'Downloading...')
+                      : t('settingsModal.gdpr.downloadButton', 'Download')}
+                  </button>
+                </div>
                 <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-200">
@@ -919,6 +716,170 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Danger Zone */}
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-red-700/50 shadow-inner">
+              <h3 className="text-lg font-semibold text-red-300">
+                {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
+              </h3>
+
+              {authMode === 'cloud' ? (
+                <>
+                  {/* Re-sync from Cloud */}
+                  <div className="space-y-2">
+                    <h4 className="text-md font-semibold text-yellow-300">
+                      {t('settingsModal.resyncTitle', 'Re-sync from Cloud')}
+                    </h4>
+                    <p className="text-sm text-yellow-200">
+                      {t('settingsModal.resyncDescription',
+                        'Clear local data and re-download from cloud. Your cloud backup will be restored.')}
+                    </p>
+                    <label htmlFor="resync-confirm" className={labelStyle}>
+                      {t('settingsModal.confirmResyncLabel', 'Type RESYNC to confirm')}
+                    </label>
+                    <input
+                      id="resync-confirm"
+                      type="text"
+                      value={resyncConfirm}
+                      onChange={(e) => setResyncConfirm(e.target.value)}
+                      className={inputStyle}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (resyncConfirm.trim() === 'RESYNC') {
+                          logger.log('[SettingsModal] Re-sync from Cloud clicked');
+                          onResyncFromCloud?.();
+                          setResyncConfirm('');
+                        }
+                      }}
+                      className="w-full py-2 px-4 rounded-md text-sm font-medium bg-yellow-600 text-white hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      disabled={resyncConfirm.trim() !== 'RESYNC'}
+                    >
+                      {t('settingsModal.resyncButton', 'Re-sync from Cloud')}
+                    </button>
+                  </div>
+
+                  {/* Delete All Data (Factory Reset) */}
+                  <div className="space-y-2 mt-4 pt-4 border-t border-red-700/30">
+                    <h4 className="text-md font-semibold text-red-300">
+                      {t('settingsModal.factoryResetTitle', 'Delete All Data')}
+                    </h4>
+                    <p className="text-sm text-red-200">
+                      {t('settingsModal.factoryResetDescription',
+                        'Permanently delete ALL data - both local and cloud. This cannot be undone.')}
+                    </p>
+                    <label htmlFor="factory-reset-confirm" className={labelStyle}>
+                      {t('settingsModal.confirmFactoryResetLabel', 'Type FACTORY RESET to confirm')}
+                    </label>
+                    <input
+                      id="factory-reset-confirm"
+                      type="text"
+                      value={factoryResetConfirm}
+                      onChange={(e) => setFactoryResetConfirm(e.target.value)}
+                      className={inputStyle}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (factoryResetConfirm.trim() === 'FACTORY RESET') {
+                          logger.log('[SettingsModal] Factory Reset clicked');
+                          onFactoryReset?.();
+                          setFactoryResetConfirm('');
+                        }
+                      }}
+                      className={dangerButtonStyle}
+                      disabled={factoryResetConfirm.trim() !== 'FACTORY RESET'}
+                    >
+                      {t('settingsModal.factoryResetButton', 'Delete All Data')}
+                    </button>
+                  </div>
+
+                  {/* Delete Account */}
+                  <div className="mt-4 pt-4 border-t border-red-700/30">
+                    <h4 className="text-md font-semibold text-red-300 mb-2">
+                      {t('settingsModal.deleteAccountTitle', 'Delete Account')}
+                    </h4>
+                    <p className="text-sm text-red-200 mb-3">
+                      {t(
+                        'settingsModal.deleteAccountDescription',
+                        'Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.'
+                      )}
+                    </p>
+                    <label htmlFor="delete-account-confirm" className={labelStyle}>
+                      {t('settingsModal.confirmDeleteLabel', 'Type DELETE to confirm')}
+                    </label>
+                    <input
+                      id="delete-account-confirm"
+                      type="text"
+                      value={deleteAccountConfirm}
+                      onChange={(e) => setDeleteAccountConfirm(e.target.value)}
+                      className={inputStyle}
+                      disabled={isDeletingAccount}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteAccount();
+                      }}
+                      className={dangerButtonStyle}
+                      disabled={deleteAccountConfirm.trim() !== 'DELETE' || isDeletingAccount}
+                    >
+                      {isDeletingAccount
+                        ? t('settingsModal.deletingAccount', 'Deleting...')
+                        : t('settingsModal.deleteAccountButton', 'Delete Account')}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* Local mode: Delete All Data */
+                <div className="space-y-2">
+                  <p className="text-sm text-red-200">
+                    {t(
+                      'settingsModal.deleteAllDataDescription',
+                      'Permanently delete all games, players, teams and settings from this device. This action cannot be undone.'
+                    )}
+                  </p>
+                  <label htmlFor="hard-reset-confirm" className={labelStyle}>
+                    {t('settingsModal.confirmResetLabel', 'Type RESET to confirm')}
+                  </label>
+                  <input
+                    id="hard-reset-confirm"
+                    type="text"
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value)}
+                    className={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (resetConfirm.trim() === 'RESET') {
+                        logger.debug('[SettingsModal] Calling onHardResetApp');
+                        onHardResetApp();
+                        setResetConfirm('');
+                      }
+                    }}
+                    className={dangerButtonStyle}
+                    disabled={resetConfirm.trim() !== 'RESET'}
+                  >
+                    {t('settingsModal.deleteAllDataButton', 'Delete All Data')}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* GDPR Data Rights footnote */}
+            <p className="text-xs text-slate-500 px-1">
+              {t('settingsModal.gdpr.footnote', 'Under GDPR, you can export your data using Backup or Download above, delete it using Danger Zone, or correct any data directly in the app.')}
+            </p>
             </>
             )}
 
@@ -1070,6 +1031,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
       )}
+
+      {transitionMessage && <TransitionOverlay message={transitionMessage} />}
     </div>
   );
 };

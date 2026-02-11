@@ -44,6 +44,7 @@ import {
 import { migrateLegacyData } from '@/services/legacyMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
+import TransitionOverlay from '@/components/TransitionOverlay';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 
@@ -66,6 +67,8 @@ export default function Home() {
   const [isImportingBackup, setIsImportingBackup] = useState(false);
   // Post-login upgrade modal (shown when user authenticates without subscription)
   const [showPostLoginUpgrade, setShowPostLoginUpgrade] = useState(false);
+  // Transition overlay message (replaces toast+reload pattern)
+  const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
   // Track pending post-login check in state (initialized from localStorage)
   // Using state so clearing it triggers re-render and migration check can re-run
   const [pendingPostLoginCheckState, setPendingPostLoginCheckState] = useState(() => hasPendingPostLoginCheck());
@@ -238,10 +241,12 @@ export default function Home() {
     // Otherwise just hide welcome screen
     if (mode === 'cloud') {
       logger.info('[page.tsx] Mode was cloud, reloading to switch to local');
+      setTransitionMessage(t('page.switchingToLocalMode', 'Switching to local mode...'));
       setTimeout(() => {
         try {
           window.location.reload();
         } catch (error) {
+          setTransitionMessage(null);
           logger.error('[page.tsx] Reload blocked', error);
           showToast(t('page.refreshPageManually', 'Please refresh the page manually'), 'error');
         }
@@ -273,6 +278,7 @@ export default function Home() {
     logger.info('[page.tsx] Cloud mode enabled, reloading...');
 
     // Reload to enter cloud mode - LoginScreen will show automatically
+    setTransitionMessage(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'));
     setTimeout(() => {
       window.location.reload();
     }, FORCE_RELOAD_NOTIFICATION_DELAY_MS);
@@ -302,12 +308,13 @@ export default function Home() {
           logger.warn('[page.tsx] Failed to ensure local mode after import:', modeResult.message);
         }
 
-        // Trigger full page reload to ensure all caches are fresh
-        // This is the safest way to ensure imported data is properly loaded
+        // Show transition overlay while reloading
+        setTransitionMessage(t('page.importSucceededReloading', 'Import complete. Loading...'));
         try {
           window.location.reload();
         } catch (reloadError) {
           // Reload blocked - clear flag so user can retry after manual refresh
+          setTransitionMessage(null);
           clearWelcomeSeen();
           setShowWelcome(true);
           logger.error('[page.tsx] Reload blocked after import', reloadError);
@@ -342,11 +349,12 @@ export default function Home() {
     if (result.success) {
       // Local mode enabled - reload to re-initialize AuthProvider in local mode
       setWelcomeSeen();
-      showToast(t('page.localModeEnabledReloading', 'Local mode enabled. Reloading...'), 'info');
+      setTransitionMessage(t('page.localModeEnabledReloading', 'Local mode enabled. Reloading...'));
       setTimeout(() => {
         try {
           window.location.reload();
         } catch (error) {
+          setTransitionMessage(null);
           clearWelcomeSeen();
           logger.error('[page.tsx] Reload blocked', error);
           showToast(t('page.refreshPageManuallyContinue', 'Please refresh the page manually to continue'), 'error');
@@ -363,11 +371,12 @@ export default function Home() {
     logger.info('[page.tsx] StartScreen: Enabling cloud sync');
     const success = enableCloudMode();
     if (success) {
-      showToast(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'), 'info');
+      setTransitionMessage(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'));
       setTimeout(() => {
         try {
           window.location.reload();
         } catch (error) {
+          setTransitionMessage(null);
           logger.error('[page.tsx] Reload blocked', error);
           showToast(t('page.refreshPageManuallyContinue', 'Please refresh the page manually to continue'), 'error');
         }
@@ -1223,6 +1232,8 @@ export default function Home() {
           variant="cloudUpgrade"
           onUpgradeSuccess={handlePostLoginUpgradeSuccess}
         />
+
+        {transitionMessage && <TransitionOverlay message={transitionMessage} />}
       </ModalProvider>
     </ErrorBoundary>
   );

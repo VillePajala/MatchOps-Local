@@ -974,7 +974,7 @@
     "orExperiment": "Or experiment first:",
     "experimentOption": "Use temporary workspace for testing",
     "workspaceWarning": "Temporary workspace - changes won't be saved",
-    "createRealGame": "Create real game"
+    "createRealGame": "Create Game"
   },
   "firstGameGuide": {
     "title": "Welcome to Your First Game!",
@@ -1462,8 +1462,9 @@
       "correctTitle": "Correct Your Data",
       "correctDescription": "You can edit player names, game details, and all other data directly in the app at any time.",
       "downloadDescriptionCloud": "Download all data stored on the server to a file you can keep.",
-      "downloadDescriptionLocal": "Cloud account required. Your local data can be exported using the Backup option below.",
-      "downloading": "Downloading..."
+      "downloadDescriptionLocal": "Cloud account required. Your local data can be exported using Backup above.",
+      "downloading": "Downloading...",
+      "footnote": "Under GDPR, you can export your data using Backup or Download above, delete it using Danger Zone, or correct any data directly in the app."
     },
     "importReadError": "Error reading backup file content.",
     "importGamesButton": "Import Games",
@@ -1502,10 +1503,13 @@
     "resyncDescription": "Clear local data and re-download from cloud. Your cloud backup will be restored.",
     "confirmResyncLabel": "Type RESYNC to confirm",
     "resyncButton": "Re-sync from Cloud",
-    "factoryResetTitle": "Factory Reset",
+    "backupExportTitle": "Backup & Export",
+    "deleteAllDataDescription": "Permanently delete all games, players, teams and settings from this device. This action cannot be undone.",
+    "deleteAllDataButton": "Delete All Data",
+    "factoryResetTitle": "Delete All Data",
     "factoryResetDescription": "Permanently delete ALL data - both local and cloud. This cannot be undone.",
     "confirmFactoryResetLabel": "Type FACTORY RESET to confirm",
-    "factoryResetButton": "Factory Reset (Delete All)",
+    "factoryResetButton": "Delete All Data",
     "restoring": "Restoring backup...",
     "restoringTitle": "Restoring Backup",
     "restoringDescription": "Please wait while your data is being restored. This may take a moment."
@@ -2497,7 +2501,7 @@
     "signedOut": "Signed out successfully. Reloading...",
     "signOutError": "Failed to sign out. Please try again.",
     "signOutNetworkError": "Network error. You can continue using the app offline.",
-    "startOver": "Start over with a different account",
+    "startOver": "Sign out and return to setup",
     "startingOver": "Starting over. Reloading...",
     "startOverError": "Failed to start over. Please try again.",
     "switchedToLocal": "Switched to local mode. Reloading...",
