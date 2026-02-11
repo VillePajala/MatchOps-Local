@@ -15,7 +15,7 @@
 
 [SCREEN: App logo / splash, then the main field view with players positioned]
 
-Whether you're coaching your first youth team or your tenth season — keeping track of lineups, game time, and player stats during a match can be a handful. MatchOps is built to make that simple.
+Whether you're coaching your first youth team or your tenth season — keeping track of lineups, game time, match events and substitution times during a match can be a handful. MatchOps is built to make that simple.
 
 ### 2. Getting Started (20s)
 
@@ -27,37 +27,37 @@ When you open the app for the first time, you choose how you want to use it. (pa
 
 [SCREEN: Open menu → Manage Roster → show player list → add a player → fill name, jersey number → save → scroll through roster]
 
-First, let's set up your players. Open the menu and tap Manage Roster. (pause) Here you can add each player with their name, nickname, and jersey number. You'll see them appear as colored discs in the player bar at the top of the screen. (pause) You can add as many players as you need — and you can always come back to edit these later.
+First, let's set up your players. Open the menu and tap All Players. (pause) Here you can add each player with their name, nickname, and jersey number. You'll see them appear as colored discs in the player bar at the top of the screen when you retunr to the main view. (pause) You can add as many players as you need — and you can always come back to edit these later.
 
 ### 4. Starting a Game (30s)
 
 [SCREEN: Menu → New Game → Game Settings Modal opens → set team name, opponent, date → select players with checkboxes → configure periods → close settings]
 
-To start a match, open the menu and tap New Game. (pause) This opens the game settings where you set your team name, the opponent, and the date. (pause) Scroll down to select which players are available for this game — just check the boxes. (pause) You can also set the number of periods and how long each one lasts. Once you're set, close the panel and you're ready to go.
+To start a match, open the menu and tap Start New Game. (pause) This opens the new game settings where you set your team name, the opponent, and the date. (pause) Scroll down to select which players are available for this game — just check the boxes. (pause) You can also set the number of periods and how long each one lasts. Once you're set, close the panel and you're ready to go.
 
 ### 5. The Field (35s)
 
 [SCREEN: Tap a player disc in the player bar → tap a spot on the field to place them → repeat for several players → tap the formation picker → select a formation → show all players snap into position]
 
-Now here's where it gets fun. (pause) Tap a player in the bar at the top to select them, then tap anywhere on the field to place them. It's that simple. (pause) Or, if you want a quick setup, tap the formation picker in the control bar. Choose a formation and all your selected players snap into position instantly. (pause) During the game, just select a player and tap their new spot to reposition them on the fly.
+Now here's where it gets fun. (pause) Tap a player in the bar at the top to select them, then tap anywhere on the field to place them. It's that simple. (pause) Or, if you want a quick setup, tap the formation picker in the control bar. Choose a formation and all your selected players snap into position instantly. (pause) To easily change player positions, just select a player and tap their new spot to reposition them.
 
 ### 6. Running the Game (45s)
 
-[SCREEN: Tap the timer to start it → timer running → tap a player on field → log a goal (show the goal event appearing) → log an opponent goal → show score updating → tap timer at period end → start new period]
+[SCREEN: Tap the timer to start it → timer running → tap log a goal (show the goal event appearing) → log an opponent goal → show score updating → tap timer at period end → start new period]
 
-Tap the timer in the bottom bar to start the clock. (pause) When someone scores, select the player on the field and log the goal — you can even add an assist. The score updates automatically. (pause) For opponent goals, log those from the game settings or the event menu. (pause) When the period ends, the timer lets you know. Start the next period when you're ready. Everything is tracked with timestamps so you have a full record of the match.
+Tap the timer in the bottom bar to start the clock. (pause) When someone scores, press the Log Goal to log the goal. select the player who scored — you can also add an assist. The score updates automatically. (pause) For opponent goals, log those with the opponent + 1 button. (pause) When the preset substitution interval is getting closer, the timer changes color and you know to prepare for the next substitution. Periods end sutomatically and the next ones starts when you hit plsy again. Everything is tracked with timestamps so you have a full record of the match.
 
 ### 7. Tactics Board (25s)
 
 [SCREEN: Tap tactics button in control bar → draw arrows/lines on the field → add opponent discs (red) → add home discs (purple) → clear drawings]
 
-Need to sketch out a play? Tap the tactics button to open the drawing tools. (pause) Draw directly on the field to plan set pieces or explain movements. You can add opponent markers and extra formation discs too. Clear everything with one tap when you're done.
+Need to sketch out a play? Tap the tactics button to open the drawing tools. (pause) Draw directly on the field to plan set pieces or explain movements. You can add opponent markers and extra formation discs too. The drawing os automatically saved for later use or yiu can cear everything with one tap.
 
 ### 8. After the Game — Stats and Assessments (35s)
 
 [SCREEN: Menu → Stats → show stats table with goals/assists/playing time → close → Menu → Assess Players → show slider assessment for a player (drag a few sliders) → show overall rating]
 
-After the final whistle, open Stats from the menu. (pause) You get a full breakdown — goals, assists, and playing time for every player. (pause) For a deeper look, open Assess Players. Here you can rate each player on ten dimensions like technique, teamwork, awareness, and decision-making. (pause) These assessments build up over time, giving you a real picture of each player's development.
+After the final whistle, open Stats from the menu. (pause) You get a full breakdown of the last game — goals, assists and event timeline. (pause) For a deeper look, open Assess Players. Here you can rate each player's performance on ten dimensions like technique, teamwork, awareness, and decision-making. (pause) These assessments build up over time, giving you a real picture of each player's development.
 
 ### 9. Seasons, Tournaments & Export (30s)
 
