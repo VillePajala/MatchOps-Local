@@ -2813,6 +2813,11 @@
     "noEvents": "No events yet",
     "substitution": "Substitution",
     "fairPlayCard": "Fair Play Card",
-    "goalsScored": "Goals scored"
+    "goalsScored": "Goals scored",
+    "dateLabel": "Date",
+    "durationLabel": "Duration",
+    "matchTab": "Match",
+    "settingsTab": "Settings",
+    "noSubs": "No subs"
   }
 }

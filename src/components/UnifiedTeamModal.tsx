@@ -494,7 +494,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[70] font-display">
       <ModalAmbientGlows />
-      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-2xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative overflow-hidden">
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
@@ -531,10 +531,12 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         <div
           className={`flex-1 min-h-0 p-6 ${isEditingRoster ? 'pb-4' : 'pb-2'} relative z-10 flex flex-col`}
         >
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 flex-1 overflow-y-auto">
-              <div className={`space-y-4 ${isEditingRoster ? 'flex flex-col h-full' : ''}`}>
+          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0 flex-1 overflow-y-auto">
+              <div className={`${isEditingRoster ? 'flex flex-col h-full space-y-4' : 'lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0'}`}>
                 {!isEditingRoster && (
                   <>
+                    {/* LEFT COLUMN: Team Details */}
+                    <div className="space-y-4">
                     {/* Name */}
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -735,6 +737,10 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         {t('teamDetailsModal.archivedLabel', 'Archived')}
                       </label>
                     </div>
+                    </div>{/* end LEFT COLUMN */}
+
+                    {/* RIGHT COLUMN: Roster + Placements */}
+                    <div className="space-y-4 lg:self-start">
 
                     {/* Tournament & Season Placements Section */}
                     {teamId && (teamHistory.tournaments.length > 0 || teamHistory.seasons.length > 0) && (
@@ -820,13 +826,9 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         </div>
                       </div>
                     )}
-                  </>
-                )}
 
-                {/* Roster Section */}
-                <div className={isEditingRoster ? 'flex flex-col flex-1 min-h-0' : ''}>
-                  {!isEditingRoster ? (
-                    <>
+                    {/* Roster (read-only list in right column) */}
+                    <div>
                       {/* Roster Header */}
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-sm font-medium text-slate-300">
@@ -865,26 +867,30 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             ))
                         )}
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Player Selection - Flexible height to stretch to buttons */}
-                      <div className="flex-1 min-h-0 flex flex-col">
-                        <PlayerSelectionSection
-                          availablePlayers={masterRoster}
-                          selectedPlayerIds={selectedPlayerIds}
-                          onSelectedPlayersChange={setSelectedPlayerIds}
-                          title={t('unifiedTeamModal.selectPlayers', 'Select Players for Team')}
-                          playersSelectedText={t('teamRosterModal.selected', 'selected')}
-                          selectAllText={t('teamRosterModal.selectAll', 'Select All')}
-                          noPlayersText={t('teamRosterModal.noAvailablePlayers', 'No available players to add from master roster.')}
-                          disabled={isPending}
-                          useFlexHeight={true}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
+                    </div>
+
+                    </div>{/* end RIGHT COLUMN */}
+                  </>
+                )}
+
+                {/* Roster Editing (full-width, replaces grid) */}
+                {isEditingRoster && (
+                  <div className="flex flex-col flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 flex flex-col">
+                      <PlayerSelectionSection
+                        availablePlayers={masterRoster}
+                        selectedPlayerIds={selectedPlayerIds}
+                        onSelectedPlayersChange={setSelectedPlayerIds}
+                        title={t('unifiedTeamModal.selectPlayers', 'Select Players for Team')}
+                        playersSelectedText={t('teamRosterModal.selected', 'selected')}
+                        selectAllText={t('teamRosterModal.selectAll', 'Select All')}
+                        noPlayersText={t('teamRosterModal.noAvailablePlayers', 'No available players to add from master roster.')}
+                        disabled={isPending}
+                        useFlexHeight={true}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
         </div>

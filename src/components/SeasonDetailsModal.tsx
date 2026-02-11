@@ -255,7 +255,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[70] font-display">
       <ModalAmbientGlows />
-      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-2xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative overflow-hidden">
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
@@ -295,8 +295,18 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
+          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 lg:mx-0">
             <div className="space-y-3">
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
+                  {errorMessage}
+                </div>
+              )}
+
+              {/* 2-column layout on desktop */}
+              <div className="lg:grid lg:grid-cols-2 lg:gap-x-6">
+              <div className="space-y-3">
               {/* Season Dates Not Configured Warning */}
               {settings && !settings.hasConfiguredSeasonDates && (
                 <div className="bg-amber-900/30 border border-amber-600/50 rounded-lg p-3">
@@ -325,14 +335,6 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   </div>
                 </div>
               )}
-
-              {/* Error Message */}
-              {errorMessage && (
-                <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
-                  {errorMessage}
-                </div>
-              )}
-
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -555,6 +557,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                 </div>
               )}
 
+              </div>
+              <div className="space-y-3 mt-3 lg:mt-0">
               {/* Start Date and End Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -648,6 +652,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   />
                   {t('seasonDetailsModal.archivedLabel', 'Archived')}
                 </label>
+              </div>
+              </div>
               </div>
             </div>
           </div>

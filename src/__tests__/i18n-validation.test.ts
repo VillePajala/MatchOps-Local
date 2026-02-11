@@ -279,16 +279,16 @@ describe('Translation File Validation', () => {
       // Common keys: done, retry
       // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
       // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2400
-      // Custom domain support, credential inventory
-      expect(enKeys.length).toBe(2400);
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2400 → 2417
+      // Desktop layout improvements, external games rename
+      expect(enKeys.length).toBe(2417);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2400
-      // Custom domain support, credential inventory
-      expect(fiKeys.length).toBe(2400);
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2400 → 2417
+      // Desktop layout improvements, external games rename
+      expect(fiKeys.length).toBe(2417);
     });
   });
 });
