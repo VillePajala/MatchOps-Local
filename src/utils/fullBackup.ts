@@ -18,6 +18,7 @@ import i18n from "i18next";
 import { getDataStore } from '@/datastore/factory';
 import { getLatestGameId } from './savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import type { DataStore } from '@/interfaces/DataStore';
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
 import type { TeamsIndex, TeamRostersIndex } from './teams';
 import type { AppSettings } from '@/types/settings';
@@ -194,9 +195,11 @@ function validateBackupData(backupData: FullBackupData): BackupValidationResult 
  * Generate backup JSON from DataStore.
  *
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
+ * @param dataStoreOverride - Optional DataStore instance to use instead of the default factory.
+ *                            Used by exportCloudDataDownload to fetch directly from Supabase.
  * @returns JSON string of backup data
  */
-export const generateFullBackupJson = async (userId?: string): Promise<string> => {
+export const generateFullBackupJson = async (userId?: string, dataStoreOverride?: DataStore): Promise<string> => {
   const backupData: FullBackupData = {
     meta: {
       schema: 1,
@@ -206,7 +209,7 @@ export const generateFullBackupJson = async (userId?: string): Promise<string> =
   };
 
   try {
-    const dataStore = await getDataStore(userId);
+    const dataStore = dataStoreOverride ?? await getDataStore(userId);
 
     // Get all data using DataStore methods
     const [
@@ -371,6 +374,64 @@ export const exportFullBackup = async (
       alert(i18n.t("fullBackup.exportError"));
     }
     throw error;
+  }
+};
+
+/**
+ * Export cloud data (from Supabase) as a GDPR data portability download.
+ *
+ * Creates a temporary SupabaseDataStore instance, fetches all user data,
+ * and triggers a browser download. Uses the same backup format as local exports
+ * so the file can be imported via "Restore from Backup".
+ *
+ * @param showToast - Toast notification function for user feedback
+ */
+export const exportCloudDataDownload = async (
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void,
+): Promise<void> => {
+  logger.log('[exportCloudDataDownload] Starting cloud data download...');
+
+  if (!navigator.onLine) {
+    showToast(i18n.t('fullBackup.cloudDownloadOfflineError'), 'error');
+    return;
+  }
+
+  let cloudStore: DataStore | null = null;
+  try {
+    const { SupabaseDataStore } = await import('@/datastore/SupabaseDataStore');
+    cloudStore = new SupabaseDataStore();
+    await cloudStore.initialize();
+
+    const jsonString = await generateFullBackupJson(undefined, cloudStore);
+
+    // Trigger browser download
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+    a.download = `MatchOps_CloudData_${timestamp}.json`;
+
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    logger.log(`[exportCloudDataDownload] Cloud data exported as ${a.download}`);
+    showToast(i18n.t('fullBackup.cloudDownloadSuccess'), 'success');
+  } catch (error) {
+    logger.error('[exportCloudDataDownload] Failed:', error);
+    showToast(i18n.t('fullBackup.cloudDownloadError'), 'error');
+  } finally {
+    if (cloudStore) {
+      try {
+        await cloudStore.close();
+      } catch (closeError) {
+        logger.warn('[exportCloudDataDownload] Close error (non-fatal):', closeError);
+      }
+    }
   }
 };
 

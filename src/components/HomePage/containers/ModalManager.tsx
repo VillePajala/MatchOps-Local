@@ -219,6 +219,7 @@ interface ModalManagerHandlers {
   resetFieldConfirmed: () => void;
   openSettingsModal: () => void;
   onCreateBackup: () => void;
+  onCloudDataDownload?: () => Promise<void>;
   onDataImportSuccess?: () => void;
   manageTeamRosterFromNewGame: (teamId?: string) => void;
 }
@@ -471,6 +472,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onDefaultTeamNameChange={handlers.setDefaultTeamName}
           onHardResetApp={handlers.hardResetApp}
           onCreateBackup={handlers.onCreateBackup}
+          onCloudDataDownload={handlers.onCloudDataDownload}
           onDataImportSuccess={handlers.onDataImportSuccess}
           initialTab={state.settingsInitialTab}
           onResyncFromCloud={handlers.resyncFromCloud}

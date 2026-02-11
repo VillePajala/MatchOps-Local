@@ -162,6 +162,7 @@ export interface ModalHandlers {
   handleDeletePlayerAssessment: (playerId: string) => void;
   handleTeamReassignment: (teamId: string | null) => void;
   handleCreateBackup: () => void;
+  handleCloudDataDownload: () => Promise<void>;
   onDataImportSuccess?: () => void;
   handleManageTeamRosterFromNewGame: (teamId?: string) => void;
   handleNoPlayersConfirmed: () => void;
@@ -307,6 +308,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleDeletePlayerAssessment,
     handleTeamReassignment,
     handleCreateBackup,
+    handleCloudDataDownload,
     onDataImportSuccess,
     handleManageTeamRosterFromNewGame,
     handleNoPlayersConfirmed,
@@ -639,6 +641,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
       openSettingsModal: handleOpenSettingsModal,
       onCreateBackup: handleCreateBackup,
+      onCloudDataDownload: handleCloudDataDownload,
       onDataImportSuccess,
       manageTeamRosterFromNewGame: handleManageTeamRosterFromNewGame,
     },

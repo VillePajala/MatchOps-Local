@@ -393,6 +393,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     exportFullBackup(showToast, userId);
   }, [showToast, userId]);
 
+  const handleCloudDataDownload = useCallback(async () => {
+    const { exportCloudDataDownload } = await import('@/utils/fullBackup');
+    await exportCloudDataDownload(showToast);
+  }, [showToast]);
+
   const handleManageTeamRosterFromNewGame = useCallback((teamId?: string) => {
     closeNewGameViaReducer();
     setPlayerIdsForNewGame(null);
@@ -2256,6 +2261,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleDeletePlayerAssessment,
       handleTeamReassignment,
       handleCreateBackup,
+      handleCloudDataDownload,
       onDataImportSuccess,
       handleManageTeamRosterFromNewGame,
       handleNoPlayersConfirmed,
