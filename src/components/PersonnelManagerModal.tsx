@@ -253,7 +253,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
               {/* Add Personnel Button */}
               <button
                 onClick={() => setCreatePersonnelModalOpen(true)}
-                className={`${primaryButtonStyle} w-full`}
+                className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
                 disabled={isUpdating}
               >
                 {t('personnelManager.addPersonnel', 'Add Personnel')}
@@ -274,7 +274,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
             />
 
             {/* Personnel List */}
-            <div className={`${cardStyle} mt-4 -mx-2 sm:-mx-4 md:-mx-6`}>
+            <div className={`${cardStyle} mt-4 -mx-2 sm:-mx-4 md:-mx-6 lg:mx-0`}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {filteredPersonnel.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">

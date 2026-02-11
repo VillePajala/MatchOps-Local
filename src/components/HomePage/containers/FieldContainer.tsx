@@ -1,7 +1,11 @@
 import React, { useRef, useCallback, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } from 'react-icons/hi2';
+import type { GameSettingsModalProps } from '@/components/GameSettingsModal';
+
+const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
 import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
@@ -138,6 +142,14 @@ export interface FieldContainerProps {
   onTogglePositionLabels: (value: boolean) => void;
   interactions: FieldInteractions;
   timerInteractions: TimerInteractions;
+  // Desktop panel mode
+  gameSettingsPanel?: {
+    isOpen: boolean;
+    onClose: () => void;
+    props: Omit<GameSettingsModalProps, 'isOpen' | 'onClose' | 'renderMode'>;
+  };
+  desktopPanelTab?: 'info' | 'settings';
+  onDesktopPanelTabChange?: (tab: 'info' | 'settings') => void;
 }
 
 export function FieldContainer({
@@ -161,6 +173,9 @@ export function FieldContainer({
   onTogglePositionLabels,
   interactions,
   timerInteractions,
+  gameSettingsPanel,
+  desktopPanelTab = 'info',
+  onDesktopPanelTabChange,
 }: FieldContainerProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -440,14 +455,58 @@ export function FieldContainer({
         )}
       </div>
 
-      {/* Desktop side panel - bench + events */}
-      <DesktopFieldPanel
-        availablePlayers={availablePlayers}
-        playersOnField={fcPlayersOnField}
-        gameSessionState={gameSessionState}
-        seasons={seasons}
-        tournaments={tournaments}
-      />
+      {/* Desktop side panel */}
+      <aside className={`hidden lg:flex lg:flex-col flex-shrink-0 overflow-hidden relative bg-gradient-to-b from-slate-800 to-slate-800/85 border-l border-slate-700/50 transition-[width] duration-200 ${desktopPanelTab === 'settings' && gameSettingsPanel ? 'w-[42rem]' : 'w-80 xl:w-96'}`}>
+        {/* Gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+
+        <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Tab bar */}
+          {gameSettingsPanel && onDesktopPanelTabChange && (
+            <div className="flex border-b border-slate-700/50 flex-shrink-0">
+              <button
+                onClick={() => onDesktopPanelTabChange('info')}
+                className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                  desktopPanelTab === 'info'
+                    ? 'text-yellow-400 border-b-2 border-yellow-400 bg-slate-900/30'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {t('desktopPanel.infoTab', 'Match Info')}
+              </button>
+              <button
+                onClick={() => onDesktopPanelTabChange('settings')}
+                className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                  desktopPanelTab === 'settings'
+                    ? 'text-yellow-400 border-b-2 border-yellow-400 bg-slate-900/30'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {t('desktopPanel.settingsTab', 'Settings')}
+              </button>
+            </div>
+          )}
+
+          {/* Panel content */}
+          {desktopPanelTab === 'settings' && gameSettingsPanel ? (
+            <GameSettingsModal
+              {...gameSettingsPanel.props}
+              isOpen={true}
+              onClose={() => onDesktopPanelTabChange?.('info')}
+              renderMode="panel"
+            />
+          ) : (
+            <DesktopFieldPanel
+              availablePlayers={availablePlayers}
+              playersOnField={fcPlayersOnField}
+              gameSessionState={gameSessionState}
+              seasons={seasons}
+              tournaments={tournaments}
+            />
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

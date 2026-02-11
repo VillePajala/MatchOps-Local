@@ -17,8 +17,9 @@ export interface DesktopFieldPanelProps {
 }
 
 /**
- * Desktop-only side panel shown next to the field on lg+ screens.
- * Displays match info, game details, match squad, and match event feed.
+ * Desktop-only match info panel rendered inside the shared side-panel aside.
+ * Styled to match GameStatsModal's "Current Game" tab (gradient boxes, cards).
+ * Does NOT render its own aside wrapper — parent FieldContainer provides that.
  */
 export function DesktopFieldPanel({
   availablePlayers,
@@ -113,156 +114,146 @@ export function DesktopFieldPanel({
     return gameDate;
   })() : '';
 
+  // Strip "(valinnainen)" / "(optional)" suffix from labels — not needed in read-only view
+  const stripOptional = (label: string) =>
+    label.replace(/\s*\(valinnainen\)$/i, '').replace(/\s*\(optional\)$/i, '');
+
   // Build detail items (only show non-empty values)
   const detailItems: { label: string; value: string }[] = [];
   if (formattedDate) {
     const dateValue = gameTime ? `${formattedDate} ${gameTime}` : formattedDate;
-    detailItems.push({ label: t('gameSettingsModal.gameDateLabel', 'Game Date'), value: dateValue });
+    detailItems.push({ label: t('desktopPanel.dateLabel', 'Date'), value: dateValue });
   }
   if (gameLocation) {
-    detailItems.push({ label: t('gameSettingsModal.locationLabel', 'Location'), value: gameLocation });
+    detailItems.push({ label: stripOptional(t('gameSettingsModal.locationLabel', 'Location')), value: gameLocation });
   }
   if (seasonName) {
-    detailItems.push({ label: t('gameSettingsModal.kausi', 'Season'), value: seasonName });
+    detailItems.push({ label: stripOptional(t('gameSettingsModal.kausi', 'Season')), value: seasonName });
   }
   if (tournamentName) {
-    detailItems.push({ label: t('gameSettingsModal.turnaus', 'Tournament'), value: tournamentName });
+    detailItems.push({ label: stripOptional(t('gameSettingsModal.turnaus', 'Tournament')), value: tournamentName });
   }
   if (leagueName) {
-    detailItems.push({ label: t('gameSettingsModal.leagueLabel', 'League'), value: leagueName });
+    detailItems.push({ label: stripOptional(t('gameSettingsModal.leagueLabel', 'League')), value: leagueName });
   }
   if (ageGroup) {
-    detailItems.push({ label: t('gameSettingsModal.ageGroupLabel', 'Age Group'), value: ageGroup });
+    detailItems.push({ label: stripOptional(t('gameSettingsModal.ageGroupLabel', 'Age Group')), value: ageGroup });
   }
   detailItems.push({
-    label: t('gameSettingsModal.periodsLabel', 'Periods'),
+    label: t('desktopPanel.durationLabel', 'Duration'),
     value: `${numberOfPeriods} \u00D7 ${periodDurationMinutes} min`,
   });
 
   return (
-    <aside className="hidden lg:flex lg:flex-col w-80 xl:w-96 flex-shrink-0 overflow-hidden relative bg-gradient-to-b from-slate-800 to-slate-800/85 border-l border-slate-700/50">
-      {/* Signature gradient overlays matching GameInfoBar / PlayerBar */}
-      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+    <div className="flex flex-col h-full overflow-y-auto min-h-0">
+      <div className="px-3 py-3 space-y-3">
 
-      {/* Match Info - Score & Timer */}
-      <div className="relative px-4 py-3 border-b border-slate-700/50">
-        <div className="text-sm text-slate-400 mb-1.5 text-center uppercase tracking-wider">{statusLabel}</div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-base font-semibold text-slate-200 truncate flex-1 text-right">
+        {/* Score & Status */}
+        <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700 shadow-inner">
+          <div className="text-sm text-center text-slate-400 uppercase tracking-wider mb-2">{statusLabel}</div>
+          <div className="text-center font-semibold text-slate-200">
             {leftTeam || t('common.team', 'Team')}
-          </span>
-          <span className="bg-slate-700 px-3 py-0.5 rounded text-yellow-300 text-base font-bold flex-shrink-0 tabular-nums">
+          </div>
+          <div className="text-center text-2xl text-yellow-400 font-bold tabular-nums my-1">
             {leftScore} - {rightScore}
-          </span>
-          <span className="text-base font-semibold text-slate-200 truncate flex-1 text-left">
+          </div>
+          <div className="text-center font-semibold text-slate-200">
             {rightTeam || t('common.opponent', 'Opponent')}
-          </span>
-        </div>
-        <div className="text-center text-base font-mono text-slate-300 mt-1">
-          {formatTime(timeElapsedInSeconds)}
-        </div>
-      </div>
-
-      {/* Game Details */}
-      {detailItems.length > 0 && (
-        <div className="relative px-4 py-2.5 border-b border-slate-700/50">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            {detailItems.map(item => (
-              <div key={item.label} className="min-w-0">
-                <div className="text-xs text-slate-500 uppercase tracking-wider leading-tight">{item.label}</div>
-                <div className="text-sm text-slate-300 truncate">{item.value}</div>
-              </div>
-            ))}
+          </div>
+          <div className="text-center text-lg font-mono text-slate-300 mt-2 tabular-nums">
+            {formatTime(timeElapsedInSeconds)}
           </div>
         </div>
-      )}
 
-      {/* Game Stats Summary */}
-      {hasStats && (
-        <div className="relative px-4 py-2.5 border-b border-slate-700/50">
-          <div className="flex items-center gap-4 text-sm">
+        {/* Quick Stats */}
+        {hasStats && (
+          <div className="flex items-center gap-4 px-1 text-sm text-slate-300">
             {subCount > 0 && (
-              <span className="text-slate-400" title={t('desktopPanel.substitution', 'Substitution')}>
-                {'\uD83D\uDD04'} {subCount}
+              <span title={t('desktopPanel.substitution', 'Substitution')}>
+                {'\uD83D\uDD04'} {subCount} {t('desktopPanel.substitution', 'Substitution')}
               </span>
             )}
             {fairPlayCount > 0 && (
-              <span className="text-slate-400" title={t('desktopPanel.fairPlayCard', 'Fair Play Card')}>
+              <span title={t('desktopPanel.fairPlayCard', 'Fair Play Card')}>
                 {'\uD83D\uDFE2'} {fairPlayCount}
               </span>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Game Notes */}
-      {gameNotes && (
-        <div className="relative px-4 py-2.5 border-b border-slate-700/50 max-h-32 overflow-y-auto">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 sticky top-0">
-            {t('gameSettingsModal.notesTitle', 'Game Notes')}
-          </h3>
-          <p className="text-sm text-slate-300 whitespace-pre-line">{gameNotes}</p>
-        </div>
-      )}
-
-      {/* Match Squad — on-field left, bench right */}
-      <div className="relative flex-1 flex min-h-0 border-b border-slate-700/50 overflow-hidden">
-        {/* On Field column */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-slate-700/30">
-          <div className="px-3 py-2 flex-shrink-0">
-            <h3 className="text-sm font-semibold text-yellow-400/80 uppercase tracking-wider">
-              {t('desktopPanel.onField', 'On Field')} ({onFieldFormation.length})
-            </h3>
-          </div>
-          <div className="flex-1 overflow-y-auto px-3 pb-1">
-            {onFieldFormation.length === 0 ? (
-              <p className="text-sm text-slate-500 italic">
-                {t('desktopPanel.noPlayersOnField', 'No players on field')}
-              </p>
-            ) : (
-              <div className="space-y-0.5">
-                {onFieldFormation.map(player => (
-                  <PlayerRow key={player.id} player={player} />
-                ))}
+        {/* Game Details */}
+        {detailItems.length > 0 && (
+          <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700 shadow-inner space-y-1.5">
+            {detailItems.map(item => (
+              <div key={item.label} className="flex justify-between gap-3">
+                <span className="text-base text-slate-300 flex-shrink-0">{item.label}</span>
+                <span className="text-base text-slate-100 text-right">{item.value}</span>
               </div>
-            )}
+            ))}
           </div>
-        </div>
+        )}
 
-        {/* Bench column */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="px-3 py-2 flex-shrink-0">
-            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-              {t('desktopPanel.bench', 'Bench')} ({subs.length})
+        {/* Game Notes */}
+        {gameNotes && (
+          <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700 shadow-inner">
+            <h3 className="text-sm font-semibold text-yellow-400/80 uppercase tracking-wider mb-1.5">
+              {t('gameSettingsModal.notesTitle', 'Game Notes')}
             </h3>
+            <p className="text-base text-slate-200 whitespace-pre-line line-clamp-4">{gameNotes}</p>
           </div>
-          <div className="flex-1 overflow-y-auto px-3 pb-1">
-            {subs.length === 0 ? (
-              <p className="text-sm text-slate-500 italic">
-                {t('desktopPanel.noSubs', 'No subs')}
-              </p>
-            ) : (
-              <div className="space-y-0.5">
-                {subs.map(player => (
-                  <PlayerRow key={player.id} player={player} dimmed />
-                ))}
-              </div>
-            )}
+        )}
+
+        {/* Match Squad */}
+        <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700 shadow-inner">
+          <div className="flex gap-4">
+            {/* On Field */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-yellow-400/80 uppercase tracking-wider mb-2">
+                {t('desktopPanel.onField', 'On Field')} ({onFieldFormation.length})
+              </h3>
+              {onFieldFormation.length === 0 ? (
+                <p className="text-sm text-slate-500 italic">
+                  {t('desktopPanel.noPlayersOnField', 'No players on field')}
+                </p>
+              ) : (
+                <div className="space-y-0.5">
+                  {onFieldFormation.map(player => (
+                    <PlayerRow key={player.id} player={player} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="w-px bg-slate-700/50 flex-shrink-0" />
+
+            {/* Bench */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-yellow-400/80 uppercase tracking-wider mb-2">
+                {t('desktopPanel.bench', 'Bench')} ({subs.length})
+              </h3>
+              {subs.length === 0 ? (
+                <p className="text-sm text-slate-500 italic">
+                  {t('desktopPanel.noSubs', 'No subs')}
+                </p>
+              ) : (
+                <div className="space-y-0.5">
+                  {subs.map(player => (
+                    <PlayerRow key={player.id} player={player} dimmed />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Match Events */}
-      <div className="relative flex-1 flex flex-col min-h-0">
-        <div className="px-4 py-2 flex-shrink-0">
-          <h3 className="text-sm font-semibold text-yellow-400/80 uppercase tracking-wider">
+        {/* Match Events */}
+        <div className="bg-slate-900/70 p-3 rounded-lg border border-slate-700 shadow-inner">
+          <h3 className="text-sm font-semibold text-yellow-400/80 uppercase tracking-wider mb-2">
             {t('desktopPanel.events', 'Events')} ({gameEvents.length})
           </h3>
-        </div>
-        <div className="flex-1 overflow-y-auto px-3 pb-2">
           {sortedEvents.length === 0 ? (
-            <p className="text-sm text-slate-500 italic px-1">
+            <p className="text-sm text-slate-500 italic">
               {t('desktopPanel.noEvents', 'No events yet')}
             </p>
           ) : (
@@ -279,7 +270,7 @@ export function DesktopFieldPanel({
           )}
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
 
@@ -287,19 +278,8 @@ export function DesktopFieldPanel({
 
 function PlayerRow({ player, dimmed }: { player: Player; dimmed?: boolean }) {
   return (
-    <div
-      className={`flex items-center gap-2 px-1 py-0.5 rounded ${
-        dimmed ? 'opacity-60' : ''
-      }`}
-    >
-      <span
-        className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-          player.isGoalie
-            ? 'bg-yellow-400'
-            : 'bg-slate-500'
-        }`}
-      />
-      <span className="text-sm text-slate-200 truncate">
+    <div className={`py-0.5 ${dimmed ? 'opacity-50' : ''}`}>
+      <span className={`text-base ${player.isGoalie ? 'text-yellow-400' : 'text-slate-200'} truncate`}>
         {player.nickname || player.name}
       </span>
     </div>
@@ -320,7 +300,7 @@ function EventRow({
   const { icon, label } = getEventDisplay(event, players, t);
 
   return (
-    <div className="flex items-start gap-2 text-sm px-1 py-0.5 rounded hover:bg-slate-700/30">
+    <div className="flex items-start gap-2 text-base py-0.5 rounded hover:bg-slate-700/30">
       <span className="text-slate-500 font-mono flex-shrink-0 w-12 text-right tabular-nums">
         {formatTime(event.time)}
       </span>

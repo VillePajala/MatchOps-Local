@@ -405,7 +405,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             }
 
             return (
-              <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+              <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {filteredTeams.map((team) => (
                     <div

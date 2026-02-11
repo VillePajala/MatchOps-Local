@@ -46,6 +46,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
 import { usePremium } from '@/hooks/usePremium';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
@@ -120,6 +121,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [desktopPanelTab, setDesktopPanelTab] = useState<'info' | 'settings'>('info');
 
   // --- Game Session Coordination (Step 2.6.2) ---
   // Override initialState's gameType with pre-fetched value to prevent field color flash
@@ -2079,6 +2082,77 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     initialLoadComplete,
   ]);
 
+  // Desktop panel: GameSettingsModal rendered inline in side panel
+  const gameSettingsPanel = isDesktop ? {
+    isOpen: true,
+    onClose: () => setDesktopPanelTab('info'),
+    props: {
+      currentGameId,
+      teamId: gameSessionState.teamId,
+      teamName: gameSessionState.teamName,
+      opponentName: gameSessionState.opponentName,
+      gameDate: gameSessionState.gameDate,
+      gameLocation: gameSessionState.gameLocation,
+      gameTime: gameSessionState.gameTime,
+      gameNotes: gameSessionState.gameNotes,
+      ageGroup: gameSessionState.ageGroup,
+      tournamentLevel: gameSessionState.tournamentLevel,
+      tournamentSeriesId: gameSessionState.tournamentSeriesId,
+      gameEvents: gameSessionState.gameEvents,
+      availablePlayers,
+      availablePersonnel: gameDataManagement.personnel,
+      selectedPlayerIds: gameSessionState.selectedPlayerIds,
+      selectedPersonnelIds: gameSessionState.gamePersonnel || [],
+      onSelectedPlayersChange: handleUpdateSelectedPlayers,
+      onSelectedPersonnelChange: handleSetGamePersonnel || (() => {}),
+      numPeriods: gameSessionState.numberOfPeriods,
+      periodDurationMinutes: gameSessionState.periodDurationMinutes,
+      demandFactor: gameSessionState.demandFactor,
+      onTeamNameChange: handleTeamNameChange,
+      onOpponentNameChange: handleOpponentNameChange,
+      onGameDateChange: handleGameDateChange,
+      onGameLocationChange: handleGameLocationChange,
+      onGameTimeChange: handleGameTimeChange,
+      onGameNotesChange: handleGameNotesChange,
+      onAgeGroupChange: handleAgeGroupChange,
+      onTournamentLevelChange: handleTournamentLevelChange,
+      onTournamentSeriesIdChange: handleTournamentSeriesIdChange,
+      onUpdateGameEvent: handleUpdateGameEvent,
+      onAwardFairPlayCard: handleAwardFairPlayCard,
+      onDeleteGameEvent: persistence.handleDeleteGameEvent,
+      onNumPeriodsChange: handleSetNumberOfPeriods,
+      onPeriodDurationChange: handleSetPeriodDuration,
+      onDemandFactorChange: handleSetDemandFactor,
+      seasonId: gameSessionState.seasonId,
+      tournamentId: gameSessionState.tournamentId,
+      leagueId: gameSessionState.leagueId,
+      customLeagueName: gameSessionState.customLeagueName,
+      onSeasonIdChange: handleSetSeasonId,
+      onTournamentIdChange: handleSetTournamentId,
+      onLeagueIdChange: handleSetLeagueId,
+      onCustomLeagueNameChange: handleSetCustomLeagueName,
+      homeOrAway: gameSessionState.homeOrAway,
+      onSetHomeOrAway: handleSetHomeOrAway,
+      isPlayed,
+      onIsPlayedChange: setIsPlayed,
+      wentToOvertime: gameSessionState.wentToOvertime,
+      wentToPenalties: gameSessionState.wentToPenalties,
+      onWentToOvertimeChange: handleSetWentToOvertime,
+      onWentToPenaltiesChange: handleSetWentToPenalties,
+      gameType: gameSessionState.gameType,
+      onGameTypeChange: handleSetGameType,
+      gender: gameSessionState.gender,
+      onGenderChange: handleSetGender,
+      timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
+      updateGameDetailsMutation: updateGameDetailsMutation!,
+      seasons: gameDataManagement.seasons,
+      tournaments: gameDataManagement.tournaments,
+      masterRoster: gameDataManagement.masterRoster,
+      teams: gameDataManagement.teams,
+      onTeamIdChange: (teamId: string | null) => handleTeamIdChange(teamId ?? undefined),
+    },
+  } : undefined;
+
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,
     fieldVM,
@@ -2100,6 +2174,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onTogglePositionLabels: handleSetShowPositionLabels,
     interactions: fieldInteractions,
     timerInteractions,
+    gameSettingsPanel,
+    desktopPanelTab,
+    onDesktopPanelTabChange: setDesktopPanelTab,
   };
 
   const controlBarProps: ComponentProps<typeof ControlBar> = {
@@ -2132,7 +2209,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onStartNewGame: handleStartNewGame,
     onOpenRosterModal: openRosterModal,
     onQuickSave: persistence.handleQuickSaveGame,
-    onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
+    onOpenGameSettingsModal: isDesktop
+      ? () => setDesktopPanelTab(prev => prev === 'settings' ? 'info' : 'settings')
+      : () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
     onOpenSeasonTournamentModal: openSeasonTournamentViaReducer,
     onToggleInstructionsModal: () => setIsInstructionsModalOpen(prev => !prev),

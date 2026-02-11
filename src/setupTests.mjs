@@ -1,6 +1,21 @@
 import '@testing-library/jest-dom';
 import 'jest-canvas-mock';
 
+// Mock window.matchMedia for tests (used by useMediaQuery and InstallPrompt)
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
+
 // Mock Sentry to avoid import errors in tests
 jest.mock('@sentry/nextjs', () => ({
   captureException: jest.fn(),

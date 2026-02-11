@@ -2813,6 +2813,11 @@
     "noEvents": "Ei tapahtumia vielä",
     "substitution": "Vaihto",
     "fairPlayCard": "Fair Play -kortti",
-    "goalsScored": "Tehdyt maalit"
+    "goalsScored": "Tehdyt maalit",
+    "dateLabel": "Päivämäärä",
+    "durationLabel": "Kesto",
+    "matchTab": "Ottelu",
+    "settingsTab": "Asetukset",
+    "noSubs": "Ei vaihtopelaajia"
   }
 }

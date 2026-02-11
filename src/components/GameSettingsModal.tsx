@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
-import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
+import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
 import type { GameEvent } from '@/types/game';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
@@ -53,6 +53,7 @@ type MutationMetaBase = Omit<UpdateGameDetailsMutationMeta, 'sequence'>;
 export interface GameSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  renderMode?: 'modal' | 'panel';
   // --- Data for the current game ---
   currentGameId: string | null;
   teamId?: string;
@@ -186,6 +187,7 @@ const getEventDescription = (event: GameEvent, players: Player[], t: TFunction):
 const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   isOpen,
   onClose,
+  renderMode = 'modal',
   currentGameId,
   teamId,
   teamName,
@@ -257,6 +259,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const isPanel = renderMode === 'panel';
+  const cardMargins = isPanel ? '' : '-mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0';
 
   // Memoize valid series from selected tournament (filter by valid levels)
   const validSeries = useMemo(() => {
@@ -490,11 +494,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // Modal ref for focus trapping (WCAG 2.1 AA requirement)
   const modalRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(modalRef, isOpen && isClient);
+  useFocusTrap(modalRef, isOpen && isClient && !isPanel);
 
   // Modal-level Escape key handler (guarded against child state)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isPanel) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && inlineEditingField === null && !showDeleteEventConfirm && editingGoalId === null) {
         onClose();
@@ -502,7 +506,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, inlineEditingField, showDeleteEventConfirm, editingGoalId]);
+  }, [isOpen, isPanel, onClose, inlineEditingField, showDeleteEventConfirm, editingGoalId]);
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -1468,25 +1472,37 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }
 
   return (
-    <div ref={modalRef} className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettings.title', 'Game Settings')}>
-      <ModalAmbientGlows />
-      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative">
+    <div ref={modalRef} className={isPanel ? 'flex flex-col h-full overflow-hidden relative font-display' : 'fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display'} role={isPanel ? undefined : 'dialog'} aria-modal={isPanel ? undefined : true} aria-label={isPanel ? undefined : t('gameSettings.title', 'Game Settings')}>
+      {!isPanel && <ModalAmbientGlows />}
+      <div className={isPanel ? 'flex flex-col h-full relative' : 'bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative'}>
         {/* Background effects */}
+        {!isPanel && <>
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
+        </>}
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col h-full">
           {/* Fixed Header */}
-          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
+          <div className={isPanel ? 'flex items-center justify-between px-4 py-3 border-b border-slate-700/50' : 'flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20'}>
+            <h2 className={isPanel ? 'text-lg font-bold text-yellow-400' : 'text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg'}>
               {t('gameSettingsModal.title', 'Game Settings')}
             </h2>
+            {isPanel && (
+              <button
+                onClick={onClose}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                aria-label={t('common.close', 'Close')}
+              >
+                <HiOutlineXMark className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
-          {/* Fixed Section (Player Counter) */}
+          {/* Fixed Section (Player Counter) — hidden in panel mode */}
+          {!isPanel && (
           <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
             {/* Player Counter */}
             <div className="mb-5 text-center text-sm">
@@ -1500,15 +1516,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
             </div>
           </div>
+          )}
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
+          <div className={isPanel ? 'flex-1 overflow-y-auto min-h-0 px-3 py-3 space-y-3' : 'flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4'}>
 
             {/* Desktop 2-column layout */}
-            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
+            <div className={`${isPanel ? 'space-y-3' : 'space-y-4'} lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4`}>
 
             {/* CARD 1: Teams & Roster (left column on desktop) */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0 lg:self-start">
+            <div className={`space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all ${cardMargins} ${!isPanel ? 'lg:self-start' : ''}`}>
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('gameSettingsModal.teamsAndRosterLabel', 'Teams & Roster')}
               </h3>
@@ -1639,7 +1656,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </div>
 
             {/* CARD 2: Game Details + Config (right column on desktop) */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
+            <div className={`space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all ${cardMargins}`}>
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.gameDetailsLabel', 'Game Details')}
               </h3>
@@ -2305,7 +2322,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </div>{/* end 2-column grid */}
 
             {/* Game Events Section */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
+            <div className={`space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner ${cardMargins}`}>
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.eventLogTitle', 'Event Log')}
               </h3>
@@ -2437,7 +2454,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </div>
 
             {/* Game Notes Section */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
+            <div className={`space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner ${cardMargins}`}>
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.notesTitle', 'Game Notes')}
               </h3>
@@ -2481,6 +2498,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           </div>
 
           {/* Footer */}
+          {!isPanel && (
           <ModalFooter>
             {error && (
               <div className="text-red-400 text-sm mr-auto">{error}</div>
@@ -2489,6 +2507,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               {t('common.doneButton', 'Done')}
             </button>
           </ModalFooter>
+          )}
         </div>
       </div>
 

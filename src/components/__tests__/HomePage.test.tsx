@@ -196,10 +196,10 @@ describe('HomePage Component - Deep Testing', () => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       }, { timeout: 5000 });
 
-      // Should show default score (0-0)
-      const scoreElement = screen.queryByText(/0.*-.*0/) || 
-                          screen.queryByText('0') ||
-                          document.querySelector('[class*="score"]');
+      // Should show default score (0-0) — may appear in multiple places (main + side panel)
+      const scoreElements = screen.queryAllByText(/0.*-.*0/);
+      const singleZero = scoreElements.length > 0 ? scoreElements : screen.queryAllByText('0');
+      const scoreElement = singleZero.length > 0 ? singleZero[0] : document.querySelector('[class*="score"]');
       expect(scoreElement).toBeTruthy();
     });
   });
