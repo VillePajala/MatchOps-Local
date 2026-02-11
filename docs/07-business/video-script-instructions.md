@@ -37,9 +37,9 @@ To start a match, open the menu and tap New Game. (pause) This opens the game se
 
 ### 5. The Field (35s)
 
-[SCREEN: Drag a player disc from the player bar onto the field → position several players → tap the formation picker → select a formation → show all players snap into position]
+[SCREEN: Tap a player disc in the player bar → tap a spot on the field to place them → repeat for several players → tap the formation picker → select a formation → show all players snap into position]
 
-Now here's where it gets fun. (pause) Drag your players from the bar at the top straight onto the field to position them. You can place them anywhere you like. (pause) Or, if you want a quick setup, tap the formation picker in the control bar. Choose a formation and all your selected players snap into position instantly. (pause) During the game, just drag players around to adjust your lineup on the fly.
+Now here's where it gets fun. (pause) Tap a player in the bar at the top to select them, then tap anywhere on the field to place them. It's that simple. (pause) Or, if you want a quick setup, tap the formation picker in the control bar. Choose a formation and all your selected players snap into position instantly. (pause) During the game, just select a player and tap their new spot to reposition them on the fly.
 
 ### 6. Running the Game (45s)
 
@@ -101,9 +101,9 @@ Aloita ottelu avaamalla valikko ja napauttamalla Uusi ottelu. (pause) Otteluaset
 
 ### 5. Pelikenttä (35s)
 
-[SCREEN: Vedä pelaaja yläpalkista kentälle → sijoita useampia pelaajia → napauta muodostelman valintaa → valitse muodostelma → pelaajat asettuvat paikoilleen]
+[SCREEN: Napauta pelaajaa yläpalkissa → napauta kohtaa kentällä sijoittaaksesi → toista useammalle pelaajalle → napauta muodostelman valintaa → valitse muodostelma → pelaajat asettuvat paikoilleen]
 
-Tässä alkaa varsinainen toiminta. (pause) Vedä pelaajat yläpalkista suoraan kentälle haluamaasi kohtaan. (pause) Tai jos haluat nopean aloituksen, napauta muodostelman valintaa alapalkissa. Valitse muodostelma, niin kaikki pelaajat asettuvat paikoilleen. (pause) Ottelun aikana voit vetää pelaajia uusiin asemiin lennossa.
+Tässä alkaa varsinainen toiminta. (pause) Napauta pelaajaa yläpalkissa valitaksesi hänet ja napauta sitten kenttää sijoittaaksesi hänet haluamaasi kohtaan. (pause) Tai jos haluat nopean aloituksen, napauta muodostelman valintaa alapalkissa. Valitse muodostelma, niin kaikki pelaajat asettuvat paikoilleen. (pause) Ottelun aikana voit valita pelaajan ja napauttaa uutta paikkaa siirtääksesi hänet.
 
 ### 6. Ottelun seuranta (45s)
 
@@ -145,7 +145,7 @@ Tämä on MatchOps — kenttälaitasi kokoonpanojen, otteluseurannan ja pelaajak
 - **Screen recording tips**:
   - Use a clean device/emulator with no notifications
   - Pre-populate some realistic player data (Finnish names work well for both versions)
-  - Record at 60fps if possible for smooth drag interactions
+  - Record at 60fps if possible for smooth interactions
   - Keep mouse/touch movements deliberate and slightly slower than natural
   - Each `[SCREEN:]` block maps to one continuous recording clip
 - **Total word count**: EN ~620 words (~4 min), FI ~580 words (~4 min)
