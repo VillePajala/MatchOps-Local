@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
-import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath } from 'react-icons/hi2';
+import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown } from 'react-icons/hi2';
 import { importFullBackup } from '@/utils/fullBackup';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
@@ -692,10 +692,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     }}
                     disabled={authMode !== 'cloud' || isDownloadingCloudData}
                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                    aria-label={t('settingsModal.gdpr.downloadButton', 'Download')}
                   >
                     {isDownloadingCloudData
-                      ? t('settingsModal.gdpr.downloading', 'Downloading...')
-                      : t('settingsModal.gdpr.downloadButton', 'Download')}
+                      ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-400 border-t-white" />
+                      : <HiOutlineCloudArrowDown className="h-5 w-5" />}
                   </button>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
