@@ -100,6 +100,8 @@ interface SettingsModalProps {
   onDataImportSuccess?: () => void;
   /** Optional tab to open when modal opens */
   initialTab?: SettingsTab;
+  /** Handler for downloading cloud data (GDPR data portability) */
+  onCloudDataDownload?: () => Promise<void>;
   /** Handler for re-sync from cloud (cloud mode only) - clears local, triggers migration wizard */
   onResyncFromCloud?: () => void;
   /** Handler for factory reset (cloud mode only) - clears both local and cloud data */
@@ -115,6 +117,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onDefaultTeamNameChange,
   onHardResetApp,
   onCreateBackup,
+  onCloudDataDownload,
   initialTab,
   onResyncFromCloud,
   onFactoryReset,
@@ -135,6 +138,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isDownloadingCloudData, setIsDownloadingCloudData] = useState(false);
   const [resyncConfirm, setResyncConfirm] = useState('');
   const [factoryResetConfirm, setFactoryResetConfirm] = useState('');
   const { deleteAccount, mode: authMode } = useAuth();
@@ -815,20 +819,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 {t('settingsModal.gdpr.description', 'You have full control over your data. Use the options below to exercise your GDPR rights.')}
               </p>
               <div className="space-y-2">
-                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                <div className={`flex items-start gap-3 p-3 bg-slate-800/50 rounded-md${authMode !== 'cloud' ? ' opacity-50' : ''}`}>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-200">
                       {t('settingsModal.gdpr.downloadTitle', 'Download Your Data')}
                     </p>
                     <p className="text-xs text-slate-400">
-                      {t('settingsModal.gdpr.downloadDescription', 'Export all your data (players, games, teams, etc.) to a backup file you can keep.')}
+                      {authMode === 'cloud'
+                        ? t('settingsModal.gdpr.downloadDescriptionCloud', 'Download all data stored on the server to a file you can keep.')
+                        : t('settingsModal.gdpr.downloadDescriptionLocal', 'Cloud account required. Your local data can be exported using the Backup option below.')}
                     </p>
                   </div>
                   <button
-                    onClick={onCreateBackup}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
+                    onClick={async () => {
+                      if (!onCloudDataDownload) return;
+                      setIsDownloadingCloudData(true);
+                      try {
+                        await onCloudDataDownload();
+                      } finally {
+                        setIsDownloadingCloudData(false);
+                      }
+                    }}
+                    disabled={authMode !== 'cloud' || isDownloadingCloudData}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
                   >
-                    {t('settingsModal.gdpr.downloadButton', 'Download')}
+                    {isDownloadingCloudData
+                      ? t('settingsModal.gdpr.downloading', 'Downloading...')
+                      : t('settingsModal.gdpr.downloadButton', 'Download')}
                   </button>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">

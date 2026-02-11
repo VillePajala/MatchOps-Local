@@ -1460,7 +1460,10 @@
       "deleteDescriptionAccount": "Poistaaksesi kaikki tietosi, käytä Vaaravyöhyke-vaihtoehtoja Tili-välilehdellä.",
       "goToDelete": "Siirry",
       "correctTitle": "Korjaa tietojasi",
-      "correctDescription": "Voit muokata pelaajanimiä, pelitietoja ja kaikkia muita tietoja suoraan sovelluksessa milloin tahansa."
+      "correctDescription": "Voit muokata pelaajanimiä, pelitietoja ja kaikkia muita tietoja suoraan sovelluksessa milloin tahansa.",
+      "downloadDescriptionCloud": "Lataa kaikki palvelimelle tallennetut tiedot tiedostoon.",
+      "downloadDescriptionLocal": "Pilvitilin tarvitaan. Paikalliset tietosi voidaan viedä alla olevalla Varmuuskopio-vaihtoehdolla.",
+      "downloading": "Ladataan..."
     },
     "importReadError": "Virhe varmuuskopiotiedoston lukemisessa.",
     "importGamesButton": "Tuo pelejä",
@@ -1653,7 +1656,10 @@
     "restoreSuccess": "Varmuuskopio palautettu. Sovellus latautuu uudelleen...",
     "restoreError": "Virhe varmuuskopion tuonnissa: {{error}}",
     "currentGameWarning": "Varmuuskopio palautettu, mutta nykyisen pelin valintaa ei voitu päivittää automaattisesti. Valitse peli manuaalisesti.",
-    "migrationFlagWarning": "Varmuuskopio palautetaan, mutta pilvisynkronointikehote ei ehkä näy automaattisesti. Voit synkronoida Asetuksista myöhemmin."
+    "migrationFlagWarning": "Varmuuskopio palautetaan, mutta pilvisynkronointikehote ei ehkä näy automaattisesti. Voit synkronoida Asetuksista myöhemmin.",
+    "cloudDownloadSuccess": "Pilvitiedot ladattu onnistuneesti.",
+    "cloudDownloadError": "Pilvitietojen lataus epäonnistui. Yritä uudelleen.",
+    "cloudDownloadOfflineError": "Pilvitietoja ei voi ladata offline-tilassa."
   },
   "cloudModeImport": {
     "title": "Tuo varmuuskopio",
@@ -2408,6 +2414,11 @@
     "syncDescription": "Paikalliset tietosi synkronoidaan pilveen varmuuskopiointia ja pääsyä muilta laitteilta varten.",
     "notNow": "Ei nyt",
     "syncToCloud": "Synkronoi pilveen",
+    "discardLocalData": "Hylkää paikalliset tiedot",
+    "discardConfirmTitle": "Hylätäänkö paikalliset tiedot?",
+    "discardConfirmDescription": "Tämä poistaa pysyvästi kaikki paikalliset tiedot tältä laitteelta. Toimintoa ei voi perua.",
+    "discardConfirm": "Hylkää",
+    "canImportLater": "Voit tuoda paikalliset tiedot myöhemmin kohdasta Asetukset → Pilvisynkronointi.",
     "previousInterrupted": "Edellinen synkronointi ei ehkä valmistunut. Paina \"Synkronoi pilveen\" yrittääksesi uudelleen — tietosi ovat turvassa.",
     "loadDataFailed": "Tietojen lataaminen epäonnistui. Yritä uudelleen.",
     "canRetryOrCancel": "Voit yrittää uudelleen tai sulkea tämän ikkunan.",

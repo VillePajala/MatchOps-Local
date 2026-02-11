@@ -1460,7 +1460,10 @@
       "deleteDescriptionAccount": "To delete all your data, use the Danger Zone options in the Account tab.",
       "goToDelete": "Go",
       "correctTitle": "Correct Your Data",
-      "correctDescription": "You can edit player names, game details, and all other data directly in the app at any time."
+      "correctDescription": "You can edit player names, game details, and all other data directly in the app at any time.",
+      "downloadDescriptionCloud": "Download all data stored on the server to a file you can keep.",
+      "downloadDescriptionLocal": "Cloud account required. Your local data can be exported using the Backup option below.",
+      "downloading": "Downloading..."
     },
     "importReadError": "Error reading backup file content.",
     "importGamesButton": "Import Games",
@@ -1653,7 +1656,10 @@
     "restoreSuccess": "Backup restored. Reloading app...",
     "restoreError": "Error importing backup: {{error}}",
     "currentGameWarning": "Backup restored, but we could not update the current game selection automatically. Please select a game manually.",
-    "migrationFlagWarning": "Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later."
+    "migrationFlagWarning": "Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later.",
+    "cloudDownloadSuccess": "Cloud data downloaded successfully.",
+    "cloudDownloadError": "Failed to download cloud data. Please try again.",
+    "cloudDownloadOfflineError": "Cannot download while offline."
   },
   "cloudModeImport": {
     "title": "Import Backup",
@@ -2408,6 +2414,11 @@
     "syncDescription": "Your local data will be synced to the cloud for backup and access from other devices.",
     "notNow": "Not Now",
     "syncToCloud": "Sync to Cloud",
+    "discardLocalData": "Discard local data",
+    "discardConfirmTitle": "Discard local data?",
+    "discardConfirmDescription": "This will permanently delete all local data from this device. This cannot be undone.",
+    "discardConfirm": "Discard",
+    "canImportLater": "You can import local data later from Settings → Cloud Sync.",
     "previousInterrupted": "A previous sync may not have completed. Tap \"Sync to Cloud\" to retry — your data is safe.",
     "loadDataFailed": "Failed to load your data. Please try again.",
     "canRetryOrCancel": "You can retry or close this dialog.",
