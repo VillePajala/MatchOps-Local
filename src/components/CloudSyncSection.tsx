@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineCreditCard, HiOutlineArrowUpTray, HiOutlinePause, HiOutlinePlay } from 'react-icons/hi2';
+import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineArrowUpTray, HiOutlinePause, HiOutlinePlay } from 'react-icons/hi2';
+// HiOutlineCreditCard removed — Manage Subscription link hidden until subscription support is live
 import {
   getBackendMode,
   isCloudAvailable,
@@ -27,6 +28,7 @@ import CloudAuthModal from './CloudAuthModal';
 import ReverseMigrationWizard from './ReverseMigrationWizard';
 import UpgradePromptModal from './UpgradePromptModal';
 import PendingSyncWarningModal from './PendingSyncWarningModal';
+import TransitionOverlay from './TransitionOverlay';
 
 interface CloudSyncSectionProps {
   /** Callback when mode changes (app needs restart) */
@@ -95,6 +97,9 @@ export default function CloudSyncSection({
   // Import local data state
   const [isCheckingLocalData, setIsCheckingLocalData] = useState(false);
 
+  // Transition overlay message (replaces toast+reload pattern)
+  const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
+
   // Track mount state to prevent state updates after unmount
   const isMountedRef = useRef(true);
   useEffect(() => {
@@ -135,12 +140,10 @@ export default function CloudSyncSection({
     try {
       const success = enableCloudMode();
       if (success) {
-        showToast(
-          t('cloudSync.enabledReloading', 'Cloud mode enabled. Reloading...'),
-          'success'
+        setTransitionMessage(
+          t('cloudSync.enabledReloading', 'Cloud mode enabled. Reloading...')
         );
         onModeChange?.();
-        // Reload after brief delay so user sees the toast
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -234,11 +237,9 @@ export default function CloudSyncSection({
    */
   const handleReverseMigrationComplete = () => {
     setShowReverseMigrationWizard(false);
-    showToast(
-      t('cloudSync.switchedToLocal', 'Switched to local mode. Reloading...'),
-      'success'
+    setTransitionMessage(
+      t('cloudSync.switchedToLocal', 'Switched to local mode. Reloading...')
     );
-    // Reload after brief delay so user sees the toast
     setTimeout(() => {
       window.location.reload();
     }, 1000);
@@ -292,12 +293,9 @@ export default function CloudSyncSection({
       const authService = await getAuthService();
       await authService.signOut();
 
-      showToast(
-        t('cloudSync.signedOut', 'Signed out successfully. Reloading...'),
-        'success'
+      setTransitionMessage(
+        t('cloudSync.signedOut', 'Signed out successfully. Reloading...')
       );
-
-      // Reload after brief delay so user sees the toast
       setTimeout(() => {
         window.location.reload();
       }, 1000);
@@ -345,12 +343,9 @@ export default function CloudSyncSection({
       // 4. Disable cloud mode
       disableCloudMode();
 
-      showToast(
-        t('cloudSync.startingOver', 'Starting over. Reloading...'),
-        'success'
+      setTransitionMessage(
+        t('cloudSync.startingOver', 'Starting over. Reloading...')
       );
-
-      // 5. Reload after brief delay
       setTimeout(() => {
         window.location.reload();
       }, 1000);
@@ -373,9 +368,8 @@ export default function CloudSyncSection({
     setShowAuthModal(false);
     // Refresh state - the CloudAuthModal already cleared the cloud account info
     // Trigger a page reload to reflect the changes
-    showToast(
-      t('cloudSync.cloudAccount.deleteSuccess', 'Cloud data deleted successfully.'),
-      'success'
+    setTransitionMessage(
+      t('cloudSync.cloudAccount.deleteSuccess', 'Cloud data deleted successfully.')
     );
     setTimeout(() => {
       window.location.reload();
@@ -425,12 +419,9 @@ export default function CloudSyncSection({
         logger.info('[CloudSyncSection] Cleared migration completed flag to allow re-migration');
       }
 
-      showToast(
-        t('cloudSync.importLocalData.starting', 'Starting import... Reloading.'),
-        'success'
+      setTransitionMessage(
+        t('cloudSync.importLocalData.starting', 'Starting import... Reloading.')
       );
-
-      // Reload page to trigger migration wizard in page.tsx
       setTimeout(() => {
         window.location.reload();
       }, 1000);
@@ -708,47 +699,47 @@ export default function CloudSyncSection({
             )}
           </button>
 
-          {/* Manage Subscription Link - Only shown for users with active subscription */}
-          {hasSubscription && (
-            <>
-              <a
-                href="https://play.google.com/store/account/subscriptions"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm no-underline`}
-              >
-                <HiOutlineCreditCard className="h-4 w-4" />
-                {t('cloudSync.manageSubscription', 'Manage Subscription')}
-              </a>
+          {/* Manage Subscription Link - Hidden until subscription support is live */}
+          {/* {hasSubscription && (
+            <a
+              href="https://play.google.com/store/account/subscriptions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm no-underline`}
+            >
+              <HiOutlineCreditCard className="h-4 w-4" />
+              {t('cloudSync.manageSubscription', 'Manage Subscription')}
+            </a>
+          )} */}
 
-              {/* Import Local Data Button - for users who want to migrate local data to cloud */}
-              <button
-                onClick={handleImportLocalData}
-                disabled={isCheckingLocalData || isChangingMode}
-                className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
-              >
-                {isCheckingLocalData ? (
-                  <>
-                    <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
-                    {t('cloudSync.importLocalData.checking', 'Checking...')}
-                  </>
-                ) : (
-                  <>
-                    <HiOutlineArrowUpTray className="h-4 w-4" />
-                    {t('cloudSync.importLocalData.button', 'Import Local Data to Cloud')}
-                  </>
-                )}
-              </button>
-            </>
+          {/* Import Local Data Button - for users who want to migrate local data to cloud */}
+          {hasSubscription && (
+            <button
+              onClick={handleImportLocalData}
+              disabled={isCheckingLocalData || isChangingMode}
+              className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
+            >
+              {isCheckingLocalData ? (
+                <>
+                  <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                  {t('cloudSync.importLocalData.checking', 'Checking...')}
+                </>
+              ) : (
+                <>
+                  <HiOutlineArrowUpTray className="h-4 w-4" />
+                  {t('cloudSync.importLocalData.button', 'Import Local Data to Cloud')}
+                </>
+              )}
+            </button>
           )}
 
-          {/* Start Over link - return to WelcomeScreen with different account */}
+          {/* Start Over link - sign out, disable cloud, return to WelcomeScreen */}
           <button
             onClick={handleStartOver}
             disabled={isSigningOut || isChangingMode}
             className="w-full text-center text-slate-400 hover:text-white text-sm underline transition-colors disabled:opacity-50 pt-2"
           >
-            {t('cloudSync.startOver', 'Start over with a different account')}
+            {t('cloudSync.startOver', 'Sign out and return to setup')}
           </button>
         </div>
       )}
@@ -898,9 +889,8 @@ export default function CloudSyncSection({
           }
           // After subscription, reload page to trigger fresh migration check
           // This ensures migration wizard shows if there's local data to import
-          showToast(
-            t('cloudSync.subscriptionSuccess', 'Subscription activated! Reloading...'),
-            'success'
+          setTransitionMessage(
+            t('cloudSync.subscriptionSuccess', 'Subscription activated! Reloading...')
           );
           setTimeout(() => {
             window.location.reload();
@@ -918,6 +908,8 @@ export default function CloudSyncSection({
           onAction={handlePendingSyncWarningAction}
         />
       )}
+
+      {transitionMessage && <TransitionOverlay message={transitionMessage} />}
     </div>
   );
 }

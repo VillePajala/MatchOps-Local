@@ -360,11 +360,6 @@ export const exportFullBackup = async (
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     logger.log(`Full backup exported successfully as ${a.download}`);
-    if (showToast) {
-      showToast(i18n.t("fullBackup.exportSuccess"), 'success');
-    } else {
-      alert(i18n.t("fullBackup.exportSuccess"));
-    }
     return jsonString;
   } catch (error) {
     logger.error("Failed to export full backup:", error);
@@ -420,7 +415,6 @@ export const exportCloudDataDownload = async (
     URL.revokeObjectURL(url);
 
     logger.log(`[exportCloudDataDownload] Cloud data exported as ${a.download}`);
-    showToast(i18n.t('fullBackup.cloudDownloadSuccess'), 'success');
   } catch (error) {
     logger.error('[exportCloudDataDownload] Failed:', error);
     showToast(i18n.t('fullBackup.cloudDownloadError'), 'error');

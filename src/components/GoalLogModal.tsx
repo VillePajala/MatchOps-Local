@@ -8,7 +8,7 @@ import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'reac
 import { updateGameEvent } from '@/utils/savedGames';
 import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
-import { useToast } from '@/contexts/ToastProvider';
+
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
@@ -68,8 +68,6 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   onDeleteGameEvent,
 }) => {
   const { t } = useTranslation();
-  const { showToast } = useToast();
-
   // Form state
   const [scorerId, setScorerId] = useState<string>('');
   const [assisterId, setAssisterId] = useState<string>(''); // Empty string means no assist
@@ -82,6 +80,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   const [editGoalAssisterId, setEditGoalAssisterId] = useState<string | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [goalTimeError, setGoalTimeError] = useState<string | null>(null);
   const goalTimeInputRef = useRef<HTMLInputElement>(null);
 
   // Confirmation modal state
@@ -148,6 +147,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
     setEditGoalTime(formatTime(goal.time)); // Use MM:SS format for editing time
     setEditGoalScorerId(goal.scorerId || '');
     setEditGoalAssisterId(goal.assisterId || undefined);
+    setGoalTimeError(null);
   };
 
   const handleCancelEditGoal = () => {
@@ -155,6 +155,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
     setEditGoalTime('');
     setEditGoalScorerId('');
     setEditGoalAssisterId(undefined);
+    setGoalTimeError(null);
   };
 
   // Handle saving edited goal
@@ -166,6 +167,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
     }
 
     setError(null);
+    setGoalTimeError(null);
     setIsProcessing(true);
 
     let timeInSeconds = 0;
@@ -176,12 +178,12 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
       if (!isNaN(minutes) && !isNaN(seconds)) {
         timeInSeconds = minutes * 60 + seconds;
       } else {
-        showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
+        setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
         setIsProcessing(false);
         return;
       }
     } else if (editGoalTime) {
-      showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
+      setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
       setIsProcessing(false);
       return;
     }
@@ -442,14 +444,16 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                 const filteredValue = value.replace(/[^0-9:]/g, '');
                                 if (filteredValue.length <= 5) {
                                   setEditGoalTime(filteredValue);
+                                  if (goalTimeError) setGoalTimeError(null);
                                 }
                               }}
                               placeholder={t('gameSettingsModal.timeFormatPlaceholder', 'MM:SS')}
-                              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
+                              className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm ${goalTimeError ? 'border-red-500' : 'border-slate-600'}`}
                               autoComplete="off"
                               maxLength={5}
                               onFocus={(e) => e.target.select()}
                             />
+                            {goalTimeError && <p className="mt-1 text-sm text-red-400">{goalTimeError}</p>}
                             {event.type === 'goal' && (
                               <>
                                 <select

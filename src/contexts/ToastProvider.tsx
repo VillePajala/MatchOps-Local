@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { HiOutlineExclamationCircle, HiOutlineCheckCircle, HiOutlineInformationCircle } from 'react-icons/hi2';
 
 interface Toast {
   id: string;
@@ -14,6 +15,18 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 // Global counter to ensure unique IDs across component remounts
 let globalToastCounter = 0;
+
+const toastIcon: Record<Toast['type'], React.ReactNode> = {
+  error: <HiOutlineExclamationCircle className="h-5 w-5 text-red-400 flex-shrink-0" />,
+  success: <HiOutlineCheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0" />,
+  info: <HiOutlineInformationCircle className="h-5 w-5 text-slate-300 flex-shrink-0" />,
+};
+
+const toastStyle: Record<Toast['type'], string> = {
+  error: 'bg-red-950/95 border border-red-700/50',
+  success: 'bg-emerald-950/95 border border-emerald-700/50',
+  info: 'bg-slate-800/95 border border-slate-600/50',
+};
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -70,20 +83,19 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 space-y-2 z-[100]" role="log" aria-live="polite" aria-relevant="additions">
+      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 space-y-2 z-[100] max-w-sm" role="log" aria-live="polite" aria-relevant="additions">
         {toasts.map(t => {
           const duration = t.type === 'error' ? 5 : 3;
-          const base = 'text-white pl-4 pr-2 py-2 rounded shadow animate-fade-in-out flex items-center gap-2';
-          const color =
-            t.type === 'error'
-              ? 'bg-red-600'
-              : t.type === 'info'
-                ? 'bg-slate-600'
-                : 'bg-green-600';
           return (
-            <div key={t.id} className={`${base} ${color}`} role={t.type === 'error' ? 'alert' : 'status'} style={{ animationDuration: `${duration}s` }}>
-              <span>{t.message}</span>
-              <button onClick={() => removeToast(t.id)} className="ml-1 p-1 rounded hover:bg-white/20 transition-colors flex-shrink-0" aria-label="Dismiss">
+            <div
+              key={t.id}
+              className={`text-white pl-3 pr-3 py-3 rounded-lg shadow-lg backdrop-blur-sm animate-fade-in-out flex items-center gap-3 ${toastStyle[t.type]}`}
+              role={t.type === 'error' ? 'alert' : 'status'}
+              style={{ animationDuration: `${duration}s` }}
+            >
+              {toastIcon[t.type]}
+              <span className="text-sm flex-1">{t.message}</span>
+              <button onClick={() => removeToast(t.id)} className="p-1 rounded hover:bg-white/20 transition-colors flex-shrink-0" aria-label="Dismiss">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>

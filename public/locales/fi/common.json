@@ -872,7 +872,7 @@
     "orExperiment": "Tai kokeile ensin:",
     "experimentOption": "Käytä väliaikaista työtilaa testaamiseen",
     "workspaceWarning": "Väliaikainen työtila - muutoksia ei tallenneta",
-    "createRealGame": "Luo oikea peli"
+    "createRealGame": "Luo ottelu"
   },
   "firstGameGuide": {
     "title": "Tervetuloa ensimmäiseen otteluusi!",
@@ -1462,8 +1462,9 @@
       "correctTitle": "Korjaa tietojasi",
       "correctDescription": "Voit muokata pelaajanimiä, pelitietoja ja kaikkia muita tietoja suoraan sovelluksessa milloin tahansa.",
       "downloadDescriptionCloud": "Lataa kaikki palvelimelle tallennetut tiedot tiedostoon.",
-      "downloadDescriptionLocal": "Pilvitilin tarvitaan. Paikalliset tietosi voidaan viedä alla olevalla Varmuuskopio-vaihtoehdolla.",
-      "downloading": "Ladataan..."
+      "downloadDescriptionLocal": "Pilvitili vaaditaan. Paikalliset tietosi voidaan viedä yllä olevalla Varmuuskopio-vaihtoehdolla.",
+      "downloading": "Ladataan...",
+      "footnote": "GDPR:n mukaisesti voit viedä tietosi Varmuuskopioinnilla tai Latauksella yllä, poistaa ne Vaaravyöhykkeessä tai korjata tietoja suoraan sovelluksessa."
     },
     "importReadError": "Virhe varmuuskopiotiedoston lukemisessa.",
     "importGamesButton": "Tuo pelejä",
@@ -1502,10 +1503,13 @@
     "resyncDescription": "Tyhjennä paikalliset tiedot ja lataa uudelleen pilvestä. Pilvivarmuuskopio palautetaan.",
     "confirmResyncLabel": "Kirjoita RESYNC vahvistaaksesi",
     "resyncButton": "Synkronoi pilvestä uudelleen",
-    "factoryResetTitle": "Tehdaspalautus",
+    "backupExportTitle": "Varmuuskopiointi ja vienti",
+    "deleteAllDataDescription": "Poista pysyvästi kaikki ottelut, pelaajat, joukkueet ja asetukset tältä laitteelta. Toimintoa ei voi peruuttaa.",
+    "deleteAllDataButton": "Poista kaikki tiedot",
+    "factoryResetTitle": "Poista kaikki tiedot",
     "factoryResetDescription": "Poista KAIKKI tiedot pysyvästi - sekä paikalliset että pilvitiedot. Tätä ei voi perua.",
     "confirmFactoryResetLabel": "Kirjoita FACTORY RESET vahvistaaksesi",
-    "factoryResetButton": "Tehdaspalautus (Poista kaikki)",
+    "factoryResetButton": "Poista kaikki tiedot",
     "restoring": "Palautetaan varmuuskopiota...",
     "restoringTitle": "Palautetaan varmuuskopiota",
     "restoringDescription": "Odota hetki, tietojasi palautetaan. Tämä voi kestää hetken."
@@ -2497,7 +2501,7 @@
     "signedOut": "Kirjauduttu ulos onnistuneesti. Ladataan uudelleen...",
     "signOutError": "Uloskirjautuminen epäonnistui. Yritä uudelleen.",
     "signOutNetworkError": "Verkkovirhe. Voit jatkaa sovelluksen käyttöä offline-tilassa.",
-    "startOver": "Aloita alusta toisella tilillä",
+    "startOver": "Kirjaudu ulos ja palaa alkuasetuksiin",
     "startingOver": "Aloitetaan alusta. Ladataan uudelleen...",
     "startOverError": "Alusta aloittaminen epäonnistui. Yritä uudelleen.",
     "switchedToLocal": "Vaihdettu paikalliseen tilaan. Ladataan uudelleen...",

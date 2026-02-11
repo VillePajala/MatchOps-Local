@@ -87,6 +87,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [selectedTournamentSeriesId, setSelectedTournamentSeriesId] = useState<string | null>(null);
   const homeTeamInputRef = useRef<HTMLInputElement>(null);
   const opponentInputRef = useRef<HTMLInputElement>(null);
+  const [homeTeamError, setHomeTeamError] = useState<string | null>(null);
+  const [opponentError, setOpponentError] = useState<string | null>(null);
+  const [periodDurationError, setPeriodDurationError] = useState<string | null>(null);
+  const [customLeagueError, setCustomLeagueError] = useState<string | null>(null);
   const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request
 
   // State for season/tournament selection
@@ -388,6 +392,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   const handleTeamNameChange = (newName: string) => {
     setHomeTeamName(newName);
+    if (homeTeamError) setHomeTeamError(null);
     // If user manually changes the name, it's no longer auto-filled
     if (isTeamNameAutoFilled) {
       setIsTeamNameAutoFilled(false);
@@ -459,13 +464,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     const trimmedOpponentName = opponentName.trim();
 
     if (!trimmedHomeTeamName) {
-      showToast(t('newGameSetupModal.homeTeamNameRequired', 'Home Team Name is required.'), 'error');
+      setHomeTeamError(t('newGameSetupModal.homeTeamNameRequired', 'Home Team Name is required.'));
       homeTeamInputRef.current?.focus();
       return;
     }
 
     if (!trimmedOpponentName) {
-      showToast(t('newGameSetupModal.opponentNameRequired', 'Opponent Name is required.'), 'error');
+      setOpponentError(t('newGameSetupModal.opponentNameRequired', 'Opponent Name is required.'));
       opponentInputRef.current?.focus();
       return;
     }
@@ -483,13 +488,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     // Validate period duration
     const duration = parseInt(localPeriodDurationString, 10);
     if (isNaN(duration) || duration <= 0) {
-        showToast(t('newGameSetupModal.invalidPeriodDuration', 'Period duration must be a positive number.'), 'error');
+        setPeriodDurationError(t('newGameSetupModal.invalidPeriodDuration', 'Period duration must be a positive number.'));
         return;
     }
 
     // Validate custom league name when "Muu" is selected
     if (leagueId === CUSTOM_LEAGUE_ID && !customLeagueName.trim()) {
-        showToast(t('newGameSetupModal.customLeagueNameRequired', 'Please enter a custom league name.'), 'error');
+        setCustomLeagueError(t('newGameSetupModal.customLeagueNameRequired', 'Please enter a custom league name.'));
         return;
     }
 
@@ -654,7 +659,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   teamName={homeTeamName}
                   opponentName={opponentName}
                   onTeamNameChange={handleTeamNameChange}
-                  onOpponentNameChange={setOpponentName}
+                  onOpponentNameChange={(v) => { setOpponentName(v); if (opponentError) setOpponentError(null); }}
                   teamLabel={t('newGameSetupModal.homeTeamName', 'Your Team Name') + ' *'}
                   teamPlaceholder={t('newGameSetupModal.homeTeamPlaceholder', 'e.g., Galaxy U10')}
                   opponentLabel={t('newGameSetupModal.opponentNameLabel', 'Opponent Name') + ' *'}
@@ -662,6 +667,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   teamInputRef={homeTeamInputRef}
                   opponentInputRef={opponentInputRef}
                   onKeyDown={handleKeyDown}
+                  teamError={homeTeamError}
+                  opponentError={opponentError}
                 />
               </div>
 
@@ -775,11 +782,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                   <input
                                     type="text"
                                     value={customLeagueName}
-                                    onChange={(e) => setCustomLeagueName(e.target.value)}
+                                    onChange={(e) => { setCustomLeagueName(e.target.value); if (customLeagueError) setCustomLeagueError(null); }}
                                     onKeyDown={handleKeyDown}
                                     placeholder={t('newGameSetupModal.customLeaguePlaceholder', 'Enter league name')}
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                    className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${customLeagueError ? 'border-red-500' : 'border-slate-600'}`}
                                   />
+                                  {customLeagueError && <p className="mt-1 text-sm text-red-400">{customLeagueError}</p>}
                                 </div>
                               )}
                             </div>
@@ -1098,14 +1106,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     if (numericValue === '' || (parseInt(numericValue, 10) >= 1 && parseInt(numericValue, 10) <= 999)) {
                       setLocalPeriodDurationString(numericValue);
                     }
+                    if (periodDurationError) setPeriodDurationError(null);
                   }}
-                  className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  className={`w-full max-w-xs px-3 py-2 bg-slate-700 border rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${periodDurationError ? 'border-red-500' : 'border-slate-600'}`}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck="false"
                   placeholder="15"
                 />
+                {periodDurationError && <p className="mt-1 text-sm text-red-400">{periodDurationError}</p>}
               </div>
 
               {/* Demand Factor Slider */}
