@@ -857,12 +857,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       {t('settingsModal.gdpr.deleteDescriptionAccount', 'To delete all your data, use the Danger Zone options in the Account tab.')}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setActiveTab('account')}
-                    className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors"
-                  >
-                    {t('settingsModal.gdpr.goToDelete', 'Go')}
-                  </button>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
                   <div className="flex-1">
