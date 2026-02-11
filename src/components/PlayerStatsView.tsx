@@ -280,15 +280,137 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           </div>
         </div>
 
+        {/* Desktop 2-column layout for detailed sections */}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6">
+
+        {/* Left column on desktop */}
+        <div>
+
+        {/* Game by Game Stats - Title and Chart */}
+        <div className="mt-6 lg:mt-0">
+          <h3 className="text-lg font-semibold text-slate-100 mb-2">{t('playerStats.gameLog', 'Game Log')}</h3>
+          <div className="mb-2">
+            <label htmlFor="metric-select" className="block text-sm font-medium text-slate-300 mb-1">{t('playerStats.metricSelect', 'Select Metric')}</label>
+            <select
+              id="metric-select"
+              value={selectedMetric}
+              onChange={(e) => setSelectedMetric(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              {metricOptions.map(opt => (
+                <option key={opt.key} value={opt.key}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        <div className="mb-4">
+          {selectedMetric === 'goalsAssists' ? (
+            <SparklineChart
+              data={playerStats.gameByGameStats}
+              goalsLabel={t('playerStats.goals', 'Goals')}
+              assistsLabel={t('playerStats.assists', 'Assists')}
+            />
+          ) : (
+            <MetricAreaChart
+              data={
+                selectedMetric === 'goals' || selectedMetric === 'assists' || selectedMetric === 'points'
+                  ? playerStats.gameByGameStats.map(g => ({ date: g.date, value: g[selectedMetric] }))
+                  : (assessmentTrends?.[selectedMetric] || [])
+              }
+              label={metricOptions.find(o => o.key === selectedMetric)?.label || selectedMetric}
+            />
+          )}
+        </div>
+      </div>
+
+      {assessmentAverages && (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setShowRatings(v => !v)}
+            className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
+            aria-expanded={showRatings}
+          >
+            <span className="font-semibold text-slate-100">{t('playerStats.performanceRatings', 'Performance Ratings')}</span>
+            <span className="text-sm text-slate-400">{showRatings ? '-' : '+'}</span>
+          </button>
+          {showRatings && (
+            <div className="mt-2 space-y-4 text-sm">
+              <label className="flex items-center space-x-2 px-2">
+                <input
+                  type="checkbox"
+                  checked={useDemandCorrection}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setUseDemandCorrection(val);
+                    // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
+                    updateAppSettings({ useDemandCorrection: val }, user?.id).catch((error) => {
+                      logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
+                    });
+                  }}
+                  title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
+                  className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
+                />
+                <span className="text-slate-100">{t('playerStats.useDemandCorrection', 'Weight by Difficulty')}</span>
+              </label>
+              <div className="space-y-2">
+                {Object.entries(assessmentAverages.averages).map(([metric, avg]) => (
+                  <div key={metric} className="flex items-center space-x-2 px-2">
+                    <span className="w-28 shrink-0 text-slate-100">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
+                    <RatingBar value={avg} />
+                  </div>
+                ))}
+                <div className="flex items-center space-x-2 px-2 mt-2">
+                  <span className="w-28 shrink-0 text-slate-100">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
+                  <RatingBar value={assessmentAverages.overall} />
+                </div>
+                <div className="flex items-center space-x-2 px-2">
+                  <span className="w-28 shrink-0 text-slate-100">{t('playerStats.avgRating', 'Avg Rating')}</span>
+                  <RatingBar value={assessmentAverages.finalScore} />
+                </div>
+                <div className="text-xs text-slate-400 text-right">
+                  {assessmentAverages.count} {t('playerStats.ratedGames', 'rated')}
+                </div>
+              </div>
+              {assessmentTrends && (
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(assessmentTrends).map(([metric, data]) => (
+                    <div key={metric} className="bg-slate-800/40 p-2 rounded">
+                      <p className="text-xs text-slate-300 mb-1">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</p>
+                      <MetricTrendChart data={data} />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {assessmentNotes.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">{t('playerStats.notes', 'Assessment Notes')}</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {assessmentNotes.map(n => (
+                      <li key={n.date} className="text-xs text-slate-300">
+                        {new Date(n.date).toLocaleDateString()} - {n.notes}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+        </div>{/* end left column */}
+
+        {/* Right column on desktop */}
+        <div>
+
         {/* External Games Section - Collapsible */}
-        <div className="mt-6 mb-4">
+        <div className="mt-6 lg:mt-0 mb-4">
           <button
             type="button"
             onClick={() => setShowExternalGames(v => !v)}
             className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
             aria-expanded={showExternalGames}
           >
-            <span className="font-semibold text-slate-100">{t('playerStats.externalGames', 'External Games')}</span>
+            <span className="font-semibold text-slate-100">{t('playerStats.externalGames', 'Manually Added Games')}</span>
             <span className="text-sm text-slate-400">{showExternalGames ? '-' : '+'}</span>
           </button>
           {showExternalGames && (
@@ -298,7 +420,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 className="text-sm px-3 py-1.5 bg-slate-700 text-slate-200 rounded border border-slate-600 hover:bg-slate-600"
                 onClick={() => setShowAdjForm(v => !v)}
               >
-                {t('playerStats.addExternalStats', 'Add external stats')}
+                {t('playerStats.addExternalStats', 'Add game stats manually')}
               </button>
           {showAdjForm && (
             <form
@@ -414,7 +536,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-                <input type="text" value={adjExternalTeam} onChange={e => setAdjExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.externalTeam', 'External team') as string} required />
+                <input type="text" value={adjExternalTeam} onChange={e => setAdjExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.externalTeam', 'Team') as string} required />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
@@ -485,7 +607,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   </span>
                 </label>
                 <p className="text-xs text-slate-500 mt-1 ml-6">
-                  {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
+                  {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the game was played for the same team')}
                 </p>
               </div>
               <div className="lg:col-span-3">
@@ -502,7 +624,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* External stats list - inside collapsible section */}
         {hasAdjustments && (
           <div className="mb-4 text-xs text-slate-400">
-            {t('playerStats.adjustmentsInfo', 'External stats are transparently added to totals.')}
+            {t('playerStats.adjustmentsInfo', 'Manually added stats are transparently added to totals.')}
             <div className="mt-1 space-y-3">
               {adjustments
                 .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
@@ -680,7 +802,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             </span>
                           </label>
                           <p className="text-xs text-slate-500 mt-1 ml-6">
-                            {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
+                            {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the game was played for the same team')}
                           </p>
                         </div>
                         <div className="lg:col-span-3">
@@ -800,9 +922,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
                           {/* Right: Category labels */}
                           <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/40 text-purple-200" title={t('playerStats.externalGame', 'External Game')}>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/40 text-purple-200" title={t('playerStats.externalGame', 'Manually added')}>
                               <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                              {t('playerStats.external', 'EXT')}
+                              {t('playerStats.external', '+')}
                             </span>
                             {seasonName && (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={seasonName}>
@@ -835,7 +957,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-slate-100 mb-4">{t('common.confirmDelete', 'Confirm Delete')}</h3>
               <p className="text-slate-300 mb-6">
-                {t('playerStats.deleteConfirmMessage', 'Are you sure you want to delete this external game entry? This action cannot be undone.')}
+                {t('playerStats.deleteConfirmMessage', 'Are you sure you want to delete this manually added game entry? This action cannot be undone.')}
               </p>
               <div className="flex justify-end gap-3">
                 <button
@@ -854,7 +976,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       setAdjustments(prev => prev.filter(a => a.id !== showDeleteConfirm));
                       setShowDeleteConfirm(null);
                     } else {
-                      showToast(t('playerStats.deleteError', 'Failed to delete the external game entry.'), 'error');
+                      showToast(t('playerStats.deleteError', 'Failed to delete the manually added game entry.'), 'error');
                     }
                   }}
                   className="px-4 py-2 bg-red-600 rounded hover:bg-red-500 text-sm font-medium transition-colors text-white"
@@ -865,118 +987,6 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             </div>
           </div>
         )}
-
-        {/* Game by Game Stats - Title and Chart */}
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-slate-100 mb-2">{t('playerStats.gameLog', 'Game Log')}</h3>
-          <div className="mb-2">
-            <label htmlFor="metric-select" className="block text-sm font-medium text-slate-300 mb-1">{t('playerStats.metricSelect', 'Select Metric')}</label>
-            <select
-              id="metric-select"
-              value={selectedMetric}
-              onChange={(e) => setSelectedMetric(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              {metricOptions.map(opt => (
-                <option key={opt.key} value={opt.key}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-        <div className="mb-4">
-          {selectedMetric === 'goalsAssists' ? (
-            <SparklineChart
-              data={playerStats.gameByGameStats}
-              goalsLabel={t('playerStats.goals', 'Goals')}
-              assistsLabel={t('playerStats.assists', 'Assists')}
-            />
-          ) : (
-            <MetricAreaChart
-              data={
-                selectedMetric === 'goals' || selectedMetric === 'assists' || selectedMetric === 'points'
-                  ? playerStats.gameByGameStats.map(g => ({ date: g.date, value: g[selectedMetric] }))
-                  : (assessmentTrends?.[selectedMetric] || [])
-              }
-              label={metricOptions.find(o => o.key === selectedMetric)?.label || selectedMetric}
-            />
-          )}
-        </div>
-      </div>
-
-      {assessmentAverages && (
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={() => setShowRatings(v => !v)}
-            className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
-            aria-expanded={showRatings}
-          >
-            <span className="font-semibold text-slate-100">{t('playerStats.performanceRatings', 'Performance Ratings')}</span>
-            <span className="text-sm text-slate-400">{showRatings ? '-' : '+'}</span>
-          </button>
-          {showRatings && (
-            <div className="mt-2 space-y-4 text-sm">
-              <label className="flex items-center space-x-2 px-2">
-                <input
-                  type="checkbox"
-                  checked={useDemandCorrection}
-                  onChange={(e) => {
-                    const val = e.target.checked;
-                    setUseDemandCorrection(val);
-                    // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
-                    updateAppSettings({ useDemandCorrection: val }, user?.id).catch((error) => {
-                      logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
-                    });
-                  }}
-                  title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
-                  className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
-                />
-                <span className="text-slate-100">{t('playerStats.useDemandCorrection', 'Weight by Difficulty')}</span>
-              </label>
-              <div className="space-y-2">
-                {Object.entries(assessmentAverages.averages).map(([metric, avg]) => (
-                  <div key={metric} className="flex items-center space-x-2 px-2">
-                    <span className="w-28 shrink-0 text-slate-100">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
-                    <RatingBar value={avg} />
-                  </div>
-                ))}
-                <div className="flex items-center space-x-2 px-2 mt-2">
-                  <span className="w-28 shrink-0 text-slate-100">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
-                  <RatingBar value={assessmentAverages.overall} />
-                </div>
-                <div className="flex items-center space-x-2 px-2">
-                  <span className="w-28 shrink-0 text-slate-100">{t('playerStats.avgRating', 'Avg Rating')}</span>
-                  <RatingBar value={assessmentAverages.finalScore} />
-                </div>
-                <div className="text-xs text-slate-400 text-right">
-                  {assessmentAverages.count} {t('playerStats.ratedGames', 'rated')}
-                </div>
-              </div>
-              {assessmentTrends && (
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(assessmentTrends).map(([metric, data]) => (
-                    <div key={metric} className="bg-slate-800/40 p-2 rounded">
-                      <p className="text-xs text-slate-300 mb-1">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</p>
-                      <MetricTrendChart data={data} />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {assessmentNotes.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold mb-1">{t('playerStats.notes', 'Assessment Notes')}</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    {assessmentNotes.map(n => (
-                      <li key={n.date} className="text-xs text-slate-300">
-                        {new Date(n.date).toLocaleDateString()} - {n.notes}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
         {/* Performance by Season/Tournament */}
         <div className="space-y-4 mt-2">
@@ -1049,7 +1059,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           )}
                           {t('playerStats.vs', 'vs')} {game.opponentName}
                           {game.isExternal && (
-                            <span className="ml-2 inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'External Game')}>{t('playerStats.external', 'EXT')}</span>
+                            <span className="ml-2 inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'Manually added')}>{t('playerStats.external', '+')}</span>
                           )}
                           {game.receivedFairPlayCard && (
                             <span className="ml-2 inline-block bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
@@ -1094,6 +1104,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             )}
           </div>
         </div>
+        </div>{/* end right column */}
+        </div>{/* end 2-column grid */}
     </div>
   );
 };
