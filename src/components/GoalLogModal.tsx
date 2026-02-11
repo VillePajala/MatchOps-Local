@@ -311,7 +311,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Goal Log')}>
       <ModalAmbientGlows />
-      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative">
+      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative">
         {/* Background effects (standard 4-layer pattern) */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />

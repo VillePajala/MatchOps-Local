@@ -237,12 +237,12 @@ describe('External game cards styling', () => {
 
     // Wait for external games section to load
     await waitFor(() => {
-      expect(screen.getByText('External Games')).toBeInTheDocument();
+      expect(screen.getByText('Manually Added Games')).toBeInTheDocument();
     });
 
     // Expand the external games section
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Manually Added Games'));
     });
 
     await waitFor(() => {
@@ -254,7 +254,7 @@ describe('External game cards styling', () => {
     expect(screen.getByText(/Mar 15, 2024|15\.3\.2024/)).toBeInTheDocument();
 
     // Check EXT badge is displayed (bottom row right)
-    expect(screen.getByText('EXT')).toBeInTheDocument();
+    expect(screen.getByText('+')).toBeInTheDocument();
   });
 
   it('should show colored dot indicators for badges (purple=EXT, blue=season, amber=tournament)', async () => {
@@ -268,19 +268,19 @@ describe('External game cards styling', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('External Games')).toBeInTheDocument();
+      expect(screen.getByText('Manually Added Games')).toBeInTheDocument();
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Manually Added Games'));
     });
 
     await waitFor(() => {
-      expect(screen.getByText('EXT')).toBeInTheDocument();
+      expect(screen.getByText('+')).toBeInTheDocument();
     });
 
     // Find EXT badge and verify it has purple styling
-    const extBadge = screen.getByText('EXT').closest('span');
+    const extBadge = screen.getByText('+').closest('span');
     expect(extBadge).toHaveClass('bg-purple-600/40');
 
     // Find purple dot inside EXT badge
@@ -311,15 +311,15 @@ describe('External game cards styling', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('External Games')).toBeInTheDocument();
+      expect(screen.getByText('Manually Added Games')).toBeInTheDocument();
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Manually Added Games'));
     });
 
     await waitFor(() => {
-      expect(screen.getByText('EXT')).toBeInTheDocument();
+      expect(screen.getByText('+')).toBeInTheDocument();
     });
 
     // Verify home/away/neutral text is NOT displayed
@@ -339,11 +339,11 @@ describe('External game cards styling', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('External Games')).toBeInTheDocument();
+      expect(screen.getByText('Manually Added Games')).toBeInTheDocument();
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Manually Added Games'));
     });
 
     await waitFor(() => {

@@ -215,7 +215,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('personnelManager.title', 'Personnel Manager')}>
       <ModalAmbientGlows />
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg flex flex-col`}>
+      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl flex flex-col`}>
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />

@@ -236,7 +236,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             .filter(d => d.name.toLowerCase().includes(searchText.toLowerCase()));
 
         return (
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 lg:mx-0">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">{t(`seasonTournamentModal.${type}s`)}</h3>
                 <div className="space-y-3">
                     {filtered.map((item) => (
@@ -343,7 +343,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
   return (
     <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('seasonTournament.title', 'Seasons & Tournaments')}>
       <ModalAmbientGlows />
-      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative overflow-hidden">
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
@@ -418,7 +418,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
               </label>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
                 {renderList('season')}
                 {renderList('tournament')}
             </div>

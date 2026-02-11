@@ -689,7 +689,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={getTabTitle()}>
       <ModalAmbientGlows />
-      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative overflow-hidden">
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />

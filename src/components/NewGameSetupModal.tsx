@@ -578,7 +578,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] font-display">
       <ModalAmbientGlows />
-      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative">
+      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full lg:max-w-5xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
@@ -611,8 +611,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            {/* CARD 1: Teams & Roster */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+
+            {/* Desktop 2-column layout */}
+            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
+
+            {/* CARD 1: Teams & Roster (left column on desktop) */}
+            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0 lg:self-start">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.teamsAndRosterLabel', 'Teams & Roster')}
               </h3>
@@ -686,8 +690,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               />
             </div>
 
+            {/* Right column on desktop: Game Details + Config */}
+            <div className="space-y-4">
+
             {/* CARD 2: Game Details */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.gameDetailsLabel', 'Game Details')}
               </h3>
@@ -1060,7 +1067,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             </div>
 
             {/* CARD 3: Pelin asetukset (Game Configuration) */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 lg:mx-0 lg:mt-0">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.gameConfigLabel', 'Pelin asetukset')}
               </h3>
@@ -1135,6 +1142,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </label>
               </div>
             </div>
+            </div>{/* end right column */}
+            </div>{/* end 2-column grid */}
           </div>
 
           {/* Footer */}

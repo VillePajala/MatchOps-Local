@@ -494,7 +494,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-[70] font-display">
       <ModalAmbientGlows />
-      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-2xl lg:max-h-[90vh] lg:rounded-lg bg-noise-texture relative overflow-hidden">
+      <div className="bg-slate-800 flex flex-col h-full w-full lg:max-w-2xl lg:max-h-[calc(100vh-1rem)] lg:rounded-xl bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />

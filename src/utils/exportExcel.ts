@@ -703,7 +703,7 @@ export const exportAggregateExcel = (
       return {
         [translate('export.player', 'Player')]: player?.name || adj.playerId,
         [translate('export.date', 'Date')]: adj.gameDate || '',
-        [translate('export.externalTeam', 'External Team')]: adj.externalTeamName || '',
+        [translate('export.externalTeam', 'Team')]: adj.externalTeamName || '',
         [translate('export.opponent', 'Opponent')]: adj.opponentName || '',
         [translate('export.scoreFor', 'Score For')]: adj.scoreFor ?? '',
         [translate('export.scoreAgainst', 'Score Against')]: adj.scoreAgainst ?? '',
@@ -722,7 +722,7 @@ export const exportAggregateExcel = (
 
     const externalSheet = XLSX.utils.json_to_sheet(externalData);
     setColumnAsText(externalSheet, notesHeader);
-    XLSX.utils.book_append_sheet(workbook, externalSheet, translate('export.sheetExternalGames', 'External Games'));
+    XLSX.utils.book_append_sheet(workbook, externalSheet, translate('export.sheetExternalGames', 'Manually Added Games'));
   }
 
   // Generate filename based on context
@@ -967,7 +967,7 @@ export const exportPlayerExcel = (
 
       return {
         [translate('export.date', 'Date')]: adj.gameDate || '',
-        [translate('export.externalTeam', 'External Team')]: adj.externalTeamName || '',
+        [translate('export.externalTeam', 'Team')]: adj.externalTeamName || '',
         [translate('export.opponent', 'Opponent')]: adj.opponentName || '',
         [translate('export.scoreFor', 'Score For')]: adj.scoreFor ?? '',
         [translate('export.scoreAgainst', 'Score Against')]: adj.scoreAgainst ?? '',
@@ -986,7 +986,7 @@ export const exportPlayerExcel = (
 
     const externalSheet = XLSX.utils.json_to_sheet(externalData);
     setColumnAsText(externalSheet, notesHeader);
-    XLSX.utils.book_append_sheet(workbook, externalSheet, translate('export.sheetExternalGames', 'External Games'));
+    XLSX.utils.book_append_sheet(workbook, externalSheet, translate('export.sheetExternalGames', 'Manually Added Games'));
   }
 
     const filename = `MatchOps_Player_${playerData.name}_${getTimestamp()}.xlsx`;
