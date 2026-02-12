@@ -2201,7 +2201,7 @@ export default function MarketingAssets() {
                     <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 64 }}>MatchOps</span>
                     <p className="text-gray-300 text-lg mt-1">Soccer &amp; futsal coaching app</p>
                     <div className="flex gap-3 mt-5">
-                      {['Plan', 'Track', 'Assess'].map((f) => (
+                      {['Plan', 'Track', 'Develop'].map((f) => (
                         <span key={f} className="px-3 py-1 rounded-full text-xs font-medium bg-amber-400/10 text-amber-400 border border-amber-400/20">{f}</span>
                       ))}
                     </div>
