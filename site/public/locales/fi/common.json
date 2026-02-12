@@ -468,7 +468,7 @@
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
       "assessment": "Kehitysseuranta",
-      "assessmentDesc": "Seuraa jokaisen pelaajan kehitystä kauden aikana. Valmentajan omat muistiinpanot auttavat huomaamaan kasvun — myös hiljaisimpien pelaajien. Vanhemmille ikäryhmille yksityiskohtaisemmat ottelukohtaiset mittarit tuovat syvyyttä kehitysseurantaan.",
+      "assessmentDesc": "Seuraa jokaisen pelaajan kehitystä kauden aikana. Valmentajan omat muistiinpanot auttavat huomaamaan kasvun — myös hiljaisimpien pelaajien. Ominaisuus kohdistettu vanhemmille ikäryhmille.",
       "trends": "Trendit",
       "trendsDesc": "Seuraa pelaajien kehitystä visuaalisilla kaavioilla. Näe miten osa-alueet kehittyvät ottelusta toiseen ja kauden aikana.",
       "seasons": "Kausikeskus",
