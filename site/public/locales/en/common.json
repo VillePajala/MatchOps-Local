@@ -236,7 +236,7 @@
     },
     "whoIsThisFor": {
       "title": "Who Is This For?",
-      "description": "MatchOps is for soccer coaches at any level—from recreational to competitive—who want a simple way to organize games without complex team management software or monthly subscriptions.",
+      "description": "MatchOps is for soccer coaches at any level — from recreational to competitive — who want a simple way to organize games and support every player's development without complex team management software or monthly subscriptions.",
       "item1": "Youth team coaches (U8–U19)",
       "item2": "Recreational and competitive team coaches",
       "item3": "Coaches who value privacy and own their data"
@@ -379,9 +379,9 @@
         "desc": "Timer, substitutions, goals, and assists — all in real-time."
       },
       "assess": {
-        "label": "ASSESS",
-        "title": "Automatic statistics",
-        "desc": "Player stats, team stats, season trends — built automatically."
+        "label": "DEVELOP",
+        "title": "Development tracking",
+        "desc": "Statistics and notes build automatically — see every player's growth."
       }
     },
     "benefits": {
@@ -438,7 +438,7 @@
     "ui": {
       "plan": "Plan",
       "track": "Track",
-      "assess": "Assess",
+      "assess": "Develop",
       "lineups": "Lineups",
       "liveGames": "Live Games",
       "statistics": "Statistics",
@@ -486,8 +486,8 @@
       "formationsDesc": "Set up your team in seconds with formation templates. Snap players to position with one tap.",
       "roster": "Player Roster",
       "rosterDesc": "Add players with names, jersey numbers, and nicknames. The nickname is shown on the disc on the field.",
-      "assessment": "Match Assessment",
-      "assessmentDesc": "Assess match performances on 10 metrics: intensity, technique, decisions, teamwork, and more.",
+      "assessment": "Development Tracking",
+      "assessmentDesc": "Follow each player's growth across the season. Your own coaching notes help you spot progress — even in the quietest players.",
       "trends": "Trends",
       "trendsDesc": "Track match performance trends with visual charts. See goals, assists, and ratings evolve over the season.",
       "seasons": "Leagues",

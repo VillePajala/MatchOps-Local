@@ -217,7 +217,7 @@
     },
     "whoIsThisFor": {
       "title": "Kenelle tämä on tarkoitettu?",
-      "description": "MatchOps on jalkapallovalmentajille kaikilla tasoilla—harrastejoukkueista kilpajoukkueisiin—jotka haluavat yksinkertaisen tavan järjestää pelejä ilman monimutkaisia joukkueenhallintaohjelmistoja tai kuukausimaksuja.",
+      "description": "MatchOps on jalkapallovalmentajille kaikilla tasoilla — harrastejoukkueista kilpajoukkueisiin — jotka haluavat yksinkertaisen tavan järjestää pelejä ja tukea jokaisen pelaajan kehitystä ilman monimutkaisia joukkueenhallintaohjelmistoja tai kuukausimaksuja.",
       "item1": "Juniorijoukkueiden valmentajat (U8–U19)",
       "item2": "Harraste- ja kilpajoukkueiden valmentajat",
       "item3": "Valmentajat, jotka arvostavat yksityisyyttä ja omistavat datansa"
@@ -360,9 +360,9 @@
         "desc": "Pelikello, vaihdot, maalit ja syötöt — kaikki reaaliajassa pelin aikana."
       },
       "assess": {
-        "label": "ARVIOI",
-        "title": "Automaattiset tilastot",
-        "desc": "Yksilö, peli-, joukkue- ja kilpailutilastointi kertyy automaattisesti."
+        "label": "KEHITÄ",
+        "title": "Kehitysseuranta",
+        "desc": "Tilastot ja muistiinpanot kertyvät automaattisesti — näet jokaisen pelaajan kasvun."
       }
     },
     "benefits": {
@@ -419,7 +419,7 @@
     "ui": {
       "plan": "Suunnittele",
       "track": "Kirjaa",
-      "assess": "Arvioi",
+      "assess": "Kehitä",
       "lineups": "Kokoonpanot",
       "liveGames": "Peliseuranta",
       "statistics": "Tilastot",
@@ -467,8 +467,8 @@
       "formationsDesc": "Aseta joukkue sekunneissa valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
-      "assessment": "Pelisuoritus",
-      "assessmentDesc": "Arvioi pelaajien ottelusuoritukset 10 mittarilla: intensiteetti, tekniikka, päätöksenteko, joukkuepeli ja muut.",
+      "assessment": "Kehitysseuranta",
+      "assessmentDesc": "Seuraa jokaisen pelaajan kehitystä kauden aikana. Valmentajan omat muistiinpanot auttavat huomaamaan kasvun — myös hiljaisimpien pelaajien.",
       "trends": "Trendit",
       "trendsDesc": "Seuraa ottelusuoritusten kehitystä visuaalisilla kaavioilla. Näe maalien, syöttöjen ja arvioiden trendit kauden aikana.",
       "seasons": "Kausikeskus",

@@ -352,7 +352,7 @@ export default function HomePage() {
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
-              {isEnglish ? 'Plan • Track • Assess' : 'Suunnittele • Kirjaa • Arvioi'}
+              {isEnglish ? 'Plan • Track • Develop' : 'Suunnittele • Kirjaa • Kehitä'}
             </h2>
             <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
               {t('info.whatIsThis.description')}
@@ -382,13 +382,13 @@ export default function HomePage() {
                   {t('marketing.features.track.desc')}
                 </p>
               </div>
-              {/* ASSESS */}
+              {/* DEVELOP */}
               <div className="text-center">
                 <div className="flex justify-center mb-4">
                   <PhoneMockup screenshot={screenshots.playerstats} size="lg" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
-                  {isEnglish ? 'Assess' : 'Arvioi'}
+                  {isEnglish ? 'Develop' : 'Kehitä'}
                 </h3>
                 <p className="text-slate-300">
                   {t('marketing.features.assess.desc')}
