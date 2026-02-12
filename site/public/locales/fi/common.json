@@ -212,7 +212,7 @@
   "info": {
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
-      "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano, pelipaikat ja alkulämmittely ennen peliä. Kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä pelin aikana. Tilastosi kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailustasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa kokoonpanojen ilmoittamista ja tulosten kirjaamista.",
+      "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano, pelipaikat ja alkulämmittely ennen peliä. Kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä pelin aikana. Tilastosi kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailustasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa virallisten kokoonpanojen ilmoittamista ja tulosten kirjaamista.",
       "oneLine": "Aloita heti ilman rekisteröitymistä. Valinnainen pilvisynkronointi laitteiden välillä. Toimii kaikkialla, jopa ilman nettiä."
     },
     "whoIsThisFor": {
