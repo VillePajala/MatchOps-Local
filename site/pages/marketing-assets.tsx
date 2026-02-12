@@ -1692,7 +1692,7 @@ export default function MarketingAssets() {
                 </div>
               </AssetContainer>
 
-              {/* IG4: Feature - Assess */}
+              {/* IG4: Feature - Develop */}
               <AssetContainer id="ig-4" {...FORMATS.instagramPost} scale={0.5}>
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
                   <p className="text-primary text-xl font-bold mb-1">{t('marketing.features.assess.label')}</p>
@@ -1916,7 +1916,7 @@ export default function MarketingAssets() {
                 </div>
               </AssetContainer>
 
-              {/* IG-SET-7: Feature 3 - Assess (carousel style) */}
+              {/* IG-SET-7: Feature 3 - Develop (carousel style) */}
               <AssetContainer id="ig-set-7" {...FORMATS.instagramPost} scale={0.5}>
                 <div className="w-full h-full bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center p-6">
                   <p className="text-gray-500 text-sm mb-2">3/3</p>
@@ -2052,7 +2052,7 @@ export default function MarketingAssets() {
                 </div>
               </AssetContainer>
 
-              {/* Story 4: Feature - Assess */}
+              {/* Story 4: Feature - Develop */}
               <AssetContainer id="story-4" {...FORMATS.instagramStory} scale={0.35}>
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center">
                   <div className="flex items-center gap-3 mb-4">
@@ -2383,7 +2383,7 @@ export default function MarketingAssets() {
                 { key: 'playerstats', label: isEnglish ? 'Statistics' : 'Tilastot' },
                 { key: 'tacticalBoard', label: isEnglish ? 'Tactics' : 'Taktiikka' },
                 { key: 'goalTimeline', label: isEnglish ? 'Match Log' : 'Otteluloki' },
-                { key: 'assessment', label: isEnglish ? 'Assessment' : 'Arviointi' },
+                { key: 'assessment', label: isEnglish ? 'Development' : 'Kehitysseuranta' },
                 { key: 'trends', label: isEnglish ? 'Trends' : 'Trendit' },
                 { key: 'archive', label: isEnglish ? 'Archive' : 'Historia' },
                 { key: 'cloudSync', label: isEnglish ? 'Cloud Sync' : 'Pilvisynkronointi' },
@@ -2866,8 +2866,8 @@ export default function MarketingAssets() {
                 </div>
               </AssetContainer>
 
-              {/* 4. Player Assessment */}
-              <AssetContainer id="card-assessment" width={600} height={400} name="Feature Card - Assessment">
+              {/* 4. Development Tracking */}
+              <AssetContainer id="card-assessment" width={600} height={400} name="Feature Card - Development Tracking">
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
                   <div className="w-1/2 flex flex-col justify-center">
                     <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
