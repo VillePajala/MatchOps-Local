@@ -231,7 +231,7 @@
   "info": {
     "whatIsThis": {
       "title": "What is MatchOps?",
-      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup and positions before the game. During the match, track substitution intervals, log goals and assists with a tap. Your statistics build automatically—game results, scoring leaders, season trends.",
+      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup, positions, and warm-up before the game. During the match, log goals, assists, and substitution intervals with a tap. Your statistics build automatically — at individual, game, team, and competition level. A direct link to the Finnish FA's Taso system makes it easy to register lineups and submit results.",
       "oneLine": "Start instantly with no signup. Optional cloud sync for cross-device access. Works anywhere, even without internet."
     },
     "whoIsThisFor": {

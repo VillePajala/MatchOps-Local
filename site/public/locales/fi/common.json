@@ -212,7 +212,7 @@
   "info": {
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
-      "description": "MatchOps on mobiilisovellus jalkapallon ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano ja pelipaikat ennen peliä. Pelin aikana seuraa vaihtovälejä, kirjaa maalit ja syötöt napautuksella. Tilastosi kertyvät automaattisesti—ottelutulokset, pistepörssi, kauden trendit.",
+      "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano, pelipaikat ja alkulämmittely ennen peliä. Kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä pelin aikana. Tilastosi kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailustasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa kokoonpanojen ilmoittamista ja tulosten kirjaamista.",
       "oneLine": "Aloita heti ilman rekisteröitymistä. Valinnainen pilvisynkronointi laitteiden välillä. Toimii kaikkialla, jopa ilman nettiä."
     },
     "whoIsThisFor": {
@@ -352,17 +352,17 @@
       "plan": {
         "label": "SUUNNITTELE",
         "title": "Interaktiivinen kokoonpanotyökalu",
-        "desc": "Aseta pelaajat kentälle. Näe muodostelmasi."
+        "desc": "Suunnittele joukkueesi pelipaikat ja aloituskokoonpano."
       },
       "track": {
         "label": "KIRJAA",
         "title": "Reaaliaikainen peliseuranta",
-        "desc": "Kello, vaihdot, maalit ja syötöt — kaikki reaaliajassa."
+        "desc": "Pelikello, vaihdot, maalit ja syötöt — kaikki reaaliajassa pelin aikana."
       },
       "assess": {
         "label": "ARVIOI",
         "title": "Automaattiset tilastot",
-        "desc": "Pelaajatilastot, joukkuetilastot, kauden trendit — kertyy automaattisesti."
+        "desc": "Yksilö, peli-, joukkue- ja kilpailutilastointi kertyy automaattisesti."
       }
     },
     "benefits": {
@@ -464,7 +464,7 @@
       "tacticalBoard": "Taktiikkataulu",
       "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Lisää vastustajan kiekot taktiseen suunnitteluun. Kommunikoi pelisuunnitelma visuaalisesti.",
       "formations": "Pikamuodostelmat",
-      "formationsDesc": "Aseta joukkue sekunneissa valmiilla muodostelmapohjilla. Napsauta pelaajat paikoilleen yhdellä kosketuksella.",
+      "formationsDesc": "Aseta joukkue sekunneissa valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
       "assessment": "Pelisuoritus",
@@ -496,12 +496,12 @@
       "development": "KEHITYS",
       "techStats": "TEKNISTÄ",
       "quality": "LAATU",
-      "aiPowered": "100% tekoälyrakennettu",
-      "aiPoweredDesc": "Ei käsin kirjoitettua koodia. Rakennettu Claude Codella, Cursorilla ja Codexilla. Jopa nämä markkinointimateriaalit.",
+      "aiPowered": "100% tekoälyllä rakennettu",
+      "aiPoweredDesc": "Ei käsin kirjoitettua koodia. Rakennettu Claude Codella, Cursorilla ja Codexilla — myös nämä markkinointimateriaalit.",
       "linesOfCode": "270 000+ riviä",
       "linesOfCodeDesc": "96K riviä testejä, 86K riviä lähdekoodia, 90K riviä dokumentaatiota.",
       "testCoverage": "4 400+ testiä",
-      "testCoverageDesc": "222 testisettiä. Toimivuus tarkastetaan testein automaattisesti jokaisen muutoksen yhteydessä.",
+      "testCoverageDesc": "222 testisarjaa. Toimivuus tarkistetaan automaattisesti jokaisen muutoksen yhteydessä.",
       "techStack": "Uusin teknologia",
       "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, asennettava, automaattipäivitykset.",
       "documentation": "90K riviä kontekstia",
@@ -511,7 +511,7 @@
       "codeQuality": "Yritystason laatu",
       "codeQualityDesc": "ESLint käytössä, TypeScript tiukka tila, Sentry-seuranta, saavutettavuustestattu.",
       "cicd": "Automatisoitu CI/CD",
-      "cicdDesc": "Lint, tyypit, 4400+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Autom. julkaisu."
+      "cicdDesc": "Lint, tyypit, 4400+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Automaattinen julkaisu."
     }
   },
   "privacyPolicy": {
