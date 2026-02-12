@@ -53,7 +53,7 @@
     "manageSeasonsAndTournaments": "Kilpailut",
     "manageTeams": "Joukkueet",
     "personnelManager": "Taustahenkilöt",
-    "assessPlayers": "Arvioi ottelusuoritukset",
+    "assessPlayers": "Kirjaa ottelusuoritukset",
     "appSettings": "Asetukset",
     "coachingMaterials": "Valmennusmateriaalit",
     "backupRestore": "Varmuuskopiointi & Palautus",
@@ -333,7 +333,7 @@
     "afterGameSection": {
       "title": "Pelin jälkeen",
       "saveGame": "Tallenna peli automaattisesti tai manuaalisesti myöhempää tarkastelua varten",
-      "assessPlayers": "Arvioi pelaajien suoritus ja lisää muistiinpanoja kunkin pelaajan kehityksestä",
+      "assessPlayers": "Kirjaa pelaajien suoritus ja lisää muistiinpanoja kunkin pelaajan kehityksestä",
       "viewStats": "Tarkastele yksityiskohtaisia tilastoja: maalit, syötöt, peliajat, arvosanat",
       "exportData": "Vie kaikki datasi CSV-muodossa jatkoanalyysiä tai varmuuskopiointia varten",
       "reviewGame": "Käy läpi pelin tapahtumat, taktisia piirroksia ja kokoonpanoja"
@@ -341,7 +341,7 @@
     "afterGame": {
       "title": "Pelin jälkeen",
       "saveGame": "Tallenna pelisi myöhempää tarkastelua tai jatkamista varten",
-      "assessPlayers": "Arvioi pelaajien suoritus ja lisää muistiinpanoja",
+      "assessPlayers": "Kirjaa pelaajien suoritus ja lisää muistiinpanoja",
       "viewStats": "Katsele yksilö- ja joukkuetilastoja pelien välillä",
       "exportData": "Vie datasi jatkoanalyysiä varten"
     },
@@ -386,7 +386,7 @@
       "manageSeasonsAndTournaments": "Hallitse kausia ja turnauksia",
       "analysisTools": "Analysointi ja työkalut",
       "stats": "Tilastot - Näytä pelitilastot",
-      "assessPlayers": "Arvioi pelaajia - Arvioi suoritukset",
+      "assessPlayers": "Kirjaa ottelusuoritukset",
       "training": "Harjoittelu - Harjoitukset ja resurssit",
       "backupRestore": "Varmuuskopio ja palautus - Tallenna/lataa data",
       "resources": "Resurssit",
@@ -402,7 +402,7 @@
       "saveLoad": "Pikatallenna ja avaa tallennettu peli valikosta",
       "teams": "Hallinnoi joukkueita ja kokoonpanoja joukkuehallinnassa",
       "seasonsTournaments": "Luo ja hallinnoi kausia ja turnauksia tilastointia varten",
-      "assessments": "Arvioi pelaajia ja kirjaa kehitysmuistiinpanoja",
+      "assessments": "Kirjaa ottelusuoritukset ja kehitysmuistiinpanot",
       "backupRestore": "Varmuuskopioi ja palauta data varmuuden vuoksi",
       "exportData": "Vie pelit CSV/JSON-muodossa jatkoanalyysiin",
       "training": "Avaa harjoitusmateriaalit inspiraatiota varten",
@@ -1515,7 +1515,7 @@
     "restoringDescription": "Odota hetki, tietojasi palautetaan. Tämä voi kestää hetken."
   },
   "playerAssessmentModal": {
-    "title": "Arvioi ottelusuoritukset",
+    "title": "Kirjaa ottelusuoritukset",
     "saveButton": "Tallenna",
     "noPlayers": "Ei valittuja pelaajia",
     "notesPlaceholder": "Kirjoita muistiinpanoja...",
