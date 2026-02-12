@@ -102,8 +102,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
       : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
     assessment: isEnglish
-      ? '/screenshots/MatcOps_main_playerassesments_en.jpg'
-      : '/screenshots/MatchOps_main_playerassesments_fi.jpg',
+      ? '/screenshots/MatchOps_main_development_fi.jpg'
+      : '/screenshots/MatchOps_main_development_en.jpg',
     trends: isEnglish
       ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
       : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',
