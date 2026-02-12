@@ -817,10 +817,10 @@
     "createGame": "Luo ottelu"
   },
   "startScreen": {
-    "tagline": "Suunnittele · Kirjaa · Arvioi",
+    "tagline": "Suunnittele · Kirjaa · Kehitä",
     "taglinePlan": "Suunnittele",
     "taglineTrack": "Kirjaa",
-    "taglineAssess": "Arvioi",
+    "taglineAssess": "Kehitä",
     "premiumTagline": "Ammattimainen jalkapallovalmennus",
     "description": "Jalkapallovalmentajan taktiikka- ja ajastinsovellus",
     "createNewGame": "Luo uusi ottelu",

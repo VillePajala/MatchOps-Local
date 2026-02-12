@@ -330,7 +330,7 @@
       "powerLine2": "yhdessä sovelluksessa.",
       "memorable": "Yksikään peli ei unohdu.",
       "toolkit": "Ottelupäivän työkalut",
-      "threePillars": "Suunnittele · Kirjaa · Arvioi"
+      "threePillars": "Suunnittele · Kirjaa · Kehitä"
     },
     "badges": {
       "cloudSync": "UUTTA: Pilvisynkronointi"
@@ -346,7 +346,7 @@
     "solution": {
       "title": "Ratkaisu:",
       "oneApp": "Yksi sovellus.",
-      "planTrackAssess": "Suunnittele. Kirjaa. Arvioi."
+      "planTrackAssess": "Suunnittele. Kirjaa. Kehitä."
     },
     "features": {
       "plan": {
@@ -443,7 +443,7 @@
       "interactiveSoccerField": "Interaktiivinen jalkapallokenttä",
       "liveGameTimerEvents": "Pelikello ja tapahtumien kirjaus",
       "playerTeamStatistics": "Pelaaja- ja joukkuetilastot",
-      "planTrackAssessDots": "Suunnittele · Kirjaa · Arvioi",
+      "planTrackAssessDots": "Suunnittele · Kirjaa · Kehitä",
       "getStarted": "Aloita",
       "replaceClipboard": "Korvaa taktiikkataulu, sekuntikello ja muistivihko yhdellä sovelluksella."
     },

@@ -919,10 +919,10 @@
     "personnelEmpty": "No personnel assigned."
   },
   "startScreen": {
-    "tagline": "Plan · Track · Assess",
+    "tagline": "Plan · Track · Develop",
     "taglinePlan": "Plan",
     "taglineTrack": "Track",
-    "taglineAssess": "Assess",
+    "taglineAssess": "Develop",
     "premiumTagline": "Professional Soccer Coaching",
     "description": "Soccer Tactics and Timer App for Coaches",
     "createNewGame": "Create New Game",

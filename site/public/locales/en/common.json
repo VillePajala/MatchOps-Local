@@ -365,7 +365,7 @@
     "solution": {
       "title": "The solution:",
       "oneApp": "One app.",
-      "planTrackAssess": "Plan. Track. Assess."
+      "planTrackAssess": "Plan. Track. Develop."
     },
     "features": {
       "plan": {
@@ -462,7 +462,7 @@
       "interactiveSoccerField": "Interactive Soccer Field",
       "liveGameTimerEvents": "Live Game Timer & Events",
       "playerTeamStatistics": "Player & Team Statistics",
-      "planTrackAssessDots": "Plan • Track • Assess",
+      "planTrackAssessDots": "Plan • Track • Develop",
       "getStarted": "Get Started",
       "replaceClipboard": "Replace clipboard, stopwatch, and notebook with one app."
     },

@@ -347,7 +347,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== PLAN • TRACK • ASSESS ===== */}
+      {/* ===== PLAN • TRACK • DEVELOP ===== */}
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">

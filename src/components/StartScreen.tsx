@@ -127,7 +127,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
             {/* Tagline */}
             <p className="text-lg text-slate-400">
-              {t('startScreen.tagline', 'Plan · Track · Assess')}
+              {t('startScreen.tagline', 'Plan · Track · Develop')}
             </p>
           </div>
 
