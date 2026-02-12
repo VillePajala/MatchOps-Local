@@ -179,13 +179,9 @@ export default function HomePage() {
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
               <span className="text-primary">MatchOps</span>
             </h1>
-            <p className="text-xl md:text-2xl lg:text-3xl text-white mb-4">
+            <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
               {t('marketing.taglines.power')}
             </p>
-            <p className="inline-block px-4 py-1.5 rounded-full text-sm font-semibold bg-primary/15 text-primary border border-primary/30 mb-8">
-              {t('marketing.badges.cloudSync')}
-            </p>
-
             {/* ===== 5-PHONE SHOWCASE ===== */}
             {/* Mobile: swipeable carousel */}
             <div className="md:hidden -mx-4 relative">
@@ -330,12 +326,33 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ===== COMPACT CTA (near hero) ===== */}
+      <section className="py-8 md:py-10 bg-slate-900 border-t border-slate-800">
+        <div className="container-custom">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <p className="text-slate-300 text-sm md:text-base">
+              {t('info.cta.subtitle')}
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <Image
+                src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
+                alt={t('info.cta.googlePlayAlt')}
+                width={688}
+                height={140}
+                className="w-32 md:w-36 h-auto opacity-80"
+              />
+              <a href="mailto:hello@match-ops.com" className="text-slate-400 text-sm hover:text-primary transition-colors">hello@match-ops.com</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== PLAN • TRACK • ASSESS ===== */}
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
-              {isEnglish ? 'Plan • Track • Assess' : 'Suunnittele • Seuraa • Arvioi'}
+              {isEnglish ? 'Plan • Track • Assess' : 'Suunnittele • Kirjaa • Arvioi'}
             </h2>
             <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
               {t('info.whatIsThis.description')}
@@ -359,7 +376,7 @@ export default function HomePage() {
                   <PhoneMockup screenshot={screenshots.timer} size="lg" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
-                  {isEnglish ? 'Track' : 'Seuraa'}
+                  {isEnglish ? 'Track' : 'Kirjaa'}
                 </h3>
                 <p className="text-slate-300">
                   {t('marketing.features.track.desc')}
@@ -431,8 +448,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== TECH STATS ===== */}
-      <section className="section section-divider bg-slate-800/50">
+      {/* ===== TECH STATS (hidden — not relevant to coaches) ===== */}
+      <section className="section section-divider bg-slate-800/50 hidden">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
