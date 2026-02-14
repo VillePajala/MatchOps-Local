@@ -305,9 +305,9 @@
       "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
     },
     "cta": {
-      "title": "Now in Closed Testing on Google Play",
-      "subtitle": "Want to join the testing group? Get in touch.",
-      "button": "Contact Us",
+      "title": "Try the app",
+      "subtitle": "Interested in trying it out? Drop me a message and I'll add you to the testing group.",
+      "button": "Contact",
       "googlePlayAlt": "Google Play"
     }
   },
