@@ -3111,7 +3111,7 @@ export class SupabaseDataStore implements DataStore {
       tournamentSeriesId: game.tournament_series_id ?? '',
       tournamentLevel: game.tournament_level ?? '',
       teamId: game.team_id ?? '',
-      gameTime: game.game_time ?? '',
+      gameTime: game.game_time ? game.game_time.substring(0, 5) : '', // PostgreSQL time returns HH:MM:SS, app uses HH:MM
       gameLocation: game.game_location ?? '',
       ageGroup: game.age_group ?? '',
       leagueId: game.league_id ?? '',
