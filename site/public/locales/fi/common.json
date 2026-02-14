@@ -286,8 +286,8 @@
       "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa."
     },
     "cta": {
-      "title": "Nyt suljetussa testauksessa Google Playssa",
-      "subtitle": "Haluatko mukaan testausryhmään? Ota yhteyttä.",
+      "title": "Kokeile sovellusta",
+      "subtitle": "Kiinnostaako kokeilla? Laita viestiä niin lisään sinut testausryhmään.",
       "button": "Ota yhteyttä",
       "googlePlayAlt": "Google Play"
     }
