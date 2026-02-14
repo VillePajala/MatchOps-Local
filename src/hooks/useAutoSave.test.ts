@@ -610,6 +610,77 @@ describe('useAutoSave', () => {
     });
 
     /**
+     * REGRESSION TEST: Debounce timers must survive unrelated re-renders.
+     *
+     * Before the fix, inline state group objects (new reference every render)
+     * were used as effect dependencies. This caused the effect cleanup to cancel
+     * debounce timers on EVERY re-render — even when the debounced content hadn't
+     * changed. During gameplay, SET_TIMER_ELAPSED dispatches every second, causing
+     * re-renders that would always cancel the 2000ms long-delay timer before it fired.
+     *
+     * The fix: serialize state groups during render and use the serialized STRING
+     * (a stable primitive) as the effect dependency instead of the object reference.
+     *
+     * @critical
+     * @regression P0 fix for player position persistence bug
+     */
+    it('should NOT cancel long-delay timer when only immediate-tier state changes (simulates timer ticks)', () => {
+      const { rerender } = renderHook(
+        ({ timeElapsed, playersOnField }) =>
+          useAutoSave({
+            immediate: {
+              states: { timeElapsed },
+              delay: 0,
+            },
+            long: {
+              states: { playersOnField },
+              delay: 2000,
+            },
+            saveFunction: mockSaveFunction,
+            enabled: true,
+            currentGameId: 'test-game-1',
+          }),
+        {
+          initialProps: { timeElapsed: 0, playersOnField: [] as Player[] },
+        }
+      );
+
+      // 1. Change player positions (starts 2000ms debounce timer)
+      act(() => {
+        rerender({
+          timeElapsed: 0,
+          playersOnField: [createPlayer('1', 'Player 1', 0.3, 0.7)],
+        });
+      });
+
+      // Immediate tier saved (timeElapsed didn't change, but playersOnField did → no immediate save)
+      // Only the long-delay timer should be running
+      expect(mockSaveFunction).not.toHaveBeenCalled();
+
+      // 2. Simulate timer ticks (every second) — these change ONLY the immediate tier
+      //    Before the fix, each rerender would cancel the long-delay timer
+      for (let second = 1; second <= 3; second++) {
+        act(() => {
+          jest.advanceTimersByTime(1000);
+        });
+        act(() => {
+          rerender({
+            timeElapsed: second,
+            playersOnField: [createPlayer('1', 'Player 1', 0.3, 0.7)], // UNCHANGED
+          });
+        });
+      }
+
+      // The immediate tier should have saved 3 times (once per tick)
+      // The long-delay timer (2000ms) should have fired by now (3 seconds passed)
+      // Total: 3 immediate + 1 long = 4 saves
+      //
+      // BEFORE FIX: Only 3 saves (immediate saves only — long timer always cancelled)
+      // AFTER FIX: 4 saves (3 immediate + 1 long)
+      expect(mockSaveFunction).toHaveBeenCalledTimes(4);
+    });
+
+    /**
      * Regression test for stale closure fix
      *
      * The hook uses saveFunctionRef to prevent stale closures. This test

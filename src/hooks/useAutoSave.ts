@@ -85,12 +85,34 @@ interface UseAutoSaveConfig {
 }
 
 /**
+ * Serializes state for deep equality comparison via JSON.stringify.
+ * Extracted outside the hook to avoid re-creation on every render.
+ *
+ * @param states - State object to serialize
+ * @returns Serialized JSON string, or null if serialization fails
+ */
+const serializeStates = (states: Record<string, unknown> | undefined): string | null => {
+  if (!states) return null;
+  try {
+    return JSON.stringify(states);
+  } catch (error) {
+    logger.error('[useAutoSave] Failed to serialize states:', error);
+    return null;
+  }
+};
+
+/**
  * Smart auto-save hook with tiered debouncing
  *
  * Different state changes trigger saves with different delays:
  * - immediate: Critical data (goals, scores) - saves instantly
  * - short: User-visible metadata (names, notes) - 500ms delay
  * - long: Tactical data (positions, drawings) - 2000ms delay
+ *
+ * IMPORTANT: Change detection uses serialized content (string comparison),
+ * NOT object reference identity. This ensures debounce timers survive
+ * unrelated re-renders (e.g., timer ticks that update gameSessionState
+ * every second don't cancel the 2000ms position-save debounce).
  *
  * @example
  * useAutoSave({
@@ -119,20 +141,17 @@ export const useAutoSave = ({
   enabled,
   currentGameId,
 }: UseAutoSaveConfig): void => {
-  // Track previous values for each state group
+  // Track previous serialized values for content-based change detection
   const prevImmediateRef = useRef<string | null>(null);
   const prevShortRef = useRef<string | null>(null);
   const prevLongRef = useRef<string | null>(null);
 
-  // Debounce timers for each group
+  // Debounce timers for short and long tiers
   const shortTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Ref to store the latest saveFunction to prevent stale closures
-  // This ensures we always call the latest version even if it changes during debounce
+  // Always-current refs to prevent stale closures in timer callbacks
   const saveFunctionRef = useRef(saveFunction);
-
-  // Ref for enabled state — checked at fire time to avoid saving while disabled
   const enabledRef = useRef(enabled);
 
   // Update refs when values change (doesn't trigger effect re-runs)
@@ -144,54 +163,57 @@ export const useAutoSave = ({
     enabledRef.current = enabled;
   }, [enabled]);
 
-  /**
-   * Serializes state for deep equality comparison via JSON.stringify
-   *
-   * Typical state sizes per tier:
-   * - Immediate: ~5KB (30 game events + scores)
-   * - Short: ~10KB (team names + 15 player assessments)
-   * - Long: ~5KB (15 field positions + tactical drawings)
-   *
-   * Performance: JSON.stringify on 20KB is ~0.1-0.5ms (acceptable)
-   *
-   * Note: Only current game state is serialized, NOT entire database.
-   * The 100+ players and 50+ saved games live in IndexedDB, not here.
-   *
-   * @param states - State object to serialize
-   * @returns Serialized JSON string, or null if serialization fails
-   * @throws Circular reference errors (caught and logged)
-   */
-  const serializeStates = (states: Record<string, unknown> | undefined): string | null => {
-    if (!states) return null;
-    try {
-      return JSON.stringify(states);
-    } catch (error) {
-      logger.error('[useAutoSave] Failed to serialize states:', error);
-      return null;
+  // --- Serialize state groups during render ---
+  // These produce STABLE PRIMITIVE STRINGS that only change when content changes,
+  // unlike the inline state group objects which are new references on every render.
+  // Using these as effect dependencies ensures debounce timers are NOT cancelled
+  // by unrelated re-renders (e.g., timer ticks updating gameSessionState).
+  //
+  // Typical sizes: ~5KB immediate, ~10KB short, ~5KB long = ~0.5ms total
+  const immediateSerialized = serializeStates(immediate?.states);
+  const shortSerialized = serializeStates(short?.states);
+  const longSerialized = serializeStates(long?.states);
+
+  // Extract delays as primitives for stable effect dependencies
+  const shortDelay = short?.delay ?? 500;
+  const longDelay = long?.delay ?? 2000;
+
+  // --- Reset change detection on game switch ---
+  // Must be declared BEFORE tier effects so it runs first in the effect queue.
+  // This prevents false change detection when loading a new game (old prev vs new content).
+  useEffect(() => {
+    prevImmediateRef.current = null;
+    prevShortRef.current = null;
+    prevLongRef.current = null;
+    if (shortTimerRef.current) { clearTimeout(shortTimerRef.current); shortTimerRef.current = null; }
+    if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
+  }, [currentGameId]);
+
+  // --- Cancel pending saves when disabled ---
+  useEffect(() => {
+    if (!enabled) {
+      if (shortTimerRef.current) { clearTimeout(shortTimerRef.current); shortTimerRef.current = null; }
+      if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
     }
-  };
+  }, [enabled]);
 
   // --- Immediate Save (0ms delay) ---
+  // Depends on immediateSerialized (string), not the immediate object.
+  // Effect only re-runs when the serialized CONTENT changes, not on every re-render.
   useEffect(() => {
-    if (!enabled || !immediate) return;
-
-    const currentSerialized = serializeStates(immediate.states);
-    if (currentSerialized === null) return;
+    if (!enabled || immediateSerialized === null) return;
 
     let cancelled = false;
 
-    // Check if states changed
-    if (prevImmediateRef.current !== null && prevImmediateRef.current !== currentSerialized) {
+    // Detect content change (skip first render — prevRef is null)
+    if (prevImmediateRef.current !== null && prevImmediateRef.current !== immediateSerialized) {
       logger.debug(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
 
-      // Use async IIFE since useEffect callbacks can't be async
-      // Retry transient errors with exponential backoff
       (async () => {
         try {
           await saveWithRetry(saveFunctionRef.current, 3, 'immediate', () => cancelled);
         } catch (error) {
-          if (cancelled) return; // Unmounted or deps changed — discard
-          // All retries failed or error was not transient
+          if (cancelled) return;
           logger.error('[useAutoSave] Save failed after retries (immediate):', error);
           try {
             Sentry.captureException(error, {
@@ -201,116 +223,109 @@ export const useAutoSave = ({
           } catch {
             // Sentry failure must not affect auto-save error handling
           }
-          // Don't re-throw - let app continue running
         }
       })();
     }
 
-    prevImmediateRef.current = currentSerialized;
+    prevImmediateRef.current = immediateSerialized;
     return () => { cancelled = true; };
-  }, [enabled, immediate, currentGameId]);
+  }, [enabled, immediateSerialized, currentGameId]);
 
   // --- Short Delay Save (500ms) ---
+  // Depends on shortSerialized (string), not the short object.
+  // The debounce timer survives unrelated re-renders because shortSerialized
+  // only changes when the short-tier content actually changes.
   useEffect(() => {
-    if (!enabled || !short) return;
-
-    const currentSerialized = serializeStates(short.states);
-    if (currentSerialized === null) return;
+    if (!enabled || shortSerialized === null) return;
 
     let cancelled = false;
 
-    // Check if states changed
-    if (prevShortRef.current !== null && prevShortRef.current !== currentSerialized) {
-      // Clear existing timer
+    // Detect content change
+    if (prevShortRef.current !== null && prevShortRef.current !== shortSerialized) {
+      // Content changed — restart debounce
       if (shortTimerRef.current) {
         clearTimeout(shortTimerRef.current);
       }
 
-      // Set new debounced timer
       shortTimerRef.current = setTimeout(async () => {
-        // Check enabledRef (not closure) at fire time to avoid saving while temporarily disabled
         if (enabledRef.current && !cancelled) {
           logger.debug(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
 
-          // Retry transient errors with exponential backoff
           try {
             await saveWithRetry(saveFunctionRef.current, 3, 'short-delay', () => cancelled);
           } catch (error) {
             if (cancelled) return;
-            // All retries failed or error was not transient
             logger.error('[useAutoSave] Save failed after retries (short-delay):', error);
             try {
               Sentry.captureException(error, {
                 tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
-                extra: { trigger: 'short_delay_state_change', delay: short.delay, retriesFailed: true },
+                extra: { trigger: 'short_delay_state_change', delay: shortDelay, retriesFailed: true },
               });
             } catch {
               // Sentry failure must not affect auto-save error handling
             }
-            // Don't re-throw - let app continue running
           }
         } else {
-          logger.debug('[useAutoSave] Short-delay skipped: disabled at fire time');
+          logger.debug('[useAutoSave] Short-delay skipped: disabled or cancelled at fire time');
         }
-      }, short.delay);
+      }, shortDelay);
     }
 
-    prevShortRef.current = currentSerialized;
+    prevShortRef.current = shortSerialized;
 
     return () => {
       cancelled = true;
+      // Cancel timer on content change (effect re-runs with new content).
+      // Timer is NOT cancelled by unrelated re-renders because this effect
+      // only re-runs when shortSerialized actually changes.
       if (shortTimerRef.current) {
         clearTimeout(shortTimerRef.current);
       }
     };
-  }, [enabled, short, currentGameId]);
+  }, [enabled, shortSerialized, shortDelay, currentGameId]);
 
   // --- Long Delay Save (2000ms) ---
+  // Depends on longSerialized (string), not the long object.
+  // This is the critical fix for player position persistence: the 2000ms debounce
+  // timer now survives the every-second re-renders caused by SET_TIMER_ELAPSED,
+  // because longSerialized doesn't change when only timer-related state changes.
   useEffect(() => {
-    if (!enabled || !long) return;
-
-    const currentSerialized = serializeStates(long.states);
-    if (currentSerialized === null) return;
+    if (!enabled || longSerialized === null) return;
 
     let cancelled = false;
 
-    // Check if states changed
-    if (prevLongRef.current !== null && prevLongRef.current !== currentSerialized) {
-      // Clear existing timer
+    // Detect content change
+    if (prevLongRef.current !== null && prevLongRef.current !== longSerialized) {
+      // Content changed — restart debounce
       if (longTimerRef.current) {
         clearTimeout(longTimerRef.current);
       }
 
-      // Set new debounced timer
       longTimerRef.current = setTimeout(async () => {
-        // Check enabledRef (not closure) at fire time to avoid saving while temporarily disabled
         if (enabledRef.current && !cancelled) {
           logger.debug(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
 
-          // Retry transient errors with exponential backoff
           try {
             await saveWithRetry(saveFunctionRef.current, 3, 'long-delay', () => cancelled);
           } catch (error) {
             if (cancelled) return;
-            // All retries failed or error was not transient
             logger.error('[useAutoSave] Save failed after retries (long-delay):', error);
             try {
               Sentry.captureException(error, {
                 tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
-                extra: { trigger: 'long_delay_state_change', delay: long.delay, retriesFailed: true },
+                extra: { trigger: 'long_delay_state_change', delay: longDelay, retriesFailed: true },
               });
             } catch {
               // Sentry failure must not affect auto-save error handling
             }
-            // Don't re-throw - let app continue running
           }
         } else {
-          logger.debug('[useAutoSave] Long-delay skipped: disabled at fire time');
+          logger.debug('[useAutoSave] Long-delay skipped: disabled or cancelled at fire time');
         }
-      }, long.delay);
+      }, longDelay);
     }
 
-    prevLongRef.current = currentSerialized;
+    prevLongRef.current = longSerialized;
 
     return () => {
       cancelled = true;
@@ -318,7 +333,7 @@ export const useAutoSave = ({
         clearTimeout(longTimerRef.current);
       }
     };
-  }, [enabled, long, currentGameId]);
+  }, [enabled, longSerialized, longDelay, currentGameId]);
 
   // --- Cleanup on unmount ---
   useEffect(() => {
@@ -331,18 +346,4 @@ export const useAutoSave = ({
       }
     };
   }, []);
-
-  // --- Cancel any pending saves when disabled (e.g., when a modal opens) ---
-  useEffect(() => {
-    if (!enabled) {
-      if (shortTimerRef.current) {
-        clearTimeout(shortTimerRef.current);
-        shortTimerRef.current = null;
-      }
-      if (longTimerRef.current) {
-        clearTimeout(longTimerRef.current);
-        longTimerRef.current = null;
-      }
-    }
-  }, [enabled]);
 };
