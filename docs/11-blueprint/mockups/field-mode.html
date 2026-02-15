@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Practice — Field Mode (During Practice)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --indigo: #6366f1;
+    --indigo-dark: #4f46e5;
+    --indigo-glow: rgba(99, 102, 241, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --green-pitch: #1a4d2e;
+    --green-line: rgba(255,255,255,0.25);
+    --station-a: #818cf8;
+    --station-b: #34d399;
+    --station-c: #fb923c;
+    --now-glow: rgba(99, 102, 241, 0.25);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ======= FIELD MODE WRAPPER ======= */
+  .field-mode {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ======= TOP STATUS BAR ======= */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .status-bar__team {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--text);
+  }
+
+  .status-bar__theme {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .status-bar__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .attendance-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .attendance-btn__count {
+    color: #4ade80;
+  }
+
+  /* ======= PROGRESS TIMELINE ======= */
+  .progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 16px;
+    height: 32px;
+    background: rgba(30, 41, 59, 0.6);
+    flex-shrink: 0;
+  }
+
+  .progress-segment {
+    height: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .progress-segment--done {
+    background: var(--indigo);
+  }
+
+  .progress-segment--active {
+    background: var(--indigo);
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+  }
+
+  .progress-segment--upcoming {
+    background: var(--border);
+  }
+
+  .progress-gap {
+    width: 3px;
+    flex-shrink: 0;
+  }
+
+  .progress-time {
+    margin-left: auto;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    padding-left: 10px;
+  }
+
+  .progress-time span {
+    color: var(--text);
+  }
+
+  /* ======= "NOW" INDICATOR ======= */
+  .now-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 4px;
+    flex-shrink: 0;
+  }
+
+  .now-label__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--indigo);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+  }
+
+  .now-label__text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #a5b4fc;
+  }
+
+  .now-label__phase {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  /* ======= STATION GRID (current activity) ======= */
+  .station-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 6px 12px;
+    flex-shrink: 0;
+  }
+
+  .station-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .station-cell:active { transform: scale(0.97); }
+
+  .station-cell::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+
+  .station-cell--a::before { background: var(--station-a); }
+  .station-cell--b::before { background: var(--station-b); }
+  .station-cell--c::before { background: var(--station-c); }
+
+  .station-cell__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .station-cell__tag {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .station-cell--a .station-cell__tag { color: var(--station-a); }
+  .station-cell--b .station-cell__tag { color: var(--station-b); }
+  .station-cell--c .station-cell__tag { color: var(--station-c); }
+
+  .station-cell__coach {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .station-cell__diagram {
+    width: 100%;
+    aspect-ratio: 4/3;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .station-cell__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .station-cell__duration {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  /* Rotation info */
+  .rotation-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    flex-shrink: 0;
+  }
+
+  .rotation-info__text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .rotation-badge {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--indigo-glow);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+  }
+
+  /* ======= UPCOMING / DONE LIST ======= */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 6px;
+  }
+
+  .section-divider__label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+
+  .section-divider__line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .upcoming-list {
+    padding: 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .upcoming-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .upcoming-item--done {
+    opacity: 0.45;
+  }
+
+  .upcoming-item__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .upcoming-item__icon--done {
+    background: rgba(74, 222, 128, 0.1);
+  }
+
+  .upcoming-item__icon--break {
+    background: rgba(148, 163, 184, 0.1);
+  }
+
+  .upcoming-item__icon--main {
+    background: var(--indigo-glow);
+  }
+
+  .upcoming-item__icon--cooldown {
+    background: rgba(148, 163, 184, 0.08);
+  }
+
+  .upcoming-item__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .upcoming-item__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .upcoming-item--done .upcoming-item__name {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+  }
+
+  .upcoming-item__phase {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .upcoming-item__duration {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  /* ======= EXPANDED EXERCISE OVERLAY ======= */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.92);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .overlay--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .overlay__sheet {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    max-height: 85vh;
+    overflow-y: auto;
+    transform: translateY(20px);
+    transition: transform 0.25s ease-out;
+  }
+
+  .overlay--visible .overlay__sheet {
+    transform: translateY(0);
+  }
+
+  .overlay__handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+    margin: 10px auto 0;
+  }
+
+  .overlay__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .overlay__station-tag {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(129, 140, 248, 0.15);
+    color: var(--station-a);
+  }
+
+  .overlay__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--text);
+  }
+
+  .overlay__coach {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .overlay__diagram {
+    width: 100%;
+    aspect-ratio: 4/3;
+    display: block;
+  }
+
+  .overlay__section {
+    padding: 16px 20px;
+  }
+
+  .overlay__section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .overlay__point {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+    align-items: flex-start;
+  }
+
+  .overlay__point-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--indigo-glow);
+    color: #a5b4fc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .overlay__point-text {
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.45;
+  }
+
+  .overlay__close-area {
+    position: absolute;
+    inset: 0;
+    bottom: auto;
+    height: 15vh;
+  }
+
+  /* Note input */
+  .note-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 20px;
+  }
+
+  .note-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .note-input::placeholder { color: var(--text-muted); }
+  .note-input:focus { border-color: var(--indigo); }
+
+  .note-send {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: var(--indigo);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Bottom spacer */
+  .bottom-spacer { height: 24px; }
+
+  .field-svg { width: 100%; height: 100%; display: block; }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .status-bar { animation: fadeUp 0.2s ease-out; }
+  .station-grid { animation: fadeUp 0.25s ease-out 0.05s both; }
+  .upcoming-list { animation: fadeUp 0.25s ease-out 0.1s both; }
+</style>
+</head>
+<body>
+
+<div class="field-mode">
+
+  <!-- Status bar: minimal info -->
+  <div class="status-bar">
+    <div>
+      <div class="status-bar__team">U12 Tuesday Training</div>
+      <div class="status-bar__theme">Passing under pressure</div>
+    </div>
+    <div class="status-bar__right">
+      <button class="attendance-btn" onclick="document.getElementById('overlay').classList.remove('overlay--visible')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM3 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="attendance-btn__count">14</span>/16
+      </button>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-bar">
+    <div class="progress-segment progress-segment--done" style="flex:10"></div>
+    <div class="progress-gap"></div>
+    <div class="progress-segment progress-segment--done" style="flex:10"></div>
+    <div class="progress-gap"></div>
+    <div class="progress-segment progress-segment--active" style="flex:36"></div>
+    <div class="progress-gap"></div>
+    <div class="progress-segment progress-segment--upcoming" style="flex:5"></div>
+    <div class="progress-gap"></div>
+    <div class="progress-segment progress-segment--upcoming" style="flex:20"></div>
+    <div class="progress-gap"></div>
+    <div class="progress-segment progress-segment--upcoming" style="flex:10"></div>
+    <div class="progress-time"><span>30</span> / 91 min</div>
+  </div>
+
+  <!-- "NOW" indicator -->
+  <div class="now-label">
+    <div class="now-label__dot"></div>
+    <span class="now-label__text">Now — Stations</span>
+    <span class="now-label__phase">Rotation 2 of 3</span>
+  </div>
+
+  <!-- Station grid: the main content during stations -->
+  <div class="station-grid">
+
+    <!-- Station A -->
+    <div class="station-cell station-cell--a" onclick="showOverlay()">
+      <div class="station-cell__header">
+        <span class="station-cell__tag">A</span>
+        <span class="station-cell__coach">Ville</span>
+      </div>
+      <div class="station-cell__diagram">
+        <svg class="field-svg" viewBox="0 0 120 90">
+          <rect width="120" height="90" fill="#1a4d2e" rx="6"/>
+          <rect x="4" y="4" width="112" height="82" rx="3" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+          <polygon points="18,18 20,14 22,18" fill="#fb923c"/>
+          <polygon points="98,18 100,14 102,18" fill="#fb923c"/>
+          <polygon points="18,72 20,68 22,72" fill="#fb923c"/>
+          <polygon points="98,72 100,68 102,72" fill="#fb923c"/>
+          <circle cx="30" cy="28" r="7" fill="#60a5fa"/>
+          <circle cx="90" cy="28" r="7" fill="#60a5fa"/>
+          <circle cx="30" cy="62" r="7" fill="#60a5fa"/>
+          <circle cx="90" cy="62" r="7" fill="#60a5fa"/>
+          <circle cx="52" cy="42" r="7" fill="#f87171"/>
+          <circle cx="68" cy="50" r="7" fill="#f87171"/>
+          <line x1="37" y1="28" x2="83" y2="28" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="station-cell__name">Rondo 4v2</div>
+      <div class="station-cell__duration">12 min</div>
+    </div>
+
+    <!-- Station B -->
+    <div class="station-cell station-cell--b">
+      <div class="station-cell__header">
+        <span class="station-cell__tag">B</span>
+        <span class="station-cell__coach">Mikko</span>
+      </div>
+      <div class="station-cell__diagram">
+        <svg class="field-svg" viewBox="0 0 120 90">
+          <rect width="120" height="90" fill="#1a4d2e" rx="6"/>
+          <rect x="4" y="4" width="112" height="82" rx="3" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+          <polygon points="59,14 60,10 61,14" fill="#fb923c"/>
+          <polygon points="24,72 25,68 26,72" fill="#fb923c"/>
+          <polygon points="94,72 95,68 96,72" fill="#fb923c"/>
+          <circle cx="60" cy="22" r="7" fill="#60a5fa"/>
+          <circle cx="28" cy="68" r="7" fill="#60a5fa"/>
+          <circle cx="92" cy="68" r="7" fill="#60a5fa"/>
+          <line x1="56" y1="28" x2="32" y2="63" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+          <line x1="35" y1="68" x2="85" y2="68" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+          <line x1="88" y1="63" x2="64" y2="28" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="station-cell__name">Passing triangles</div>
+      <div class="station-cell__duration">12 min</div>
+    </div>
+
+    <!-- Station C -->
+    <div class="station-cell station-cell--c">
+      <div class="station-cell__header">
+        <span class="station-cell__tag">C</span>
+        <span class="station-cell__coach">Jari</span>
+      </div>
+      <div class="station-cell__diagram">
+        <svg class="field-svg" viewBox="0 0 120 90">
+          <rect width="120" height="90" fill="#1a4d2e" rx="6"/>
+          <rect x="4" y="4" width="112" height="82" rx="3" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+          <polygon points="34,18 36,14 38,18" fill="#fb923c"/>
+          <polygon points="54,34 56,30 58,34" fill="#fb923c"/>
+          <polygon points="34,50 36,46 38,50" fill="#fb923c"/>
+          <polygon points="54,66 56,62 58,66" fill="#fb923c"/>
+          <circle cx="28" cy="78" r="7" fill="#60a5fa"/>
+          <circle cx="92" cy="45" r="7" fill="#f87171"/>
+          <path d="M30,72 C38,62 32,52 40,42 C48,32 36,24 44,16" stroke="#60a5fa" stroke-width="1" fill="none" stroke-dasharray="2 2" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="station-cell__name">1v1 Dribbling</div>
+      <div class="station-cell__duration">12 min</div>
+    </div>
+
+  </div>
+
+  <!-- Rotation info -->
+  <div class="rotation-info">
+    <span class="rotation-info__text">Groups rotate every 12 min</span>
+    <span class="rotation-badge">Rotation 2 / 3</span>
+  </div>
+
+  <!-- Done -->
+  <div class="section-divider">
+    <span class="section-divider__label">Done</span>
+    <div class="section-divider__line"></div>
+  </div>
+  <div class="upcoming-list">
+    <div class="upcoming-item upcoming-item--done">
+      <div class="upcoming-item__icon upcoming-item__icon--done">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-6" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="upcoming-item__content">
+        <div class="upcoming-item__name">Jogging + stretching</div>
+        <div class="upcoming-item__phase">Warm-up · off-field</div>
+      </div>
+      <div class="upcoming-item__duration">10</div>
+    </div>
+    <div class="upcoming-item upcoming-item--done">
+      <div class="upcoming-item__icon upcoming-item__icon--done">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-6" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="upcoming-item__content">
+        <div class="upcoming-item__name">Ball mastery in pairs</div>
+        <div class="upcoming-item__phase">Warm-up</div>
+      </div>
+      <div class="upcoming-item__duration">10</div>
+    </div>
+  </div>
+
+  <!-- Up next -->
+  <div class="section-divider">
+    <span class="section-divider__label">Up next</span>
+    <div class="section-divider__line"></div>
+  </div>
+  <div class="upcoming-list">
+    <div class="upcoming-item">
+      <div class="upcoming-item__icon upcoming-item__icon--break">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 3h6v3a3 3 0 01-6 0V3z" stroke="#94a3b8" stroke-width="1.2"/><path d="M5 10h4" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="upcoming-item__content">
+        <div class="upcoming-item__name">Water break</div>
+        <div class="upcoming-item__phase">Break</div>
+      </div>
+      <div class="upcoming-item__duration">5</div>
+    </div>
+    <div class="upcoming-item">
+      <div class="upcoming-item__icon upcoming-item__icon--main">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="#a5b4fc" stroke-width="1.2"/></svg>
+      </div>
+      <div class="upcoming-item__content">
+        <div class="upcoming-item__name">7v7 match with passing rules</div>
+        <div class="upcoming-item__phase">Main</div>
+      </div>
+      <div class="upcoming-item__duration">20</div>
+    </div>
+    <div class="upcoming-item">
+      <div class="upcoming-item__icon upcoming-item__icon--cooldown">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M4 6l3-3 3 3M4 11l3-3 3 3" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="upcoming-item__content">
+        <div class="upcoming-item__name">Stretching + recap</div>
+        <div class="upcoming-item__phase">Cool-down · off-field</div>
+      </div>
+      <div class="upcoming-item__duration">10</div>
+    </div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+
+</div>
+
+<!-- ======= EXERCISE DETAIL OVERLAY ======= -->
+<div class="overlay" id="overlay">
+  <div class="overlay__close-area" onclick="hideOverlay()"></div>
+  <div class="overlay__sheet">
+    <div class="overlay__handle"></div>
+    <div class="overlay__header">
+      <span class="overlay__station-tag">Station A</span>
+      <span class="overlay__title">Rondo 4v2</span>
+      <span class="overlay__coach">Coach Ville</span>
+    </div>
+    <svg class="overlay__diagram" viewBox="0 0 400 300">
+      <rect width="400" height="300" fill="#1a4d2e"/>
+      <rect x="16" y="12" width="368" height="276" rx="4" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.8"/>
+      <!-- Cones -->
+      <polygon points="68,58 72,48 76,58" fill="#fb923c" stroke="#d97706" stroke-width="0.5"/>
+      <polygon points="324,58 328,48 332,58" fill="#fb923c" stroke="#d97706" stroke-width="0.5"/>
+      <polygon points="68,242 72,232 76,242" fill="#fb923c" stroke="#d97706" stroke-width="0.5"/>
+      <polygon points="324,242 328,232 332,242" fill="#fb923c" stroke="#d97706" stroke-width="0.5"/>
+      <!-- 4 Blue -->
+      <circle cx="100" cy="90" r="18" fill="#60a5fa" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <text x="100" y="96" text-anchor="middle" fill="white" font-size="14" font-weight="bold" font-family="Rajdhani">A1</text>
+      <circle cx="300" cy="90" r="18" fill="#60a5fa" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <text x="300" y="96" text-anchor="middle" fill="white" font-size="14" font-weight="bold" font-family="Rajdhani">A2</text>
+      <circle cx="100" cy="210" r="18" fill="#60a5fa" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <text x="100" y="216" text-anchor="middle" fill="white" font-size="14" font-weight="bold" font-family="Rajdhani">A3</text>
+      <circle cx="300" cy="210" r="18" fill="#60a5fa" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <text x="300" y="216" text-anchor="middle" fill="white" font-size="14" font-weight="bold" font-family="Rajdhani">A4</text>
+      <!-- 2 Red -->
+      <circle cx="175" cy="138" r="18" fill="#f87171" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <text x="175" y="144" text-anchor="middle" fill="white" font-size="14" font-weight="bold" font-family="Rajdhani">D1</text>
+      <circle cx="235" cy="168" r="18" fill="#f87171" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <text x="235" y="174" text-anchor="middle" fill="white" font-size="14" font-weight="bold" font-family="Rajdhani">D2</text>
+      <!-- Passes -->
+      <defs><marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="white"/></marker></defs>
+      <line x1="118" y1="90" x2="280" y2="90" stroke="white" stroke-width="1.5" stroke-dasharray="8 4" marker-end="url(#arr)" opacity="0.6"/>
+      <line x1="118" y1="210" x2="280" y2="210" stroke="white" stroke-width="1.5" stroke-dasharray="8 4" marker-end="url(#arr)" opacity="0.6"/>
+      <!-- Ball -->
+      <circle cx="200" cy="120" r="9" fill="white"/>
+    </svg>
+    <div class="overlay__section">
+      <div class="overlay__section-title">Coaching points</div>
+      <div class="overlay__point">
+        <span class="overlay__point-num">1</span>
+        <span class="overlay__point-text">Body shape — open up to receive, side-on to the play</span>
+      </div>
+      <div class="overlay__point">
+        <span class="overlay__point-num">2</span>
+        <span class="overlay__point-text">Play away from pressure — find the free player</span>
+      </div>
+      <div class="overlay__point">
+        <span class="overlay__point-num">3</span>
+        <span class="overlay__point-text">Defenders: work as a pair, cut passing lanes</span>
+      </div>
+    </div>
+    <div class="note-input-row">
+      <input type="text" class="note-input" placeholder="Add a quick note...">
+      <button class="note-send">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 2L7 9M14 2l-5 12-2-5-5-2 12-5z" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showOverlay() {
+    document.getElementById('overlay').classList.add('overlay--visible');
+  }
+  function hideOverlay() {
+    document.getElementById('overlay').classList.remove('overlay--visible');
+  }
+</script>
+
+</body>
+</html>

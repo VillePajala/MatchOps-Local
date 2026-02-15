@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Practice — Exercise Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --indigo: #6366f1;
+    --indigo-dark: #4f46e5;
+    --indigo-glow: rgba(99, 102, 241, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --green-pitch: #1a4d2e;
+    --blue-player: #60a5fa;
+    --red-player: #f87171;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 80px;
+  }
+
+  /* Search bar */
+  .search-area {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    padding: 12px 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    margin-bottom: 10px;
+    transition: border-color 0.15s;
+  }
+
+  .search-bar:focus-within {
+    border-color: var(--indigo);
+  }
+
+  .search-bar__icon {
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-bar__input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+  }
+
+  .search-bar__input::placeholder { color: var(--text-muted); }
+
+  .search-bar__count {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* Filter chips */
+  .filter-chips {
+    display: flex;
+    gap: 6px;
+    padding-bottom: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .filter-chips::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+  }
+
+  .filter-chip:hover {
+    background: rgba(255,255,255,0.03);
+  }
+
+  .filter-chip--active {
+    background: var(--indigo);
+    border-color: var(--indigo);
+    color: white;
+  }
+
+  .filter-chip__count {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  /* Exercise grid */
+  .exercise-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+
+  /* Exercise card */
+  .exercise-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    position: relative;
+  }
+
+  .exercise-card:hover {
+    border-color: var(--border-light);
+    transform: translateY(-1px);
+  }
+
+  .exercise-card:active {
+    transform: scale(0.98);
+  }
+
+  /* Favorite star */
+  .exercise-card__fav {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.7);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s;
+  }
+
+  .exercise-card__fav:active { transform: scale(0.85); }
+
+  .exercise-card__fav--active svg {
+    fill: var(--amber);
+    stroke: var(--amber);
+  }
+
+  /* Diagram thumbnail */
+  .exercise-card__diagram {
+    width: 100%;
+    aspect-ratio: 4/3;
+    display: block;
+  }
+
+  /* Card body */
+  .exercise-card__body {
+    padding: 10px 12px 12px;
+  }
+
+  .exercise-card__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .exercise-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .card-badge {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1.3;
+  }
+
+  .card-badge--rondo {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+  }
+
+  .card-badge--technical {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+  }
+
+  /* Card meta row */
+  .exercise-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .intensity-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .intensity-dot--low { background: #4ade80; }
+  .intensity-dot--med { background: #fbbf24; }
+  .intensity-dot--high { background: #f87171; }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: 76px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    border: none;
+    background: var(--indigo);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 100;
+  }
+
+  .fab:active { transform: scale(0.9); }
+  .fab:hover { box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 6px 0 env(safe-area-inset-bottom, 8px);
+    z-index: 100;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.15s;
+    text-decoration: none;
+  }
+
+  .nav-item--active {
+    color: var(--indigo);
+  }
+
+  .nav-item__label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-item--active .nav-item__label {
+    color: var(--indigo);
+  }
+
+  /* SVG styles */
+  .field-svg { width: 100%; height: 100%; display: block; }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .exercise-card:nth-child(1) { animation: fadeIn 0.2s ease-out 0.0s both; }
+  .exercise-card:nth-child(2) { animation: fadeIn 0.2s ease-out 0.04s both; }
+  .exercise-card:nth-child(3) { animation: fadeIn 0.2s ease-out 0.08s both; }
+  .exercise-card:nth-child(4) { animation: fadeIn 0.2s ease-out 0.12s both; }
+  .exercise-card:nth-child(5) { animation: fadeIn 0.2s ease-out 0.16s both; }
+  .exercise-card:nth-child(6) { animation: fadeIn 0.2s ease-out 0.2s both; }
+
+  @media (min-width: 480px) {
+    .exercise-grid { max-width: 480px; margin: 0 auto; }
+    .search-area { max-width: 480px; margin: 0 auto; border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Search area -->
+<div class="search-area">
+  <div class="search-bar">
+    <svg class="search-bar__icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M12.5 12.5L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <input type="text" class="search-bar__input" placeholder="Search exercises...">
+    <span class="search-bar__count">6 results</span>
+  </div>
+  <div class="filter-chips">
+    <button class="filter-chip">All <span class="filter-chip__count">34</span></button>
+    <button class="filter-chip">Warmup <span class="filter-chip__count">5</span></button>
+    <button class="filter-chip">Technical <span class="filter-chip__count">8</span></button>
+    <button class="filter-chip">Tactical <span class="filter-chip__count">4</span></button>
+    <button class="filter-chip filter-chip--active">Rondo <span class="filter-chip__count">6</span></button>
+    <button class="filter-chip">SSG <span class="filter-chip__count">7</span></button>
+    <button class="filter-chip">Cooldown <span class="filter-chip__count">4</span></button>
+  </div>
+</div>
+
+<!-- Exercise grid -->
+<div class="exercise-grid">
+
+  <!-- Card 1: Rondo 4v2 (favorited) -->
+  <div class="exercise-card">
+    <button class="exercise-card__fav exercise-card__fav--active">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--text-muted)" stroke-width="1.2">
+        <path d="M7 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.57l-3.52 1.78.67-3.93L1.3 5.64l3.94-.57L7 1.5z"/>
+      </svg>
+    </button>
+    <svg class="exercise-card__diagram" viewBox="0 0 160 120">
+      <rect width="160" height="120" fill="#1a4d2e"/>
+      <rect x="6" y="6" width="148" height="108" rx="3" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+      <!-- Cones -->
+      <polygon points="28,24 30,20 32,24" fill="#fb923c"/><polygon points="128,24 130,20 132,24" fill="#fb923c"/>
+      <polygon points="28,96 30,92 32,96" fill="#fb923c"/><polygon points="128,96 130,92 132,96" fill="#fb923c"/>
+      <!-- 4 blue -->
+      <circle cx="40" cy="35" r="8" fill="#60a5fa"/><circle cx="120" cy="35" r="8" fill="#60a5fa"/>
+      <circle cx="40" cy="85" r="8" fill="#60a5fa"/><circle cx="120" cy="85" r="8" fill="#60a5fa"/>
+      <!-- 2 red -->
+      <circle cx="68" cy="55" r="8" fill="#f87171"/><circle cx="92" cy="65" r="8" fill="#f87171"/>
+      <!-- Pass arrows -->
+      <line x1="48" y1="35" x2="112" y2="35" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+      <line x1="40" y1="43" x2="40" y2="77" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+    </svg>
+    <div class="exercise-card__body">
+      <div class="exercise-card__name">Rondo 4v2</div>
+      <div class="exercise-card__tags">
+        <span class="card-badge card-badge--rondo">Rondo</span>
+      </div>
+      <div class="exercise-card__meta">
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1"/><path d="M6 3v3l2 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 10 min</span>
+        <span class="meta-item"><span class="intensity-dot intensity-dot--med"></span> Med</span>
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2a2 2 0 100 4 2 2 0 000-4zM2 10c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 6-8</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Rondo 5v2 -->
+  <div class="exercise-card">
+    <button class="exercise-card__fav">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--text-muted)" stroke-width="1.2">
+        <path d="M7 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.57l-3.52 1.78.67-3.93L1.3 5.64l3.94-.57L7 1.5z"/>
+      </svg>
+    </button>
+    <svg class="exercise-card__diagram" viewBox="0 0 160 120">
+      <rect width="160" height="120" fill="#1a4d2e"/>
+      <rect x="6" y="6" width="148" height="108" rx="3" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+      <!-- 5 blue in pentagon -->
+      <circle cx="80" cy="20" r="8" fill="#60a5fa"/>
+      <circle cx="30" cy="50" r="8" fill="#60a5fa"/>
+      <circle cx="130" cy="50" r="8" fill="#60a5fa"/>
+      <circle cx="45" cy="95" r="8" fill="#60a5fa"/>
+      <circle cx="115" cy="95" r="8" fill="#60a5fa"/>
+      <!-- 2 red -->
+      <circle cx="70" cy="58" r="8" fill="#f87171"/><circle cx="90" cy="68" r="8" fill="#f87171"/>
+    </svg>
+    <div class="exercise-card__body">
+      <div class="exercise-card__name">Rondo 5v2</div>
+      <div class="exercise-card__tags">
+        <span class="card-badge card-badge--rondo">Rondo</span>
+      </div>
+      <div class="exercise-card__meta">
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1"/><path d="M6 3v3l2 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 10 min</span>
+        <span class="meta-item"><span class="intensity-dot intensity-dot--med"></span> Med</span>
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2a2 2 0 100 4 2 2 0 000-4zM2 10c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 7-9</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Rondo 3v1 -->
+  <div class="exercise-card">
+    <button class="exercise-card__fav">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--text-muted)" stroke-width="1.2">
+        <path d="M7 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.57l-3.52 1.78.67-3.93L1.3 5.64l3.94-.57L7 1.5z"/>
+      </svg>
+    </button>
+    <svg class="exercise-card__diagram" viewBox="0 0 160 120">
+      <rect width="160" height="120" fill="#1a4d2e"/>
+      <rect x="6" y="6" width="148" height="108" rx="3" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+      <!-- 3 blue in triangle -->
+      <circle cx="80" cy="25" r="8" fill="#60a5fa"/>
+      <circle cx="40" cy="90" r="8" fill="#60a5fa"/>
+      <circle cx="120" cy="90" r="8" fill="#60a5fa"/>
+      <!-- 1 red -->
+      <circle cx="80" cy="65" r="8" fill="#f87171"/>
+      <!-- Pass arrows -->
+      <line x1="75" y1="30" x2="45" y2="85" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.4"/>
+      <line x1="48" y1="90" x2="112" y2="90" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.4"/>
+      <line x1="115" y1="85" x2="85" y2="30" stroke="white" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.4"/>
+    </svg>
+    <div class="exercise-card__body">
+      <div class="exercise-card__name">Rondo 3v1</div>
+      <div class="exercise-card__tags">
+        <span class="card-badge card-badge--rondo">Rondo</span>
+      </div>
+      <div class="exercise-card__meta">
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1"/><path d="M6 3v3l2 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 8 min</span>
+        <span class="meta-item"><span class="intensity-dot intensity-dot--low"></span> Low</span>
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2a2 2 0 100 4 2 2 0 000-4zM2 10c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 4</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 4: Rondo 4v2 + joker -->
+  <div class="exercise-card">
+    <button class="exercise-card__fav">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--text-muted)" stroke-width="1.2">
+        <path d="M7 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.57l-3.52 1.78.67-3.93L1.3 5.64l3.94-.57L7 1.5z"/>
+      </svg>
+    </button>
+    <svg class="exercise-card__diagram" viewBox="0 0 160 120">
+      <rect width="160" height="120" fill="#1a4d2e"/>
+      <rect x="6" y="6" width="148" height="108" rx="3" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+      <!-- 4 blue -->
+      <circle cx="35" cy="30" r="8" fill="#60a5fa"/><circle cx="125" cy="30" r="8" fill="#60a5fa"/>
+      <circle cx="35" cy="90" r="8" fill="#60a5fa"/><circle cx="125" cy="90" r="8" fill="#60a5fa"/>
+      <!-- 2 red -->
+      <circle cx="65" cy="55" r="8" fill="#f87171"/><circle cx="95" cy="65" r="8" fill="#f87171"/>
+      <!-- 1 neutral joker -->
+      <circle cx="80" cy="35" r="8" fill="#94a3b8" stroke="white" stroke-width="1"/>
+      <text x="80" y="38" text-anchor="middle" fill="white" font-size="7" font-weight="bold">J</text>
+    </svg>
+    <div class="exercise-card__body">
+      <div class="exercise-card__name">Rondo 4v2 + joker</div>
+      <div class="exercise-card__tags">
+        <span class="card-badge card-badge--rondo">Rondo</span>
+      </div>
+      <div class="exercise-card__meta">
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1"/><path d="M6 3v3l2 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 12 min</span>
+        <span class="meta-item"><span class="intensity-dot intensity-dot--med"></span> Med</span>
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2a2 2 0 100 4 2 2 0 000-4zM2 10c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 7-9</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 5: Rondo in diamond -->
+  <div class="exercise-card">
+    <button class="exercise-card__fav">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--text-muted)" stroke-width="1.2">
+        <path d="M7 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.57l-3.52 1.78.67-3.93L1.3 5.64l3.94-.57L7 1.5z"/>
+      </svg>
+    </button>
+    <svg class="exercise-card__diagram" viewBox="0 0 160 120">
+      <rect width="160" height="120" fill="#1a4d2e"/>
+      <rect x="6" y="6" width="148" height="108" rx="3" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+      <!-- Diamond: 4 blue -->
+      <circle cx="80" cy="18" r="8" fill="#60a5fa"/>
+      <circle cx="30" cy="60" r="8" fill="#60a5fa"/>
+      <circle cx="130" cy="60" r="8" fill="#60a5fa"/>
+      <circle cx="80" cy="100" r="8" fill="#60a5fa"/>
+      <!-- 2 red inside -->
+      <circle cx="68" cy="55" r="8" fill="#f87171"/>
+      <circle cx="92" cy="65" r="8" fill="#f87171"/>
+      <!-- Diamond outline -->
+      <path d="M80,26 L122,60 L80,94 L38,60 Z" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+    </svg>
+    <div class="exercise-card__body">
+      <div class="exercise-card__name">Rondo in diamond</div>
+      <div class="exercise-card__tags">
+        <span class="card-badge card-badge--rondo">Rondo</span>
+      </div>
+      <div class="exercise-card__meta">
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1"/><path d="M6 3v3l2 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 10 min</span>
+        <span class="meta-item"><span class="intensity-dot intensity-dot--med"></span> Med</span>
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2a2 2 0 100 4 2 2 0 000-4zM2 10c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 6</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 6: Rondo 6v3 -->
+  <div class="exercise-card">
+    <button class="exercise-card__fav">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--text-muted)" stroke-width="1.2">
+        <path d="M7 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.57l-3.52 1.78.67-3.93L1.3 5.64l3.94-.57L7 1.5z"/>
+      </svg>
+    </button>
+    <svg class="exercise-card__diagram" viewBox="0 0 160 120">
+      <rect width="160" height="120" fill="#1a4d2e"/>
+      <rect x="6" y="6" width="148" height="108" rx="3" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+      <!-- 6 blue around perimeter -->
+      <circle cx="80" cy="16" r="7" fill="#60a5fa"/><circle cx="140" cy="35" r="7" fill="#60a5fa"/>
+      <circle cx="140" cy="85" r="7" fill="#60a5fa"/><circle cx="80" cy="104" r="7" fill="#60a5fa"/>
+      <circle cx="20" cy="85" r="7" fill="#60a5fa"/><circle cx="20" cy="35" r="7" fill="#60a5fa"/>
+      <!-- 3 red inside -->
+      <circle cx="60" cy="50" r="7" fill="#f87171"/>
+      <circle cx="100" cy="55" r="7" fill="#f87171"/>
+      <circle cx="80" cy="75" r="7" fill="#f87171"/>
+    </svg>
+    <div class="exercise-card__body">
+      <div class="exercise-card__name">Rondo 6v3</div>
+      <div class="exercise-card__tags">
+        <span class="card-badge card-badge--rondo">Rondo</span>
+      </div>
+      <div class="exercise-card__meta">
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1"/><path d="M6 3v3l2 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 12 min</span>
+        <span class="meta-item"><span class="intensity-dot intensity-dot--high"></span> High</span>
+        <span class="meta-item"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2a2 2 0 100 4 2 2 0 000-4zM2 10c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> 9</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FAB -->
+<button class="fab">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+</button>
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <a class="nav-item" href="#">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <path d="M3 9l8-6 8 6v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M9 20v-8h4v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="nav-item__label">Home</span>
+  </a>
+  <a class="nav-item" href="#">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect x="3" y="4" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M3 9h16M7 2v4M15 2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span class="nav-item__label">Practices</span>
+  </a>
+  <a class="nav-item nav-item--active" href="#">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect x="3" y="3" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M3 11h16M11 3v16" stroke="currentColor" stroke-width="1.5"/>
+    </svg>
+    <span class="nav-item__label">Exercises</span>
+  </a>
+  <a class="nav-item" href="#">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect x="3" y="4" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M3 9h16M7 2v4M15 2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
+      <circle cx="14" cy="13" r="1.5" fill="currentColor"/>
+    </svg>
+    <span class="nav-item__label">Calendar</span>
+  </a>
+  <a class="nav-item" href="#">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <circle cx="11" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M4 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span class="nav-item__label">Roster</span>
+  </a>
+</nav>
+
+</body>
+</html>

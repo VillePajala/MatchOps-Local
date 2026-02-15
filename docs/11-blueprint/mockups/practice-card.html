@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Practice — Practice Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --indigo: #6366f1;
+    --indigo-dark: #4f46e5;
+    --indigo-glow: rgba(99, 102, 241, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --green-pitch: #1a4d2e;
+    --green-line: rgba(255,255,255,0.35);
+    --red: #ef4444;
+    --blue-player: #60a5fa;
+    --red-player: #f87171;
+    --station-a: #818cf8;
+    --station-b: #34d399;
+    --station-c: #fb923c;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === PRACTICE CARD === */
+  .practice-card {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 12px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .card-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+
+  .card-header__team {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  .card-header__theme {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--amber);
+    margin-top: 2px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .card-header__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .card-header__meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .meta-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+  }
+
+  /* Warmup row */
+  .warmup-row {
+    margin-bottom: 8px;
+  }
+
+  .warmup-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .warmup-cell__diagram {
+    width: 64px;
+    height: 48px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .warmup-cell__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .warmup-cell__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .warmup-cell__detail {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+
+  .phase-badge {
+    display: inline-block;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    line-height: 1.4;
+  }
+
+  .phase-badge--warmup {
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--amber-light);
+  }
+
+  .phase-badge--main {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+  }
+
+  .phase-badge--cooldown {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-secondary);
+  }
+
+  .phase-badge--together {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-muted);
+  }
+
+  /* Station section */
+  .station-section {
+    margin-bottom: 8px;
+  }
+
+  .station-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    padding: 0 4px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .station-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .station-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .station-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .station-cell::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+
+  .station-cell--a::before { background: var(--station-a); }
+  .station-cell--b::before { background: var(--station-b); }
+  .station-cell--c::before { background: var(--station-c); }
+
+  .station-cell__tag {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    align-self: flex-start;
+  }
+
+  .station-cell--a .station-cell__tag { color: var(--station-a); }
+  .station-cell--b .station-cell__tag { color: var(--station-b); }
+  .station-cell--c .station-cell__tag { color: var(--station-c); }
+
+  .station-cell__diagram {
+    width: 100%;
+    aspect-ratio: 4/3;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .station-cell__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .station-cell__coach {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    text-align: center;
+  }
+
+  .station-cell__duration {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Bottom summary row */
+  .summary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .summary-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .summary-cell__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .summary-cell__icon--match {
+    background: rgba(99, 102, 241, 0.15);
+  }
+
+  .summary-cell__icon--cooldown {
+    background: rgba(148, 163, 184, 0.1);
+  }
+
+  .summary-cell__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .summary-cell__detail {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+
+  /* Share bar */
+  .share-bar {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    padding-bottom: 20px;
+  }
+
+  .btn-share {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-share:active { transform: scale(0.97); }
+
+  .btn-share--primary {
+    background: var(--indigo);
+    color: white;
+  }
+
+  .btn-share--secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  /* SVG field diagrams */
+  .field-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Responsive */
+  @media (min-width: 480px) {
+    .practice-card { max-width: 480px; }
+    .station-cell__name { font-size: 15px; }
+  }
+
+  /* Subtle entrance animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header { animation: fadeUp 0.3s ease-out; }
+  .warmup-row { animation: fadeUp 0.3s ease-out 0.05s both; }
+  .station-section { animation: fadeUp 0.3s ease-out 0.1s both; }
+  .summary-row { animation: fadeUp 0.3s ease-out 0.15s both; }
+  .share-bar { animation: fadeUp 0.3s ease-out 0.2s both; }
+</style>
+</head>
+<body>
+
+<div class="practice-card">
+
+  <!-- Header -->
+  <div class="card-header">
+    <div class="card-header__team">U12 Tuesday Training</div>
+    <div class="card-header__theme">Passing under pressure</div>
+    <div class="card-header__meta">
+      <span class="card-header__meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        91 min
+      </span>
+      <span class="card-header__meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2a3 3 0 100 6 3 3 0 000-6zM3 14c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Ville, Mikko, Jari
+      </span>
+      <span class="card-header__meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h12M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Tue 17.3.
+      </span>
+    </div>
+  </div>
+
+  <!-- Warmup row -->
+  <div class="warmup-row">
+    <div class="warmup-cell">
+      <div class="warmup-cell__diagram">
+        <svg class="field-svg" viewBox="0 0 80 60">
+          <rect width="80" height="60" fill="#1a4d2e" rx="4"/>
+          <line x1="40" y1="0" x2="40" y2="60" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+          <rect x="2" y="2" width="76" height="56" rx="2" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+          <!-- 6 players in pairs -->
+          <circle cx="20" cy="20" r="4" fill="#60a5fa"/><circle cx="30" cy="20" r="4" fill="#60a5fa"/>
+          <circle cx="20" cy="35" r="4" fill="#60a5fa"/><circle cx="30" cy="35" r="4" fill="#60a5fa"/>
+          <circle cx="50" cy="20" r="4" fill="#60a5fa"/><circle cx="60" cy="20" r="4" fill="#60a5fa"/>
+          <!-- Arrows between pairs -->
+          <line x1="22" y1="20" x2="28" y2="20" stroke="white" stroke-width="0.8" stroke-dasharray="2 1" marker-end="url(#arrow-w)"/>
+          <line x1="22" y1="35" x2="28" y2="35" stroke="white" stroke-width="0.8" stroke-dasharray="2 1" marker-end="url(#arrow-w)"/>
+          <line x1="52" y1="20" x2="58" y2="20" stroke="white" stroke-width="0.8" stroke-dasharray="2 1" marker-end="url(#arrow-w)"/>
+          <defs><marker id="arrow-w" markerWidth="4" markerHeight="3" refX="3" refY="1.5" orient="auto"><path d="M0,0 L4,1.5 L0,3" fill="white"/></marker></defs>
+        </svg>
+      </div>
+      <div class="warmup-cell__info">
+        <div class="warmup-cell__name">Ball mastery in pairs</div>
+        <div class="warmup-cell__detail">
+          <span class="phase-badge phase-badge--warmup">Warm-up</span>
+          <span class="phase-badge phase-badge--together">Together</span>
+          &nbsp;· 10 min
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stations section -->
+  <div class="station-section">
+    <div class="station-label">Stations · 3 × 12 min</div>
+    <div class="station-grid">
+
+      <!-- Station A -->
+      <div class="station-cell station-cell--a">
+        <div class="station-cell__tag">Station A</div>
+        <div class="station-cell__diagram">
+          <svg class="field-svg" viewBox="0 0 100 75">
+            <rect width="100" height="75" fill="#1a4d2e" rx="4"/>
+            <rect x="3" y="3" width="94" height="69" rx="2" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+            <!-- Orange cones at corners -->
+            <polygon points="15,12 17,8 19,12" fill="#fb923c"/>
+            <polygon points="81,12 83,8 85,12" fill="#fb923c"/>
+            <polygon points="15,62 17,58 19,62" fill="#fb923c"/>
+            <polygon points="81,62 83,58 85,62" fill="#fb923c"/>
+            <!-- 4 blue attackers in square -->
+            <circle cx="25" cy="22" r="5" fill="#60a5fa"/><text x="25" y="24" text-anchor="middle" fill="white" font-size="6" font-weight="bold">A</text>
+            <circle cx="75" cy="22" r="5" fill="#60a5fa"/><text x="75" y="24" text-anchor="middle" fill="white" font-size="6" font-weight="bold">A</text>
+            <circle cx="25" cy="53" r="5" fill="#60a5fa"/><text x="25" y="55" text-anchor="middle" fill="white" font-size="6" font-weight="bold">A</text>
+            <circle cx="75" cy="53" r="5" fill="#60a5fa"/><text x="75" y="55" text-anchor="middle" fill="white" font-size="6" font-weight="bold">A</text>
+            <!-- 2 red defenders -->
+            <circle cx="42" cy="35" r="5" fill="#f87171"/><text x="42" y="37" text-anchor="middle" fill="white" font-size="6" font-weight="bold">D</text>
+            <circle cx="58" cy="40" r="5" fill="#f87171"/><text x="58" y="42" text-anchor="middle" fill="white" font-size="6" font-weight="bold">D</text>
+            <!-- Pass arrows -->
+            <line x1="30" y1="22" x2="70" y2="22" stroke="white" stroke-width="0.8" stroke-dasharray="3 2"/>
+            <line x1="25" y1="28" x2="25" y2="48" stroke="white" stroke-width="0.8" stroke-dasharray="3 2"/>
+          </svg>
+        </div>
+        <div class="station-cell__name">Rondo 4v2</div>
+        <div class="station-cell__coach">Coach Ville</div>
+        <div class="station-cell__duration">12 min</div>
+      </div>
+
+      <!-- Station B -->
+      <div class="station-cell station-cell--b">
+        <div class="station-cell__tag">Station B</div>
+        <div class="station-cell__diagram">
+          <svg class="field-svg" viewBox="0 0 100 75">
+            <rect width="100" height="75" fill="#1a4d2e" rx="4"/>
+            <rect x="3" y="3" width="94" height="69" rx="2" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+            <!-- Cones marking triangle -->
+            <polygon points="50,12 52,8 54,12" fill="#fb923c"/>
+            <polygon points="22,60 24,56 26,60" fill="#fb923c"/>
+            <polygon points="74,60 76,56 78,60" fill="#fb923c"/>
+            <!-- 3 blue players in triangle -->
+            <circle cx="50" cy="18" r="5" fill="#60a5fa"/>
+            <circle cx="25" cy="55" r="5" fill="#60a5fa"/>
+            <circle cx="75" cy="55" r="5" fill="#60a5fa"/>
+            <!-- Pass arrows forming triangle -->
+            <line x1="47" y1="22" x2="28" y2="51" stroke="white" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arrow-b)"/>
+            <line x1="30" y1="55" x2="70" y2="55" stroke="white" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arrow-b)"/>
+            <line x1="73" y1="51" x2="53" y2="22" stroke="white" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arrow-b)"/>
+            <defs><marker id="arrow-b" markerWidth="5" markerHeight="4" refX="4" refY="2" orient="auto"><path d="M0,0 L5,2 L0,4" fill="white"/></marker></defs>
+          </svg>
+        </div>
+        <div class="station-cell__name">Passing triangles</div>
+        <div class="station-cell__coach">Coach Mikko</div>
+        <div class="station-cell__duration">12 min</div>
+      </div>
+
+      <!-- Station C -->
+      <div class="station-cell station-cell--c">
+        <div class="station-cell__tag">Station C</div>
+        <div class="station-cell__diagram">
+          <svg class="field-svg" viewBox="0 0 100 75">
+            <rect width="100" height="75" fill="#1a4d2e" rx="4"/>
+            <rect x="3" y="3" width="94" height="69" rx="2" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+            <!-- Cone slalom -->
+            <polygon points="30,18 32,14 34,18" fill="#fb923c"/>
+            <polygon points="45,28 47,24 49,28" fill="#fb923c"/>
+            <polygon points="30,38 32,34 34,38" fill="#fb923c"/>
+            <polygon points="45,48 47,44 49,48" fill="#fb923c"/>
+            <!-- Blue attacker -->
+            <circle cx="25" cy="60" r="5" fill="#60a5fa"/><text x="25" y="62" text-anchor="middle" fill="white" font-size="6" font-weight="bold">A</text>
+            <!-- Red defender waiting -->
+            <circle cx="75" cy="37" r="5" fill="#f87171"/><text x="75" y="39" text-anchor="middle" fill="white" font-size="6" font-weight="bold">D</text>
+            <!-- Dribble path (wavy) -->
+            <path d="M27,55 C32,50 28,42 33,35 C38,28 28,22 33,15" stroke="#60a5fa" stroke-width="1" fill="none" stroke-dasharray="2 2"/>
+            <!-- Run arrow to defender -->
+            <line x1="35" y1="15" x2="70" y2="37" stroke="white" stroke-width="0.8" marker-end="url(#arrow-c)"/>
+            <defs><marker id="arrow-c" markerWidth="5" markerHeight="4" refX="4" refY="2" orient="auto"><path d="M0,0 L5,2 L0,4" fill="white"/></marker></defs>
+          </svg>
+        </div>
+        <div class="station-cell__name">1v1 Dribbling</div>
+        <div class="station-cell__coach">Coach Jari</div>
+        <div class="station-cell__duration">12 min</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Summary row -->
+  <div class="summary-row">
+    <div class="summary-cell">
+      <div class="summary-cell__icon summary-cell__icon--match">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7" stroke="#a5b4fc" stroke-width="1.5"/>
+          <path d="M9 2L11 6.5H15L12 9.5L13.5 14L9 11L4.5 14L6 9.5L3 6.5H7L9 2Z" fill="#a5b4fc" fill-opacity="0.3" stroke="#a5b4fc" stroke-width="0.5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="summary-cell__name">7v7 Match</div>
+        <div class="summary-cell__detail"><span class="phase-badge phase-badge--main">Main</span> · 20 min</div>
+      </div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-cell__icon summary-cell__icon--cooldown">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M9 2v14M5 5l4 4 4-4M5 13l4-4 4 4" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="summary-cell__name">Stretching + recap</div>
+        <div class="summary-cell__detail"><span class="phase-badge phase-badge--cooldown">Cool-down</span> · 10 min</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share bar -->
+  <div class="share-bar">
+    <button class="btn-share btn-share--primary">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 8h8M8 4l4 4-4 4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Share
+    </button>
+    <button class="btn-share btn-share--secondary">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 12V14H12V12M8 2V10M5 5L8 2L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      PDF
+    </button>
+  </div>
+
+</div>
+
+</body>
+</html>

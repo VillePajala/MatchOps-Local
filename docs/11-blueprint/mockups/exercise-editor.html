@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Practice — Exercise Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --indigo: #6366f1;
+    --indigo-dark: #4f46e5;
+    --indigo-glow: rgba(99, 102, 241, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --green-pitch: #1a4d2e;
+    --green-pitch-light: #22633a;
+    --green-line: rgba(255,255,255,0.25);
+    --red: #ef4444;
+    --blue-player: #60a5fa;
+    --red-player: #f87171;
+    --neutral-player: #94a3b8;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Top nav bar */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .top-bar__back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+
+  .top-bar__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .top-bar__save {
+    background: var(--indigo);
+    border: none;
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .top-bar__save:active { transform: scale(0.96); }
+
+  /* Page layout */
+  .editor-page {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  /* Form section */
+  .form-section {
+    margin-bottom: 16px;
+  }
+
+  .form-row {
+    margin-bottom: 12px;
+  }
+
+  .form-label {
+    display: block;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus {
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 3px var(--indigo-glow);
+  }
+
+  .form-input--name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 20px;
+  }
+
+  .form-row-inline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .form-row-triple {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .form-select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+  }
+
+  .form-select:focus {
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 3px var(--indigo-glow);
+  }
+
+  /* Intensity dots */
+  .intensity-selector {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .intensity-option {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+
+  .intensity-option--active {
+    border-color: var(--amber);
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--amber-light);
+  }
+
+  .intensity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .intensity-dot--low { background: #4ade80; }
+  .intensity-dot--med { background: #fbbf24; }
+  .intensity-dot--high { background: #f87171; }
+
+  /* Section divider */
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Field Diagram */
+  .field-container {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .field-canvas {
+    width: 100%;
+    aspect-ratio: 4/3;
+    display: block;
+    cursor: crosshair;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 10px;
+    background: var(--surface-raised);
+    border-top: 1px solid var(--border);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .toolbar__group {
+    display: flex;
+    gap: 3px;
+    padding-right: 8px;
+    margin-right: 4px;
+    border-right: 1px solid var(--border);
+  }
+
+  .toolbar__group:last-child {
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+  }
+
+  .tool-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .tool-btn:hover {
+    background: rgba(255,255,255,0.05);
+  }
+
+  .tool-btn--active {
+    background: var(--indigo-glow);
+    border-color: var(--indigo);
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.2);
+  }
+
+  .tool-btn__dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+
+  .tool-btn__dot--blue { background: var(--blue-player); }
+  .tool-btn__dot--red { background: var(--red-player); }
+  .tool-btn__dot--neutral { background: var(--neutral-player); }
+
+  /* Coaching points */
+  .coaching-points {
+    list-style: none;
+  }
+
+  .coaching-point {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+  }
+
+  .coaching-point:last-child { border-bottom: none; }
+
+  .coaching-point__num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--indigo-glow);
+    color: #a5b4fc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .coaching-point__text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  /* Equipment */
+  .equipment-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .equipment-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .equipment-tag__count {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* Bottom padding */
+  .editor-page { padding-bottom: 40px; }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .form-section { animation: fadeIn 0.25s ease-out; }
+  .field-container { animation: fadeIn 0.25s ease-out 0.05s both; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <button class="top-bar__back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Library
+  </button>
+  <span class="top-bar__title">Edit Exercise</span>
+  <button class="top-bar__save">Save</button>
+</div>
+
+<div class="editor-page">
+
+  <!-- Form -->
+  <div class="form-section">
+    <div class="form-row">
+      <input type="text" class="form-input form-input--name" value="Rondo 4v2" placeholder="Exercise name...">
+    </div>
+    <div class="form-row-inline">
+      <div>
+        <label class="form-label">Category</label>
+        <select class="form-select">
+          <option>Warmup</option>
+          <option>Technical</option>
+          <option>Tactical</option>
+          <option selected>Rondo</option>
+          <option>Small-sided game</option>
+          <option>Cooldown</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Duration</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" class="form-input" value="10" style="width:60px;text-align:center">
+          <span style="color:var(--text-muted);font-size:13px">min</span>
+        </div>
+      </div>
+    </div>
+    <div class="form-row-triple" style="margin-top:12px">
+      <div>
+        <label class="form-label">Intensity</label>
+        <div class="intensity-selector">
+          <div class="intensity-option"><span class="intensity-dot intensity-dot--low"></span> Low</div>
+          <div class="intensity-option intensity-option--active"><span class="intensity-dot intensity-dot--med"></span> Med</div>
+          <div class="intensity-option"><span class="intensity-dot intensity-dot--high"></span> High</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-row-inline" style="margin-top:12px">
+      <div>
+        <label class="form-label">Min players</label>
+        <input type="number" class="form-input" value="6" style="text-align:center">
+      </div>
+      <div>
+        <label class="form-label">Max players</label>
+        <input type="number" class="form-input" value="8" style="text-align:center">
+      </div>
+    </div>
+  </div>
+
+  <!-- Field Diagram -->
+  <div class="section-title">Field diagram</div>
+  <div class="field-container">
+    <svg class="field-canvas" viewBox="0 0 400 300">
+      <!-- Pitch -->
+      <rect width="400" height="300" fill="#1a4d2e"/>
+      <!-- Field markings (half field) -->
+      <rect x="20" y="15" width="360" height="270" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      <!-- Center line -->
+      <line x1="20" y1="150" x2="380" y2="150" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+      <!-- Penalty area -->
+      <rect x="120" y="15" width="160" height="80" rx="2" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+      <!-- Goal area -->
+      <rect x="165" y="15" width="70" height="35" rx="2" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+      <!-- Center circle -->
+      <circle cx="200" cy="150" r="45" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+
+      <!-- Orange cones at grid corners -->
+      <polygon points="95,72 100,62 105,72" fill="#fb923c" stroke="#d97706" stroke-width="0.5"/>
+      <polygon points="295,72 300,62 305,72" fill="#fb923c" stroke="#d97706" stroke-width="0.5"/>
+      <polygon points="95,232 100,222 105,232" fill="#fb923c" stroke="#d97706" stroke-width="0.5"/>
+      <polygon points="295,232 300,222 305,232" fill="#fb923c" stroke="#d97706" stroke-width="0.5"/>
+
+      <!-- 4 Blue attackers (square formation) -->
+      <circle cx="120" cy="100" r="14" fill="#60a5fa" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <text x="120" y="105" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="Rajdhani, sans-serif">A1</text>
+
+      <circle cx="280" cy="100" r="14" fill="#60a5fa" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <text x="280" y="105" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="Rajdhani, sans-serif">A2</text>
+
+      <circle cx="120" cy="200" r="14" fill="#60a5fa" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <text x="120" y="205" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="Rajdhani, sans-serif">A3</text>
+
+      <circle cx="280" cy="200" r="14" fill="#60a5fa" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <text x="280" y="205" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="Rajdhani, sans-serif">A4</text>
+
+      <!-- 2 Red defenders -->
+      <circle cx="175" cy="140" r="14" fill="#f87171" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <text x="175" y="145" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="Rajdhani, sans-serif">D1</text>
+
+      <circle cx="230" cy="165" r="14" fill="#f87171" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <text x="230" y="170" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="Rajdhani, sans-serif">D2</text>
+
+      <!-- Pass arrows (dashed) -->
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6" fill="white"/>
+        </marker>
+        <marker id="arrowhead-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6" fill="#60a5fa"/>
+        </marker>
+      </defs>
+
+      <!-- Pass: A1 → A2 -->
+      <line x1="134" y1="100" x2="264" y2="100" stroke="white" stroke-width="1.5" stroke-dasharray="8 4" marker-end="url(#arrowhead)" opacity="0.7"/>
+
+      <!-- Pass: A3 → A4 -->
+      <line x1="134" y1="200" x2="264" y2="200" stroke="white" stroke-width="1.5" stroke-dasharray="8 4" marker-end="url(#arrowhead)" opacity="0.7"/>
+
+      <!-- Run: A1 → A3 (solid) -->
+      <line x1="120" y1="114" x2="120" y2="186" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrowhead-blue)" opacity="0.5"/>
+
+      <!-- Ball -->
+      <circle cx="200" cy="130" r="7" fill="white" stroke="#e2e8f0" stroke-width="0.5"/>
+      <path d="M197,127 L200,130 L203,127 M197,133 L200,130 L203,133" stroke="#94a3b8" stroke-width="0.5" fill="none"/>
+    </svg>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar__group">
+        <button class="tool-btn" title="Team A player">
+          <span class="tool-btn__dot tool-btn__dot--blue"></span>
+        </button>
+        <button class="tool-btn tool-btn--active" title="Team B player">
+          <span class="tool-btn__dot tool-btn__dot--red"></span>
+        </button>
+        <button class="tool-btn" title="Neutral player">
+          <span class="tool-btn__dot tool-btn__dot--neutral"></span>
+        </button>
+      </div>
+      <div class="toolbar__group">
+        <button class="tool-btn" title="Cone">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <polygon points="9,3 4,15 14,15" fill="#fb923c" stroke="#d97706" stroke-width="1"/>
+          </svg>
+        </button>
+        <button class="tool-btn" title="Small goal">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="4" y="6" width="10" height="8" rx="1" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+            <line x1="4" y1="14" x2="14" y2="14" stroke="#94a3b8" stroke-width="2"/>
+          </svg>
+        </button>
+        <button class="tool-btn" title="Ball">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="9" cy="9" r="6" fill="white" stroke="#cbd5e1" stroke-width="1"/>
+          </svg>
+        </button>
+      </div>
+      <div class="toolbar__group">
+        <button class="tool-btn" title="Run arrow">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <line x1="3" y1="15" x2="15" y2="3" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
+            <path d="M11,3 L15,3 L15,7" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="tool-btn" title="Pass arrow">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <line x1="3" y1="15" x2="15" y2="3" stroke="white" stroke-width="1.5" stroke-dasharray="3 2" stroke-linecap="round"/>
+            <path d="M11,3 L15,3 L15,7" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="tool-btn" title="Dribble arrow">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M3,15 C6,12 5,8 8,6 C11,4 12,7 15,3" stroke="#fbbf24" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="toolbar__group">
+        <button class="tool-btn" title="Zone">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="3" y="5" width="12" height="8" rx="2" fill="rgba(99,102,241,0.2)" stroke="#6366f1" stroke-width="1" stroke-dasharray="2 1"/>
+          </svg>
+        </button>
+        <button class="tool-btn" title="Eraser">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M3,15 L15,3 M3,3 L15,15" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coaching Points -->
+  <div class="section-title">Coaching points</div>
+  <ul class="coaching-points">
+    <li class="coaching-point">
+      <span class="coaching-point__num">1</span>
+      <span class="coaching-point__text">Body shape — open up to receive, side-on to the play</span>
+    </li>
+    <li class="coaching-point">
+      <span class="coaching-point__num">2</span>
+      <span class="coaching-point__text">Play away from pressure — find the free player</span>
+    </li>
+    <li class="coaching-point">
+      <span class="coaching-point__num">3</span>
+      <span class="coaching-point__text">Defenders: work as a pair, cut passing lanes, press together</span>
+    </li>
+  </ul>
+
+  <!-- Equipment -->
+  <div class="section-title">Equipment needed</div>
+  <div class="equipment-list">
+    <div class="equipment-tag">
+      <svg width="12" height="12" viewBox="0 0 12 12"><polygon points="6,1 3,11 9,11" fill="#fb923c"/></svg>
+      <span class="equipment-tag__count">8×</span> Cones
+    </div>
+    <div class="equipment-tag">
+      <svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="white" stroke="#cbd5e1" stroke-width="0.5"/></svg>
+      <span class="equipment-tag__count">1×</span> Ball
+    </div>
+    <div class="equipment-tag">
+      <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="3" width="8" height="6" rx="1" fill="none" stroke="#60a5fa" stroke-width="1"/></svg>
+      <span class="equipment-tag__count">4×</span> Bibs (blue)
+    </div>
+    <div class="equipment-tag">
+      <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="3" width="8" height="6" rx="1" fill="none" stroke="#f87171" stroke-width="1"/></svg>
+      <span class="equipment-tag__count">2×</span> Bibs (red)
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
