@@ -6,7 +6,7 @@ import { HiOutlineChevronUpDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
-import { Player, PlayerStatRow, Season, Tournament, Team, Personnel } from '@/types';
+import { Player, PlayerStatRow, Season, Tournament, Team, Personnel, PlayerStatAdjustment } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
@@ -43,7 +43,7 @@ import {
 import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
 
 // Import types
-import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
+import type { SortableColumn, SortDirection, StatsTab, ExternalGameEntry } from './GameStatsModal/types';
 
 interface GameStatsModalProps {
   isOpen: boolean;
@@ -116,7 +116,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
-  const { userId } = useDataStore();
+  const { userId, getStore } = useDataStore();
 
   // Date formatting helper
   const formatDisplayDate = useCallback((isoDate: string): string => {
@@ -194,6 +194,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
   );
   const [playerQuery, setPlayerQuery] = useState('');
+  const [allAdjustments, setAllAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const { filters, handlers } = useStatsFilters();
   const {
     selectedSeasonIdFilter,
@@ -268,19 +269,30 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   }, [savedGames, clubSeasonStartDate, clubSeasonEndDate]);
 
   // --- Effects ---
-  // Load seasons/tournaments/teams when modal opens
+  // Load seasons/tournaments/teams/adjustments when modal opens
   useEffect(() => {
     const loadData = async () => {
       if (isOpen) {
         try {
-          const [loadedSeasons, loadedTournaments, loadedTeams] = await Promise.all([
+          const store = await getStore();
+          const [loadedSeasons, loadedTournaments, loadedTeams, adjustmentsMap] = await Promise.all([
             utilGetSeasons(userId),
             utilGetTournaments(userId),
             utilGetTeams(userId),
+            store.getAllPlayerAdjustments(),
           ]);
           setSeasons(loadedSeasons);
           setTournaments(loadedTournaments);
           setTeams(loadedTeams);
+
+          // Flatten the Map<playerId, adjustments[]> into a single array
+          const flat: PlayerStatAdjustment[] = [];
+          for (const adjs of adjustmentsMap.values()) {
+            for (const adj of adjs) {
+              flat.push(adj);
+            }
+          }
+          setAllAdjustments(flat);
         } catch (error) {
           logger.error('[GameStatsModal] Failed to load data:', error);
           showToast(
@@ -291,7 +303,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       }
     };
     loadData();
-  }, [isOpen, showToast, t, userId]);
+  }, [isOpen, showToast, t, userId, getStore]);
 
   // Sync local game events with props
   useEffect(() => {
@@ -356,6 +368,37 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return (isSpecificSeason || isSpecificTournament) && hasSpecificTeam && processedGameIds.length === 0;
   }, [activeTab, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, processedGameIds.length]);
 
+  // Deduplicate adjustments at the game level for season/tournament team stats.
+  // Multiple players may have adjustments for the same external game — we group by
+  // a composite key and take score/homeOrAway from the first entry that has them.
+  const externalGames: ExternalGameEntry[] = useMemo(() => {
+    const eligible = allAdjustments.filter(a => a.includeInSeasonTournament);
+    if (eligible.length === 0) return [];
+
+    const grouped = new Map<string, ExternalGameEntry>();
+    for (const adj of eligible) {
+      const key = `${adj.gameDate ?? ''}_${adj.opponentName ?? ''}_${adj.seasonId ?? ''}_${adj.tournamentId ?? ''}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          gameDate: adj.gameDate,
+          opponentName: adj.opponentName,
+          seasonId: adj.seasonId,
+          tournamentId: adj.tournamentId,
+          scoreFor: adj.scoreFor,
+          scoreAgainst: adj.scoreAgainst,
+          homeOrAway: adj.homeOrAway,
+          gamesPlayedDelta: adj.gamesPlayedDelta,
+        });
+      }
+      // For subsequent duplicates, only fill in missing score/homeOrAway
+      const entry = grouped.get(key)!;
+      if (entry.scoreFor == null && adj.scoreFor != null) entry.scoreFor = adj.scoreFor;
+      if (entry.scoreAgainst == null && adj.scoreAgainst != null) entry.scoreAgainst = adj.scoreAgainst;
+      if (entry.homeOrAway == null && adj.homeOrAway != null) entry.homeOrAway = adj.homeOrAway;
+    }
+    return Array.from(grouped.values());
+  }, [allAdjustments]);
+
   const tournamentSeasonStats = useTournamentSeasonStats({
     activeTab,
     savedGames,
@@ -370,6 +413,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedClubSeason,
     clubSeasonStartDate,
     clubSeasonEndDate,
+    // External games from player adjustments
+    externalGames,
   });
 
   const goalEditorHook = useGoalEditor({
