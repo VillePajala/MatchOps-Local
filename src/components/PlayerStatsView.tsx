@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
-import { useAuth } from '@/contexts/AuthProvider';
+import { useDataStore } from '@/hooks/useDataStore';
 import type { TranslationKey } from '@/i18n-types';
 import { Player, Season, Tournament } from '@/types';
 import { AppState } from '@/types';
@@ -44,7 +44,7 @@ interface PlayerStatsViewProps {
 const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all' }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
-  const { user } = useAuth();
+  const { userId } = useDataStore();
 
   const [showRatings, setShowRatings] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
@@ -86,14 +86,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   React.useLayoutEffect(() => {
     // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
-    getAppSettings(user?.id).then(s => {
+    getAppSettings(userId).then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
     });
     // Set default date to today
     if (!adjGameDate) {
       setAdjGameDate(new Date().toISOString().split('T')[0]);
     }
-  }, [adjGameDate, user?.id]);
+  }, [adjGameDate, userId]);
 
   // Helper function to format dates consistently
   const formatDisplayDate = (dateStr: string) => {
@@ -110,8 +110,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   useEffect(() => {
     if (!player) return;
-    getAdjustmentsForPlayer(player.id).then(setAdjustments).catch(() => setAdjustments([]));
-  }, [player]);
+    getAdjustmentsForPlayer(player.id, userId).then(setAdjustments).catch(() => setAdjustments([]));
+  }, [player, userId]);
 
   // Close actions menu when clicking outside or pressing Escape
   useEffect(() => {
@@ -355,12 +355,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   fairPlayCardsDelta: Math.max(0, Number(adjFairPlayCards) || 0),
                   note: adjNote.trim() || undefined,
                   includeInSeasonTournament: adjIncludeInSeasonTournament,
-                });
+                }, userId);
                 setAdjustments(prev => [...prev, created]);
                 setShowAdjForm(false);
                 // Reset form
                 setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjFairPlayCards(0); setAdjNote('');
-                setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
+                setAdjSeasonId(''); setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
                 setAdjGameDate(new Date().toISOString().split('T')[0]);
                 setAdjHomeAway('neutral');
                 setAdjIncludeInSeasonTournament(false);
@@ -370,7 +370,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <div className="lg:col-span-3">
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
                 <div className="flex gap-1 mb-2">
-                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); setAdjIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.eiMitaan', 'None')}
                   </button>
                   <button type="button" onClick={() => { setAdjTournamentId(''); if (!adjSeasonId && seasons.length > 0) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
@@ -592,7 +592,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
                             scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
                             includeInSeasonTournament: editIncludeInSeasonTournament,
-                          });
+                          }, userId);
                           if (updated) {
                             setAdjustments(prev => prev.map(x => x.id === updated.id ? updated : x));
                             setEditingAdjId(null);
@@ -603,7 +603,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         <div className="lg:col-span-3">
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
                           <div className="flex gap-1 mb-2">
-                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!editSeasonId && !editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); setEditIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!editSeasonId && !editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.eiMitaan', 'None')}
                             </button>
                             <button type="button" onClick={() => { setEditTournamentId(''); if (!editSeasonId && seasons.length > 0) setEditSeasonId(seasons[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
@@ -894,7 +894,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   type="button"
                   onClick={async () => {
                     if (!player || !showDeleteConfirm) return;
-                    const success = await deletePlayerAdjustment(player.id, showDeleteConfirm);
+                    const success = await deletePlayerAdjustment(player.id, showDeleteConfirm, userId);
                     if (success) {
                       setAdjustments(prev => prev.filter(a => a.id !== showDeleteConfirm));
                       setShowDeleteConfirm(null);
@@ -968,7 +968,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     const val = e.target.checked;
                     setUseDemandCorrection(val);
                     // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
-                    updateAppSettings({ useDemandCorrection: val }, user?.id).catch((error) => {
+                    updateAppSettings({ useDemandCorrection: val }, userId).catch((error) => {
                       logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
                     });
                   }}

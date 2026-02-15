@@ -320,8 +320,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           }
         }
         setAllAdjustments(flat);
-      } catch {
-        // Silently fail — initial load already showed error if needed
+      } catch (error) {
+        logger.debug('[GameStatsModal] Failed to reload adjustments', { error });
       }
     };
     reload();
