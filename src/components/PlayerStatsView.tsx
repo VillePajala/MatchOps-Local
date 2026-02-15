@@ -74,6 +74,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [editHomeAway, setEditHomeAway] = useState<'home' | 'away' | 'neutral'>('neutral');
   const [editExternalTeam, setEditExternalTeam] = useState('');
   const [editOpponentName, setEditOpponentName] = useState('');
+  const [editSeasonId, setEditSeasonId] = useState('');
   const [editTournamentId, setEditTournamentId] = useState('');
   const [editGameDate, setEditGameDate] = useState('');
   const [editScoreFor, setEditScoreFor] = useState<number | ''>('');
@@ -297,7 +298,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <button
                 type="button"
                 className="text-sm px-3 py-1.5 bg-slate-700 text-slate-200 rounded border border-slate-600 hover:bg-slate-600"
-                onClick={() => setShowAdjForm(v => !v)}
+                onClick={() => { setShowAdjForm(v => !v); setEditingAdjId(null); }}
               >
                 {t('playerStats.addExternalStats', 'Add external stats')}
               </button>
@@ -371,7 +372,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   value={adjSeasonId}
                   onChange={(e) => {
                     setAdjSeasonId(e.target.value);
-                    if (e.target.value) setAdjIncludeInSeasonTournament(true);
+                    if (e.target.value) {
+                      setAdjTournamentId(''); // Mutual exclusivity: season clears tournament
+                      setAdjIncludeInSeasonTournament(true);
+                    }
                   }}
                   className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                 >
@@ -396,7 +400,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   onChange={(e) => {
                     const tournamentId = e.target.value;
                     setAdjTournamentId(tournamentId);
-                    if (tournamentId) setAdjIncludeInSeasonTournament(true);
+                    if (tournamentId) {
+                      setAdjSeasonId(''); // Mutual exclusivity: tournament clears season
+                      setAdjIncludeInSeasonTournament(true);
+                    }
                     // Prefill tournament data when selected
                     if (tournamentId) {
                       const tournament = tournaments.find(t => t.id === tournamentId);
@@ -579,6 +586,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             homeOrAway: editHomeAway,
                             externalTeamName: editExternalTeam.trim(),
                             opponentName: editOpponentName.trim(),
+                            seasonId: editSeasonId || undefined,
                             tournamentId: editTournamentId || undefined,
                             gameDate: editGameDate || undefined,
                             scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
@@ -591,6 +599,25 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           }
                         }}
                       >
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.season', 'Season')}</label>
+                          <select
+                            value={editSeasonId}
+                            onChange={(e) => {
+                              setEditSeasonId(e.target.value);
+                              if (e.target.value) {
+                                setEditTournamentId(''); // Mutual exclusivity: season clears tournament
+                                setEditIncludeInSeasonTournament(true);
+                              }
+                            }}
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                          >
+                            <option value="">{t('playerStats.noSeason', 'No season')}</option>
+                            {seasons.map(s => (
+                              <option key={s.id} value={s.id}>{getSeasonDisplayName(s)}</option>
+                            ))}
+                          </select>
+                        </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.homeAway', 'Home/Away')}</label>
                           <select value={editHomeAway} onChange={e => setEditHomeAway(e.target.value as 'home' | 'away' | 'neutral')} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
@@ -609,7 +636,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.tournament', 'Tournament')}</label>
-                          <select value={editTournamentId} onChange={e => setEditTournamentId(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                          <select value={editTournamentId} onChange={e => {
+                            setEditTournamentId(e.target.value);
+                            if (e.target.value) {
+                              setEditSeasonId(''); // Mutual exclusivity: tournament clears season
+                              setEditIncludeInSeasonTournament(true);
+                            }
+                          }} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
                             <option value="">{t('playerStats.selectTournament', 'Select tournament (optional)')}</option>
                             {tournaments.map(t => (
                               <option key={t.id} value={t.id}>{t.name}</option>
@@ -765,6 +798,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                     type="button"
                                     className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-slate-200 first:rounded-t-lg"
                                     onClick={() => {
+                                      setShowAdjForm(false); // Close add form when editing
                                       setEditingAdjId(a.id);
                                       setEditGames(a.gamesPlayedDelta);
                                       setEditGoals(a.goalsDelta);
@@ -774,6 +808,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                       setEditHomeAway(a.homeOrAway || 'neutral');
                                       setEditExternalTeam(a.externalTeamName || '');
                                       setEditOpponentName(a.opponentName || '');
+                                      setEditSeasonId(a.seasonId || '');
                                       setEditTournamentId(a.tournamentId || '');
                                       setEditGameDate(a.gameDate || '');
                                       setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');

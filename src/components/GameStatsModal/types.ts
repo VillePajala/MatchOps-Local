@@ -55,6 +55,21 @@ export interface OverallTournamentSeasonStats {
   seasons: TournamentSeasonStats[];
 }
 
+// Deduped external game entry derived from PlayerStatAdjustments
+// Multiple players may have adjustments for the same external game;
+// we deduplicate by (gameDate + opponentName + seasonId + tournamentId)
+// and take score/homeOrAway from the first adjustment that has them.
+export interface ExternalGameEntry {
+  gameDate?: string;
+  opponentName?: string;
+  seasonId?: string;
+  tournamentId?: string;
+  scoreFor?: number;
+  scoreAgainst?: number;
+  homeOrAway?: 'home' | 'away' | 'neutral';
+  gamesPlayedDelta: number;
+}
+
 // Game stats calculation parameters
 export interface GameStatsParams {
   activeTab: StatsTab;
