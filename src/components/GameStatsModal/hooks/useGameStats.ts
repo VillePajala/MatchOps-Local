@@ -4,7 +4,7 @@
  */
 
 import { useMemo } from 'react';
-import { GameEvent, PlayerStatRow } from '@/types';
+import { GameEvent, PlayerStatRow, PlayerStatAdjustment } from '@/types';
 import { GameStatsParams, SavedGame } from '../types';
 import { filterGameIds } from '../utils/gameFilters';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
@@ -40,6 +40,8 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
     sortColumn,
     sortDirection,
     filterText,
+    adjustments = [],
+    playerPool = [],
   } = params;
 
   // Calculate player stats
@@ -84,8 +86,23 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
         activeTab
       });
 
-      // Early return if no games to process - avoids expensive operations
-      if (processedGameIds.length === 0) {
+      // Filter adjustments matching the current tab context
+      const matchingAdjustments = adjustments.filter((adj: PlayerStatAdjustment) => {
+        if (!adj.includeInSeasonTournament) return false;
+        if (activeTab === 'season') {
+          if (selectedSeasonIdFilter === 'all') return !!adj.seasonId;
+          return adj.seasonId === selectedSeasonIdFilter;
+        }
+        if (activeTab === 'tournament') {
+          if (selectedTournamentIdFilter === 'all') return !!adj.tournamentId;
+          return adj.tournamentId === selectedTournamentIdFilter;
+        }
+        // overall tab: include all adjustments
+        return true;
+      });
+
+      // Early return if no games AND no adjustments to process
+      if (processedGameIds.length === 0 && matchingAdjustments.length === 0) {
         return { stats: [], gameIds: [] };
       }
 
@@ -121,6 +138,28 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
           });
         }
       });
+
+      // Apply per-player external game adjustments
+      for (const adj of matchingAdjustments) {
+        if (!statsMap[adj.playerId]) {
+          // Player only appears in adjustments — look up from playerPool
+          const playerInfo = playerPool.find(p => p.id === adj.playerId);
+          if (!playerInfo) continue;
+          statsMap[adj.playerId] = {
+            ...playerInfo,
+            goals: 0,
+            assists: 0,
+            totalScore: 0,
+            gamesPlayed: 0,
+            avgPoints: 0,
+          };
+        }
+        const row = statsMap[adj.playerId];
+        row.gamesPlayed += adj.gamesPlayedDelta;
+        row.goals += adj.goalsDelta;
+        row.assists += adj.assistsDelta;
+        row.totalScore += adj.goalsDelta + adj.assistsDelta;
+      }
     }
 
     // Process relevant events
@@ -217,7 +256,9 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
     clubSeasonStartDate,
     clubSeasonEndDate,
     currentGameId,
-    selectedPlayerIds
+    selectedPlayerIds,
+    adjustments,
+    playerPool,
   ]);
 
   // Calculate totals

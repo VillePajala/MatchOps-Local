@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import { Season, Tournament } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { GameType, Gender } from '@/types/game';
-import { StatsTab, TournamentSeasonStats, OverallTournamentSeasonStats, ExternalGameEntry } from '../types';
+import { StatsTab, TournamentSeasonStats, OverallTournamentSeasonStats } from '../types';
 import { SavedGamesCollection } from '@/types';
 import { filterGameIds } from '../utils/gameFilters';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
@@ -26,8 +26,6 @@ interface UseTournamentSeasonStatsParams {
   selectedClubSeason?: string | 'all';
   clubSeasonStartDate?: string;
   clubSeasonEndDate?: string;
-  // External games derived from PlayerStatAdjustments with includeInSeasonTournament
-  externalGames?: ExternalGameEntry[];
 }
 
 export function useTournamentSeasonStats(
@@ -46,34 +44,10 @@ export function useTournamentSeasonStats(
     selectedClubSeason = 'all',
     clubSeasonStartDate = DEFAULT_CLUB_SEASON_START_DATE,
     clubSeasonEndDate = DEFAULT_CLUB_SEASON_END_DATE,
-    externalGames = [],
   } = params;
 
   return useMemo(() => {
     if (activeTab !== 'season' && activeTab !== 'tournament') return null;
-
-    // Apply an external game entry to a mutable stats object
-    const applyExternalGame = (stats: TournamentSeasonStats, ext: ExternalGameEntry) => {
-      stats.gamesPlayed += ext.gamesPlayedDelta;
-
-      const scoreFor = ext.scoreFor ?? 0;
-      const scoreAgainst = ext.scoreAgainst ?? 0;
-      stats.goalsFor += scoreFor;
-      stats.goalsAgainst += scoreAgainst;
-
-      // Derive W/L/D only when both scores are provided
-      if (ext.scoreFor != null && ext.scoreAgainst != null) {
-        if (scoreFor > scoreAgainst) stats.wins++;
-        else if (scoreFor < scoreAgainst) stats.losses++;
-        else stats.ties++;
-      }
-
-      if (ext.gameDate) {
-        if (!stats.lastGameDate || ext.gameDate > stats.lastGameDate) {
-          stats.lastGameDate = ext.gameDate;
-        }
-      }
-    };
 
     const calculateStats = (gameIds: string[]): TournamentSeasonStats[] | OverallTournamentSeasonStats => {
       if (activeTab === 'season') {
@@ -122,24 +96,6 @@ export function useTournamentSeasonStats(
               stats.lastGameDate = game.gameDate;
             }
           });
-
-          // Include external games with seasonId but no tournamentId
-          for (const ext of externalGames) {
-            if (!ext.seasonId || ext.tournamentId) continue;
-            const season = seasons.find(s => s.id === ext.seasonId);
-            if (!season) continue;
-
-            if (!seasonStatsMap.has(season.id)) {
-              seasonStatsMap.set(season.id, {
-                id: season.id,
-                name: getSeasonDisplayName(season),
-                gamesPlayed: 0, wins: 0, losses: 0, ties: 0,
-                goalsFor: 0, goalsAgainst: 0, goalDifference: 0,
-                winPercentage: 0, averageGoalsFor: 0, averageGoalsAgainst: 0,
-              });
-            }
-            applyExternalGame(seasonStatsMap.get(season.id)!, ext);
-          }
 
           // Calculate derived stats
           const allSeasonStats = Array.from(seasonStatsMap.values()).map(stats => ({
@@ -212,12 +168,6 @@ export function useTournamentSeasonStats(
             }
           });
 
-          // Include external games matching this specific season
-          for (const ext of externalGames) {
-            if (ext.seasonId !== selectedSeasonIdFilter) continue;
-            applyExternalGame(stats, ext);
-          }
-
           stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
           stats.winPercentage = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) * 100 : 0;
           stats.averageGoalsFor = stats.gamesPlayed > 0 ? stats.goalsFor / stats.gamesPlayed : 0;
@@ -271,24 +221,6 @@ export function useTournamentSeasonStats(
               stats.lastGameDate = game.gameDate;
             }
           });
-
-          // Include external games with tournamentId but no seasonId
-          for (const ext of externalGames) {
-            if (!ext.tournamentId || ext.seasonId) continue;
-            const tournament = tournaments.find(t => t.id === ext.tournamentId);
-            if (!tournament) continue;
-
-            if (!tournamentStatsMap.has(tournament.id)) {
-              tournamentStatsMap.set(tournament.id, {
-                id: tournament.id,
-                name: getTournamentDisplayName(tournament),
-                gamesPlayed: 0, wins: 0, losses: 0, ties: 0,
-                goalsFor: 0, goalsAgainst: 0, goalDifference: 0,
-                winPercentage: 0, averageGoalsFor: 0, averageGoalsAgainst: 0,
-              });
-            }
-            applyExternalGame(tournamentStatsMap.get(tournament.id)!, ext);
-          }
 
           const allTournamentStats = Array.from(tournamentStatsMap.values()).map(stats => ({
             ...stats,
@@ -359,12 +291,6 @@ export function useTournamentSeasonStats(
             }
           });
 
-          // Include external games matching this specific tournament
-          for (const ext of externalGames) {
-            if (ext.tournamentId !== selectedTournamentIdFilter) continue;
-            applyExternalGame(stats, ext);
-          }
-
           stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
           stats.winPercentage = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) * 100 : 0;
           stats.averageGoalsFor = stats.gamesPlayed > 0 ? stats.goalsFor / stats.gamesPlayed : 0;
@@ -391,5 +317,5 @@ export function useTournamentSeasonStats(
       clubSeasonEndDate,
     });
     return calculateStats(playedGameIds);
-  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, externalGames]);
+  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 }
