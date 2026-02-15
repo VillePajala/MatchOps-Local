@@ -366,24 +366,55 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 setAdjIncludeInSeasonTournament(false);
               }}
             >
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.season', 'Season')}</label>
-                <select
-                  value={adjSeasonId}
-                  onChange={(e) => {
-                    setAdjSeasonId(e.target.value);
-                    if (e.target.value) {
-                      setAdjTournamentId(''); // Mutual exclusivity: season clears tournament
-                      setAdjIncludeInSeasonTournament(true);
-                    }
-                  }}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">{t('playerStats.noSeason', 'No season')}</option>
-                  {seasons.map(s => (
-                    <option key={s.id} value={s.id}>{getSeasonDisplayName(s)}</option>
-                  ))}
-                </select>
+              {/* Season / Tournament tabs — mutually exclusive, matching GameSettingsModal */}
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
+                <div className="flex gap-1 mb-2">
+                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                    {t('gameSettingsModal.eiMitaan', 'None')}
+                  </button>
+                  <button type="button" onClick={() => { setAdjTournamentId(''); if (!adjSeasonId && seasons.length > 0) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                    {t('gameSettingsModal.kausi', 'Season')}
+                  </button>
+                  <button type="button" onClick={() => { setAdjSeasonId(''); if (!adjTournamentId && tournaments.length > 0) setAdjTournamentId(tournaments[0].id); setAdjIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                    {t('gameSettingsModal.turnaus', 'Tournament')}
+                  </button>
+                </div>
+                {adjSeasonId !== '' && (
+                  <select
+                    value={adjSeasonId}
+                    onChange={(e) => { setAdjSeasonId(e.target.value); }}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {seasons.map(s => (
+                      <option key={s.id} value={s.id}>{getSeasonDisplayName(s)}</option>
+                    ))}
+                  </select>
+                )}
+                {adjTournamentId !== '' && (
+                  <select
+                    value={adjTournamentId}
+                    onChange={(e) => {
+                      const tournamentId = e.target.value;
+                      setAdjTournamentId(tournamentId);
+                      // Prefill tournament data when selected
+                      if (tournamentId) {
+                        const tournament = tournaments.find(t => t.id === tournamentId);
+                        if (tournament) {
+                          const tournamentDate = tournament.startDate || (tournament.gameDates && tournament.gameDates[0]);
+                          if (tournamentDate) {
+                            setAdjGameDate(tournamentDate);
+                          }
+                        }
+                      }
+                    }}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {tournaments.map(t => (
+                      <option key={t.id} value={t.id}>{getTournamentDisplayName(t)}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.homeAway', 'Home/Away')}</label>
@@ -391,37 +422,6 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <option value="home">{t('playerStats.home', 'Home')}</option>
                   <option value="away">{t('playerStats.away', 'Away')}</option>
                   <option value="neutral">{t('playerStats.neutral', 'Neutral')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.tournament', 'Tournament')}</label>
-                <select
-                  value={adjTournamentId}
-                  onChange={(e) => {
-                    const tournamentId = e.target.value;
-                    setAdjTournamentId(tournamentId);
-                    if (tournamentId) {
-                      setAdjSeasonId(''); // Mutual exclusivity: tournament clears season
-                      setAdjIncludeInSeasonTournament(true);
-                    }
-                    // Prefill tournament data when selected
-                    if (tournamentId) {
-                      const tournament = tournaments.find(t => t.id === tournamentId);
-                      if (tournament) {
-                        // Prefill game date with tournament start date or first game date if available
-                        const tournamentDate = tournament.startDate || (tournament.gameDates && tournament.gameDates[0]);
-                        if (tournamentDate) {
-                          setAdjGameDate(tournamentDate);
-                        }
-                      }
-                    }
-                  }}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">{t('playerStats.selectTournament', 'Select tournament (optional)')}</option>
-                  {tournaments.map(t => (
-                    <option key={t.id} value={t.id}>{getTournamentDisplayName(t)}</option>
-                  ))}
                 </select>
               </div>
               <div>
@@ -599,24 +599,42 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           }
                         }}
                       >
-                        <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.season', 'Season')}</label>
-                          <select
-                            value={editSeasonId}
-                            onChange={(e) => {
-                              setEditSeasonId(e.target.value);
-                              if (e.target.value) {
-                                setEditTournamentId(''); // Mutual exclusivity: season clears tournament
-                                setEditIncludeInSeasonTournament(true);
-                              }
-                            }}
-                            className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                          >
-                            <option value="">{t('playerStats.noSeason', 'No season')}</option>
-                            {seasons.map(s => (
-                              <option key={s.id} value={s.id}>{getSeasonDisplayName(s)}</option>
-                            ))}
-                          </select>
+                        {/* Season / Tournament tabs — mutually exclusive, matching GameSettingsModal */}
+                        <div className="lg:col-span-3">
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
+                          <div className="flex gap-1 mb-2">
+                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!editSeasonId && !editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                              {t('gameSettingsModal.eiMitaan', 'None')}
+                            </button>
+                            <button type="button" onClick={() => { setEditTournamentId(''); if (!editSeasonId && seasons.length > 0) setEditSeasonId(seasons[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                              {t('gameSettingsModal.kausi', 'Season')}
+                            </button>
+                            <button type="button" onClick={() => { setEditSeasonId(''); if (!editTournamentId && tournaments.length > 0) setEditTournamentId(tournaments[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                              {t('gameSettingsModal.turnaus', 'Tournament')}
+                            </button>
+                          </div>
+                          {editSeasonId !== '' && (
+                            <select
+                              value={editSeasonId}
+                              onChange={(e) => { setEditSeasonId(e.target.value); }}
+                              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                            >
+                              {seasons.map(s => (
+                                <option key={s.id} value={s.id}>{getSeasonDisplayName(s)}</option>
+                              ))}
+                            </select>
+                          )}
+                          {editTournamentId !== '' && (
+                            <select
+                              value={editTournamentId}
+                              onChange={(e) => { setEditTournamentId(e.target.value); }}
+                              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                            >
+                              {tournaments.map(t => (
+                                <option key={t.id} value={t.id}>{getTournamentDisplayName(t)}</option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.homeAway', 'Home/Away')}</label>
@@ -633,21 +651,6 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
                           <input type="text" value={editOpponentName} onChange={e => setEditOpponentName(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.tournament', 'Tournament')}</label>
-                          <select value={editTournamentId} onChange={e => {
-                            setEditTournamentId(e.target.value);
-                            if (e.target.value) {
-                              setEditSeasonId(''); // Mutual exclusivity: tournament clears season
-                              setEditIncludeInSeasonTournament(true);
-                            }
-                          }} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                            <option value="">{t('playerStats.selectTournament', 'Select tournament (optional)')}</option>
-                            {tournaments.map(t => (
-                              <option key={t.id} value={t.id}>{t.name}</option>
-                            ))}
-                          </select>
                         </div>
                         <div className="lg:col-span-2">
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>
