@@ -247,6 +247,28 @@ const normalizeDemandFactor = (value?: number | null): number | null => {
   return value;
 };
 
+/**
+ * Normalize game_time to a valid PostgreSQL time value (HH:MM or HH:MM:SS).
+ * Returns null for invalid/empty values to avoid 22007/22P02 data exceptions.
+ */
+const normalizeGameTime = (value?: string | null): string | null => {
+  if (value == null || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  // Accept HH:MM or HH:MM:SS format only
+  if (/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/.test(trimmed)) return trimmed;
+  return null;
+};
+
+/**
+ * Normalize a numeric value to a finite integer (for score fields, etc.).
+ * Returns the default value for non-finite/non-numeric input.
+ */
+const normalizeInteger = (value: unknown, defaultValue: number = 0): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return defaultValue;
+  return Math.round(value);
+};
+
 const VALID_GAME_EVENT_TYPES = new Set<GameEvent['type']>([
   'goal',
   'opponentGoal',
@@ -531,6 +553,18 @@ export class SupabaseDataStore implements DataStore {
       code.startsWith('22');  // data exception class (invalid input)
 
     if (isConstraintError) {
+      // Log original PostgreSQL error to Sentry for debugging (not exposed to users)
+      try {
+        Sentry.addBreadcrumb({
+          category: 'error.constraint',
+          message: `PostgreSQL constraint error in ${context}`,
+          level: 'error',
+          data: { code, status, originalMessage: error.message, context },
+        });
+      } catch {
+        /* monitoring must never crash the app */
+      }
+
       // Sanitize: don't expose PostgreSQL table/constraint names to users
       const safeMessage = code === '23503'
         ? `${context}: This item is referenced elsewhere and cannot be modified`
@@ -2881,7 +2915,8 @@ export class SupabaseDataStore implements DataStore {
       game_id: gameId,
       user_id: userId,
       event_type: e.type,
-      time_seconds: e.time,
+      // DEFENSIVE: Ensure time_seconds is a valid number for numeric(10,2)
+      time_seconds: typeof e.time === 'number' && Number.isFinite(e.time) ? e.time : 0,
       // CRITICAL: Array index becomes order_index for ordering
       order_index: index,
       scorer_id: e.scorerId ?? null,
@@ -2955,7 +2990,8 @@ export class SupabaseDataStore implements DataStore {
         tournament_series_id: game.tournamentSeriesId === '' ? null : (game.tournamentSeriesId ?? null),
         tournament_level: game.tournamentLevel === '' ? null : (game.tournamentLevel ?? null),
         team_id: game.teamId === '' ? null : (game.teamId ?? null),
-        game_time: game.gameTime === '' ? null : (game.gameTime ?? null),
+        // DEFENSIVE: Validate time format to prevent 22007/22P02 PostgreSQL errors
+        game_time: normalizeGameTime(game.gameTime),
         game_location: game.gameLocation === '' ? null : (game.gameLocation ?? null),
         age_group: game.ageGroup === '' ? null : (game.ageGroup ?? null),
         league_id: game.leagueId === '' ? null : (game.leagueId ?? null),
@@ -2967,17 +3003,18 @@ export class SupabaseDataStore implements DataStore {
         // DEFENSIVE: Normalize to valid values; default to home
         home_or_away: normalizeGameHomeOrAway(game.homeOrAway) ?? 'home',
         number_of_periods: normalizePeriodCount(game.numberOfPeriods) ?? 2,
-        period_duration_minutes: game.periodDurationMinutes,
+        period_duration_minutes: normalizeInteger(game.periodDurationMinutes, 10),
         current_period: normalizePeriodCount(game.currentPeriod) ?? 1,
         game_status: normalizeGameStatus(game.gameStatus) ?? 'notStarted',
         // CRITICAL: Local semantics treat undefined as true (legacy migration)
         is_played: game.isPlayed ?? true,
-        home_score: game.homeScore,
-        away_score: game.awayScore,
+        home_score: normalizeInteger(game.homeScore, 0),
+        away_score: normalizeInteger(game.awayScore, 0),
         game_notes: game.gameNotes,
         show_player_names: game.showPlayerNames ?? true,
         // === Optional fields ===
-        sub_interval_minutes: game.subIntervalMinutes ?? null,
+        sub_interval_minutes: typeof game.subIntervalMinutes === 'number' && Number.isFinite(game.subIntervalMinutes)
+          ? Math.round(game.subIntervalMinutes) : null,
         // DEFENSIVE: Guard against invalid values which PostgreSQL rejects
         demand_factor: normalizeDemandFactor(game.demandFactor),
         game_type: normalizeGameType(game.gameType),
