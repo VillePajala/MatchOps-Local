@@ -305,6 +305,28 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     loadData();
   }, [isOpen, showToast, t, userId, getStore]);
 
+  // Reload adjustments when switching to season/tournament tabs
+  // (user may have added external games on the Player tab)
+  useEffect(() => {
+    if (!isOpen || (activeTab !== 'season' && activeTab !== 'tournament')) return;
+    const reload = async () => {
+      try {
+        const store = await getStore();
+        const adjustmentsMap = await store.getAllPlayerAdjustments();
+        const flat: PlayerStatAdjustment[] = [];
+        for (const adjs of adjustmentsMap.values()) {
+          for (const adj of adjs) {
+            flat.push(adj);
+          }
+        }
+        setAllAdjustments(flat);
+      } catch {
+        // Silently fail — initial load already showed error if needed
+      }
+    };
+    reload();
+  }, [isOpen, activeTab, getStore]);
+
   // Sync local game events with props
   useEffect(() => {
     setLocalGameEvents(gameEvents);
