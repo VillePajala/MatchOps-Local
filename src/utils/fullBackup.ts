@@ -828,13 +828,16 @@ export const importFullBackup = async (
       }
     }
 
-    // If cloud push succeeded, set migration flag to prevent migration wizard from appearing
-    // This avoids showing "Sync to Cloud" wizard when data is already synced
-    if (cloudPushSucceeded && userId) {
+    // Always set migration flag after backup restore to prevent migration wizard from appearing.
+    // Data is safely in local IndexedDB. If cloud push partially failed, SyncEngine will retry
+    // those items in the background. The restore results modal already informed the user about
+    // any failures — showing the migration wizard on top of that is confusing and risky
+    // (user might "discard local data" and lose the just-restored backup).
+    if (userId) {
       try {
         const { setMigrationCompleted } = await import('@/config/backendConfig');
         setMigrationCompleted(userId);
-        logger.log('[importFullBackup] Set migration flag - cloud push succeeded, no wizard needed');
+        logger.log(`[importFullBackup] Set migration flag - data in local${cloudPushSucceeded ? ' and cloud' : ', cloud push had failures (SyncEngine will retry)'}`);
       } catch (flagError) {
         logger.warn('[importFullBackup] Failed to set migration flag (non-fatal):', flagError);
       }

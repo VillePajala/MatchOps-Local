@@ -10,7 +10,7 @@ import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPat
 import { importFullBackup } from '@/utils/fullBackup';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
-import { getBackendMode, clearMigrationCompleted } from '@/config/backendConfig';
+// backendConfig import removed — migration flag is now handled entirely by importFullBackup
 import { useAuth } from '@/contexts/AuthProvider';
 import { ModalFooter, modalContainerStyle, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
@@ -295,23 +295,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (pendingRestoreContent) {
       // Start loading state
       setIsRestoring(true);
-
-      // In cloud mode, clear migration flag so the simplified migration wizard
-      // will show after reload to sync the imported data to cloud
-      const mode = getBackendMode();
-      if (mode === 'cloud' && user?.id) {
-        try {
-          clearMigrationCompleted(user.id);
-          logger.info('[SettingsModal] Cleared migration flag for backup import in cloud mode');
-        } catch (error) {
-          // Non-critical: import proceeds, but user should know sync wizard may not show
-          logger.warn('[SettingsModal] Failed to clear migration flag:', error);
-          showToast(
-            t('fullBackup.migrationFlagWarning', 'Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later.'),
-            'info'
-          );
-        }
-      }
 
       try {
         // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
