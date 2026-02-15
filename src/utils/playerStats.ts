@@ -1,5 +1,6 @@
 import { Player, Season, Tournament, PlayerStatAdjustment } from '@/types';
 import { AppState } from '@/types';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 
 // Define a type for the processed stats
 export interface PlayerStats {
@@ -78,7 +79,7 @@ export const calculatePlayerStats = (
       if (game.seasonId) {
         if (!performanceBySeason[game.seasonId]) {
           const seasonInfo = seasons.find(s => s.id === game.seasonId);
-          performanceBySeason[game.seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0, fairPlayCards: 0 };
+          performanceBySeason[game.seasonId] = { name: seasonInfo ? getSeasonDisplayName(seasonInfo) : 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0, fairPlayCards: 0 };
         }
         performanceBySeason[game.seasonId].gamesPlayed += 1;
         performanceBySeason[game.seasonId].goals += goals;
@@ -94,7 +95,7 @@ export const calculatePlayerStats = (
 
         if (!performanceByTournament[game.tournamentId]) {
           performanceByTournament[game.tournamentId] = {
-            name: tournament?.name || 'Unknown Tournament',
+            name: tournament ? getTournamentDisplayName(tournament) : 'Unknown Tournament',
             gamesPlayed: 0,
             goals: 0,
             assists: 0,
@@ -155,7 +156,7 @@ export const calculatePlayerStats = (
       if (adj.seasonId) {
         if (!performanceBySeason[adj.seasonId]) {
           const seasonInfo = seasons.find(s => s.id === adj.seasonId);
-          performanceBySeason[adj.seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0, fairPlayCards: 0 };
+          performanceBySeason[adj.seasonId] = { name: seasonInfo ? getSeasonDisplayName(seasonInfo) : 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0, fairPlayCards: 0 };
         }
         performanceBySeason[adj.seasonId].gamesPlayed += (adj.gamesPlayedDelta || 0);
         performanceBySeason[adj.seasonId].goals += (adj.goalsDelta || 0);
@@ -171,7 +172,7 @@ export const calculatePlayerStats = (
 
         if (!performanceByTournament[adj.tournamentId]) {
           performanceByTournament[adj.tournamentId] = {
-            name: tournament?.name || 'Unknown Tournament',
+            name: tournament ? getTournamentDisplayName(tournament) : 'Unknown Tournament',
             gamesPlayed: 0,
             goals: 0,
             assists: 0,

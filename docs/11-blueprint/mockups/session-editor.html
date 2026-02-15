@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Practice — Session Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --indigo: #6366f1;
+    --indigo-dark: #4f46e5;
+    --indigo-glow: rgba(99, 102, 241, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --green-pitch: #1a4d2e;
+    --station-a: #818cf8;
+    --station-b: #34d399;
+    --station-c: #fb923c;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 80px;
+  }
+
+  /* Top bar */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .top-bar__back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .top-bar__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .top-bar__save {
+    background: var(--indigo);
+    border: none;
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  /* Page */
+  .session-page {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  /* Session header form */
+  .session-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .session-title-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    outline: none;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .session-title-input::placeholder { color: var(--text-muted); }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .meta-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+
+  .meta-value {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .meta-value:focus {
+    border-color: var(--indigo);
+  }
+
+  .theme-input {
+    grid-column: 1 / -1;
+  }
+
+  .theme-input .meta-value {
+    color: var(--amber);
+  }
+
+  /* Coach chips */
+  .coaches-row {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .coach-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .coach-chip--active {
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+  }
+
+  .coach-chip__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #a5b4fc;
+  }
+
+  /* Duration bar */
+  .duration-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    margin-bottom: 4px;
+  }
+
+  .duration-bar__label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  .duration-bar__total {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .duration-bar__total span {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    padding-left: 20px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 14px;
+    bottom: 14px;
+    width: 2px;
+    background: var(--border);
+    border-radius: 1px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 10px;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -17px;
+    top: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-light);
+    border: 2px solid var(--bg);
+    z-index: 1;
+  }
+
+  .timeline-item--warmup::before { background: var(--amber); }
+  .timeline-item--main::before { background: var(--indigo); }
+  .timeline-item--break::before { background: var(--text-muted); }
+  .timeline-item--cooldown::before { background: var(--text-secondary); }
+  .timeline-item--stations::before { background: var(--indigo); box-shadow: 0 0 6px rgba(99,102,241,0.4); }
+
+  /* Block card */
+  .block-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.1s;
+  }
+
+  .block-card:active { transform: scale(0.99); }
+
+  .block-card__grip {
+    color: var(--text-muted);
+    cursor: grab;
+    flex-shrink: 0;
+  }
+
+  .block-card__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .block-card__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .block-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .block-card__duration {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  .block-card__actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+
+  .action-btn:hover { background: rgba(255,255,255,0.05); }
+
+  /* Phase badge */
+  .phase-badge {
+    display: inline-block;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    line-height: 1.4;
+  }
+
+  .phase-badge--warmup { background: rgba(251, 191, 36, 0.15); color: var(--amber-light); }
+  .phase-badge--main { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
+  .phase-badge--break { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+  .phase-badge--cooldown { background: rgba(148, 163, 184, 0.12); color: var(--text-secondary); }
+
+  .off-field-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-muted);
+  }
+
+  /* Stations block (special) */
+  .stations-card {
+    background: var(--surface);
+    border: 1px solid var(--indigo);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .stations-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--indigo-glow);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+  }
+
+  .stations-card__header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stations-card__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--indigo);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stations-card__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #a5b4fc;
+  }
+
+  .stations-card__subtitle {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+
+  .stations-card__duration {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .stations-card__duration span {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .stations-card__body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Station sub-card */
+  .station-subcard {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+
+  .station-subcard__color {
+    width: 4px;
+    height: 32px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .station-subcard--a .station-subcard__color { background: var(--station-a); }
+  .station-subcard--b .station-subcard__color { background: var(--station-b); }
+  .station-subcard--c .station-subcard__color { background: var(--station-c); }
+
+  .station-subcard__diagram {
+    width: 40px;
+    height: 30px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .station-subcard__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .station-subcard__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .station-subcard__coach {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+
+  .station-subcard__tag {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .station-subcard--a .station-subcard__tag { background: rgba(129,140,248,0.15); color: var(--station-a); }
+  .station-subcard--b .station-subcard__tag { background: rgba(52,211,153,0.15); color: var(--station-b); }
+  .station-subcard--c .station-subcard__tag { background: rgba(251,146,60,0.15); color: var(--station-c); }
+
+  /* Add block button */
+  .add-block-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 2px dashed var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 10px;
+    margin-left: 20px;
+  }
+
+  .add-block-btn:hover {
+    border-color: var(--indigo);
+    color: #a5b4fc;
+    background: var(--indigo-glow);
+  }
+
+  /* Floating preview button */
+  .preview-fab {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 28px;
+    border: none;
+    background: var(--indigo);
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.2);
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 100;
+  }
+
+  .preview-fab:active {
+    transform: translateX(-50%) scale(0.96);
+  }
+
+  .preview-fab:hover {
+    box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.3);
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .session-header { animation: fadeIn 0.25s ease-out; }
+  .timeline-item:nth-child(1) { animation: fadeIn 0.2s ease-out 0.05s both; }
+  .timeline-item:nth-child(2) { animation: fadeIn 0.2s ease-out 0.1s both; }
+  .timeline-item:nth-child(3) { animation: fadeIn 0.2s ease-out 0.15s both; }
+  .timeline-item:nth-child(4) { animation: fadeIn 0.2s ease-out 0.2s both; }
+  .timeline-item:nth-child(5) { animation: fadeIn 0.2s ease-out 0.25s both; }
+  .timeline-item:nth-child(6) { animation: fadeIn 0.2s ease-out 0.3s both; }
+
+  .field-svg { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <button class="top-bar__back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Practices
+  </button>
+  <span class="top-bar__title">Edit Session</span>
+  <button class="top-bar__save">Save</button>
+</div>
+
+<div class="session-page">
+
+  <!-- Session header -->
+  <div class="session-header">
+    <input type="text" class="session-title-input" value="Tuesday Technical Training" placeholder="Session title...">
+    <div class="meta-grid">
+      <div class="meta-field">
+        <span class="meta-label">Date</span>
+        <input type="text" class="meta-value" value="Tue 17.3.2026">
+      </div>
+      <div class="meta-field">
+        <span class="meta-label">Time</span>
+        <input type="text" class="meta-value" value="17:00">
+      </div>
+      <div class="meta-field">
+        <span class="meta-label">Team</span>
+        <input type="text" class="meta-value" value="U12 Boys">
+      </div>
+      <div class="meta-field">
+        <span class="meta-label">Season</span>
+        <input type="text" class="meta-value" value="Spring 2026">
+      </div>
+      <div class="meta-field theme-input">
+        <span class="meta-label">Theme</span>
+        <input type="text" class="meta-value" value="Passing under pressure" placeholder="Training theme...">
+      </div>
+    </div>
+    <div class="coaches-row">
+      <span class="meta-label" style="margin-right:2px">Coaches</span>
+      <span class="coach-chip coach-chip--active"><span class="coach-chip__dot"></span> Ville</span>
+      <span class="coach-chip coach-chip--active"><span class="coach-chip__dot"></span> Mikko</span>
+      <span class="coach-chip coach-chip--active"><span class="coach-chip__dot"></span> Jari</span>
+    </div>
+  </div>
+
+  <!-- Duration bar -->
+  <div class="duration-bar">
+    <span class="duration-bar__label">Session blocks</span>
+    <span class="duration-bar__total">91 <span>min total</span></span>
+  </div>
+
+  <!-- Timeline -->
+  <div class="timeline">
+
+    <!-- Block 1: Warm-up jogging -->
+    <div class="timeline-item timeline-item--warmup">
+      <div class="block-card">
+        <div class="block-card__grip">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="4" cy="3" r="1.2" fill="currentColor"/><circle cx="10" cy="3" r="1.2" fill="currentColor"/><circle cx="4" cy="7" r="1.2" fill="currentColor"/><circle cx="10" cy="7" r="1.2" fill="currentColor"/><circle cx="4" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="11" r="1.2" fill="currentColor"/></svg>
+        </div>
+        <div class="block-card__content">
+          <div class="block-card__title">Jogging + dynamic stretching</div>
+          <div class="block-card__meta">
+            <span class="phase-badge phase-badge--warmup">Warm-up</span>
+            <span class="off-field-badge">Off-field</span>
+          </div>
+        </div>
+        <div class="block-card__duration">10 <span style="font-size:11px;color:var(--text-secondary);font-weight:500">min</span></div>
+        <div class="block-card__actions">
+          <button class="action-btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7.5 2.5l4 4-4 4M2.5 2.5l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Block 2: Ball mastery -->
+    <div class="timeline-item timeline-item--warmup">
+      <div class="block-card">
+        <div class="block-card__grip">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="4" cy="3" r="1.2" fill="currentColor"/><circle cx="10" cy="3" r="1.2" fill="currentColor"/><circle cx="4" cy="7" r="1.2" fill="currentColor"/><circle cx="10" cy="7" r="1.2" fill="currentColor"/><circle cx="4" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="11" r="1.2" fill="currentColor"/></svg>
+        </div>
+        <div class="block-card__content">
+          <div class="block-card__title">Ball mastery in pairs</div>
+          <div class="block-card__meta">
+            <span class="phase-badge phase-badge--warmup">Warm-up</span>
+          </div>
+        </div>
+        <div class="block-card__duration">10 <span style="font-size:11px;color:var(--text-secondary);font-weight:500">min</span></div>
+        <div class="block-card__actions">
+          <button class="action-btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7.5 2.5l4 4-4 4M2.5 2.5l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Block 3: STATIONS -->
+    <div class="timeline-item timeline-item--stations">
+      <div class="stations-card">
+        <div class="stations-card__header">
+          <div class="stations-card__header-left">
+            <div class="stations-card__icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="white" stroke-width="1.2"/>
+                <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="white" stroke-width="1.2"/>
+                <rect x="5" y="9" width="6" height="6" rx="1.5" stroke="white" stroke-width="1.2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="stations-card__title">Stations</div>
+              <div class="stations-card__subtitle">3 stations · 12 min/rotation</div>
+            </div>
+          </div>
+          <div class="stations-card__duration">36 <span>min</span></div>
+        </div>
+        <div class="stations-card__body">
+          <!-- Station A -->
+          <div class="station-subcard station-subcard--a">
+            <div class="station-subcard__color"></div>
+            <div class="station-subcard__diagram">
+              <svg class="field-svg" viewBox="0 0 50 38">
+                <rect width="50" height="38" fill="#1a4d2e" rx="3"/>
+                <circle cx="14" cy="12" r="3" fill="#60a5fa"/><circle cx="36" cy="12" r="3" fill="#60a5fa"/>
+                <circle cx="14" cy="26" r="3" fill="#60a5fa"/><circle cx="36" cy="26" r="3" fill="#60a5fa"/>
+                <circle cx="22" cy="18" r="3" fill="#f87171"/><circle cx="28" cy="20" r="3" fill="#f87171"/>
+              </svg>
+            </div>
+            <div class="station-subcard__info">
+              <div class="station-subcard__name">Rondo 4v2</div>
+              <div class="station-subcard__coach">Coach Ville</div>
+            </div>
+            <span class="station-subcard__tag">A</span>
+          </div>
+          <!-- Station B -->
+          <div class="station-subcard station-subcard--b">
+            <div class="station-subcard__color"></div>
+            <div class="station-subcard__diagram">
+              <svg class="field-svg" viewBox="0 0 50 38">
+                <rect width="50" height="38" fill="#1a4d2e" rx="3"/>
+                <circle cx="25" cy="8" r="3" fill="#60a5fa"/>
+                <circle cx="12" cy="30" r="3" fill="#60a5fa"/>
+                <circle cx="38" cy="30" r="3" fill="#60a5fa"/>
+                <line x1="23" y1="11" x2="14" y2="27" stroke="white" stroke-width="0.5" stroke-dasharray="2 1"/>
+                <line x1="15" y1="30" x2="35" y2="30" stroke="white" stroke-width="0.5" stroke-dasharray="2 1"/>
+                <line x1="36" y1="27" x2="27" y2="11" stroke="white" stroke-width="0.5" stroke-dasharray="2 1"/>
+              </svg>
+            </div>
+            <div class="station-subcard__info">
+              <div class="station-subcard__name">Passing triangles</div>
+              <div class="station-subcard__coach">Coach Mikko</div>
+            </div>
+            <span class="station-subcard__tag">B</span>
+          </div>
+          <!-- Station C -->
+          <div class="station-subcard station-subcard--c">
+            <div class="station-subcard__color"></div>
+            <div class="station-subcard__diagram">
+              <svg class="field-svg" viewBox="0 0 50 38">
+                <rect width="50" height="38" fill="#1a4d2e" rx="3"/>
+                <polygon points="15,10 16,7 17,10" fill="#fb923c"/>
+                <polygon points="22,18 23,15 24,18" fill="#fb923c"/>
+                <polygon points="15,26 16,23 17,26" fill="#fb923c"/>
+                <circle cx="12" cy="33" r="3" fill="#60a5fa"/>
+                <circle cx="38" cy="19" r="3" fill="#f87171"/>
+              </svg>
+            </div>
+            <div class="station-subcard__info">
+              <div class="station-subcard__name">1v1 Dribbling</div>
+              <div class="station-subcard__coach">Coach Jari</div>
+            </div>
+            <span class="station-subcard__tag">C</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Block 4: Break -->
+    <div class="timeline-item timeline-item--break">
+      <div class="block-card">
+        <div class="block-card__grip">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="4" cy="3" r="1.2" fill="currentColor"/><circle cx="10" cy="3" r="1.2" fill="currentColor"/><circle cx="4" cy="7" r="1.2" fill="currentColor"/><circle cx="10" cy="7" r="1.2" fill="currentColor"/><circle cx="4" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="11" r="1.2" fill="currentColor"/></svg>
+        </div>
+        <div class="block-card__content">
+          <div class="block-card__title">Water break</div>
+          <div class="block-card__meta">
+            <span class="phase-badge phase-badge--break">Break</span>
+          </div>
+        </div>
+        <div class="block-card__duration">5 <span style="font-size:11px;color:var(--text-secondary);font-weight:500">min</span></div>
+        <div class="block-card__actions">
+          <button class="action-btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7.5 2.5l4 4-4 4M2.5 2.5l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Block 5: Main match -->
+    <div class="timeline-item timeline-item--main">
+      <div class="block-card">
+        <div class="block-card__grip">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="4" cy="3" r="1.2" fill="currentColor"/><circle cx="10" cy="3" r="1.2" fill="currentColor"/><circle cx="4" cy="7" r="1.2" fill="currentColor"/><circle cx="10" cy="7" r="1.2" fill="currentColor"/><circle cx="4" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="11" r="1.2" fill="currentColor"/></svg>
+        </div>
+        <div class="block-card__content">
+          <div class="block-card__title">7v7 match with passing rules</div>
+          <div class="block-card__meta">
+            <span class="phase-badge phase-badge--main">Main</span>
+          </div>
+        </div>
+        <div class="block-card__duration">20 <span style="font-size:11px;color:var(--text-secondary);font-weight:500">min</span></div>
+        <div class="block-card__actions">
+          <button class="action-btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7.5 2.5l4 4-4 4M2.5 2.5l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Block 6: Cool-down -->
+    <div class="timeline-item timeline-item--cooldown">
+      <div class="block-card">
+        <div class="block-card__grip">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="4" cy="3" r="1.2" fill="currentColor"/><circle cx="10" cy="3" r="1.2" fill="currentColor"/><circle cx="4" cy="7" r="1.2" fill="currentColor"/><circle cx="10" cy="7" r="1.2" fill="currentColor"/><circle cx="4" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="11" r="1.2" fill="currentColor"/></svg>
+        </div>
+        <div class="block-card__content">
+          <div class="block-card__title">Static stretching + recap</div>
+          <div class="block-card__meta">
+            <span class="phase-badge phase-badge--cooldown">Cool-down</span>
+            <span class="off-field-badge">Off-field</span>
+          </div>
+        </div>
+        <div class="block-card__duration">10 <span style="font-size:11px;color:var(--text-secondary);font-weight:500">min</span></div>
+        <div class="block-card__actions">
+          <button class="action-btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7.5 2.5l4 4-4 4M2.5 2.5l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Add block -->
+  <button class="add-block-btn">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Add Block
+  </button>
+
+</div>
+
+<!-- Preview FAB -->
+<button class="preview-fab">
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+    <rect x="2" y="2" width="6" height="6" rx="1" stroke="white" stroke-width="1.5"/>
+    <rect x="10" y="2" width="6" height="6" rx="1" stroke="white" stroke-width="1.5"/>
+    <rect x="2" y="10" width="6" height="6" rx="1" stroke="white" stroke-width="1.5"/>
+    <rect x="10" y="10" width="6" height="6" rx="1" stroke="white" stroke-width="1.5"/>
+  </svg>
+  Preview Practice Card
+</button>
+
+</body>
+</html>

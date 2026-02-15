@@ -10,6 +10,7 @@ import { AppState } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/playerStats';
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { PlayerStatAdjustment } from '@/types';
 import { calculatePlayerAssessmentAverages, getPlayerAssessmentTrends, getPlayerAssessmentNotes } from '@/utils/assessmentStats';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
@@ -368,12 +369,15 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.season', 'Season')}</label>
                 <select
                   value={adjSeasonId}
-                  onChange={(e) => setAdjSeasonId(e.target.value)}
+                  onChange={(e) => {
+                    setAdjSeasonId(e.target.value);
+                    if (e.target.value) setAdjIncludeInSeasonTournament(true);
+                  }}
                   className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">{t('playerStats.noSeason', 'No season')}</option>
                   {seasons.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{getSeasonDisplayName(s)}</option>
                   ))}
                 </select>
               </div>
@@ -392,6 +396,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   onChange={(e) => {
                     const tournamentId = e.target.value;
                     setAdjTournamentId(tournamentId);
+                    if (tournamentId) setAdjIncludeInSeasonTournament(true);
                     // Prefill tournament data when selected
                     if (tournamentId) {
                       const tournament = tournaments.find(t => t.id === tournamentId);
@@ -408,7 +413,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 >
                   <option value="">{t('playerStats.selectTournament', 'Select tournament (optional)')}</option>
                   {tournaments.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>{getTournamentDisplayName(t)}</option>
                   ))}
                 </select>
               </div>
@@ -507,8 +512,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               {adjustments
                 .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
                 .map(a => {
-                  const seasonName = seasons.find(s => s.id === a.seasonId)?.name;
-                  const tournamentName = tournaments.find(t => t.id === a.tournamentId)?.name;
+                  const seasonObj = seasons.find(s => s.id === a.seasonId);
+                  const seasonName = seasonObj ? getSeasonDisplayName(seasonObj) : undefined;
+                  const tournamentObj = tournaments.find(t => t.id === a.tournamentId);
+                  const tournamentName = tournamentObj ? getTournamentDisplayName(tournamentObj) : undefined;
                   // Team names should always exist due to validation, but fallback just in case
                   const extName = a.externalTeamName || 'Unknown Team';
                   const oppName = a.opponentName || 'Unknown Opponent';

@@ -472,6 +472,9 @@ export function useGamePersistence({
         availablePlayers, // For fair play card and per-game player data
         leagueId: gameSessionState.leagueId, // League selection
         customLeagueName: gameSessionState.customLeagueName, // Custom league name when leagueId === CUSTOM_LEAGUE_ID
+        subIntervalMinutes: gameSessionState.subIntervalMinutes, // Sub interval setting (adjustable on timer overlay)
+        periodDurationMinutes: gameSessionState.periodDurationMinutes, // Period duration (adjustable in game settings)
+        showPlayerNames: gameSessionState.showPlayerNames, // Player name visibility toggle
       },
       delay: 500,
     },
