@@ -475,6 +475,7 @@ export function useGamePersistence({
         subIntervalMinutes: gameSessionState.subIntervalMinutes, // Sub interval setting (adjustable on timer overlay)
         periodDurationMinutes: gameSessionState.periodDurationMinutes, // Period duration (adjustable in game settings)
         showPlayerNames: gameSessionState.showPlayerNames, // Player name visibility toggle
+        showPositionLabels: gameSessionState.showPositionLabels, // Position labels toggle (FieldContainer button)
       },
       delay: 500,
     },
