@@ -891,11 +891,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
                   {/* Tournament/Season Statistics Section */}
                   {/* TODO: REMOVE — temporary debug banner */}
-                  {(activeTab === 'season' || activeTab === 'tournament') && (
-                    <div className="bg-yellow-900/50 border border-yellow-600 rounded p-2 text-xs text-yellow-200 mb-2">
-                      DEBUG: allAdj={allAdjustments.length}, eligible={allAdjustments.filter(a => a.includeInSeasonTournament).length}, extGames={externalGames.length}, extSeasons={externalGames.filter(e => e.seasonId).map(e => e.seasonId).join(',')}, filter={activeTab === 'season' ? selectedSeasonIdFilter : selectedTournamentIdFilter}
-                    </div>
-                  )}
+                  {(activeTab === 'season' || activeTab === 'tournament') && (() => {
+                    const currentFilter = activeTab === 'season' ? selectedSeasonIdFilter : selectedTournamentIdFilter;
+                    const matchingExt = externalGames.filter(e => activeTab === 'season' ? e.seasonId === currentFilter : e.tournamentId === currentFilter);
+                    const hookResult = tournamentSeasonStats;
+                    const hookGames = Array.isArray(hookResult) && hookResult.length > 0 ? hookResult[0].gamesPlayed : (hookResult && !Array.isArray(hookResult) ? hookResult.totalGames : 0);
+                    return (
+                      <div className="bg-yellow-900/50 border border-yellow-600 rounded p-2 text-xs text-yellow-200 mb-2 break-all">
+                        DEBUG: extGames={externalGames.length}, filter={currentFilter}, matchingExt={matchingExt.length}, hookGamesPlayed={hookGames}, extDetails={JSON.stringify(externalGames.map(e => ({s: e.seasonId?.slice(-8), t: e.tournamentId?.slice(-8), gp: e.gamesPlayedDelta})))}
+                      </div>
+                    );
+                  })()}
                   {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
                     <>
                       {Array.isArray(tournamentSeasonStats) ? (
