@@ -43,7 +43,7 @@ import {
 import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
 
 // Import types
-import type { SortableColumn, SortDirection, StatsTab, ExternalGameEntry } from './GameStatsModal/types';
+import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
 
 interface GameStatsModalProps {
   isOpen: boolean;
@@ -380,6 +380,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     sortColumn,
     sortDirection,
     filterText,
+    adjustments: allAdjustments,
+    playerPool,
   });
 
   // Empty state for season/tournament with specific team and zero matching games
@@ -389,37 +391,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     const hasSpecificTeam = selectedTeamIdFilter !== 'all';
     return (isSpecificSeason || isSpecificTournament) && hasSpecificTeam && processedGameIds.length === 0;
   }, [activeTab, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, processedGameIds.length]);
-
-  // Deduplicate adjustments at the game level for season/tournament team stats.
-  // Multiple players may have adjustments for the same external game — we group by
-  // a composite key and take score/homeOrAway from the first entry that has them.
-  const externalGames: ExternalGameEntry[] = useMemo(() => {
-    const eligible = allAdjustments.filter(a => a.includeInSeasonTournament);
-    if (eligible.length === 0) return [];
-
-    const grouped = new Map<string, ExternalGameEntry>();
-    for (const adj of eligible) {
-      const key = `${adj.gameDate ?? ''}_${adj.opponentName ?? ''}_${adj.seasonId ?? ''}_${adj.tournamentId ?? ''}`;
-      if (!grouped.has(key)) {
-        grouped.set(key, {
-          gameDate: adj.gameDate,
-          opponentName: adj.opponentName,
-          seasonId: adj.seasonId,
-          tournamentId: adj.tournamentId,
-          scoreFor: adj.scoreFor,
-          scoreAgainst: adj.scoreAgainst,
-          homeOrAway: adj.homeOrAway,
-          gamesPlayedDelta: adj.gamesPlayedDelta,
-        });
-      }
-      // For subsequent duplicates, only fill in missing score/homeOrAway
-      const entry = grouped.get(key)!;
-      if (entry.scoreFor == null && adj.scoreFor != null) entry.scoreFor = adj.scoreFor;
-      if (entry.scoreAgainst == null && adj.scoreAgainst != null) entry.scoreAgainst = adj.scoreAgainst;
-      if (entry.homeOrAway == null && adj.homeOrAway != null) entry.homeOrAway = adj.homeOrAway;
-    }
-    return Array.from(grouped.values());
-  }, [allAdjustments]);
 
   const tournamentSeasonStats = useTournamentSeasonStats({
     activeTab,
@@ -435,8 +406,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedClubSeason,
     clubSeasonStartDate,
     clubSeasonEndDate,
-    // External games from player adjustments
-    externalGames,
   });
 
   const goalEditorHook = useGoalEditor({
@@ -890,18 +859,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   )}
 
                   {/* Tournament/Season Statistics Section */}
-                  {/* TODO: REMOVE — temporary debug banner */}
-                  {(activeTab === 'season' || activeTab === 'tournament') && (() => {
-                    const currentFilter = activeTab === 'season' ? selectedSeasonIdFilter : selectedTournamentIdFilter;
-                    const matchingExt = externalGames.filter(e => activeTab === 'season' ? e.seasonId === currentFilter : e.tournamentId === currentFilter);
-                    const hookResult = tournamentSeasonStats;
-                    const hookGames = Array.isArray(hookResult) && hookResult.length > 0 ? hookResult[0].gamesPlayed : (hookResult && !Array.isArray(hookResult) ? hookResult.totalGames : 0);
-                    return (
-                      <div className="bg-yellow-900/50 border border-yellow-600 rounded p-2 text-xs text-yellow-200 mb-2 break-all">
-                        DEBUG: extGames={externalGames.length}, filter={currentFilter}, matchingExt={matchingExt.length}, hookGamesPlayed={hookGames}, extDetails={JSON.stringify(externalGames.map(e => ({s: e.seasonId?.slice(-8), t: e.tournamentId?.slice(-8), gp: e.gamesPlayedDelta})))}
-                      </div>
-                    );
-                  })()}
                   {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
                     <>
                       {Array.isArray(tournamentSeasonStats) ? (

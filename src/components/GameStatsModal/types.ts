@@ -2,7 +2,7 @@
  * Shared types for GameStatsModal and its sub-components
  */
 
-import { Player, GameEvent, SavedGamesCollection, PlayerStatRow } from '@/types';
+import { Player, GameEvent, SavedGamesCollection, PlayerStatRow, PlayerStatAdjustment } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 
 // Define the type for sortable columns
@@ -55,21 +55,6 @@ export interface OverallTournamentSeasonStats {
   seasons: TournamentSeasonStats[];
 }
 
-// Deduped external game entry derived from PlayerStatAdjustments
-// Multiple players may have adjustments for the same external game;
-// we deduplicate by (gameDate + opponentName + seasonId + tournamentId)
-// and take score/homeOrAway from the first adjustment that has them.
-export interface ExternalGameEntry {
-  gameDate?: string;
-  opponentName?: string;
-  seasonId?: string;
-  tournamentId?: string;
-  scoreFor?: number;
-  scoreAgainst?: number;
-  homeOrAway?: 'home' | 'away' | 'neutral';
-  gamesPlayedDelta: number;
-}
-
 // Game stats calculation parameters
 export interface GameStatsParams {
   activeTab: StatsTab;
@@ -91,6 +76,10 @@ export interface GameStatsParams {
   sortColumn: SortableColumn;
   sortDirection: SortDirection;
   filterText: string;
+  // Per-player external game adjustments (for season/tournament/overall tabs)
+  adjustments?: PlayerStatAdjustment[];
+  // Full player roster for looking up players that only appear in adjustments
+  playerPool?: Player[];
 }
 
 // Game stats calculation result
