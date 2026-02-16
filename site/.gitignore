@@ -35,3 +35,6 @@ next-env.d.ts
 
 # Backup files (may contain personal data)
 /public/screenshots/gamedata/
+
+# Test data (not referenced in code)
+/public/testdata/

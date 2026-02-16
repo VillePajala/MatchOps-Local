@@ -35,16 +35,22 @@
 
 ---
 
-### Marketing Site Guide Content — 1 Round + Fixes (COMPLETE)
+### Marketing Site Guide Content — 2 Rounds, Converged (COMPLETE)
 
 **Location**: `site/content/guide/en/*.mdx` (13 files) + `site/content/guide/fi/*.mdx` (13 files)
-**Review**: 6-agent parallel review (3 EN + 3 FI), 43 findings (10 HIGH, 11 MEDIUM, 18 FI-specific, 4 LOW)
-**Fix**: 6-agent parallel fix pass, all 43 items resolved
 
-Key fixes applied:
-- **backup→sync language**: Cloud sync ≠ backup (sync propagates deletes, no versioning)
-- **Select-and-place UX**: All drag-and-drop references corrected
-- **Player fields**: Removed nonexistent Position field, single Name field
+| Round | Action | Result |
+|-------|--------|--------|
+| R1 | 6-agent review (3 EN + 3 FI) | 43 findings (10 HIGH, 11 MEDIUM, 18 FI-specific, 4 LOW) |
+| R1 Fix | 6-agent parallel fix | All 43 items resolved |
+| R2 | 4-agent verification review | 50 new findings (28 EN, 22 FI) |
+| R2 Fix | 4-agent parallel fix + manual conflict resolution | All 50 items resolved |
+
+Key fixes (R1): backup→sync language, select-and-place UX, player fields, personnel roles, assessment metrics, tactical disc behavior, import behavior, wake lock, Finnish Klikkaa→Napauta, Cyrillic corruption, CLAUDE.md Rule 12 update.
+
+Key fixes (R2): Menu item names (6 wrong across multiple files), WelcomeScreen button labels, nonexistent features removed (goalie toggle, clear old seasons), Fair Play Card mechanism corrected, Gender/Age Group fields added, league dropdown fixed, 20 more Klikkaa→Napauta, pull-to-refresh removed, desktop drag note added, player field parity.
+
+**Status**: COMPLETE. Two rounds, all issues resolved.
 - **Personnel roles**: Updated to actual 8 roles with correct fields
 - **Assessment metrics**: Actual 10 metric names instead of generic categories
 - **Tactical disc behavior**: Fixed double-tap descriptions, added goalie disc type
@@ -165,17 +171,39 @@ Key fixes applied:
 
 ---
 
-### 6. Marketing Site Assets (LOW PRIORITY)
+### 6. Marketing Assets — Generated Materials (COMPLETE)
 
-**Location**: `site/public/screenshots/` (~60 screenshots), `site/public/logos/`, `site/public/badges/`
-**Why**: Screenshots may show outdated UI. Some have naming inconsistencies (`MatcOps` vs `MatchOps`).
-**What to check**:
-- [ ] Screenshots reflect current app UI
-- [ ] No outdated UI elements (old modals, missing features)
-- [ ] `archive/` and `misc/` folders — cleanup candidates?
-- [ ] `gamedata/` folder contains a backup JSON — should it be in git?
-- [ ] `testdata/` folder — is this needed in the marketing site?
-- [ ] Naming convention consistency
+**Location**: `site/pages/marketing-assets.tsx` (3360 lines), translation JSONs, supporting components
+**Scope**: All JSX-generated downloadable marketing materials (LinkedIn, Twitter, Facebook, Instagram, Play Store, YouTube, Cards, Logos, Heroes)
+
+| Round | Action | Result |
+|-------|--------|--------|
+| R1 | 8-agent Opus 4.6 review | ~50 findings (hardcoded EN, stale stats, CSS bugs, i18n gaps, naming, dead files) |
+| R1 Fix | 5-agent parallel fix | All code-level issues fixed |
+| R1 Revert | Manual | Assessment screenshot swap reverted (filenames mislabeled, original code correct) |
+| R2 | Visual/compositional analysis | 12 issues: alignment, layout, hardcoded labels, YouTube banner |
+| R2 Fix | 18 parallel edits | All fixed |
+
+Key fixes:
+- **30+ hardcoded English strings** → `t()` i18n calls across all asset sections
+- **9 remaining hardcoded labels** (PS V7 phone labels, tech card suffixes) → translated
+- **LinkedIn Personal vertical alignment**: 10 banners fixed (`self-start pt-8` → `self-center`)
+- **li-1b layout**: removed hardcoded `marginLeft: 330`, proper `justify-between` layout
+- **YouTube banner**: enhanced from text-only to logo + title + tagline + URL within safe zone
+- **Tech stats updated**: 272K lines, 4700+ tests, 90K docs, 148 components
+- **Futsal inclusion**: 5 translation keys updated in both EN and FI
+- **CSS fix**: invalid `gap-[-20px]` → `gap-0`
+- **Play Store V6/V7 overlap**: tagline moved from `bottom-4` to `bottom-10`
+- **PromoVideo.tsx**: "drag-and-drop" → "Interactive"
+- **PhoneMockup.tsx**: added `alt` prop for accessibility
+- **`.gitignore`**: added `/public/testdata/`
+
+**Not reviewed** (raw asset files — separate concern):
+- `site/public/screenshots/` naming inconsistencies (`MatcOps` vs `MatchOps`)
+- `site/public/screenshots/archive/`, `misc/` cleanup
+- `site/public/gamedata/` and `testdata/` in git
+
+**Status**: COMPLETE. Generated marketing materials reviewed and fixed. Raw screenshot file cleanup deferred.
 
 ---
 
