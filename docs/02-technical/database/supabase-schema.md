@@ -468,6 +468,16 @@ CREATE TABLE games (
   -- Formation snap points for positioning assistance
   formation_snap_points jsonb,  -- [{ relX: 0.5, relY: 0.3 }, ...]
 
+  -- Overtime/penalty flags (added in migration 021)
+  went_to_overtime boolean NOT NULL DEFAULT false,
+  went_to_penalties boolean NOT NULL DEFAULT false,
+
+  -- Per-game position label toggle (added in migration 022)
+  show_position_labels boolean NOT NULL DEFAULT true,
+
+  -- Optimistic locking version (added in migration 012)
+  version integer NOT NULL DEFAULT 1,
+
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -496,7 +506,7 @@ CREATE POLICY "Users can only access their own games"
 **Migration Notes**:
 - `SAVED_GAMES_KEY` object keys → `games.id`
 - Nested objects (`playersOnField`, `opponents`, `drawings`, etc.) → separate tables
-- Empty strings → NULL for all nullable fields (see [Empty String Normalization](#empty-string-normalization) for complete list: `seasonId`, `tournamentId`, `teamId`, `gameTime`, `gameLocation`, `tournamentLevel`, `ageGroup`)
+- Empty strings → NULL for all nullable fields (see [Empty String Normalization](#empty-string-normalization) for complete list: `seasonId`, `tournamentId`, `tournamentSeriesId`, `tournamentLevel`, `teamId`, `gameTime`, `gameLocation`, `ageGroup`, `leagueId`, `customLeagueName`)
 
 ### 9. `game_players`
 
@@ -1530,11 +1540,14 @@ The app uses empty string `''` to represent "not set" for optional fields. The d
 |-------|-----------|----------|
 | `season_id` | `''` | `NULL` |
 | `tournament_id` | `''` | `NULL` |
+| `tournament_series_id` | `''` | `NULL` |
+| `tournament_level` | `''` | `NULL` |
 | `team_id` | `''` | `NULL` |
 | `game_time` | `''` | `NULL` |
 | `game_location` | `''` | `NULL` |
-| `tournament_level` | `''` | `NULL` |
 | `age_group` | `''` | `NULL` |
+| `league_id` | `''` | `NULL` |
+| `custom_league_name` | `''` | `NULL` |
 
 **Critical**: `game_time` accepts empty string in Zod schema (`z.union([z.literal(''), z.string().regex(...)])`). The DB column is `time` type which rejects empty strings - MUST normalize to NULL.
 

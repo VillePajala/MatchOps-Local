@@ -13,8 +13,8 @@ For detailed business strategy and monetization planning, see:
 - **[Monetization Strategies](../07-business/monetization-strategies.md)** - Canonical monetization strategy and options
 
 ## Core Principles
-1. **Local-First**: All data stays on user's device
-2. **Privacy-Focused**: No data collection or tracking
+1. **Local-First**: Data stays on user's device by default; optional cloud sync available
+2. **Privacy-Focused**: No data collection or tracking in local mode
 3. **Transparent Development**: Public roadmap and documentation
 4. **User-Centric**: Features driven by actual coaching needs
 
@@ -24,7 +24,7 @@ MatchOps is envisioned as a family of local-first soccer coaching tools, each fo
 
 | Product | Purpose | Status |
 |---------|---------|--------|
-| **MatchOps-Local** | Real-time game tracking, player management, match statistics | Active development |
+| **MatchOps-Local** | Real-time game tracking, player management, match statistics | Pre-launch |
 | **MatchOps Practice** (working title) | Soccer practice/training session design and planning | Idea stage |
 | **MatchOps Analyzer** (working title) | Multi-coach data aggregation and team-wide statistics | Concept (see [ADR-003](../05-development/architecture-decisions/ADR-003-data-aggregation-external-tooling.md)) |
 

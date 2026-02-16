@@ -1,5 +1,7 @@
 # AuthService Interface Specification
 
+> **WARNING -- DEPRECATED**: This document is severely outdated and does not reflect the current AuthService interface. For the authoritative interface definition, see `src/interfaces/AuthService.ts`. Implementations: `src/auth/LocalAuthService.ts` (local mode) and `src/auth/SupabaseAuthService.ts` (cloud mode).
+
 **Status**: ✅ **Implemented**
 **Last Updated**: 2026-01-26
 **Purpose**: Unified authentication interface for both local (no-auth) and cloud (Supabase) backends

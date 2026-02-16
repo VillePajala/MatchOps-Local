@@ -3,13 +3,13 @@
 This repository uses Node.js 20, Next.js 16 and React 19 with TypeScript. Follow these guidelines when using Codex with this code base.
 
 ## Repository Context
-- Local-first PWA for a single soccer coach. No backend, no multi-tenant, no auth flows. All state lives in IndexedDB via `src/utils/storage.ts`.
+- Dual-mode architecture: local (IndexedDB) + cloud (Supabase PostgreSQL). Auth via Supabase email/password. State managed through DataStore abstraction (`src/datastore/factory.ts`).
 - Data scale is tiny (hundreds of records). Optimize for responsiveness and reliability, not for enterprise throughput.
 - Never suggest heavy SaaS patterns (RBAC, audit logs, JWT, encryption layers). Focus on PWA resiliency, offline UX, and modal/timer correctness instead.
 
 ## Project Status (February 2026)
-- ✅ **All refactoring complete**: HomePage (62 lines), 9 extracted hooks, ~4,500+ tests passing
-- ✅ **Codebase healthy**: Next.js 16.0.10 + React 19.2, 0 security vulnerabilities
+- ✅ **All refactoring complete**: HomePage (~95 lines) + page.tsx (~1,242 lines), 9 extracted hooks, ~4,500+ tests passing
+- ✅ **Codebase healthy**: Next.js ^16.1.6 + React 19.2, 0 security vulnerabilities
 - ✅ **Cloud backend complete**: Supabase (PostgreSQL, Auth, Edge Functions), PRs 1-12 merged
 - ✅ **Major features**: Personnel, Game Type, Gender, Tournament Series, Cloud Sync all shipped
 - **Next**: Play Store release (see `docs/03-active-plans/UNIFIED-ROADMAP.md`)
@@ -25,12 +25,12 @@ This repository uses Node.js 20, Next.js 16 and React 19 with TypeScript. Follow
 - ⛔ Do **not** request enterprise/SaaS patterns (RBAC, audit trails, complex auth), network hardening, or encryption layers—none apply to this single-user PWA.
 
 ## Required Commands
-- After modifying code, always run `npm run lint`, `npm run test -- --runInBand`, and for anything non-trivial, `npm run build` (build runs manifest + service-worker generation and catches extra ESLint issues that dev mode misses).
+- After modifying code, always run `npm run lint`, `npm test`, and for anything non-trivial, `npm run build` (build runs manifest + service-worker generation and catches extra ESLint issues that dev mode misses). Note: `--runInBand` is only needed for debugging test ordering issues; the default config uses `maxWorkers: '50%'` for parallel execution.
 - Fix any reported issues before committing.
 - If you touch translation files in `public/locales/`, run `npm run generate:i18n-types` before committing.
 
 ## Test Discipline
-- Jest is configured with `detectLeaks`, `detectOpenHandles`, console guards, and retry reporting. Any stray `console.warn`/`console.error` fails the suite—fix the root cause instead of muting logs.
+- Jest is configured with `detectOpenHandles` (detectLeaks is disabled due to false positives), console guards, and retry reporting. Any stray `console.warn`/`console.error` fails the suite—fix the root cause instead of muting logs.
 - Annotate suites with tags from `CLAUDE.md` (`@critical`, `@integration`, `@edge-case`, `@performance`) so reviewers know the risk level.
 - Tests must follow the async pattern: render → `waitFor` initial idle → interactions inside `act`/`userEvent` → `waitFor` assertions. Never rely on arbitrary delays.
 

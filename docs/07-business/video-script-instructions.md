@@ -27,7 +27,7 @@ When you open the app for the first time, you choose how you want to use it. (pa
 
 [SCREEN: Open menu → Manage Roster → show player list → add a player → fill name, jersey number → save → scroll through roster]
 
-First, let's set up your players. Open the menu and tap All Players. (pause) Here you can add each player with their name, nickname, and jersey number. You'll see them appear as colored discs in the player bar at the top of the screen when you retunr to the main view. (pause) You can add as many players as you need — and you can always come back to edit these later.
+First, let's set up your players. Open the menu and tap All Players. (pause) Here you can add each player with their name, nickname, and jersey number. You'll see them appear as colored discs in the player bar at the top of the screen when you return to the main view. (pause) You can add as many players as you need — and you can always come back to edit these later.
 
 ### 4. Starting a Game (30s)
 
@@ -45,13 +45,13 @@ Now here's where it gets fun. (pause) Tap a player in the bar at the top to sele
 
 [SCREEN: Tap the timer to start it → timer running → tap log a goal (show the goal event appearing) → log an opponent goal → show score updating → tap timer at period end → start new period]
 
-Tap the timer in the bottom bar to start the clock. (pause) When someone scores, press the Log Goal to log the goal. select the player who scored — you can also add an assist. The score updates automatically. (pause) For opponent goals, log those with the opponent + 1 button. (pause) When the preset substitution interval is getting closer, the timer changes color and you know to prepare for the next substitution. Periods end sutomatically and the next ones starts when you hit plsy again. Everything is tracked with timestamps so you have a full record of the match.
+Tap the timer in the bottom bar to start the clock. (pause) When someone scores, press the Log Goal to log the goal. select the player who scored — you can also add an assist. The score updates automatically. (pause) For opponent goals, log those with the opponent + 1 button. (pause) When the preset substitution interval is getting closer, the timer changes color and you know to prepare for the next substitution. Periods end automatically and the next ones starts when you hit play again. Everything is tracked with timestamps so you have a full record of the match.
 
 ### 7. Tactics Board (25s)
 
 [SCREEN: Tap tactics button in control bar → draw arrows/lines on the field → add opponent discs (red) → add home discs (purple) → clear drawings]
 
-Need to sketch out a play? Tap the tactics button to open the drawing tools. (pause) Draw directly on the field to plan set pieces or explain movements. You can add opponent markers and extra formation discs too. The drawing os automatically saved for later use or yiu can cear everything with one tap.
+Need to sketch out a play? Tap the tactics button to open the drawing tools. (pause) Draw directly on the field to plan set pieces or explain movements. You can add opponent markers and extra formation discs too. The drawing os automatically saved for later use or you can clear everything with one tap.
 
 ### 8. After the Game — Stats and Assessments (35s)
 

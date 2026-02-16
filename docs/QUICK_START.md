@@ -30,9 +30,9 @@
 
 ## Step 3: Set Your Lineup (1 minute)
 
-**Option A: Drag and Drop**
-- Drag players from the bottom bar onto the field
-- Position them where they'll play
+**Option A: Select and Place**
+- Tap a player in the bar to select them, then tap on the field to place them
+- Reposition players by tapping and dragging them on the field
 
 **Option B: Use Formation Picker**
 1. Tap players in the bottom bar to select them
@@ -60,8 +60,8 @@
 - Tap **+** for the team that scored
 
 ### Make a Substitution
-- Drag player **off** the field (to bench)
-- Drag substitute **onto** the field
+- Tap a player on the field, then tap **Remove** to send them to the bench
+- Tap a substitute in the Player Bar, then tap an empty spot on the field to place them
 
 ### Pause for Stoppage
 - Tap timer → Tap **Pause**

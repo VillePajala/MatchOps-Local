@@ -3,7 +3,7 @@
 **Last Updated**: February 2026
 **Policy Version**: 2026-02
 
-> **Hosted URL**: https://matchops.com/privacy-policy (use this URL for Play Store submission)
+> **Hosted URL**: https://match-ops.com/privacy-policy (use this URL for Play Store submission)
 
 ## Data Controller
 
@@ -30,9 +30,9 @@ By default, all your data is stored locally on your device:
 
 MatchOps works entirely offline in local mode. No account creation, login, or personal information is required.
 
-### Cloud Sync (Optional, Premium Feature)
+### Cloud Sync (Optional)
 
-If you enable Cloud Sync with a Premium subscription, your data is:
+If you enable Cloud Sync, your data is:
 - Copied to our secure EU-based servers (Supabase, hosted in EU)
 - Encrypted in transit (HTTPS/TLS) and at rest
 - Protected by row-level security (only you can access your data)
@@ -44,7 +44,7 @@ You can delete your cloud data at any time from Settings.
 ### Data Retention
 
 - **Cloud data**: Retained while your account is active. When you delete your cloud data or your account, data is permanently removed within 30 days.
-- **Post-cancellation**: If you cancel your Premium subscription, your cloud data remains accessible in read-only mode. After 90 days of account inactivity following cancellation, cloud data may be deleted.
+- **Post-cancellation**: If you cancel your cloud account, your cloud data remains accessible in read-only mode. After 90 days of account inactivity following cancellation, cloud data may be deleted.
 - **Local data**: Remains on your device until you clear it yourself.
 - **Consent records**: Retained even after account deletion for GDPR compliance (see below).
 
@@ -52,7 +52,7 @@ You can delete your cloud data at any time from Settings.
 
 We process personal data on the following legal bases:
 
-- **Contract (Art. 6(1)(b))**: Processing necessary for cloud sync service delivery (when you subscribe to Premium).
+- **Contract (Art. 6(1)(b))**: Processing necessary for cloud sync service delivery (when you enable cloud mode).
 - **Consent (Art. 6(1)(a))**: Acceptance of Terms of Service and Privacy Policy for cloud mode users. Consent records are stored to demonstrate compliance.
 - **Legitimate interest (Art. 6(1)(f))**: Error reporting via Sentry to maintain app quality and fix bugs. This processing involves minimal anonymized data and does not involve profiling or tracking. You can opt out in settings at any time.
 
@@ -73,7 +73,7 @@ This helps us fix bugs and improve the app. Error reports:
 
 ### Play Store License Validation (Legitimate Interest)
 
-When you purchase premium features:
+If premium features are offered in the future:
 - Google Play handles all payment processing
 - We verify license status through Play Store API
 - We do not receive or store your payment information
@@ -121,7 +121,7 @@ We use the following third-party services to operate MatchOps. Data processing a
 |---------|---------|---------------|----------------|
 | **Google Play Store** | App distribution and payments | Google infrastructure | [Google Privacy Policy](https://policies.google.com/privacy) |
 | **Sentry** | Error reporting and crash analysis | US (Standard Contractual Clauses) | [Sentry Privacy Policy](https://sentry.io/privacy/) |
-| **Supabase** | Cloud database and authentication (Premium) | EU (Frankfurt) | [Supabase Privacy Policy](https://supabase.com/privacy) |
+| **Supabase** | Cloud database and authentication (cloud mode) | EU (Frankfurt) | [Supabase Privacy Policy](https://supabase.com/privacy) |
 | **Vercel** | PWA web hosting | Global edge network (Standard Contractual Clauses) | [Vercel Privacy Policy](https://vercel.com/legal/privacy-policy) |
 
 ## Your Rights (GDPR)
@@ -190,7 +190,7 @@ We may update this policy when necessary. Material changes will:
 Most data requests can be handled directly in the app (Settings → Data tab) without contacting us.
 
 For other privacy questions or concerns:
-- Email: valoraami@gmail.com
+- Email: support@match-ops.com
 
 ---
 

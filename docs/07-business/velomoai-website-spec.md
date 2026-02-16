@@ -79,7 +79,7 @@ This will install the latest Next.js (16.x) with Tailwind CSS 4.x automatically.
 │                                         │
 ├─────────────────────────────────────────┤
 │              FOOTER                     │
-│   © 2025 Velomo AI · Finland           │
+│   © 2025-2026 Velomo AI · Finland      │
 │   hello@velomoai.com                    │
 └─────────────────────────────────────────┘
 ```
@@ -111,7 +111,7 @@ This will install the latest Next.js (16.x) with Tailwind CSS 4.x automatically.
   - Optional: App screenshot or icon
 
 ### Footer
-- Copyright: "© 2025 Velomo AI"
+- Copyright: "© 2025-2026 Velomo AI"
 - Location: "Helsinki, Finland"
 - Email: hello@velomoai.com (mailto: link)
 - Optional: Social links (add when accounts exist)

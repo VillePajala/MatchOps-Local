@@ -64,7 +64,8 @@ interface HistoryState<T> {
 
 ## History Limits
 
-- Maximum 50 undo steps (configurable)
+- Maximum 150 undo steps for game actions (`MAX_HISTORY_SIZE` in `useUndoRedo.ts`)
+- Maximum 100 undo steps for tactical board history (`MAX_TACTICAL_HISTORY` in `useTacticalHistory.ts`)
 - Older actions dropped when limit reached
 - History cleared on game save
 

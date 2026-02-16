@@ -31,7 +31,7 @@ This document outlines the complete setup for email, websites, and social media 
 
 ```
 Velomo AI (Company)
-├── matchops.com (Product - Soccer Coaching App)
+├── match-ops.com (Product - Soccer Coaching App)
 ├── [Future Products]
 └── Company infrastructure (alerts, dev accounts, etc.)
 ```
@@ -97,15 +97,15 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
    - Create free account
    - Use your primary email
 
-2. **Add matchops.com to Cloudflare**
+2. **Add match-ops.com to Cloudflare**
    - Click "Add a Site"
-   - Enter `matchops.com`
+   - Enter `match-ops.com`
    - Select Free plan
    - Cloudflare will scan existing DNS records
 
-3. **Update Namecheap nameservers for matchops.com**
+3. **Update Namecheap nameservers for match-ops.com**
    - Cloudflare will show you new nameservers (e.g., `adam.ns.cloudflare.com`)
-   - Log into Namecheap → Domain List → matchops.com
+   - Log into Namecheap → Domain List → match-ops.com
    - Go to "Nameservers" section
    - Select "Custom DNS"
    - Enter both Cloudflare nameservers
@@ -113,7 +113,7 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
    - Wait 24-48 hours for propagation
 
 4. **Verify Vercel still works**
-   - After DNS propagates, check matchops.com loads correctly
+   - After DNS propagates, check match-ops.com loads correctly
    - In Cloudflare DNS, ensure the A/CNAME records for Vercel are proxied (orange cloud)
 
 ### Step 1.3: Add velomoai.com to Cloudflare
@@ -123,7 +123,7 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
    - Select Free plan
 
 2. **Update nameservers at Namecheap**
-   - Same process as matchops.com
+   - Same process as match-ops.com
    - Use the Cloudflare nameservers provided
 
 3. **Add basic DNS records for velomoai.com**
@@ -192,14 +192,14 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
 
 **Important**: Staging project (`hwcqpvvqnmetjrwvzlfr`) still uses built-in SMTP (fine for testing with team member emails).
 
-### Step 2.3: Set Up Zoho Mail for matchops.com (Sending)
+### Step 2.3: Set Up Zoho Mail for match-ops.com (Sending)
 
 **Why Zoho:** Free tier allows sending from custom domain, which Cloudflare alone cannot do.
 
 1. **Sign up for Zoho Mail**
    - Go to [Zoho Mail](https://www.zoho.com/mail/)
    - Click "Sign Up" → "Business Email" → "Free Plan"
-   - Enter `matchops.com` as your domain
+   - Enter `match-ops.com` as your domain
 
 2. **Verify domain ownership**
    - Zoho will provide a TXT record
@@ -213,7 +213,7 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
    - Wait a few minutes, then verify in Zoho
 
 3. **Configure MX records**
-   - In Cloudflare DNS for matchops.com, add:
+   - In Cloudflare DNS for match-ops.com, add:
    ```
    Type: MX
    Name: @
@@ -240,13 +240,13 @@ match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
    ```
 
 5. **Configure DKIM**
-   - In Zoho: Mail Admin → Domains → matchops.com → Email Configuration → DKIM
+   - In Zoho: Mail Admin → Domains → match-ops.com → Email Configuration → DKIM
    - Generate DKIM key
    - Add the TXT record in Cloudflare as instructed
 
 6. **Create email accounts in Zoho**
-   - Create: support@matchops.com
-   - Create: hello@matchops.com
+   - Create: support@match-ops.com
+   - Create: hello@match-ops.com
    - Set strong passwords, store in password manager
 
 7. **Set up forwarding to Gmail (optional)**
@@ -264,14 +264,14 @@ If you prefer managing everything from Gmail:
 
 2. **Configure Gmail "Send As"**
    - Gmail → Settings → Accounts → "Add another email address"
-   - Enter: support@matchops.com
+   - Enter: support@match-ops.com
    - SMTP Server: smtp-relay.brevo.com
    - Port: 587
    - Username: (from Brevo)
    - Password: (from Brevo)
 
 3. **Verify the address**
-   - Gmail will send verification email to support@matchops.com
+   - Gmail will send verification email to support@match-ops.com
    - Since Cloudflare forwards to Gmail, you'll receive it
    - Click the verification link
 
@@ -325,7 +325,7 @@ In Gmail, create filter:
 
 ## Phase 4: Websites
 
-### Step 4.1: matchops.com (Existing)
+### Step 4.1: match-ops.com (Existing)
 
 **Current Status:** Live on Vercel
 
@@ -410,13 +410,13 @@ In Gmail, create filter:
 
 1. **Create account**
    - Go to [twitter.com/signup](https://twitter.com/signup)
-   - Use: support@matchops.com or hello@velomoai.com
+   - Use: support@match-ops.com or hello@velomoai.com
    - Username: @MatchOpsApp (or @MatchOps if available)
 
 2. **Complete profile**
    - Display name: MatchOps
    - Bio: "Soccer coaching made simple. Local-first app for tracking games, players, and tactics. Privacy-focused."
-   - Website: https://matchops.com
+   - Website: https://match-ops.com
    - Location: Finland (optional)
    - Header/Profile images: Use MatchOps branding
 
@@ -480,7 +480,7 @@ Do this:
 
 **Filter 2: MatchOps Support**
 ```
-Matches: to:(support@matchops.com)
+Matches: to:(support@match-ops.com)
 Do this:
   - Apply label: MatchOps/Support
   - Mark as important
@@ -495,7 +495,7 @@ Do this:
 
 **Filter 4: MatchOps General**
 ```
-Matches: to:(hello@matchops.com)
+Matches: to:(hello@match-ops.com)
 Do this:
   - Apply label: MatchOps/General
 ```
@@ -523,7 +523,7 @@ Do this:
 ### Weekly Tasks
 
 - [ ] Review Sentry alerts digest
-- [ ] Check support@matchops.com for user inquiries
+- [ ] Check support@match-ops.com for user inquiries
 - [ ] Post 1-2 updates on X/Twitter (optional)
 
 ### Monthly Tasks
@@ -605,7 +605,7 @@ Do this:
 | Item | Cost | Notes |
 |------|------|-------|
 | velomoai.com renewal | ~10/year | Namecheap |
-| matchops.com renewal | (existing) | Already owned |
+| match-ops.com renewal | (existing) | Already owned |
 | Cloudflare | Free | Email routing, DNS |
 | Zoho Mail | Free | Free tier, 5GB |
 | Vercel | Free | Hobby tier |

@@ -1,6 +1,8 @@
 # Testing Strategy 2025
 MatchOps‑Local — Comprehensive Testing Implementation Plan
 
+> **DEPRECATED (February 2026):** This document is a historical snapshot from January 2025. **The authoritative testing reference is now the "Testing Rules and Principles" section in [CLAUDE.md](../../CLAUDE.md).** Key differences: actual test count is ~4,746 (not 2,085), enforced coverage thresholds are 45-60% (not 90%), and component line counts have changed significantly due to refactoring. Do not rely on numbers or code examples in this document for current development.
+
 **Status**: ⚠️ Aspirational / Roadmap Document
 **Last Updated**: October 2025
 **Original Baseline**: 41.41% coverage (January 2025)

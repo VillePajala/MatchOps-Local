@@ -40,6 +40,8 @@ lighthouse https://matchops-local.vercel.app --output html --output-path ./light
 | Main bundle | < 150 KB | TBD |
 | Total JS (gzipped) | < 300 KB | TBD |
 
+**Note**: Bundle sizes should be baselined before Play Store launch. Run `npm run build` and check the Next.js output, or use the bundle analyzer (`ANALYZE=true npm run build`) to get current values.
+
 ### Analyzing Bundle Size
 
 ```bash
@@ -93,15 +95,15 @@ npm run build:analyze
 
 ## Known Optimizations Applied
 
-1. **React.memo** on expensive components (SoccerField, PlayerBar)
+1. **React.memo** on 8 components: SoccerField, PlayerBar, PlayerDisk, GameInfoBar, ControlBar, FormationPicker, MigrationStatus, ThrottledProgress (internal to MigrationStatus)
 2. **Code splitting** via Next.js dynamic imports
 3. **Image optimization** via Next.js Image component
 4. **Service Worker** caching for static assets
 5. **IndexedDB** for efficient local storage
+6. **Lazy-loaded modals** -- 8 modals loaded via `next/dynamic` in ModalManager: GameSettingsModal, GameStatsModal, LoadGameModal, SeasonTournamentManagementModal, SettingsModal, TrainingResourcesModal, RulesDirectoryModal, InstructionsModal (implemented in Round 5, February 2026)
 
 ## Future Optimizations (If Needed)
 
-- [ ] Lazy load modals
 - [ ] Virtual scrolling for large player lists
 - [ ] Web Workers for heavy calculations
 - [ ] Preload critical resources

@@ -71,8 +71,7 @@ Optional but recommended
 ## Pricing & Distribution
 
 ### Pricing Model
-- **Free Download** with premium features via In-App Purchase
-- One-time purchase for premium (no subscription)
+- **Free Download**; premium features planned (pricing TBD)
 
 ### Target Countries
 - Initial: Finland, Sweden, Norway, Denmark, UK, USA, Canada

@@ -22,7 +22,7 @@ CGI's AI-augmented software acceleration framework defines three tiers of AI-dri
 |----------|-------------|---------------------|
 | **QuickGen** | AI-generated rapid prototyping, "vibe coding" with minimal human intervention | Initial prototype: idea → working MVP in days using AI pair programming |
 | **SmartAssist** | AI-augmented development with human oversight for business-critical apps | Core development: AI generates code, I provide architectural direction, review, and quality control |
-| **PrimeCraft** | High-reliability software with rigorous governance, AI-enhanced testing and debugging | Production hardening: 11 rounds of AI-driven code review, security audits, 4,700+ tests |
+| **PrimeCraft** | High-reliability software with rigorous governance, AI-enhanced testing and debugging | Production hardening: 27+ rounds of AI-driven code review, security audits, 4,700+ tests |
 
 **Key insight**: I operated across all three tiers throughout the project lifecycle — starting with QuickGen for rapid exploration, spending the bulk of development in SmartAssist mode, and progressively shifting to PrimeCraft as the product matured toward production.
 
@@ -72,7 +72,7 @@ Every phase of the software development lifecycle was AI-accelerated:
 
 ### Phase 6: Quality Assurance & Hardening
 - **Tool**: Claude Code (multi-agent reviews with Opus 4.6)
-- **Output**: 11 rounds of comprehensive code review, 200+ issues identified and fixed
+- **Output**: 27+ rounds of comprehensive code review, 200+ issues identified and fixed
 - **What AI did**: 6-agent parallel review panels analyzing code quality, security, performance
 - **What I did**: Triaged findings, approved fixes, deferred items requiring architectural decisions
 
@@ -172,7 +172,7 @@ CGI's PrimeCraft tier emphasizes governance, security, and reliability. Here's h
 - detectOpenHandles catches resource leaks
 
 ### Code Review Process
-11 rounds of AI-driven code review produced:
+27+ rounds of AI-driven code review produced:
 - **Round 2**: 92 findings → key fixes applied
 - **Round 3**: 62 findings → all 4 HIGH, 15 MEDIUM, 18 LOW fixed
 - **Round 4**: 6-agent Opus 4.6 parallel review → all actionable items fixed
@@ -196,7 +196,7 @@ What CGI sells as a service, I executed as a methodology:
 | AI as primary development driver | 100% AI-generated code, zero hand-written lines |
 | Accelerated SDLC | Full product from concept to production-ready in months, solo |
 | Human-agent collaboration | I architect and decide, AI implements and proposes |
-| Governance and quality frameworks | 11 review rounds, 4,700+ tests, security hardening |
+| Governance and quality frameworks | 27+ review rounds, 4,700+ tests, security hardening |
 | Cloud-native delivery | Supabase + Vercel + GitHub Actions + Sentry |
 | Continuous improvement | Each review round fed learnings back into AI instructions (CLAUDE.md) |
 | Responsible AI usage | Documented AI decision boundaries, human approval gates at every step |

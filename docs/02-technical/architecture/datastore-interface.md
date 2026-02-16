@@ -1,5 +1,7 @@
 # DataStore Interface Specification
 
+> **WARNING -- DEPRECATED**: This document is severely outdated and does not reflect the current DataStore interface. For the authoritative interface definition, see `src/interfaces/DataStore.ts`. The factory is at `src/datastore/factory.ts` (accessed via `getDataStore()`).
+
 **Status**: ✅ **Implemented** (Phase 1-4 Complete, Local-First Sync Added)
 **Last Updated**: 2026-01-26
 **Purpose**: Unified data access interface for both IndexedDB (local) and Supabase (cloud) backends

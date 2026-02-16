@@ -22,7 +22,7 @@
 │   │                                                                  │   │
 │   │   • Soccer coaching app                                          │   │
 │   │   • Local-first PWA (offline capable)                           │   │
-│   │   • Free tier + Premium ($9.99 one-time)                        │   │
+│   │   • Free tier + Premium (pricing TBD)                            │   │
 │   │   • Available on Google Play Store (TWA)                        │   │
 │   │                                                                  │   │
 │   └─────────────────────────────────────────────────────────────────┘   │
@@ -111,6 +111,8 @@
 │   Environment Variables:                                                 │
 │   • SENTRY_AUTH_TOKEN                                                   │
 │   • NEXT_PUBLIC_SENTRY_DSN                                              │
+│   • NEXT_PUBLIC_SUPABASE_URL                                            │
+│   • NEXT_PUBLIC_SUPABASE_ANON_KEY                                       │
 │   • GOOGLE_SERVICE_ACCOUNT_KEY (future - Play Billing)                  │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -149,10 +151,10 @@
 │   │                                                                  │   │
 │   └─────────────────────────────────────────────────────────────────┘   │
 │                                                                          │
-│   Monetization (Pending P4C/P4D):                                       │
-│   • Product: matchops_premium ($9.99 one-time)                          │
+│   Monetization (Pricing TBD):                                           │
+│   • Product: matchops_premium (pricing undecided)                       │
 │   • API: Digital Goods API + Payment Request API                        │
-│   • Verification: /api/billing/verify endpoint                          │
+│   • Verification: Edge Function (verify-subscription)                   │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 
@@ -292,7 +294,7 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │   Frontend:                                                              │
-│   • Next.js 16.0.7 (App Router)                                         │
+│   • Next.js 16 (App Router)                                              │
 │   • React 19.2                                                          │
 │   • TypeScript                                                          │
 │   • Tailwind CSS 4                                                      │
@@ -314,7 +316,7 @@
 │   Testing:                                                               │
 │   • Jest 30                                                             │
 │   • React Testing Library                                               │
-│   • 2,600+ tests                                                        │
+│   • 4,700+ tests                                                        │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -329,12 +331,13 @@
 | velomoai.com domain | Namecheap | ~$12/year | Annual |
 | DNS & Email Routing | Cloudflare | Free | - |
 | Auth transactional email | Resend | Free (3k/mo) | - |
+| Cloud backend (auth, DB, edge functions) | Supabase | Free tier (staging + production) | - |
 | Hosting (both sites) | Vercel | Free | - |
 | Error Monitoring | Sentry | Free tier | - |
 | Source Control | GitHub | Free | - |
 | Play Store | Google | $25 one-time | - |
 
-**Total Recurring: ~$24/year** (Resend free tier sufficient for early launch; Pro $20/mo if >3k signups/month)
+**Total Recurring: ~$24/year** (Supabase and Resend free tiers sufficient for early launch; scale as needed)
 
 ---
 
@@ -376,23 +379,24 @@
 │                    │   MATCHOPS APP  │                                  │
 │                    │                 │                                  │
 │                    │  ┌───────────┐  │                                  │
-│                    │  │ IndexedDB │  │  ← All data stored locally      │
-│                    │  │  (Local)  │  │                                  │
+│                    │  │ IndexedDB │  │  ← Data stored locally           │
+│                    │  │  (Local)  │  │    (default mode)                │
 │                    │  └───────────┘  │                                  │
 │                    │                 │                                  │
 │                    └────────┬────────┘                                  │
 │                             │                                           │
-│           ┌─────────────────┼─────────────────┐                        │
-│           │                 │                 │                        │
-│           ▼                 ▼                 ▼                        │
-│   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐                 │
-│   │   Sentry    │   │ Play Billing│   │    PWA      │                 │
-│   │  (Errors)   │   │ (Payments)  │   │  Updates    │                 │
-│   │             │   │  [Future]   │   │             │                 │
-│   └─────────────┘   └─────────────┘   └─────────────┘                 │
+│       ┌─────────────┬──────┼──────┬─────────────┐                      │
+│       │             │      │      │             │                      │
+│       ▼             ▼      ▼      ▼             ▼                      │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐    │
+│  │ Sentry   │ │ Supabase │ │ Supabase │ │ Play     │ │  PWA     │    │
+│  │ (Errors) │ │   Auth   │ │   DB     │ │ Billing  │ │ Updates  │    │
+│  │          │ │ (Cloud)  │ │ (Cloud)  │ │ [Future] │ │          │    │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘    │
 │                                                                          │
-│   Note: App is LOCAL-FIRST. No user data leaves the device.            │
-│   Only error reports (opt-in) and payments go to external services.    │
+│   Note: App is LOCAL-FIRST. In local mode, no user data leaves the     │
+│   device. Cloud mode syncs data to Supabase (EU). Error reports        │
+│   (opt-in) go to Sentry.                                               │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```

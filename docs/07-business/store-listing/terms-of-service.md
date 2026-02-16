@@ -3,7 +3,7 @@
 **Last Updated**: February 2026
 **Terms Version**: 2026-02
 
-> **Hosted URL**: https://matchops.com/terms (use this URL for Play Store submission)
+> **Hosted URL**: https://match-ops.com/terms (use this URL for Play Store submission)
 
 ## Agreement to Terms
 
@@ -52,18 +52,15 @@ By using MatchOps, you acknowledge that:
 
 For additional security, enable cloud sync which provides server-side encryption, encryption at rest, and row-level security.
 
-## Premium Subscription
+## Premium Features
 
-MatchOps Premium is an optional subscription that provides additional features:
+MatchOps may offer optional premium features in the future, which could include:
 - **Cloud Sync**: Access your data across multiple devices
-- **Unlimited entities**: Unlimited players, teams, seasons, and tournaments
-- **Priority support**
+- **Additional capabilities**: Enhanced features beyond the free tier
 
-Subscriptions are billed through Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.
+If premium features are introduced, pricing and billing details will be communicated in-app and through the Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.
 
-You can cancel your subscription at any time through Google Play. After cancellation, you retain access until the end of your billing period.
-
-If you cancel Premium, your cloud data remains accessible in read-only mode. You can export or delete it at any time. After 90 days of account inactivity following cancellation, cloud data may be deleted.
+If you cancel a paid plan, your cloud data remains accessible in read-only mode. You can export or delete it at any time. After 90 days of account inactivity following cancellation, cloud data may be deleted.
 
 ## Cloud Sync Terms
 
@@ -114,7 +111,7 @@ You acknowledge that:
 The app may interact with third-party services:
 - **Google Play Store** — For app distribution and payments
 - **Sentry** — For error reporting (optional, can be disabled)
-- **Supabase** — For cloud sync and authentication (Premium feature)
+- **Supabase** — For cloud sync and authentication (cloud mode)
 - **Vercel** — For PWA web hosting
 
 Your use of these services is governed by their respective terms and policies.
@@ -130,7 +127,7 @@ We reserve the right to:
 
 We may terminate or suspend your access to the app immediately, without notice, if you breach these terms. Upon termination, your license to use the app ends.
 
-If your account is terminated, you will lose access to Cloud Sync features. Your local data will remain on your device. Cloud data will be deleted within 30 days of termination.
+If your account is terminated, you will lose access to cloud features. Your local data will remain on your device. Cloud data will be deleted within 30 days of termination.
 
 You can voluntarily delete your cloud account and data at any time from the Settings menu.
 
@@ -155,7 +152,7 @@ These terms, together with our Privacy Policy, constitute the entire agreement b
 Most actions (data export, deletion, account management) can be done directly in the app under Settings.
 
 For questions about these terms:
-- Email: valoraami@gmail.com
+- Email: support@match-ops.com
 
 ---
 
