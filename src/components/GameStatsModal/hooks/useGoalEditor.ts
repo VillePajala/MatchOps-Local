@@ -6,7 +6,7 @@
 import { useState, useRef } from 'react';
 import { GameEvent } from '@/types';
 import { TFunction } from 'i18next';
-import { logger } from '@/utils/logger';
+import logger from '@/utils/logger';
 
 interface UseGoalEditorParams {
   gameEvents: GameEvent[];
