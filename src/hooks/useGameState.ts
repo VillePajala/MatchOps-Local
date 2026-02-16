@@ -67,8 +67,6 @@ export interface UseGameStateReturn {
     handleOpponentMove: (opponentId: string, relX: number, relY: number) => void;
     handleOpponentMoveEnd: () => void;
     handleOpponentRemove: (opponentId: string) => void;
-    handleRenamePlayer: (playerId: string, playerData: { name: string; nickname: string }) => void;
-    handleToggleGoalie: (playerId: string) => void;
 }
 
 /**
@@ -153,19 +151,11 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     // Generic ref + version counter for immediate history saves from event handlers.
     // Avoids calling saveStateToHistory inside setState updaters (React anti-pattern
     // that can double-invoke in StrictMode). Used by: handlePlayerDrop, handleDrawingStart,
-    // handleAddOpponent, handleOpponentRemove, handleRenamePlayer, handleToggleGoalie.
+    // handleAddOpponent, handleOpponentRemove.
     const pendingActionHistoryRef = useRef<Record<string, unknown> | null>(null);
     const [actionHistoryVersion, setActionHistoryVersion] = useState(0);
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialState.availablePlayers || []);
-    // Ref tracking latest availablePlayers for use in stable callbacks (handleToggleGoalie)
-    // that need to read current state without adding it as a dependency
-    const availablePlayersRef = useRef<Player[]>(initialState.availablePlayers || []);
     const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
-
-    // Keep availablePlayersRef in sync with state (via effect, not during render)
-    useEffect(() => {
-      availablePlayersRef.current = availablePlayers;
-    }, [availablePlayers]);
 
     // --- Development Mode: Runtime Safeguard for saveStateToHistory Memoization ---
     // Detects if saveStateToHistory reference changes between renders, which indicates
@@ -355,9 +345,10 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     }, []);
 
     const handleClearDrawings = useCallback(() => {
-        setDrawings([]); // Use setter from this hook
-        saveStateToHistory({ drawings: [] });
-    }, [saveStateToHistory]);
+        setDrawings([]);
+        pendingActionHistoryRef.current = { drawings: [] };
+        setActionHistoryVersion(v => v + 1);
+    }, []);
 
     // Opponent Handlers (Moved here)
     const handleAddOpponent = useCallback(() => {
@@ -405,88 +396,9 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         });
     }, []);
 
-    // Player Management Handlers (Moved here)
-    const handleRenamePlayer = useCallback(async (playerId: string, playerData: { name: string; nickname: string }) => {
-        logger.debug(`[useGameState] handleRenamePlayer called for ID: ${playerId}, with data:`, playerData);
-        try {
-            const updatedPlayerFromManager = await updatePlayerInMasterRoster(playerId, {
-                name: playerData.name,
-                nickname: playerData.nickname
-            });
-
-            if (updatedPlayerFromManager) {
-                const latestRoster = await getMasterRosterFromManager();
-                setAvailablePlayers(latestRoster);
-
-                // Use functional setState to avoid dependency on playersOnField (prevents stale closure)
-                setPlayersOnField(prevPlayersOnField => {
-                    const updatedPlayersOnField = prevPlayersOnField.map(p =>
-                        p.id === playerId ? { ...p, name: playerData.name, nickname: playerData.nickname } : p
-                    );
-                    pendingActionHistoryRef.current = {
-                        playersOnField: updatedPlayersOnField,
-                        availablePlayers: latestRoster,
-                    };
-                    setActionHistoryVersion(v => v + 1);
-                    return updatedPlayersOnField;
-                });
-                logger.debug(`[useGameState] Player ${playerId} renamed to ${playerData.name}. Roster and field updated.`);
-            } else {
-                logger.error(`[useGameState] Failed to update player ${playerId} via masterRosterManager.`);
-            }
-        } catch (error) {
-            logger.error(`[useGameState] Error in handleRenamePlayer for ID ${playerId}:`, error);
-        }
-    }, [setAvailablePlayers, setPlayersOnField]);
-
-    // --- Add Goalie Handler Here ---
-    const handleToggleGoalie = useCallback(async (playerId: string) => {
-        logger.debug(`[useGameState:handleToggleGoalie] Per-game toggle called for ${playerId}`);
-        // Read from ref to get latest availablePlayers without adding it as a dependency
-        const currentAvailablePlayers = availablePlayersRef.current;
-        const playerToToggle = currentAvailablePlayers.find(p => p.id === playerId);
-        if (!playerToToggle) {
-            logger.error(`[useGameState:handleToggleGoalie] Player ${playerId} not found.`);
-            return;
-        }
-        const targetGoalieStatus = !(playerToToggle.isGoalie ?? false);
-
-        try {
-            // Update goalie status per-game instead of globally
-            const updatedAvailablePlayers = currentAvailablePlayers.map(p => {
-                if (p.id === playerId) {
-                    return { ...p, isGoalie: targetGoalieStatus };
-                }
-                // If setting this player as goalie, unset any other goalies in this game
-                if (targetGoalieStatus && p.isGoalie) {
-                    return { ...p, isGoalie: false };
-                }
-                return p;
-            });
-
-            setAvailablePlayers(updatedAvailablePlayers);
-
-            // Use functional setState to avoid dependency on playersOnField (prevents stale closure)
-            setPlayersOnField(prevPlayersOnField => {
-                const newPlayersOnField = prevPlayersOnField.map(fieldPlayer => {
-                    const updatedPlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
-                    return updatedPlayer ? { ...fieldPlayer, isGoalie: updatedPlayer.isGoalie } : fieldPlayer;
-                });
-                pendingActionHistoryRef.current = {
-                    playersOnField: newPlayersOnField,
-                    availablePlayers: updatedAvailablePlayers,
-                };
-                setActionHistoryVersion(v => v + 1);
-                return newPlayersOnField;
-            });
-
-            logger.debug(`[useGameState:handleToggleGoalie] Per-game goalie status for ${playerId} to ${targetGoalieStatus}. Local state updated.`);
-        } catch (error) {
-            logger.error(`[useGameState:handleToggleGoalie] Error toggling goalie for ID ${playerId}:`, error);
-        }
-    }, [setAvailablePlayers, setPlayersOnField]);
-
-    // ... (more handlers will be moved here later)
+    // NOTE: handleRenamePlayer and handleToggleGoalie were removed (dead code).
+    // All rename/goalie operations go through useGameOrchestration's
+    // handleRenamePlayerForModal and handleToggleGoalieForModal, which properly pass userId.
 
     // --- Methods for external interaction ---
     // const setHookState = useCallback((newState: Partial<Pick<AppState, 'playersOnField' | 'opponents' | 'drawings' | 'availablePlayers'>>) => {
@@ -518,13 +430,10 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         handleOpponentMove,
         handleOpponentMoveEnd,
         handleOpponentRemove,
-        handleRenamePlayer,
-        handleToggleGoalie,
     }), [
         playersOnField, opponents, drawings, availablePlayers,
         handlePlayerDrop, handleDrawingStart, handleDrawingAddPoint,
         handleDrawingEnd, handleClearDrawings, handleAddOpponent,
         handleOpponentMove, handleOpponentMoveEnd, handleOpponentRemove,
-        handleRenamePlayer, handleToggleGoalie,
     ]);
 }

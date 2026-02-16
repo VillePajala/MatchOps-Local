@@ -67,7 +67,7 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ phase, onInstall, onReload,
     >
       <div className="relative overflow-hidden rounded-2xl bg-slate-900/75 border border-white/12 shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-md ring-1 ring-inset ring-white/8">
         <div className="absolute left-1/2 top-0 h-[3px] w-[55%] max-w-[480px] -translate-x-1/2 bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-500 opacity-85" />
-        <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-indigo-500/15 blur-3xl" aria-hidden />
+        <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-indigo-500/15 blur-3xl" aria-hidden="true" />
 
         <div className="relative flex flex-col items-center gap-3 px-5 py-3.5 text-center">
           <button

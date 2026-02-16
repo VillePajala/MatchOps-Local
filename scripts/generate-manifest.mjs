@@ -33,7 +33,7 @@ async function generateManifest() {
     "background_color": "#1e293b",
     "theme_color": config.themeColor,
     "categories": ["sports", "productivity", "utilities"],
-    "lang": "en-US",
+    "lang": "fi",
     "dir": "ltr",
     "prefer_related_applications": false,
     "icons": [
@@ -142,6 +142,15 @@ async function updateServiceWorker() {
       /const CACHE_NAME = ['"]matchops-[^'"]+['"];/,
       `const CACHE_NAME = 'matchops-${cacheVersion}';`
     );
+
+    // Verify the replacement actually happened — a regex mismatch would silently
+    // leave the old CACHE_NAME, causing browsers to never detect a new service worker
+    if (!newContent.includes(`matchops-${cacheVersion}`)) {
+      throw new Error(
+        'Failed to update CACHE_NAME in sw.js. ' +
+        'The CACHE_NAME format may have changed — check the regex pattern.'
+      );
+    }
 
     // Remove old timestamp if it exists to prevent the file from growing indefinitely
     newContent = newContent.replace(/\/\/ Build Timestamp: .*/, '').trim();

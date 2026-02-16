@@ -66,6 +66,11 @@ validateEnvironment();
  * ACCEPTED RISK: unsafe-inline/unsafe-eval are security trade-offs accepted
  * for PWA offline capability. This is documented and intentional.
  */
+const supabaseConnectSrc = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://*.supabase.co';
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NODE_ENV === 'production') {
+  console.warn('WARNING: NEXT_PUBLIC_SUPABASE_URL not set — CSP connect-src using wildcard https://*.supabase.co');
+}
+
 const securityHeaders = [
   {
     // Content Security Policy
@@ -77,8 +82,8 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required by Next.js - see note above
       "style-src 'self' 'unsafe-inline'", // Required for CSS-in-JS and Next.js styles
       "img-src 'self'", // Strict: no data: or blob: URIs needed for images
-      "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com",
+      "font-src 'self'",
+      `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com`,
       "worker-src 'self'",
       "object-src 'none'", // Block Flash, Java applets, and other plugins
       "frame-ancestors 'none'",
@@ -158,6 +163,10 @@ const nextConfig: NextConfig = {
   // Expose Git branch to client for preview/production indicators
   env: {
     NEXT_PUBLIC_GIT_BRANCH: process.env.VERCEL_GIT_COMMIT_REF || 'development',
+    // Expose package version at build time for Sentry release tracking.
+    // process.env.npm_package_version is only available during npm scripts,
+    // not at server/edge runtime — so we bake it into the bundle here.
+    NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || '0.0.0',
   },
   // No special experimental config needed - instrumentation.ts is auto-detected
   async headers() {
@@ -182,6 +191,12 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/release-notes.json',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, max-age=0' },
+        ],
+      },
+      {
+        source: '/changelog.json',
         headers: [
           { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, max-age=0' },
         ],
@@ -211,8 +226,10 @@ const sentryWebpackPluginOptions = {
   // Suppresses source map uploading logs during build
   silent: true,
 
-  // Upload source maps only in production builds
-  dryRun: process.env.NODE_ENV !== 'production',
+  // Disable source map uploads in non-production builds
+  sourcemaps: {
+    disable: process.env.NODE_ENV !== 'production',
+  },
 
   // Organization and project for source map uploads
   org: process.env.SENTRY_ORG,

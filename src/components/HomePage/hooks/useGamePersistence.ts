@@ -189,6 +189,10 @@ export function useGamePersistence({
   // --- User-Scoped Storage ---
   const { userId } = useDataStore();
 
+  // Extract stable setters from fieldCoordination to avoid using the whole
+  // (non-memoized) object in useCallback dep arrays
+  const { setPlayersOnField, setOpponents, setDrawings } = fieldCoordination;
+
   // --- Load/Delete Game UI State ---
   const [isGameLoading, setIsGameLoading] = useState(false);
   const [gameLoadError, setGameLoadError] = useState<string | null>(null);
@@ -604,9 +608,9 @@ export function useGamePersistence({
           } else {
             logger.log("Currently loaded game was deleted with no other games remaining. Resetting to initial state.");
             dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
-            fieldCoordination.setPlayersOnField(initialState.playersOnField || []);
-            fieldCoordination.setOpponents(initialState.opponents || []);
-            fieldCoordination.setDrawings(initialState.drawings || []);
+            setPlayersOnField(initialState.playersOnField || []);
+            setOpponents(initialState.opponents || []);
+            setDrawings(initialState.drawings || []);
             resetHistory(initialState as AppState);
             setCurrentGameId(DEFAULT_GAME_ID);
           }
@@ -636,7 +640,9 @@ export function useGamePersistence({
     setCurrentGameId,
     dispatchGameSession,
     initialGameSessionData,
-    fieldCoordination,
+    setPlayersOnField,
+    setOpponents,
+    setDrawings,
     initialState,
     resetHistory,
     queryClient,

@@ -383,7 +383,8 @@ describe('SyncQueue', () => {
         timestamp: Date.now(),
       });
 
-      await queue.markSyncing(id);
+      const marked = await queue.markSyncing(id);
+      expect(marked).toBe(true);
 
       const pending = await queue.getPending(10);
       expect(pending).toHaveLength(0);
@@ -873,7 +874,7 @@ describe('SyncQueue', () => {
         // 2. Another tab/process completed and removed it
         // 3. Operation was cleared by user
         // See: MATCHOPS-LOCAL-1M
-        await expect(queue.markSyncing('non_existent_id')).resolves.toBeUndefined();
+        await expect(queue.markSyncing('non_existent_id')).resolves.toBe(false);
       } finally {
         debugSpy.mockRestore();
       }

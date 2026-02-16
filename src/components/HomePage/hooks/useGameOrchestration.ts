@@ -219,6 +219,32 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const { applyFieldHistoryState } = fieldCoordination;
   const { applyHistoryState } = sessionCoordination;
 
+  // Ref for field coordination state values read at call time in callbacks.
+  // Using a ref avoids depending on the whole fieldCoordination object (new every render),
+  // which would defeat useCallback memoization for handlers that read field state.
+  const fieldStateRef = useRef({
+    playersOnField: fieldCoordination.playersOnField,
+    opponents: fieldCoordination.opponents,
+    drawings: fieldCoordination.drawings,
+    tacticalDiscs: fieldCoordination.tacticalDiscs,
+    tacticalDrawings: fieldCoordination.tacticalDrawings,
+    tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+  });
+  useEffect(() => {
+    fieldStateRef.current = {
+      playersOnField: fieldCoordination.playersOnField,
+      opponents: fieldCoordination.opponents,
+      drawings: fieldCoordination.drawings,
+      tacticalDiscs: fieldCoordination.tacticalDiscs,
+      tacticalDrawings: fieldCoordination.tacticalDrawings,
+      tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+    };
+  }, [
+    fieldCoordination.playersOnField, fieldCoordination.opponents,
+    fieldCoordination.drawings, fieldCoordination.tacticalDiscs,
+    fieldCoordination.tacticalDrawings, fieldCoordination.tacticalBallPosition,
+  ]);
+
   const handleUndo = useCallback(() => {
     const prevState = undoHistory();
     if (prevState) {
@@ -549,13 +575,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
 
-  // Confirmation modal states - Passed to useModalOrchestration
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State passed to useModalOrchestration, setter used in handlers
+  // Confirmation modal states - Passed to useModalOrchestration via ui object
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
   const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
   const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State passed to useModalOrchestration, setter used in handlers
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
   const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
@@ -866,13 +890,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
   ]);
 
-  // --- NEW: Robust Visibility Change Handling ---
-  // --- Wake Lock Effect ---
-  useEffect(() => {
-    // This effect is now replaced by the direct call in the main timer effect
-    // to avoid race conditions.
-  }, []);
-
   // Helper function to load game state from game data
   // Wrapped in useCallback for proper dependency tracking in the game loading effect
   const loadGameStateFromData = useCallback(async (gameData: AppState | null, isInitialDefaultLoad = false) => {
@@ -965,7 +982,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
     setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
     setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
-    setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
+    setTacticalBallPosition(gameData?.tacticalBallPosition ?? { relX: 0.5, relY: 0.5 });
     setFormationSnapPoints(gameData?.formationSnapPoints || []);
 
     // Regenerate subSlots from persisted formationSnapPoints for sideline visuals
@@ -1034,7 +1051,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       drawings: gameData?.drawings || initialState.drawings,
       tacticalDiscs: gameData?.tacticalDiscs || [],
       tacticalDrawings: gameData?.tacticalDrawings || [],
-      tacticalBallPosition: gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 },
+      tacticalBallPosition: gameData?.tacticalBallPosition ?? { relX: 0.5, relY: 0.5 },
       formationSnapPoints: gameData?.formationSnapPoints || [],
       availablePlayers: gameData?.availablePlayers || gameDataManagement.masterRoster || availablePlayers,
     };
@@ -1535,11 +1552,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setAvailablePlayers(updatedAvailablePlayers);
 
       // Update field players to reflect goalie status change
-      const updatedFieldPlayers = fieldCoordination.playersOnField.map(fieldPlayer => {
+      const updatedFieldPlayers = fieldStateRef.current.playersOnField.map(fieldPlayer => {
         const updatedAvailablePlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
         return updatedAvailablePlayer ? { ...fieldPlayer, isGoalie: updatedAvailablePlayer.isGoalie } : fieldPlayer;
       });
-      fieldCoordination.setPlayersOnField(updatedFieldPlayers);
+      setPlayersOnField(updatedFieldPlayers);
 
       // Save the updated state - fetch FRESH state from storage to avoid stale data
       //
@@ -1600,11 +1617,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // Field coordination: player arrays and tactical elements
           availablePlayers: updatedAvailablePlayers,
           playersOnField: updatedFieldPlayers,
-          opponents: fieldCoordination.opponents,
-          drawings: fieldCoordination.drawings,
-          tacticalDiscs: fieldCoordination.tacticalDiscs,
-          tacticalDrawings: fieldCoordination.tacticalDrawings,
-          tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+          opponents: fieldStateRef.current.opponents,
+          drawings: fieldStateRef.current.drawings,
+          tacticalDiscs: fieldStateRef.current.tacticalDiscs,
+          tacticalDrawings: fieldStateRef.current.tacticalDrawings,
+          tacticalBallPosition: fieldStateRef.current.tacticalBallPosition,
         }, userId);
 
         // Invalidate React Query cache to update LoadGameModal
@@ -1619,9 +1636,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Data dependencies (values that change the function's behavior)
     availablePlayers, currentGameId, gameSessionState, t, userId,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
-    setAvailablePlayers, setRosterError, queryClient,
-    // fieldCoordination provides playersOnField and setPlayersOnField
-    fieldCoordination,
+    setAvailablePlayers, setRosterError, queryClient, setPlayersOnField,
+    // fieldStateRef provides playersOnField/opponents/etc. at call time (no dep needed for ref)
   ]);
 
   // --- END Roster Management Handlers ---
@@ -1634,7 +1650,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
 
     let updatedAvailablePlayers = availablePlayers;
-    let updatedPlayersOnField = fieldCoordination.playersOnField;
+    let updatedPlayersOnField = fieldStateRef.current.playersOnField;
 
     const currentlyAwardedPlayerId = availablePlayers.find(p => p.receivedFairPlayCard)?.id;
 
@@ -1659,7 +1675,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
 
     setAvailablePlayers(updatedAvailablePlayers);
-    fieldCoordination.setPlayersOnField(updatedPlayersOnField);
+    setPlayersOnField(updatedPlayersOnField);
 
     // Persist fair play card changes to master roster via DataStore
     // Uses individual player updates rather than replacing entire roster
@@ -1679,7 +1695,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
     saveStateToHistory({ playersOnField: updatedPlayersOnField, availablePlayers: updatedAvailablePlayers });
     logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
-  }, [availablePlayers, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination]);
+  }, [availablePlayers, saveStateToHistory, currentGameId, setAvailablePlayers, setPlayersOnField]);
 
 
   const handleUpdateSelectedPlayers = useCallback((playerIds: string[]) => {
@@ -1806,15 +1822,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   ) => {
     // Clear field state before creating new game to prevent stale data
     logger.info('[NEW GAME] Clearing field state BEFORE game creation', {
-      previousPlayersOnFieldCount: fieldCoordination.playersOnField.length,
       newGameTeamId: teamId,
       newGameSelectedPlayersCount: initialSelectedPlayerIds.length,
     });
-    fieldCoordination.setPlayersOnField([]);
-    fieldCoordination.setOpponents([]);
-    fieldCoordination.setDrawings([]);
-    fieldCoordination.setTacticalDiscs([]);
-    fieldCoordination.setTacticalDrawings([]);
+    setPlayersOnField([]);
+    setOpponents([]);
+    setDrawings([]);
+    setTacticalDiscs([]);
+    setTacticalDrawings([]);
     // DO NOT reset loadedGameIdRef.current = null here!
     // When savedGames changes (new game added), the effect fires while currentGameId
     // is still the OLD game. If loadedGameIdRef.current is null, the effect will
@@ -1886,7 +1901,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     queryClient,
     showToast,
     t,
-    fieldCoordination,
+    setPlayersOnField,
+    setOpponents,
+    setDrawings,
+    setTacticalDiscs,
+    setTacticalDrawings,
     canCreate,
     showUpgradePrompt,
     userId,
@@ -2211,6 +2230,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       showSaveBeforeNewConfirm,
       showHardResetConfirm,
       setShowHardResetConfirm,
+      showNoPlayersConfirm,
+      setShowNoPlayersConfirm,
+      showStartNewConfirm,
+      setShowStartNewConfirm,
     },
     handlers: {
       handleUpdateGameEvent,
@@ -2288,9 +2311,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // removed - these are no longer returned from useModalOrchestration
   } = modalOrchestration;
 
-  // Assign refs now that useModalOrchestration setters are available
-  setIsTeamManagerOpenRef.current = setIsTeamManagerOpen;
-  setIsInstructionsModalOpenRef.current = setIsInstructionsModalOpen;
+  // Assign refs in effect (not during render) for React 19 concurrent mode compliance.
+  // useState setters are stable so the effect only runs once on mount.
+  useEffect(() => {
+    setIsTeamManagerOpenRef.current = setIsTeamManagerOpen;
+    setIsInstructionsModalOpenRef.current = setIsInstructionsModalOpen;
+  }, [setIsTeamManagerOpen, setIsInstructionsModalOpen]);
 
   return {
     gameContainerProps,

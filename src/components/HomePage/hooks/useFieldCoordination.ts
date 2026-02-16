@@ -424,10 +424,13 @@ export function useFieldCoordination({
     logger.log(`Removing player ${playerId} from field`);
     setPlayersOnField(prevPlayers => {
       const updatedPlayersOnField = prevPlayers.filter(p => p.id !== playerId);
-      saveStateToHistory({ playersOnField: updatedPlayersOnField });
+      // Use ref+version pattern to defer history save to effect (same as handlePlayerMoveEnd).
+      // Calling saveStateToHistory inside setState updater is a React anti-pattern.
+      pendingPlayerMoveEndRef.current = updatedPlayersOnField;
+      setPlayerMoveEndVersion(v => v + 1);
       return updatedPlayersOnField;
     });
-  }, [setPlayersOnField, saveStateToHistory]);
+  }, [setPlayersOnField]);
 
   // --- Hook: useTouchInteractions (touch/mobile drag-and-drop) ---
   // Delegated to separate hook for better separation and testability

@@ -6,11 +6,12 @@
 import { useState, useRef } from 'react';
 import { GameEvent } from '@/types';
 import { TFunction } from 'i18next';
+import { logger } from '@/utils/logger';
 
 interface UseGoalEditorParams {
   gameEvents: GameEvent[];
   onUpdateGameEvent?: (updatedEvent: GameEvent) => void;
-  onDeleteGameEvent?: (goalId: string) => void;
+  onDeleteGameEvent?: (goalId: string) => void | Promise<boolean>;
   setLocalGameEvents: React.Dispatch<React.SetStateAction<GameEvent[]>>;
   setIsEditingNotes: (editing: boolean) => void;
   t: TFunction;
@@ -28,7 +29,7 @@ interface UseGoalEditorResult {
   handleSaveEditGoal: () => void;
   handleGoalEditKeyDown: (event: React.KeyboardEvent) => void;
   triggerDeleteEvent: (goalId: string) => void;
-  confirmDeleteEvent: () => void;
+  confirmDeleteEvent: () => Promise<void>;
   showDeleteConfirm: boolean;
   setShowDeleteConfirm: (show: boolean) => void;
   goalIdToDelete: string | null;
@@ -138,13 +139,22 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
     setShowDeleteConfirm(true);
   };
 
-  const confirmDeleteEvent = () => {
-    if (goalIdToDelete && onDeleteGameEvent) {
-      onDeleteGameEvent(goalIdToDelete);
-      setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalIdToDelete));
+  const confirmDeleteEvent = async () => {
+    try {
+      if (goalIdToDelete && onDeleteGameEvent) {
+        const result = await onDeleteGameEvent(goalIdToDelete);
+        // Only remove from local display state if persistence succeeded (or returned void)
+        if (result !== false) {
+          setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalIdToDelete));
+        }
+      }
+    } catch (error) {
+      logger.error('[useGoalEditor] Failed to delete event:', error);
+      showToast(t('gameStatsModal.deleteEventFailed', 'Failed to delete event. Please try again.'), 'error');
+    } finally {
+      setShowDeleteConfirm(false);
+      setGoalIdToDelete(null);
     }
-    setShowDeleteConfirm(false);
-    setGoalIdToDelete(null);
   };
 
   return {

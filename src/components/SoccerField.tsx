@@ -1178,13 +1178,14 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   // The ResizeObserver won't fire if the canvas size hasn't changed, but the canvas context
   // might be stale after a long background period. This ensures a fresh redraw on resume.
   useEffect(() => {
+    let rafId: number | null = null;
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         // Clear the background cache to force fresh rendering
         // This handles cases where the canvas context became invalid
         backgroundCache.clear();
         // Use requestAnimationFrame to ensure layout is complete before drawing
-        requestAnimationFrame(() => {
+        rafId = requestAnimationFrame(() => {
           try {
             draw();
           } catch (error) {
@@ -1197,6 +1198,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [draw]); // Effect re-runs when `draw` changes, ensuring handler uses latest version
 

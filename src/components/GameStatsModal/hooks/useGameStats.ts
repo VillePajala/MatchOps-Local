@@ -88,16 +88,17 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
 
       // Filter adjustments matching the current tab context
       const matchingAdjustments = adjustments.filter((adj: PlayerStatAdjustment) => {
-        if (!adj.includeInSeasonTournament) return false;
         if (activeTab === 'season') {
+          if (!adj.includeInSeasonTournament) return false;
           if (selectedSeasonIdFilter === 'all') return !!adj.seasonId;
           return adj.seasonId === selectedSeasonIdFilter;
         }
         if (activeTab === 'tournament') {
+          if (!adj.includeInSeasonTournament) return false;
           if (selectedTournamentIdFilter === 'all') return !!adj.tournamentId;
           return adj.tournamentId === selectedTournamentIdFilter;
         }
-        // overall tab: include all adjustments
+        // overall tab: include all adjustments regardless of includeInSeasonTournament
         return true;
       });
 

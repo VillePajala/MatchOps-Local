@@ -2,6 +2,10 @@ import React from 'react';
 import { render, fireEvent, screen, act } from '@testing-library/react';
 import { ToastProvider, useToast } from '../ToastProvider';
 
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (_key: string, fallback?: string) => fallback ?? _key }),
+}));
+
 const TestComponent = () => {
   const { showToast } = useToast();
   return (

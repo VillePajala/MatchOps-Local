@@ -28,7 +28,6 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
   const handleAddPlayer = useCallback(async (
     data: Omit<Player, 'id' | 'isGoalie' | 'receivedFairPlayCard'>,
   ) => {
-    const prev = [...availablePlayers];
     const temp: Player = {
       id: `temp-${Date.now()}`,
       isGoalie: false,
@@ -36,7 +35,13 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       ...data,
     };
     setIsRosterUpdating(true);
-    setAvailablePlayers([...availablePlayers, temp]);
+    // Capture snapshot locally — each mutation gets its own rollback state,
+    // preventing concurrent mutations from sharing a single ref.
+    let rollbackSnapshot: Player[] | null = null;
+    setAvailablePlayers((current) => {
+      rollbackSnapshot = current;
+      return [...current, temp];
+    });
     try {
       const saved = await addPlayer(data, userId);
       if (saved) {
@@ -57,27 +62,28 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         // Also invalidate to ensure background sync
         await queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
       } else {
-        setAvailablePlayers(prev);
+        if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to add player');
       }
     } catch (error) {
       logger.warn('Failed to add player to roster', { error });
-      setAvailablePlayers(prev);
+      if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to add player');
     } finally {
       setIsRosterUpdating(false);
     }
-  }, [availablePlayers, userId, queryClient]);
+  }, [userId, queryClient]);
 
   const handleUpdatePlayer = useCallback(async (
     playerId: string,
     updates: Partial<Omit<Player, 'id'>>,
   ) => {
-    const prev = [...availablePlayers];
     setIsRosterUpdating(true);
-    setAvailablePlayers((ps) =>
-      ps.map((p) => (p.id === playerId ? { ...p, ...updates } : p)),
-    );
+    let rollbackSnapshot: Player[] | null = null;
+    setAvailablePlayers((current) => {
+      rollbackSnapshot = current;
+      return current.map((p) => (p.id === playerId ? { ...p, ...updates } : p));
+    });
     try {
       const updated = await updatePlayer(playerId, updates, userId);
       if (updated) {
@@ -93,26 +99,29 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         // Also invalidate to ensure background sync
         await queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
       } else {
-        setAvailablePlayers(prev);
+        if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to update player');
       }
     } catch (error) {
       logger.warn('Failed to update player in roster', { playerId, error });
-      setAvailablePlayers(prev);
+      if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to update player');
     } finally {
       setIsRosterUpdating(false);
     }
-  }, [availablePlayers, userId, queryClient]);
+  }, [userId, queryClient]);
 
   const handleRemovePlayer = useCallback(async (playerId: string) => {
-    const prev = [...availablePlayers];
     setIsRosterUpdating(true);
-    setAvailablePlayers((ps) => ps.filter((p) => p.id !== playerId));
+    let rollbackSnapshot: Player[] | null = null;
+    setAvailablePlayers((current) => {
+      rollbackSnapshot = current;
+      return current.filter((p) => p.id !== playerId);
+    });
     try {
       const success = await removePlayer(playerId, userId);
       if (!success) {
-        setAvailablePlayers(prev);
+        if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to remove player');
       } else {
         setRosterError(null);
@@ -121,27 +130,28 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       }
     } catch (error) {
       logger.warn('Failed to remove player from roster', { playerId, error });
-      setAvailablePlayers(prev);
+      if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to remove player');
     } finally {
       setIsRosterUpdating(false);
     }
-  }, [availablePlayers, userId, queryClient]);
+  }, [userId, queryClient]);
 
   const handleSetGoalieStatus = useCallback(async (playerId: string, isGoalie: boolean) => {
-    const prev = [...availablePlayers];
     setIsRosterUpdating(true);
-    setAvailablePlayers((ps) =>
-      ps.map((p) => {
+    let rollbackSnapshot: Player[] | null = null;
+    setAvailablePlayers((current) => {
+      rollbackSnapshot = current;
+      return current.map((p) => {
         if (p.id === playerId) return { ...p, isGoalie };
         if (isGoalie && p.isGoalie) return { ...p, isGoalie: false };
         return p;
-      })
-    );
+      });
+    });
     try {
       const updated = await setGoalieStatus(playerId, isGoalie, userId);
       if (!updated) {
-        setAvailablePlayers(prev);
+        if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to set goalie status');
       } else {
         setRosterError(null);
@@ -150,14 +160,14 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       }
     } catch (error) {
       logger.warn('Failed to set goalie status', { playerId, isGoalie, error });
-      setAvailablePlayers(prev);
+      if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to set goalie status');
     } finally {
       setIsRosterUpdating(false);
     }
-  }, [availablePlayers, userId, queryClient]);
+  }, [userId, queryClient]);
 
-  return {
+  return useMemo(() => ({
     availablePlayers,
     setAvailablePlayers,
     highlightRosterButton,
@@ -172,8 +182,18 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     handleUpdatePlayer,
     handleRemovePlayer,
     handleSetGoalieStatus,
-  };
+  }), [
+    availablePlayers,
+    highlightRosterButton,
+    showRosterPrompt,
+    rosterError,
+    isRosterUpdating,
+    playersForCurrentGame,
+    handleAddPlayer,
+    handleUpdatePlayer,
+    handleRemovePlayer,
+    handleSetGoalieStatus,
+  ]);
 };
 
 export type UseRosterReturn = ReturnType<typeof useRoster>;
-

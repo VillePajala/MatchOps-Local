@@ -61,8 +61,6 @@ jest.mock('@/hooks/useGameState', () => ({
     handleOpponentMove: jest.fn(),
     handleOpponentMoveEnd: jest.fn(),
     handleOpponentRemove: jest.fn(),
-    handleRenamePlayer: jest.fn(),
-    handleToggleGoalie: jest.fn(),
   })),
 }));
 
@@ -143,8 +141,6 @@ const getDefaultMockGameState = () => ({
   handleOpponentMove: jest.fn(),
   handleOpponentMoveEnd: jest.fn(),
   handleOpponentRemove: jest.fn(),
-  handleRenamePlayer: jest.fn(),
-  handleToggleGoalie: jest.fn(),
 });
 
 // Helper to get default mock tactical board return value
@@ -246,8 +242,6 @@ describe('useFieldCoordination', () => {
       handleOpponentMove: jest.fn(),
       handleOpponentMoveEnd: jest.fn(),
       handleOpponentRemove: jest.fn(),
-      handleRenamePlayer: jest.fn(),
-      handleToggleGoalie: jest.fn(),
     });
 
     mockUseTacticalBoard.mockReturnValue({
@@ -376,9 +370,16 @@ describe('useFieldCoordination', () => {
      * @critical - Core player management
      */
     it('should handle player removal from field', () => {
-      const mockSetPlayersOnField = jest.fn();
       const player1 = TestFixtures.players.goalkeeper({ id: 'player-1' });
       const player2 = TestFixtures.players.fieldPlayer({ id: 'player-2' });
+
+      // Mock setPlayersOnField that invokes the updater function (like React's setState)
+      // so the ref+version pattern triggers the deferred history save effect
+      const mockSetPlayersOnField = jest.fn((updater: unknown) => {
+        if (typeof updater === 'function') {
+          (updater as (prev: typeof player1[]) => typeof player1[])([player1, player2]);
+        }
+      });
 
       mockUseGameState.mockReturnValue({
         ...getDefaultMockGameState(),
@@ -386,11 +387,14 @@ describe('useFieldCoordination', () => {
         setPlayersOnField: mockSetPlayersOnField,
       });
 
-      const { result } = renderHook(() => useFieldCoordination(mockParams));
+      const { result, rerender } = renderHook(() => useFieldCoordination(mockParams));
 
       act(() => {
         result.current.handlePlayerRemove('player-1');
       });
+
+      // Rerender to trigger the deferred history save effect (ref+version pattern)
+      rerender();
 
       expect(mockSetPlayersOnField).toHaveBeenCalled();
       const updaterFn = mockSetPlayersOnField.mock.calls[0][0];

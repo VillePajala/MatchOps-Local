@@ -113,8 +113,8 @@ if (dsn && (isProduction || isForceEnabled)) {
     // Environment
     environment: process.env.NODE_ENV,
 
-    // Release tracking
-    release: process.env.npm_package_version,
+    // Release tracking — use build-time env var (npm_package_version is undefined at runtime)
+    release: process.env.NEXT_PUBLIC_APP_VERSION,
 
     // Debug mode in development
     debug: !isProduction,

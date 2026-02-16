@@ -641,8 +641,6 @@ describe('useGameState', () => {
       expect(typeof result.current.handleOpponentMove).toBe('function');
       expect(typeof result.current.handleOpponentMoveEnd).toBe('function');
       expect(typeof result.current.handleOpponentRemove).toBe('function');
-      expect(typeof result.current.handleRenamePlayer).toBe('function');
-      expect(typeof result.current.handleToggleGoalie).toBe('function');
     });
   });
 });

@@ -17,6 +17,7 @@ const rajdhani = Rajdhani({
   subsets: ['latin'],
   weight: ['400', '600'], // We'll use 600 for Semi-bold
   variable: '--font-rajdhani',
+  display: 'swap',
 });
 
 // Determine the current branch
@@ -39,6 +40,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: config.themeColor,
+  width: 'device-width',
+  initialScale: 1.0,
+  maximumScale: 5.0,
+  userScalable: true,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -49,7 +55,6 @@ export default function RootLayout({
   return (
     <html lang="fi">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

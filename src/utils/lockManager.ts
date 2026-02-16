@@ -136,13 +136,14 @@ export class LockManager {
    * This should only be used in error recovery scenarios
    */
   forceReleaseAll(): void {
-    // Clear all timeouts
+    // Reject all waiting callers and clear timeouts
     for (const queue of this.queues.values()) {
       for (const item of queue) {
         clearTimeout(item.timeoutHandle);
+        item.reject(new Error('Lock forcefully released'));
       }
     }
-    
+
     this.queues.clear();
     this.activeLocks.clear();
   }

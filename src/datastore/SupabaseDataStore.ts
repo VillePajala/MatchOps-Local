@@ -1391,8 +1391,8 @@ export class SupabaseDataStore implements DataStore {
       boundSeasonId: row.bound_season_id ?? undefined,
       boundTournamentId: row.bound_tournament_id ?? undefined,
       boundTournamentSeriesId: row.bound_tournament_series_id ?? undefined,
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? new Date().toISOString(),
+      createdAt: row.created_at ?? '1970-01-01T00:00:00.000Z',
+      updatedAt: row.updated_at ?? '1970-01-01T00:00:00.000Z',
     };
   }
 
@@ -2616,8 +2616,8 @@ export class SupabaseDataStore implements DataStore {
       phone: row.phone ?? undefined,
       certifications: row.certifications ?? [], // Rule #9
       notes: row.notes ?? undefined,
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? new Date().toISOString(),
+      createdAt: row.created_at ?? '1970-01-01T00:00:00.000Z',
+      updatedAt: row.updated_at ?? '1970-01-01T00:00:00.000Z',
     };
   }
 
@@ -4311,9 +4311,9 @@ export class SupabaseDataStore implements DataStore {
     // where the browser can cancel fetch requests unexpectedly.
     //
     // See: docs/02-technical/database/supabase-schema.md "Clear All User Data (Atomic)"
-    const { error } = await withRetry(
+    const { error } = await this.withRetry(
       async () => throwIfTransient(await client.rpc('clear_all_user_data')),
-      { maxRetries: 3, operationName: 'clearAllUserData' }
+      'clearAllUserData'
     );
 
     if (!error) {

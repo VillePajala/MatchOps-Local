@@ -77,7 +77,7 @@ export default function MarketingConsentPrompt() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 animate-in fade-in duration-300" role="dialog" aria-modal="true" aria-label={t('marketingConsent.promptTitle', 'Stay in the loop?')}>
       <div className="relative bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-5 max-w-sm w-full">
         {/* Dismiss button */}
         <button

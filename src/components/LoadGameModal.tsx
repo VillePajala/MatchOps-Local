@@ -114,6 +114,21 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     [teams, seasons, tournaments]
   );
 
+  // Escape key handler — guarded so it doesn't fire when delete confirmation is open
+  // (ConfirmationModal handles its own Escape with stopImmediatePropagation)
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !showDeleteConfirm) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, showDeleteConfirm, onClose]);
+
   // Close actions menu when clicking outside
   React.useEffect(() => {
     if (!actionsMenuId) return;
@@ -435,6 +450,8 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                           onClick={(e) => handleActionsMenuToggle(e, gameId)}
                           className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
                           aria-label={t('loadGameModal.gameActions', 'Game actions')}
+                          aria-haspopup="menu"
+                          aria-expanded={actionsMenuId === gameId}
                           disabled={disableActions}
                         >
                           {isLoadActionActive ? (
@@ -449,8 +466,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
                         {/* Actions dropdown menu */}
                         {actionsMenuId === gameId && (
-                          <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[gameId] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                          <div role="menu" className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[gameId] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                             <button
+                              role="menuitem"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onExportOneJson(gameId);
@@ -463,6 +481,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                               Export JSON
                             </button>
                             <button
+                              role="menuitem"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onExportOneExcel(gameId);
@@ -475,6 +494,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                               Export Excel
                             </button>
                             <button
+                              role="menuitem"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteClick(gameId, `${displayHomeTeamName} vs ${displayAwayTeamName}`);

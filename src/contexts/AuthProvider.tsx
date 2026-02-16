@@ -155,6 +155,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // treating the recovery session as a real sign-in and navigating away from the
   // "Set New Password" form.
   const isPasswordResetFlowRef = useRef(false);
+  const passwordResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up password reset timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (passwordResetTimeoutRef.current) {
+        clearTimeout(passwordResetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Initialize auth service
   useEffect(() => {
@@ -255,6 +265,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             return;
           }
+
+          if (!mounted) return;
 
           setSession(newSession);
           setUser(newSession?.user ?? null);
@@ -672,8 +684,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await authService.deleteAccount();
 
-      // Reset session lock BEFORE clearing state
+      // Reset session locks BEFORE clearing state
       hasSignedInThisSessionRef.current = false;
+      isPasswordResetFlowRef.current = false;
+
+      // Clear subscription cache to prevent data leakage (same as signOut)
+      if (deletedUserId) {
+        try {
+          await clearSubscriptionCache(deletedUserId);
+        } catch (error) {
+          logger.warn('[AuthProvider] Failed to clear subscription cache on deletion:', error);
+        }
+      }
 
       // Clear local state after successful deletion
       setUser(null);
@@ -843,18 +865,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // event is processed normally by onAuthStateChange
       isPasswordResetFlowRef.current = false;
 
-      // Sign out the recovery session — user must sign in with their new password
+      // Sign out the recovery session — user must sign in with their new password.
+      // Uses authService.signOut() directly (not AuthProvider's signOut) because this
+      // is ending a recovery session, not a full user sign-out flow.
       try {
         await authService.signOut();
       } catch {
         // Non-critical: recovery session will expire naturally
       }
+      // Explicit state clear required — onAuthStateChange may ignore the signed_out
+      // event if hasSignedInThisSessionRef is true from a previous sign-in.
       setUser(null);
       setSession(null);
 
       return {};
     } catch (error) {
-      // Keep flag set on failure — user can retry setting password
+      // Keep flag set on failure — user can retry setting password.
+      // Safety timeout: auto-clear the flag after 10 minutes to prevent
+      // permanently blocking auth events if the user abandons the reset flow.
+      // Clear previous timeout to prevent accumulation on repeated failures.
+      if (passwordResetTimeoutRef.current) {
+        clearTimeout(passwordResetTimeoutRef.current);
+      }
+      passwordResetTimeoutRef.current = setTimeout(() => {
+        if (isPasswordResetFlowRef.current) {
+          isPasswordResetFlowRef.current = false;
+          logger.warn('[AuthProvider] Password reset flow flag auto-cleared after timeout');
+        }
+        passwordResetTimeoutRef.current = null;
+      }, 10 * 60 * 1000);
       return { error: error instanceof Error ? error.message : 'Password update failed' };
     }
   }, [authService]);

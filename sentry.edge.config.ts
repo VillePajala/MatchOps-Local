@@ -20,14 +20,14 @@ if (dsn && (isProduction || isForceEnabled)) {
   Sentry.init({
     dsn,
 
-    // Performance monitoring - 100% sampling for small user base (20 users)
-    tracesSampleRate: 1.0,
+    // Performance monitoring - 10% sampling, sustainable at Play Store scale
+    tracesSampleRate: 0.1,
 
     // Environment tracking
     environment: process.env.NODE_ENV,
 
-    // Release tracking for version correlation
-    release: process.env.npm_package_version,
+    // Release tracking — use build-time env var (npm_package_version is undefined at runtime)
+    release: process.env.NEXT_PUBLIC_APP_VERSION,
 
     // Debug mode in development for troubleshooting
     debug: !isProduction,
@@ -38,23 +38,18 @@ if (dsn && (isProduction || isForceEnabled)) {
      * Filters out noise and development-only errors to keep
      * Sentry focused on real production issues.
      */
-    beforeSend(event, hint) {
+    beforeSend(event, _hint) {
       // Don't send events in development unless force-enabled
       if (!isProduction && !isForceEnabled) {
         return null;
       }
 
-      // Filter out common Edge runtime noise if needed
+      // Filter out network timeouts — these are client-side issues, not edge errors
       const errorMessage = event.exception?.values?.[0]?.value;
       if (errorMessage) {
-        // Filter network timeouts that might be client-side issues
         if (errorMessage.includes('fetch timeout') ||
             errorMessage.includes('Request timeout')) {
-          // Consider if we want to track these or not
-          // For now, let them through but at reduced sample rate
-          if (Math.random() > 0.1) {
-            return null;
-          }
+          return null;
         }
       }
 

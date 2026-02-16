@@ -242,6 +242,10 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       showSaveBeforeNewConfirm: overrides?.ui?.showSaveBeforeNewConfirm ?? false,
       showHardResetConfirm: overrides?.ui?.showHardResetConfirm ?? false,
       setShowHardResetConfirm: (overrides?.ui?.setShowHardResetConfirm ?? jest.fn()) as (open: boolean) => void,
+      showNoPlayersConfirm: overrides?.ui?.showNoPlayersConfirm ?? false,
+      setShowNoPlayersConfirm: (overrides?.ui?.setShowNoPlayersConfirm ?? jest.fn()) as (open: boolean) => void,
+      showStartNewConfirm: overrides?.ui?.showStartNewConfirm ?? false,
+      setShowStartNewConfirm: (overrides?.ui?.setShowStartNewConfirm ?? jest.fn()) as (open: boolean) => void,
     },
     handlers: {
       handleUpdateGameEvent: overrides?.handlers?.handleUpdateGameEvent ?? jest.fn(),
@@ -289,6 +293,17 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       handleSaveBeforeNewConfirmed: overrides?.handlers?.handleSaveBeforeNewConfirmed ?? jest.fn(),
       handleSaveBeforeNewCancelled: overrides?.handlers?.handleSaveBeforeNewCancelled ?? jest.fn(),
       handleStartNewConfirmed: overrides?.handlers?.handleStartNewConfirmed ?? jest.fn(),
+      handleTournamentSeriesIdChange: overrides?.handlers?.handleTournamentSeriesIdChange ?? jest.fn(),
+      handleTeamIdChange: overrides?.handlers?.handleTeamIdChange ?? jest.fn(),
+      handleSetLeagueId: overrides?.handlers?.handleSetLeagueId ?? jest.fn(),
+      handleSetCustomLeagueName: overrides?.handlers?.handleSetCustomLeagueName ?? jest.fn(),
+      handleSetGameType: overrides?.handlers?.handleSetGameType ?? jest.fn(),
+      handleSetGender: overrides?.handlers?.handleSetGender ?? jest.fn(),
+      handleSetWentToOvertime: overrides?.handlers?.handleSetWentToOvertime ?? jest.fn(),
+      handleSetWentToPenalties: overrides?.handlers?.handleSetWentToPenalties ?? jest.fn(),
+      handleResyncFromCloud: overrides?.handlers?.handleResyncFromCloud ?? jest.fn(),
+      handleFactoryReset: overrides?.handlers?.handleFactoryReset ?? jest.fn(),
+      handleCloudDataDownload: overrides?.handlers?.handleCloudDataDownload ?? jest.fn(),
     },
   } as UseModalOrchestrationProps;
 };

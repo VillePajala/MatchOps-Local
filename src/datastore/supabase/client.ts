@@ -49,8 +49,8 @@ export function getSupabaseClient(): SupabaseClient<Database> {
       persistSession: true,
       // Auto-refresh tokens before expiry
       autoRefreshToken: true,
-      // Detect session from URL (for OAuth callbacks)
-      detectSessionInUrl: true,
+      // No OAuth or magic links — email/password + OTP only, no URL-based tokens
+      detectSessionInUrl: false,
     },
     global: {
       // Add request headers for debugging

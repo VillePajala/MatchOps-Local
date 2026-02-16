@@ -126,6 +126,7 @@ export default function AuthForm({
           }
         } else {
           // Success - user signed in
+          setPassword('');
           onSuccess?.();
         }
       } else if (mode === 'resetPassword') {
@@ -172,8 +173,8 @@ export default function AuthForm({
     setIsLoading(true);
 
     const trimmedCode = otpCode.trim();
-    if (!trimmedCode || trimmedCode.length !== 8) {
-      setError(t('auth.otpInvalidLength', 'Please enter the 8-digit code from your email'));
+    if (!trimmedCode || trimmedCode.length < 6 || trimmedCode.length > 8) {
+      setError(t('auth.otpInvalidLength', 'Please enter the verification code from your email'));
       setIsLoading(false);
       return;
     }
@@ -584,7 +585,7 @@ export default function AuthForm({
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={8}
-            placeholder={t('auth.otpPlaceholder', '00000000')}
+            placeholder={t('auth.otpPlaceholder', '000000')}
             value={otpCode}
             onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
             className={inputStyle + ' text-center text-2xl tracking-[0.5em] font-mono'}
@@ -594,7 +595,7 @@ export default function AuthForm({
             disabled={isLoading}
           />
 
-          <button type="submit" className={primaryButtonStyle} disabled={isLoading || otpCode.length !== 8}>
+          <button type="submit" className={primaryButtonStyle} disabled={isLoading || otpCode.length < 6}>
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">

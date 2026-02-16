@@ -197,6 +197,8 @@ export default function Home() {
     }
   }, [userId]);
 
+  const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
+
   const handleDataImportSuccess = useCallback(() => {
     // Trigger app state refresh after data import
     setRefreshTrigger(prev => prev + 1);
@@ -1216,7 +1218,7 @@ export default function Home() {
               skipInitialSetup
               onDataImportSuccess={handleDataImportSuccess}
               isFirstTimeUser={isFirstTimeUser}
-              onGoToStartScreen={() => setScreen('start')}
+              onGoToStartScreen={handleGoToStartScreen}
               initialGameType={lastGameType}
             />
           </ErrorBoundary>

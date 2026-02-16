@@ -68,6 +68,7 @@ const saveWithRetry = async (
       logger.debug(`[useAutoSave] ${context} retry ${attempt + 1}/${maxRetries} in ${delay}ms`);
 
       await new Promise(resolve => setTimeout(resolve, delay));
+      if (isCancelled?.()) return; // Check after delay to reduce cleanup latency
     }
   }
 };

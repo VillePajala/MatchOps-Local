@@ -370,9 +370,8 @@ export function getCloudAccountInfo(): CloudAccountInfo | null {
     return parsed;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    // Log preview of malformed data for debugging (safe to log - not sensitive auth data)
-    const preview = stored.length > 100 ? stored.substring(0, 100) + '...' : stored;
-    log.warn(`[backendConfig] Failed to parse cloud account info: ${errorMsg} (length: ${stored.length}, preview: ${preview})`);
+    // Don't log preview — CloudAccountInfo contains PII (email, userId)
+    log.warn(`[backendConfig] Failed to parse cloud account info: ${errorMsg} (length: ${stored.length})`);
     return null;
   }
 }
@@ -394,7 +393,7 @@ export function setCloudAccountInfo(info: CloudAccountInfo): boolean {
   }
   const success = safeSetItem(CLOUD_ACCOUNT_KEY, JSON.stringify(info));
   if (success) {
-    log.info(`[backendConfig] Cloud account info saved for ${info.email}`);
+    log.info(`[backendConfig] Cloud account info saved for ${info.email.slice(0, 3)}***`);
   }
   return success;
 }

@@ -20,6 +20,7 @@ interface UseTournamentSeasonStatsParams {
   selectedSeasonIdFilter: string | 'all';
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter?: string | 'all' | 'legacy';
+  selectedSeriesIdFilter?: string | 'all';
   selectedGameTypeFilter?: GameType | 'all';
   selectedGenderFilter?: Gender | 'all';
   // Club season filter params
@@ -39,6 +40,7 @@ export function useTournamentSeasonStats(
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
     selectedTeamIdFilter = 'all',
+    selectedSeriesIdFilter = 'all',
     selectedGameTypeFilter = 'all',
     selectedGenderFilter = 'all',
     selectedClubSeason = 'all',
@@ -150,7 +152,8 @@ export function useTournamentSeasonStats(
 
           gameIds.forEach(gameId => {
             const game = savedGames?.[gameId];
-            if (!game || game.seasonId !== selectedSeasonIdFilter) return;
+            // Exclude games with tournamentId for consistency with "All Seasons" aggregate
+            if (!game || game.seasonId !== selectedSeasonIdFilter || game.tournamentId) return;
 
             stats.gamesPlayed++;
             stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
@@ -273,7 +276,8 @@ export function useTournamentSeasonStats(
 
           gameIds.forEach(gameId => {
             const game = savedGames?.[gameId];
-            if (!game || game.tournamentId !== selectedTournamentIdFilter) return;
+            // Exclude games with seasonId for consistency with "All Tournaments" aggregate
+            if (!game || game.tournamentId !== selectedTournamentIdFilter || game.seasonId) return;
 
             stats.gamesPlayed++;
             stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
@@ -309,6 +313,7 @@ export function useTournamentSeasonStats(
       teamFilter: selectedTeamIdFilter,
       seasonFilter: activeTab === 'season' ? selectedSeasonIdFilter : undefined,
       tournamentFilter: activeTab === 'tournament' ? selectedTournamentIdFilter : undefined,
+      seriesFilter: activeTab === 'tournament' ? selectedSeriesIdFilter : undefined,
       gameTypeFilter: selectedGameTypeFilter,
       genderFilter: selectedGenderFilter,
       activeTab,
@@ -317,5 +322,5 @@ export function useTournamentSeasonStats(
       clubSeasonEndDate,
     });
     return calculateStats(playedGameIds);
-  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedSeriesIdFilter, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 }

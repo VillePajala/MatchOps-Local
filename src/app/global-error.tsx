@@ -33,7 +33,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html>
+    <html lang="fi">
       <body>
         <div className={styles.errorContainer}>
           <div className={styles.errorCard}>

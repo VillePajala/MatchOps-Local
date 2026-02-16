@@ -45,6 +45,20 @@ import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilte
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
 
+/** Stable no-op callback to avoid creating new function references on each render */
+const NOOP = () => {};
+
+/** Flatten Map<playerId, adjustments[]> into a single array */
+function flattenAdjustmentsMap(map: Map<string, PlayerStatAdjustment[]>): PlayerStatAdjustment[] {
+  const flat: PlayerStatAdjustment[] = [];
+  for (const adjs of map.values()) {
+    for (const adj of adjs) {
+      flat.push(adj);
+    }
+  }
+  return flat;
+}
+
 interface GameStatsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -71,7 +85,7 @@ interface GameStatsModalProps {
   gamePersonnel?: string[];
   personnelDirectory?: Personnel[];
   onExportOneExcel?: (gameId: string) => void;
-  onDeleteGameEvent?: (goalId: string) => void;
+  onDeleteGameEvent?: (goalId: string) => void | Promise<boolean>;
   onExportAggregateExcel?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   onExportPlayerExcel?: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
   initialSelectedPlayerId?: string | null;
@@ -98,8 +112,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   availablePlayers,
   gameEvents,
   gameNotes = '',
-  onGameNotesChange = () => {},
-  onUpdateGameEvent = () => {},
+  onGameNotesChange = NOOP,
+  onUpdateGameEvent = NOOP,
   selectedPlayerIds,
   savedGames,
   currentGameId,
@@ -110,7 +124,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onExportAggregateExcel,
   onExportPlayerExcel,
   initialSelectedPlayerId = null,
-  onGameClick = () => {},
+  onGameClick = NOOP,
   masterRoster = [],
   onOpenSettings,
 }) => {
@@ -211,7 +225,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     onTeamFilterChange,
     onSeriesFilterChange,
     onGameTypeFilterChange,
-    // onClubSeasonChange - available but not currently used in UI
+    // onClubSeasonChange is passed via handlers object to CollapsibleFilters
     resetAllFilters,
   } = handlers;
 
@@ -284,15 +298,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           setSeasons(loadedSeasons);
           setTournaments(loadedTournaments);
           setTeams(loadedTeams);
-
-          // Flatten the Map<playerId, adjustments[]> into a single array
-          const flat: PlayerStatAdjustment[] = [];
-          for (const adjs of adjustmentsMap.values()) {
-            for (const adj of adjs) {
-              flat.push(adj);
-            }
-          }
-          setAllAdjustments(flat);
+          setAllAdjustments(flattenAdjustmentsMap(adjustmentsMap));
         } catch (error) {
           logger.error('[GameStatsModal] Failed to load data:', error);
           showToast(
@@ -305,26 +311,26 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     loadData();
   }, [isOpen, showToast, t, userId, getStore]);
 
-  // Reload adjustments when switching to season/tournament tabs
+  // Reload adjustments when switching to aggregate tabs
   // (user may have added external games on the Player tab)
   useEffect(() => {
-    if (!isOpen || (activeTab !== 'season' && activeTab !== 'tournament')) return;
+    if (!isOpen || (activeTab !== 'season' && activeTab !== 'tournament' && activeTab !== 'overall')) return;
+    let cancelled = false;
     const reload = async () => {
       try {
         const store = await getStore();
         const adjustmentsMap = await store.getAllPlayerAdjustments();
-        const flat: PlayerStatAdjustment[] = [];
-        for (const adjs of adjustmentsMap.values()) {
-          for (const adj of adjs) {
-            flat.push(adj);
-          }
+        if (!cancelled) {
+          setAllAdjustments(flattenAdjustmentsMap(adjustmentsMap));
         }
-        setAllAdjustments(flat);
       } catch (error) {
-        logger.debug('[GameStatsModal] Failed to reload adjustments', { error });
+        if (!cancelled) {
+          logger.warn('[GameStatsModal] Failed to reload adjustments', { error });
+        }
       }
     };
     reload();
+    return () => { cancelled = true; };
   }, [isOpen, activeTab, getStore]);
 
   // Sync local game events with props
@@ -399,6 +405,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     tournaments,
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
+    selectedSeriesIdFilter,
     selectedTeamIdFilter,
     selectedGameTypeFilter,
     selectedGenderFilter,
@@ -509,7 +516,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
 
     if (activeTab === 'overall') {
-      const playedGamesCount = getPlayedGamesByTeam(savedGames, selectedTeamIdFilter).length;
+      const playedGamesCount = overallTeamStats?.gamesPlayed ?? 0;
       return (
         <span>
           <span className="text-yellow-400 font-semibold">{playedGamesCount}</span>
@@ -522,10 +529,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
     if (activeTab === 'player') {
       if (selectedPlayer) {
-        const playerGames = Object.values(savedGames || {}).filter(
-          game => game.selectedPlayerIds?.includes(selectedPlayer.id)
-        );
-        const matchesCount = playerGames.length;
+        // Count games where this player participated, respecting all active filters
+        const matchesCount = processedGameIds.filter(gameId => {
+          const game = savedGames?.[gameId];
+          return game?.selectedPlayerIds?.includes(selectedPlayer.id);
+        }).length;
         return (
           <span>
             <span className="text-yellow-400 font-semibold">{matchesCount}</span>
@@ -547,14 +555,30 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
 
     return null;
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` intentionally excluded: translation function changes don't require counter recalculation
-  }, [activeTab, availablePlayers, seasons, tournaments, savedGames, selectedTeamIdFilter, selectedPlayer, masterRoster]);
+  }, [activeTab, availablePlayers, seasons, tournaments, savedGames, selectedPlayer, masterRoster, overallTeamStats, processedGameIds, t]);
 
-  // Calculate team assessment averages
+  // Calculate team assessment averages (applying same filters as overallTeamStats)
   const teamAssessmentAverages = useMemo(() => {
     if (activeTab !== 'overall') return null;
-    return calculateTeamAssessmentAverages(savedGames);
-  }, [activeTab, savedGames]);
+    // Apply same filters as overallTeamStats for consistency
+    const filteredGames: SavedGamesCollection = {};
+    Object.entries(savedGames || {}).forEach(([id, game]) => {
+      if (game.isPlayed === false) return;
+      if (selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' && game.teamId !== selectedTeamIdFilter) return;
+      if (selectedTeamIdFilter === 'legacy' && game.teamId) return;
+      if (selectedGameTypeFilter !== 'all') {
+        const gameType = game.gameType || 'soccer';
+        if (gameType !== selectedGameTypeFilter) return;
+      }
+      if (selectedGenderFilter !== 'all' && game.gender !== selectedGenderFilter) return;
+      if (selectedClubSeason !== 'all' && game.gameDate) {
+        const gameSeason = getClubSeasonForDate(game.gameDate, clubSeasonStartDate, clubSeasonEndDate);
+        if (gameSeason !== selectedClubSeason) return;
+      }
+      filteredGames[id] = game;
+    });
+    return calculateTeamAssessmentAverages(filteredGames);
+  }, [activeTab, savedGames, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Sorted goals for current game
   const sortedGoals = useMemo(() => {
@@ -571,21 +595,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
 
   // --- Handlers ---
-  const handleSaveNotes = () => {
+  const handleSaveNotes = useCallback(() => {
     if (gameNotes !== editGameNotes) {
-      // Notes changed - call onGameNotesChange and let useEffect exit edit mode
-      // when gameNotes prop updates, to avoid showing stale value in view mode
       onGameNotesChange(editGameNotes);
-    } else {
-      // No changes - exit edit mode immediately
-      setIsEditingNotes(false);
     }
-  };
+    setIsEditingNotes(false);
+  }, [gameNotes, editGameNotes, onGameNotesChange]);
 
-  const handleCancelEditNotes = () => {
+  const handleCancelEditNotes = useCallback(() => {
     setEditGameNotes(gameNotes);
     setIsEditingNotes(false);
-  };
+  }, [gameNotes]);
 
   const handleSort = (column: SortableColumn) => {
     if (sortColumn === column) {
@@ -665,13 +685,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't close if a child dialog (delete confirmation) is open or user is editing a goal
-      if (e.key === 'Escape' && !goalEditorHook.showDeleteConfirm && goalEditorHook.editingGoalId === null) {
+      if (e.key === 'Escape' && !isEditingNotes && !goalEditorHook.showDeleteConfirm && goalEditorHook.editingGoalId === null) {
         onClose();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, goalEditorHook.showDeleteConfirm, goalEditorHook.editingGoalId]);
+  }, [isOpen, onClose, isEditingNotes, goalEditorHook.showDeleteConfirm, goalEditorHook.editingGoalId]);
 
   if (!isOpen) return null;
 
@@ -701,20 +721,20 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Tabs */}
             <div className="flex items-center gap-2 flex-wrap flex-1">
-              <div className="flex w-full gap-2">
-            <button onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-pressed={activeTab === 'currentGame'}>
+              <div className="flex w-full gap-2" role="tablist">
+            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
               {t('gameStatsModal.tabs.currentGame')}
             </button>
-            <button onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-pressed={activeTab === 'season'}>
+            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-selected={activeTab === 'season'}>
               {t('gameStatsModal.tabs.season')}
             </button>
-            <button onClick={() => { resetAllFilters(); setActiveTab('tournament'); }} className={`${getTabStyle('tournament')} flex-1`} aria-pressed={activeTab === 'tournament'}>
+            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('tournament'); }} className={`${getTabStyle('tournament')} flex-1`} aria-selected={activeTab === 'tournament'}>
               {t('gameStatsModal.tabs.tournament')}
             </button>
-            <button onClick={() => { resetAllFilters(); setActiveTab('overall'); }} className={`${getTabStyle('overall')} flex-1`} aria-pressed={activeTab === 'overall'}>
+            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('overall'); }} className={`${getTabStyle('overall')} flex-1`} aria-selected={activeTab === 'overall'}>
               {t('gameStatsModal.tabs.overall')}
             </button>
-            <button onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-pressed={activeTab === 'player'}>
+            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-selected={activeTab === 'player'}>
               {t('gameStatsModal.tabs.player', 'Player')}
             </button>
               </div>
@@ -740,19 +760,18 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 onOpenSettings={handleOpenSeasonSettings}
               >
                 {/* Player Combobox as primary filter */}
-                <Combobox
+                <Combobox<Player | null>
                   value={selectedPlayer}
                   onChange={(player) => {
                     setSelectedPlayer(player);
                     setPlayerQuery('');
                   }}
-                  nullable
                 >
                   <div className="relative flex-1 min-w-0">
                     <Combobox.Input
                       className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       onChange={(e) => setPlayerQuery(e.target.value)}
-                      displayValue={(p: Player) => (p ? p.name : '')}
+                      displayValue={(p: Player | null) => (p ? p.name : '')}
                       placeholder={t('playerStats.selectPlayerLabel', 'Select Player')}
                     />
                     <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
@@ -1078,7 +1097,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     const playerData = playerStats.find(p => p.id === selectedPlayer.id);
                     if (playerData) {
                       const playerGameIds = processedGameIds.filter(
-                        gameId => savedGames[gameId].selectedPlayerIds?.includes(selectedPlayer.id)
+                        gameId => savedGames[gameId]?.selectedPlayerIds?.includes(selectedPlayer.id)
                       );
                       onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds);
                     }

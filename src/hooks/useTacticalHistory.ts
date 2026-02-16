@@ -112,8 +112,13 @@ export function useTacticalHistory(initial: TacticalState) {
     const cutAt = indexRef.current + 1; // drop any redo states
     const nextHistory = historyStackRef.current.slice(0, cutAt);
     nextHistory.push(snapshot);
-    historyStackRef.current = nextHistory;
-    indexRef.current = nextHistory.length - 1;
+    // Cap history size to prevent unbounded memory growth on mobile
+    const MAX_TACTICAL_HISTORY = 100;
+    const capped = nextHistory.length > MAX_TACTICAL_HISTORY
+      ? nextHistory.slice(nextHistory.length - MAX_TACTICAL_HISTORY)
+      : nextHistory;
+    historyStackRef.current = capped;
+    indexRef.current = capped.length - 1;
     updateState();
   }, [historyState.state, updateState]);
 
