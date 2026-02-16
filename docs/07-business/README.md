@@ -6,19 +6,17 @@ This directory contains business strategy, monetization, and communication infra
 
 - **[communication-infrastructure-plan.md](./communication-infrastructure-plan.md)** - Email, websites, and social media setup
 - **[monetization-strategies.md](./monetization-strategies.md)** - Detailed monetization approach and options
-- **[paywall-implementation.md](./paywall-implementation.md)** - Technical paywall implementation guide
-- **[PRIVACY_FIRST_MONETIZATION.md](./PRIVACY_FIRST_MONETIZATION.md)** - Privacy-focused monetization approach
 - **[infrastructure-map.md](./infrastructure-map.md)** - Complete infrastructure overview
 - **[store-listing/](./store-listing/)** - Play Store listing assets and copy
 - **[velomoai-website-spec.md](./velomoai-website-spec.md)** - Velomo AI website specification
+- **[cgi-application-factory-showcase.md](./cgi-application-factory-showcase.md)** - CGI Application Factory portfolio showcase
+- **[video-script-instructions.md](./video-script-instructions.md)** - Instructional video scripts (English & Finnish)
 
 ## Quick Start
 
 **Setting up email/social media?** Follow [communication-infrastructure-plan.md](./communication-infrastructure-plan.md)
 
 **Planning monetization?** Review [monetization-strategies.md](./monetization-strategies.md)
-
-**Implementing paywall?** Follow [paywall-implementation.md](./paywall-implementation.md)
 
 ## Note
 

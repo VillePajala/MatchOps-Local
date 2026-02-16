@@ -18,7 +18,7 @@ This directory contains guides and resources for developers working on MatchOps-
 
 - **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Deployment instructions
 - **[twa-build-guide.md](./twa-build-guide.md)** - TWA (Trusted Web Activity) build guide
-- **[hosting-marketing-and-docs-site.md](./hosting-marketing-and-docs-site.md)** - Hosting setup
+- **[hosting-marketing-and-docs-site.md](../08-archived/hosting-marketing-and-docs-site.md)** - Hosting setup (archived)
 
 ## Quick Start
 

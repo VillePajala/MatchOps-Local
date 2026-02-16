@@ -117,8 +117,8 @@ CREATE POLICY "Users can delete own games"
 
 **All Tables Protected:**
 - `players`, `teams`, `seasons`, `tournaments`, `personnel`
-- `games`, `game_events`, `game_players`, `game_personnel`, `game_assessments`
-- `tactical_data`, `timer_data`, `subscriptions`
+- `games`, `game_events`, `game_players`, `player_assessments`
+- `game_tactical_data`, `subscriptions`
 
 ### Edge Function Security
 
@@ -250,7 +250,7 @@ Note: Demo files under `public/demos/` may reference external fonts (Google Font
 ## Data Protection
 
 ### Client-Side Data Handling
-- All game data stored locally via the storage abstraction (localStorage backend today; IndexedDB support planned/available depending on configuration)
+- All game data stored locally via the DataStore abstraction (IndexedDB backend via LocalDataStore)
 - **Data never transmitted**: Game scores, player names, statistics stay on device
 - No sensitive user data collected (no PII, financial, or health data)
 - Optional email in error reports only (explicit consent required)

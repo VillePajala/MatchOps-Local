@@ -138,9 +138,9 @@ it('should create new modalManagerProps object on each render', () => {
 ```
 
 **Codebase patterns:**
-- Only 2 uses of `React.memo()` in entire codebase (both for specific performance needs)
+- `React.memo` is used in 8 components: ControlBar, SoccerField, PlayerDisk, MigrationStatus, PlayerBar, GameInfoBar, FormationPicker, and within useModalOrchestration
 - No uses of `PureComponent` or `shouldComponentUpdate`
-- Pattern is consistent: Optimize components, not prop objects
+- Pattern is consistent: Optimize specific components with measured need, not prop objects
 
 ## Alternatives Considered
 
@@ -300,7 +300,7 @@ Only if profiling shows specific modals are expensive.
 - Implementation: `src/components/HomePage/hooks/useModalOrchestration.ts:343-416`
 - Component: `src/components/HomePage/containers/ModalManager.tsx`
 - Tests: `src/components/HomePage/hooks/__tests__/useModalOrchestration.test.ts:749-768`
-- Performance Plan: `docs/03-active-plans/REFACTORING_STATUS.md` (Layer 3)
+- Performance Plan: `docs/08-archived/REFACTORING_STATUS.md` (Layer 3, archived)
 
 ### Related Decisions
 - None yet (this is ADR-001)

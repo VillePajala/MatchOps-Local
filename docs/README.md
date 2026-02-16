@@ -12,7 +12,7 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 | Category | Status |
 |----------|--------|
-| Codebase Health | ✅ Excellent (~4,500+ tests, 62-line HomePage, 9 extracted hooks) |
+| Codebase Health | ✅ Excellent (~4,500+ tests, page.tsx orchestrator with 9 extracted hooks) |
 | Security | ✅ 0 vulnerabilities |
 | Framework | ✅ **Next.js 16.0.10 + React 19.2** |
 | Cloud Backend | ✅ **Supabase** (PostgreSQL, Auth, Edge Functions) |
@@ -58,7 +58,7 @@ All P0/P1/P2 refactoring and cloud backend work is **complete**. The codebase is
    - Detailed feature specs and implementation plans
 
 5. **[05-development/](./05-development/)** - Development Documentation
-   - Contributing guide, style guide, TODO, agent usage
+   - Contributing guide, style guide, architecture decisions, agent usage
 
 6. **[06-testing/](./06-testing/)** - Testing Documentation
    - Testing strategy, E2E guide, manual testing, maintenance
@@ -75,7 +75,10 @@ All P0/P1/P2 refactoring and cloud backend work is **complete**. The codebase is
 10. **[10-analysis/](./10-analysis/)** - Technical Analysis
     - Technical research and analysis documents
 
-11. **[assets/](./assets/)** - Documentation Assets
+11. **[11-blueprint/](./11-blueprint/)** - Build Blueprint
+    - AI-agent-oriented build instructions for replicating this architecture in a new project
+
+12. **[assets/](./assets/)** - Documentation Assets
     - Screenshots and images
 
 ---
@@ -125,22 +128,12 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 
 ## 🏗️ Technical Excellence
 
-### **Modern Technology Stack**
-- **Next.js 16.0.10** with App Router for cutting-edge performance
-- **React 19.2** with TypeScript for reliability and maintainability
-- **React Query** + **Dual-mode data persistence** for local-first data management
-  - ✅ Local mode: IndexedDB with automatic localStorage migration
-  - ✅ Cloud mode: Supabase PostgreSQL with local-first caching via SyncedDataStore
-  - 📦 Storage capacity: 50MB+ local quota (vs 5-10MB localStorage limit)
-  - 🔄 Fresh data pattern: See [Data Freshness and Modal Data Flow](./02-technical/data-freshness-and-modal-data-flow.md)
-- **Tailwind CSS 4** for responsive, professional design
-- **Comprehensive testing** with Jest and Playwright
+For full technical details, see [CLAUDE.md](../CLAUDE.md) (developer reference) and [02-technical/architecture.md](./02-technical/architecture.md).
 
-### **Local-First Benefits**
-- **Instant Performance**: <50ms response times vs 200-2000ms for cloud apps
-- **Complete Privacy**: Local mode has zero external data transmission or tracking
-- **Offline Reliability**: Full functionality without internet connection
-- **User Choice**: Free local mode or optional cloud sync for cross-device access
+- **Next.js 16+ / React 19.2 / TypeScript / Tailwind CSS 4**
+- **Dual-mode persistence**: Local (IndexedDB) + Cloud (Supabase PostgreSQL)
+- **~4,500+ tests** with Jest and React Testing Library
+- **Local-first performance**: <50ms response times, full offline capability in local mode
 
 ## 🌟 Why This Project Matters
 

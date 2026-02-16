@@ -37,6 +37,8 @@ Typos, naming conventions, abbreviations, and language differences make automati
 
 ### Why Cloud Backend Doesn't Solve This
 
+> **Editor's note (Feb 2026):** The project now has an optional Supabase cloud backend for single-user cross-device sync (PRs 1-12 merged). However, this is per-user sync, not multi-user collaboration. The analysis below about multi-coach aggregation remains valid -- the cloud backend does not change this ADR's core decision.
+
 A cloud backend would shift the data entry burden but not eliminate it:
 - Someone still needs to define canonical entity names
 - Someone still needs to resolve conflicts when coaches disagree
@@ -112,6 +114,8 @@ MatchOps-Local remains:
 **Decision:** Rejected - Scope creep, better as separate tool
 
 ### Alternative 2: Shared Cloud Database
+
+> **Editor's note (Feb 2026):** The Supabase cloud backend added since this ADR is single-user sync (one coach's data across devices), not a shared multi-user database. The rejection below refers to a shared collaborative database for multiple coaches, which remains out of scope.
 
 **Pros:**
 - Real-time collaboration
@@ -211,8 +215,8 @@ When building the external analyzer:
 
 ### Codebase References
 - Export functionality: `src/utils/savedGames.ts`
-- JSON export: `src/components/GameStatsModal/ExportContent.tsx`
-- Excel export: `src/utils/exportToExcel.ts`
+- Excel export: `src/utils/exportExcel.ts`
+- Export UI: `src/components/GameStatsModal.tsx` (export buttons within stats modal)
 
 ### Related Documentation
 - [Local-First Philosophy](../../01-project/local-first-philosophy.md)

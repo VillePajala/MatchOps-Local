@@ -18,7 +18,7 @@ npm run coverage:report
 ```
 
 **Key Metrics to Monitor**:
-- Coverage percentage (target: >90%)
+- Coverage percentage (enforced thresholds: 45% branches, 55% functions, 60% lines, 60% statements)
 - Test execution time (target: <5 minutes for unit, <15 minutes for E2E)
 - Flaky test identification
 - New failing tests
@@ -128,11 +128,11 @@ afterEach(async () => {
 
 ### 1. Testing Strategy Review
 
-- Assess test coverage across different areas:
-  - **Core functionality**: 95%+ coverage
-  - **UI components**: 90%+ coverage  
-  - **Utilities**: 95%+ coverage
-  - **Edge cases**: 80%+ coverage
+- Assess test coverage across different areas (enforced global thresholds: 45% branches, 55% functions, 60% lines, 60% statements):
+  - **Core functionality**: Should exceed global thresholds
+  - **UI components**: Should meet global thresholds
+  - **Utilities**: Should exceed global thresholds
+  - **Edge cases**: Should meet global thresholds
 
 - Review testing pyramid balance:
   - **Unit tests**: 70% of total tests
@@ -155,10 +155,10 @@ npx playwright install
 
 #### Parallel Execution Tuning
 ```javascript
-// jest.config.js
-module.exports = {
+// jest.config.js (ES module syntax)
+export default {
   maxWorkers: process.env.CI ? 2 : '50%',
-  testTimeout: 10000,
+  testTimeout: 30000,
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.mjs']
 };
 ```
@@ -245,10 +245,10 @@ Track these metrics over time:
 ```typescript
 interface TestMetrics {
   coverage: {
-    statements: number; // Target: >90%
-    branches: number;   // Target: >85%
-    functions: number;  // Target: >90%
-    lines: number;      // Target: >90%
+    statements: number; // Enforced: >=60%
+    branches: number;   // Enforced: >=45%
+    functions: number;  // Enforced: >=55%
+    lines: number;      // Enforced: >=60%
   };
   
   performance: {
@@ -364,14 +364,13 @@ npm run e2e 2>&1 | tail -5 >> test-report.md
 - **jest-canvas-mock**: Canvas API mocking
 
 ### Monitoring Tools
-```bash
-# Test coverage visualization
-npm install --save-dev nyc
-npx nyc report --reporter=html
 
-# Performance monitoring
-npm install --save-dev clinic
-npx clinic doctor -- npm test
+Jest's built-in `--coverage` reporter is used for coverage visualization. Additional tools like `nyc` and `clinic` are not currently part of the project but could be added if more detailed profiling is needed.
+
+```bash
+# Generate and view coverage report using Jest (already configured)
+npm run test:coverage
+open coverage/lcov-report/index.html
 ```
 
 ### Useful Scripts

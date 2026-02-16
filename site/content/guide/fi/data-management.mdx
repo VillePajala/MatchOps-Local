@@ -1,6 +1,6 @@
 ---
 title: Datan hallinta
-description: Tallennustavat, varmuuskopiointi, vienti, palautus ja MatchOps-datan hallinta
+description: Tallennustavat, synkronointi, vienti, palautus ja MatchOps-datan hallinta
 lastUpdated: "2026-02-06"
 ---
 
@@ -29,11 +29,11 @@ Tallenna data pilveen automaattisella synkronoinnilla:
 
 - **Tili vaaditaan** - Rekisteröidy sähköpostilla ja salasanalla
 - **Synkronoi laitteiden välillä** - Käytä dataa miltä tahansa laitteelta
-- **Automaattinen varmuuskopiointi** - Data tallennetaan turvallisesti pilveen
+- **Automaattinen synkronointi** - Data synkronoituu turvallisesti pilveen
 - **Toimii offline-tilassa** - Muutokset tallentuvat paikallisesti, synkronoituvat kun olet verkossa
 
 <Callout type="info">
-Pilvitila sopii valmentajille, jotka käyttävät useita laitteita tai haluavat automaattisen varmuuskopiosuojan.
+Pilvitila sopii valmentajille, jotka käyttävät useita laitteita tai haluavat automaattisen synkronoinnin.
 </Callout>
 
 ### Tilan valitseminen
@@ -230,7 +230,7 @@ Varmuuskopiot tallennetaan JSON-tiedostoina sisältäen:
 4. **Ennen laitemuutoksia** - Välttämätöntä laitetta vaihdettaessa
 
 <Callout type="info">
-Pilvitilan käyttäjät: Datasi varmuuskopioidaan automaattisesti pilveen, mutta manuaaliset varmuuskopiot antavat lisäsuojaa ja joustavuutta.
+Pilvitilan käyttäjät: Datasi synkronoituu automaattisesti pilveen. Manuaaliset varmuuskopiot viennin kautta antavat lisäsuojaa ja joustavuutta.
 </Callout>
 
 ## Palautus
@@ -250,37 +250,14 @@ Valitse tuonti/palautus-vaihtoehto.
 Siirry tallennettuun varmuuskopiotiedostoon.
 </Step>
 
-<Step title="Tarkastele tuontiyhteenvetoa">
-Sovellus näyttää mitä tuodaan:
-- Pelaajien määrä
-- Pelien määrä
-- Kausien/turnausten määrä
-- Henkilöstön määrä
-</Step>
-
-<Step title="Pelaajakohdistus">
-Jos tuotavat pelaajat vastaavat olemassa olevia, valitse:
-- Yhdistä olemassa olevaan pelaajaan
-- Luo uutena pelaajana
-- Ohita tämä pelaaja
-</Step>
-
-<Step title="Vahvista">
-Tarkista ja vahvista palautustoiminto.
+<Step title="Vahvista täysi palautus">
+Sovellus näyttää yhteenvedon tuotavasta datasta. Palautus korvaa kaiken nykyisen datan varmuuskopion sisällöllä. Tarkista ja vahvista palautustoiminto.
 </Step>
 </Steps>
 
 <Callout type="warning">
-Palautus varmuuskopiosta lisää tai korvaa nykyisen datasi. Varmuuskopioi nykyinen data ensin tarvittaessa.
+Palautus varmuuskopiosta korvaa kaiken nykyisen datan. Varmuuskopioi nykyinen data ensin tarvittaessa.
 </Callout>
-
-### Tuontivaihtoehdot
-
-Dataa tuodessa:
-
-- **Yhdistä** - Yhdistä olemassa olevaan dataan (älykäs pelaajakohdistus)
-- **Korvaa** - Korvaa kaikki olemassa oleva data
-- **Peruuta** - Keskeytä ilman muutoksia
 
 ### Siirto uuteen laitteeseen
 

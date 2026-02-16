@@ -4,9 +4,13 @@ This directory contains formal technical specifications and requirements documen
 
 ## Documents
 
-- **[software-requirements.md](./software-requirements.md)** - Software Requirements Specification (SRS)
-- **[user-interface-design.md](./user-interface-design.md)** - User Interface Design Document (UID)
 - **[linked-entities-and-game-sync.md](./linked-entities-and-game-sync.md)** - Entity relationship design
+
+## Archived Documents
+
+The following were moved to `docs/08-archived/` (February 2026):
+- software-requirements.md - SRS for marketing website (outdated)
+- user-interface-design.md - UID for marketing website (outdated)
 
 ## Purpose
 

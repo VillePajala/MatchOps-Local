@@ -11,7 +11,7 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 
 | # | Task | Status |
 |---|------|--------|
-| **1** | Supabase Cloud Backend (PRs 1-11) | ✅ COMPLETE |
+| **1** | Supabase Cloud Backend (PRs 1-12) | ✅ COMPLETE |
 | **2** | Local-First Sync (PR #324) | ✅ COMPLETE |
 | **3** | Billing Infrastructure (Phases 1-7) | ✅ COMPLETE |
 | **4** | Business Setup (Toiminimi, Bank, Google Payments) | 🔲 PENDING |
@@ -218,50 +218,39 @@ Acceptance Criteria (for IndexedDB rollout)
 
 ## Ongoing Feature Development
 
-### Team Final Position Tracking (Planned)
+### Team Final Position Tracking ✅ COMPLETED
 
-- Owner: TBD
-- Target Date: TBD
-- Plan Document: `team-final-positions-plan.md`
-- Estimated Time: 6-8 hours
+- Completion Date: 2025
 
-**Overview**: Add ability to manually record team final positions in seasons and tournaments (e.g., 1st place, 2nd place) with trophy icons for top 3 finishers.
+**Overview**: Manual recording of team final positions in seasons and tournaments (e.g., 1st place, 2nd place) with trophy icons for top 3 finishers.
 
 **Key Features**:
 - Manual entry only (user's team position, not opponents)
 - Backward compatible (optional `teamResults` field)
 - Real-time updates via React Query invalidation
 - Import/export support
-- Trophy icons (🥇🥈🥉) for top 3 positions
+- Trophy icons for top 3 positions
 - Validation (no duplicate teams/positions)
 
-**Status**: Plan approved, awaiting implementation
-
 **Checklist**:
-- [ ] Data model (`CompetitionResult` interface)
-- [ ] Validation logic
-- [ ] Storage verification (backward compatibility)
-- [ ] Management UI (SeasonTournamentManagementModal)
-- [ ] Display integration (PlayerStatsView, GameStatsModal, GameSettingsModal)
-- [ ] Translations (EN/FI)
-- [ ] Testing (16 tests: unit + component)
-- [ ] Manual testing
-- [ ] Documentation
-- [ ] PR & CI
-
-**See**: `team-final-positions-plan.md` for complete implementation details
+- [x] Data model (`CompetitionResult` interface)
+- [x] Validation logic
+- [x] Storage verification (backward compatibility)
+- [x] Management UI (SeasonTournamentManagementModal)
+- [x] Display integration (PlayerStatsView, GameStatsModal, GameSettingsModal)
+- [x] Translations (EN/FI)
+- [x] Testing (16 tests: unit + component)
+- [x] Manual testing
+- [x] Documentation
+- [x] PR & CI
 
 ---
 
-### Personnel Management (Planned)
+### Personnel Management ✅ COMPLETED
 
-- Owner: TBD
-- Target Date: TBD
-- Plan Document: `personnel-implementation-plan.md`
-- Estimated Time: 8-10 hours
-- Complexity: 2/10
+- Completion Date: 2025
 
-**Overview**: Add personnel management system for coaches, trainers, managers, physiotherapists, and team managers with full CRUD operations and real-time updates.
+**Overview**: Personnel management system for coaches, trainers, managers, physiotherapists, and team managers with full CRUD operations and real-time updates.
 
 **Key Features**:
 - Personnel roster (CRUD operations with role-based system)
@@ -271,128 +260,62 @@ Acceptance Criteria (for IndexedDB rollout)
 - Real-time updates via React Query cache invalidation (mirrors useRoster pattern)
 - Backward compatible (optional `gamePersonnel` field)
 - Automatic import/export support (added to fullBackup system)
-- 7 role types: Head Coach, Assistant Coach, Goalkeeper Coach, Fitness Coach, Physiotherapist, Team Manager, Other
-
-**Technical Highlights**:
-- React Query hooks with cache invalidation for real-time sync
-- Mirrors existing `useRoster` pattern for consistency
-- Storage layer with `withKeyLock` for race condition protection
-- Graceful handling of missing personnel (deleted staff)
-- No migration needed - fully additive feature
-
-**Status**: Plan approved, awaiting implementation
+- 8 role types: Head Coach, Assistant Coach, Goalkeeper Coach, Fitness Coach, Physiotherapist, Team Manager, Support Staff, Other
 
 **Checklist**:
-- [ ] Phase 0: Git branch setup
-- [ ] Phase 1: Type definitions & storage layer (`personnelManager.ts`)
-- [ ] Phase 2: Backwards compatibility & import/export integration
-- [ ] Phase 3: React Query hooks with real-time updates
-- [ ] Phase 4: UI components (`PersonnelSelectionSection`, `PersonnelManagerModal`)
-- [ ] Phase 5: Integration (HomePage, NewGameSetupModal, ControlBar, GameStatsModal)
-- [ ] Phase 6: Internationalization (40+ translation keys EN/FI)
-- [ ] Phase 7: Testing (unit, component, backwards compat, cache tests)
-- [ ] Phase 8: CI validation & manual testing
-- [ ] Phase 9: PR creation & merge
-
-**Acceptance Criteria**:
-- ✅ User can add/edit/delete personnel with real-time updates
-- ✅ Changes reflect immediately across all components
-- ✅ Personnel selection works in new game setup
-- ✅ Old games without `gamePersonnel` field work correctly
-- ✅ Old backups without `PERSONNEL_KEY` import successfully
-- ✅ Export/import includes personnel data
-- ✅ All tests pass (no memory leaks, no force exit)
-- ✅ Production build succeeds
-- ✅ i18n works for EN/FI
-- ✅ Responsive on mobile/desktop
-
-**See**: `personnel-implementation-plan.md` for complete implementation details
+- [x] Phase 0: Git branch setup
+- [x] Phase 1: Type definitions & storage layer (`personnelManager.ts`)
+- [x] Phase 2: Backwards compatibility & import/export integration
+- [x] Phase 3: React Query hooks with real-time updates
+- [x] Phase 4: UI components (`PersonnelSelectionSection`, `PersonnelManagerModal`)
+- [x] Phase 5: Integration (HomePage, NewGameSetupModal, ControlBar, GameStatsModal)
+- [x] Phase 6: Internationalization (40+ translation keys EN/FI)
+- [x] Phase 7: Testing (unit, component, backwards compat, cache tests)
+- [x] Phase 8: CI validation & manual testing
+- [x] Phase 9: PR creation & merge
 
 ---
 
-## Phase F1: Backend Architecture Evolution (Planned)
+## Phase F1: Backend Architecture Evolution ✅ COMPLETED
 
-- Owner: TBD
-- Target Date: TBD
-- Estimated Duration: 4-6 weeks (Phases 1-3) + 3-4 weeks optional (Phase 4 Supabase)
-- Complexity: Medium (mostly refactoring existing code)
+- Completion Date: January 2026
 - Documentation: `08-archived/completed-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` (archived)
 
-**Overview**: Evolve from IndexedDB-only to dual-backend architecture supporting both local (free) and cloud (premium) modes.
+**Overview**: Evolved from IndexedDB-only to dual-backend architecture supporting both local (free) and cloud (premium) modes.
 
-**December 2025 Update**: Code analysis revealed the original estimates were for theoretical design. Realistic implementation requires:
-- 50-72 hours total (~4-6 weeks)
-- 8 PRs for Phases 1-3 (backend switching capability)
-- 4 additional PRs for Phase 4 (Supabase, optional)
+**What Was Implemented**:
+- `DataStore` and `AuthService` interfaces
+- `LocalDataStore` wrapping existing IndexedDB code
+- `SupabaseDataStore` for cloud backend (PRs 1-12)
+- `SyncedDataStore` for local-first with background sync
+- `LocalAuthService` (no-op) and `SupabaseAuthService` (Supabase Auth)
+- Migration wizard (local to cloud and cloud to local)
+- Backend selection UI and authentication UI
 
-**Business Context**:
-- **Free Tier**: Local mode (IndexedDB), full features, single device
-- **Premium Tier**: Cloud mode (Supabase PostgreSQL), multi-device sync, cloud backup, in-app purchase
+### Phase F1.1: Interfaces & Local Wrapper ✅
+- [x] Define DataStore and AuthService interfaces
+- [x] Implement LocalDataStore (wraps existing storage code)
+- [x] Implement LocalAuthService (no-op)
+- [x] Update React Query hooks to use DataStore
+- [x] All tests pass, zero functionality changes
 
-**Technical Approach**:
-- Introduce `DataStore` and `AuthService` interfaces
-- Wrap existing IndexedDB code in `LocalDataStore` (no rewrites)
-- Implement `SupabaseDataStore` for cloud backend
-- User-initiated migration from local to cloud
+### Phase F1.2: Supabase Implementation ✅
+- [x] Set up Supabase project and database schema
+- [x] Implement SupabaseDataStore (PostgreSQL queries)
+- [x] Implement SupabaseAuthService (email/password)
+- [x] Test cloud backend in isolation
 
-**Key Documentation**:
-- **Architecture**: [Dual-Backend Architecture](../02-technical/architecture/dual-backend-architecture.md)
-- **Interfaces**: [DataStore Interface](../02-technical/architecture/datastore-interface.md) | [AuthService Interface](../02-technical/architecture/auth-service-interface.md)
-- **Database**: [Current Storage Schema](../02-technical/database/current-storage-schema.md) | [Supabase Schema](../02-technical/database/supabase-schema.md)
-- **Migration**: [Migration Strategy](../08-archived/completed-active-plans/backend-evolution/migration-strategy.md) (archived)
-- **Roadmap**: [Phased Implementation Roadmap](../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) (archived)
+### Phase F1.3: Backend Selection & Migration ✅
+- [x] Add backend selection UI (local vs cloud)
+- [x] Implement migration tool (export, transform, import)
+- [x] Add authentication UI (sign up, sign in, password reset)
+- [x] End-to-end migration testing
 
-**Implementation Phases**:
-
-### Phase F1.1: Interfaces & Local Wrapper (4-6 weeks)
-- [ ] Define DataStore and AuthService interfaces
-- [ ] Implement LocalDataStore (wraps existing storage code)
-- [ ] Implement LocalAuthService (no-op)
-- [ ] Update React Query hooks to use DataStore
-- [ ] All tests pass, zero functionality changes
-
-**Acceptance**: Same functionality, new abstraction layer
-
-### Phase F1.2: Supabase Implementation (6-8 weeks)
-- [ ] Set up Supabase project and database schema
-- [ ] Implement SupabaseDataStore (PostgreSQL queries)
-- [ ] Implement SupabaseAuthService (email/OAuth)
-- [ ] Test cloud backend in isolation
-- [ ] Performance benchmarks (<500ms queries)
-
-**Acceptance**: Both backends work independently
-
-### Phase F1.3: Backend Selection & Migration (4-6 weeks)
-- [ ] Add backend selection UI (local vs cloud)
-- [ ] Implement migration tool (export → transform → import)
-- [ ] Add authentication UI (sign up, sign in, password reset)
-- [ ] End-to-end migration testing
-- [ ] Deploy to production
-
-**Acceptance**: Users can migrate local data to cloud
-
-### Phase F1.4: Play Store Integration (2-4 weeks)
-- [ ] Integrate Play Store billing API
-- [ ] Implement feature gating (free vs premium)
-- [ ] Add paywall UI
-- [ ] Test purchase flow
-- [ ] Update app in Play Store
-
-**Acceptance**: Premium tier available for purchase
-
-**Risks & Mitigations**:
-- **Data Loss**: Comprehensive validation + keep local backup
-- **Network Failures**: Retry logic with exponential backoff
-- **Poor Performance**: React Query caching + batch operations
-- **Low Conversion**: Clear value proposition, free trial
-
-**Success Metrics**:
-- 90%+ migration success rate (zero data loss)
-- Query performance <500ms (95th percentile)
-- 5-15% premium conversion rate
-- 4.0+ Play Store rating
-
-**Status**: Planned - awaiting stakeholder approval and resource allocation
+### Phase F1.4: Play Store Integration ✅
+- [x] Integrate Play Store billing API
+- [x] Implement feature gating (free vs premium)
+- [x] Add paywall UI
+- [x] Test purchase flow
 
 **See**: [Phased Implementation Roadmap](../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) for detailed timeline and tasks (archived)
 
@@ -589,14 +512,13 @@ Acceptance
 
 ---
 
-## Phase P6: Communication Infrastructure (Parallel to P5)
+## Phase P6: Communication Infrastructure ✅ COMPLETED
 
-- Owner: TBD
-- Target Date: Before/during Play Store launch
+- Completion Date: December 2025
 
 Outcome: Professional email, website, and social media presence for product launch and user support.
 
-**Primary Doc**: [../07-business/communication-infrastructure-plan.md](../07-business/communication-infrastructure-plan.md) ⭐
+**Primary Doc**: [../07-business/communication-infrastructure-plan.md](../07-business/communication-infrastructure-plan.md)
 
 ### Overview
 
@@ -609,36 +531,16 @@ Outcome: Professional email, website, and social media presence for product laun
 | Websites | Vercel | Free tier |
 | Social media | X, LinkedIn | Free |
 
-### Email Architecture
-
-```
-velomoai.com (Company)
-├── alerts@velomoai.com     → Sentry, monitoring
-├── dev@velomoai.com        → Play Store, Vercel, developer platforms
-└── hello@velomoai.com      → Company inquiries
-
-matchops.com (Product)
-├── support@matchops.com    → User support (can send replies)
-└── hello@matchops.com      → General product inquiries
-```
-
 ### Checklist
 
 - P6 Checklist
-  - [ ] Register velomoai.com domain
-  - [ ] Set up Cloudflare DNS for both domains
-  - [ ] Configure email routing (Cloudflare + Zoho)
-  - [ ] Update Sentry notifications to alerts@velomoai.com
-  - [ ] Create Velomo AI website (landing page)
-  - [ ] Create @MatchOpsApp on X/Twitter
-  - [ ] Create Velomo AI LinkedIn page
-  - [ ] Set up Gmail labels and filters
-
-Acceptance
-- Professional email addresses working (send + receive)
-- Sentry alerts routing to dedicated email
-- Social media presence established
-- Company website live
+  - [x] Register velomoai.com domain
+  - [x] Set up Cloudflare DNS for both domains
+  - [x] Configure email routing (Cloudflare + Zoho)
+  - [x] Update Sentry notifications to alerts@velomoai.com
+  - [x] Create Velomo AI website (landing page)
+  - [x] Create Velomo AI LinkedIn page
+  - [x] Set up Gmail labels and filters
 
 ---
 
@@ -690,24 +592,19 @@ Acceptance
 **Status**: After Play Store Release + Backend Refactoring
 **Priority Order**: As defined in UNIFIED-ROADMAP.md
 
-### Priority 3: Gender Handling (1-2 weeks)
+### Priority 3: Gender Handling ✅ COMPLETED
 
-**Status**: Needs design discussion
+- Completion Date: December 2025
 
-**Problem**: App doesn't distinguish gender in soccer games. Finnish youth soccer is gender-separated.
+**Overview**: Added `gender?: 'boys' | 'girls'` field to games, seasons, and tournaments. Filtering enabled in stats views.
 
-**Design Questions**:
-1. Where does gender live? (Team? Season? Tournament? Player?)
-2. How does it propagate through the system?
-3. UI considerations for display and filtering
-
-**Implementation** (after design):
-- [ ] Design document created
-- [ ] Types updated
-- [ ] Storage/migration
-- [ ] UI components
-- [ ] Stats filtering
-- [ ] Translations (EN/FI)
+**Implementation**:
+- [x] Design document created
+- [x] Types updated
+- [x] Storage/migration
+- [x] UI components
+- [x] Stats filtering
+- [x] Translations (EN/FI)
 
 ### Priority 4: Season League UX Improvements (1 week)
 

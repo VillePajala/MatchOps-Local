@@ -18,9 +18,11 @@ MatchOps uses a **dark-first, sports-professional** aesthetic designed for:
 
 ## 2. Tailwind Configuration
 
+> **Note**: This project uses **Tailwind CSS v4** with the `@import "tailwindcss"` syntax in `src/app/globals.css`. The v3 `@tailwind base/components/utilities` directives are no longer used. Configuration is handled via CSS rather than `tailwind.config.js`.
+
 ### Custom Breakpoints
 ```javascript
-// tailwind.config.js
+// tailwind.config.js (legacy reference — v4 uses CSS-based config)
 screens: {
   'xs': '475px',  // Extra small devices
   // Default: sm:640px, md:768px, lg:1024px, xl:1280px

@@ -3,17 +3,17 @@
 ## Short Description (80 characters max)
 
 ```
-Soccer game timer & tactics app for coaches. Track lineups, stats & gameplay.
+Soccer & futsal game timer & tactics app for coaches. Track lineups, stats & more.
 ```
 
-Character count: 75
+Character count: 78
 
 ## Full Description (4000 characters max)
 
 ```
-MatchOps - The Essential Soccer Coach Companion
+MatchOps - The Essential Soccer & Futsal Coach Companion
 
-Take control of your team's game day with MatchOps, the powerful yet simple soccer coaching app designed for youth and amateur coaches. Whether you're managing substitutions, tracking player time, or analyzing post-game statistics, MatchOps has you covered.
+Take control of your team's game day with MatchOps, the powerful yet simple coaching app designed for youth and amateur soccer and futsal coaches. Whether you're managing substitutions, tracking player time, or analyzing post-game statistics, MatchOps has you covered.
 
 🎯 KEY FEATURES
 
@@ -24,7 +24,7 @@ Game Timer & Period Management
 • Visual countdown and elapsed time display
 
 Interactive Tactics Board
-• Drag-and-drop player positioning
+• Select-and-place player positioning
 • Formation templates for quick setup
 • Visual lineup management during games
 • Real-time position adjustments
@@ -43,15 +43,15 @@ Statistics & Analytics
 
 🏆 PERFECT FOR
 
-• Youth soccer coaches (U8 to U18)
+• Youth soccer and futsal coaches (U8 to U18)
 • Amateur and recreational league coaches
 • Club team managers
 • Parents coaching their child's team
-• Anyone managing soccer games
+• Anyone managing soccer or futsal games
 
 📱 WORKS OFFLINE
 
-MatchOps is a local-first app - all your data stays on your device. No account required, no cloud sync needed (in basic mode). Perfect for fields with poor connectivity.
+MatchOps is a local-first app - all your data stays on your device by default. No account required. Optional cloud sync lets you access your data across devices. Perfect for fields with poor connectivity.
 
 ✨ WHY COACHES LOVE MATCHOPS
 
@@ -69,7 +69,7 @@ All game data, rosters, and statistics are stored locally on your device. We don
 Download MatchOps today and transform how you manage your team's games!
 
 ---
-Made with ❤️ for soccer coaches everywhere
+Made with ❤️ for soccer and futsal coaches everywhere
 ```
 
 Character count: ~2,100 (well under 4,000 limit)

@@ -1,7 +1,9 @@
+> **DEPRECATED**: This document is outdated and contains inaccurate information (phantom hooks like `useNewGameFlow`, incorrect line counts, missing 6 of 9 actual hooks). The actual HomePage architecture is: `page.tsx` (~1,242 lines) orchestrates 9 hooks in `src/components/HomePage/hooks/`: useHomeModalControls, useGameOrchestration, useGamePersistence, useFieldCoordination, useGameSessionCoordination, useGameDataManagement, useTimerManagement, useModalOrchestration, and useSavedGameManager. `HomePage.tsx` (~95 lines) is a thin wrapper. See the source code directly for current architecture.
+
 # HomePage Architecture Guide
 
 **Last Updated**: January 4, 2026
-**Status**: ✅ Complete (All refactoring layers done)
+**Status**: DEPRECATED (see notice above)
 **Result**: HomePage reduced from 3,725 lines → 62 lines (98% reduction)
 
 ---

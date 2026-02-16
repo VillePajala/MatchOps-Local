@@ -47,11 +47,12 @@ Soccer coaching happens in challenging environments that expose the limitations 
 
 Local-first architecture provides significant cost advantages for soccer organizations:
 
-#### **No Subscription Fees**
-- **One-Time Setup**: Install once, use indefinitely without ongoing payments
-- **No Per-User Charges**: Add unlimited coaches and teams without additional fees  
+#### **No Subscription Fees (Local Mode)**
+- **One-Time Setup**: Install once, use indefinitely without ongoing payments in local mode
+- **No Per-User Charges**: Add unlimited coaches and teams without additional fees in local mode
 - **No Data Storage Fees**: No ongoing cloud storage charges; browser storage has practical capacity limits but is sufficient for this use case
-- **No Bandwidth Costs**: Eliminates data transfer and API usage fees
+- **No Bandwidth Costs**: Eliminates data transfer and API usage fees in local mode
+- **Optional Cloud Sync**: An optional paid subscription (pricing TBD) enables cross-device sync for coaches who need it
 
 #### **Organizational Benefits**
 - **Budget Predictability**: No surprise subscription increases or usage-based charges
@@ -119,7 +120,7 @@ See "Optional Cloud Sync: Preserving Local-First Values" section below for how c
 
 **Solutions**:
 - **Built-in Export**: One-click export of complete data set to files
-- **Automated Backups**: Periodic automatic backup file generation  
+- **Manual Backups**: Export/import backup files on demand
 - **Multiple Formats**: JSON and CSV export for maximum compatibility
 - **Cloud Storage Integration**: Optional manual upload to personal cloud storage
 - **Recovery Testing**: Regular verification of backup/restore procedures
@@ -257,7 +258,7 @@ When we added optional cloud sync, we ensured it maintains local-first principle
 
 ### The Business Reality
 
-Premium cloud sync (€4.99/month) enables sustainable development while keeping the core local-first experience free. This is healthier than:
+Optional paid cloud sync (pricing TBD) enables sustainable development while keeping the core local-first experience free. This is healthier than:
 - ❌ Ad-supported models (privacy violation)
 - ❌ Freemium with locked features (punishes local-first users)
 - ❌ One-time purchase (unsustainable long-term)

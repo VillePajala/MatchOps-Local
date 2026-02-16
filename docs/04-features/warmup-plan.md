@@ -71,6 +71,6 @@ Fully internationalized (EN/FI):
 - UI labels and instructions
 - Action buttons
 
-## Known Limitation
+## Backup Support
 
-**Backup gap**: Warm-up plans are not currently included in full backups. See UNIFIED-ROADMAP.md backlog for planned fix.
+Warm-up plans are included in full backups via `fullBackup.ts`. Both export and import operations handle warmup plan data alongside all other user data.

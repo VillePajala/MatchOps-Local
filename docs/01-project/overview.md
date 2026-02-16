@@ -60,8 +60,8 @@ MatchOps-Local combines the best of modern web technology with local data storag
 ## Key Differentiators
 
 ### 1. **Complete Data Privacy**
-- Zero data collection or tracking
-- No external servers or cloud dependencies
+- Zero data collection or tracking in local mode
+- No external servers or cloud dependencies in local mode; optional cloud sync via Supabase
 - GDPR compliant by design
 - Perfect for youth sports with strict privacy requirements
 
@@ -73,19 +73,19 @@ MatchOps-Local combines the best of modern web technology with local data storag
 
 ### 3. **Flexible Pricing**
 - **Local mode**: Completely free, no subscription, no limits
-- **Cloud mode**: Optional €4.99/month for cross-device sync
+- **Cloud mode**: Optional paid subscription for cross-device sync (pricing TBD)
 - No per-user or per-team charges
 - Economic for clubs and organizations
 
 ### 4. **Professional Feature Set**
-- Interactive soccer field with drag-and-drop player management
+- Interactive soccer field with select-and-place player management
 - Real-time game tracking with comprehensive statistics
 - Advanced analytics with performance trends
 - Multi-team and multi-season organization
 - Complete backup and data export capabilities
 
 ### 5. **Modern Technology Stack**
-- Built with Next.js 16 and React 19.2 for cutting-edge performance
+- Built with Next.js 16+ and React 19.2 for cutting-edge performance
 - TypeScript for reliability and maintainability
 - Tailwind CSS 4 for responsive, professional design
 - Supabase for optional cloud backend (PostgreSQL, Auth, Edge Functions)

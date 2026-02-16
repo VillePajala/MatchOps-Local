@@ -64,7 +64,7 @@ Once installed, MatchOps works offline and keeps your screen awake during games.
 │           Game Info Bar             │  ← Team names, score, period
 ├─────────────────────────────────────┤
 │                                     │
-│           Soccer Field              │  ← Drag players here
+│           Soccer Field              │  ← Place players here
 │                                     │
 ├─────────────────────────────────────┤
 │           Player Bar                │  ← Available players
@@ -102,9 +102,9 @@ Once installed, MatchOps works offline and keeps your screen awake during games.
 
 ### Setting Your Lineup
 
-**Method 1: Drag and Drop**
-- Drag players from the Player Bar to the field
-- Position them where they'll start
+**Method 1: Select and Place**
+- Tap a player in the Player Bar to select them, then tap on the field to place them
+- Reposition players by tapping and dragging them on the field
 
 **Method 2: Formation Picker**
 1. Select players in the Player Bar (tap to select)
@@ -224,8 +224,8 @@ Track games by season or tournament:
 
 ### Making Substitutions
 
-1. **Drag** a player off the field (back to Player Bar)
-2. **Drag** the substitute onto the field
+1. **Tap** a player on the field and select **Remove** to send them to the bench
+2. **Tap** a substitute in the Player Bar to select them, then **tap** an empty spot on the field
 3. Substitution logged automatically
 
 ### Undo Mistakes
@@ -347,7 +347,7 @@ Import games from other coaches:
 
 1. **Menu → Load Game**
 2. Find the game to delete
-3. Swipe left or tap delete icon
+3. Tap the delete button
 4. Confirm deletion
 
 ---
@@ -433,7 +433,7 @@ If something goes wrong:
 If you have a cloud account, your data syncs automatically across devices:
 1. Sign in with the same account on each device
 2. Changes sync in the background when online
-3. Works offline — changes queue and sync when reconnected
+3. Cloud mode requires an internet connection — for offline work, use local mode
 
 **With Local Mode (Manual):**
 In local mode, each device maintains separate data. To transfer:
@@ -510,7 +510,7 @@ MatchOps works completely offline after first load:
 
 Found a bug or have a feature request?
 - Visit the MatchOps documentation site
-- Contact support through the app
+- Contact support at support@match-ops.com
 
 ---
 

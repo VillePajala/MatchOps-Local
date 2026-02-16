@@ -36,9 +36,9 @@ The soccer coaching software market includes everything from professional club m
 - **Generic**: Not optimized specifically for soccer coaching needs
 
 #### **MatchOps-Local Advantages**
-- ✅ **No Subscription Fees**: One-time setup vs. ongoing payments
-- ✅ **Complete Privacy**: Local storage vs. cloud data collection
-- ✅ **Offline First**: Full functionality vs. limited offline features  
+- ✅ **Free Local Mode**: No subscription required for local mode; optional paid cloud sync
+- ✅ **Complete Privacy**: Local storage vs. cloud data collection (in local mode)
+- ✅ **Offline First**: Full functionality vs. limited offline features (in local mode)
 - ✅ **Soccer Focused**: Purpose-built for soccer vs. generic sports
 - ✅ **Instant Performance**: Local data access vs. network dependency
 
@@ -70,8 +70,8 @@ The soccer coaching software market includes everything from professional club m
 #### **MatchOps-Local Advantages**
 - ✅ **Comprehensive**: Tactics plus complete team management
 - ✅ **Game Management**: Real-time game tracking and statistics
-- ✅ **Local-First**: No internet required for any features
-- ✅ **Cost**: No ongoing subscription requirements
+- ✅ **Local-First**: No internet required in local mode
+- ✅ **Cost**: Free local mode; optional paid cloud sync
 - ✅ **Integrated**: Tactics board integrated with player and game data
 
 #### **TacticalPad Advantages**  
@@ -101,10 +101,10 @@ The soccer coaching software market includes everything from professional club m
 
 #### **MatchOps-Local Advantages**
 - ✅ **Soccer First**: Designed specifically for soccer coaching needs
-- ✅ **Complete Privacy**: No parent data sharing or cloud storage
+- ✅ **Complete Privacy (Local Mode)**: No external servers or cloud storage in local mode
 - ✅ **Comprehensive**: Statistics plus tactics, roster, and season management
 - ✅ **Professional Features**: Advanced analytics and performance tracking
-- ✅ **Offline Complete**: Full functionality without connectivity
+- ✅ **Offline Complete**: Full functionality without connectivity in local mode
 
 #### **GameChanger Advantages**
 - ✅ **Parent Engagement**: Live updates and photo sharing with families
@@ -133,7 +133,7 @@ The soccer coaching software market includes everything from professional club m
 
 #### **MatchOps-Local Advantages**
 - ✅ **Purpose Built**: Designed specifically for soccer coaching workflows
-- ✅ **Interactive**: Drag-and-drop field, real-time timers, visual tactics
+- ✅ **Interactive**: Select-and-place field, real-time timers, visual tactics
 - ✅ **Error Prevention**: Validation and guided workflows prevent mistakes
 - ✅ **Advanced Features**: Statistics, trends, performance tracking
 - ✅ **Professional UX**: Intuitive interface designed for sideline use
@@ -181,7 +181,7 @@ The soccer coaching software market includes everything from professional club m
 ### Choose MatchOps-Local When:
 - **Privacy is Critical**: Youth sports with strict data privacy requirements
 - **Offline Reliability Needed**: Poor connectivity areas or reliability concerns
-- **Budget Constraints**: Want to avoid ongoing subscription costs
+- **Budget Constraints**: Want a free local mode without mandatory subscriptions
 - **Soccer Specific**: Need features designed specifically for soccer coaching
 - **Data Ownership**: Want complete control over team and player data
 - **Performance Matters**: Need instant response times for real-time use
@@ -226,8 +226,8 @@ The soccer coaching software market includes everything from professional club m
 #### Primary Differentiators
 1. **Local-First Architecture**: Only solution with complete offline capability
 2. **Soccer-Specific Design**: Purpose-built for soccer coaching workflows
-3. **Zero Ongoing Costs**: No subscriptions, no per-user fees
-4. **Complete Privacy**: No data collection or external transmission
+3. **Free Local Mode**: No subscriptions required for local mode; optional paid cloud sync
+4. **Complete Privacy (Local Mode)**: No data collection or external transmission in local mode
 5. **Professional Features**: Advanced analytics typically only in expensive solutions
 
 #### Target Market Positioning

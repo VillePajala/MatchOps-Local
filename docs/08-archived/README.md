@@ -45,6 +45,12 @@ This directory contains completed work, superseded plans, and historical documen
 
 ### 📅 Recently Archived (February 2026)
 
+#### Superseded Business & Specification Documents
+- **[paywall-implementation.md](./paywall-implementation.md)** - Technical paywall implementation guide (superseded; monetization undecided)
+- **[PRIVACY_FIRST_MONETIZATION.md](./PRIVACY_FIRST_MONETIZATION.md)** - Privacy-focused monetization approach (superseded by monetization-strategies.md)
+- **[software-requirements.md](./software-requirements.md)** - SRS for marketing website (from 09-specifications/, outdated)
+- **[user-interface-design.md](./user-interface-design.md)** - UID for marketing website (from 09-specifications/, outdated)
+
 #### Completed Active Plans (from 03-active-plans/)
 - **[completed-active-plans/](./completed-active-plans/)** - Plans that were fully implemented
   - supabase-preflight-checklist.md, supabase-verification-matrix.md, supabase-live-verification-report.md

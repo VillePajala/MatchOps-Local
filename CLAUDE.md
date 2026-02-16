@@ -11,15 +11,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Quick Stats
 - ✅ **~4,500+ tests** passing
 - ✅ **0 security vulnerabilities**
-- ✅ **Next.js 16.0.10 + React 19.2 + Supabase**
+- ✅ **Next.js 16 + React 19 + Supabase**
 - ✅ **Dual-mode**: Local (IndexedDB) + Cloud (Supabase)
 - ✅ **Auth**: Email/password via Supabase Auth
 - ✅ **Edge Functions**: verify-subscription, delete-account
 
 ### What's Complete
 - All P0/P1/P2 refactoring
-- NPM security updates (xlsx, Sentry, React Query, Jest 30, i18next 16)
-- **Next.js 16.0.10 + React 19.2 upgrade**
+- NPM security updates (xlsx, Sentry, React Query, Jest 30, react-i18next 16)
+- **Next.js 16 + React 19 upgrade**
 - Layer 3 performance polish
 - Test coverage improvement (+694 tests)
 - **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory
@@ -28,7 +28,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### What's Next
 - **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
-- **Cloud Sync Bug Fixes**: Warmup plan ID conflict, metadata normalization (see UNIFIED-ROADMAP.md)
 
 ### ⚠️ Quality Bar: Production-Ready (Not MVP)
 
@@ -51,22 +50,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ✅ "Follows security best practices"
 
 ### Essential Reading
-- **[supabase-implementation-guide.md](./docs/03-active-plans/supabase-implementation-guide.md)** ⭐ **Active implementation plan**
+- **[supabase-implementation-guide.md](./docs/02-technical/supabase-implementation-guide.md)** ⭐ **Implementation reference**
 - **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** — Single source of truth
 - **[master-execution-guide.md](./docs/03-active-plans/master-execution-guide.md)** — Play Store release plan
 
 ---
 
-## 🚧 Active Work: Supabase Cloud Backend
+## Reference: Supabase Cloud Backend
 
-### ⚠️ MANDATORY: Read Before ANY Supabase Work
+### Read Before Supabase Maintenance Work
 
-**If you are working on Supabase implementation, you MUST follow the documented plan exactly.**
+The Supabase cloud backend implementation is complete (all 12 PRs merged). The rules and references below remain valuable for ongoing maintenance, bug fixes, and future enhancements to the cloud backend.
 
-#### Required Reading (in order)
-1. **[supabase-implementation-guide.md](./docs/03-active-plans/supabase-implementation-guide.md)** — Master plan with code examples
-2. **[supabase-preflight-checklist.md](./docs/03-active-plans/supabase-preflight-checklist.md)** — PR-by-PR checklists
-3. **[supabase-verification-matrix.md](./docs/03-active-plans/supabase-verification-matrix.md)** — Field-by-field type mappings
+#### Reference Reading (in order)
+1. **[supabase-implementation-guide.md](./docs/02-technical/supabase-implementation-guide.md)** — Master plan with code examples
+2. **[supabase-preflight-checklist.md](./docs/08-archived/completed-active-plans/supabase-preflight-checklist.md)** — PR-by-PR checklists
+3. **[supabase-verification-matrix.md](./docs/08-archived/completed-active-plans/supabase-verification-matrix.md)** — Field-by-field type mappings
 4. **[supabase-schema.md](./docs/02-technical/database/supabase-schema.md)** — PostgreSQL schema
 
 #### Before Starting ANY PR
@@ -228,17 +227,24 @@ async removeGameEvent(gameId, eventIndex) {
 }
 ```
 
-#### Rule 12: Cloud Mode is Online-Only
+#### Rule 12: Cloud Mode Uses Local-First Sync (SyncedDataStore)
 
-**No offline queue** - operations fail with clear error if offline:
+Cloud mode uses **SyncedDataStore** which writes to local IndexedDB first, then syncs to Supabase in the background via SyncQueue/SyncEngine. This means:
+
+- Changes are saved locally immediately (works offline)
+- Background sync pushes changes to cloud when online
+- If offline, changes queue locally and sync when connectivity returns
+- Conflict resolution: Last-write-wins
 
 ```typescript
-if (!navigator.onLine) {
-  throw new NetworkError('Cannot save while offline. Please check your connection.');
-}
+// SyncedDataStore wraps LocalDataStore + SupabaseDataStore:
+// 1. Write to local IndexedDB immediately
+await this.localStore.saveGame(id, game);
+// 2. Queue sync operation for background push to cloud
+this.syncQueue.enqueue({ type: 'saveGame', id, data: game });
 ```
 
-Users should switch to local mode for offline work.
+Note: The pure SupabaseDataStore (online-only) is wrapped by SyncedDataStore -- direct cloud operations still require connectivity, but the user-facing experience is local-first.
 
 #### Rule 13: Tournament Level Migration (getTournaments)
 
@@ -329,13 +335,15 @@ const seasons = await localDataStore.getSeasons(true);          // Computes club
 
 ### Branching Strategy
 
-All Supabase work happens on `feature/supabase-cloud-backend`. Sub-PRs (e.g., `supabase/pr12-*`) target the feature branch, not master.
+All Supabase work happened on `feature/supabase-cloud-backend`. Sub-PRs (e.g., `supabase/pr12-*`) targeted the feature branch, not master.
+
+**Note:** All 12 sub-PRs have been merged to the feature branch, and the feature branch has been integrated into master. The branching strategy below is preserved for historical reference.
 
 **Final Merge Criteria** (before `feature/supabase-cloud-backend` → `master`):
-- [ ] All sub-PRs merged to feature branch
-- [ ] `npm test` passes
-- [ ] `npm run build` passes
-- [ ] Manual test: Local mode, cloud mode, migration, mode switching
+- [x] All sub-PRs merged to feature branch
+- [x] `npm test` passes
+- [x] `npm run build` passes
+- [x] Manual test: Local mode, cloud mode, migration, mode switching
 
 ### Review Process (IMPORTANT)
 
@@ -386,19 +394,20 @@ All Supabase work happens on `feature/supabase-cloud-backend`. Sub-PRs (e.g., `s
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm test` - Run all Jest tests (executes `jest`)
-- `npm run test:unit` - Alias for `npm test`
+- `npm run test:unit` - Run unit tests in src/ (CI mode, single worker, 8s timeout)
 - `npm run generate:i18n-types` - Generate TypeScript types for translations
 
 ### Build Process
-The build process includes a custom manifest generation step that runs before Next.js build:
+The build process includes custom generation steps that run before Next.js build:
+- `node scripts/generate-changelog.mjs` - Generates changelog from git history
 - `node scripts/generate-manifest.mjs` - Generates PWA manifest based on branch
 - Manifest configuration varies by branch (master vs development) for different app names and themes
 
 ## Architecture Overview
 
 ### Tech Stack
-- **Next.js 16.0.10** with App Router
-- **React 19.2** with TypeScript
+- **Next.js 16** with App Router
+- **React 19** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker
 - **Dual-mode data persistence**:
@@ -428,7 +437,7 @@ The build process includes a custom manifest generation step that runs before Ne
 - **`useState`**: Local UI state within components (modal visibility, etc.)
 
 **Key Components**:
-- `SoccerField` - Interactive drag-and-drop field
+- `SoccerField` - Interactive player positioning field
 - `PlayerBar` - Player roster management
 - `ControlBar` - Main app controls
 - Various modals for game settings, stats, and management
@@ -540,7 +549,7 @@ This is a **local-first Progressive Web App** for single-user soccer coaching wi
 3. **Security**: Local mode = browser sandbox; Cloud mode = Supabase RLS + auth
 4. **Performance**: Optimize for small datasets and single-user UX
 
-See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
+See `docs/01-project/overview.md` and `docs/01-project/local-first-philosophy.md` for details.
 
 ## Key Files to Understand
 
@@ -936,6 +945,7 @@ Code that works in dev may fail in Vercel due to stricter ESLint, different Type
 
 ### Optional
 - `NEXT_PUBLIC_SENTRY_FORCE_ENABLE` - Force Sentry in dev (default: false)
+- `NEXT_PUBLIC_INTERNAL_TESTING` - Internal testing mode flag (validated in next.config.ts)
 - `SENTRY_ORG` - Sentry organization name
 - `SENTRY_PROJECT` - Sentry project name
 - `ANALYZE` - Enable bundle analysis during build
