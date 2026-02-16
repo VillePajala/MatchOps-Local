@@ -43,7 +43,8 @@ export const setMigrationProgressCallback = (callback: ProgressCallback | null) 
 export const getAppDataVersion = (): number => {
   const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
   if (stored) {
-    return parseInt(stored, 10);
+    const parsed = parseInt(stored, 10);
+    return isNaN(parsed) ? 1 : parsed; // Treat corrupt version as v1 (oldest) to trigger migration
   }
 
   // Check if there's any existing data
@@ -226,7 +227,7 @@ async function performIndexedDbMigration(): Promise<void> {
     }
 
     // Check if migration was successful enough
-    const successRate = ((totalKeys - errors.length) / totalKeys) * 100;
+    const successRate = totalKeys > 0 ? ((totalKeys - errors.length) / totalKeys) * 100 : 100;
 
     if (successRate < 50) {
       throw new Error(`Migration failed: Only ${successRate.toFixed(1)}% of data transferred`);
@@ -258,9 +259,13 @@ async function performIndexedDbMigration(): Promise<void> {
     logger.error('[Migration] IndexedDB migration failed:', error);
 
     // Update config to indicate failure but don't crash
-    await updateStorageConfig({
-      migrationState: 'failed'
-    });
+    try {
+      await updateStorageConfig({
+        migrationState: 'failed'
+      });
+    } catch (configError) {
+      logger.error('[Migration] Failed to update migration state:', configError);
+    }
 
     throw error;
   }

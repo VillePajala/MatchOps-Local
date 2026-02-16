@@ -49,6 +49,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
   // Ref to avoid effect churn when parent re-renders with new onCancel reference
@@ -64,12 +65,20 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       // Store the element that had focus before modal opened
       previousActiveElementRef.current = document.activeElement as HTMLElement;
 
-      // Auto-focus the confirm button when modal opens
-      confirmButtonRef.current?.focus();
+      // For danger dialogs, focus the cancel button to prevent accidental destructive actions.
+      // For primary dialogs, focus the confirm button for quick confirmation.
+      if (variant === 'danger') {
+        cancelButtonRef.current?.focus();
+      } else {
+        confirmButtonRef.current?.focus();
+      }
 
-      // ESC key handler to close modal
+      // ESC key handler to close modal.
+      // stopImmediatePropagation prevents parent modals (which also listen on document)
+      // from receiving the same Escape event and closing simultaneously.
       const handleEscape = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
+          event.stopImmediatePropagation();
           onCancelRef.current();
         }
       };
@@ -85,7 +94,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         }
       };
     }
-  }, [isOpen]);
+  }, [isOpen, variant]);
 
   if (!isOpen) return null;
 
@@ -130,6 +139,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         {/* Action Buttons */}
         <div className="flex gap-3 justify-end">
           <button
+            ref={cancelButtonRef}
             onClick={onCancel}
             disabled={isConfirming}
             className={secondaryButtonStyle}

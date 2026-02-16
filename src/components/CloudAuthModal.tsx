@@ -123,16 +123,30 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
   }, []);
 
   /**
-   * Handle cancel - clear sensitive data before closing
+   * Handle cancel - clear sensitive data and session before closing
    */
-  const handleCancel = useCallback(() => {
+  const handleCancel = useCallback(async () => {
     // SECURITY: Clear password input before closing
     if (passwordInputRef.current) {
       passwordInputRef.current.value = '';
     }
     setHasPassword(false);
+
+    // If user authenticated but then cancelled, sign out to clean up the session.
+    // This modal creates a temporary session just for deletion — leaving it active
+    // after cancel would be a stale session lingering in the Supabase client.
+    if (step === 'confirm') {
+      try {
+        const { getSupabaseClient } = await import('@/datastore/supabase/client');
+        await getSupabaseClient().auth.signOut();
+      } catch (signOutErr) {
+        // Best-effort cleanup — don't block cancel on sign-out failure
+        logger.warn('[CloudAuthModal] Failed to sign out on cancel:', signOutErr);
+      }
+    }
+
     onCancel();
-  }, [onCancel]);
+  }, [onCancel, step]);
 
   // Handle Escape key to close modal (when not busy)
   useEffect(() => {

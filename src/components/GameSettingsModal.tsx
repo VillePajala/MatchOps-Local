@@ -91,7 +91,7 @@ export interface GameSettingsModalProps {
   onTournamentSeriesIdChange: (seriesId: string | undefined) => void;
   onUpdateGameEvent: (updatedEvent: GameEvent) => void;
   onDeleteGameEvent?: (goalId: string) => Promise<boolean>;
-  onAwardFairPlayCard: (playerId: string | null, time: number) => void;
+  onAwardFairPlayCard: (playerId: string | null) => void;
   onNumPeriodsChange: (num: number) => void;
   onPeriodDurationChange: (minutes: number) => void;
   onDemandFactorChange: (factor: number) => void;
@@ -528,9 +528,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [gameHour, setGameHour] = useState<string>('');
   const [gameMinute, setGameMinute] = useState<string>('');
 
-  // State for team roster integration
-  const [, setTeamRoster] = useState<Player[]>([]);
-
   // State for team selection
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teamId || null);
   const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request for race condition protection
@@ -562,22 +559,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
   }, [isOpen, teamId]);
 
-  // Load team roster when modal opens with teamId
-  useEffect(() => {
-    const loadTeamRoster = async () => {
-      if (isOpen && teamId) {
-        try {
-          const roster = await getTeamRoster(teamId);
-          setTeamRoster(roster || []);
-        } catch (error) {
-          logger.error('[GameSettingsModal] Error loading team roster:', error);
-          setTeamRoster([]);
-        }
-      }
-    };
-
-    loadTeamRoster();
-  }, [isOpen, teamId]);
 
   // Initialize game time state from prop
   useEffect(() => {
@@ -1188,7 +1169,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (timeParts.length === 2) {
       const minutes = parseInt(timeParts[0], 10);
       const seconds = parseInt(timeParts[1], 10);
-      if (!isNaN(minutes) && !isNaN(seconds)) {
+      if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && minutes <= 120 && seconds >= 0 && seconds < 60) {
         timeInSeconds = minutes * 60 + seconds;
       } else {
         setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
@@ -1204,6 +1185,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     const originalEvent = localGameEvents.find(e => e.id === goalId);
     if (!originalEvent) {
         logger.error(`[GameSettingsModal] Original event not found for ID: ${goalId}`);
+        setIsProcessing(false);
       return;
     }
 
@@ -1230,18 +1212,29 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         } else {
           logger.error(`[GameSettingsModal] Failed to update event ${goalId} in game ${currentGameId} via utility.`);
           setError(t('gameSettingsModal.errors.updateFailed', 'Failed to update event. Please try again.'));
-          // Optionally revert UI:
-          // setLocalGameEvents(gameEvents); // Revert local state if save failed
+          // Revert optimistic update on failure
+          setLocalGameEvents(prevEvents =>
+            prevEvents.map(event => (event.id === goalId ? originalEvent : event))
+          );
+          onUpdateGameEvent(originalEvent);
         }
       } else {
         logger.error(`[GameSettingsModal] Event ${goalId} not found in original gameEvents prop for saving.`);
         setError(t('gameSettingsModal.errors.eventNotFound', 'Original event not found for saving.'));
+        // Revert optimistic update — event not found in props for persistence
+        setLocalGameEvents(prevEvents =>
+          prevEvents.map(event => (event.id === goalId ? originalEvent : event))
+        );
+        onUpdateGameEvent(originalEvent);
       }
     } catch (err) {
       logger.error(`[GameSettingsModal] Error updating event ${goalId} in game ${currentGameId}:`, err);
       setError(t('gameSettingsModal.errors.genericSaveError', 'An unexpected error occurred while saving the event.'));
-      // Optionally revert UI:
-      // setLocalGameEvents(gameEvents); // Revert local state if save failed
+      // Revert optimistic update on error
+      setLocalGameEvents(prevEvents =>
+        prevEvents.map(event => (event.id === goalId ? originalEvent : event))
+      );
+      onUpdateGameEvent(originalEvent);
     } finally {
       setIsProcessing(false);
       // Do not call handleCancelEditGoal() here if there was an error,
@@ -1465,10 +1458,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     // If not, it will award the card to this player (removing it from any other player)
     if (playerId) {
       const playerHasCard = availablePlayers.find(p => p.id === playerId)?.receivedFairPlayCard;
-      onAwardFairPlayCard(playerHasCard ? null : playerId, timeElapsedInSeconds || 0);
+      onAwardFairPlayCard(playerHasCard ? null : playerId);
     } else {
       // If playerId is null, clear the fair play card
-      onAwardFairPlayCard(null, timeElapsedInSeconds || 0);
+      onAwardFairPlayCard(null);
     }
   };
 

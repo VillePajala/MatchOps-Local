@@ -84,6 +84,10 @@ export interface ModalUIState {
   showSaveBeforeNewConfirm: boolean;
   showHardResetConfirm: boolean;
   setShowHardResetConfirm: (open: boolean) => void;
+  showNoPlayersConfirm: boolean;
+  setShowNoPlayersConfirm: (open: boolean) => void;
+  showStartNewConfirm: boolean;
+  setShowStartNewConfirm: (open: boolean) => void;
 }
 
 /**
@@ -139,7 +143,7 @@ export interface ModalHandlers {
   handleTournamentLevelChange: (level: string) => void;
   handleTournamentSeriesIdChange: (seriesId: string | undefined) => void;
   handleTeamIdChange: (teamId: string | undefined) => void;
-  handleAwardFairPlayCard: (playerId: string | null, time: number) => void;
+  handleAwardFairPlayCard: (playerId: string | null) => void;
   handleSetNumberOfPeriods: (periods: number) => void;
   handleSetPeriodDuration: (duration: number) => void;
   handleSetDemandFactor: (factor: number) => void;
@@ -256,6 +260,10 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     showSaveBeforeNewConfirm,
     showHardResetConfirm,
     setShowHardResetConfirm,
+    showNoPlayersConfirm,
+    setShowNoPlayersConfirm,
+    showStartNewConfirm,
+    setShowStartNewConfirm,
   } = ui;
 
   // Destructure handlers
@@ -350,11 +358,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState(false);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
 
-  // --- Confirmation Dialog State ---
-  const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
-  // showHardResetConfirm: Passed as prop from useGameOrchestration (managed there)
-  // showSaveBeforeNewConfirm: Passed as prop from useGameOrchestration (managed there)
-  const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
+  // showNoPlayersConfirm, showStartNewConfirm: Passed from useGameOrchestration via ui
+  // showHardResetConfirm, showSaveBeforeNewConfirm: Passed from useGameOrchestration via ui
 
   // --- Modal Handlers ---
 

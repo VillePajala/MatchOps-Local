@@ -23,6 +23,7 @@ import { getSupabaseClient } from '@/datastore/supabase/client';
 import { withRetry, throwIfTransient, TransientSupabaseError } from '@/datastore/supabase/retry';
 import type { SupabaseClient, AuthChangeEvent, Session as SupabaseSession } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
+import { POLICY_VERSION } from '@/config/constants';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 
@@ -208,8 +209,16 @@ function isNetworkError(error: unknown): boolean {
   // Check for standard error names
   if ('name' in error) {
     const name = (error as { name: string }).name;
-    if (name === 'TypeError' || name === 'NetworkError' || name === 'AbortError') {
+    if (name === 'NetworkError' || name === 'AbortError') {
       return true;
+    }
+    // fetch() throws TypeError for network failures, but TypeErrors can also come from
+    // programming bugs. Narrow by checking for known fetch-failure messages.
+    if (name === 'TypeError') {
+      const msg = ('message' in error ? (error as { message: string }).message : '').toLowerCase();
+      if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('load failed') || msg.includes('fetch')) {
+        return true;
+      }
     }
   }
 
@@ -390,7 +399,7 @@ export class SupabaseAuthService implements AuthService {
           const VALIDATION_TIMEOUT_MS = 5000;
           try {
             const validationPromise = this.client.auth.getUser();
-            let timeoutId: NodeJS.Timeout;
+            let timeoutId: NodeJS.Timeout | undefined;
             const timeoutPromise = new Promise<never>((_, reject) => {
               timeoutId = setTimeout(() => reject(new Error('Session validation timeout')), VALIDATION_TIMEOUT_MS);
             });
@@ -398,7 +407,7 @@ export class SupabaseAuthService implements AuthService {
             const { data: { user: validatedUser }, error: userError } = await Promise.race([
               validationPromise,
               timeoutPromise,
-            ]).finally(() => clearTimeout(timeoutId));
+            ]).finally(() => { if (timeoutId) clearTimeout(timeoutId); });
 
             if (userError || !validatedUser) {
               // Session is invalid on server - clear it locally
@@ -454,11 +463,11 @@ export class SupabaseAuthService implements AuthService {
       } catch (error) {
         // Log initialization failures for debugging before re-throwing
         logger.error('[SupabaseAuthService] Initialization failed:', error instanceof Error ? error.message : String(error));
-        throw error;
-      } finally {
-        // Clear the promise when done (success or failure)
-        // This allows retry on next call if initialization failed
+        // Clear promise on failure so next call can retry.
+        // On success, keep the resolved promise cached so concurrent callers
+        // awaiting it get the resolved value instead of re-initializing.
         this.initPromise = null;
+        throw error;
       }
     })();
 
@@ -677,15 +686,16 @@ export class SupabaseAuthService implements AuthService {
     }
 
     if (error) {
-      // Track failed attempt for rate limiting
-      this.failedSignInAttempts++;
-      this.lastFailedSignInTime = Date.now();
-
       logger.warn('[SupabaseAuthService] Sign in failed:', error.message);
 
+      // Network errors should not count toward rate limiting (not indicative of brute-force)
       if (isNetworkError(error)) {
         throw new NetworkError('Sign in failed: network error');
       }
+
+      // Track failed attempt for rate limiting (only for non-network errors)
+      this.failedSignInAttempts++;
+      this.lastFailedSignInTime = Date.now();
 
       // Detect Supabase rate limiting (429)
       if (error.status === 429 || error.message?.toLowerCase().includes('rate limit')) {
@@ -731,7 +741,7 @@ export class SupabaseAuthService implements AuthService {
     let error;
     try {
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
-      const timeoutPromise = new Promise<{ error: Error }>((_resolve, reject) => {
+      const timeoutPromise = new Promise<never>((_resolve, reject) => {
         timeoutId = setTimeout(() => reject(new Error('Sign out timed out')), 10000);
       });
       const result = await Promise.race([
@@ -1100,8 +1110,6 @@ export class SupabaseAuthService implements AuthService {
     }
 
     const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : undefined;
-    // Resolve POLICY_VERSION once, outside the retry loop
-    const { POLICY_VERSION } = await import('@/config/constants');
 
     try {
       if (granted) {
@@ -1153,8 +1161,9 @@ export class SupabaseAuthService implements AuthService {
   async verifySignUpOtp(email: string, token: string): Promise<AuthResult> {
     this.ensureInitialized();
 
-    // Validate OTP format before sending to Supabase (defense-in-depth)
-    if (!token || !/^\d{6,8}$/.test(token.trim())) {
+    // Trim and validate OTP format before sending to Supabase (defense-in-depth)
+    const trimmedToken = token.trim();
+    if (!trimmedToken || !/^\d{6,8}$/.test(trimmedToken)) {
       throw new AuthError('Invalid verification code format');
     }
 
@@ -1163,7 +1172,7 @@ export class SupabaseAuthService implements AuthService {
       const result = await withRetry(async () => {
         const r = await this.client!.auth.verifyOtp({
           email,
-          token,
+          token: trimmedToken,
           type: 'signup',
         });
         if (r.error && isNetworkError(r.error)) {
@@ -1211,8 +1220,9 @@ export class SupabaseAuthService implements AuthService {
   async verifyPasswordResetOtp(email: string, token: string): Promise<void> {
     this.ensureInitialized();
 
-    // Validate OTP format before sending to Supabase (defense-in-depth)
-    if (!token || !/^\d{6,8}$/.test(token.trim())) {
+    // Trim and validate OTP format before sending to Supabase (defense-in-depth)
+    const trimmedToken = token.trim();
+    if (!trimmedToken || !/^\d{6,8}$/.test(trimmedToken)) {
       throw new AuthError('Invalid verification code format');
     }
 
@@ -1221,7 +1231,7 @@ export class SupabaseAuthService implements AuthService {
       const result = await withRetry(async () => {
         const r = await this.client!.auth.verifyOtp({
           email,
-          token,
+          token: trimmedToken,
           type: 'recovery',
         });
         if (r.error && isNetworkError(r.error)) {
@@ -1326,7 +1336,7 @@ export class SupabaseAuthService implements AuthService {
         throw new AuthError('Failed to resend confirmation email. Please try again.');
       }
 
-      logger.info('[SupabaseAuthService] Confirmation email resent to:', email);
+      logger.info('[SupabaseAuthService] Confirmation email resent to:', email.slice(0, 3) + '***');
     } catch (e) {
       if (e instanceof TransientSupabaseError) {
         throw new NetworkError('Resend failed: network error');

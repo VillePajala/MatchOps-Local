@@ -34,6 +34,8 @@ export function useUndoRedo<T>(initialState: T): UseUndoRedoReturn<T> {
 
   const set = useCallback((next: T) => {
     const current = historyRef.current[indexRef.current];
+    // Fast path: skip JSON.stringify if same reference
+    if (current === next) return;
     if (JSON.stringify(current) === JSON.stringify(next)) {
       return;
     }

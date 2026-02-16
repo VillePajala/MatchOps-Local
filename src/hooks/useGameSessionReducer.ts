@@ -132,7 +132,7 @@ export type GameSessionAction =
   | { type: 'SET_TIMER_RUNNING'; payload: boolean }
   | { type: 'SET_SUB_INTERVAL'; payload: number } // subIntervalMinutes
   | { type: 'CONFIRM_SUBSTITUTION' }
-  | { type: 'RESET_TIMER_AND_GAME_PROGRESS'; payload?: Partial<GameSessionState> } // Optional payload overrides reset defaults (e.g., preserve subIntervalMinutes)
+  | { type: 'RESET_TIMER_AND_GAME_PROGRESS'; payload?: { subIntervalMinutes?: number } } // Optional payload preserves subIntervalMinutes across reset
   | { type: 'RESET_TIMER_ONLY' }
   | { type: 'LOAD_GAME_SESSION_STATE'; payload: Partial<GameSessionState> }
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
@@ -437,19 +437,19 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         ...state,
         timeElapsedInSeconds: 0,
         isTimerRunning: false,
+        startTimestamp: null,
         currentPeriod: 1,
         gameStatus: 'notStarted',
         nextSubDueTimeSeconds: nextSubDue,
         subAlertLevel: 'none',
         lastSubConfirmationTimeSeconds: 0,
+        completedIntervalDurations: [],
       };
     }
     case 'RESET_TIMER_AND_GAME_PROGRESS': {
-        // Resets game progress to initial state. Optional payload fields override
-        // the defaults below (e.g., to preserve subIntervalMinutes from settings).
-        // The spread `...(action.payload || {})` at the end means any field in the
-        // payload takes priority over the hardcoded reset values.
-        const subIntervalMins = action.payload?.subIntervalMinutes || state.subIntervalMinutes || 5;
+        // Resets game progress to initial state. Only subIntervalMinutes is
+        // preserved from the payload (to keep settings in sync with reset).
+        const subIntervalMins = action.payload?.subIntervalMinutes ?? state.subIntervalMinutes ?? 5;
         return {
             ...state,
             timeElapsedInSeconds: 0,
@@ -465,7 +465,6 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
             subAlertLevel: 'none',
             lastSubConfirmationTimeSeconds: 0,
             completedIntervalDurations: [],
-            ...(action.payload || {}),
         };
     }
     case 'RESET_GAME_SESSION_STATE':

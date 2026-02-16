@@ -83,8 +83,13 @@ export function GoalEventList({
       <h3 className="text-xl font-semibold text-slate-200 mb-4">
         {t('gameStatsModal.goalLogTitle', 'Goal Log')}
       </h3>
+      {goals.length === 0 ? (
+        <p className="text-sm text-slate-400 italic">
+          {t('gameStatsModal.noGoals', 'No goals recorded.')}
+        </p>
+      ) : (
       <div className="space-y-2">
-        {goals.filter(g => g.type === 'goal' || g.type === 'opponentGoal').map(goal => (
+        {goals.map(goal => (
           <div
             key={goal.id}
             className={`p-3 rounded-md border transition-all ${
@@ -221,6 +226,7 @@ export function GoalEventList({
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

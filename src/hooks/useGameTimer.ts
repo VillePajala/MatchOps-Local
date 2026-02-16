@@ -21,29 +21,32 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   // Store precision timer reference for precise pause timing
   const precisionTimerRef = useRef<{ getCurrentTime: () => number } | null>(null);
 
+  // Destructure only the fields used by startPause to avoid recreation on every tick
+  const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes } = state;
+
   const startPause = useCallback(() => {
-    if (state.gameStatus === 'notStarted') {
+    if (gameStatus === 'notStarted') {
       dispatch({
         type: 'START_PERIOD',
         payload: {
           nextPeriod: 1,
-          periodDurationMinutes: state.periodDurationMinutes,
-          subIntervalMinutes: state.subIntervalMinutes,
+          periodDurationMinutes,
+          subIntervalMinutes,
         },
       });
-    } else if (state.gameStatus === 'periodEnd') {
+    } else if (gameStatus === 'periodEnd') {
       dispatch({
         type: 'START_PERIOD',
         payload: {
-          nextPeriod: state.currentPeriod + 1,
-          periodDurationMinutes: state.periodDurationMinutes,
-          subIntervalMinutes: state.subIntervalMinutes,
+          nextPeriod: currentPeriod + 1,
+          periodDurationMinutes,
+          subIntervalMinutes,
         },
       });
-    } else if (state.gameStatus === 'inProgress') {
+    } else if (gameStatus === 'inProgress') {
       // Use proper START_TIMER/PAUSE_TIMER actions instead of SET_TIMER_RUNNING
       // to ensure startTimestamp is correctly managed
-      if (state.isTimerRunning) {
+      if (isTimerRunning) {
         // Get precise current time from precision timer to prevent race conditions
         const preciseTime = precisionTimerRef.current?.getCurrentTime();
         dispatch({ type: 'PAUSE_TIMER', payload: preciseTime });
@@ -51,7 +54,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         dispatch({ type: 'START_TIMER' });
       }
     }
-  }, [dispatch, state]);
+  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes]);
 
   const reset = useCallback(async () => {
     // Clear timer state from IndexedDB
@@ -153,14 +156,19 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     syncWakeLock(state.isTimerRunning);
   }, [state.isTimerRunning, syncWakeLock]);
 
+  // Use ref for isTimerRunning check in visibility handler to avoid
+  // re-registering the listener on every tick (was 20x/sec)
+  const isTimerRunningRef = useRef(state.isTimerRunning);
+  useEffect(() => { isTimerRunningRef.current = state.isTimerRunning; }, [state.isTimerRunning]);
+
   useEffect(() => {
     const handleDocumentVisibilityChange = async () => {
       if (document.hidden) {
         // Save timer state when tab becomes hidden
-        if (state.isTimerRunning) {
+        if (isTimerRunningRef.current) {
           const timerState: TimerState = {
             gameId: currentGameId || '',
-            timeElapsedInSeconds: precisionTimer.getCurrentTime(),
+            timeElapsedInSeconds: precisionTimerRef.current?.getCurrentTime() ?? stateRef.current.timeElapsedInSeconds,
             timestamp: Date.now(),
             wasRunning: true, // Track that timer should resume on return
           };
@@ -208,7 +216,9 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         saveTimerRef.current = null;
       }
     };
-  }, [state.isTimerRunning, currentGameId, dispatch, precisionTimer, handleVisibilityChange, setStableStartTime]);
+  // Note: precisionTimerRef is used via ref (not as dependency) to avoid re-registering
+  // the visibility listener on every tick (precisionTimer changes frequently)
+  }, [currentGameId, dispatch, handleVisibilityChange, setStableStartTime]);
 
   return useMemo(() => ({
     timeElapsedInSeconds: state.timeElapsedInSeconds,

@@ -177,6 +177,7 @@ async function closeDataStoreInternal(
   });
 
   const closeStartTime = Date.now();
+  let closeAttempted = false;
   try {
     log.info(`[factory] Closing DataStore due to: ${reason}`, { startTime: closeStartTime });
 
@@ -198,7 +199,8 @@ async function closeDataStoreInternal(
       }
     }
 
-    // Now safe to null references
+    // Now safe to null references — track that we actually started closing
+    closeAttempted = true;
     dataStoreInstance = null;
     dataStoreCreatedForMode = null;
     dataStoreCreatedForUserId = undefined;
@@ -284,17 +286,18 @@ async function closeDataStoreInternal(
     }
     resetCompletePromise = null;
 
-    // DEFENSIVE: Also clear globalInitLock if it's somehow still held
+    // DEFENSIVE: Also clear globalInitLock if it's somehow still held.
+    // Only do this when a close actually happened (not when rejected due to pending ops).
     // This prevents deadlocks if a previous init was interrupted during user switch.
     // The lock should normally be released by initPromise.finally(), but clearing
     // it here as a safety net ensures user switching doesn't leave stale locks.
     // See: MATCHOPS-LOCAL-34 (infinite spinner when switching B → A)
-    if (globalInitLockResolve) {
+    if (closeAttempted && globalInitLockResolve) {
       log.warn('[factory] Clearing stale globalInitLock during close');
       globalInitLockResolve();
       globalInitLockResolve = null;
+      globalInitLock = null;
     }
-    globalInitLock = null;
 
     log.info(`[factory] CloseDataStore completed`, { durationMs: Date.now() - closeStartTime });
   }
@@ -414,12 +417,20 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
 
   // Log when returning existing DataStore for undefined userId caller
   if (dataStoreInstance && !isRealUserSwitch && userId === undefined && dataStoreCreatedForUserId !== undefined) {
-    // Caller didn't pass userId but we have an authenticated DataStore - use it
-    // This is expected behavior for utility functions that don't have userId context
-    log.info(`[factory] Returning existing authenticated DataStore for undefined userId caller`, {
-      existingUserId: dataStoreCreatedForUserId,
-    });
-    return dataStoreInstance;
+    // Verify mode hasn't changed before returning cached instance
+    if (dataStoreCreatedForMode !== currentMode) {
+      log.info(`[factory] Mode changed for undefined userId caller — falling through to mode switch`, {
+        previousMode: dataStoreCreatedForMode,
+        newMode: currentMode,
+      });
+    } else {
+      // Caller didn't pass userId but we have an authenticated DataStore - use it
+      // This is expected behavior for utility functions that don't have userId context
+      log.info(`[factory] Returning existing authenticated DataStore for undefined userId caller`, {
+        existingUserId: dataStoreCreatedForUserId,
+      });
+      return dataStoreInstance;
+    }
   }
 
   if (dataStoreInstance && isRealUserSwitch) {

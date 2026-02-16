@@ -327,23 +327,36 @@ export class SyncQueue {
 
           // Only deduplicate pending operations
           if (existing.status === 'pending') {
-            existingOp = existing;
-            logger.debug('[SyncQueue] Found existing pending operation', {
-              entityType: input.entityType,
-              entityId: input.entityId,
-              existingId: existing.id,
-              existingOperation: existing.operation,
-              newOperation: input.operation,
-            });
-            // Exit early - use first pending operation found, don't continue cursor
-            // This prevents finding multiple pending ops and only using the last one
-            resultId = this.performWriteInTransaction(store, input, existingOp);
+            if (!existingOp) {
+              existingOp = existing;
+              logger.debug('[SyncQueue] Found existing pending operation', {
+                entityType: input.entityType,
+                entityId: input.entityId,
+                existingId: existing.id,
+                existingOperation: existing.operation,
+                newOperation: input.operation,
+              });
+              // Use first pending op found, then continue cursor to clean up any orphan duplicates
+              resultId = this.performWriteInTransaction(store, input, existingOp);
+            } else {
+              // Defense-in-depth: delete orphan pending duplicate (should not normally exist)
+              logger.warn('[SyncQueue] Removing orphan pending duplicate', {
+                entityType: input.entityType,
+                entityId: input.entityId,
+                orphanId: existing.id,
+              });
+              cursor.delete();
+            }
+            cursor.continue();
           } else {
             cursor.continue();
           }
         } else {
           // Cursor exhausted - perform write in SAME transaction (atomic)
-          resultId = this.performWriteInTransaction(store, input, existingOp);
+          // Guard: skip if already performed during cursor iteration (dedup found pending op)
+          if (!resultId) {
+            resultId = this.performWriteInTransaction(store, input, existingOp);
+          }
         }
       };
 
@@ -540,11 +553,11 @@ export class SyncQueue {
               reason: `status is '${op.status}', not 'pending'`,
             });
           } else if (!this.isReadyForRetry(op, now)) {
-            // Track operations in backoff
-            const backoffDelay = Math.min(
-              this.backoffBaseMs * Math.pow(2, op.retryCount - 1),
-              this.backoffMaxMs
-            );
+            // Track operations in backoff (match isReadyForRetry logic for accurate diagnostics)
+            const MIN_ABORT_RETRY_DELAY_MS = 2000;
+            const backoffDelay = op.retryCount === 0
+              ? MIN_ABORT_RETRY_DELAY_MS
+              : Math.min(this.backoffBaseMs * Math.pow(2, op.retryCount - 1), this.backoffMaxMs);
             const readyAt = (op.lastAttempt || 0) + backoffDelay;
             skippedOps.push({
               id: op.id.slice(0, 8),
@@ -614,9 +627,10 @@ export class SyncQueue {
 
   /**
    * Mark an operation as currently syncing.
+   * Returns true if the operation was found and marked, false if already completed/removed.
    */
-  async markSyncing(id: string): Promise<void> {
-    await this.updateStatus(id, 'syncing');
+  async markSyncing(id: string): Promise<boolean> {
+    return this.updateStatus(id, 'syncing');
   }
 
   /**
@@ -922,7 +936,7 @@ export class SyncQueue {
       return this.statsCache.stats;
     }
 
-    logger.info('[SyncQueue] getStats: reading from database', { dbName: this.dbName, userId: this.userId });
+    logger.debug('[SyncQueue] getStats: reading from database', { dbName: this.dbName, userId: this.userId });
     const db = this.ensureInitialized();
 
     return new Promise((resolve, reject) => {
@@ -1264,13 +1278,15 @@ export class SyncQueue {
 
   /**
    * Update operation status.
+   * Returns true if the operation was found and updated, false if not found.
    */
-  private async updateStatus(id: string, status: SyncOperationStatus): Promise<void> {
+  private async updateStatus(id: string, status: SyncOperationStatus): Promise<boolean> {
     const db = this.ensureInitialized();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
       const store = transaction.objectStore(SYNC_STORE_NAME);
+      let found = false;
 
       const getRequest = store.get(id);
 
@@ -1284,9 +1300,10 @@ export class SyncQueue {
           // 3. Operation was cleared by user
           // This is not an error - just skip the status update.
           logger.debug('[SyncQueue] Operation not found for status update (expected in some race conditions):', id);
-          return; // Resolve successfully - nothing to update
+          return; // Resolve with found=false
         }
 
+        found = true;
         const updated: SyncOperation = {
           ...op,
           status,
@@ -1298,7 +1315,7 @@ export class SyncQueue {
 
       transaction.oncomplete = () => {
         this.invalidateStatsCache();
-        resolve();
+        resolve(found);
       };
 
       transaction.onerror = () => {

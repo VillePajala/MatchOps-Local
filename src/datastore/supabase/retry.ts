@@ -63,6 +63,13 @@ export function isTransientError(error: unknown): boolean {
 
     // PostgrestError code
     const code = errorObj.code;
+
+    // Explicitly NOT transient: optimistic locking conflicts (40001)
+    // Must NOT be retried — symmetric with src/utils/retry.ts guard
+    if (code === '40001') {
+      return false;
+    }
+
     if (code === 'PGRST000') {
       // PGRST000 = PostgREST connection error (transient)
       // Note: PGRST301 (JWT expired/invalid) is NOT transient — it must reach

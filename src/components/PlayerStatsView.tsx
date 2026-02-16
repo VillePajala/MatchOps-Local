@@ -21,6 +21,7 @@ import RatingBar from './RatingBar';
 import MetricTrendChart from './MetricTrendChart';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
+import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 
 interface PlayerStatsViewProps {
@@ -57,7 +58,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [adjOpponentName, setAdjOpponentName] = useState('');
   const [adjScoreFor, setAdjScoreFor] = useState<number | ''>('');
   const [adjScoreAgainst, setAdjScoreAgainst] = useState<number | ''>('');
-  const [adjGameDate, setAdjGameDate] = useState('');
+  const [adjGameDate, setAdjGameDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [adjHomeAway, setAdjHomeAway] = useState<'home' | 'away' | 'neutral'>('neutral');
   const [adjGames, setAdjGames] = useState(1);
   const [adjGoals, setAdjGoals] = useState(0);
@@ -84,16 +85,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
   const [showExternalGames, setShowExternalGames] = useState(false);
 
-  React.useLayoutEffect(() => {
+  useEffect(() => {
     // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
     getAppSettings(userId).then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
     });
-    // Set default date to today
-    if (!adjGameDate) {
-      setAdjGameDate(new Date().toISOString().split('T')[0]);
-    }
-  }, [adjGameDate, userId]);
+  }, [userId]);
 
   // Helper function to format dates consistently
   const formatDisplayDate = (dateStr: string) => {
@@ -111,6 +108,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   useEffect(() => {
     if (!player) return;
     getAdjustmentsForPlayer(player.id, userId).then(setAdjustments).catch(() => setAdjustments([]));
+    // Reset form/UI state when switching players
+    setShowAdjForm(false);
+    setEditingAdjId(null);
+    setShowExternalGames(false);
+    setShowDeleteConfirm(null);
+    setShowActionsMenu(null);
   }, [player, userId]);
 
   // Close actions menu when clicking outside or pressing Escape
@@ -123,6 +126,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && showActionsMenu) {
+        event.stopImmediatePropagation();
         setShowActionsMenu(null);
       }
     };
@@ -310,10 +314,6 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 if (!player) return;
                 
                 // Comprehensive Validation
-                if (!adjSeasonId && seasons.length === 0) {
-                  showToast(t('playerStats.seasonRequired', 'Please create a season first.'), 'error');
-                  return;
-                }
                 if (!adjExternalTeam.trim()) {
                   showToast(t('playerStats.teamRequired', 'Team name is required.'), 'error');
                   return;
@@ -339,31 +339,36 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   return;
                 }
                 
-                const created = await addPlayerAdjustment({
-                  playerId: player.id,
-                  seasonId: adjSeasonId || undefined,
-                  tournamentId: adjTournamentId || undefined,
-                  externalTeamName: adjExternalTeam.trim(),
-                  opponentName: adjOpponentName.trim(),
-                  scoreFor: typeof adjScoreFor === 'number' ? adjScoreFor : undefined,
-                  scoreAgainst: typeof adjScoreAgainst === 'number' ? adjScoreAgainst : undefined,
-                  gameDate: adjGameDate || undefined,
-                  homeOrAway: adjHomeAway,
-                  gamesPlayedDelta: Math.max(0, Number(adjGames) || 0),
-                  goalsDelta: Math.max(0, Number(adjGoals) || 0),
-                  assistsDelta: Math.max(0, Number(adjAssists) || 0),
-                  fairPlayCardsDelta: Math.max(0, Number(adjFairPlayCards) || 0),
-                  note: adjNote.trim() || undefined,
-                  includeInSeasonTournament: adjIncludeInSeasonTournament,
-                }, userId);
-                setAdjustments(prev => [...prev, created]);
-                setShowAdjForm(false);
-                // Reset form
-                setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjFairPlayCards(0); setAdjNote('');
-                setAdjSeasonId(''); setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
-                setAdjGameDate(new Date().toISOString().split('T')[0]);
-                setAdjHomeAway('neutral');
-                setAdjIncludeInSeasonTournament(false);
+                try {
+                  const created = await addPlayerAdjustment({
+                    playerId: player.id,
+                    seasonId: adjSeasonId || undefined,
+                    tournamentId: adjTournamentId || undefined,
+                    externalTeamName: adjExternalTeam.trim(),
+                    opponentName: adjOpponentName.trim(),
+                    scoreFor: typeof adjScoreFor === 'number' ? adjScoreFor : undefined,
+                    scoreAgainst: typeof adjScoreAgainst === 'number' ? adjScoreAgainst : undefined,
+                    gameDate: adjGameDate || undefined,
+                    homeOrAway: adjHomeAway,
+                    gamesPlayedDelta: Math.max(0, Number(adjGames) || 0),
+                    goalsDelta: Math.max(0, Number(adjGoals) || 0),
+                    assistsDelta: Math.max(0, Number(adjAssists) || 0),
+                    fairPlayCardsDelta: Math.max(0, Number(adjFairPlayCards) || 0),
+                    note: adjNote.trim() || undefined,
+                    includeInSeasonTournament: adjIncludeInSeasonTournament,
+                  }, userId);
+                  setAdjustments(prev => [...prev, created]);
+                  setShowAdjForm(false);
+                  // Reset form
+                  setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjFairPlayCards(0); setAdjNote('');
+                  setAdjSeasonId(''); setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
+                  setAdjGameDate(new Date().toISOString().split('T')[0]);
+                  setAdjHomeAway('neutral');
+                  setAdjIncludeInSeasonTournament(false);
+                } catch (error) {
+                  logger.error('[PlayerStatsView] Failed to add external game', { error });
+                  showToast(t('playerStats.addError', 'Failed to save the external game entry.'), 'error');
+                }
               }}
             >
               {/* Season / Tournament tabs — mutually exclusive, matching GameSettingsModal */}
@@ -373,10 +378,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); setAdjIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.eiMitaan', 'None')}
                   </button>
-                  <button type="button" onClick={() => { setAdjTournamentId(''); if (!adjSeasonId && seasons.length > 0) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { setAdjTournamentId(''); if (seasons.length > 0) { if (!adjSeasonId) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.kausi', 'Season')}
                   </button>
-                  <button type="button" onClick={() => { setAdjSeasonId(''); if (!adjTournamentId && tournaments.length > 0) setAdjTournamentId(tournaments[0].id); setAdjIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { setAdjSeasonId(''); if (tournaments.length > 0) { if (!adjTournamentId) setAdjTournamentId(tournaments[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.turnaus', 'Tournament')}
                   </button>
                 </div>
@@ -577,25 +582,32 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             return;
                           }
 
-                          const updated = await updatePlayerAdjustment(player.id, editingAdjId, {
-                            gamesPlayedDelta: Math.max(0, Number(editGames) || 0),
-                            goalsDelta: Math.max(0, Number(editGoals) || 0),
-                            assistsDelta: Math.max(0, Number(editAssists) || 0),
-                            fairPlayCardsDelta: Math.max(0, Number(editFairPlayCards) || 0),
-                            note: editNote.trim() || undefined,
-                            homeOrAway: editHomeAway,
-                            externalTeamName: editExternalTeam.trim(),
-                            opponentName: editOpponentName.trim(),
-                            seasonId: editSeasonId || undefined,
-                            tournamentId: editTournamentId || undefined,
-                            gameDate: editGameDate || undefined,
-                            scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
-                            scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
-                            includeInSeasonTournament: editIncludeInSeasonTournament,
-                          }, userId);
-                          if (updated) {
-                            setAdjustments(prev => prev.map(x => x.id === updated.id ? updated : x));
-                            setEditingAdjId(null);
+                          try {
+                            const updated = await updatePlayerAdjustment(player.id, editingAdjId, {
+                              gamesPlayedDelta: Math.max(0, Number(editGames) || 0),
+                              goalsDelta: Math.max(0, Number(editGoals) || 0),
+                              assistsDelta: Math.max(0, Number(editAssists) || 0),
+                              fairPlayCardsDelta: Math.max(0, Number(editFairPlayCards) || 0),
+                              note: editNote.trim() || undefined,
+                              homeOrAway: editHomeAway,
+                              externalTeamName: editExternalTeam.trim(),
+                              opponentName: editOpponentName.trim(),
+                              seasonId: editSeasonId || undefined,
+                              tournamentId: editTournamentId || undefined,
+                              gameDate: editGameDate || undefined,
+                              scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
+                              scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
+                              includeInSeasonTournament: editIncludeInSeasonTournament,
+                            }, userId);
+                            if (updated) {
+                              setAdjustments(prev => prev.map(x => x.id === updated.id ? updated : x));
+                              setEditingAdjId(null);
+                            } else {
+                              showToast(t('playerStats.updateError', 'Failed to update the external game entry.'), 'error');
+                            }
+                          } catch (error) {
+                            logger.error('[PlayerStatsView] Failed to update external game', { error });
+                            showToast(t('playerStats.updateError', 'Failed to update the external game entry.'), 'error');
                           }
                         }}
                       >
@@ -677,25 +689,25 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <button type="button" aria-label={t('playerStats.decreaseGames', 'Decrease games')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                             <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGames)} onChange={e => setEditGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" aria-label={t('playerStats.increaseGames', 'Increase games')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.goals', 'Goals')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <button type="button" aria-label={t('playerStats.decreaseGoals', 'Decrease goals')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                             <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGoals)} onChange={e => setEditGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGoals(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" aria-label={t('playerStats.increaseGoals', 'Increase goals')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGoals(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.assists', 'Assists')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <button type="button" aria-label={t('playerStats.decreaseAssists', 'Decrease assists')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                             <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editAssists)} onChange={e => setEditAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" aria-label={t('playerStats.increaseAssists', 'Increase assists')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
@@ -788,6 +800,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                 className="p-1 hover:bg-slate-600 rounded transition-colors"
                                 onClick={() => setShowActionsMenu(showActionsMenu === a.id ? null : a.id)}
                                 aria-label={t('common.actions', 'Actions')}
+                                aria-haspopup="menu"
+                                aria-expanded={showActionsMenu === a.id}
                               >
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-slate-400 hover:text-slate-200">
                                   <circle cx="8" cy="2.5" r="1.5"/>
@@ -796,9 +810,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                 </svg>
                               </button>
                               {showActionsMenu === a.id && (
-                                <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[120px]">
+                                <div role="menu" className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[120px]">
                                   <button
                                     type="button"
+                                    role="menuitem"
                                     className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-slate-200 first:rounded-t-lg"
                                     onClick={() => {
                                       setShowAdjForm(false); // Close add form when editing
@@ -824,6 +839,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                   </button>
                                   <button
                                     type="button"
+                                    role="menuitem"
                                     className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-red-400 hover:text-red-300 last:rounded-b-lg"
                                     onClick={() => {
                                       setShowDeleteConfirm(a.id);
@@ -875,41 +891,29 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         </div>
 
         {/* Delete Confirmation Dialog */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-slate-100 mb-4">{t('common.confirmDelete', 'Confirm Delete')}</h3>
-              <p className="text-slate-300 mb-6">
-                {t('playerStats.deleteConfirmMessage', 'Are you sure you want to delete this external game entry? This action cannot be undone.')}
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium transition-colors"
-                >
-                  {t('common.cancel', 'Cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!player || !showDeleteConfirm) return;
-                    const success = await deletePlayerAdjustment(player.id, showDeleteConfirm, userId);
-                    if (success) {
-                      setAdjustments(prev => prev.filter(a => a.id !== showDeleteConfirm));
-                      setShowDeleteConfirm(null);
-                    } else {
-                      showToast(t('playerStats.deleteError', 'Failed to delete the external game entry.'), 'error');
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-600 rounded hover:bg-red-500 text-sm font-medium transition-colors text-white"
-                >
-                  {t('common.delete', 'Delete')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmationModal
+          isOpen={showDeleteConfirm !== null}
+          title={t('common.confirmDelete', 'Confirm Delete')}
+          message={t('playerStats.deleteConfirmMessage', 'Are you sure you want to delete this external game entry? This action cannot be undone.')}
+          onConfirm={async () => {
+            if (!player || !showDeleteConfirm) return;
+            try {
+              const success = await deletePlayerAdjustment(player.id, showDeleteConfirm, userId);
+              if (success) {
+                setAdjustments(prev => prev.filter(a => a.id !== showDeleteConfirm));
+                setShowDeleteConfirm(null);
+              } else {
+                showToast(t('playerStats.deleteError', 'Failed to delete the external game entry.'), 'error');
+              }
+            } catch (error) {
+              logger.error('[PlayerStatsView] Failed to delete external game', { error });
+              showToast(t('playerStats.deleteError', 'Failed to delete the external game entry.'), 'error');
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(null)}
+          confirmLabel={t('common.delete', 'Delete')}
+          variant="danger"
+        />
 
         {/* Game by Game Stats - Title and Chart */}
         <div className="mt-6">
@@ -1012,7 +1016,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <ul className="list-disc list-inside space-y-1">
                     {assessmentNotes.map(n => (
                       <li key={n.date} className="text-xs text-slate-300">
-                        {new Date(n.date).toLocaleDateString()} - {n.notes}
+                        {formatDisplayDate(n.date)} - {n.notes}
                       </li>
                     ))}
                   </ul>
@@ -1103,7 +1107,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             <span className="ml-2 inline-block bg-orange-500/50 text-orange-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('common.gameTypeFutsal', 'Futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</span>
                           )}
                         </p>
-                        <p className="text-xs text-slate-400">{format(new Date(game.date), i18n.language === 'fi' ? 'd.M.yyyy' : 'PP', { locale: i18n.language === 'fi' ? fi : enUS })}</p>
+                        <p className="text-xs text-slate-400">{formatDisplayDate(game.date)}</p>
                       </div>
                     </div>
                     <div className="flex items-center">

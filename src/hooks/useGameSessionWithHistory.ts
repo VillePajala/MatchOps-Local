@@ -159,16 +159,14 @@ export function useGameSessionWithHistory(
       return;
     }
 
-    // Enforce categorization for all non-production environments (dev + tests)
-    if (process.env.NODE_ENV !== 'production') {
-      const isCategorized =
-        HISTORY_SAVING_ACTIONS.has(lastAction) || NO_HISTORY_ACTIONS.has(lastAction);
-      if (!isCategorized) {
-        throw new Error(
-          `[useGameSessionWithHistory] Uncategorized action: "${lastAction}". ` +
-            `Add to HISTORY_SAVING_ACTIONS or NO_HISTORY_ACTIONS in useGameSessionWithHistory.ts`
-        );
-      }
+    // Enforce categorization for all non-production environments (dev + tests).
+    // NO_HISTORY_ACTIONS was already checked above (early return), so we only
+    // need to verify the action is in HISTORY_SAVING_ACTIONS.
+    if (process.env.NODE_ENV !== 'production' && !HISTORY_SAVING_ACTIONS.has(lastAction)) {
+      throw new Error(
+        `[useGameSessionWithHistory] Uncategorized action: "${lastAction}". ` +
+          `Add to HISTORY_SAVING_ACTIONS or NO_HISTORY_ACTIONS in useGameSessionWithHistory.ts`
+      );
     }
 
     // Only save for history-saving actions

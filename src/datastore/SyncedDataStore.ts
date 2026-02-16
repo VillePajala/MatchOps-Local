@@ -34,6 +34,8 @@ import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
 import logger from '@/utils/logger';
 import { retryWithBackoff, chunkArray, countPushFailures } from '@/utils/retry';
 import * as Sentry from '@sentry/nextjs';
+// Shared error message extraction — aliased for backwards compatibility within this file
+import { getErrorMessage as getSafeErrorMessage } from '@/utils/transientErrors';
 
 /**
  * Number of entities to process in parallel during bulk cloud push.
@@ -45,56 +47,6 @@ import * as Sentry from '@sentry/nextjs';
  * Increase for faster imports on reliable connections, decrease if hitting rate limits.
  */
 const BULK_PUSH_CHUNK_SIZE = 10;
-
-/**
- * Compare two objects excluding timestamps to detect actual data changes.
- * Used to avoid unnecessary sync operations when data hasn't changed.
- *
- * @param a - First object
- * @param b - Second object
- * @returns true if the objects are equal (excluding timestamps)
- */
-function isDataEqual<T extends { createdAt?: string; updatedAt?: string }>(a: T, b: T): boolean {
-  // Strip timestamps for comparison (underscore-prefixed vars are intentionally unused)
-  const { createdAt: _ca, updatedAt: _ua, ...restA } = a;
-  const { createdAt: _cb, updatedAt: _ub, ...restB } = b;
-
-  // Sort keys before comparing to handle different key ordering between local/cloud objects.
-  // Without sorting, identical data with different key order would trigger unnecessary syncs.
-  // NOTE: This sorts top-level keys only, which is sufficient for the current use case
-  // (flat AppSettings objects). Deeper nesting would require recursive key sorting.
-  try {
-    const sortedStringify = (obj: unknown) => JSON.stringify(obj, Object.keys(obj as object).sort());
-    return sortedStringify(restA) === sortedStringify(restB);
-  } catch {
-    // If serialization fails (circular ref), assume different
-    return false;
-  }
-}
-
-/**
- * Extract a safe error message for logging.
- * Avoids exposing stack traces, config, or other sensitive details.
- *
- * @param error - The error object (can be Error, object, string, or unknown)
- * @returns A sanitized error message string
- */
-function getSafeErrorMessage(error: unknown): string {
-  if (!error) return 'Unknown error';
-  if (typeof error === 'string') return error;
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error !== null) {
-    const errorObj = error as Record<string, unknown>;
-    // Supabase/PostgreSQL error format
-    if (typeof errorObj.message === 'string') return errorObj.message;
-    if (typeof errorObj.error === 'string') return errorObj.error;
-    // HTTP error format
-    if (typeof errorObj.status === 'number') {
-      return `HTTP ${errorObj.status}${errorObj.statusText ? `: ${errorObj.statusText}` : ''}`;
-    }
-  }
-  return 'Unknown error';
-}
 
 /**
  * Error info passed to queue error listeners
@@ -512,11 +464,12 @@ export class SyncedDataStore implements DataStore {
     operation: SyncOperationType,
     data: unknown
   ): Promise<void> {
-    // Guard: Skip queueing if not initialized (e.g., during startup race conditions)
+    // Guard: Skip queueing if not initialized or already closed
     // This prevents "SyncQueue not initialized" errors when saves happen before
-    // the DataStore is fully ready. The local write still succeeds, but won't sync.
-    if (!this.initialized) {
-      logger.warn('[SyncedDataStore] queueSync called before initialization, skipping', {
+    // the DataStore is fully ready, or after close() has been called.
+    // The local write still succeeds, but won't sync.
+    if (!this.initialized || this.closed) {
+      logger.warn(`[SyncedDataStore] queueSync called while ${this.closed ? 'closed' : 'not initialized'}, skipping`, {
         entityType,
         entityId,
         operation,
@@ -782,9 +735,28 @@ export class SyncedDataStore implements DataStore {
   }
 
   async removePersonnelMember(id: string): Promise<boolean> {
+    // Get all games BEFORE deletion to identify which ones have this personnel member
+    const gamesBefore = await this.localStore.getGames();
+    const affectedGameIds = Object.entries(gamesBefore)
+      .filter(([, game]) => game.gamePersonnel?.includes(id))
+      .map(([gameId]) => gameId);
+
     const deleted = await this.localStore.removePersonnelMember(id);
     if (deleted) {
       await this.queueSync('personnel', id, 'delete', null);
+
+      // LocalDataStore.removePersonnelMember cascades to remove this ID from all games'
+      // gamePersonnel arrays. Queue those modified games for sync so the cloud stays consistent.
+      for (const gameId of affectedGameIds) {
+        try {
+          const updatedGame = await this.localStore.getGameById(gameId);
+          if (updatedGame) {
+            await this.queueSync('game', gameId, 'update', updatedGame);
+          }
+        } catch (error) {
+          logger.warn(`[SyncedDataStore] Failed to queue game ${gameId} after personnel removal:`, error);
+        }
+      }
     }
     return deleted;
   }
@@ -900,34 +872,15 @@ export class SyncedDataStore implements DataStore {
   }
 
   async saveSettings(settings: AppSettings): Promise<void> {
-    // Get existing settings to detect if data actually changed
-    const existing = await this.localStore.getSettings();
-
-    // Skip save if data unchanged - preserves timestamp for correct conflict resolution
-    if (isDataEqual(settings, existing)) {
-      logger.debug('[SyncedDataStore] Skipping save - settings unchanged (preserving timestamp)');
-      return;
-    }
-
-    // Data changed - save and queue for sync
+    // Always save and queue for sync. The previous isDataEqual optimization was removed
+    // because SyncEngine can overwrite IndexedDB between the caller's read and this
+    // comparison, causing legitimate changes to be silently skipped.
     await this.localStore.saveSettings(settings);
     await this.queueSync('settings', 'app', 'update', settings);
   }
 
   async updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
-    // Get existing settings to detect if data actually changed
-    const existing = await this.localStore.getSettings();
-
-    // Apply updates to check if result would be different
-    const merged = { ...existing, ...updates };
-
-    // Skip save if data unchanged - preserves timestamp for correct conflict resolution
-    if (isDataEqual(merged, existing)) {
-      logger.debug('[SyncedDataStore] Skipping save - settings unchanged (preserving timestamp)');
-      return existing;
-    }
-
-    // Data changed - save and queue for sync
+    // Always save and queue for sync (see saveSettings comment for rationale)
     const updated = await this.localStore.updateSettings(updates);
     await this.queueSync('settings', 'app', 'update', updated);
     return updated;
@@ -1008,10 +961,10 @@ export class SyncedDataStore implements DataStore {
   }
 
   async saveWarmupPlan(plan: WarmupPlan): Promise<boolean> {
-    const result = await this.localStore.saveWarmupPlan(plan);
+    // Normalize once to ensure local and cloud get identical timestamps
+    const normalizedPlan = normalizeWarmupPlanForSave(plan);
+    const result = await this.localStore.saveWarmupPlan(normalizedPlan);
     if (result) {
-      // Sync the normalized version (same normalization as LocalDataStore)
-      const normalizedPlan = normalizeWarmupPlanForSave(plan);
       await this.queueSync('warmupPlan', 'default', 'update', normalizedPlan);
     }
     return result;
@@ -1168,33 +1121,32 @@ export class SyncedDataStore implements DataStore {
       const teamIds = new Set(teams.map(t => t.id));
       const orphanWarnings: string[] = [];
 
-      for (const [gameId, game] of Object.entries(games)) {
+      for (const [gameId, originalGame] of Object.entries(games)) {
+        let game = originalGame;
         let modified = false;
         const gameLabel = `"${game.teamName} vs ${game.opponentName}" (${game.gameDate})`;
 
         if (game.seasonId && !seasonIds.has(game.seasonId)) {
           orphanWarnings.push(`Game ${gameLabel} had invalid season reference (${game.seasonId}) - fixed to empty`);
-          game.seasonId = '';
+          game = { ...game, seasonId: '' };
           modified = true;
         }
 
         if (game.tournamentId && !tournamentIds.has(game.tournamentId)) {
           orphanWarnings.push(`Game ${gameLabel} had invalid tournament reference (${game.tournamentId}) - fixed to empty`);
-          game.tournamentId = '';
-          game.tournamentSeriesId = '';
-          game.tournamentLevel = '';
+          game = { ...game, tournamentId: '', tournamentSeriesId: '', tournamentLevel: '' };
           modified = true;
         }
 
         if (game.teamId && !teamIds.has(game.teamId)) {
           orphanWarnings.push(`Game ${gameLabel} had invalid team reference (${game.teamId}) - fixed to empty`);
-          game.teamId = '';
+          game = { ...game, teamId: '' };
           modified = true;
         }
 
         if (modified) {
-          // Update local storage to keep local and cloud in sync
-          // This prevents perpetual sync conflicts
+          // Update local storage and games map to keep local and cloud in sync
+          games[gameId] = game;
           await this.localStore.saveGame(gameId, game);
         }
       }
@@ -1210,28 +1162,28 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
-      for (const team of teams) {
+      for (let i = 0; i < teams.length; i++) {
+        let team = teams[i];
         let modified = false;
 
         if (team.boundSeasonId && !seasonIds.has(team.boundSeasonId)) {
           orphanWarnings.push(`Team "${team.name}" had invalid season reference (${team.boundSeasonId}) - unbound`);
-          team.boundSeasonId = '';
+          team = { ...team, boundSeasonId: '' };
           modified = true;
         }
 
         if (team.boundTournamentId && !tournamentIds.has(team.boundTournamentId)) {
           orphanWarnings.push(`Team "${team.name}" had invalid tournament reference (${team.boundTournamentId}) - unbound`);
-          team.boundTournamentId = '';
-          team.boundTournamentSeriesId = ''; // Clear series too since tournament is gone
+          team = { ...team, boundTournamentId: '', boundTournamentSeriesId: '' };
           modified = true;
         } else if (team.boundTournamentSeriesId && !tournamentSeriesIds.has(team.boundTournamentSeriesId)) {
-          // Tournament exists but series doesn't (series was deleted from tournament)
           orphanWarnings.push(`Team "${team.name}" had invalid series reference (${team.boundTournamentSeriesId}) - unbound`);
-          team.boundTournamentSeriesId = '';
+          team = { ...team, boundTournamentSeriesId: '' };
           modified = true;
         }
 
         if (modified) {
+          teams[i] = team;
           await this.localStore.upsertTeam(team);
         }
       }
@@ -1244,24 +1196,26 @@ export class SyncedDataStore implements DataStore {
       }
 
       // Fix orphaned player adjustments (reference to deleted seasons/tournaments)
+      // Use spread copies and update the in-memory array to keep adjustmentsMap consistent
       for (const [playerId, adjustments] of adjustmentsMap) {
-        for (const adj of adjustments) {
+        for (let i = 0; i < adjustments.length; i++) {
+          let adj = adjustments[i];
           let modified = false;
 
           if (adj.seasonId && !seasonIds.has(adj.seasonId)) {
             orphanWarnings.push(`Player adjustment for ${playerId} had invalid season reference - fixed to empty`);
-            adj.seasonId = '';
+            adj = { ...adj, seasonId: '' };
             modified = true;
           }
 
           if (adj.tournamentId && !tournamentIds.has(adj.tournamentId)) {
             orphanWarnings.push(`Player adjustment for ${playerId} had invalid tournament reference - fixed to empty`);
-            adj.tournamentId = '';
+            adj = { ...adj, tournamentId: '' };
             modified = true;
           }
 
           if (modified) {
-            // Update local storage
+            adjustments[i] = adj;
             await this.localStore.updatePlayerAdjustment(playerId, adj.id, adj);
           }
         }
@@ -1529,16 +1483,17 @@ export class SyncedDataStore implements DataStore {
     // Always clear local data, even if cloud clear failed
     await this.localStore.clearAllUserData();
 
-    // Resume sync engine if it was running before
-    // This allows subsequent queueSync() calls to be processed
+    if (cloudError) {
+      // Do NOT resume sync engine — cloud state is inconsistent (local empty, cloud has old data).
+      // Let the caller handle the error and decide when to resume.
+      logger.warn('[SyncedDataStore] Local data cleared but cloud clear failed - sync engine stays paused');
+      throw cloudError;
+    }
+
+    // Resume sync engine only if everything succeeded
     if (wasRunning && this.syncEngine) {
       this.syncEngine.resume();
       logger.info('[SyncedDataStore] Sync engine resumed after data clear');
-    }
-
-    if (cloudError) {
-      logger.warn('[SyncedDataStore] Local data cleared but cloud clear failed - re-throwing for caller');
-      throw cloudError;
     }
 
     logger.info('[SyncedDataStore] All user data cleared (local and cloud)');

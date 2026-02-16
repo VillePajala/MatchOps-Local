@@ -95,7 +95,7 @@ const DEFAULT_STATE: SubscriptionState = {
   status: 'none',
   periodEnd: null,
   graceEnd: null,
-  isActive: false,
+  isActive: isSubscriptionActive('none'),
   isLoading: true,
   fetchFailed: false,
 };

@@ -90,7 +90,7 @@ const InstallPrompt: React.FC = () => {
   }, [checkInstallationStatus, installPrompt]); // Rerun effect if installPrompt changes
 
   // Initial check - run once on mount
-  React.useLayoutEffect(() => {
+  React.useEffect(() => {
     checkInstallationStatus().then(shouldShow => {
       if (!shouldShow) {
         setIsVisible(false);
@@ -130,7 +130,11 @@ const InstallPrompt: React.FC = () => {
   };
 
   const handleDismiss = async () => {
-    await setInstallPromptDismissed();
+    try {
+      await setInstallPromptDismissed();
+    } catch (error) {
+      logger.warn('Failed to persist install prompt dismissal:', error);
+    }
     setIsVisible(false);
   };
 
@@ -139,7 +143,7 @@ const InstallPrompt: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div className={styles.installPrompt}>
+    <div className={styles.installPrompt} role="alertdialog" aria-modal="true" aria-label={t("installPrompt.message")}>
       <div className={styles.logoContainer}>
         <Image
           src="/logos/app-logo-yellow.png"

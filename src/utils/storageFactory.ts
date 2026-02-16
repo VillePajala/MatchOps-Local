@@ -668,7 +668,7 @@ export class StorageFactory {
   /**
    * Test an adapter with basic operations to ensure it's working
    */
-  private async testAdapter(adapter: StorageAdapter): Promise<void> {
+  private async testAdapter(adapter: StorageAdapter, depth = 0): Promise<void> {
     const testKey = `storage_test_${Date.now()}`;
     const testValue = 'test_value';
     const timer = storageMetrics.startOperation(OperationType.DB_TRANSACTION);
@@ -715,15 +715,19 @@ export class StorageFactory {
         error
       });
 
-      // Try recovery if corruption detected
+      // Try recovery if corruption detected (retry once after recovery)
       if (error instanceof StorageError && error.type === StorageErrorType.CORRUPTED_DATA) {
+        if (depth >= 1) {
+          this.logger.error('Corruption persists after recovery — not retrying');
+          throw error;
+        }
         this.logger.info('Attempting recovery during adapter test');
         const recoveryResult = await storageRecovery.repairCorruption(error, adapter);
         if (!recoveryResult.success) {
           throw error;
         }
-        // Retry test after recovery
-        return this.testAdapter(adapter);
+        // Retry test once after recovery
+        return this.testAdapter(adapter, depth + 1);
       }
 
       throw new StorageError(

@@ -361,7 +361,9 @@ export class SyncEngine {
     }
 
     logger.debug('[SyncEngine] Nudge received, processing queue');
-    this.doProcessQueue();
+    this.doProcessQueue().catch((e) => {
+      logger.error('[SyncEngine] Error processing queue after nudge:', e);
+    });
   }
 
   /**
@@ -395,7 +397,9 @@ export class SyncEngine {
 
     // Process queue immediately if conditions allow
     if (this.isRunning && this.isOnline && !this.isResettingStale) {
-      this.doProcessQueue();
+      this.doProcessQueue().catch((e) => {
+        logger.error('[SyncEngine] Error processing queue after resume:', e);
+      });
     }
   }
 
@@ -653,8 +657,7 @@ export class SyncEngine {
 
   private async doProcessQueue(): Promise<void> {
     // DIAGNOSTIC: Log entry point to track why processing might not happen
-    // INFO level logging for production visibility - helps diagnose sync issues
-    logger.info('[SyncEngine] doProcessQueue called', {
+    logger.debug('[SyncEngine] doProcessQueue called', {
       isRunning: this.isRunning,
       isDisposing: this.isDisposing,
       isPaused: this.isPaused,
@@ -758,7 +761,7 @@ export class SyncEngine {
           // There ARE operations, but none are ready - check why
           const allOps = await this.queue.getAllOperations();
           const now = Date.now();
-          logger.info('[SyncEngine] No pending operations ready, but queue is not empty', {
+          logger.debug('[SyncEngine] No pending operations ready, but queue is not empty', {
             total: stats.total,
             pending: stats.pending,
             syncing: stats.syncing,
@@ -787,7 +790,7 @@ export class SyncEngine {
         (ENTITY_SYNC_PRIORITY[a.entityType] ?? 5) - (ENTITY_SYNC_PRIORITY[b.entityType] ?? 5)
       );
 
-      logger.info('[SyncEngine] Processing batch', {
+      logger.debug('[SyncEngine] Processing batch', {
         count: pending.length,
         operations: pending.map(op => ({
           id: op.id.slice(0, 8),
@@ -799,7 +802,7 @@ export class SyncEngine {
       // Process each operation - executor is guaranteed non-null by guard above
       const executor = this.executor;
       for (const op of pending) {
-        logger.info('[SyncEngine] Starting operation', {
+        logger.debug('[SyncEngine] Starting operation', {
           id: op.id.slice(0, 8),
           entityType: op.entityType,
           entityId: op.entityId.slice(0, 8),
@@ -850,20 +853,21 @@ export class SyncEngine {
         // 2. Allow event loop to process other tasks
         // 3. Ensure isSyncing=false is visible before re-check
         queueMicrotask(() => {
+          // Use getPending(1) instead of getStats() for the re-check.
+          // getStats() may return cached results that don't reflect operations
+          // queued during processing, while getPending(1) always reads from the DB.
           this.queue
-            .getStats()
-            .then((stats) => {
-              if (stats.pending > 0) {
-                logger.debug('[SyncEngine] Operations queued during processing, re-processing', {
-                  pending: stats.pending,
-                });
+            .getPending(1)
+            .then((pending) => {
+              if (pending.length > 0) {
+                logger.debug('[SyncEngine] Operations queued during processing, re-processing');
                 this.doProcessQueue().catch((e) => {
                   logger.error('[SyncEngine] Error re-processing queue:', e);
                 });
               }
             })
             .catch(() => {
-              // Ignore stats errors in re-check - not critical
+              // Ignore errors in re-check - not critical
             });
         });
       }
@@ -878,9 +882,12 @@ export class SyncEngine {
     let markedSyncing = false;
 
     try {
-      // Mark as syncing
-      await this.queue.markSyncing(op.id);
-      markedSyncing = true;
+      // Mark as syncing — returns false if operation was already completed/removed
+      markedSyncing = await this.queue.markSyncing(op.id);
+      if (!markedSyncing) {
+        logger.debug(`[SyncEngine] Operation ${opInfo} already completed/removed, skipping`);
+        return;
+      }
 
       // Execute the sync with timeout to prevent hung operations blocking all syncing
       // Note: 90 seconds needed for large games with many events/players/related data
@@ -1037,8 +1044,8 @@ export class SyncEngine {
           retryCount: op.retryCount,
           timestamp: op.timestamp,
           error: errorMessage,
-          // Include data size to check for timeout issues with large entities
-          dataSize: op.data ? JSON.stringify(op.data).length : 0,
+          // Estimate data size without expensive JSON.stringify on mobile
+          dataSize: op.data ? (typeof op.data === 'object' ? Object.keys(op.data as object).length + ' keys' : 'primitive') : 'none',
         });
       }
 
@@ -1077,11 +1084,16 @@ export class SyncEngine {
         }
       }
 
-      // Check if will retry
-      const updatedOp = await this.queue.getById(op.id);
-      const willRetry = updatedOp?.status === 'pending'; // Back to pending = will retry
+      // Check if will retry (wrap in try-catch so failure listeners are always notified)
+      let willRetry = false;
+      try {
+        const updatedOp = await this.queue.getById(op.id);
+        willRetry = updatedOp?.status === 'pending'; // Back to pending = will retry
+      } catch (getError) {
+        logger.warn(`[SyncEngine] Could not check retry status for ${opInfo}:`, getError);
+      }
 
-      // Emit failure event
+      // Emit failure event (always, even if getById failed above)
       for (const listener of this.failedListeners) {
         try {
           listener(op.id, errorMessage, willRetry);

@@ -10,20 +10,20 @@ if (dsn && (isProduction || isForceEnabled)) {
   Sentry.init({
     dsn,
 
-    // Performance monitoring - 100% sampling for small user base (20 users)
-    tracesSampleRate: 1.0,
+    // Performance monitoring - 10% sampling, sustainable at Play Store scale
+    tracesSampleRate: 0.1,
 
     // Environment
     environment: process.env.NODE_ENV,
 
-    // Release tracking
-    release: process.env.npm_package_version,
+    // Release tracking — use build-time env var (npm_package_version is undefined at runtime)
+    release: process.env.NEXT_PUBLIC_APP_VERSION,
 
     // Debug mode in development
     debug: !isProduction,
 
     // Error filtering
-    beforeSend(event, hint) {
+    beforeSend(event, _hint) {
       // Filter out development-only errors
       if (!isProduction && !isForceEnabled) {
         return null;

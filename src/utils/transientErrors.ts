@@ -78,12 +78,17 @@ export const TRANSIENT_STATUS_CODES = new Set([
  * Shared between retry modules to ensure consistent error message extraction.
  */
 export function getErrorMessage(error: unknown): string {
+  if (!error) return 'Unknown error';
   if (typeof error === 'string') return error;
   if (error instanceof Error) return error.message;
   if (typeof error === 'object' && error !== null) {
     const errorObj = error as Record<string, unknown>;
     if (typeof errorObj.message === 'string') return errorObj.message;
     if (typeof errorObj.error === 'string') return errorObj.error;
+    // HTTP error objects (e.g., raw Supabase responses)
+    if (typeof errorObj.status === 'number') {
+      return `HTTP ${errorObj.status}${typeof errorObj.statusText === 'string' ? ': ' + errorObj.statusText : ''}`;
+    }
   }
   return String(error);
 }

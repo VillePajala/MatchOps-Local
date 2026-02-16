@@ -163,8 +163,9 @@ export function filterGameIds(
         const hasTournament = (game.tournamentId ?? '') !== '';
         return hasSeason && !hasTournament;
       } else if (seasonFilter !== undefined) {
-        // Show specific season only
-        return game.seasonId === seasonFilter;
+        // Show specific season only (exclude tournament games for consistency with stats)
+        const hasTournament = (game.tournamentId ?? '') !== '';
+        return game.seasonId === seasonFilter && !hasTournament;
       }
       // If on season tab but no seasonFilter or game has no season, exclude
       return false;
@@ -178,8 +179,9 @@ export function filterGameIds(
         const hasSeason = (game.seasonId ?? '') !== '';
         return hasTournament && !hasSeason;
       } else if (tournamentFilter !== undefined) {
-        // Show specific tournament only
-        if (game.tournamentId !== tournamentFilter) return false;
+        // Show specific tournament only (exclude season games for consistency with stats)
+        const hasSeason = (game.seasonId ?? '') !== '';
+        if (game.tournamentId !== tournamentFilter || hasSeason) return false;
 
         // Apply series filter if set (only when specific tournament selected)
         if (seriesFilter && seriesFilter !== 'all') {

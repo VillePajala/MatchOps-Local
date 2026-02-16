@@ -73,6 +73,7 @@ export function GameNotesEditor({
           ref={notesTextareaRef}
           value={editGameNotes}
           onChange={(e) => onEditNotesChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Escape') onCancelEdit(); }}
           className="w-full h-24 p-2 bg-slate-700 border border-slate-500 rounded-md shadow-sm text-sm text-slate-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           placeholder={t('gameStatsModal.notesPlaceholder', 'Notes...') ?? undefined}
         />

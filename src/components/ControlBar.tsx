@@ -201,23 +201,43 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
     }
   };
 
+  // Track drag offset in ref for mouseup to read current value (avoids stale closure)
+  const dragOffsetRef = useRef(0);
+  // Track active mouse handlers to prevent listener leaks on rapid clicks
+  const mouseMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const mouseUpRef = useRef<(() => void) | null>(null);
+
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Clean up any existing listeners first (prevents leak on rapid clicks)
+    if (mouseMoveRef.current) document.removeEventListener('mousemove', mouseMoveRef.current);
+    if (mouseUpRef.current) document.removeEventListener('mouseup', mouseUpRef.current);
+
     dragStartX.current = e.clientX;
+    dragOffsetRef.current = 0;
     setIsDragging(true);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const diff = e.clientX - dragStartX.current;
-      if (diff <= 0) setDragOffset(Math.max(DESIGN_TOKENS.DRAG_MAX_DISTANCE, diff));
+    const handleMouseMove = (ev: MouseEvent) => {
+      const diff = ev.clientX - dragStartX.current;
+      if (diff <= 0) {
+        const clamped = Math.max(DESIGN_TOKENS.DRAG_MAX_DISTANCE, diff);
+        dragOffsetRef.current = clamped;
+        setDragOffset(clamped);
+      }
     };
 
     const handleMouseUp = () => {
-      if (dragOffset < DESIGN_TOKENS.DRAG_CLOSE_THRESHOLD) setIsSettingsMenuOpen(false);
+      if (dragOffsetRef.current < DESIGN_TOKENS.DRAG_CLOSE_THRESHOLD) setIsSettingsMenuOpen(false);
       setDragOffset(0);
       setIsDragging(false);
+      dragOffsetRef.current = 0;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      mouseMoveRef.current = null;
+      mouseUpRef.current = null;
     };
 
+    mouseMoveRef.current = handleMouseMove;
+    mouseUpRef.current = handleMouseUp;
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
@@ -257,6 +277,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
       if (pendingTimeoutIdRef.current !== null) {
         clearTimeout(pendingTimeoutIdRef.current);
       }
+      // Clean up mouse drag listeners if unmount happens mid-drag
+      if (mouseMoveRef.current) document.removeEventListener('mousemove', mouseMoveRef.current);
+      if (mouseUpRef.current) document.removeEventListener('mouseup', mouseUpRef.current);
       pendingTransitionRef.current = null;
       pendingTimeoutIdRef.current = null;
     };
@@ -491,13 +514,14 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
 
       {/* Settings Menu Overlay */}
       {isSettingsMenuOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40" onClick={handleOverlayClick} />
+        <div className="fixed inset-0 bg-black/50 z-40" onClick={handleOverlayClick} aria-hidden="true" />
       )}
 
       {/* Settings Side Panel */}
       <div
         ref={settingsMenuRef}
         data-testid="settings-side-panel"
+        aria-hidden={!isSettingsMenuOpen}
         className={`fixed top-0 left-0 h-full ${DESIGN_TOKENS.MENU_WIDTH} z-50 flex flex-col bg-slate-800/98 backdrop-blur-sm shadow-xl border-r border-slate-600/50 overflow-hidden ${
           isDragging ? '' : 'transition-transform duration-300 ease-in-out'
         } ${isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
@@ -516,7 +540,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
           <button
             onClick={() => { setIsSettingsMenuOpen(false); setDragOffset(0); }}
             className="text-slate-400 hover:text-slate-200 p-1 rounded"
-            title={t('common.closeMenu', 'Close Menu') ?? undefined}
+            title={t('common.closeMenu', 'Close Menu')}
           >
             <HiOutlineChevronLeft className="w-5 h-5" />
           </button>
@@ -590,7 +614,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <button
               onClick={wrapModal(onOpenPlayerAssessmentModal)}
               className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              title={t('instructionsModal.controlBar.assessPlayers') ?? undefined}
+              title={t('instructionsModal.controlBar.assessPlayers')}
             >
               <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
             </button>
@@ -685,7 +709,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   // MAINTAINER NOTE: If you add a new DATA prop (not a callback), add it here!
   // Current data props: timeElapsedInSeconds, isTimerRunning, canUndo, canRedo,
   // canTacticalUndo, canTacticalRedo, isTacticsBoardView, isDrawingEnabled, isGameLoaded,
-  // selectedPlayerCount, isCloudMode, onGoToStartScreen (truthiness)
+  // selectedPlayerCount, isCloudMode, onGoToStartScreen (truthiness), onSignOut (truthiness)
   //
   // Return true = props equal (skip re-render), false = props changed (re-render)
   return (
@@ -700,7 +724,8 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
     prevProps.isGameLoaded === nextProps.isGameLoaded &&
     prevProps.selectedPlayerCount === nextProps.selectedPlayerCount &&
     prevProps.isCloudMode === nextProps.isCloudMode &&
-    !!prevProps.onGoToStartScreen === !!nextProps.onGoToStartScreen
+    !!prevProps.onGoToStartScreen === !!nextProps.onGoToStartScreen &&
+    !!prevProps.onSignOut === !!nextProps.onSignOut
   );
 });
 

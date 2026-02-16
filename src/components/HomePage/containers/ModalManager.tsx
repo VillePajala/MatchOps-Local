@@ -179,7 +179,7 @@ interface ModalManagerHandlers {
   tournamentLevelChange: (level: string) => void;
   tournamentSeriesIdChange: (seriesId: string | undefined) => void;
   teamIdChange: (teamId: string | undefined) => void;
-  awardFairPlayCard: (playerId: string | null, time: number) => void;
+  awardFairPlayCard: (playerId: string | null) => void;
   setNumberOfPeriods: (periods: number) => void;
   setPeriodDuration: (minutes: number) => void;
   setDemandFactor: (factor: number) => void;
@@ -311,6 +311,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
             initialSelectedPlayerId={data.selectedPlayerForStats?.id}
             onGameClick={handlers.gameLogClick}
             masterRoster={data.masterRoster}
+            onGameNotesChange={handlers.gameNotesChange}
           onOpenSettings={handlers.openSettingsModal}
         />
       )}

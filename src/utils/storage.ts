@@ -312,15 +312,16 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
 
     // Track the original promise for cleanup if timeout occurs
     let didTimeout = false;
-    const timeoutPromise = new Promise<StorageAdapter>((_, reject) =>
-      setTimeout(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const timeoutPromise = new Promise<StorageAdapter>((_, reject) => {
+      timeoutId = setTimeout(() => {
         didTimeout = true;
         reject(new Error(`Adapter creation timeout after ${ADAPTER_CREATE_TIMEOUT_MS}ms`));
-      }, ADAPTER_CREATE_TIMEOUT_MS)
-    );
+      }, ADAPTER_CREATE_TIMEOUT_MS);
+    });
 
-    // Race between creation and timeout
-    const promise = Promise.race([createPromise, timeoutPromise]);
+    // Race between creation and timeout, clear timer on settlement
+    const promise = Promise.race([createPromise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
 
     // Handle timeout cleanup: if creation times out, track the original promise
     // so we can close the orphaned connection when it eventually resolves
@@ -1133,8 +1134,8 @@ export async function clearAdapterCacheWithCleanup(): Promise<void> {
     try {
       const adapter = await adapterPromise;
       // Check if adapter has close method (IndexedDB connections)
-      if (adapter && typeof (adapter as unknown as { close?: () => Promise<void> }).close === 'function') {
-        await (adapter as unknown as { close: () => Promise<void> }).close();
+      if (adapter && hasCloseMethod(adapter)) {
+        await adapter.close();
         logger.debug('Closed adapter connection during cache clear');
       }
     } catch (error) {

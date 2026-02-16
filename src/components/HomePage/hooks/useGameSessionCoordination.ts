@@ -291,6 +291,11 @@ export function useGameSessionCoordination({
       showPlayerNames: state.showPlayerNames,
       showPositionLabels: state.showPositionLabels,
       timeElapsedInSeconds: state.timeElapsedInSeconds,
+      leagueId: state.leagueId,
+      customLeagueName: state.customLeagueName,
+      wentToOvertime: state.wentToOvertime,
+      wentToPenalties: state.wentToPenalties,
+      tournamentSeriesId: state.tournamentSeriesId,
     } satisfies Partial<AppState>;
     return slice;
   }, []);
@@ -507,7 +512,15 @@ export function useGameSessionCoordination({
         completedIntervalDurations: state.completedIntervalDurations ?? [],
         lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds ?? 0,
         showPlayerNames: state.showPlayerNames,
+        showPositionLabels: state.showPositionLabels,
+        gameType: state.gameType,
+        gender: state.gender,
         timeElapsedInSeconds: state.timeElapsedInSeconds,
+        leagueId: state.leagueId,
+        customLeagueName: state.customLeagueName,
+        wentToOvertime: state.wentToOvertime,
+        wentToPenalties: state.wentToPenalties,
+        tournamentSeriesId: state.tournamentSeriesId,
       }
     });
   }, [dispatchGameSession]);
