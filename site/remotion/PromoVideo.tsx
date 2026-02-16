@@ -303,7 +303,7 @@ export const PromoVideoB: React.FC = () => {
       </Sequence>
 
       <Sequence from={300} durationInFrames={130}>
-        <FeatureShowcase screenshot="screenshots/MatchOps_main_soccerfield_new_en_fi.jpg" label="Plan" subtitle="Drag-and-drop lineup builder" duration={130} />
+        <FeatureShowcase screenshot="screenshots/MatchOps_main_soccerfield_new_en_fi.jpg" label="Plan" subtitle="Interactive lineup builder" duration={130} />
       </Sequence>
 
       <Sequence from={430} durationInFrames={130}>
@@ -351,7 +351,7 @@ export const PromoVideo: React.FC = () => {
       </Sequence>
 
       <Sequence from={300} durationInFrames={130}>
-        <FeatureShowcase screenshot="screenshots/MatchOps_main_soccerfield_new_en_fi.jpg" label="Plan" subtitle="Drag-and-drop lineup builder" duration={130} />
+        <FeatureShowcase screenshot="screenshots/MatchOps_main_soccerfield_new_en_fi.jpg" label="Plan" subtitle="Interactive lineup builder" duration={130} />
       </Sequence>
 
       <Sequence from={430} durationInFrames={130}>

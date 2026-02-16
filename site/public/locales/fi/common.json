@@ -88,7 +88,7 @@
       "typescript": "TypeScript Strict Mode",
       "typescriptDesc": "Täysi strict-tila käytössä no-explicit-any-säännöllä",
       "testing": "Testikattavuus",
-      "testingDesc": "4 400+ testiä Jest- ja React Testing Library -kirjastoilla",
+      "testingDesc": "4 700+ testiä Jest- ja React Testing Library -kirjastoilla",
       "linting": "Linttaus ja muotoilu",
       "lintingDesc": "ESLint tiukoilla säännöillä, Prettier muotoiluun",
       "cicd": "CI/CD",
@@ -330,7 +330,7 @@
       "powerLine2": "yhdessä sovelluksessa.",
       "memorable": "Yksikään peli ei unohdu.",
       "toolkit": "Ottelupäivän työkalut",
-      "threePillars": "Suunnittele · Kirjaa · Kehitä"
+      "threePillars": "Suunnittele • Kirjaa • Kehitä"
     },
     "badges": {
       "cloudSync": "UUTTA: Pilvisynkronointi"
@@ -383,10 +383,10 @@
     "descriptions": {
       "heroSubtitle": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja. Toimii ilman nettiä. Tietosi pysyvät yksityisinä.",
       "planTrackBuild": "Suunnittele kokoonpanot, seuraa pelejä reaaliajassa, kerää tilastoja.",
-      "localFirst": "Jalkapallovalmentajan sovellus",
-      "localFirstShort": "Jalkapallovalmentajan sovellus",
-      "madeSimple": "Valmennus ilman säätöä",
-      "forPrivacyCoaches": "Valmentajille, jotka arvostavat yksityisyyttä",
+      "localFirst": "Jalkapallo- ja futsalvalmennussovellus",
+      "localFirstShort": "Jalkapallo- ja futsalvalmennussovellus",
+      "madeSimple": "Jalkapallo- ja futsalvalmennus ilman säätöä",
+      "forPrivacyCoaches": "Jalkapallo- ja futsalvalmentajille, jotka arvostavat yksityisyyttä",
       "trackDevelopment": "Seuraa pelaajien kehitystä datalla",
       "comprehensiveStats": "Kattavat tilastot otteluista, kausista ja turnauksista.",
       "planLineupsVisually": "Suunnittele kokoonpanot visuaalisesti",
@@ -429,7 +429,7 @@
       "trackSubstitutions": "Seuraa vaihtoja",
       "liveEvents": "Tapahtumat",
       "seasonAnalytics": "Kauden analytiikka",
-      "forSoccerCoaches": "Jalkapallovalmentajille",
+      "forSoccerCoaches": "Jalkapallo- ja futsalvalmentajille",
       "interactiveLineup": "Interaktiivinen kokoonpano",
       "playerStatistics": "Pelaajatilastot",
       "planYourLineup": "Suunnittele kokoonpano",
@@ -443,9 +443,12 @@
       "interactiveSoccerField": "Interaktiivinen jalkapallokenttä",
       "liveGameTimerEvents": "Pelikello ja tapahtumien kirjaus",
       "playerTeamStatistics": "Pelaaja- ja joukkuetilastot",
-      "planTrackAssessDots": "Suunnittele · Kirjaa · Kehitä",
+      "planTrackAssessDots": "Suunnittele • Kirjaa • Kehitä",
       "getStarted": "Aloita",
-      "replaceClipboard": "Korvaa taktiikkataulu, sekuntikello ja muistivihko yhdellä sovelluksella."
+      "replaceClipboard": "Korvaa taktiikkataulu, sekuntikello ja muistivihko yhdellä sovelluksella.",
+      "lineup": "Kokoonpano",
+      "tactics": "Taktiikat",
+      "logGoal": "Kirjaa maali"
     },
     "cards": {
       "introducing": "Esittelyssä",
@@ -500,8 +503,8 @@
       "aiPoweredDesc": "Ei käsin kirjoitettua koodia. Rakennettu Claude Codella, Cursorilla ja Codexilla — myös nämä markkinointimateriaalit.",
       "linesOfCode": "270 000+ riviä",
       "linesOfCodeDesc": "96K riviä testejä, 86K riviä lähdekoodia, 90K riviä dokumentaatiota.",
-      "testCoverage": "4 400+ testiä",
-      "testCoverageDesc": "222 testisarjaa. Toimivuus tarkistetaan automaattisesti jokaisen muutoksen yhteydessä.",
+      "testCoverage": "4 700+ testiä",
+      "testCoverageDesc": "226 testisarjaa. Toimivuus tarkistetaan automaattisesti jokaisen muutoksen yhteydessä.",
       "techStack": "Uusin teknologia",
       "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, asennettava, automaattipäivitykset.",
       "documentation": "90K riviä kontekstia",
@@ -511,7 +514,11 @@
       "codeQuality": "Yritystason laatu",
       "codeQualityDesc": "ESLint käytössä, TypeScript tiukka tila, Sentry-seuranta, saavutettavuustestattu.",
       "cicd": "Automatisoitu CI/CD",
-      "cicdDesc": "Lint, tyypit, 4400+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Automaattinen julkaisu."
+      "cicdDesc": "Lint, tyypit, 4700+ testiä, tietoturvatarkistus, tekoälyarviointi, bundle-analyysi. Automaattinen julkaisu.",
+      "react": "React",
+      "components": "komponenttia",
+      "passRate": "läpäisyaste",
+      "checks": "tarkistusta"
     }
   },
   "privacyPolicy": {

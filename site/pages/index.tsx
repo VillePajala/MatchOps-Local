@@ -30,8 +30,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
       : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
     assessment: isEnglish
-      ? '/screenshots/MatchOps_main_development_fi.jpg'
-      : '/screenshots/MatchOps_main_development_en.jpg',
+      ? '/screenshots/MatchOps_main_development_fi.jpg'  // filename mislabeled: _fi.jpg has EN content
+      : '/screenshots/MatchOps_main_development_en.jpg',  // filename mislabeled: _en.jpg has FI content
     trends: isEnglish
       ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
       : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',

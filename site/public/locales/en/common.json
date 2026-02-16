@@ -107,7 +107,7 @@
       "typescript": "TypeScript Strict Mode",
       "typescriptDesc": "Full strict mode enabled with no-explicit-any rule",
       "testing": "Test Coverage",
-      "testingDesc": "4,400+ tests with Jest and React Testing Library",
+      "testingDesc": "4,700+ tests with Jest and React Testing Library",
       "linting": "Linting & Formatting",
       "lintingDesc": "ESLint with strict rules, Prettier for formatting",
       "cicd": "CI/CD",
@@ -402,10 +402,10 @@
     "descriptions": {
       "heroSubtitle": "Plan lineups, track games live, build statistics. Works offline. Your data stays private.",
       "planTrackBuild": "Plan lineups, track games live, build statistics.",
-      "localFirst": "Soccer coaching app",
-      "localFirstShort": "Soccer coaching app",
-      "madeSimple": "Soccer coaching made simple",
-      "forPrivacyCoaches": "For soccer coaches who value privacy",
+      "localFirst": "Soccer & futsal coaching app",
+      "localFirstShort": "Soccer & futsal coaching app",
+      "madeSimple": "Soccer & futsal coaching made simple",
+      "forPrivacyCoaches": "For soccer & futsal coaches who value privacy",
       "trackDevelopment": "Track player development with data",
       "comprehensiveStats": "Comprehensive statistics across games, seasons, and tournaments.",
       "planLineupsVisually": "Plan lineups visually",
@@ -448,7 +448,7 @@
       "trackSubstitutions": "Track substitutions",
       "liveEvents": "Live Events",
       "seasonAnalytics": "Season analytics",
-      "forSoccerCoaches": "For Soccer Coaches",
+      "forSoccerCoaches": "For Soccer & Futsal Coaches",
       "interactiveLineup": "Interactive Lineup",
       "playerStatistics": "Player Statistics",
       "planYourLineup": "Plan Your Lineup",
@@ -464,7 +464,10 @@
       "playerTeamStatistics": "Player & Team Statistics",
       "planTrackAssessDots": "Plan • Track • Develop",
       "getStarted": "Get Started",
-      "replaceClipboard": "Replace clipboard, stopwatch, and notebook with one app."
+      "replaceClipboard": "Replace clipboard, stopwatch, and notebook with one app.",
+      "lineup": "Lineup",
+      "tactics": "Tactics",
+      "logGoal": "Log Goal"
     },
     "cards": {
       "introducing": "Introducing",
@@ -519,8 +522,8 @@
       "aiPoweredDesc": "Zero handwritten code. Built with Claude Code, Cursor, and Codex. Even these marketing materials.",
       "linesOfCode": "270,000+ Lines",
       "linesOfCodeDesc": "96K tests, 86K source, 90K docs. Test-first development at scale.",
-      "testCoverage": "4,400+ Tests",
-      "testCoverageDesc": "222 test suites with 100% pass rate. Quality enforced at every commit.",
+      "testCoverage": "4,700+ Tests",
+      "testCoverageDesc": "226 test suites with 100% pass rate. Quality enforced at every commit.",
       "techStack": "Cutting-Edge Stack",
       "techStackDesc": "Next.js 16 + React 19 PWA. Offline-first, installable, auto-updating.",
       "documentation": "90K Lines of Context",
@@ -530,7 +533,11 @@
       "codeQuality": "Enterprise Quality",
       "codeQualityDesc": "ESLint enforced, TypeScript strict mode, Sentry monitoring, accessibility tested.",
       "cicd": "Automated CI/CD",
-      "cicdDesc": "Lint, types, 4400+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge."
+      "cicdDesc": "Lint, types, 4700+ tests, security scan, AI code review, bundle analysis. Auto-deploy on merge.",
+      "react": "React",
+      "components": "components",
+      "passRate": "pass rate",
+      "checks": "checks"
     }
   },
   "privacyPolicy": {

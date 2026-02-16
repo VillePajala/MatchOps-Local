@@ -102,8 +102,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
       : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
     assessment: isEnglish
-      ? '/screenshots/MatchOps_main_development_fi.jpg'
-      : '/screenshots/MatchOps_main_development_en.jpg',
+      ? '/screenshots/MatchOps_main_development_fi.jpg'  // filename mislabeled: _fi.jpg has EN content
+      : '/screenshots/MatchOps_main_development_en.jpg',  // filename mislabeled: _en.jpg has FI content
     trends: isEnglish
       ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
       : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',
@@ -493,7 +493,7 @@ export default function MarketingAssets() {
               {/* V1: Three phones showcase */}
               <AssetContainer id="li-1" {...FORMATS.linkedinPersonal}>
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex justify-between px-20 relative">
-                  <div className="flex items-center gap-6 self-start pt-8">
+                  <div className="flex items-center gap-6 self-center">
                     <Logo size={80} />
                     <div>
                       <TitleText size="2xl" />
@@ -509,13 +509,13 @@ export default function MarketingAssets() {
 
               {/* V1-B: Bigger side phones, aligned, MEDIUM contrast */}
               <AssetContainer id="li-1b" {...FORMATS.linkedinPersonal}>
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center gap-20 relative">
-                  <div className="flex flex-col" style={{ marginLeft: 330 }}>
+                <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-between px-16 relative">
+                  <div className="flex flex-col max-w-md">
                     <div className="flex items-center gap-4 mb-4">
                       <Logo size={80} />
                       <TitleText size="2xl" />
                     </div>
-                    <p className="text-white text-xl font-medium leading-tight max-w-sm">
+                    <p className="text-white text-xl font-medium leading-tight">
                       {t('marketing.taglines.power')}
                     </p>
                     <p className="text-primary text-lg font-semibold mt-2">
@@ -523,24 +523,24 @@ export default function MarketingAssets() {
                     </p>
                     <SiteUrl className="mt-3" size="sm" />
                   </div>
-                  <div className="flex items-center" style={{ marginRight: -10 }}>
+                  <div className="flex items-center">
                     <PhoneMockup
                       screenshot={screenshots.playerstats}
                       size="md"
                       style={{ marginRight: -20 }}
                       zIndex={1}
-                                          />
+                    />
                     <PhoneMockup
                       screenshot={screenshots.soccerfield}
                       size="lg"
                       zIndex={10}
-                                          />
+                    />
                     <PhoneMockup
                       screenshot={screenshots.timer}
                       size="md"
                       style={{ marginLeft: -20 }}
                       zIndex={1}
-                                          />
+                    />
                   </div>
                 </div>
               </AssetContainer>
@@ -548,7 +548,7 @@ export default function MarketingAssets() {
               {/* V1-ALT: Three phones - same size, separated */}
               <AssetContainer id="li-1-alt" {...FORMATS.linkedinPersonal}>
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex justify-between px-20 relative">
-                  <div className="flex items-center gap-6 self-start pt-8">
+                  <div className="flex items-center gap-6 self-center">
                     <Logo size={80} />
                     <div>
                       <TitleText size="2xl" />
@@ -567,7 +567,7 @@ export default function MarketingAssets() {
               {/* V1-ALT2: Three phones - center slightly bigger, aligned */}
               <AssetContainer id="li-1-alt2" {...FORMATS.linkedinPersonal}>
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex justify-between px-20 relative">
-                  <div className="flex items-center gap-6 self-start pt-8">
+                  <div className="flex items-center gap-6 self-center">
                     <Logo size={80} />
                     <div>
                       <TitleText size="2xl" />
@@ -587,7 +587,7 @@ export default function MarketingAssets() {
                   <GlowBg color="primary" position="top-right" size="xl" blur={120} />
                   <GlowBg color="amber" position="bottom-right" size="md" blur={80} />
                   <div className="relative z-10 w-full h-full flex justify-between px-20">
-                    <div className="flex items-center gap-6 self-start pt-8">
+                    <div className="flex items-center gap-6 self-center">
                       <Logo size={70} />
                       <div>
                         <TitleText size="2xl" />
@@ -618,7 +618,7 @@ export default function MarketingAssets() {
               {/* V4: Feature words */}
               <AssetContainer id="li-4" {...FORMATS.linkedinPersonal}>
                 <div className="w-full h-full bg-slate-900 flex justify-between px-16">
-                  <div className="flex flex-col self-start pt-8">
+                  <div className="flex flex-col self-center">
                     <div className="flex items-center gap-5">
                       <Logo size={70} />
                       <TitleText size="xl" />
@@ -659,7 +659,7 @@ export default function MarketingAssets() {
               {/* V6: Two phones + text */}
               <AssetContainer id="li-6" {...FORMATS.linkedinPersonal}>
                 <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 flex justify-between px-16 relative">
-                  <div className="self-start pt-6">
+                  <div className="self-center">
                     <div className="flex items-center gap-4 mb-2">
                       <Logo size={60} />
                       <TitleText size="xl" />
@@ -683,7 +683,7 @@ export default function MarketingAssets() {
               {/* V7: Stats highlight */}
               <AssetContainer id="li-7" {...FORMATS.linkedinPersonal}>
                 <div className="w-full h-full bg-slate-900 flex justify-between px-20 relative">
-                  <div className="self-start pt-8">
+                  <div className="self-center">
                     <div className="flex items-center gap-4 mb-4">
                       <Logo size={70} />
                       <TitleText size="xl" />
@@ -708,7 +708,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-950 relative">
                   <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
                   <div className="relative z-10 w-full h-full flex justify-between px-20">
-                    <div className="flex items-center gap-6 self-start pt-8">
+                    <div className="flex items-center gap-6 self-center">
                       <Logo size={80} />
                       <div>
                         <TitleText size="xl" />
@@ -728,7 +728,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-900 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-bl-full" />
                   <div className="relative z-10 w-full h-full flex justify-between px-20">
-                    <div className="flex items-center gap-6 self-start pt-8">
+                    <div className="flex items-center gap-6 self-center">
                       <Logo size={80} />
                       <div>
                         <TitleText size="2xl" />
@@ -754,7 +754,7 @@ export default function MarketingAssets() {
                     }}
                   />
                   <div className="relative z-10 w-full h-full flex justify-between px-20">
-                    <div className="flex items-center gap-5 self-start pt-8">
+                    <div className="flex items-center gap-5 self-center">
                       <Logo size={80} />
                       <div>
                         <TitleText size="xl" />
@@ -913,7 +913,7 @@ export default function MarketingAssets() {
 
                   {/* Bottom */}
                   <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
-                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                    <p className="text-gray-300 text-lg">{t('marketing.taglines.memorable')}</p>
                   </div>
                   <div className="absolute bottom-6 right-8 z-20">
                     <SiteUrl size="md" variant="yellow" />
@@ -999,7 +999,7 @@ export default function MarketingAssets() {
 
                   {/* Bottom */}
                   <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
-                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                    <p className="text-gray-300 text-lg">{t('marketing.taglines.memorable')}</p>
                   </div>
                   <div className="absolute bottom-6 right-8 z-20">
                     <SiteUrl size="md" variant="yellow" />
@@ -1018,23 +1018,23 @@ export default function MarketingAssets() {
                   <div className="relative z-10 w-full h-full flex items-center justify-center gap-4 pt-12" style={{ transform: 'scale(0.92)' }}>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-sm mt-2">Lineup</span>
+                      <span className="text-gray-400 text-sm mt-2">{t('marketing.ui.lineup')}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.tacticalBoard} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-sm mt-2">Tactics</span>
+                      <span className="text-gray-400 text-sm mt-2">{t('marketing.ui.tactics')}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.timer} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-sm mt-2">Timer</span>
+                      <span className="text-gray-400 text-sm mt-2">{t('marketing.ui.gameTimer')}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.goalTimeline} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-sm mt-2">Log Goal</span>
+                      <span className="text-gray-400 text-sm mt-2">{t('marketing.ui.logGoal')}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-sm mt-2">Statistics</span>
+                      <span className="text-gray-400 text-sm mt-2">{t('marketing.ui.statistics')}</span>
                     </div>
                   </div>
 
@@ -1045,7 +1045,7 @@ export default function MarketingAssets() {
 
                   {/* Bottom */}
                   <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
-                    <p className="text-gray-300 text-lg">Every game remembered.</p>
+                    <p className="text-gray-300 text-lg">{t('marketing.taglines.memorable')}</p>
                   </div>
                   <div className="absolute bottom-6 right-8 z-20">
                     <SiteUrl size="md" variant="yellow" />
@@ -1060,7 +1060,7 @@ export default function MarketingAssets() {
                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[900px] h-[300px] bg-primary/8 rounded-full blur-[80px]" />
 
                   {/* 5 phones in staggered row */}
-                  <div className="relative z-10 w-full h-full flex items-end justify-center pb-8 gap-[-20px]">
+                  <div className="relative z-10 w-full h-full flex items-end justify-center pb-8 gap-0">
                     {/* Phone 1: Tactical Board */}
                     <PhoneMockup
                       screenshot={screenshots.tacticalBoard}
@@ -1103,7 +1103,7 @@ export default function MarketingAssets() {
                     <Logo size={40} />
                     <div>
                       <TitleText size="md" />
-                      <p className="text-gray-400 text-sm">Local-first soccer coaching</p>
+                      <p className="text-gray-400 text-sm">{t('marketing.descriptions.localFirst')}</p>
                     </div>
                   </div>
                 </div>
@@ -1120,19 +1120,19 @@ export default function MarketingAssets() {
                   <div className="absolute left-10 top-1/2 -translate-y-1/2 z-20 max-w-[280px]">
                     <Logo size={50} className="mb-4" />
                     <TitleText size="lg" className="block mb-2" />
-                    <p className="text-gray-300 text-lg mb-4">Every game remembered.</p>
+                    <p className="text-gray-300 text-lg mb-4">{t('marketing.taglines.memorable')}</p>
                     <div className="flex flex-col gap-2">
                       <span className="text-gray-400 text-sm flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full" />
-                        Works Offline
+                        {t('marketing.bullets.worksOffline')}
                       </span>
                       <span className="text-gray-400 text-sm flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full" />
-                        No Signup Required
+                        {t('marketing.bullets.noSignupRequired')}
                       </span>
                       <span className="text-gray-400 text-sm flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full" />
-                        Data Stays Private
+                        {t('marketing.bullets.dataStaysPrivate')}
                       </span>
                     </div>
                   </div>
@@ -1746,7 +1746,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center px-16">
                   <p className="text-4xl text-primary mb-3">&ldquo;</p>
                   <p className="text-white text-xl text-center leading-relaxed mb-4">
-                    {t('marketing.taglines.power')}
+                    {t('marketing.taglines.power')}&rdquo;
                   </p>
                   <div className="flex items-center gap-2 mb-4">
                     <Logo size={30} />
@@ -1762,7 +1762,7 @@ export default function MarketingAssets() {
                   <Logo size={70} className="mb-4" />
                   <TitleText size="md" className="mb-3" />
                   <p className="text-gray-300 text-lg text-center mb-1">{t('marketing.taglines.toolkit')}</p>
-                  <p className="text-gray-500 text-base">for soccer coaches</p>
+                  <p className="text-gray-300 text-base">{t('marketing.ui.forSoccerCoaches').toLowerCase()}</p>
                   <SiteUrl className="mt-6" size="lg" variant="primary" />
                 </div>
               </AssetContainer>
@@ -1772,9 +1772,7 @@ export default function MarketingAssets() {
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 bg-primary flex items-center justify-center">
                     <h3 className="text-slate-900 text-3xl font-bold text-center">
-                      Your Game Day
-                      <br />
-                      Toolkit
+                      {t('features.gameDay.title')}
                     </h3>
                   </div>
                   <div className="flex-1 bg-slate-900 flex flex-col items-center justify-center">
@@ -2117,7 +2115,7 @@ export default function MarketingAssets() {
                   <p className="text-white text-2xl text-center leading-relaxed mb-8">
                     {t('marketing.descriptions.focusOnCoaching')}
                     <br />
-                    not paperwork
+                    {t('marketing.descriptions.notPaperwork')}&rdquo;
                   </p>
                   <div className="flex items-center gap-3">
                     <Logo size={40} />
@@ -2186,7 +2184,7 @@ export default function MarketingAssets() {
                   <div className="absolute rounded-full" style={{ bottom: '-25%', left: '-5%', width: '45%', height: '70%', backgroundColor: 'rgba(14,165,233,0.15)', filter: 'blur(80px)' }} />
                   <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
                     <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 80 }}>MatchOps</span>
-                    <p className="text-gray-300 text-xl mt-3 tracking-wide">The all-in-one app for soccer &amp; futsal coaches</p>
+                    <p className="text-gray-300 text-xl mt-3 tracking-wide">{t('marketing.taglines.toolkit')}</p>
                     <span className="text-gray-500 text-sm mt-4 tracking-widest">match-ops.com</span>
                   </div>
                 </div>
@@ -2199,9 +2197,9 @@ export default function MarketingAssets() {
                   <div className="absolute rounded-full" style={{ bottom: '-25%', left: '-5%', width: '45%', height: '70%', backgroundColor: 'rgba(14,165,233,0.15)', filter: 'blur(80px)' }} />
                   <div className="relative z-10 flex flex-col">
                     <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 64 }}>MatchOps</span>
-                    <p className="text-gray-300 text-lg mt-1">Soccer &amp; futsal coaching app</p>
+                    <p className="text-gray-300 text-lg mt-1">{t('marketing.descriptions.localFirst')}</p>
                     <div className="flex gap-3 mt-5">
-                      {['Plan', 'Track', 'Develop'].map((f) => (
+                      {[t('marketing.ui.plan'), t('marketing.ui.track'), t('marketing.ui.assess')].map((f) => (
                         <span key={f} className="px-3 py-1 rounded-full text-xs font-medium bg-amber-400/10 text-amber-400 border border-amber-400/20">{f}</span>
                       ))}
                     </div>
@@ -2224,7 +2222,7 @@ export default function MarketingAssets() {
                       <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 72 }}>MatchOps</span>
                     </div>
                     <div className="w-16 h-0.5 bg-amber-400/50 mb-5" />
-                    <p className="text-gray-400 text-lg tracking-wide">For soccer &amp; futsal coaches</p>
+                    <p className="text-gray-400 text-lg tracking-wide">{t('marketing.ui.forSoccerCoaches')}</p>
                   </div>
                 </div>
               </AssetContainer>
@@ -2236,8 +2234,7 @@ export default function MarketingAssets() {
                   <div className="absolute rounded-full" style={{ bottom: '-25%', left: '-5%', width: '45%', height: '70%', backgroundColor: 'rgba(14,165,233,0.15)', filter: 'blur(80px)' }} />
                   <div className="relative z-10 flex flex-col items-end text-right">
                     <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 56 }}>MatchOps</span>
-                    <p className="text-gray-400 mt-1">Plan lineups. Track matches.</p>
-                    <p className="text-gray-400">Build player statistics.</p>
+                    <p className="text-gray-400 mt-1">{t('marketing.descriptions.planTrackBuild')}</p>
                   </div>
                   <div className="relative z-10">
                     <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={1} />
@@ -2316,8 +2313,8 @@ export default function MarketingAssets() {
                   </div>
 
                   {/* Bottom */}
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
-                    <p className="text-gray-300 text-base">Every game remembered.</p>
+                  <div className="absolute bottom-10 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-base">{t('marketing.taglines.memorable')}</p>
                   </div>
                   <div className="absolute bottom-4 right-6 z-20">
                     <SiteUrl size="sm" variant="yellow" />
@@ -2336,23 +2333,23 @@ export default function MarketingAssets() {
                   <div className="relative z-10 w-full h-full flex items-center justify-center gap-3 pt-10" style={{ transform: 'scale(0.82)' }}>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.soccerfield} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-xs mt-1">Lineup</span>
+                      <span className="text-gray-400 text-xs mt-1">{t('marketing.ui.lineup')}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.tacticalBoard} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-xs mt-1">Tactics</span>
+                      <span className="text-gray-400 text-xs mt-1">{t('marketing.ui.tactics')}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.timer} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-xs mt-1">Timer</span>
+                      <span className="text-gray-400 text-xs mt-1">{t('marketing.ui.gameTimer')}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.goalTimeline} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-xs mt-1">Log Goal</span>
+                      <span className="text-gray-400 text-xs mt-1">{t('marketing.ui.logGoal')}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <PhoneMockup screenshot={screenshots.playerstats} size="xl" zIndex={1} />
-                      <span className="text-gray-400 text-xs mt-1">Statistics</span>
+                      <span className="text-gray-400 text-xs mt-1">{t('marketing.ui.statistics')}</span>
                     </div>
                   </div>
 
@@ -2362,8 +2359,8 @@ export default function MarketingAssets() {
                   </div>
 
                   {/* Bottom */}
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
-                    <p className="text-gray-300 text-base">Every game remembered.</p>
+                  <div className="absolute bottom-10 left-0 right-0 flex justify-center z-20">
+                    <p className="text-gray-300 text-base">{t('marketing.taglines.memorable')}</p>
                   </div>
                   <div className="absolute bottom-4 right-6 z-20">
                     <SiteUrl size="sm" variant="yellow" />
@@ -2418,11 +2415,11 @@ export default function MarketingAssets() {
           </section>
 
           {/* ============================================ */}
-          {/* APP STORE FEATURE GRAPHICS */}
+          {/* FEATURE GRAPHICS (Additional Variants) */}
           {/* ============================================ */}
           <section id="appstore" className="mb-24 scroll-mt-8">
             <h2 className="text-2xl font-bold text-primary mb-8 border-b border-gray-800 pb-4">
-              App Store Feature Graphics (1024×500)
+              Feature Graphics — Additional Variants (1024×500)
             </h2>
 
             <div className="space-y-8">
@@ -2700,7 +2697,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <span className="text-8xl font-bold text-primary font-rajdhani">210K</span>
+                    <span className="text-8xl font-bold text-primary font-rajdhani">272K</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2717,7 +2714,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <span className="text-7xl font-bold text-primary font-rajdhani">3,200+</span>
+                    <span className="text-7xl font-bold text-primary font-rajdhani">4,700+</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2735,7 +2732,7 @@ export default function MarketingAssets() {
                   </div>
                   <div className="w-[40%] flex items-center justify-center flex-col">
                     <span className="text-8xl font-bold text-primary font-rajdhani">v19</span>
-                    <span className="text-gray-500 text-sm mt-1">React</span>
+                    <span className="text-gray-500 text-sm mt-1">{t('marketing.techCards.react')}</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2752,7 +2749,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <span className="text-8xl font-bold text-primary font-rajdhani">75K</span>
+                    <span className="text-8xl font-bold text-primary font-rajdhani">90K</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2769,8 +2766,8 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-[40%] flex items-center justify-center flex-col">
-                    <span className="text-8xl font-bold text-primary font-rajdhani">71</span>
-                    <span className="text-gray-500 text-sm mt-1">components</span>
+                    <span className="text-8xl font-bold text-primary font-rajdhani">148</span>
+                    <span className="text-gray-500 text-sm mt-1">{t('marketing.techCards.components')}</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2788,7 +2785,7 @@ export default function MarketingAssets() {
                   </div>
                   <div className="w-1/2 flex items-center justify-center flex-col">
                     <span className="text-8xl font-bold text-primary font-rajdhani">100%</span>
-                    <span className="text-gray-500 text-sm mt-1">pass rate</span>
+                    <span className="text-gray-500 text-sm mt-1">{t('marketing.techCards.passRate')}</span>
                   </div>
                 </div>
               </AssetContainer>
@@ -2806,13 +2803,13 @@ export default function MarketingAssets() {
                   </div>
                   <div className="w-[40%] flex items-center justify-center flex-col">
                     <span className="text-8xl font-bold text-primary font-rajdhani">10</span>
-                    <span className="text-gray-500 text-sm mt-1">checks</span>
+                    <span className="text-gray-500 text-sm mt-1">{t('marketing.techCards.checks')}</span>
                   </div>
                 </div>
               </AssetContainer>
             </div>
 
-            {/* ===== EXTENDED FEATURE CARDS (12 new features) ===== */}
+            {/* ===== EXTENDED FEATURE CARDS (13 features) ===== */}
             <h3 className="w-full text-xl font-semibold text-gray-300 mt-12 mb-2">Extended Feature Cards (13 features)</h3>
             <div className="flex flex-wrap gap-8">
               {/* 1. Tactical Board */}
@@ -3333,15 +3330,23 @@ export default function MarketingAssets() {
 
             <div className="space-y-8">
               {/* Clean text banner — MatchOps centered in safe zone */}
+              {/* Safe area: center 1546×423 on desktop, ~1235×338 on mobile. Only center is visible on most devices. */}
               <AssetContainer id="yt-banner" width={2560} height={1440} name="YouTube Banner" scale={0.5}>
                 <div className="w-full h-full relative overflow-hidden" style={{
                   background: 'linear-gradient(180deg, #080d1c 0%, #131b30 45%, #131b30 55%, #0b1122 100%)',
                 }}>
-                  {/* Content — centered in safe zone */}
-                  <div className="relative z-10 w-full h-full flex items-center justify-center">
-                    <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 100 }}>
-                      MatchOps
-                    </span>
+                  {/* Subtle ambient glow behind safe zone */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/5 rounded-full blur-[100px]" />
+                  {/* Content — compact cluster centered in safe zone */}
+                  <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+                    <div className="flex items-center gap-5 mb-3">
+                      <Logo size={70} />
+                      <span className="font-rajdhani font-bold text-amber-400" style={{ fontSize: 90 }}>
+                        MatchOps
+                      </span>
+                    </div>
+                    <p className="text-gray-400 text-lg tracking-wide">{t('marketing.ui.planTrackAssessDots')}</p>
+                    <span className="text-gray-500 text-sm mt-3 tracking-widest">match-ops.com</span>
                   </div>
                 </div>
               </AssetContainer>

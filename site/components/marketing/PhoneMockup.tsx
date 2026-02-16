@@ -3,6 +3,7 @@ import React from 'react';
 
 interface PhoneMockupProps {
   screenshot: string;
+  alt?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   className?: string;
   style?: React.CSSProperties;
@@ -13,6 +14,7 @@ interface PhoneMockupProps {
 
 export default function PhoneMockup({
   screenshot,
+  alt = 'App screenshot',
   size = 'md',
   className = '',
   style = {},
@@ -73,7 +75,7 @@ export default function PhoneMockup({
         className="relative w-full h-full overflow-hidden bg-black"
         style={{ borderRadius: innerRadius, filter: imageFilter || undefined }}
       >
-        <Image src={screenshot} alt="App screenshot" fill sizes="(max-width: 768px) 100vw, 300px" className="object-cover" priority={priority} />
+        <Image src={screenshot} alt={alt} fill sizes="(max-width: 768px) 100vw, 300px" className="object-cover" priority={priority} />
       </div>
     </div>
   );
