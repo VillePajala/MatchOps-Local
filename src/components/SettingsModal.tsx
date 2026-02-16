@@ -942,6 +942,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
               </div>
 
+              {/* Send Feedback */}
+              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-200">
+                    {t('settingsModal.sendFeedback', 'Send Feedback')}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {t('settingsModal.sendFeedbackDesc', 'Report bugs or suggest improvements.')}
+                  </p>
+                </div>
+                <a
+                  href={`mailto:valoraami@gmail.com?subject=${encodeURIComponent('MatchOps Feedback – v' + packageJson.version)}`}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+                >
+                  ✉ {t('settingsModal.emailButton', 'Email')}
+                </a>
+              </div>
+
               {/* Legal Links */}
               <div className="pt-2 border-t border-slate-700">
                 <div className="flex gap-4 text-sm">

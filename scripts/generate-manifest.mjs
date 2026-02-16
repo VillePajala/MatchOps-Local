@@ -24,7 +24,7 @@ async function generateManifest() {
   const manifest = {
     "name": config.appName,
     "short_name": config.shortName,
-    "description": "Soccer Tactics and Timer App for Coaches. Track games, manage lineups, and analyze player performance.",
+    "description": "Jalkapallovalmennuksen työkalu: kokoonpanot, otteluseuranta, ajastin ja pelaajatilastot.",
     "start_url": "/",
     "scope": "/",
     "id": "/",
@@ -70,46 +70,32 @@ async function generateManifest() {
     ],
     "screenshots": [
       {
-        "src": "/screenshots/game-view.png",
-        "sizes": "1696x2528",
+        "src": "/pwainstallimage.png",
+        "sizes": "1200x628",
         "type": "image/png",
-        "form_factor": "narrow",
-        "label": "Game tracking view with player positions"
-      },
-      {
-        "src": "/screenshots/detail-view.png",
-        "sizes": "1024x1536",
-        "type": "image/png",
-        "form_factor": "narrow",
-        "label": "Detailed game analysis"
-      },
-      {
-        "src": "/screenshots/stats-view.png",
-        "sizes": "1024x1536",
-        "type": "image/png",
-        "form_factor": "narrow",
-        "label": "Player statistics dashboard"
+        "form_factor": "wide",
+        "label": "MatchOps — kokoonpanot, otteluseuranta, ajastin ja tilastot"
       }
     ],
     "shortcuts": [
       {
-        "name": "New Game",
-        "short_name": "New",
-        "description": "Start a new game",
+        "name": "Uusi peli",
+        "short_name": "Uusi",
+        "description": "Aloita uusi peli",
         "url": "/?action=newGame",
         "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
       },
       {
-        "name": "Player Stats",
-        "short_name": "Stats",
-        "description": "View player statistics",
+        "name": "Pelaajatilastot",
+        "short_name": "Tilastot",
+        "description": "Näytä pelaajatilastot",
         "url": "/?action=stats",
         "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
       },
       {
-        "name": "Manage Roster",
-        "short_name": "Roster",
-        "description": "Manage your player roster",
+        "name": "Kokoonpano",
+        "short_name": "Pelaajat",
+        "description": "Hallitse pelaajalistaa",
         "url": "/?action=roster",
         "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
       }
