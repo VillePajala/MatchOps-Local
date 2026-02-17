@@ -68,6 +68,7 @@ validateEnvironment();
  */
 const supabaseConnectSrc = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://*.supabase.co';
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NODE_ENV === 'production') {
+  // eslint-disable-next-line no-console -- Build-time warning, logger not available in next.config.ts
   console.warn('WARNING: NEXT_PUBLIC_SUPABASE_URL not set — CSP connect-src using wildcard https://*.supabase.co');
 }
 

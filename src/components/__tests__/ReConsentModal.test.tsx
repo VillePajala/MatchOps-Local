@@ -41,6 +41,14 @@ describe('ReConsentModal', () => {
     acceptReConsent: jest.fn(),
     deleteAccount: jest.fn(),
     retryAuthInit: jest.fn(),
+    marketingConsent: null,
+    showMarketingPrompt: false,
+    setMarketingConsent: jest.fn(),
+    dismissMarketingPrompt: jest.fn(),
+    verifySignUpOtp: jest.fn(),
+    resendSignUpConfirmation: jest.fn(),
+    verifyPasswordResetOtp: jest.fn(),
+    updatePassword: jest.fn(),
   };
 
   beforeEach(() => {

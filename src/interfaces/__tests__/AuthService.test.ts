@@ -108,12 +108,18 @@ describe('AuthService Interface Exports', () => {
         signIn: async () => ({ user: localUser, session: null }),
         signOut: async () => {},
         resetPassword: async () => {},
+        verifyPasswordResetOtp: async () => {},
+        updatePassword: async () => {},
         getSession: async () => null,
         refreshSession: async () => null,
         onAuthStateChange: () => () => {},
         recordConsent: async () => {},
         hasConsentedToVersion: async () => true,
         getLatestConsent: async () => null,
+        getMarketingConsentStatus: async () => null,
+        setMarketingConsent: async () => {},
+        verifySignUpOtp: async () => ({ user: localUser, session: null }),
+        resendSignUpConfirmation: async () => {},
         deleteAccount: async () => {},
       };
 

@@ -33,7 +33,7 @@ async function clickText(page, text, timeout = 3000) {
   return false;
 }
 
-async function clickButton(page, name, timeout = 3000) {
+async function _clickButton(page, name, timeout = 3000) {
   const el = page.getByRole('button', { name });
   if (await el.isVisible({ timeout }).catch(() => false)) {
     await el.click();
