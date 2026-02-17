@@ -993,7 +993,19 @@ describe('SyncedDataStore', () => {
 
       const result = await store.saveWarmupPlan(mockPlan);
 
-      expect(localStoreSpy.saveWarmupPlan).toHaveBeenCalledWith(mockPlan);
+      // SyncedDataStore normalizes the plan before saving locally (updates lastModified, adds updatedAt, forces isDefault:false)
+      expect(localStoreSpy.saveWarmupPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: mockPlan.id,
+          sections: mockPlan.sections,
+          version: mockPlan.version,
+          isDefault: false,
+        })
+      );
+      // Verify timestamps were updated by normalization
+      const savedPlan = localStoreSpy.saveWarmupPlan.mock.calls[0][0] as WarmupPlan;
+      expect(savedPlan.lastModified).not.toBe(mockPlan.lastModified);
+      expect(savedPlan.updatedAt).toBeDefined();
       expect(queueEnqueueSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           entityType: 'warmupPlan',

@@ -329,7 +329,8 @@ describe('CloudSyncSection', () => {
 
       renderWithQueryClient(<CloudSyncSection />);
 
-      expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
+      // Use exact match to distinguish from "Sign out and return to setup" button
+      expect(screen.getByRole('button', { name: /^Sign Out$/i })).toBeInTheDocument();
     });
 
     it('does not show sign out button in local mode', () => {
@@ -338,7 +339,8 @@ describe('CloudSyncSection', () => {
 
       renderWithQueryClient(<CloudSyncSection />);
 
-      expect(screen.queryByRole('button', { name: /sign out/i })).not.toBeInTheDocument();
+      // Use exact match to distinguish from "Sign out and return to setup" button
+      expect(screen.queryByRole('button', { name: /^Sign Out$/i })).not.toBeInTheDocument();
     });
   });
 
@@ -358,7 +360,8 @@ describe('CloudSyncSection', () => {
 
       renderWithQueryClient(<CloudSyncSection />);
 
-      const signOutButton = screen.getByRole('button', { name: /sign out/i });
+      // Use exact match to distinguish from "Sign out and return to setup" button
+      const signOutButton = screen.getByRole('button', { name: /^Sign Out$/i });
       fireEvent.click(signOutButton);
 
       await waitFor(() => {
@@ -372,7 +375,8 @@ describe('CloudSyncSection', () => {
 
       renderWithQueryClient(<CloudSyncSection />);
 
-      const signOutButton = screen.getByRole('button', { name: /sign out/i });
+      // Use exact match to distinguish from "Sign out and return to setup" button
+      const signOutButton = screen.getByRole('button', { name: /^Sign Out$/i });
       fireEvent.click(signOutButton);
 
       await waitFor(() => {
@@ -389,7 +393,8 @@ describe('CloudSyncSection', () => {
 
       renderWithQueryClient(<CloudSyncSection />);
 
-      const signOutButton = screen.getByRole('button', { name: /sign out/i });
+      // Use exact match to distinguish from "Sign out and return to setup" button
+      const signOutButton = screen.getByRole('button', { name: /^Sign Out$/i });
       fireEvent.click(signOutButton);
 
       await waitFor(() => {

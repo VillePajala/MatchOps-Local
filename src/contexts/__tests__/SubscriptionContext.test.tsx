@@ -186,7 +186,9 @@ describe('SubscriptionContext', () => {
         expect(screen.getByTestId('loading').textContent).toBe('false');
       });
       expect(screen.getByTestId('status').textContent).toBe('none');
-      expect(screen.getByTestId('active').textContent).toBe('false');
+      // TEMPORARY: isSubscriptionActive always returns true (free sync for all users)
+      // TODO: Restore to 'false' when implementing paid subscriptions (see issue #354)
+      expect(screen.getByTestId('active').textContent).toBe('true');
       expect(mockRpcFn).not.toHaveBeenCalled();
     });
 
@@ -271,7 +273,9 @@ describe('SubscriptionContext', () => {
       });
       // Should return 'none' without calling RPC
       expect(screen.getByTestId('status').textContent).toBe('none');
-      expect(screen.getByTestId('active').textContent).toBe('false');
+      // TEMPORARY: isSubscriptionActive always returns true (free sync for all users)
+      // TODO: Restore to 'false' when implementing paid subscriptions (see issue #354)
+      expect(screen.getByTestId('active').textContent).toBe('true');
       expect(mockRpcFn).not.toHaveBeenCalled();
     });
 
@@ -469,7 +473,9 @@ describe('SubscriptionContext', () => {
       await waitFor(() => {
         expect(screen.getByTestId('status').textContent).toBe('none');
       });
-      expect(screen.getByTestId('active').textContent).toBe('false');
+      // TEMPORARY: isSubscriptionActive always returns true (free sync for all users)
+      // TODO: Restore to 'false' when implementing paid subscriptions (see issue #354)
+      expect(screen.getByTestId('active').textContent).toBe('true');
     });
   });
 

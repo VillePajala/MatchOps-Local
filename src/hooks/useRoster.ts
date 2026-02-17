@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Player } from '@/types';
 import { addPlayer, updatePlayer, removePlayer, setGoalieStatus } from '@/utils/masterRosterManager';
@@ -20,6 +20,14 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
   const [rosterError, setRosterError] = useState<string | null>(null);
   const [isRosterUpdating, setIsRosterUpdating] = useState(false);
 
+  // Ref tracks current availablePlayers synchronously, so optimistic rollback
+  // can capture a snapshot immediately — before React batching flushes state
+  // updates. Without this, the updater function passed to setAvailablePlayers
+  // may not have executed by the time an async operation resolves/rejects,
+  // leaving rollbackSnapshot as null and silently skipping rollback.
+  const playersRef = useRef<Player[]>(availablePlayers);
+  playersRef.current = availablePlayers;
+
   const playersForCurrentGame = useMemo(
     () => availablePlayers.filter((p) => selectedPlayerIds.includes(p.id)),
     [availablePlayers, selectedPlayerIds]
@@ -35,13 +43,10 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       ...data,
     };
     setIsRosterUpdating(true);
-    // Capture snapshot locally — each mutation gets its own rollback state,
-    // preventing concurrent mutations from sharing a single ref.
-    let rollbackSnapshot: Player[] | null = null;
-    setAvailablePlayers((current) => {
-      rollbackSnapshot = current;
-      return [...current, temp];
-    });
+    // Capture snapshot synchronously from ref before the batched state update,
+    // so rollback always has the pre-mutation state even if React defers the updater.
+    const rollbackSnapshot = playersRef.current;
+    setAvailablePlayers((current) => [...current, temp]);
     try {
       const saved = await addPlayer(data, userId);
       if (saved) {
@@ -62,12 +67,12 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         // Also invalidate to ensure background sync
         await queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
       } else {
-        if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
+        setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to add player');
       }
     } catch (error) {
       logger.warn('Failed to add player to roster', { error });
-      if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
+      setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to add player');
     } finally {
       setIsRosterUpdating(false);
@@ -79,11 +84,11 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     updates: Partial<Omit<Player, 'id'>>,
   ) => {
     setIsRosterUpdating(true);
-    let rollbackSnapshot: Player[] | null = null;
-    setAvailablePlayers((current) => {
-      rollbackSnapshot = current;
-      return current.map((p) => (p.id === playerId ? { ...p, ...updates } : p));
-    });
+    // Capture snapshot synchronously from ref before the batched state update
+    const rollbackSnapshot = playersRef.current;
+    setAvailablePlayers((current) =>
+      current.map((p) => (p.id === playerId ? { ...p, ...updates } : p)),
+    );
     try {
       const updated = await updatePlayer(playerId, updates, userId);
       if (updated) {
@@ -99,12 +104,12 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         // Also invalidate to ensure background sync
         await queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
       } else {
-        if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
+        setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to update player');
       }
     } catch (error) {
       logger.warn('Failed to update player in roster', { playerId, error });
-      if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
+      setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to update player');
     } finally {
       setIsRosterUpdating(false);
@@ -113,15 +118,13 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
 
   const handleRemovePlayer = useCallback(async (playerId: string) => {
     setIsRosterUpdating(true);
-    let rollbackSnapshot: Player[] | null = null;
-    setAvailablePlayers((current) => {
-      rollbackSnapshot = current;
-      return current.filter((p) => p.id !== playerId);
-    });
+    // Capture snapshot synchronously from ref before the batched state update
+    const rollbackSnapshot = playersRef.current;
+    setAvailablePlayers((current) => current.filter((p) => p.id !== playerId));
     try {
       const success = await removePlayer(playerId, userId);
       if (!success) {
-        if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
+        setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to remove player');
       } else {
         setRosterError(null);
@@ -130,7 +133,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       }
     } catch (error) {
       logger.warn('Failed to remove player from roster', { playerId, error });
-      if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
+      setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to remove player');
     } finally {
       setIsRosterUpdating(false);
@@ -139,19 +142,17 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
 
   const handleSetGoalieStatus = useCallback(async (playerId: string, isGoalie: boolean) => {
     setIsRosterUpdating(true);
-    let rollbackSnapshot: Player[] | null = null;
-    setAvailablePlayers((current) => {
-      rollbackSnapshot = current;
-      return current.map((p) => {
-        if (p.id === playerId) return { ...p, isGoalie };
-        if (isGoalie && p.isGoalie) return { ...p, isGoalie: false };
-        return p;
-      });
-    });
+    // Capture snapshot synchronously from ref before the batched state update
+    const rollbackSnapshot = playersRef.current;
+    setAvailablePlayers((current) => current.map((p) => {
+      if (p.id === playerId) return { ...p, isGoalie };
+      if (isGoalie && p.isGoalie) return { ...p, isGoalie: false };
+      return p;
+    }));
     try {
       const updated = await setGoalieStatus(playerId, isGoalie, userId);
       if (!updated) {
-        if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
+        setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to set goalie status');
       } else {
         setRosterError(null);
@@ -160,7 +161,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       }
     } catch (error) {
       logger.warn('Failed to set goalie status', { playerId, isGoalie, error });
-      if (rollbackSnapshot) setAvailablePlayers(rollbackSnapshot);
+      setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to set goalie status');
     } finally {
       setIsRosterUpdating(false);

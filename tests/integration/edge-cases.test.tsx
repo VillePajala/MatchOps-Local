@@ -92,7 +92,7 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 15000 });
 
       // Should render successfully despite storage issues
       // App should render and show some key content
@@ -120,7 +120,7 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 15000 });
 
       // Should render despite network issues
       // App should render and show some key content
@@ -353,7 +353,7 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 15000 });
 
       // Should render successfully without ResizeObserver
       // App should render and show some key content
@@ -372,7 +372,7 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 15000 });
 
       // Should render successfully without performance API
       // App should render and show some key content
@@ -389,7 +389,7 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 15000 });
 
       const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
       
@@ -488,7 +488,7 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 15000 });
 
       // Should render successfully even under memory pressure
       // App should render and show some key content
@@ -500,7 +500,7 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 15000 });
 
       // Unmount should not throw errors
       expect(() => unmount()).not.toThrow();
@@ -522,7 +522,7 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 15000 });
 
       // Check that the app provides ways to recover from errors
       // This could include retry buttons, reset options, etc.

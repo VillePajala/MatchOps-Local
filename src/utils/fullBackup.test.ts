@@ -1422,9 +1422,9 @@ describe("exportFullBackup", () => {
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(document.body.removeChild).toHaveBeenCalledWith(mockAnchor);
     expect(window.URL.revokeObjectURL).toHaveBeenCalledWith(expect.any(String));
-    expect(window.alert).toHaveBeenCalledWith(
-      "Backup exported successfully.",
-    );
+
+    // Success path no longer shows alert — it silently returns the JSON string
+    // (error path still alerts via i18n.t("fullBackup.exportError"))
 
     // No need to restore dateSpy here, afterEach will handle it.
   });
