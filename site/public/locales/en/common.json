@@ -26,7 +26,7 @@
       "title": "Beyond the Match",
       "analytics": {
         "title": "Analytics",
-        "desc": "Comprehensive statistics to support player development observation, enabling a long-term overview.",
+        "desc": "Comprehensive statistics that build automatically as you play, enabling a long-term overview of team and season performance.",
         "h1": "Leaderboards (games, goals, assists) in different contexts",
         "h2": "Advanced team statistics",
         "h3": "Match, tournament, and season statistics",
@@ -246,7 +246,7 @@
       "challenge1": "Juggling multiple tools on game day: clipboard, stopwatch, notebook, lineup sheet",
       "challenge2": "Tracking substitution intervals is tricky—you can't substitute until the game allows it, intervals stretch, and counting in your head takes focus away from what matters",
       "challenge3": "Coach must focus on the game, so most events go undocumented and are soon forgotten",
-      "challenge4": "No easy way to track trends, player development, or build statistics across a season",
+      "challenge4": "No easy way to look back at games or build statistics across a season",
       "challenge5": "Long-term decisions end up based on memory rather than actual data"
     },
     "whatYouCanDo": {
@@ -365,7 +365,7 @@
     "solution": {
       "title": "The solution:",
       "oneApp": "One app.",
-      "planTrackAssess": "Plan. Track. Develop."
+      "planTrackAssess": "Plan. Track. Discover."
     },
     "features": {
       "plan": {
@@ -379,9 +379,9 @@
         "desc": "Timer, substitutions, goals, and assists — all in real-time."
       },
       "assess": {
-        "label": "DEVELOP",
-        "title": "Development tracking",
-        "desc": "Statistics and notes build automatically — see every player's growth."
+        "label": "DISCOVER",
+        "title": "The Full Picture",
+        "desc": "Game statistics build automatically, game by game. See team and season results at a glance."
       }
     },
     "benefits": {
@@ -406,20 +406,20 @@
       "localFirstShort": "Soccer & futsal coaching app",
       "madeSimple": "Soccer & futsal coaching made simple",
       "forPrivacyCoaches": "For soccer & futsal coaches who value privacy",
-      "trackDevelopment": "Track player development with data",
+      "trackDevelopment": "Review game statistics over time",
       "comprehensiveStats": "Comprehensive statistics across games, seasons, and tournaments.",
       "planLineupsVisually": "Plan lineups visually",
       "focusOnCoaching": "Focus on coaching,",
       "notPaperwork": "not paperwork.",
       "buildLineupVisually": "Build your lineup visually",
       "logGoalsTap": "Log goals with a tap",
-      "trackDevelopmentTime": "Track development over time",
+      "trackDevelopmentTime": "Review statistics over time",
       "trackGamesRealtime": "Track games in real-time",
       "buildStatsAuto": "Build statistics automatically",
       "fieldDesc": "Select and place players on an interactive soccer field. Visualize formations before the game.",
       "timerDesc": "Game timer with substitution intervals. Log goals, assists, and events with a tap.",
       "statsDesc": "Comprehensive player, team and competition statistics. Track performance across seasons.",
-      "statsLongDesc": "Every goal, assist, and game event builds your season statistics. Track player development over time with comprehensive analytics."
+      "statsLongDesc": "Every goal, assist, and game event builds your season statistics. Review game history and team statistics with comprehensive analytics."
     },
     "bullets": {
       "worksOffline": "Works Offline",
@@ -438,7 +438,7 @@
     "ui": {
       "plan": "Plan",
       "track": "Track",
-      "assess": "Develop",
+      "assess": "Discover",
       "lineups": "Lineups",
       "liveGames": "Live Games",
       "statistics": "Statistics",
@@ -462,7 +462,7 @@
       "interactiveSoccerField": "Interactive Soccer Field",
       "liveGameTimerEvents": "Live Game Timer & Events",
       "playerTeamStatistics": "Player & Team Statistics",
-      "planTrackAssessDots": "Plan • Track • Develop",
+      "planTrackAssessDots": "Plan • Track • Discover",
       "getStarted": "Get Started",
       "replaceClipboard": "Replace clipboard, stopwatch, and notebook with one app.",
       "lineup": "Lineup",
@@ -489,10 +489,10 @@
       "formationsDesc": "Set up your team in seconds with formation templates. Snap players to position with one tap.",
       "roster": "Player Roster",
       "rosterDesc": "Add players with names, jersey numbers, and nicknames. The nickname is shown on the disc on the field.",
-      "assessment": "Development Tracking",
-      "assessmentDesc": "Follow each player's growth across the season. Your own coaching notes help you spot progress — even in the quietest players. Feature designed for older age groups.",
+      "assessment": "Performance Notes",
+      "assessmentDesc": "Optionally rate match performances and add coaching notes after games. Helps track observations across the season.",
       "trends": "Trends",
-      "trendsDesc": "Follow player development with visual charts. See how different areas progress from game to game and across the season.",
+      "trendsDesc": "Optionally follow player development with visual charts. See how different areas progress from game to game and across the season.",
       "seasons": "Leagues",
       "seasonsDesc": "Create and manage leagues. Link games to leagues and track league statistics.",
       "tournaments": "Tournament Hub",

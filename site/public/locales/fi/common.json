@@ -26,7 +26,7 @@
       "title": "Ottelun jälkeen",
       "analytics": {
         "title": "Analytiikka",
-        "desc": "Kattava tilastointi pelaajakehityksen havainnoinnin tukena mahdollistaa pitkän aikavälin kokonaiskuvan hahmottamisen.",
+        "desc": "Kattavat tilastot kertyvät automaattisesti pelien myötä ja mahdollistavat joukkueen ja kauden kokonaiskuvan hahmottamisen.",
         "h1": "\"Pistepörssit\" (ottelut, maalit ja syötöt) eri konteksteissa",
         "h2": "Edistyneet joukkuetilastot",
         "h3": "Ottelu-, turnaus- ja kausitilastot",
@@ -227,7 +227,7 @@
       "challenge1": "Useiden työkalujen kanssa säätäminen ottelupäivänä: taktiikkataulu, sekuntikello, muistivihko, kokoonpanolista",
       "challenge2": "Vaihtovälien seuraaminen on hankalaa—et voi vaihtaa ennen kuin peli sen sallii, välit venyvät, ja päässälaskeminen on turhaa työtä pois tärkeämmästä",
       "challenge3": "Valmentajan täytyy keskittyä peliin, joten useimmat tapahtumat jäävät kirjaamatta ja unohtuvat pian",
-      "challenge4": "Ei helppoa tapaa seurata trendejä, pelaajien kehitystä tai kerätä tilastoja kauden aikana",
+      "challenge4": "Ei helppoa tapaa palata peleihin tai kerätä tilastoja kauden aikana",
       "challenge5": "Pitkän aikavälin päätökset perustuvat lopulta muistiin eikä oikeaan dataan"
     },
     "whatYouCanDo": {
@@ -330,7 +330,7 @@
       "powerLine2": "yhdessä sovelluksessa.",
       "memorable": "Yksikään peli ei unohdu.",
       "toolkit": "Ottelupäivän työkalut",
-      "threePillars": "Suunnittele • Kirjaa • Kehitä"
+      "threePillars": "Suunnittele • Kirjaa • Oivalla"
     },
     "badges": {
       "cloudSync": "UUTTA: Pilvisynkronointi"
@@ -346,7 +346,7 @@
     "solution": {
       "title": "Ratkaisu:",
       "oneApp": "Yksi sovellus.",
-      "planTrackAssess": "Suunnittele. Kirjaa. Kehitä."
+      "planTrackAssess": "Suunnittele. Kirjaa. Oivalla."
     },
     "features": {
       "plan": {
@@ -360,9 +360,9 @@
         "desc": "Pelikello, vaihdot, maalit ja syötöt — kaikki reaaliajassa pelin aikana."
       },
       "assess": {
-        "label": "KEHITÄ",
-        "title": "Kehitysseuranta",
-        "desc": "Tilastot ja muistiinpanot kertyvät automaattisesti — näet jokaisen pelaajan kasvun."
+        "label": "OIVALLA",
+        "title": "Kokonaiskuva",
+        "desc": "Tilastot kertyvät automaattisesti peli peliltä. Näe joukkueen ja kauden kokonaiskuva yhdellä silmäyksellä."
       }
     },
     "benefits": {
@@ -387,20 +387,20 @@
       "localFirstShort": "Jalkapallo- ja futsalvalmennussovellus",
       "madeSimple": "Jalkapallo- ja futsalvalmennus ilman säätöä",
       "forPrivacyCoaches": "Jalkapallo- ja futsalvalmentajille, jotka arvostavat yksityisyyttä",
-      "trackDevelopment": "Seuraa pelaajien kehitystä datalla",
+      "trackDevelopment": "Tarkastele pelitilastoja ajan myötä",
       "comprehensiveStats": "Kattavat tilastot otteluista, kausista ja turnauksista.",
       "planLineupsVisually": "Suunnittele kokoonpanot visuaalisesti",
       "focusOnCoaching": "Keskity valmentamiseen,",
       "notPaperwork": "älä paperitöihin.",
       "buildLineupVisually": "Rakenna kokoonpano visuaalisesti",
       "logGoalsTap": "Kirjaa maalit napautuksella",
-      "trackDevelopmentTime": "Seuraa kehitystä ajan myötä",
+      "trackDevelopmentTime": "Tarkastele tilastoja ajan myötä",
       "trackGamesRealtime": "Seuraa pelejä reaaliajassa",
       "buildStatsAuto": "Tilastot kertyvät automaattisesti",
       "fieldDesc": "Valitse ja aseta pelaajat interaktiiviselle kentälle. Visualisoi muodostelma ennen peliä.",
       "timerDesc": "Pelikello vaihtoväleillä. Kirjaa maalit, syötöt ja tapahtumat napautuksella.",
       "statsDesc": "Kattavat pelaaja-, joukkue- ja kilpailutilastot. Seuraa suorituskykyä kausien yli.",
-      "statsLongDesc": "Jokainen maali, syöttö ja pelitapahtuma kerryttää kauden tilastoja. Seuraa pelaajien kehitystä kattavalla analytiikalla."
+      "statsLongDesc": "Jokainen maali, syöttö ja pelitapahtuma kerryttää kauden tilastoja. Tarkastele pelihistoriaa ja joukkuetilastoja kattavalla analytiikalla."
     },
     "bullets": {
       "worksOffline": "Toimii offline",
@@ -419,7 +419,7 @@
     "ui": {
       "plan": "Suunnittele",
       "track": "Kirjaa",
-      "assess": "Kehitä",
+      "assess": "Oivalla",
       "lineups": "Kokoonpanot",
       "liveGames": "Peliseuranta",
       "statistics": "Tilastot",
@@ -443,7 +443,7 @@
       "interactiveSoccerField": "Interaktiivinen jalkapallokenttä",
       "liveGameTimerEvents": "Pelikello ja tapahtumien kirjaus",
       "playerTeamStatistics": "Pelaaja- ja joukkuetilastot",
-      "planTrackAssessDots": "Suunnittele • Kirjaa • Kehitä",
+      "planTrackAssessDots": "Suunnittele • Kirjaa • Oivalla",
       "getStarted": "Aloita",
       "replaceClipboard": "Korvaa taktiikkataulu, sekuntikello ja muistivihko yhdellä sovelluksella.",
       "lineup": "Kokoonpano",
@@ -470,10 +470,10 @@
       "formationsDesc": "Aseta joukkue sekunneissa valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
-      "assessment": "Kehitysseuranta",
-      "assessmentDesc": "Seuraa jokaisen pelaajan kehitystä kauden aikana. Valmentajan omat muistiinpanot auttavat huomaamaan kasvun — myös hiljaisimpien pelaajien. Ominaisuus kohdistettu vanhemmille ikäryhmille.",
+      "assessment": "Havainnot",
+      "assessmentDesc": "Arvioi halutessasi ottelusuorituksia ja lisää valmentajan muistiinpanoja pelien jälkeen. Auttaa seuraamaan havaintoja kauden aikana.",
       "trends": "Trendit",
-      "trendsDesc": "Seuraa pelaajien kehitystä visuaalisilla kaavioilla. Näe miten osa-alueet kehittyvät ottelusta toiseen ja kauden aikana.",
+      "trendsDesc": "Seuraa halutessasi pelaajien kehitystä visuaalisilla kaavioilla. Näe miten osa-alueet kehittyvät ottelusta toiseen ja kauden aikana.",
       "seasons": "Kausikeskus",
       "seasonsDesc": "Luo ja hallitse sarjoja. Yhdistä pelit sarjoihin ja seuraa sarjan tilastoja.",
       "tournaments": "Turnauskeskus",

@@ -63,6 +63,9 @@ const getScreenshots = (locale: string | undefined) => {
     cloudSync: isEnglish
       ? '/screenshots/MatchOps_main_cloudSync_en.jpg'
       : '/screenshots/MatchOps_main_CloudSync_fi.jpg',
+    teamstats: isEnglish
+      ? '/screenshots/MatchOps_main_teamstats_en.jpg'
+      : '/screenshots/MatchOps_main_teamstats_fi.jpg',
   };
 };
 
@@ -352,7 +355,7 @@ export default function HomePage() {
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
-              {isEnglish ? 'Plan • Track • Develop' : 'Suunnittele • Kirjaa • Kehitä'}
+              {isEnglish ? 'Plan • Track • Discover' : 'Suunnittele • Kirjaa • Oivalla'}
             </h2>
             <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
               {t('info.whatIsThis.description')}
@@ -382,13 +385,13 @@ export default function HomePage() {
                   {t('marketing.features.track.desc')}
                 </p>
               </div>
-              {/* DEVELOP */}
+              {/* DISCOVER / OIVALLA */}
               <div className="text-center">
                 <div className="flex justify-center mb-4">
-                  <PhoneMockup screenshot={screenshots.playerstats} size="lg" />
+                  <PhoneMockup screenshot={screenshots.teamstats} size="lg" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
-                  {isEnglish ? 'Develop' : 'Kehitä'}
+                  {isEnglish ? 'Discover' : 'Oivalla'}
                 </h3>
                 <p className="text-slate-300">
                   {t('marketing.features.assess.desc')}
@@ -413,8 +416,6 @@ export default function HomePage() {
                 { key: 'cloudSync', screenshot: screenshots.cloudSync },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
                 { key: 'formations', screenshot: screenshots.formations },
-                { key: 'assessment', screenshot: screenshots.assessment },
-                { key: 'trends', screenshot: screenshots.trends },
                 { key: 'excelExport', screenshot: screenshots.excelExport },
                 { key: 'roster', screenshot: screenshots.roster },
                 { key: 'archive', screenshot: screenshots.archive },
@@ -423,6 +424,8 @@ export default function HomePage() {
                 { key: 'tournaments', screenshot: screenshots.tournaments },
                 { key: 'futsal', screenshot: screenshots.futsal },
                 { key: 'personnel', screenshot: screenshots.personnel },
+                { key: 'assessment', screenshot: screenshots.assessment },
+                { key: 'trends', screenshot: screenshots.trends },
                 { key: 'officialRules', screenshot: screenshots.officialRules },
               ].map((card, i) => (
                 <div

@@ -817,10 +817,10 @@
     "createGame": "Luo ottelu"
   },
   "startScreen": {
-    "tagline": "Suunnittele · Kirjaa · Kehitä",
+    "tagline": "Suunnittele · Kirjaa · Oivalla",
     "taglinePlan": "Suunnittele",
     "taglineTrack": "Kirjaa",
-    "taglineAssess": "Kehitä",
+    "taglineAssess": "Oivalla",
     "premiumTagline": "Ammattimainen jalkapallovalmennus",
     "description": "Jalkapallovalmentajan taktiikka- ja ajastinsovellus",
     "createNewGame": "Luo uusi ottelu",
@@ -1439,6 +1439,9 @@
     "restoreCardDesc": "Korvaa nykyiset tiedot varmuuskopiotiedostolla.",
     "checkForUpdates": "Tarkista päivitykset",
     "checkForUpdatesDesc": "Tarkista onko uusi versio saatavilla.",
+    "sendFeedback": "Lähetä palautetta",
+    "sendFeedbackDesc": "Ilmoita virheistä tai ehdota parannuksia.",
+    "emailButton": "Sähköposti",
     "checkingUpdates": "Tarkistetaan...",
     "updateAvailable": "Päivitys saatavilla! Lataa sovellus uudelleen ottaaksesi käyttöön.",
     "updateAvailableTitle": "Päivitys saatavilla",
