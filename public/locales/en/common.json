@@ -919,10 +919,10 @@
     "personnelEmpty": "No personnel assigned."
   },
   "startScreen": {
-    "tagline": "Plan · Track · Develop",
+    "tagline": "Plan · Track · Discover",
     "taglinePlan": "Plan",
     "taglineTrack": "Track",
-    "taglineAssess": "Develop",
+    "taglineAssess": "Discover",
     "premiumTagline": "Professional Soccer Coaching",
     "description": "Soccer Tactics and Timer App for Coaches",
     "createNewGame": "Create New Game",
@@ -1439,6 +1439,9 @@
     "restoreCardDesc": "Replace current data with a backup file.",
     "checkForUpdates": "Check for Updates",
     "checkForUpdatesDesc": "Check if a new version is available.",
+    "sendFeedback": "Send Feedback",
+    "sendFeedbackDesc": "Report bugs or suggest improvements.",
+    "emailButton": "Email",
     "checkingUpdates": "Checking...",
     "updateAvailable": "Update available! Please reload the app to apply.",
     "updateAvailableTitle": "Update Available",

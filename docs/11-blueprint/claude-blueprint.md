@@ -546,6 +546,47 @@ Before committing:
 
 ---
 
+## CI/CD Pipeline
+
+### Automated Checks (GitHub Actions)
+
+Every push and PR triggers parallel CI checks. All must pass before merge.
+
+```
+Push/PR triggers:
+├── ci.yml ──────────── Lint + Type Check + Full Tests + Build + Security Scan
+├── test-guards.yml ─── Critical tests + Smoke + Performance + A11y + Build verify
+├── claude-code-review.yml ─── AI code review on PRs (Claude Code Action)
+├── full-test-suite.yml ────── Comprehensive tests (master push only)
+└── update-test-badge.yml ──── Auto-update README test count badge
+```
+
+**Key design decisions**:
+- **Parallel jobs**: All CI checks run simultaneously for fast feedback
+- **Summary gate**: A single `all-checks` job aggregates results — this is the required status check in branch protection
+- **Tiered test strategy**: Critical/smoke tests run on every PR; full suite + E2E are opt-in via commit tags (`[full-test]`, `[e2e]`)
+- **AI review**: Claude Code Action automatically reviews PRs for quality, bugs, security
+- **`--maxWorkers=2`** in CI: CI runners have limited CPU — too many Jest workers causes OOM
+
+### Automatic Deployment (Vercel)
+
+Vercel handles deployment automatically — no GitHub Actions workflow needed:
+- **PR push** → Preview deployment (unique URL posted as PR comment)
+- **Merge to master** → Production deployment
+- Build command: `npm run build` (includes manifest + changelog generation)
+- Environment variables set per environment in Vercel dashboard
+
+### Branch Protection
+
+Required for `master`:
+- Status checks must pass (`All CI Checks Passed` gate)
+- Branches must be up to date
+- PR review required (at least 1 approval)
+
+See `docs/11-blueprint/15-build-and-deploy.md` (Section 7) for complete workflow YAML files.
+
+---
+
 ## Environment Variables
 
 ### Cloud Backend
