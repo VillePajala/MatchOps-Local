@@ -1,6 +1,13 @@
 import '@testing-library/jest-dom';
 import 'jest-canvas-mock';
 
+// Polyfill requestAnimationFrame for JSDOM (not available without pretendToBeVisual)
+// Required by components using rAF (e.g., HomePage's double-rAF layout reveal)
+if (typeof window !== 'undefined' && !window.requestAnimationFrame) {
+  window.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+  window.cancelAnimationFrame = (id) => clearTimeout(id);
+}
+
 // Mock Sentry to avoid import errors in tests
 jest.mock('@sentry/nextjs', () => ({
   captureException: jest.fn(),

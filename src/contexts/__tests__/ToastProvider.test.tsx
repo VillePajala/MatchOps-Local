@@ -23,7 +23,7 @@ const FlexibleTestComponent = ({ onMount }: { onMount: (showToast: (msg: string,
   return null;
 };
 
-test('showToast displays and hides a toast message', () => {
+test('showToast displays and hides a toast message', async () => {
   jest.useFakeTimers();
   try {
     render(
@@ -33,10 +33,10 @@ test('showToast displays and hides a toast message', () => {
     );
 
     fireEvent.click(screen.getByText('Success'));
-    expect(screen.getByText('Saved!').closest('[role="status"]')).toHaveClass('bg-green-600');
+    expect(screen.getByText('Saved!').closest('[role="status"]')).toHaveClass('bg-emerald-950/95');
 
     fireEvent.click(screen.getByText('Error'));
-    expect(screen.getByText('Error!').closest('[role="alert"]')).toHaveClass('bg-red-600');
+    expect(screen.getByText('Error!').closest('[role="alert"]')).toHaveClass('bg-red-950/95');
 
     // Success toast disappears after 3s
     act(() => {

@@ -207,15 +207,15 @@ describe('<SettingsModal />', () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  test('requires typing RESET before Hard Reset', () => {
+  test('requires typing RESET before Delete All Data', () => {
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    // Hard Reset is in the Account tab (Danger Zone section)
-    navigateToTab('Account');
-    const resetBtn = screen.getByRole('button', { name: /Hard Reset App/i });
+    // Delete All Data (local mode) is in the Data tab (Danger Zone section)
+    navigateToTab('Data');
+    const resetBtn = screen.getByRole('button', { name: /Delete All Data/i });
     expect(resetBtn).toBeDisabled();
     fireEvent.change(
       screen.getByLabelText('Type RESET to confirm'),

@@ -49,6 +49,21 @@ jest.mock('@/utils/tournaments');
 jest.mock('@/utils/appSettings');
 jest.mock('@/utils/teams');
 
+// Mock useDataStore — component calls getStore().getAllPlayerAdjustments() in loadData effect.
+// CRITICAL: getStore must be a STABLE reference (not jest.fn() inline) because the component's
+// useEffect depends on getStore — an unstable reference causes infinite re-render loops.
+const mockGetStore = jest.fn().mockResolvedValue({
+  getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
+});
+const mockUseDataStoreReturn = {
+  userId: 'test-user-123',
+  getStore: mockGetStore,
+  isUserScoped: true,
+};
+jest.mock('@/hooks/useDataStore', () => ({
+  useDataStore: () => mockUseDataStoreReturn,
+}));
+
 import * as teamsUtils from '@/utils/teams';
 
 const mockGetSeasons = seasonsUtils.getSeasons as jest.Mock;
@@ -251,7 +266,7 @@ describe('GameStatsModal', () => {
     await act(async () => {
       renderComponent(getDefaultProps());
     });
-    expect(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
 
     const playerStatsSection = screen.getByRole('heading', { name: i18n.t('gameStatsModal.playerStatsTitle') });
     expect(playerStatsSection).toBeInTheDocument();
@@ -452,10 +467,10 @@ describe('GameStatsModal', () => {
     });
 
     // Initial check (Current Game)
-    expect(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
 
     // Switch to Season tab and check for season-specific elements
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.season') }));
+    fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.season') }));
     await waitFor(() => {
       // With game type filter, we now have multiple comboboxes
       expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
@@ -467,7 +482,7 @@ describe('GameStatsModal', () => {
 
     // Switch to Tournament tab and check for tournament-specific elements
     // Note: Tournament tab uses CollapsibleFilters with tournament dropdown visible by default
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
+    fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.tournament') }));
 
     await waitFor(() => {
       // Tournament dropdown is visible by default (not behind collapsible)
@@ -535,7 +550,7 @@ describe('GameStatsModal', () => {
       renderComponent(props);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
+    fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
 
     const user = userEvent.setup();
     const input = await screen.findByPlaceholderText(
@@ -555,7 +570,7 @@ describe('GameStatsModal', () => {
       renderComponent(props);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
+    fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
 
     const input = await screen.findByPlaceholderText(
       i18n.t('playerStats.selectPlayerLabel', 'Select Player')
@@ -578,7 +593,7 @@ describe('GameStatsModal', () => {
     });
 
     // Go to Player tab and search for Diana
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
+    fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
     const input = await screen.findByPlaceholderText(
       i18n.t('playerStats.selectPlayerLabel', 'Select Player')
     );
@@ -664,7 +679,7 @@ describe('GameStatsModal', () => {
 
       // Switch to tournament tab and wait for stats to update
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
+        fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.tournament') }));
       });
 
       // Wait for tournament stats to render
@@ -702,7 +717,7 @@ describe('GameStatsModal', () => {
       });
 
       // Stay on Current Game tab (default)
-      expect(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
 
       // Trophy should not be visible on current game tab
       expect(screen.queryByText('🏆')).not.toBeInTheDocument();

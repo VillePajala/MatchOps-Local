@@ -98,11 +98,17 @@ describe('Supabase Client', () => {
           auth: expect.objectContaining({
             persistSession: true,
             autoRefreshToken: true,
-            detectSessionInUrl: true,
+            detectSessionInUrl: false,
           }),
           global: expect.objectContaining({
             headers: expect.objectContaining({
               'x-client-info': 'matchops-web',
+            }),
+            fetch: expect.any(Function),
+          }),
+          realtime: expect.objectContaining({
+            params: expect.objectContaining({
+              eventsPerSecond: 2,
             }),
           }),
         })
