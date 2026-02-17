@@ -246,7 +246,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Removed: addTournamentMutation - unused prop (tournament creation moved to dedicated modal)
   // Removed: isAddingSeason - unused prop, mutations handle loading state internally
   // Removed: isAddingTournament - unused prop, mutations handle loading state internally
-  timeElapsedInSeconds,
+  timeElapsedInSeconds: _timeElapsedInSeconds,
   updateGameDetailsMutation,
   seasons,
   tournaments,

@@ -108,12 +108,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   useEffect(() => {
     if (!player) return;
     getAdjustmentsForPlayer(player.id, userId).then(setAdjustments).catch(() => setAdjustments([]));
-    // Reset form/UI state when switching players
-    setShowAdjForm(false);
-    setEditingAdjId(null);
-    setShowExternalGames(false);
-    setShowDeleteConfirm(null);
-    setShowActionsMenu(null);
+    // Reset form/UI state when switching away from this player (cleanup runs before next effect)
+    return () => {
+      setShowAdjForm(false);
+      setEditingAdjId(null);
+      setShowExternalGames(false);
+      setShowDeleteConfirm(null);
+      setShowActionsMenu(null);
+    };
   }, [player, userId]);
 
   // Close actions menu when clicking outside or pressing Escape

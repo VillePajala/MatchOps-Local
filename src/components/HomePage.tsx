@@ -27,22 +27,23 @@ function HomePage(props: HomePageProps) {
   const [layoutReady, setLayoutReady] = useState(false);
 
   useEffect(() => {
-    if (!isBootstrapping && !isResetting) {
-      // Double rAF: first frame renders GameContainer at opacity-0,
-      // second frame it has laid out → safe to reveal
-      let innerFrameId: number;
-      const outerFrameId = requestAnimationFrame(() => {
-        innerFrameId = requestAnimationFrame(() => {
-          setLayoutReady(true);
-        });
+    if (isBootstrapping || isResetting) return;
+
+    // Double rAF: first frame renders GameContainer at opacity-0,
+    // second frame it has laid out → safe to reveal
+    let innerFrameId: number;
+    const outerFrameId = requestAnimationFrame(() => {
+      innerFrameId = requestAnimationFrame(() => {
+        setLayoutReady(true);
       });
-      return () => {
-        cancelAnimationFrame(outerFrameId);
-        cancelAnimationFrame(innerFrameId);
-      };
-    } else {
+    });
+    return () => {
+      cancelAnimationFrame(outerFrameId);
+      cancelAnimationFrame(innerFrameId);
+      // Reset layout flag when re-entering bootstrap/reset state
+      // (cleanup runs before next effect when dependencies change)
       setLayoutReady(false);
-    }
+    };
   }, [isBootstrapping, isResetting]);
 
   if (isBootstrapping) {

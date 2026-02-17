@@ -6,11 +6,7 @@ import {
     Point,
     AppState,
 } from '@/types'; // Reverted for Opponent, Point, AppState as they are likely still in page.tsx exports
-import {
-    updatePlayer as updatePlayerInMasterRoster,
-    getMasterRoster as getMasterRosterFromManager,
-    // setGoalieStatus as setGoalieStatusInMasterRoster // No longer used - using per-game implementation
-} from '@/utils/masterRosterManager';
+// masterRosterManager imports removed — goalie status is now per-game, not master roster
 import logger from '@/utils/logger';
 
 // Define arguments the hook will receive

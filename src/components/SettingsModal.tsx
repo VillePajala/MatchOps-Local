@@ -224,8 +224,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingRestoreContent, setPendingRestoreContent] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
-  const { user } = useAuth();
-
   React.useLayoutEffect(() => {
     setTeamName(defaultTeamName);
   }, [defaultTeamName]);

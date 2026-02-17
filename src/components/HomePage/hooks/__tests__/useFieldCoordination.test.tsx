@@ -317,7 +317,7 @@ describe('useFieldCoordination', () => {
       });
 
       expect(mockSetPlayersOnField).toHaveBeenCalled();
-      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: any[]) => any[];
       const updatedPlayers = updaterFn([existingPlayer]);
 
       expect(updatedPlayers).toHaveLength(1);
@@ -397,7 +397,7 @@ describe('useFieldCoordination', () => {
       rerender();
 
       expect(mockSetPlayersOnField).toHaveBeenCalled();
-      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: any[]) => any[];
       const updatedPlayers = updaterFn([player1, player2]);
 
       expect(updatedPlayers).toHaveLength(1);
@@ -1302,7 +1302,7 @@ describe('useFieldCoordination', () => {
       });
 
       expect(mockSetPlayersOnField).toHaveBeenCalled();
-      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: any[]) => any[];
       const updatedPlayers = updaterFn([player1, player2]);
 
       // Player 1 should now be at player 2's old position
@@ -1337,7 +1337,7 @@ describe('useFieldCoordination', () => {
         result.current.handlePlayersSwap('p1', 'p2');
       });
 
-      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: any[]) => any[];
       const updatedPlayers = updaterFn([player1, player2]);
 
       // Player 2 is now at goalie position, should have isGoalie: true
@@ -1370,7 +1370,7 @@ describe('useFieldCoordination', () => {
       });
 
       // The updater should return unchanged array
-      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: any[]) => any[];
       const updatedPlayers = updaterFn([player1]);
       expect(updatedPlayers).toEqual([player1]);
     });

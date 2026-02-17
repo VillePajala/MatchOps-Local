@@ -142,6 +142,7 @@ const eslintConfig = [
     ],
     rules: {
       "no-console": "off",                              // Scripts need console for output
+      "no-restricted-globals": "off",                   // Scripts may use localStorage via Playwright
       "@typescript-eslint/no-require-imports": "off",   // Scripts may use require
       "custom-hooks/require-memoized-function-props": "off"
     }
