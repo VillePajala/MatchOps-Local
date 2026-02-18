@@ -38,8 +38,11 @@ import logger from '@/utils/logger';
  *
  * FRAGILITY NOTE: The storage key `sb-<projectRef>-auth-token` is an internal
  * Supabase JS client implementation detail. If Supabase changes the key format
- * in a future major version, this silently returns null (grace period won't activate).
+ * in a future major version, this silently returns null (grace period won't activate,
+ * no Sentry breadcrumb fires because nothing is found in localStorage at all).
  * The same key is used in SupabaseAuthService — update both if it changes.
+ * UPGRADE CHECKLIST: After any @supabase/supabase-js major version bump, verify
+ * the storage key format hasn't changed (check node_modules/@supabase/gotrue-js).
  */
 function getCachedSupabaseSession(): { userId: string; email: string } | null {
   try {
@@ -205,6 +208,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Only explicit signOut() resets this flag
   const hasSignedInThisSessionRef = useRef(false);
 
+  // Track intentional sign-out to prevent grace period trigger 3 from re-entering
+  // grace period when the user explicitly signs out while offline.
+  // Set true BEFORE authService.signOut() so the onAuthStateChange handler sees it.
+  const isIntentionalSignOutRef = useRef(false);
+
   // Track if password reset flow is in progress (OTP verified, waiting for new password).
   // When true, onAuthStateChange ignores the recovery session — prevents the app from
   // treating the recovery session as a real sign-in and navigating away from the
@@ -270,6 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Satisfies User interface: id (string), email (string|null), isAnonymous (boolean).
             // Optional fields (displayName, avatarUrl) omitted — not needed for grace period.
             setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+            // initTimedOut remains false — init completed, just no session
           }
         }
 
@@ -350,7 +359,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // If we're about to clear the session (signed_out with null session) but the
           // device is offline and we have a valid cached token, enter grace period instead
           // of logging the user out. Their data is in IndexedDB — let them keep working.
-          if (!newSession && state === 'signed_out' && currentMode === 'cloud' && isCloudAvailable()) {
+          // Skip this for intentional sign-out (user clicked "Sign Out") — they want to leave.
+          if (!newSession && state === 'signed_out' && !isIntentionalSignOutRef.current
+            && currentMode === 'cloud' && isCloudAvailable()) {
             const cached = getCachedSupabaseSession();
             if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
               logger.info('[AuthProvider] Grace period: mid-session offline signout with cached session for', cached.email);
@@ -668,6 +679,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Show loading state during sign-out to prevent UI interaction
     setIsSigningOut(true);
 
+    // Mark intentional sign-out BEFORE calling authService.signOut() so the
+    // onAuthStateChange handler (trigger 3) won't re-enter grace period.
+    isIntentionalSignOutRef.current = true;
+
     try {
       await authService.signOut();
     } catch (error) {
@@ -706,9 +721,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Reset session lock BEFORE clearing state - allows onAuthStateChange to process signed_out
+    // Reset session locks BEFORE clearing state - allows onAuthStateChange to process signed_out
     hasSignedInThisSessionRef.current = false;
     isPasswordResetFlowRef.current = false;
+    isIntentionalSignOutRef.current = false; // Reset for next session
     logger.info('[AuthProvider] Sign-out initiated, session lock released');
 
     // Always clear local state, even if API call failed

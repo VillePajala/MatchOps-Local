@@ -62,7 +62,9 @@ export default function CloudSyncSection({
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { user } = useAuth();
-  // Computed once — environment-stable, never changes at runtime
+  // Computed once — environment-stable, never changes at runtime.
+  // Unlike page.tsx which also checks isCloudAvailable(), CloudSyncSection only renders
+  // when already in cloud mode, so the isCloudAvailable() guard is redundant here.
   const isPlayStoreCtx = useRef(isPlayStoreContext()).current;
 
   // Subscription status for cloud mode (null in local mode)
