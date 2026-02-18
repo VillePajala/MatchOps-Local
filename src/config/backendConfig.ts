@@ -215,7 +215,7 @@ export function disableCloudMode(): ModeSwitchResult {
   }
 
   // Block switching to local mode in Play Store context (cloud is required)
-  if ('getDigitalGoodsService' in window) {
+  if (typeof window !== 'undefined' && 'getDigitalGoodsService' in window) {
     log.warn('[backendConfig] Cannot disable cloud mode in Play Store context');
     return {
       success: false,
