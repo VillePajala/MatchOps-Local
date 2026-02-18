@@ -47,6 +47,11 @@ function getCachedSupabaseSession(): { userId: string; email: string } | null {
     const storedData = localStorage.getItem(storageKey);
     if (!storedData) return null;
     const parsed = JSON.parse(storedData);
+    // Reject expired tokens — don't grant grace period for stale sessions
+    const expiresAt = parsed?.expires_at; // Unix timestamp (seconds)
+    if (typeof expiresAt === 'number' && expiresAt < Date.now() / 1000) {
+      return null;
+    }
     const userId = parsed?.user?.id;
     const email = parsed?.user?.email;
     if (typeof userId === 'string' && userId.length > 0) {
@@ -238,6 +243,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
             logger.info('[AuthProvider] Grace period: offline with cached session for', cached.email);
             setIsAuthGracePeriod(true);
+            // Satisfies User interface: id (string), email (string|null), isAnonymous (boolean).
+            // Optional fields (displayName, avatarUrl) omitted — not needed for grace period.
             setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
           }
         }
@@ -418,6 +425,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (cached) {
             logger.info('[AuthProvider] Grace period: init timeout with cached session for', cached.email);
             setIsAuthGracePeriod(true);
+            // Satisfies User interface: id (string), email (string|null), isAnonymous (boolean).
+            // Optional fields (displayName, avatarUrl) omitted — not needed for grace period.
             setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
             setIsLoading(false);
             // Do NOT set initTimedOut — grace period supersedes the timeout screen
