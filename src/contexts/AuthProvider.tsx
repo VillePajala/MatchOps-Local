@@ -307,6 +307,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // device is offline and we have a valid cached token, enter grace period instead
           // of logging the user out. Their data is in IndexedDB — let them keep working.
           // Skip this for intentional sign-out (user clicked "Sign Out") — they want to leave.
+          // NOTE: Unlike trigger 1 (cold-start), trigger 3 checks navigator.onLine because
+          // mid-session signed_out events also fire for legitimate server-side revocations.
+          // Captive portal scenario (onLine === true, Supabase unreachable): not covered here —
+          // the user is logged out but trigger 1 catches it on next app launch.
           if (!newSession && state === 'signed_out' && !isIntentionalSignOutRef.current
             && currentMode === 'cloud' && isCloudAvailable()) {
             const cached = getCachedUserIdentity();
