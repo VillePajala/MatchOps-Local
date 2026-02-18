@@ -108,11 +108,15 @@ export default function Home() {
   // This ensures the loading screen shows immediately when conditions are met, not one render cycle later
   // NOTE: Do NOT require !!userId here - user/session might be set at slightly different times
   // and we need to show loading screen as soon as isAuthenticated is true
+  // Grace period bypass: when offline with cached session, skip subscription/migration checks
+  // entirely — both require network. User accesses local data immediately. Normal post-login
+  // flow resumes when grace period clears (online event → auth retry succeeds).
   const isPostLoginLoading =
     mode === 'cloud' &&
     isAuthenticated &&
     !isAuthLoading &&
-    !postLoginCheckComplete;
+    !postLoginCheckComplete &&
+    !isAuthGracePeriod;
 
   // Safety timeout: If post-login check doesn't complete within 120 seconds, force completion
   // This prevents users from getting stuck on the loading screen indefinitely due to:
@@ -229,11 +233,20 @@ export default function Home() {
       logger.info('[page.tsx] Play Store first install - auto-enabling cloud mode');
       const enabled = enableCloudMode();
       if (enabled) {
-        setWelcomeSeen();
-        window.location.reload();
-        return; // Reload initiated — skip further checks
+        const welcomed = setWelcomeSeen();
+        if (!welcomed) {
+          // setWelcomeSeen() localStorage write failed — do NOT reload or we'd loop.
+          // Fall through to welcome screen with hideLocalModeOptions.
+          logger.error('[page.tsx] Play Store first install - setWelcomeSeen() failed, skipping reload to prevent loop');
+        } else {
+          window.location.reload();
+          return; // Reload initiated — skip further checks
+        }
+      } else {
+        // enableCloudMode() failed — unexpected since isPlayStoreCtx requires isCloudAvailable()
+        logger.error('[page.tsx] Play Store first install - enableCloudMode() failed unexpectedly');
       }
-      // enableCloudMode() failed — fall through to welcome screen below
+      // Fall through to welcome screen below
     }
 
     // Show welcome screen if user hasn't seen it yet

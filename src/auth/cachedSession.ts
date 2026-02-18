@@ -56,7 +56,9 @@ export function readCachedSupabaseSession(): CachedSupabaseSession | null {
     // Check for both direct session and nested currentSession.
     const session = parsed?.currentSession || parsed;
     return session ?? null;
-  } catch {
+  } catch (error) {
+    // Log parse failure for observability — corrupted localStorage should not go unnoticed
+    logger.debug('[cachedSession] Failed to parse cached session from localStorage:', error);
     return null;
   }
 }
@@ -73,9 +75,21 @@ export function getCachedUserIdentity(): { userId: string; email: string } | nul
 
   // Reject expired tokens
   const expiresAt = session.expires_at;
-  if (typeof expiresAt === 'number' && expiresAt < Date.now() / 1000) {
-    return null;
+  if (typeof expiresAt === 'number') {
+    // Plausibility: reject values that look like milliseconds (> 1e12) or negative.
+    // Supabase stores expires_at as Unix seconds. A value > 1e12 would be year 33658+
+    // in seconds but is a plausible near-future timestamp in milliseconds.
+    if (expiresAt > 1e12 || expiresAt < 0) {
+      logger.debug('[cachedSession] expires_at looks implausible (ms? negative?):', expiresAt);
+      return null;
+    }
+    if (expiresAt < Date.now() / 1000) {
+      return null; // Expired
+    }
   }
+  // If expires_at is missing/non-numeric, proceed — better to grant grace period
+  // access than lock user out. The token was written by Supabase and will be
+  // re-validated when connectivity returns.
 
   const userId = session.user?.id;
   const email = session.user?.email;
@@ -92,8 +106,8 @@ export function getCachedUserIdentity(): { userId: string; email: string } | nul
       level: 'warning',
       data: { hasUser: !!session.user },
     });
-  } catch {
-    // Sentry failure acceptable
+  } catch (sentryError) {
+    logger.debug('[cachedSession] Sentry breadcrumb failed:', sentryError);
   }
   return null;
 }
@@ -108,10 +122,10 @@ export function getCachedFullSession(): CachedSupabaseSession | null {
   const session = readCachedSupabaseSession();
   if (!session) return null;
 
-  if (session.access_token && session.user) {
+  if (session.access_token && session.refresh_token && session.user) {
     return session;
   }
 
-  logger.debug('[cachedSession] Cached session found but missing access_token or user');
+  logger.debug('[cachedSession] Cached session found but missing required fields (access_token, refresh_token, or user)');
   return null;
 }

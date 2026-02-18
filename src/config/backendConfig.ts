@@ -33,16 +33,12 @@ export interface BackendConfig {
 
 /**
  * Result of a mode switch operation.
- * Provides details about why it failed if unsuccessful.
+ * Discriminated union — success variant has no extra fields,
+ * failure variant guarantees reason + message are present.
  */
-export interface ModeSwitchResult {
-  /** Whether the mode switch succeeded */
-  success: boolean;
-  /** Reason for failure (only set if success is false) */
-  reason?: 'server_side' | 'storage_write_failed' | 'play_store_restricted';
-  /** Human-readable error message */
-  message?: string;
-}
+export type ModeSwitchResult =
+  | { success: true }
+  | { success: false; reason: 'server_side' | 'storage_write_failed' | 'play_store_restricted'; message: string };
 
 // ============================================================================
 // ENVIRONMENT VARIABLE DETECTION
@@ -150,7 +146,9 @@ export function getBackendMode(): BackendMode {
       // Handles existing users who chose local mode before the app became Play Store TWA.
       if (runtimeMode === 'local' && playStoreCloudRequired) {
         log.info('[backendConfig] Play Store context - overriding stored local mode to cloud');
-        safeSetItem(MODE_STORAGE_KEY, 'cloud'); // Persist the correction
+        // Best-effort persist — if localStorage write fails, we still return 'cloud'
+        // and re-correct on the next call. Acceptable: no functional impact, just repeated logs.
+        safeSetItem(MODE_STORAGE_KEY, 'cloud');
         return 'cloud';
       }
       // Validate cloud mode is actually available

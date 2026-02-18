@@ -44,6 +44,10 @@ jest.mock('@/config/backendConfig', () => ({
   clearMigrationCompleted: jest.fn(),
 }));
 
+jest.mock('@/utils/platform', () => ({
+  isPlayStoreContext: jest.fn().mockReturnValue(false),
+}));
+
 jest.mock('@/contexts/AuthProvider', () => ({
   useAuth: () => ({
     user: { id: 'test-user-id', email: 'test@example.com' },
@@ -236,13 +240,17 @@ import {
   getBackendMode,
   isCloudAvailable,
   enableCloudMode,
+  disableCloudMode,
   clearMigrationCompleted,
 } from '@/config/backendConfig';
 import { getAuthService } from '@/datastore/factory';
+import { isPlayStoreContext } from '@/utils/platform';
 
 const mockGetBackendMode = getBackendMode as jest.MockedFunction<typeof getBackendMode>;
 const mockIsCloudAvailable = isCloudAvailable as jest.MockedFunction<typeof isCloudAvailable>;
 const mockEnableCloudMode = enableCloudMode as jest.MockedFunction<typeof enableCloudMode>;
+const mockIsPlayStoreContext = isPlayStoreContext as jest.MockedFunction<typeof isPlayStoreContext>;
+const mockDisableCloudMode = disableCloudMode as jest.MockedFunction<typeof disableCloudMode>;
 
 describe('CloudSyncSection', () => {
   beforeEach(() => {
@@ -815,6 +823,68 @@ describe('CloudSyncSection', () => {
       // Should call callback directly, not show pending sync modal
       expect(onShowReverseMigration).toHaveBeenCalled();
       expect(screen.queryByTestId('pending-sync-warning-modal')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Play Store context (cloud-only)', () => {
+    beforeEach(() => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockIsPlayStoreContext.mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      mockIsPlayStoreContext.mockReturnValue(false);
+    });
+
+    it('hides "Switch to Local Mode" button in Play Store context', () => {
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.queryByRole('button', { name: /switch to local mode/i })).not.toBeInTheDocument();
+    });
+
+    it('hides "Start Over" link in Play Store context', () => {
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.queryByText(/sign out and return to setup/i)).not.toBeInTheDocument();
+    });
+
+    it('still shows Sign Out button in Play Store context', () => {
+      renderWithQueryClient(<CloudSyncSection />);
+
+      expect(screen.getByRole('button', { name: /^Sign Out$/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('handleStartOver disableCloudMode failure', () => {
+    let mockAuthService: { signOut: jest.Mock };
+
+    beforeEach(() => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockIsPlayStoreContext.mockReturnValue(false);
+      mockAuthService = {
+        signOut: jest.fn().mockResolvedValue(undefined),
+      };
+      (getAuthService as jest.Mock).mockResolvedValue(mockAuthService);
+    });
+
+    it('aborts start-over when disableCloudMode returns failure', async () => {
+      mockDisableCloudMode.mockReturnValue({
+        success: false,
+        reason: 'storage_write_failed',
+        message: 'Storage quota exceeded',
+      });
+
+      renderWithQueryClient(<CloudSyncSection />);
+
+      const startOverLink = screen.getByText(/sign out and return to setup/i);
+      fireEvent.click(startOverLink);
+
+      // Should not have called signOut — disableCloudMode check is first
+      await waitFor(() => {
+        expect(mockAuthService.signOut).not.toHaveBeenCalled();
+      });
     });
   });
 });
