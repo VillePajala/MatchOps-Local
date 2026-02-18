@@ -33,8 +33,8 @@ interface WelcomeScreenProps {
   isCloudAvailable: boolean;
   /** Whether import is currently in progress */
   isImporting: boolean;
-  /** Hide local-mode options (Play Store context — cloud is required) */
-  hideLocalOption?: boolean;
+  /** Hide local-mode options: "Start without account" button + "Import backup" link (Play Store context — cloud is required) */
+  hideLocalModeOptions?: boolean;
 }
 
 export default function WelcomeScreen({
@@ -43,7 +43,7 @@ export default function WelcomeScreen({
   onImportBackup,
   isCloudAvailable,
   isImporting,
-  hideLocalOption = false,
+  hideLocalModeOptions = false,
 }: WelcomeScreenProps) {
   const { t } = useTranslation();
   const [language, setLanguage] = useState<string>(i18n.language);
@@ -123,7 +123,7 @@ export default function WelcomeScreen({
           {/* === OPTION BUTTONS === */}
           <div className="max-w-sm mx-auto w-full space-y-3">
             {/* Start without account (Local) — hidden in Play Store context */}
-            {!hideLocalOption && (
+            {!hideLocalModeOptions && (
               <button
                 onClick={onStartLocal}
                 className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
@@ -166,7 +166,7 @@ export default function WelcomeScreen({
           </div>
 
           {/* Footer: Import backup — hidden in Play Store (available via Settings after auth) */}
-          {!hideLocalOption && (
+          {!hideLocalModeOptions && (
             <div className="text-center mt-6">
               <p className="text-slate-500 text-sm">
                 <button

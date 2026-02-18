@@ -222,17 +222,18 @@ export default function Home() {
     // Only check on client side
     if (typeof window === 'undefined') return;
 
-    // Play Store context: skip WelcomeScreen, auto-enable cloud mode
+    // Play Store context: skip WelcomeScreen, auto-enable cloud mode.
+    // On success: setWelcomeSeen() + reload. On failure (shouldn't happen —
+    // isPlayStoreCtx requires isCloudAvailable()): fall through to show welcome screen.
     if (!hasSeenWelcome() && isPlayStoreCtx) {
       logger.info('[page.tsx] Play Store first install - auto-enabling cloud mode');
       const enabled = enableCloudMode();
       if (enabled) {
         setWelcomeSeen();
         window.location.reload();
+        return; // Reload initiated — skip further checks
       }
-      // If enableCloudMode() fails (shouldn't — isPlayStoreCtx requires isCloudAvailable()),
-      // fall through to show welcome screen as fallback
-      return;
+      // enableCloudMode() failed — fall through to welcome screen below
     }
 
     // Show welcome screen if user hasn't seen it yet
@@ -1155,7 +1156,7 @@ export default function Home() {
               onImportBackup={handleWelcomeImportBackup}
               isCloudAvailable={isCloudAvailable()}
               isImporting={isImportingBackup}
-              hideLocalOption={isPlayStoreCtx}
+              hideLocalModeOptions={isPlayStoreCtx}
             />
           </ErrorBoundary>
         ) : initTimedOut && mode === 'cloud' ? (
@@ -1245,7 +1246,9 @@ export default function Home() {
           </ErrorBoundary>
         )}
 
-        {/* Auth grace period banner — offline with cached session */}
+        {/* Auth grace period banner — offline with cached session.
+            z-40: same as ControlBar, visible during normal use but below modals (z-[60])
+            and sidebar (z-50). Intentional — informational banner shouldn't overlay modal content. */}
         {isAuthGracePeriod && (
           <div className="fixed top-0 left-0 right-0 z-40 bg-amber-500/90 text-slate-900 px-4 py-2 text-sm text-center font-medium">
             {t('page.offlineGracePeriod', 'Offline — changes saved locally, will sync when connected')}
