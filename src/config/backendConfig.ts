@@ -139,13 +139,16 @@ function safeRemoveItem(key: string): void {
  * @returns Current backend mode ('local' or 'cloud')
  */
 export function getBackendMode(): BackendMode {
+  // Compute once — used in multiple branches below.
+  const playStoreCloudRequired = isPlayStoreContext() && isCloudAvailable();
+
   // Check runtime override first (client-side only)
   if (typeof window !== 'undefined') {
     const runtimeMode = safeGetItem(MODE_STORAGE_KEY);
     if (runtimeMode === 'local' || runtimeMode === 'cloud') {
       // Play Store context: override stored local mode to cloud (cloud is required).
       // Handles existing users who chose local mode before the app became Play Store TWA.
-      if (runtimeMode === 'local' && isPlayStoreContext() && isCloudAvailable()) {
+      if (runtimeMode === 'local' && playStoreCloudRequired) {
         log.info('[backendConfig] Play Store context - overriding stored local mode to cloud');
         safeSetItem(MODE_STORAGE_KEY, 'cloud'); // Persist the correction
         return 'cloud';
@@ -174,7 +177,7 @@ export function getBackendMode(): BackendMode {
   }
 
   // Default to local mode — except in Play Store context where cloud is required.
-  if (isPlayStoreContext() && isCloudAvailable()) {
+  if (playStoreCloudRequired) {
     log.info('[backendConfig] Play Store context detected - defaulting to cloud mode');
     return 'cloud';
   }

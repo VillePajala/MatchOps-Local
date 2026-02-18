@@ -864,7 +864,7 @@ describe('AuthProvider', () => {
      * Test component that exposes grace period state
      */
     function GracePeriodTestComponent() {
-      const { isLoading, isAuthenticated, isAuthGracePeriod, initTimedOut, user } = useAuth();
+      const { isLoading, isAuthenticated, isAuthGracePeriod, initTimedOut, user, signOut } = useAuth();
       return (
         <div>
           <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
@@ -872,6 +872,7 @@ describe('AuthProvider', () => {
           <span data-testid="grace-period">{isAuthGracePeriod ? 'yes' : 'no'}</span>
           <span data-testid="timed-out">{initTimedOut ? 'yes' : 'no'}</span>
           <span data-testid="user-id">{user?.id ?? 'none'}</span>
+          <button data-testid="sign-out-btn" onClick={signOut}>Sign Out</button>
         </div>
       );
     }
@@ -1196,6 +1197,73 @@ describe('AuthProvider', () => {
           expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
           expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
           expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+        });
+      } finally {
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
+
+    /**
+     * Intentional sign-out while offline should NOT enter grace period.
+     * The user explicitly clicked "Sign Out" — don't re-enter grace period
+     * even if there's a valid cached token and the device is offline.
+     * @critical
+     */
+    it('should NOT enter grace period on intentional sign-out while offline', async () => {
+      // Start authenticated (session exists)
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+
+      // Store a valid cached session
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cloud-user-123', email: 'test@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      // Let auth init complete (authenticated)
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+
+      // Go offline
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      try {
+        // User clicks Sign Out (intentional)
+        await act(async () => {
+          screen.getByTestId('sign-out-btn').click();
+        });
+
+        // Allow signOut async to complete
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+
+        await waitFor(() => {
+          // Should be logged out — NOT in grace period
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+          expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+          expect(screen.getByTestId('user-id')).toHaveTextContent('none');
         });
       } finally {
         if (originalOnLine) {

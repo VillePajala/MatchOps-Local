@@ -1119,6 +1119,8 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
+        {/* Compensate for fixed grace period banner height so content isn't obscured on mobile */}
+        <div className={isAuthGracePeriod ? 'pt-10' : undefined}>
         {isBlockedByOtherTab ? (
           // Multi-tab block: another tab is already running the app
           <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
@@ -1245,6 +1247,7 @@ export default function Home() {
             />
           </ErrorBoundary>
         )}
+        </div>
 
         {/* Auth grace period banner — offline with cached session.
             z-40: same as ControlBar, visible during normal use but below modals (z-[60])
