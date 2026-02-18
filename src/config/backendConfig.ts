@@ -38,7 +38,7 @@ export interface ModeSwitchResult {
   /** Whether the mode switch succeeded */
   success: boolean;
   /** Reason for failure (only set if success is false) */
-  reason?: 'server_side' | 'storage_write_failed';
+  reason?: 'server_side' | 'storage_write_failed' | 'play_store_restricted';
   /** Human-readable error message */
   message?: string;
 }
@@ -165,7 +165,13 @@ export function getBackendMode(): BackendMode {
     return 'cloud';
   }
 
-  // Default to local mode
+  // Default to local mode — except in Play Store context where cloud is required.
+  // Uses inline check to avoid circular import from platform.ts.
+  if (typeof window !== 'undefined' && 'getDigitalGoodsService' in window && isCloudAvailable()) {
+    log.info('[backendConfig] Play Store context detected - defaulting to cloud mode');
+    return 'cloud';
+  }
+
   return 'local';
 }
 
@@ -205,6 +211,16 @@ export function disableCloudMode(): ModeSwitchResult {
       success: false,
       reason: 'server_side',
       message: 'Cannot switch mode on server - localStorage not available',
+    };
+  }
+
+  // Block switching to local mode in Play Store context (cloud is required)
+  if ('getDigitalGoodsService' in window) {
+    log.warn('[backendConfig] Cannot disable cloud mode in Play Store context');
+    return {
+      success: false,
+      reason: 'play_store_restricted',
+      message: 'Cloud mode is required in the Play Store version',
     };
   }
 
