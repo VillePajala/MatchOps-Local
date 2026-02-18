@@ -336,25 +336,11 @@ export default function CloudSyncSection({
   const handleStartOver = async () => {
     setIsSigningOut(true);
     try {
-      // 1. Clear migration completed flag (while we still have user ID)
-      if (user?.id) {
-        clearMigrationCompleted(user.id);
-      }
-
-      // 2. Sign out
-      const { getAuthService } = await import('@/datastore/factory');
-      const authService = await getAuthService();
-      await authService.signOut();
-
-      // 3. Clear welcome seen flag to show WelcomeScreen
-      clearWelcomeSeen();
-
-      // 4. Disable cloud mode
+      // 1. Pre-flight: check disableCloudMode() BEFORE any destructive operations.
+      // If this fails (storage_write_failed), nothing has been modified yet — safe to abort.
       const result = disableCloudMode();
       if (!result.success) {
-        // storage_write_failed (quota exceeded, private mode) — abort reload,
-        // user would wake up still in cloud mode with welcome flag already cleared.
-        logger.error('[CloudSyncSection] Failed to disable cloud mode:', result.reason);
+        logger.error('[CloudSyncSection] Failed to disable cloud mode (pre-flight):', result.reason);
         showToast(
           t('cloudSync.startOverError', 'Failed to start over. Please try again.'),
           'error'
@@ -364,6 +350,19 @@ export default function CloudSyncSection({
         }
         return;
       }
+
+      // 2. Clear migration completed flag (while we still have user ID)
+      if (user?.id) {
+        clearMigrationCompleted(user.id);
+      }
+
+      // 3. Sign out
+      const { getAuthService } = await import('@/datastore/factory');
+      const authService = await getAuthService();
+      await authService.signOut();
+
+      // 4. Clear welcome seen flag to show WelcomeScreen
+      clearWelcomeSeen();
 
       setTransitionMessage(
         t('cloudSync.startingOver', 'Starting over. Reloading...')

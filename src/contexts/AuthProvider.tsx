@@ -39,6 +39,11 @@ interface AuthContextValue {
   // State
   user: User | null;
   session: Session | null;
+  /**
+   * True when the user can access the app.
+   * WARNING: During grace period (isAuthGracePeriod === true), session is null.
+   * Code requiring a session token must check `session` separately.
+   */
   isAuthenticated: boolean;
   isLoading: boolean;
   mode: 'local' | 'cloud';
@@ -555,6 +560,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // from clearing the session (login loop protection)
       hasSignedInThisSessionRef.current = true;
       isPasswordResetFlowRef.current = false; // Clear in case user abandoned reset flow
+      isIntentionalSignOutRef.current = false; // New session clears previous sign-out intent
       logger.info('[AuthProvider] Sign-in successful, session locked');
 
       // Fetch marketing consent status (non-blocking, don't fail sign-in)
@@ -684,7 +690,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Reset session locks BEFORE clearing state - allows onAuthStateChange to process signed_out
     hasSignedInThisSessionRef.current = false;
     isPasswordResetFlowRef.current = false;
-    isIntentionalSignOutRef.current = false; // Reset for next session
+    // NOTE: isIntentionalSignOutRef is NOT reset here — it stays true until the next
+    // successful sign-in. This prevents a race where a delayed 'signed_out' event
+    // (delivered after signOut() threw a network error) could re-enter grace period.
     logger.info('[AuthProvider] Sign-out initiated, session lock released');
 
     // Always clear local state, even if API call failed
