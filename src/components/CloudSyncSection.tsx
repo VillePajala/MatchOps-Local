@@ -21,6 +21,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
+import { isPlayStoreContext } from '@/utils/platform';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
 import SyncStatusIndicator from './SyncStatusIndicator';
@@ -61,6 +62,7 @@ export default function CloudSyncSection({
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { user } = useAuth();
+  const isPlayStoreCtx = isPlayStoreContext();
 
   // Subscription status for cloud mode (null in local mode)
   const subscription = useSubscriptionOptional();
@@ -734,13 +736,16 @@ export default function CloudSyncSection({
           )}
 
           {/* Start Over link - sign out, disable cloud, return to WelcomeScreen */}
-          <button
-            onClick={handleStartOver}
-            disabled={isSigningOut || isChangingMode}
-            className="w-full text-center text-slate-400 hover:text-white text-sm underline transition-colors disabled:opacity-50 pt-2"
-          >
-            {t('cloudSync.startOver', 'Sign out and return to setup')}
-          </button>
+          {/* Hidden in Play Store context — cloud mode is required */}
+          {!isPlayStoreCtx && (
+            <button
+              onClick={handleStartOver}
+              disabled={isSigningOut || isChangingMode}
+              className="w-full text-center text-slate-400 hover:text-white text-sm underline transition-colors disabled:opacity-50 pt-2"
+            >
+              {t('cloudSync.startOver', 'Sign out and return to setup')}
+            </button>
+          )}
         </div>
       )}
 
@@ -754,7 +759,7 @@ export default function CloudSyncSection({
         </div>
       )}
 
-      {/* Mode Toggle Button */}
+      {/* Mode Toggle Button — hidden in Play Store when already in cloud mode */}
       <div className="pt-2">
         {currentMode === 'local' ? (
           <button
@@ -772,7 +777,7 @@ export default function CloudSyncSection({
               : t('cloudSync.enableButton', 'Enable Cloud Sync')
             }
           </button>
-        ) : (
+        ) : !isPlayStoreCtx ? (
           <button
             onClick={handleDisableCloud}
             disabled={isChangingMode}
@@ -788,7 +793,7 @@ export default function CloudSyncSection({
               : t('cloudSync.disableButton', 'Switch to Local Mode')
             }
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Migration Note */}

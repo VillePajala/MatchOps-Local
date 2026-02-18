@@ -2783,7 +2783,8 @@
     "noUserForFactoryReset": "No user logged in",
     "factoryResetFailed": "Failed to reset. Please try again.",
     "factoryResetOffline": "Cannot delete cloud data while offline. Please check your connection and try again.",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "offlineGracePeriod": "Offline — changes saved locally, will sync when connected"
   },
   "positions": {
     "GK": "GK",
