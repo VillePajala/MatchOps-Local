@@ -171,6 +171,51 @@ describe('backendConfig', () => {
       expect(getBackendMode()).toBe('local');
     });
 
+    it('overrides stored local mode to cloud in Play Store context', () => {
+      // Simulate Play Store context (Digital Goods API available)
+      Object.defineProperty(window, 'getDigitalGoodsService', {
+        value: () => Promise.reject(),
+        configurable: true,
+      });
+
+      try {
+        // Configure Supabase so cloud mode is available
+        process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+
+        // User previously chose local mode (pre-upgrade)
+        localStorageMock.getItem.mockReturnValue('local');
+
+        // Play Store context should override stored local → cloud
+        expect(getBackendMode()).toBe('cloud');
+
+        // Should persist the correction
+        expect(localStorageMock.setItem).toHaveBeenCalledWith('matchops_backend_mode', 'cloud');
+      } finally {
+        delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
+      }
+    });
+
+    it('defaults to cloud in Play Store context with no stored mode', () => {
+      // Simulate Play Store context
+      Object.defineProperty(window, 'getDigitalGoodsService', {
+        value: () => Promise.reject(),
+        configurable: true,
+      });
+
+      try {
+        process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+
+        // No stored mode (fresh install or cleared localStorage)
+        localStorageMock.getItem.mockReturnValue(null);
+
+        expect(getBackendMode()).toBe('cloud');
+      } finally {
+        delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
+      }
+    });
+
     it('respects priority: localStorage > env > default', () => {
       // Configure Supabase so cloud mode is available
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
@@ -213,6 +258,22 @@ describe('backendConfig', () => {
       const result = disableCloudMode();
       expect(localStorageMock.setItem).toHaveBeenCalledWith('matchops_backend_mode', 'local');
       expect(result.success).toBe(true);
+    });
+
+    it('returns failure in Play Store context', () => {
+      Object.defineProperty(window, 'getDigitalGoodsService', {
+        value: () => Promise.reject(),
+        configurable: true,
+      });
+
+      try {
+        const result = disableCloudMode();
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('play_store_restricted');
+        expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      } finally {
+        delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
+      }
     });
 
     it('returns failure with reason when localStorage write fails', () => {

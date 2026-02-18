@@ -35,6 +35,11 @@ import logger from '@/utils/logger';
  * Read Supabase's cached session from localStorage.
  * Same pattern as SupabaseAuthService AbortError recovery (lines 330-358).
  * Returns userId + email if a valid cached token exists, null otherwise.
+ *
+ * FRAGILITY NOTE: The storage key `sb-<projectRef>-auth-token` is an internal
+ * Supabase JS client implementation detail. If Supabase changes the key format
+ * in a future major version, this silently returns null (grace period won't activate).
+ * The same key is used in SupabaseAuthService — update both if it changes.
  */
 function getCachedSupabaseSession(): { userId: string; email: string } | null {
   try {
@@ -47,13 +52,16 @@ function getCachedSupabaseSession(): { userId: string; email: string } | null {
     const storedData = localStorage.getItem(storageKey);
     if (!storedData) return null;
     const parsed = JSON.parse(storedData);
+    // Supabase stores session in different formats depending on version.
+    // Check for both direct session and nested currentSession (same as SupabaseAuthService).
+    const session = parsed?.currentSession || parsed;
     // Reject expired tokens — don't grant grace period for stale sessions
-    const expiresAt = parsed?.expires_at; // Unix timestamp (seconds)
+    const expiresAt = session?.expires_at; // Unix timestamp (seconds)
     if (typeof expiresAt === 'number' && expiresAt < Date.now() / 1000) {
       return null;
     }
-    const userId = parsed?.user?.id;
-    const email = parsed?.user?.email;
+    const userId = session?.user?.id;
+    const email = session?.user?.email;
     if (typeof userId === 'string' && userId.length > 0) {
       return { userId, email: typeof email === 'string' ? email : '' };
     }
@@ -238,6 +246,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Grace period trigger 1: Init completed but no session + offline + cached session exists.
         // The user's data is in IndexedDB — let them access it while offline.
+        // SCOPE: This covers "offline at launch" only. Mid-session token expiry while offline
+        // is not covered — onAuthStateChange with null session will log the user out.
+        // Future enhancement: add cached-session fallback to onAuthStateChange if needed.
         if (!currentSession && currentMode === 'cloud' && isCloudAvailable()) {
           const cached = getCachedSupabaseSession();
           if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -1002,6 +1013,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // regardless of data storage mode. Only fallback to "always authenticated" when
     // cloud is not configured (no Supabase URL/key). This allows users to sign in
     // while in local mode.
+    // Note: isAuthGracePeriod is only set when isCloudAvailable() — safe to OR here.
     isAuthenticated: !isCloudAvailable() ? true : (!!session || isAuthGracePeriod),
     isLoading,
     mode,

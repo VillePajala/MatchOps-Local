@@ -142,6 +142,13 @@ export function getBackendMode(): BackendMode {
   if (typeof window !== 'undefined') {
     const runtimeMode = safeGetItem(MODE_STORAGE_KEY);
     if (runtimeMode === 'local' || runtimeMode === 'cloud') {
+      // Play Store context: override stored local mode to cloud (cloud is required).
+      // Handles existing users who chose local mode before the app became Play Store TWA.
+      if (runtimeMode === 'local' && 'getDigitalGoodsService' in window && isCloudAvailable()) {
+        log.info('[backendConfig] Play Store context - overriding stored local mode to cloud');
+        safeSetItem(MODE_STORAGE_KEY, 'cloud'); // Persist the correction
+        return 'cloud';
+      }
       // Validate cloud mode is actually available
       if (runtimeMode === 'cloud' && !isCloudAvailable()) {
         log.warn(
@@ -215,7 +222,8 @@ export function disableCloudMode(): ModeSwitchResult {
   }
 
   // Block switching to local mode in Play Store context (cloud is required)
-  if (typeof window !== 'undefined' && 'getDigitalGoodsService' in window) {
+  // Note: typeof window check already passed above (early return for SSR)
+  if ('getDigitalGoodsService' in window) {
     log.warn('[backendConfig] Cannot disable cloud mode in Play Store context');
     return {
       success: false,
