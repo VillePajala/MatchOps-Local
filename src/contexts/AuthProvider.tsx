@@ -185,6 +185,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // CRITICAL: Set mode FIRST, before any async operations that might fail.
       // If getAuthService() fails (e.g., AbortError), mode must still be set correctly
       // so the UI shows LoginScreen (cloud) instead of StartScreen (local).
+      // NOTE: currentMode is captured once per initAuth() call. On retryAuthInit (online event),
+      // a new initAuth() re-captures it via getBackendMode(). In Play Store context, mode is
+      // always 'cloud' (enforced by getBackendMode), so this is stable across retries.
       const currentMode = getBackendMode();
       if (mounted) {
         setMode(currentMode);
@@ -207,9 +210,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!mounted) return;
 
-        setUser(currentUser);
-        setSession(currentSession);
-
         // Grace period trigger 1: Init completed but no session + cached session exists.
         // The user's data is in IndexedDB — let them access it while connectivity is down.
         // We do NOT check navigator.onLine here — it only indicates NIC carrier, not true
@@ -217,6 +217,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // A successful init returning no session when a cached token exists is already a strong
         // enough signal of connectivity issues. Trigger 2 (timeout) covers hung requests.
         // Trigger 3 (mid-session) is in onAuthStateChange below — covers token expiry while offline.
+        //
+        // Compute grace period identity BEFORE calling setUser to avoid queuing two user state
+        // updates (setUser(null) then setUser(cached)) — call setUser once with the resolved value.
+        let resolvedUser = currentUser;
         if (!currentSession && currentMode === 'cloud' && isCloudAvailable()) {
           const cached = getCachedUserIdentity();
           if (cached) {
@@ -224,10 +228,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthGracePeriod(true);
             // Satisfies User interface: id (string), email (string|null), isAnonymous (boolean).
             // Optional fields (displayName, avatarUrl) omitted — not needed for grace period.
-            setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+            resolvedUser = { id: cached.userId, email: cached.email, isAnonymous: false };
             // initTimedOut remains false — init completed, just no session
           }
         }
+
+        setUser(resolvedUser);
+        setSession(currentSession);
 
         // Exit grace period if init succeeded with a real session.
         // Always call setIsAuthGracePeriod(false) when we have a session — safe even if not in grace period.
