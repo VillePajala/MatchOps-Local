@@ -26,6 +26,7 @@ import type { Database } from '@/types/supabase';
 import { POLICY_VERSION } from '@/config/constants';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
+import { getCachedFullSession } from '@/auth/cachedSession';
 
 /**
  * Password complexity requirements.
@@ -326,37 +327,15 @@ export class SupabaseAuthService implements AuthService {
           if (isAbort) {
             logger.warn('[SupabaseAuthService] AbortError during getSession - attempting localStorage fallback');
 
-            // FALLBACK: Try to read session directly from localStorage
-            // Supabase stores sessions with key: sb-<project-ref>-auth-token
-            // FORMAT DEPENDENCY: This key format is an internal Supabase implementation detail.
-            // If Supabase changes it, this fallback silently fails (try/catch below) and the
-            // user proceeds without a session — the primary getSession() path still works.
+            // FALLBACK: Try to read session directly from localStorage.
+            // Uses shared cachedSession module (single maintenance point for Supabase key format).
             // This only runs when getSession() fails with an AbortError (Chrome Mobile Android).
-            try {
-              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-              // eslint-disable-next-line no-restricted-globals -- Supabase stores auth tokens in localStorage, not IndexedDB
-              if (supabaseUrl && typeof localStorage !== 'undefined') {
-                // Extract project ref from URL (e.g., "abc123" from "https://abc123.supabase.co")
-                const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
-                const storageKey = `sb-${projectRef}-auth-token`;
-                // eslint-disable-next-line no-restricted-globals -- Reading Supabase's auth token storage
-                const storedData = localStorage.getItem(storageKey);
-
-                if (storedData) {
-                  const parsed = JSON.parse(storedData);
-                  // Supabase stores session in different formats depending on version
-                  // Check for both direct session and nested currentSession
-                  const recoveredSession = parsed.currentSession || parsed;
-
-                  if (recoveredSession?.access_token && recoveredSession?.user) {
-                    session = recoveredSession;
-                    logger.info('[SupabaseAuthService] Successfully recovered session from localStorage fallback');
-                  }
-                }
-              }
-            } catch (fallbackError) {
-              // Fallback failed - log but continue without session
-              logger.warn('[SupabaseAuthService] localStorage fallback failed:', fallbackError);
+            // Cast to `typeof session` — getCachedFullSession validates access_token + user exist,
+            // and the raw localStorage data is a serialized Supabase Session object.
+            const cachedSession = getCachedFullSession() as typeof session;
+            if (cachedSession) {
+              session = cachedSession;
+              logger.info('[SupabaseAuthService] Successfully recovered session from localStorage fallback');
             }
 
             // If we still don't have a session, track the original error

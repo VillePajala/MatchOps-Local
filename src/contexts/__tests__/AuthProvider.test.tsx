@@ -901,7 +901,7 @@ describe('AuthProvider', () => {
       (localStorage.setItem as jest.Mock).mockImplementation((key: string, value: string) => { mockLocalStore[key] = String(value); });
       (localStorage.removeItem as jest.Mock).mockImplementation((key: string) => { delete mockLocalStore[key]; });
 
-      // Set Supabase URL so getCachedSupabaseSession() can compute the storage key
+      // Set Supabase URL so getCachedUserIdentity() can compute the storage key
       process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_TEST_URL;
     });
 
@@ -912,7 +912,7 @@ describe('AuthProvider', () => {
 
     /**
      * Expired cached token should NOT trigger grace period.
-     * getCachedSupabaseSession() checks expires_at and rejects expired tokens.
+     * getCachedUserIdentity() checks expires_at and rejects expired tokens.
      * @edge-case
      */
     it('should not enter grace period when cached token is expired', async () => {
@@ -958,11 +958,12 @@ describe('AuthProvider', () => {
     });
 
     /**
-     * Valid (non-expired) cached token should trigger grace period when offline.
-     * Verifies the grace period activates correctly for comparison with expired token test.
+     * Valid (non-expired) cached token should trigger grace period (trigger 1).
+     * When init completes with no session in cloud mode and a cached token exists,
+     * grace period activates regardless of navigator.onLine (captive portal resilience).
      * @edge-case
      */
-    it('should enter grace period when cached token is valid and offline', async () => {
+    it('should enter grace period when cached token is valid (trigger 1)', async () => {
       // Store a valid (non-expired) Supabase session in localStorage
       const validSession = {
         expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
@@ -970,42 +971,35 @@ describe('AuthProvider', () => {
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
 
-      // Mock offline
-      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
-      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+      // Note: navigator.onLine is NOT mocked (defaults to true in jsdom).
+      // Trigger 1 intentionally does NOT check onLine — captive portals and ISP
+      // outages have onLine === true but no real connectivity. The combination of
+      // "no session + cached token" is sufficient signal.
 
-      try {
-        render(
-          <AuthProvider>
-            <GracePeriodTestComponent />
-          </AuthProvider>
-        );
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
 
-        // Flush async initAuth effects (resolved promise chain inside useEffect)
-        await act(async () => {
-          jest.advanceTimersByTime(100);
-        });
+      // Flush async initAuth effects (resolved promise chain inside useEffect)
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
 
-        await waitFor(() => {
-          expect(screen.getByTestId('loading')).toHaveTextContent('ready');
-        });
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
 
-        // Grace period SHOULD be active — valid token + offline
-        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
-        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
-        expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-456');
-      } finally {
-        if (originalOnLine) {
-          Object.defineProperty(navigator, 'onLine', originalOnLine);
-        } else {
-          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
-        }
-      }
+      // Grace period SHOULD be active — valid token, init returned no session
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-456');
     });
 
     /**
      * Supabase may store session in wrapped { currentSession: ... } format.
-     * getCachedSupabaseSession() must handle both direct and wrapped formats.
+     * getCachedUserIdentity() must handle both direct and wrapped formats.
      * @edge-case
      */
     it('should enter grace period when cached token uses currentSession wrapper format', async () => {
@@ -1019,37 +1013,27 @@ describe('AuthProvider', () => {
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(wrappedSession));
 
-      // Mock offline
-      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
-      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+      // Note: navigator.onLine not mocked — trigger 1 doesn't check it (see valid token test)
 
-      try {
-        render(
-          <AuthProvider>
-            <GracePeriodTestComponent />
-          </AuthProvider>
-        );
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
 
-        // Flush async initAuth effects (resolved promise chain inside useEffect)
-        await act(async () => {
-          jest.advanceTimersByTime(100);
-        });
+      // Flush async initAuth effects (resolved promise chain inside useEffect)
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
 
-        await waitFor(() => {
-          expect(screen.getByTestId('loading')).toHaveTextContent('ready');
-        });
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
 
-        // Grace period SHOULD be active — valid wrapped token + offline
-        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
-        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
-        expect(screen.getByTestId('user-id')).toHaveTextContent('wrapped-user-101');
-      } finally {
-        if (originalOnLine) {
-          Object.defineProperty(navigator, 'onLine', originalOnLine);
-        } else {
-          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
-        }
-      }
+      // Grace period SHOULD be active — valid wrapped token, init returned no session
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('user-id')).toHaveTextContent('wrapped-user-101');
     });
 
     /**
@@ -1071,7 +1055,7 @@ describe('AuthProvider', () => {
       const factory = require('@/datastore/factory');
       let initCallCount = 0;
 
-      // First call: returns service with null session (triggers grace period via offline)
+      // First call: returns service with null session (triggers grace period via cached token)
       // Second call (after online): hangs (triggers timeout → re-enters grace period)
       factory.getAuthService.mockImplementation(() => {
         initCallCount++;

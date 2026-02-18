@@ -435,9 +435,9 @@ expect(screen.getByText('Save')).toBeInTheDocument();  // ✅ English
 
 ---
 
-## 9. Visual Verification with agent-browser (REQUIRED)
+## 9. Visual Verification with agent-browser (Recommended for AI-Assisted Development)
 
-During AI-assisted development, use `agent-browser` to visually verify UI changes instead of relying solely on unit tests. This is a **required development tool** — not optional.
+During AI-assisted development, use `agent-browser` to visually verify UI changes instead of relying solely on unit tests. This is a **recommended tool for AI-assisted workflows** — not used in CI.
 
 ### Installation
 
