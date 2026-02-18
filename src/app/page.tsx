@@ -1119,8 +1119,12 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
-        {/* Compensate for fixed grace period banner height so content isn't obscured on mobile */}
-        <div className={isAuthGracePeriod ? 'pt-10' : undefined}>
+        {/* Compensate for fixed grace period banner height so content isn't obscured on mobile.
+            pt-10 = 2.5rem = 40px, matching banner: py-2 (0.5rem×2) + text-sm line-height (~1.25rem) ≈ 2.25rem.
+            Valid for single-line banner text. If banner wraps on very narrow screens (<320px),
+            content may be partially obscured — acceptable since the banner is dismissable on reconnect.
+            Excludes isBlockedByOtherTab — that screen is full-viewport centered and needs no compensation. */}
+        <div className={isAuthGracePeriod && !isBlockedByOtherTab ? 'pt-10' : undefined}>
         {isBlockedByOtherTab ? (
           // Multi-tab block: another tab is already running the app
           <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
