@@ -1317,6 +1317,7 @@ export type TranslationKey =
   | 'page.localModeEnabledReloading'
   | 'page.noUserForFactoryReset'
   | 'page.noUserForResync'
+  | 'page.offlineGracePeriod'
   | 'page.partialSyncComplete'
   | 'page.refreshPageManually'
   | 'page.refreshPageManuallyContinue'
