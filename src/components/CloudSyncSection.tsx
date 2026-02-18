@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineArrowUpTray, HiOutlinePause, HiOutlinePlay } from 'react-icons/hi2';
 // HiOutlineCreditCard removed — Manage Subscription link hidden until subscription support is live
@@ -65,7 +65,11 @@ export default function CloudSyncSection({
   // Computed once — environment-stable, never changes at runtime.
   // Unlike page.tsx which also checks isCloudAvailable(), CloudSyncSection only renders
   // when already in cloud mode, so the isCloudAvailable() guard is redundant here.
-  const isPlayStoreCtx = useRef(isPlayStoreContext()).current;
+  // INVARIANT: This component is only rendered when mode === 'cloud', which requires
+  // isCloudAvailable() === true. If this invariant breaks (e.g., env var stripped from
+  // bundle), the "Switch to Local Mode" button below would be hidden in Play Store
+  // context with no escape route — investigate immediately if that happens.
+  const isPlayStoreCtx = useMemo(() => isPlayStoreContext(), []);
 
   // Subscription status for cloud mode (null in local mode)
   const subscription = useSubscriptionOptional();

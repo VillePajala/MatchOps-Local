@@ -30,61 +30,7 @@ import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
-
-/**
- * Read Supabase's cached session from localStorage.
- * Same pattern as SupabaseAuthService AbortError recovery (lines 330-358).
- * Returns userId + email if a valid cached token exists, null otherwise.
- *
- * FRAGILITY NOTE: The storage key `sb-<projectRef>-auth-token` is an internal
- * Supabase JS client implementation detail. If Supabase changes the key format
- * in a future major version, this silently returns null (grace period won't activate,
- * no Sentry breadcrumb fires because nothing is found in localStorage at all).
- * The same key is used in SupabaseAuthService — update both if it changes.
- * UPGRADE CHECKLIST: After any @supabase/supabase-js major version bump, verify
- * the storage key format hasn't changed (check node_modules/@supabase/gotrue-js).
- */
-function getCachedSupabaseSession(): { userId: string; email: string } | null {
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    // eslint-disable-next-line no-restricted-globals -- Reading Supabase's internal auth token storage
-    if (!supabaseUrl || typeof localStorage === 'undefined') return null;
-    const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
-    const storageKey = `sb-${projectRef}-auth-token`;
-    // eslint-disable-next-line no-restricted-globals -- Reading Supabase's internal auth token storage
-    const storedData = localStorage.getItem(storageKey);
-    if (!storedData) return null;
-    const parsed = JSON.parse(storedData);
-    // Supabase stores session in different formats depending on version.
-    // Check for both direct session and nested currentSession (same as SupabaseAuthService).
-    const session = parsed?.currentSession || parsed;
-    // Reject expired tokens — don't grant grace period for stale sessions
-    const expiresAt = session?.expires_at; // Unix timestamp (seconds)
-    if (typeof expiresAt === 'number' && expiresAt < Date.now() / 1000) {
-      return null;
-    }
-    const userId = session?.user?.id;
-    const email = session?.user?.email;
-    if (typeof userId === 'string' && userId.length > 0) {
-      return { userId, email: typeof email === 'string' ? email : '' };
-    }
-    // Data found in localStorage but no valid userId — may indicate Supabase changed
-    // the storage key format. Log breadcrumb for production observability.
-    try {
-      Sentry.addBreadcrumb({
-        category: 'auth',
-        message: 'Cached session parsed but no valid userId found',
-        level: 'warning',
-        data: { hasSession: !!session, hasUser: !!session?.user, storageKey },
-      });
-    } catch {
-      // Sentry failure acceptable
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
+import { getCachedUserIdentity } from '@/auth/cachedSession';
 
 /**
  * Auth context value interface.
@@ -264,15 +210,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser);
         setSession(currentSession);
 
-        // Grace period trigger 1: Init completed but no session + offline + cached session exists.
-        // The user's data is in IndexedDB — let them access it while offline.
-        // We check navigator.onLine here (vs. trigger 2 which doesn't) because this path
-        // runs after a successful init — only offline justifies fallback to cached session.
-        // Trigger 2 (timeout) doesn't check onLine because the timeout itself proves connectivity issues.
+        // Grace period trigger 1: Init completed but no session + cached session exists.
+        // The user's data is in IndexedDB — let them access it while connectivity is down.
+        // We do NOT check navigator.onLine here — it only indicates NIC carrier, not true
+        // internet reachability (captive portals, ISP outages, DNS failures all have onLine === true).
+        // A successful init returning no session when a cached token exists is already a strong
+        // enough signal of connectivity issues. Trigger 2 (timeout) covers hung requests.
         // Trigger 3 (mid-session) is in onAuthStateChange below — covers token expiry while offline.
         if (!currentSession && currentMode === 'cloud' && isCloudAvailable()) {
-          const cached = getCachedSupabaseSession();
-          if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
+          const cached = getCachedUserIdentity();
+          if (cached) {
             logger.info('[AuthProvider] Grace period: offline with cached session for', cached.email);
             setIsAuthGracePeriod(true);
             // Satisfies User interface: id (string), email (string|null), isAnonymous (boolean).
@@ -362,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Skip this for intentional sign-out (user clicked "Sign Out") — they want to leave.
           if (!newSession && state === 'signed_out' && !isIntentionalSignOutRef.current
             && currentMode === 'cloud' && isCloudAvailable()) {
-            const cached = getCachedSupabaseSession();
+            const cached = getCachedUserIdentity();
             if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
               logger.info('[AuthProvider] Grace period: mid-session offline signout with cached session for', cached.email);
               setIsAuthGracePeriod(true);
@@ -474,7 +421,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Supabase is unreachable). Trigger 1 checks onLine because init succeeded — only
         // confirmed offline state justifies fallback.
         if (getBackendMode() === 'cloud' && isCloudAvailable()) {
-          const cached = getCachedSupabaseSession();
+          const cached = getCachedUserIdentity();
           if (cached) {
             logger.info('[AuthProvider] Grace period: init timeout with cached session for', cached.email);
             setIsAuthGracePeriod(true);
@@ -678,6 +625,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Show loading state during sign-out to prevent UI interaction
     setIsSigningOut(true);
+    // Clear grace period immediately so the amber banner disappears during sign-out
+    setIsAuthGracePeriod(false);
 
     // Mark intentional sign-out BEFORE calling authService.signOut() so the
     // onAuthStateChange handler (trigger 3) won't re-enter grace period.
