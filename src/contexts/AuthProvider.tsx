@@ -65,6 +65,18 @@ function getCachedSupabaseSession(): { userId: string; email: string } | null {
     if (typeof userId === 'string' && userId.length > 0) {
       return { userId, email: typeof email === 'string' ? email : '' };
     }
+    // Data found in localStorage but no valid userId — may indicate Supabase changed
+    // the storage key format. Log breadcrumb for production observability.
+    try {
+      Sentry.addBreadcrumb({
+        category: 'auth',
+        message: 'Cached session parsed but no valid userId found',
+        level: 'warning',
+        data: { hasSession: !!session, hasUser: !!session?.user, storageKey },
+      });
+    } catch {
+      // Sentry failure acceptable
+    }
     return null;
   } catch {
     return null;
@@ -246,9 +258,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Grace period trigger 1: Init completed but no session + offline + cached session exists.
         // The user's data is in IndexedDB — let them access it while offline.
-        // SCOPE: This covers "offline at launch" only. Mid-session token expiry while offline
-        // is not covered — onAuthStateChange with null session will log the user out.
-        // Future enhancement: add cached-session fallback to onAuthStateChange if needed.
+        // We check navigator.onLine here (vs. trigger 2 which doesn't) because this path
+        // runs after a successful init — only offline justifies fallback to cached session.
+        // Trigger 2 (timeout) doesn't check onLine because the timeout itself proves connectivity issues.
+        // SCOPE: Covers "offline at launch" only. Mid-session token expiry while offline
+        // is tracked in issue #366.
         if (!currentSession && currentMode === 'cloud' && isCloudAvailable()) {
           const cached = getCachedSupabaseSession();
           if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -430,7 +444,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logger.error('[AuthProvider] Init timeout after 10s - auth may be in incomplete state', context);
 
         // Grace period trigger 2: Init timed out + cached session exists in cloud mode.
-        // The timeout itself is evidence of network issues — no need to check navigator.onLine.
+        // Unlike trigger 1, we do NOT check navigator.onLine here. The timeout itself is evidence
+        // of network issues (covers flaky connections where navigator.onLine === true but
+        // Supabase is unreachable). Trigger 1 checks onLine because init succeeded — only
+        // confirmed offline state justifies fallback.
         if (getBackendMode() === 'cloud' && isCloudAvailable()) {
           const cached = getCachedSupabaseSession();
           if (cached) {

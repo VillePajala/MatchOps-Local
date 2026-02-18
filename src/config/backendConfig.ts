@@ -9,6 +9,7 @@
  */
 
 import logger from '@/utils/logger';
+import { isPlayStoreContext } from '@/utils/platform';
 
 // Safe logger wrapper for test environments
 const log = {
@@ -144,7 +145,7 @@ export function getBackendMode(): BackendMode {
     if (runtimeMode === 'local' || runtimeMode === 'cloud') {
       // Play Store context: override stored local mode to cloud (cloud is required).
       // Handles existing users who chose local mode before the app became Play Store TWA.
-      if (runtimeMode === 'local' && 'getDigitalGoodsService' in window && isCloudAvailable()) {
+      if (runtimeMode === 'local' && isPlayStoreContext() && isCloudAvailable()) {
         log.info('[backendConfig] Play Store context - overriding stored local mode to cloud');
         safeSetItem(MODE_STORAGE_KEY, 'cloud'); // Persist the correction
         return 'cloud';
@@ -173,8 +174,7 @@ export function getBackendMode(): BackendMode {
   }
 
   // Default to local mode — except in Play Store context where cloud is required.
-  // Uses inline check to avoid circular import from platform.ts.
-  if (typeof window !== 'undefined' && 'getDigitalGoodsService' in window && isCloudAvailable()) {
+  if (isPlayStoreContext() && isCloudAvailable()) {
     log.info('[backendConfig] Play Store context detected - defaulting to cloud mode');
     return 'cloud';
   }
@@ -221,9 +221,9 @@ export function disableCloudMode(): ModeSwitchResult {
     };
   }
 
-  // Block switching to local mode in Play Store context (cloud is required)
-  // Note: typeof window check already passed above (early return for SSR)
-  if ('getDigitalGoodsService' in window) {
+  // Block switching to local mode in Play Store context (cloud is required).
+  // isPlayStoreContext() handles the typeof window check internally.
+  if (isPlayStoreContext()) {
     log.warn('[backendConfig] Cannot disable cloud mode in Play Store context');
     return {
       success: false,
