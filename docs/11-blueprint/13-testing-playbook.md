@@ -435,6 +435,82 @@ expect(screen.getByText('Save')).toBeInTheDocument();  // ✅ English
 
 ---
 
+## 9. Visual Verification with agent-browser (REQUIRED)
+
+During AI-assisted development, use `agent-browser` to visually verify UI changes instead of relying solely on unit tests. This is a **required development tool** — not optional.
+
+### Installation
+
+```bash
+npm install -g agent-browser
+npx playwright install chromium    # One-time: install the browser binary
+```
+
+### Usage Pattern: Verify After UI Changes
+
+After implementing or modifying any UI component, verify it visually:
+
+```bash
+# 1. Start dev server (in another terminal or background)
+npm run dev -- -p 3001
+
+# 2. Open the relevant page
+agent-browser open http://localhost:3001 --ignore-https-errors
+
+# 3. Get a compact snapshot — see what's on the page
+agent-browser snapshot
+# Output: element tree with refs like @e1, @e2, @e3
+
+# 4. Interact — simulate user actions
+agent-browser click @e5           # Click a button/link
+agent-browser type @e3 "text"     # Type into an input
+agent-browser press Enter         # Submit
+agent-browser select @e7 "option" # Select from dropdown
+
+# 5. Screenshot — capture visual state
+agent-browser screenshot /tmp/after-change.png
+
+# 6. Verify result
+agent-browser snapshot            # Check the page updated correctly
+
+# 7. Clean up
+agent-browser close
+```
+
+### When to Use
+
+| Scenario | What to Do |
+|----------|-----------|
+| New component/page implemented | `open` → `snapshot` → verify elements exist |
+| Layout/CSS changes | `screenshot` before and after |
+| Form validation | `type` invalid data → `snapshot` → check error messages |
+| Navigation flow | `click` links → verify URL and page content |
+| Modal behavior | `click` trigger → `snapshot` → verify modal content |
+| PWA install prompt | Open on mobile viewport → check install UI |
+| Responsive design | Open with `--viewport 375x812` for mobile |
+
+### Key Notes
+
+- **93% less context than Playwright MCP** — ref-based output is compact and AI-friendly
+- **Daemon persists** between commands — fast sequential interactions
+- **WSL/headless** needs `--ignore-https-errors` on first `open`
+- **Multiple sessions** supported for testing auth flows (logged in vs. logged out)
+- Use `agent-browser snapshot -i` for interactive elements only (even more compact)
+
+### Anti-Pattern
+
+```bash
+# ❌ DON'T rely only on unit tests for visual features
+# A component can pass all tests but render incorrectly
+
+# ✅ DO verify visually after implementing UI
+agent-browser open http://localhost:3001/exercises
+agent-browser snapshot   # Confirm the exercise list renders with real data
+agent-browser screenshot /tmp/exercise-list.png
+```
+
+---
+
 ## Traps
 
 1. **`fake-indexeddb/auto` must be imported in setupTests** — not in individual test files. Import order matters.

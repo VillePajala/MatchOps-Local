@@ -225,9 +225,13 @@ export default function Home() {
     // Play Store context: skip WelcomeScreen, auto-enable cloud mode
     if (!hasSeenWelcome() && isPlayStoreCtx) {
       logger.info('[page.tsx] Play Store first install - auto-enabling cloud mode');
-      enableCloudMode();
-      setWelcomeSeen();
-      window.location.reload();
+      const enabled = enableCloudMode();
+      if (enabled) {
+        setWelcomeSeen();
+        window.location.reload();
+      }
+      // If enableCloudMode() fails (shouldn't — isPlayStoreCtx requires isCloudAvailable()),
+      // fall through to show welcome screen as fallback
       return;
     }
 

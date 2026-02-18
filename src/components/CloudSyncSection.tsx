@@ -62,7 +62,8 @@ export default function CloudSyncSection({
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const isPlayStoreCtx = isPlayStoreContext();
+  // Computed once — environment-stable, never changes at runtime
+  const isPlayStoreCtx = useRef(isPlayStoreContext()).current;
 
   // Subscription status for cloud mode (null in local mode)
   const subscription = useSubscriptionOptional();
