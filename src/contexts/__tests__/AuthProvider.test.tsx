@@ -1142,6 +1142,69 @@ describe('AuthProvider', () => {
         }
       }
     });
+
+    /**
+     * Mid-session token expiry while offline should enter grace period (trigger 3).
+     * When onAuthStateChange fires signed_out with null session while offline and
+     * a valid cached token exists, the user should keep access via grace period.
+     * @edge-case
+     */
+    it('should enter grace period on mid-session signout while offline with cached token', async () => {
+      // Start authenticated (session exists)
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+
+      // Store a valid cached session (for grace period fallback)
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cloud-user-123', email: 'test@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      // Let auth init complete (authenticated)
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Should be authenticated, NOT in grace period
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+
+      // Now go offline
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      try {
+        // Simulate token expiry → Supabase fires signed_out with null session
+        await act(async () => {
+          authCallbacks.forEach(cb => cb('signed_out', null));
+        });
+
+        await waitFor(() => {
+          // Should enter grace period instead of logging out
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+          expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+          expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+        });
+      } finally {
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
   });
 
   // ==========================================================================

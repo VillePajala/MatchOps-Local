@@ -261,8 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // We check navigator.onLine here (vs. trigger 2 which doesn't) because this path
         // runs after a successful init — only offline justifies fallback to cached session.
         // Trigger 2 (timeout) doesn't check onLine because the timeout itself proves connectivity issues.
-        // SCOPE: Covers "offline at launch" only. Mid-session token expiry while offline
-        // is tracked in issue #366.
+        // Trigger 3 (mid-session) is in onAuthStateChange below — covers token expiry while offline.
         if (!currentSession && currentMode === 'cloud' && isCloudAvailable()) {
           const cached = getCachedSupabaseSession();
           if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -346,6 +345,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (!mounted) return;
+
+          // Grace period trigger 3: Mid-session token expiry while offline.
+          // If we're about to clear the session (signed_out with null session) but the
+          // device is offline and we have a valid cached token, enter grace period instead
+          // of logging the user out. Their data is in IndexedDB — let them keep working.
+          if (!newSession && state === 'signed_out' && currentMode === 'cloud' && isCloudAvailable()) {
+            const cached = getCachedSupabaseSession();
+            if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
+              logger.info('[AuthProvider] Grace period: mid-session offline signout with cached session for', cached.email);
+              setIsAuthGracePeriod(true);
+              setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+              // Don't clear the session — preserve grace period state
+              return;
+            }
+          }
 
           setSession(newSession);
           setUser(newSession?.user ?? null);
