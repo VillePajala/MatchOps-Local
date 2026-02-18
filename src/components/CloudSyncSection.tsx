@@ -350,7 +350,20 @@ export default function CloudSyncSection({
       clearWelcomeSeen();
 
       // 4. Disable cloud mode
-      disableCloudMode();
+      const result = disableCloudMode();
+      if (!result.success) {
+        // storage_write_failed (quota exceeded, private mode) — abort reload,
+        // user would wake up still in cloud mode with welcome flag already cleared.
+        logger.error('[CloudSyncSection] Failed to disable cloud mode:', result.reason);
+        showToast(
+          t('cloudSync.startOverError', 'Failed to start over. Please try again.'),
+          'error'
+        );
+        if (isMountedRef.current) {
+          setIsSigningOut(false);
+        }
+        return;
+      }
 
       setTransitionMessage(
         t('cloudSync.startingOver', 'Starting over. Reloading...')

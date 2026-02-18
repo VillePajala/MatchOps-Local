@@ -106,6 +106,8 @@ describe('WelcomeScreen', () => {
       expect(screen.queryByText('Start without an account')).not.toBeInTheDocument();
       // Import backup link hidden
       expect(screen.queryByText('Have a backup file?')).not.toBeInTheDocument();
+      // "Change in settings" hidden — misleading when there's no choice
+      expect(screen.queryByText('You can change this later in Settings')).not.toBeInTheDocument();
       // Cloud option still visible
       expect(screen.getByText('Use Cloud Sync')).toBeInTheDocument();
     });

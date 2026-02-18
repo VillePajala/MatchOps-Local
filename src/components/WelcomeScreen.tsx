@@ -159,10 +159,12 @@ export default function WelcomeScreen({
                 </div>
               </button>
             )}
-            {/* Settings note - refers to local/cloud choice above */}
-            <p className="text-slate-500 text-xs text-center pt-1">
-              {t('welcome.changeInSettings', 'You can change this later in Settings')}
-            </p>
+            {/* Settings note — only shown when there's actually a choice to change */}
+            {!hideLocalModeOptions && (
+              <p className="text-slate-500 text-xs text-center pt-1">
+                {t('welcome.changeInSettings', 'You can change this later in Settings')}
+              </p>
+            )}
           </div>
 
           {/* Footer: Import backup — hidden in Play Store (available via Settings after auth) */}
