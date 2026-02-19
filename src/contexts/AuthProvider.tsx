@@ -185,15 +185,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     let unsubscribe: (() => void) | null = null;
     let timeoutId: NodeJS.Timeout | null = null;
+    // Capture mode once at effect scope — stable for the lifetime of this effect.
+    // Both initAuth() and the safety timeout use this value consistently.
+    // On retryAuthInit (online event), the effect re-runs and re-captures.
+    const currentMode = getBackendMode();
 
     async function initAuth() {
       // CRITICAL: Set mode FIRST, before any async operations that might fail.
       // If getAuthService() fails (e.g., AbortError), mode must still be set correctly
       // so the UI shows LoginScreen (cloud) instead of StartScreen (local).
-      // NOTE: currentMode is captured once per initAuth() call. On retryAuthInit (online event),
-      // a new initAuth() re-captures it via getBackendMode(). In Play Store context, mode is
-      // always 'cloud' (enforced by getBackendMode), so this is stable across retries.
-      const currentMode = getBackendMode();
       if (mounted) {
         setMode(currentMode);
       }
@@ -436,7 +436,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // of network issues (covers flaky connections where navigator.onLine === true but
         // Supabase is unreachable). Trigger 1 checks onLine because init succeeded — only
         // confirmed offline state justifies fallback.
-        if (getBackendMode() === 'cloud' && isCloudAvailable()) {
+        if (currentMode === 'cloud' && isCloudAvailable()) {
           const cached = getCachedUserIdentity();
           if (cached) {
             logger.info('[AuthProvider] Grace period: init timeout with cached session for', cached.email);

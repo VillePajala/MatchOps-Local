@@ -599,7 +599,7 @@ async function performReverseMigration(
     } else {
       const switchResult = disableCloudMode();
       modeSwitch = switchResult.success;
-      if (!modeSwitch) {
+      if (!switchResult.success) {
         // Mode switch failure is an error - the migration goal was not achieved
         // Include the detailed error message from the switch result
         const detail = switchResult.message || 'Unknown error.';

@@ -57,8 +57,8 @@ export function readCachedSupabaseSession(): CachedSupabaseSession | null {
     const session = parsed?.currentSession || parsed;
     return session ?? null;
   } catch (error) {
-    // Log parse failure for observability — corrupted localStorage should not go unnoticed
-    logger.debug('[cachedSession] Failed to parse cached session from localStorage:', error);
+    // Corrupted auth data in localStorage — surface at warn level for production observability
+    logger.warn('[cachedSession] Failed to parse cached session from localStorage:', error);
     return null;
   }
 }
