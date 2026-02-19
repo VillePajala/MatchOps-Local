@@ -301,30 +301,28 @@ body > div {
   background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%);
 }
 
-/* Thin, styled scrollbars on desktop (lg+ breakpoint) */
-@media (min-width: 1024px) {
-  /* Firefox */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(51, 65, 85, 0.5) transparent;
-  }
+/* Thin, styled scrollbars */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.5) transparent;
+}
 
-  /* WebKit (Chrome, Safari, Edge) */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+/* WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-  ::-webkit-scrollbar-thumb {
-    background-color: rgba(51, 65, 85, 0.5);
-    border-radius: 3px;
-  }
+::-webkit-scrollbar-thumb {
+  background-color: rgba(51, 65, 85, 0.5);
+  border-radius: 3px;
+}
 
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(71, 85, 105, 0.8);
-  }
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(71, 85, 105, 0.8);
 }
