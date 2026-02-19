@@ -190,7 +190,25 @@ describe('platform detection utilities', () => {
       expect(isPlayStoreContext()).toBe(false);
     });
 
-    it('returns true when getDigitalGoodsService is on window', () => {
+    it('returns false on desktop even with getDigitalGoodsService', () => {
+      // Desktop Chrome may expose the API for installed PWAs — must not trigger Play Store mode
+      Object.defineProperty(global, 'navigator', {
+        value: { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        configurable: true,
+      });
+      (window as unknown as { getDigitalGoodsService: () => void }).getDigitalGoodsService = jest.fn();
+      try {
+        expect(isPlayStoreContext()).toBe(false);
+      } finally {
+        delete (window as unknown as { getDigitalGoodsService?: unknown }).getDigitalGoodsService;
+      }
+    });
+
+    it('returns true on Android with getDigitalGoodsService', () => {
+      Object.defineProperty(global, 'navigator', {
+        value: { userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36' },
+        configurable: true,
+      });
       (window as unknown as { getDigitalGoodsService: () => void }).getDigitalGoodsService = jest.fn();
       try {
         expect(isPlayStoreContext()).toBe(true);
