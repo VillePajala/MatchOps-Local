@@ -172,7 +172,12 @@ describe('backendConfig', () => {
     });
 
     it('overrides stored local mode to cloud in Play Store context', () => {
-      // Simulate Play Store context (Digital Goods API available)
+      // Simulate Play Store context: Android + Digital Goods API
+      const origNav = global.navigator;
+      Object.defineProperty(global, 'navigator', {
+        value: { userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36' },
+        configurable: true,
+      });
       Object.defineProperty(window, 'getDigitalGoodsService', {
         value: () => Promise.reject(),
         configurable: true,
@@ -193,11 +198,17 @@ describe('backendConfig', () => {
         expect(localStorageMock.setItem).toHaveBeenCalledWith('matchops_backend_mode', 'cloud');
       } finally {
         delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
+        Object.defineProperty(global, 'navigator', { value: origNav, configurable: true, writable: true });
       }
     });
 
     it('defaults to cloud in Play Store context with no stored mode', () => {
-      // Simulate Play Store context
+      // Simulate Play Store context: Android + Digital Goods API
+      const origNav = global.navigator;
+      Object.defineProperty(global, 'navigator', {
+        value: { userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36' },
+        configurable: true,
+      });
       Object.defineProperty(window, 'getDigitalGoodsService', {
         value: () => Promise.reject(),
         configurable: true,
@@ -213,6 +224,7 @@ describe('backendConfig', () => {
         expect(getBackendMode()).toBe('cloud');
       } finally {
         delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
+        Object.defineProperty(global, 'navigator', { value: origNav, configurable: true, writable: true });
       }
     });
 
@@ -261,6 +273,12 @@ describe('backendConfig', () => {
     });
 
     it('returns failure in Play Store context', () => {
+      // Simulate Play Store context: Android + Digital Goods API
+      const origNav = global.navigator;
+      Object.defineProperty(global, 'navigator', {
+        value: { userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36' },
+        configurable: true,
+      });
       Object.defineProperty(window, 'getDigitalGoodsService', {
         value: () => Promise.reject(),
         configurable: true,
@@ -275,6 +293,7 @@ describe('backendConfig', () => {
         expect(localStorageMock.setItem).not.toHaveBeenCalled();
       } finally {
         delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
+        Object.defineProperty(global, 'navigator', { value: origNav, configurable: true, writable: true });
       }
     });
 

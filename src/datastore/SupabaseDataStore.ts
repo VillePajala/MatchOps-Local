@@ -3209,6 +3209,65 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
 
   /**
+   * Process fetched game results: transform and collect into collection, track failures.
+   */
+  private processGameResults(
+    results: Array<{ id: string; tables: GameTableSetRow | null }>,
+    collection: SavedGamesCollection,
+    failedIds: string[],
+  ): void {
+    for (const { id, tables } of results) {
+      if (tables) {
+        try {
+          const gameData = this.transformTablesToGame(tables);
+          this.cacheGameVersion(id, tables.game.version);
+          collection[id] = gameData;
+        } catch (transformErr) {
+          const errorMsg = transformErr instanceof Error ? transformErr.message : 'Unknown transform error';
+          logger.error(`[SupabaseDataStore] Error transforming game ${id}: ${errorMsg}`);
+          try {
+            Sentry.captureException(transformErr, {
+              tags: { component: 'SupabaseDataStore', action: 'getGames-transform' },
+              level: 'error',
+              extra: {
+                gameId: id, errorMsg,
+                gameVersion: tables.game.version,
+                gameStatus: tables.game.game_status,
+                playersCount: tables.players?.length ?? 0,
+                eventsCount: tables.events?.length ?? 0,
+              },
+            });
+          } catch {
+            // Sentry failure must not break batch processing
+          }
+          failedIds.push(id);
+        }
+      } else {
+        failedIds.push(id);
+      }
+    }
+  }
+
+  /**
+   * Fetch a batch of games in parallel, catching individual failures.
+   * Returns results for all games — failed ones have tables: null.
+   */
+  private async fetchGameBatch(gameIds: string[]): Promise<Array<{ id: string; tables: GameTableSetRow | null }>> {
+    return Promise.all(
+      gameIds.map(async (id) => {
+        try {
+          const tables = await this.fetchGameTables(id);
+          return { id, tables };
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+          logger.error(`[SupabaseDataStore] Error fetching game ${id}: ${errorMsg}`);
+          return { id, tables: null };
+        }
+      })
+    );
+  }
+
+  /**
    * Fetch a single game with all related data from 5 tables.
    */
   private async fetchGameTables(gameId: string): Promise<GameTableSetRow | null> {
@@ -3300,74 +3359,42 @@ export class SupabaseDataStore implements DataStore {
       return {};
     }
 
-    // Fetch full data for each game in parallel batches
-    // Batch size of 20 balances parallelism vs. Supabase connection pool limits
-    const BATCH_SIZE = 20;
+    // Fetch full data for each game in parallel batches.
+    // Batch size of 10 (not 20): each game triggers 5 parallel queries, so 10 × 5 = 50
+    // concurrent requests per batch. Mobile connections (especially Android on spotty wifi)
+    // can't reliably handle 100+ concurrent Supabase requests.
+    const BATCH_SIZE = 10;
     const collection: SavedGamesCollection = {};
-    const allFailedIds: string[] = []; // Track all failures across batches
+    const allFailedIds: string[] = [];
 
     for (let i = 0; i < games.length; i += BATCH_SIZE) {
       const batch = games.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(
-        batch.map(async ({ id }) => {
-          try {
-            const tables = await this.fetchGameTables(id);
-            return { id, tables, error: null };
-          } catch (err) {
-            // Catch errors from individual game fetches to allow batch to continue
-            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-            logger.error(`[SupabaseDataStore] Error fetching game ${id}: ${errorMsg}`);
-            // Track in Sentry at error level - partial data loading causes user confusion
-            try {
-              Sentry.captureException(err, {
-                tags: { component: 'SupabaseDataStore', action: 'getGames-fetchGame' },
-                level: 'error', // Use error level so these appear in Sentry dashboard
-                extra: { gameId: id, errorMsg },
-              });
-            } catch {
-              // Sentry failure must not break batch processing
-            }
-            return { id, tables: null, error: errorMsg };
-          }
-        })
-      );
+      const batchResults = await this.fetchGameBatch(batch.map(g => g.id));
+      this.processGameResults(batchResults, collection, allFailedIds);
+    }
 
-      for (const { id, tables } of results) {
-        if (tables) {
-          // CRITICAL: Wrap in try/catch so single corrupted game doesn't crash entire operation
-          // A game with null/undefined version shouldn't prevent loading other valid games
-          try {
-            const gameData = this.transformTablesToGame(tables);
-            // Cache version AFTER successful transform — a failed transform with
-            // a cached version could cause spurious ConflictError on subsequent saves
-            this.cacheGameVersion(id, tables.game.version);
-            collection[id] = gameData;
-          } catch (transformErr) {
-            // Log and track, but DON'T stop processing other games
-            const errorMsg = transformErr instanceof Error ? transformErr.message : 'Unknown transform error';
-            logger.error(`[SupabaseDataStore] Error transforming game ${id}: ${errorMsg}`);
-            try {
-              Sentry.captureException(transformErr, {
-                tags: { component: 'SupabaseDataStore', action: 'getGames-transform' },
-                level: 'error', // Use error level so these appear in Sentry dashboard
-                extra: {
-                  gameId: id,
-                  errorMsg,
-                  // Include game metadata for debugging (omit large fields like players/events)
-                  gameVersion: tables.game.version,
-                  gameStatus: tables.game.game_status,
-                  playersCount: tables.players?.length ?? 0,
-                  eventsCount: tables.events?.length ?? 0,
-                },
-              });
-            } catch {
-              // Sentry failure must not break batch processing
-            }
-            allFailedIds.push(id);
-          }
-        } else {
-          allFailedIds.push(id);
-        }
+    // Retry failed games individually — failures in batch are often transient (connection
+    // pool exhaustion, mobile network congestion). Sequential retry with smaller concurrency
+    // has a high success rate.
+    if (allFailedIds.length > 0) {
+      const retryCount = allFailedIds.length;
+      logger.info(`[SupabaseDataStore] Retrying ${retryCount} failed games individually`);
+      const RETRY_BATCH_SIZE = 3;
+      const stillFailedIds: string[] = [];
+
+      for (let i = 0; i < allFailedIds.length; i += RETRY_BATCH_SIZE) {
+        const retryBatch = allFailedIds.slice(i, i + RETRY_BATCH_SIZE);
+        const retryResults = await this.fetchGameBatch(retryBatch);
+        this.processGameResults(retryResults, collection, stillFailedIds);
+      }
+
+      allFailedIds.length = 0;
+      allFailedIds.push(...stillFailedIds);
+
+      if (stillFailedIds.length > 0) {
+        logger.warn(`[SupabaseDataStore] ${stillFailedIds.length} of ${retryCount} games still failed after retry`);
+      } else {
+        logger.info(`[SupabaseDataStore] All ${retryCount} previously failed games recovered on retry`);
       }
     }
 
