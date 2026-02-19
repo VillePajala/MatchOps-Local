@@ -48,6 +48,37 @@ npm run test:unit    # Run unit tests (CI mode, single worker)
 npm run generate:i18n-types  # Generate TypeScript types for translations
 ```
 
+### Browser Automation (agent-browser)
+
+**Required tool for AI-assisted development.** Use `agent-browser` to visually verify UI changes, test PWA behavior, and validate user flows without manual browser interaction.
+
+```bash
+# Installation (one-time)
+npm install -g agent-browser
+
+# Core workflow
+agent-browser open http://localhost:3000 --ignore-https-errors  # Open dev server
+agent-browser snapshot                   # Get compact element tree with refs (@e1, @e2, ...)
+agent-browser click @e3                  # Click an element by ref
+agent-browser type @e5 "search term"     # Type into an input
+agent-browser press Enter                # Press a key
+agent-browser screenshot page.png        # Take a screenshot
+agent-browser close                      # Close browser session
+```
+
+**When to use**:
+- After implementing a UI feature — verify it renders correctly
+- After CSS/layout changes — screenshot to confirm visual output
+- Testing user flows — open page, interact with elements, verify results
+- PWA verification — check install prompts, offline page, service worker behavior
+- Debugging — snapshot the page to see what the AI agent "sees"
+
+**Key notes**:
+- Uses Playwright under the hood — requires `npx playwright install chromium` on first setup
+- Compact ref-based output (`@e1`, `@e2`) uses 93% less context than full accessibility trees
+- WSL/headless environments need `--ignore-https-errors` flag (set on first `open` after `close`)
+- Daemon persists between commands — `close` and re-`open` to change launch flags
+
 ---
 
 ## Architecture Overview

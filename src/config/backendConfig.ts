@@ -9,6 +9,7 @@
  */
 
 import logger from '@/utils/logger';
+import { isPlayStoreContext } from '@/utils/platform';
 
 // Safe logger wrapper for test environments
 const log = {
@@ -32,16 +33,12 @@ export interface BackendConfig {
 
 /**
  * Result of a mode switch operation.
- * Provides details about why it failed if unsuccessful.
+ * Discriminated union — success variant has no extra fields,
+ * failure variant guarantees reason + message are present.
  */
-export interface ModeSwitchResult {
-  /** Whether the mode switch succeeded */
-  success: boolean;
-  /** Reason for failure (only set if success is false) */
-  reason?: 'server_side' | 'storage_write_failed';
-  /** Human-readable error message */
-  message?: string;
-}
+export type ModeSwitchResult =
+  | { success: true }
+  | { success: false; reason: 'server_side' | 'storage_write_failed' | 'play_store_restricted'; message: string };
 
 // ============================================================================
 // ENVIRONMENT VARIABLE DETECTION
@@ -138,10 +135,22 @@ function safeRemoveItem(key: string): void {
  * @returns Current backend mode ('local' or 'cloud')
  */
 export function getBackendMode(): BackendMode {
+  // Compute once — used in multiple branches below.
+  const playStoreCloudRequired = isPlayStoreContext() && isCloudAvailable();
+
   // Check runtime override first (client-side only)
   if (typeof window !== 'undefined') {
     const runtimeMode = safeGetItem(MODE_STORAGE_KEY);
     if (runtimeMode === 'local' || runtimeMode === 'cloud') {
+      // Play Store context: override stored local mode to cloud (cloud is required).
+      // Handles existing users who chose local mode before the app became Play Store TWA.
+      if (runtimeMode === 'local' && playStoreCloudRequired) {
+        log.info('[backendConfig] Play Store context - overriding stored local mode to cloud');
+        // Best-effort persist — if localStorage write fails, we still return 'cloud'
+        // and re-correct on the next call. Acceptable: no functional impact, just repeated logs.
+        safeSetItem(MODE_STORAGE_KEY, 'cloud');
+        return 'cloud';
+      }
       // Validate cloud mode is actually available
       if (runtimeMode === 'cloud' && !isCloudAvailable()) {
         log.warn(
@@ -165,7 +174,12 @@ export function getBackendMode(): BackendMode {
     return 'cloud';
   }
 
-  // Default to local mode
+  // Default to local mode — except in Play Store context where cloud is required.
+  if (playStoreCloudRequired) {
+    log.info('[backendConfig] Play Store context detected - defaulting to cloud mode');
+    return 'cloud';
+  }
+
   return 'local';
 }
 
@@ -205,6 +219,17 @@ export function disableCloudMode(): ModeSwitchResult {
       success: false,
       reason: 'server_side',
       message: 'Cannot switch mode on server - localStorage not available',
+    };
+  }
+
+  // Block switching to local mode in Play Store context (cloud is required).
+  // isPlayStoreContext() handles the typeof window check internally.
+  if (isPlayStoreContext()) {
+    log.warn('[backendConfig] Cannot disable cloud mode in Play Store context');
+    return {
+      success: false,
+      reason: 'play_store_restricted',
+      message: 'Cloud mode is required in the Play Store version',
     };
   }
 

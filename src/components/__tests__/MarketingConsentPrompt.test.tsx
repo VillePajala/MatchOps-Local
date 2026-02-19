@@ -56,6 +56,7 @@ describe('MarketingConsentPrompt', () => {
     needsReConsent: false,
     initTimedOut: false,
     isSigningOut: false,
+    isAuthGracePeriod: false,
     signIn: jest.fn(),
     signUp: jest.fn(),
     signOut: jest.fn(),

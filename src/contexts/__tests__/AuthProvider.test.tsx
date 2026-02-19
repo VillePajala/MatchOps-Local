@@ -853,6 +853,413 @@ describe('AuthProvider', () => {
   });
 
   // ==========================================================================
+  // AUTH GRACE PERIOD
+  // ==========================================================================
+
+  describe('auth grace period', () => {
+    const SUPABASE_TEST_URL = 'https://testproject.supabase.co';
+    const STORAGE_KEY = 'sb-testproject-auth-token';
+
+    /**
+     * Test component that exposes grace period state
+     */
+    function GracePeriodTestComponent() {
+      const { isLoading, isAuthenticated, isAuthGracePeriod, initTimedOut, user, signOut } = useAuth();
+      return (
+        <div>
+          <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+          <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+          <span data-testid="grace-period">{isAuthGracePeriod ? 'yes' : 'no'}</span>
+          <span data-testid="timed-out">{initTimedOut ? 'yes' : 'no'}</span>
+          <span data-testid="user-id">{user?.id ?? 'none'}</span>
+          <button data-testid="sign-out-btn" onClick={signOut}>Sign Out</button>
+        </div>
+      );
+    }
+
+    // localStorage mock store — jest.clearAllMocks() from parent beforeEach resets
+    // the localStorage mock implementations, so we must re-establish them here.
+    let mockLocalStore: Record<string, string> = {};
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+
+      // Set up cloud mode with no session (unauthenticated)
+      mockAuthService = createMockCloudAuthService(false);
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.getBackendMode.mockReturnValue('cloud');
+      backendConfig.isCloudAvailable.mockReturnValue(true);
+
+      // Re-establish factory mock — jest.restoreAllMocks() in setupTests afterEach
+      // may reset the initial jest.fn(impl), so we must set it explicitly.
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+
+      // Re-establish localStorage mock implementations (cleared by jest.clearAllMocks)
+      mockLocalStore = {};
+      (localStorage.getItem as jest.Mock).mockImplementation((key: string) => mockLocalStore[key] ?? null);
+      (localStorage.setItem as jest.Mock).mockImplementation((key: string, value: string) => { mockLocalStore[key] = String(value); });
+      (localStorage.removeItem as jest.Mock).mockImplementation((key: string) => { delete mockLocalStore[key]; });
+
+      // Set Supabase URL so getCachedUserIdentity() can compute the storage key
+      process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_TEST_URL;
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    });
+
+    /**
+     * Expired cached token should NOT trigger grace period.
+     * getCachedUserIdentity() checks expires_at and rejects expired tokens.
+     * @edge-case
+     */
+    it('should not enter grace period when cached token is expired', async () => {
+      // Store an expired Supabase session in localStorage
+      const expiredSession = {
+        expires_at: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+        user: { id: 'cached-user-123', email: 'cached@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expiredSession));
+
+      // Mock offline
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      try {
+        render(
+          <AuthProvider>
+            <GracePeriodTestComponent />
+          </AuthProvider>
+        );
+
+        // Flush async initAuth effects (resolved promise chain inside useEffect)
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        });
+
+        // Grace period should NOT be active — token is expired
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+        expect(screen.getByTestId('user-id')).toHaveTextContent('none');
+      } finally {
+        // Restore navigator.onLine
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
+
+    /**
+     * Valid (non-expired) cached token should trigger grace period (trigger 1).
+     * When init completes with no session in cloud mode and a cached token exists,
+     * grace period activates regardless of navigator.onLine (captive portal resilience).
+     * @edge-case
+     */
+    it('should enter grace period when cached token is valid (trigger 1)', async () => {
+      // Store a valid (non-expired) Supabase session in localStorage
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+        user: { id: 'cached-user-456', email: 'valid@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      // Note: navigator.onLine is NOT mocked (defaults to true in jsdom).
+      // Trigger 1 intentionally does NOT check onLine — captive portals and ISP
+      // outages have onLine === true but no real connectivity. The combination of
+      // "no session + cached token" is sufficient signal.
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      // Flush async initAuth effects (resolved promise chain inside useEffect)
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Grace period SHOULD be active — valid token, init returned no session
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-456');
+    });
+
+    /**
+     * Supabase may store session in wrapped { currentSession: ... } format.
+     * getCachedUserIdentity() must handle both direct and wrapped formats.
+     * @edge-case
+     */
+    it('should enter grace period when cached token uses currentSession wrapper format', async () => {
+      // Store session in the legacy wrapped format
+      const wrappedSession = {
+        currentSession: {
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          access_token: 'mock_token',
+          user: { id: 'wrapped-user-101', email: 'wrapped@example.com' },
+        },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(wrappedSession));
+
+      // Note: navigator.onLine not mocked — trigger 1 doesn't check it (see valid token test)
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      // Flush async initAuth effects (resolved promise chain inside useEffect)
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Grace period SHOULD be active — valid wrapped token, init returned no session
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('user-id')).toHaveTextContent('wrapped-user-101');
+    });
+
+    /**
+     * Grace period → online → re-init failure should not loop or leave inconsistent state.
+     * When the device comes online and re-init fails again (timeout), the app should
+     * re-enter grace period (if cached token still valid) — not loop or crash.
+     * @edge-case
+     */
+    it('should re-enter grace period after failed re-init without looping', async () => {
+      // Note: jest.useFakeTimers() already set up by describe-level beforeEach
+
+      // Store a valid cached session
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cached-user-789', email: 'retry@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      const factory = require('@/datastore/factory');
+      let initCallCount = 0;
+
+      // First call: returns service with null session (triggers grace period via cached token)
+      // Second call (after online): hangs (triggers timeout → re-enters grace period)
+      factory.getAuthService.mockImplementation(() => {
+        initCallCount++;
+        if (initCallCount === 1) {
+          return Promise.resolve(mockAuthService);
+        }
+        // Second and subsequent calls: hang forever (simulates failed re-init)
+        return new Promise(() => {});
+      });
+
+      // Mock offline for initial load
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      try {
+        render(
+          <AuthProvider>
+            <GracePeriodTestComponent />
+          </AuthProvider>
+        );
+
+        // Let initial auth init complete
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        });
+
+        // Should be in grace period (offline + valid cached token + no session)
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-789');
+
+        // Simulate device coming online
+        Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        await act(async () => {
+          window.dispatchEvent(new Event('online'));
+        });
+
+        // Grace period should be cleared, loading should restart
+        await waitFor(() => {
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+          expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+        });
+
+        // Re-init hangs — advance past 10s timeout
+        // The timeout handler finds the valid cached token and re-enters grace period
+        await act(async () => {
+          jest.advanceTimersByTime(10001);
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+          // Should re-enter grace period (timeout + valid cached token)
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+          expect(screen.getByTestId('timed-out')).toHaveTextContent('no'); // Grace period supersedes timeout
+          expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-789');
+        });
+
+        // Verify no infinite loop: initCallCount should be exactly 2 (initial + one retry)
+        expect(initCallCount).toBe(2);
+      } finally {
+        // Note: jest.useRealTimers() handled by describe-level afterEach
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
+
+    /**
+     * Mid-session token expiry while offline should enter grace period (trigger 3).
+     * When onAuthStateChange fires signed_out with null session while offline and
+     * a valid cached token exists, the user should keep access via grace period.
+     * @edge-case
+     */
+    it('should enter grace period on mid-session signout while offline with cached token', async () => {
+      // Start authenticated (session exists)
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+
+      // Store a valid cached session (for grace period fallback)
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cloud-user-123', email: 'test@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      // Let auth init complete (authenticated)
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Should be authenticated, NOT in grace period
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+
+      // Now go offline
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      try {
+        // Simulate token expiry → Supabase fires signed_out with null session
+        await act(async () => {
+          authCallbacks.forEach(cb => cb('signed_out', null));
+        });
+
+        await waitFor(() => {
+          // Should enter grace period instead of logging out
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+          expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+          expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+        });
+      } finally {
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
+
+    /**
+     * Intentional sign-out while offline should NOT enter grace period.
+     * The user explicitly clicked "Sign Out" — don't re-enter grace period
+     * even if there's a valid cached token and the device is offline.
+     * @critical
+     */
+    it('should NOT enter grace period on intentional sign-out while offline', async () => {
+      // Start authenticated (session exists)
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+
+      // Store a valid cached session
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cloud-user-123', email: 'test@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      // Let auth init complete (authenticated)
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+
+      // Go offline
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      try {
+        // User clicks Sign Out (intentional)
+        await act(async () => {
+          screen.getByTestId('sign-out-btn').click();
+        });
+
+        // Allow signOut async to complete
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+
+        await waitFor(() => {
+          // Should be logged out — NOT in grace period
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+          expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+          expect(screen.getByTestId('user-id')).toHaveTextContent('none');
+        });
+      } finally {
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
+  });
+
+  // ==========================================================================
   // HOOK ERROR
   // ==========================================================================
 

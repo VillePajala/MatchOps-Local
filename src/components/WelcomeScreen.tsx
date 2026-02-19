@@ -33,6 +33,8 @@ interface WelcomeScreenProps {
   isCloudAvailable: boolean;
   /** Whether import is currently in progress */
   isImporting: boolean;
+  /** Hide local-mode options: "Start without account" button + "Import backup" link (Play Store context — cloud is required) */
+  hideLocalModeOptions?: boolean;
 }
 
 export default function WelcomeScreen({
@@ -41,6 +43,7 @@ export default function WelcomeScreen({
   onImportBackup,
   isCloudAvailable,
   isImporting,
+  hideLocalModeOptions = false,
 }: WelcomeScreenProps) {
   const { t } = useTranslation();
   const [language, setLanguage] = useState<string>(i18n.language);
@@ -119,22 +122,24 @@ export default function WelcomeScreen({
 
           {/* === OPTION BUTTONS === */}
           <div className="max-w-sm mx-auto w-full space-y-3">
-            {/* Start without account (Local) */}
-            <button
-              onClick={onStartLocal}
-              className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
-              aria-label={t('welcome.startLocalAria', 'Start without an account, free')}
-            >
-              <div className="text-white font-semibold text-lg">
-                {t('welcome.startLocal', 'Start without an account')}
-              </div>
-              <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
-                {t('welcome.badgeFree', 'Free')}
-              </div>
-              <div className="text-slate-400 text-sm">
-                {t('welcome.startLocalDesc', 'Your data is saved on this device only.')}
-              </div>
-            </button>
+            {/* Start without account (Local) — hidden in Play Store context */}
+            {!hideLocalModeOptions && (
+              <button
+                onClick={onStartLocal}
+                className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
+                aria-label={t('welcome.startLocalAria', 'Start without an account, free')}
+              >
+                <div className="text-white font-semibold text-lg">
+                  {t('welcome.startLocal', 'Start without an account')}
+                </div>
+                <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
+                  {t('welcome.badgeFree', 'Free')}
+                </div>
+                <div className="text-slate-400 text-sm">
+                  {t('welcome.startLocalDesc', 'Your data is saved on this device only.')}
+                </div>
+              </button>
+            )}
 
             {/* Use Cloud Sync - only if Supabase is configured */}
             {isCloudAvailable && (
@@ -154,27 +159,31 @@ export default function WelcomeScreen({
                 </div>
               </button>
             )}
-            {/* Settings note - refers to local/cloud choice above */}
-            <p className="text-slate-500 text-xs text-center pt-1">
-              {t('welcome.changeInSettings', 'You can change this later in Settings')}
-            </p>
+            {/* Settings note — only shown when there's actually a choice to change */}
+            {!hideLocalModeOptions && (
+              <p className="text-slate-500 text-xs text-center pt-1">
+                {t('welcome.changeInSettings', 'You can change this later in Settings')}
+              </p>
+            )}
           </div>
 
-          {/* Footer: Import backup */}
-          <div className="text-center mt-6">
-            <p className="text-slate-500 text-sm">
-              <button
-                onClick={onImportBackup}
-                disabled={isImporting}
-                className="text-slate-400 hover:text-white underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label={isImporting ? t('welcome.importingAria', 'Importing backup file') : t('welcome.importBackupAria', 'Import backup file')}
-              >
-                {isImporting
-                  ? t('welcome.importing', 'Importing...')
-                  : t('welcome.haveBackup', 'Have a backup file?')}
-              </button>
-            </p>
-          </div>
+          {/* Footer: Import backup — hidden in Play Store (available via Settings after auth) */}
+          {!hideLocalModeOptions && (
+            <div className="text-center mt-6">
+              <p className="text-slate-500 text-sm">
+                <button
+                  onClick={onImportBackup}
+                  disabled={isImporting}
+                  className="text-slate-400 hover:text-white underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={isImporting ? t('welcome.importingAria', 'Importing backup file') : t('welcome.importBackupAria', 'Import backup file')}
+                >
+                  {isImporting
+                    ? t('welcome.importing', 'Importing...')
+                    : t('welcome.haveBackup', 'Have a backup file?')}
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

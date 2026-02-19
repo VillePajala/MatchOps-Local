@@ -2,7 +2,7 @@
  * Tests for platform detection utilities
  */
 
-import { isAndroid, isIOS, isDesktop, canUsePlayBilling, isDigitalGoodsAvailable } from './platform';
+import { isAndroid, isIOS, isDesktop, canUsePlayBilling, isDigitalGoodsAvailable, isPlayStoreContext } from './platform';
 
 describe('platform detection utilities', () => {
   const originalNavigator = global.navigator;
@@ -181,6 +181,22 @@ describe('platform detection utilities', () => {
         configurable: true,
       });
       expect(canUsePlayBilling()).toBe(false);
+    });
+  });
+
+  describe('isPlayStoreContext', () => {
+    it('returns false when getDigitalGoodsService is not on window', () => {
+      // Default test environment has no getDigitalGoodsService
+      expect(isPlayStoreContext()).toBe(false);
+    });
+
+    it('returns true when getDigitalGoodsService is on window', () => {
+      (window as unknown as { getDigitalGoodsService: () => void }).getDigitalGoodsService = jest.fn();
+      try {
+        expect(isPlayStoreContext()).toBe(true);
+      } finally {
+        delete (window as unknown as { getDigitalGoodsService?: unknown }).getDigitalGoodsService;
+      }
     });
   });
 

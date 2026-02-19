@@ -44,6 +44,7 @@ import {
 import { migrateLegacyData } from '@/services/legacyMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
+import { isPlayStoreContext } from '@/utils/platform';
 import TransitionOverlay from '@/components/TransitionOverlay';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
@@ -85,7 +86,7 @@ export default function Home() {
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod } = useAuth();
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
@@ -99,15 +100,25 @@ export default function Home() {
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
 
+  // Play Store context: cloud mode is required, local-mode entry points are hidden.
+  // Computed once on mount — both checks are environment-stable and never change at runtime.
+  // useRef (not useMemo) because this value is stable by nature, not an optimization hint.
+  const isPlayStoreCtxRef = useRef(isPlayStoreContext() && isCloudAvailable());
+  const isPlayStoreCtx = isPlayStoreCtxRef.current;
+
   // Compute post-login loading state synchronously (not via effect) to avoid race conditions
   // This ensures the loading screen shows immediately when conditions are met, not one render cycle later
   // NOTE: Do NOT require !!userId here - user/session might be set at slightly different times
   // and we need to show loading screen as soon as isAuthenticated is true
+  // Grace period bypass: when offline with cached session, skip subscription/migration checks
+  // entirely — both require network. User accesses local data immediately. Normal post-login
+  // flow resumes when grace period clears (online event → auth retry succeeds).
   const isPostLoginLoading =
     mode === 'cloud' &&
     isAuthenticated &&
     !isAuthLoading &&
-    !postLoginCheckComplete;
+    !postLoginCheckComplete &&
+    !isAuthGracePeriod;
 
   // Safety timeout: If post-login check doesn't complete within 120 seconds, force completion
   // This prevents users from getting stuck on the loading screen indefinitely due to:
@@ -217,12 +228,35 @@ export default function Home() {
     // Only check on client side
     if (typeof window === 'undefined') return;
 
+    // Play Store context: skip WelcomeScreen, auto-enable cloud mode.
+    // On success: setWelcomeSeen() + reload. On failure (shouldn't happen —
+    // isPlayStoreCtx requires isCloudAvailable()): fall through to show welcome screen.
+    if (!hasSeenWelcome() && isPlayStoreCtx) {
+      logger.info('[page.tsx] Play Store first install - auto-enabling cloud mode');
+      const enabled = enableCloudMode();
+      if (enabled) {
+        const welcomed = setWelcomeSeen();
+        if (!welcomed) {
+          // setWelcomeSeen() localStorage write failed — do NOT reload or we'd loop.
+          // Fall through to welcome screen with hideLocalModeOptions.
+          logger.error('[page.tsx] Play Store first install - setWelcomeSeen() failed, skipping reload to prevent loop');
+        } else {
+          window.location.reload();
+          return; // Reload initiated — skip further checks
+        }
+      } else {
+        // enableCloudMode() failed — unexpected since isPlayStoreCtx requires isCloudAvailable()
+        logger.error('[page.tsx] Play Store first install - enableCloudMode() failed unexpectedly');
+      }
+      // Fall through to welcome screen below
+    }
+
     // Show welcome screen if user hasn't seen it yet
     if (!hasSeenWelcome()) {
       logger.info('[page.tsx] First install detected - showing welcome screen');
       setShowWelcome(true);
     }
-  }, []);
+  }, [isPlayStoreCtx]);
 
   // Handle "Start Fresh" (local mode) from welcome screen
   const handleWelcomeStartLocal = useCallback(() => {
@@ -1100,6 +1134,12 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
+        {/* Compensate for fixed grace period banner height so content isn't obscured on mobile.
+            pt-10 = 2.5rem = 40px, matching banner: py-2 (0.5rem×2) + text-sm line-height (~1.25rem) ≈ 2.25rem.
+            Valid for single-line banner text. If banner wraps on very narrow screens (<320px),
+            content may be partially obscured — acceptable since the banner is dismissable on reconnect.
+            Excludes isBlockedByOtherTab — that screen is full-viewport centered and needs no compensation. */}
+        <div className={isAuthGracePeriod && !isBlockedByOtherTab ? 'pt-10' : undefined}>
         {isBlockedByOtherTab ? (
           // Multi-tab block: another tab is already running the app
           <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
@@ -1137,6 +1177,7 @@ export default function Home() {
               onImportBackup={handleWelcomeImportBackup}
               isCloudAvailable={isCloudAvailable()}
               isImporting={isImportingBackup}
+              hideLocalModeOptions={isPlayStoreCtx}
             />
           </ErrorBoundary>
         ) : initTimedOut && mode === 'cloud' ? (
@@ -1165,12 +1206,14 @@ export default function Home() {
                     >
                       {t('page.tryAgain', 'Try Again')}
                     </button>
-                    <button
-                      onClick={handleLoginUseLocalMode}
-                      className="w-full h-12 px-4 py-2 rounded-md text-base font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
-                    >
-                      {t('page.useLocalModeInstead', 'Use Local Mode Instead')}
-                    </button>
+                    {!isPlayStoreCtx && (
+                      <button
+                        onClick={handleLoginUseLocalMode}
+                        className="w-full h-12 px-4 py-2 rounded-md text-base font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
+                      >
+                        {t('page.useLocalModeInstead', 'Use Local Mode Instead')}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1180,8 +1223,8 @@ export default function Home() {
           // Cloud mode: show login screen when not authenticated
           <ErrorBoundary>
             <LoginScreen
-              onBack={handleLoginBack}
-              onUseLocalMode={handleLoginUseLocalMode}
+              onBack={isPlayStoreCtx ? undefined : handleLoginBack}
+              onUseLocalMode={isPlayStoreCtx ? undefined : handleLoginUseLocalMode}
               allowRegistration={true}  // Account creation is free on all platforms
             />
           </ErrorBoundary>
@@ -1222,6 +1265,16 @@ export default function Home() {
               initialGameType={lastGameType}
             />
           </ErrorBoundary>
+        )}
+        </div>
+
+        {/* Auth grace period banner — offline with cached session.
+            z-40: same as ControlBar, visible during normal use but below modals (z-[60])
+            and sidebar (z-50). Intentional — informational banner shouldn't overlay modal content. */}
+        {isAuthGracePeriod && (
+          <div className="fixed top-0 left-0 right-0 z-40 bg-amber-500/90 text-slate-900 px-4 py-2 text-sm text-center font-medium">
+            {t('page.offlineGracePeriod', 'Offline — changes saved locally, will sync when connected')}
+          </div>
         )}
 
         {/* Migration status overlay */}
