@@ -269,7 +269,9 @@ describe('backendConfig', () => {
       try {
         const result = disableCloudMode();
         expect(result.success).toBe(false);
-        expect(result.reason).toBe('play_store_restricted');
+        if (!result.success) {
+          expect(result.reason).toBe('play_store_restricted');
+        }
         expect(localStorageMock.setItem).not.toHaveBeenCalled();
       } finally {
         delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
@@ -282,8 +284,10 @@ describe('backendConfig', () => {
       });
       const result = disableCloudMode();
       expect(result.success).toBe(false);
-      expect(result.reason).toBe('storage_write_failed');
-      expect(result.message).toContain('Failed to save mode preference');
+      if (!result.success) {
+        expect(result.reason).toBe('storage_write_failed');
+        expect(result.message).toContain('Failed to save mode preference');
+      }
     });
   });
 
@@ -345,7 +349,9 @@ describe('backendConfig', () => {
       // Should not throw, should return failure result
       const result = disableCloudMode();
       expect(result.success).toBe(false);
-      expect(result.reason).toBe('storage_write_failed');
+      if (!result.success) {
+        expect(result.reason).toBe('storage_write_failed');
+      }
     });
 
     it('clearModeOverride does not throw when localStorage throws', () => {

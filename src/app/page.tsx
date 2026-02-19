@@ -102,7 +102,9 @@ export default function Home() {
 
   // Play Store context: cloud mode is required, local-mode entry points are hidden.
   // Computed once on mount — both checks are environment-stable and never change at runtime.
-  const isPlayStoreCtx = useMemo(() => isPlayStoreContext() && isCloudAvailable(), []);
+  // useRef (not useMemo) because this value is stable by nature, not an optimization hint.
+  const isPlayStoreCtxRef = useRef(isPlayStoreContext() && isCloudAvailable());
+  const isPlayStoreCtx = isPlayStoreCtxRef.current;
 
   // Compute post-login loading state synchronously (not via effect) to avoid race conditions
   // This ensures the loading screen shows immediately when conditions are met, not one render cycle later
