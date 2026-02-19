@@ -30,6 +30,7 @@ import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
+import { getCachedUserIdentity } from '@/auth/cachedSession';
 
 /**
  * Auth context value interface.
@@ -38,6 +39,11 @@ interface AuthContextValue {
   // State
   user: User | null;
   session: Session | null;
+  /**
+   * True when the user can access the app.
+   * WARNING: During grace period (isAuthGracePeriod === true), session is null.
+   * Code requiring a session token must check `session` separately.
+   */
   isAuthenticated: boolean;
   isLoading: boolean;
   mode: 'local' | 'cloud';
@@ -47,6 +53,8 @@ interface AuthContextValue {
   initTimedOut: boolean;
   /** True when sign-out is in progress (prevents UI interaction during logout) */
   isSigningOut: boolean;
+  /** True when auth init failed but a cached session exists — user can access data offline */
+  isAuthGracePeriod: boolean;
   /** Marketing consent status: 'granted', 'withdrawn', or null (never set) */
   marketingConsent: 'granted' | 'withdrawn' | null;
   /** True when existing cloud user has never been asked about marketing consent */
@@ -124,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsReConsent, setNeedsReConsent] = useState(false);
   const [initTimedOut, setInitTimedOut] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isAuthGracePeriod, setIsAuthGracePeriod] = useState(false);
   const [marketingConsent, setMarketingConsentState] = useState<'granted' | 'withdrawn' | null>(null);
   const [hasSeenMarketingPrompt, setHasSeenMarketingPrompt] = useState(false);
   // Trigger for re-running auth initialization (increments to force useEffect re-run)
@@ -150,6 +159,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Only explicit signOut() resets this flag
   const hasSignedInThisSessionRef = useRef(false);
 
+  // Track intentional sign-out to prevent grace period trigger 3 from re-entering
+  // grace period when the user explicitly signs out while offline.
+  // Set true BEFORE authService.signOut() so the onAuthStateChange handler sees it.
+  const isIntentionalSignOutRef = useRef(false);
+
   // Track if password reset flow is in progress (OTP verified, waiting for new password).
   // When true, onAuthStateChange ignores the recovery session — prevents the app from
   // treating the recovery session as a real sign-in and navigating away from the
@@ -171,12 +185,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     let unsubscribe: (() => void) | null = null;
     let timeoutId: NodeJS.Timeout | null = null;
+    // Capture mode once at effect scope — stable for the lifetime of this effect.
+    // Both initAuth() and the safety timeout use this value consistently.
+    // On retryAuthInit (online event), the effect re-runs and re-captures.
+    const currentMode = getBackendMode();
 
     async function initAuth() {
       // CRITICAL: Set mode FIRST, before any async operations that might fail.
       // If getAuthService() fails (e.g., AbortError), mode must still be set correctly
       // so the UI shows LoginScreen (cloud) instead of StartScreen (local).
-      const currentMode = getBackendMode();
       if (mounted) {
         setMode(currentMode);
       }
@@ -198,8 +215,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!mounted) return;
 
-        setUser(currentUser);
+        // Grace period trigger 1: Init completed but no session + cached session exists.
+        // The user's data is in IndexedDB — let them access it while connectivity is down.
+        // We do NOT check navigator.onLine here — it only indicates NIC carrier, not true
+        // internet reachability (captive portals, ISP outages, DNS failures all have onLine === true).
+        // A successful init returning no session when a cached token exists is already a strong
+        // enough signal of connectivity issues. Trigger 2 (timeout) covers hung requests.
+        // Trigger 3 (mid-session) is in onAuthStateChange below — covers token expiry while offline.
+        //
+        // Compute grace period identity BEFORE calling setUser to avoid queuing two user state
+        // updates (setUser(null) then setUser(cached)) — call setUser once with the resolved value.
+        let resolvedUser = currentUser;
+        if (!currentSession && currentMode === 'cloud' && isCloudAvailable()) {
+          const cached = getCachedUserIdentity();
+          if (cached) {
+            logger.info('[AuthProvider] Grace period: offline with cached session for', cached.email);
+            setIsAuthGracePeriod(true);
+            // Satisfies User interface: id (string), email (string|null), isAnonymous (boolean).
+            // Optional fields (displayName, avatarUrl) omitted — not needed for grace period.
+            resolvedUser = { id: cached.userId, email: cached.email, isAnonymous: false };
+            // initTimedOut remains false — init completed, just no session
+          }
+        }
+
+        setUser(resolvedUser);
         setSession(currentSession);
+
+        // Exit grace period if init succeeded with a real session.
+        // Always call setIsAuthGracePeriod(false) when we have a session — safe even if not in grace period.
+        if (currentSession) {
+          setIsAuthGracePeriod(false);
+        }
 
         // Fetch marketing consent status if authenticated (non-blocking)
         if (currentSession && isCloudAvailable()) {
@@ -267,6 +313,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (!mounted) return;
+
+          // Grace period trigger 3: Mid-session token expiry while offline.
+          // If we're about to clear the session (signed_out with null session) but the
+          // device is offline and we have a valid cached token, enter grace period instead
+          // of logging the user out. Their data is in IndexedDB — let them keep working.
+          // Skip this for intentional sign-out (user clicked "Sign Out") — they want to leave.
+          // NOTE: Unlike trigger 1 (cold-start), trigger 3 checks navigator.onLine because
+          // mid-session signed_out events also fire for legitimate server-side revocations.
+          // Captive portal scenario (onLine === true, Supabase unreachable): not covered here —
+          // the user is logged out but trigger 1 catches it on next app launch.
+          if (!newSession && state === 'signed_out' && !isIntentionalSignOutRef.current
+            && currentMode === 'cloud' && isCloudAvailable()) {
+            const cached = getCachedUserIdentity();
+            if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
+              logger.info('[AuthProvider] Grace period: mid-session offline signout with cached session for', cached.email);
+              setIsAuthGracePeriod(true);
+              setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+              // Don't clear the session — preserve grace period state
+              return;
+            }
+          }
 
           setSession(newSession);
           setUser(newSession?.user ?? null);
@@ -364,6 +431,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         logger.error('[AuthProvider] Init timeout after 10s - auth may be in incomplete state', context);
 
+        // Grace period trigger 2: Init timed out + cached session exists in cloud mode.
+        // Unlike trigger 1, we do NOT check navigator.onLine here. The timeout itself is evidence
+        // of network issues (covers flaky connections where navigator.onLine === true but
+        // Supabase is unreachable). Trigger 1 checks onLine because init succeeded — only
+        // confirmed offline state justifies fallback.
+        if (currentMode === 'cloud' && isCloudAvailable()) {
+          const cached = getCachedUserIdentity();
+          if (cached) {
+            logger.info('[AuthProvider] Grace period: init timeout with cached session for', cached.email);
+            setIsAuthGracePeriod(true);
+            // Satisfies User interface: id (string), email (string|null), isAnonymous (boolean).
+            // Optional fields (displayName, avatarUrl) omitted — not needed for grace period.
+            setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+            setIsLoading(false);
+            // Do NOT set initTimedOut — grace period supersedes the timeout screen
+            return; // Skip the normal timeout handling below
+          }
+        }
+
         // CRITICAL: Update state FIRST to ensure UI recovery
         // If Sentry call fails, user must not be stuck in loading state
         setIsLoading(false);
@@ -395,6 +481,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [initRetryTrigger]); // Re-run when retry is triggered
+
+  // Online re-validation: when device comes back online during grace period,
+  // clear the grace period and retry auth initialization to get a real session.
+  useEffect(() => {
+    if (!isAuthGracePeriod) return;
+
+    const handleOnline = () => {
+      logger.info('[AuthProvider] Grace period: device came online, retrying auth init');
+      setIsAuthGracePeriod(false);
+      setIsLoading(true);
+      setInitTimedOut(false);
+      setInitRetryTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [isAuthGracePeriod]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!authService) return { error: 'Auth not initialized' };
@@ -457,6 +560,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // from clearing the session (login loop protection)
       hasSignedInThisSessionRef.current = true;
       isPasswordResetFlowRef.current = false; // Clear in case user abandoned reset flow
+      isIntentionalSignOutRef.current = false; // New session clears previous sign-out intent
       logger.info('[AuthProvider] Sign-in successful, session locked');
 
       // Fetch marketing consent status (non-blocking, don't fail sign-in)
@@ -538,6 +642,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Show loading state during sign-out to prevent UI interaction
     setIsSigningOut(true);
+    // Clear grace period immediately so the amber banner disappears during sign-out
+    setIsAuthGracePeriod(false);
+
+    // Mark intentional sign-out BEFORE calling authService.signOut() so the
+    // onAuthStateChange handler (trigger 3) won't re-enter grace period.
+    isIntentionalSignOutRef.current = true;
 
     try {
       await authService.signOut();
@@ -577,9 +687,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Reset session lock BEFORE clearing state - allows onAuthStateChange to process signed_out
+    // Reset session locks BEFORE clearing state - allows onAuthStateChange to process signed_out
     hasSignedInThisSessionRef.current = false;
     isPasswordResetFlowRef.current = false;
+    // NOTE: isIntentionalSignOutRef is NOT reset here — it stays true until the next
+    // successful sign-in. This prevents a race where a delayed 'signed_out' event
+    // (delivered after signOut() threw a network error) could re-enter grace period.
     logger.info('[AuthProvider] Sign-out initiated, session lock released');
 
     // Always clear local state, even if API call failed
@@ -588,6 +701,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setNeedsReConsent(false);  // Clear re-consent flag so modal doesn't persist
     setMarketingConsentState(null);  // Clear marketing consent state
     setIsSigningOut(false);  // Clear signing out state
+    setIsAuthGracePeriod(false);  // Clear grace period on sign-out
   }, [authService, user]);
 
   const resetPassword = useCallback(async (email: string) => {
@@ -914,12 +1028,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // regardless of data storage mode. Only fallback to "always authenticated" when
     // cloud is not configured (no Supabase URL/key). This allows users to sign in
     // while in local mode.
-    isAuthenticated: !isCloudAvailable() ? true : !!session,
+    // Note: isAuthGracePeriod is only set when isCloudAvailable() — safe to OR here.
+    isAuthenticated: !isCloudAvailable() ? true : (!!session || isAuthGracePeriod),
     isLoading,
     mode,
     needsReConsent,
     initTimedOut,
     isSigningOut,
+    isAuthGracePeriod,
     marketingConsent,
     showMarketingPrompt,
     signIn,
@@ -936,7 +1052,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resendSignUpConfirmation,
     verifyPasswordResetOtp,
     updatePassword,
-  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, marketingConsent, showMarketingPrompt, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit, setMarketingConsent, dismissMarketingPrompt, verifySignUpOtp, resendSignUpConfirmation, verifyPasswordResetOtp, updatePassword]);
+  }), [user, session, mode, isLoading, needsReConsent, initTimedOut, isSigningOut, isAuthGracePeriod, marketingConsent, showMarketingPrompt, signIn, signUp, signOut, resetPassword, recordConsent, acceptReConsent, deleteAccount, retryAuthInit, setMarketingConsent, dismissMarketingPrompt, verifySignUpOtp, resendSignUpConfirmation, verifyPasswordResetOtp, updatePassword]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -40,6 +40,19 @@ export function canUsePlayBilling(): boolean {
 }
 
 /**
+ * Synchronous check for Play Store context (TWA or similar).
+ * Detects the Digital Goods API on window without calling it.
+ * Used for UI gating (hide local-mode options in Play Store builds).
+ *
+ * Note: Also true in Edge Store / ChromeOS — false positives are acceptable
+ * because cloud mode is the full experience for all store contexts.
+ */
+export function isPlayStoreContext(): boolean {
+  if (typeof window === 'undefined') return false;
+  return 'getDigitalGoodsService' in window;
+}
+
+/**
  * Check if Digital Goods API is available (TWA context)
  * This API is only available when running as a Trusted Web Activity
  * installed from Google Play Store

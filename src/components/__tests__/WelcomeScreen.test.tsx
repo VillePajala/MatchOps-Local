@@ -92,6 +92,26 @@ describe('WelcomeScreen', () => {
       expect(screen.getByText('Have a backup file?')).toBeInTheDocument();
     });
 
+    it('hides local-mode options when hideLocalModeOptions is true (Play Store)', () => {
+      render(
+        <WelcomeScreen
+          {...mockHandlers}
+          isCloudAvailable={true}
+          isImporting={false}
+          hideLocalModeOptions={true}
+        />
+      );
+
+      // Local-mode button hidden
+      expect(screen.queryByText('Start without an account')).not.toBeInTheDocument();
+      // Import backup link hidden
+      expect(screen.queryByText('Have a backup file?')).not.toBeInTheDocument();
+      // "Change in settings" hidden — misleading when there's no choice
+      expect(screen.queryByText('You can change this later in Settings')).not.toBeInTheDocument();
+      // Cloud option still visible
+      expect(screen.getByText('Use Cloud Sync')).toBeInTheDocument();
+    });
+
     it('hides cloud option when cloud is not available', () => {
       render(
         <WelcomeScreen

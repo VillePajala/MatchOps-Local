@@ -2783,7 +2783,8 @@
     "noUserForFactoryReset": "Käyttäjä ei ole kirjautunut",
     "factoryResetFailed": "Palautus epäonnistui. Yritä uudelleen.",
     "factoryResetOffline": "Pilvitietoja ei voi poistaa offline-tilassa. Tarkista yhteys ja yritä uudelleen.",
-    "loading": "Ladataan..."
+    "loading": "Ladataan...",
+    "offlineGracePeriod": "Offline — muutokset tallennetaan paikallisesti, synkronoidaan kun yhteys palaa"
   },
   "positions": {
     "GK": "GK",

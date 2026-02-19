@@ -21,6 +21,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
+import { isPlayStoreContext } from '@/utils/platform';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
 import SyncStatusIndicator from './SyncStatusIndicator';
@@ -61,6 +62,16 @@ export default function CloudSyncSection({
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { user } = useAuth();
+  // Computed once — environment-stable, never changes at runtime.
+  // Unlike page.tsx which also checks isCloudAvailable(), CloudSyncSection only renders
+  // when already in cloud mode, so the isCloudAvailable() guard is redundant here.
+  // INVARIANT: This component is only rendered when mode === 'cloud', which requires
+  // isCloudAvailable() === true. If this invariant breaks (e.g., env var stripped from
+  // bundle), the "Switch to Local Mode" button below would be hidden in Play Store
+  // context with no escape route — investigate immediately if that happens.
+  // useRef (not useMemo) because this is a stable environment check, not an optimization hint.
+  const isPlayStoreCtxRef = useRef(isPlayStoreContext());
+  const isPlayStoreCtx = isPlayStoreCtxRef.current;
 
   // Subscription status for cloud mode (null in local mode)
   const subscription = useSubscriptionOptional();
@@ -327,21 +338,33 @@ export default function CloudSyncSection({
   const handleStartOver = async () => {
     setIsSigningOut(true);
     try {
-      // 1. Clear migration completed flag (while we still have user ID)
+      // 1. Pre-flight: check disableCloudMode() BEFORE any destructive operations.
+      // If this fails (storage_write_failed), nothing has been modified yet — safe to abort.
+      const result = disableCloudMode();
+      if (!result.success) {
+        logger.error('[CloudSyncSection] Failed to disable cloud mode (pre-flight):', result.reason);
+        showToast(
+          t('cloudSync.startOverError', 'Failed to start over. Please try again.'),
+          'error'
+        );
+        if (isMountedRef.current) {
+          setIsSigningOut(false);
+        }
+        return;
+      }
+
+      // 2. Clear migration completed flag (while we still have user ID)
       if (user?.id) {
         clearMigrationCompleted(user.id);
       }
 
-      // 2. Sign out
+      // 3. Sign out
       const { getAuthService } = await import('@/datastore/factory');
       const authService = await getAuthService();
       await authService.signOut();
 
-      // 3. Clear welcome seen flag to show WelcomeScreen
+      // 4. Clear welcome seen flag to show WelcomeScreen
       clearWelcomeSeen();
-
-      // 4. Disable cloud mode
-      disableCloudMode();
 
       setTransitionMessage(
         t('cloudSync.startingOver', 'Starting over. Reloading...')
@@ -734,13 +757,16 @@ export default function CloudSyncSection({
           )}
 
           {/* Start Over link - sign out, disable cloud, return to WelcomeScreen */}
-          <button
-            onClick={handleStartOver}
-            disabled={isSigningOut || isChangingMode}
-            className="w-full text-center text-slate-400 hover:text-white text-sm underline transition-colors disabled:opacity-50 pt-2"
-          >
-            {t('cloudSync.startOver', 'Sign out and return to setup')}
-          </button>
+          {/* Hidden in Play Store context — cloud mode is required */}
+          {!isPlayStoreCtx && (
+            <button
+              onClick={handleStartOver}
+              disabled={isSigningOut || isChangingMode}
+              className="w-full text-center text-slate-400 hover:text-white text-sm underline transition-colors disabled:opacity-50 pt-2"
+            >
+              {t('cloudSync.startOver', 'Sign out and return to setup')}
+            </button>
+          )}
         </div>
       )}
 
@@ -754,7 +780,7 @@ export default function CloudSyncSection({
         </div>
       )}
 
-      {/* Mode Toggle Button */}
+      {/* Mode Toggle Button — hidden in Play Store when already in cloud mode */}
       <div className="pt-2">
         {currentMode === 'local' ? (
           <button
@@ -772,7 +798,7 @@ export default function CloudSyncSection({
               : t('cloudSync.enableButton', 'Enable Cloud Sync')
             }
           </button>
-        ) : (
+        ) : !isPlayStoreCtx ? (
           <button
             onClick={handleDisableCloud}
             disabled={isChangingMode}
@@ -788,7 +814,7 @@ export default function CloudSyncSection({
               : t('cloudSync.disableButton', 'Switch to Local Mode')
             }
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Migration Note */}

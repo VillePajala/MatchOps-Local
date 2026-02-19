@@ -33,6 +33,7 @@ This blueprint documents every architectural decision, configuration, pattern, a
 | i18n | i18next | 25.x | Namespaces, type-safe keys, pluralization |
 | Error Monitoring | Sentry | 10.x | Auto error grouping, session replay, traces |
 | Testing | Jest + RTL | 30.x | Mature, built-in mocking, Next.js support |
+| Browser Testing | agent-browser | 0.10+ | AI-agent browser automation, compact snapshots, 93% less context than Playwright MCP |
 | Deployment | Vercel | - | Zero-config Next.js hosting |
 | PWA | Custom Service Worker | - | Full control over caching strategy |
 
