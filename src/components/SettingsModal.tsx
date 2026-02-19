@@ -340,9 +340,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           logger.log('[PWA] Manual check - forcing registration.update()');
           await registration.update();
 
-          // Check if update was found (waiting worker exists)
-          // The global UpdateBanner (ServiceWorkerRegistration) will handle showing the notification
-          if (registration.waiting) {
+          // Check if update was found. After update(), a new SW may be:
+          // - waiting (already installed) → banner will show immediately
+          // - installing (still downloading) → banner will show after install completes
+          // Only show "up to date" if neither exists.
+          if (registration.waiting || registration.installing) {
             logger.log('[PWA] Update found - UpdateBanner will show notification');
           } else {
             logger.log('[PWA] No update available - app is up to date');

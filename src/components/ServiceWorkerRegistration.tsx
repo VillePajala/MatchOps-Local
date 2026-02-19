@@ -169,9 +169,20 @@ export default function ServiceWorkerRegistration() {
     }
   };
 
-  const handleReload = () => {
+  const handleReload = async () => {
     logger.log('[PWA] User requested reload to apply update.');
-    window.location.reload();
+    // Clear all SW caches to prevent stale assets after update.
+    // Chrome's installed PWA context can serve old content from disk cache
+    // even after SW update — a fresh navigation to '/' is more reliable
+    // than window.location.reload() which may hit browser caches.
+    try {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+      logger.log(`[PWA] Cleared ${cacheNames.length} caches before reload`);
+    } catch (e) {
+      logger.warn('[PWA] Cache clear failed, reloading anyway:', e);
+    }
+    window.location.replace('/');
   };
 
   const handleDismiss = () => {
