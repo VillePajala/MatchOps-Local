@@ -39,6 +39,25 @@ const isForceEnabled = process.env.NEXT_PUBLIC_SENTRY_FORCE_ENABLE === 'true';
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 /**
+ * Known bot User-Agent substrings. Errors from bots are not actionable
+ * (e.g., Service Worker registration fails in crawler environments).
+ */
+const BOT_UA_PATTERNS = [
+  'Googlebot',
+  'Google-Read-Aloud',
+  'bingbot',
+  'Baiduspider',
+  'YandexBot',
+  'DuckDuckBot',
+  'Slurp',
+  'facebookexternalhit',
+  'Twitterbot',
+  'LinkedInBot',
+  'WhatsApp',
+  'Applebot',
+];
+
+/**
  * Patterns that indicate auth-related data that should be scrubbed from Sentry.
  * These patterns match URL paths, header names, and data fields that may contain
  * tokens, emails, or other PII from the auth flow.
@@ -137,6 +156,12 @@ if (dsn && (isProduction || isForceEnabled)) {
     beforeSend(event) {
       // Filter out development-only errors
       if (!isProduction && !isForceEnabled) {
+        return null;
+      }
+
+      // Filter out bot traffic (crawlers don't support SW, PWA features etc.)
+      const userAgent = navigator?.userAgent ?? '';
+      if (BOT_UA_PATTERNS.some(bot => userAgent.includes(bot))) {
         return null;
       }
 
