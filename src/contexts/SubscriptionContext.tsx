@@ -25,6 +25,7 @@ import { useAuth } from './AuthProvider';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
 import { isCloudAvailable } from '@/config/backendConfig';
 import logger from '@/utils/logger';
+import { isTransientError } from '@/utils/retry';
 
 /**
  * Subscription status enum (matches database enum)
@@ -250,7 +251,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setState(newState);
       logger.debug('[SubscriptionContext] Fetched subscription:', newState.status);
     } catch (error) {
-      logger.error('[SubscriptionContext] Failed to fetch subscription:', error);
+      if (isTransientError(error)) {
+        logger.debug('[SubscriptionContext] Transient network error fetching subscription (will use cache)');
+      } else {
+        logger.error('[SubscriptionContext] Failed to fetch subscription:', error);
+      }
 
       // Fall back to cached or default state, but mark as failed so UI can distinguish
       const cached = await getCachedSubscription(user.id);
