@@ -842,7 +842,12 @@ export class LocalDataStore implements DataStore {
 
       teamsIndex[newTeam.id] = newTeam;
       await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
-      await this.setTeamRoster(newTeam.id, []);
+
+      // Initialize empty roster directly — do NOT call this.setTeamRoster() here
+      // because it acquires TEAMS_INDEX_KEY lock, causing a deadlock (lock is not reentrant).
+      const rostersIndex = await this.loadTeamRosters();
+      rostersIndex[newTeam.id] = [];
+      await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
 
       return newTeam;
     });
