@@ -222,24 +222,37 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     // Pre-extract dates and timestamps once (O(n)) instead of during sort comparisons (O(n log n))
     const gamesWithSortKeys = filteredByPlayed.map(id => {
       const gameData = savedGames[id];
+      // Parse gameTime "HH:MM" to minutes for sorting (e.g., "18:30" → 1110)
+      let timeMinutes = 0;
+      if (gameData?.gameTime) {
+        const [h, m] = gameData.gameTime.split(':');
+        timeMinutes = (parseInt(h, 10) || 0) * 60 + (parseInt(m, 10) || 0);
+      }
       return {
         id,
         dateTimestamp: gameData?.gameDate ? new Date(gameData.gameDate).getTime() : 0,
+        timeMinutes,
         idTimestamp: extractTimestampFromId(id) || 0,
       };
     });
 
-    // Sort using pre-extracted values
+    // Sort: date (newest first) → game time (latest first) → creation date (newest first)
     gamesWithSortKeys.sort((a, b) => {
-      // Primary sort: by date in descending order (newest first)
+      // Primary: by date descending (games without date go last)
       if (b.dateTimestamp !== a.dateTimestamp) {
-        // Handle cases where one date is missing (put games without date last)
         if (!a.dateTimestamp) return 1;
         if (!b.dateTimestamp) return -1;
         return b.dateTimestamp - a.dateTimestamp;
       }
 
-      // Secondary sort: by timestamp in game ID (descending, newest first)
+      // Secondary: by game time descending (games without time go last within same date)
+      if (a.timeMinutes !== b.timeMinutes) {
+        if (!a.timeMinutes) return 1;
+        if (!b.timeMinutes) return -1;
+        return b.timeMinutes - a.timeMinutes;
+      }
+
+      // Tertiary: by creation timestamp descending
       return b.idTimestamp - a.idTimestamp;
     });
 
