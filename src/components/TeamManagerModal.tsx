@@ -355,7 +355,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           {/* Teams List */}
           {(() => {
             const searchLower = searchText.toLowerCase();
-            const filteredTeams = teams
+            const filteredTeams = [...teams]
+              .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
               .filter(team => showArchived || !team.archived)
               .filter(team => {
                 if (!searchText) return true;

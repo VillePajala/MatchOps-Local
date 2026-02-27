@@ -479,7 +479,23 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       onClose();
     } catch (error) {
       logger.error('Failed to save team:', error);
-      // Error is handled by React Query and displayed via toast in parent component
+
+      // Show user-visible error
+      if (error && typeof error === 'object' && 'name' in error) {
+        if ((error as { name: string }).name === 'AlreadyExistsError') {
+          setDuplicateError(
+            t('teamManager.duplicateNameError',
+              'A team with this name and context already exists. Change the name or select different context.')
+          );
+        } else if (error instanceof Error && error.message.includes('Lock acquisition timeout')) {
+          // Device was busy — the team may have been created. Show toast and close.
+          showToast(t('common.errorOccurred', 'Something went wrong. Please try again.'), 'error');
+        } else {
+          showToast(t('common.errorOccurred', 'Something went wrong. Please try again.'), 'error');
+        }
+      } else {
+        showToast(t('common.errorOccurred', 'Something went wrong. Please try again.'), 'error');
+      }
     }
   };
 
