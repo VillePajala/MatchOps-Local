@@ -58,6 +58,8 @@ jobs:
       
       - name: Run all tests
         run: CI=true npx jest --ci --maxWorkers=2 --testTimeout=30000
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3
