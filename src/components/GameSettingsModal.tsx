@@ -154,7 +154,7 @@ export interface GameSettingsModalProps {
 // Helper to format time from seconds to MM:SS
 const formatTime = (timeInSeconds: number): string => {
   const minutes = Math.floor(timeInSeconds / 60);
-  const seconds = timeInSeconds % 60;
+  const seconds = Math.floor(timeInSeconds % 60);
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
