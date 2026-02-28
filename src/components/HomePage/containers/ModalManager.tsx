@@ -411,7 +411,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           tournamentLevel={data.gameSessionState.tournamentLevel}
           tournamentSeriesId={data.gameSessionState.tournamentSeriesId}
           gameEvents={data.gameSessionState.gameEvents}
-          availablePlayers={data.availablePlayers}
+          availablePlayers={data.playersForCurrentGame}
           availablePersonnel={data.personnel}
           selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
           selectedPersonnelIds={data.gameSessionState.gamePersonnel || []}

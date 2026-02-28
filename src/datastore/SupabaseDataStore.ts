@@ -3110,7 +3110,7 @@ export class SupabaseDataStore implements DataStore {
       .map((e) => ({
         id: e.id,
         type: e.event_type as GameEvent['type'],
-        time: e.time_seconds,
+        time: Number(e.time_seconds),
         scorerId: e.scorer_id ?? undefined,
         assisterId: e.assister_id ?? undefined,
         entityId: e.entity_id ?? undefined,
