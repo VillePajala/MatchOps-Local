@@ -175,10 +175,19 @@ if (dsn && (isProduction || isForceEnabled)) {
         return null;
       }
 
+      // Filter out Service Worker registration failures (expected on feature phones,
+      // crawlers, and devices that don't support SW — not actionable)
+      const exceptionValue = event.exception?.values?.[0]?.value ?? '';
+      if (
+        exceptionValue === 'Rejected' &&
+        event.extra?.message?.toString().includes('Service Worker registration failed')
+      ) {
+        return null;
+      }
+
       // Filter out raw browser network errors (user connectivity issues).
       // Only match known browser-level patterns, NOT app-level NetworkError instances
       // from retry exhaustion (which are actionable and should be reported).
-      const exceptionValue = event.exception?.values?.[0]?.value ?? '';
       if (
         exceptionValue === 'NetworkError when attempting to fetch resource.' ||
         exceptionValue === 'Failed to fetch' ||
