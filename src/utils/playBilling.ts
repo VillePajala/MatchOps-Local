@@ -17,8 +17,8 @@ import logger from './logger';
 // Play Billing service URL for Digital Goods API
 const PLAY_BILLING_SERVICE = 'https://play.google.com/billing';
 
-// Product ID for premium subscription (must match Play Console)
-export const SUBSCRIPTION_PRODUCT_ID = 'matchops_premium_monthly';
+// Product ID for full version one-time purchase (must match Play Console)
+export const FULL_VERSION_PRODUCT_ID = 'matchops_full_version';
 
 // Check if mock billing is enabled
 // SECURITY: Mock billing bypasses real payments - NEVER enable in production
@@ -63,9 +63,9 @@ export type PurchaseResult =
   | { success: false; error: string };
 
 /**
- * Subscription product details from Play Store
+ * Product details from Play Store
  */
-export interface SubscriptionDetails {
+export interface ProductDetails {
   productId: string;
   title: string;
   description: string;
@@ -163,17 +163,17 @@ async function getService(): Promise<DigitalGoodsService | null> {
 }
 
 /**
- * Get subscription product details from Play Store
+ * Get product details from Play Store
  *
- * @returns Subscription details or null if not available
+ * @returns Product details or null if not available
  */
-export async function getSubscriptionDetails(): Promise<SubscriptionDetails | null> {
+export async function getProductDetails(): Promise<ProductDetails | null> {
   if (MOCK_BILLING) {
     // Return mock details for testing
     return {
-      productId: SUBSCRIPTION_PRODUCT_ID,
-      title: 'MatchOps Premium',
-      description: 'Unlimited teams, players, and cloud sync',
+      productId: FULL_VERSION_PRODUCT_ID,
+      title: 'MatchOps Full Version',
+      description: 'Unlimited seasons and tournaments',
       price: '4.99',
       priceMicros: 4990000,
       currencyCode: 'EUR',
@@ -187,7 +187,7 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetails | nu
       return null;
     }
 
-    const details = await service.getDetails([SUBSCRIPTION_PRODUCT_ID]);
+    const details = await service.getDetails([FULL_VERSION_PRODUCT_ID]);
     if (!details || details.length === 0) {
       logger.warn('[PlayBilling] No product details returned');
       return null;
@@ -203,19 +203,19 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetails | nu
       currencyCode: item.price.currency,
     };
   } catch (error) {
-    logger.error('[PlayBilling] Failed to get subscription details:', error);
+    logger.error('[PlayBilling] Failed to get product details:', error);
     return null;
   }
 }
 
 /**
- * Launch the purchase flow for the premium subscription
+ * Launch the purchase flow for the full version (one-time purchase)
  *
  * Uses the Payment Request API with Digital Goods payment method.
  *
  * @returns PurchaseResult with success status and purchase token
  */
-export async function purchaseSubscription(): Promise<PurchaseResult> {
+export async function purchaseFullVersion(): Promise<PurchaseResult> {
   if (MOCK_BILLING) {
     // Simulate successful purchase with test token
     logger.info('[PlayBilling] Mock mode - simulating purchase');
@@ -227,7 +227,7 @@ export async function purchaseSubscription(): Promise<PurchaseResult> {
 
   try {
     // Get product details first
-    const details = await getSubscriptionDetails();
+    const details = await getProductDetails();
     if (!details) {
       return { success: false, error: 'Product not available' };
     }
@@ -236,7 +236,7 @@ export async function purchaseSubscription(): Promise<PurchaseResult> {
     const paymentMethod: PaymentMethodData = {
       supportedMethods: PLAY_BILLING_SERVICE,
       data: {
-        sku: SUBSCRIPTION_PRODUCT_ID,
+        sku: FULL_VERSION_PRODUCT_ID,
       },
     };
 
@@ -300,7 +300,7 @@ export async function purchaseSubscription(): Promise<PurchaseResult> {
 /**
  * Get existing purchases (for restore functionality)
  *
- * @returns Array of purchase tokens for active subscriptions
+ * @returns Array of purchase tokens for active purchases
  */
 export async function getExistingPurchases(): Promise<string[]> {
   if (MOCK_BILLING) {
@@ -318,7 +318,7 @@ export async function getExistingPurchases(): Promise<string[]> {
 
     const purchases = await service.listPurchases();
     const tokens = purchases
-      .filter((p) => p.itemId === SUBSCRIPTION_PRODUCT_ID)
+      .filter((p) => p.itemId === FULL_VERSION_PRODUCT_ID)
       .map((p) => p.purchaseToken);
 
     logger.info(`[PlayBilling] Found ${tokens.length} existing purchase(s)`);
@@ -337,7 +337,7 @@ export function isMockBillingEnabled(): boolean {
 }
 
 /**
- * Generate a test purchase token for mock subscription
+ * Generate a test purchase token for mock purchase
  *
  * Used for testing purposes - generates a token that the Edge Function
  * will accept when MOCK_BILLING=true is set in Supabase secrets.

@@ -54,6 +54,7 @@ jest.mock('@/hooks/usePlayBilling', () => ({
     restore: jest.fn(),
     refreshDetails: jest.fn(),
   }),
+  grantMockPurchase: jest.fn().mockResolvedValue({ success: true }),
 }));
 
 // Mock SubscriptionContext
@@ -127,23 +128,22 @@ describe('UpgradePromptModal', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    it('displays cloud sync benefits list', () => {
-      // Note: No resource limits in the app (local is free unlimited)
-      // Modal shows cloud-specific benefits only
+    it('displays full version benefits list', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      expect(screen.getByText('Sync across all your devices')).toBeInTheDocument();
-      expect(screen.getByText('Automatic cloud backup')).toBeInTheDocument();
-      expect(screen.getByText('Secure cloud storage')).toBeInTheDocument();
+      expect(screen.getByText('Unlimited seasons')).toBeInTheDocument();
+      expect(screen.getByText('Unlimited tournaments')).toBeInTheDocument();
+      expect(screen.getByText('Support independent development')).toBeInTheDocument();
     });
 
     it('displays price', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      // Price displayed in European format (€ 4,99/kk includes per-month indicator)
-      expect(screen.getByText('€ 4,99/kk')).toBeInTheDocument();
-      expect(screen.getByText('monthly subscription')).toBeInTheDocument();
-      expect(screen.getByText('Cancel anytime')).toBeInTheDocument();
+      // Price displayed in European format
+      expect(screen.getByText('4,99 €')).toBeInTheDocument();
+      expect(screen.getByText('one-time payment')).toBeInTheDocument();
+      // No "Cancel anytime" for one-time purchase
+      expect(screen.queryByText('Cancel anytime')).not.toBeInTheDocument();
     });
 
     it('displays upgrade and dismiss buttons on Android', () => {
@@ -160,7 +160,7 @@ describe('UpgradePromptModal', () => {
 
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      expect(screen.getByText('Subscriptions are available on the Android app.')).toBeInTheDocument();
+      expect(screen.getByText('Purchases are available on the Android app.')).toBeInTheDocument();
       expect(screen.getByText('Get on Google Play')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /ok/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /upgrade to premium/i })).not.toBeInTheDocument();
@@ -172,8 +172,8 @@ describe('UpgradePromptModal', () => {
       renderWithProviders(
         <UpgradePromptModal
           {...defaultProps}
-          resource="team"
-          currentCount={1}
+          resource="season"
+          currentCount={3}
         />
       );
 
@@ -185,8 +185,8 @@ describe('UpgradePromptModal', () => {
       renderWithProviders(
         <UpgradePromptModal
           {...defaultProps}
-          resource="player"
-          currentCount={18}
+          resource="tournament"
+          currentCount={3}
         />
       );
 
@@ -364,7 +364,7 @@ describe('UpgradePromptModal', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       // Desktop users see message to get Android app
-      expect(screen.getByText('Subscriptions are available on the Android app.')).toBeInTheDocument();
+      expect(screen.getByText('Purchases are available on the Android app.')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /upgrade to premium/i })).not.toBeInTheDocument();
     });
 

@@ -246,11 +246,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onClick={onSignInExistingSubscriber}
                     className="text-amber-400 hover:text-amber-300 transition-colors"
                   >
-                    {t('startScreen.existingSubscriber', 'Already a subscriber? Sign in →')}
+                    {t('startScreen.existingSubscriber', 'Already have an account? Sign in →')}
                   </button>
                 )}
                 <div className="mt-3 text-slate-500 text-xs">
-                  <span>{t('startScreen.newToCloud', 'New here? Subscribe via the Android app.')}</span>
+                  <span>{t('startScreen.newToCloud', 'New here? Get the Android app to create an account.')}</span>
                   <a
                     href="https://play.google.com/store/apps/details?id=com.matchops.local"
                     target="_blank"

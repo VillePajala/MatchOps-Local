@@ -216,26 +216,6 @@ jest.mock('../ReverseMigrationWizard', () => {
   };
 });
 
-// Mock UpgradePromptModal to avoid async state update issues from usePlayBilling
-jest.mock('../UpgradePromptModal', () => {
-  return function MockUpgradePromptModal({
-    isOpen,
-    onClose,
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    source?: string;
-  }) {
-    if (!isOpen) return null;
-    return (
-      <div data-testid="upgrade-prompt-modal">
-        <button onClick={onClose}>Close Upgrade Modal</button>
-        <button onClick={onClose}>Subscribe Now</button>
-      </div>
-    );
-  };
-});
-
 import {
   getBackendMode,
   isCloudAvailable,
@@ -540,27 +520,8 @@ describe('CloudSyncSection', () => {
   // Note: "clear cloud data" danger zone was removed from CloudSyncSection.
   // Cloud data clearing is now handled via Settings > Delete Account.
 
-  describe('subscription warning banner', () => {
-    it('shows subscription warning when in cloud mode without active subscription', () => {
-      mockGetBackendMode.mockReturnValue('cloud');
-      mockIsCloudAvailable.mockReturnValue(true);
-      mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
-        isActive: false,
-        isLoading: false,
-      });
-
-      renderWithQueryClient(<CloudSyncSection />);
-
-      expect(screen.getByText('Subscription Required')).toBeInTheDocument();
-      // "sync is paused" appears in both description and warning banner
-      expect(screen.getAllByText(/sync is paused/i)).toHaveLength(2);
-      // There are now two "Subscribe Now" buttons - one in banner, one in auto-shown upgrade modal
-      expect(screen.getAllByRole('button', { name: /subscribe now/i }).length).toBeGreaterThanOrEqual(1);
-      // Verify the upgrade modal is auto-shown
-      expect(screen.getByTestId('upgrade-prompt-modal')).toBeInTheDocument();
-    });
-
-    it('does not show subscription warning when user has active subscription', () => {
+  describe('cloud mode description text', () => {
+    it('shows cloud description when user has active subscription', () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
       mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
@@ -570,12 +531,11 @@ describe('CloudSyncSection', () => {
 
       renderWithQueryClient(<CloudSyncSection />);
 
-      expect(screen.queryByText('Subscription Required')).not.toBeInTheDocument();
       expect(screen.getByText(/syncs to the cloud/i)).toBeInTheDocument();
     });
 
-    it('does not show subscription warning in local mode', () => {
-      mockGetBackendMode.mockReturnValue('local');
+    it('shows upgrade message when in cloud mode without active subscription', () => {
+      mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
       mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
         isActive: false,
@@ -584,10 +544,10 @@ describe('CloudSyncSection', () => {
 
       renderWithQueryClient(<CloudSyncSection />);
 
-      expect(screen.queryByText('Subscription Required')).not.toBeInTheDocument();
+      expect(screen.getByText(/upgrade to premium/i)).toBeInTheDocument();
     });
 
-    it('does not show subscription warning while loading', () => {
+    it('shows cloud description while subscription is loading', () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
       mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
@@ -597,24 +557,8 @@ describe('CloudSyncSection', () => {
 
       renderWithQueryClient(<CloudSyncSection />);
 
-      expect(screen.queryByText('Subscription Required')).not.toBeInTheDocument();
-    });
-
-    it('shows paused message instead of sync message when no subscription', () => {
-      mockGetBackendMode.mockReturnValue('cloud');
-      mockIsCloudAvailable.mockReturnValue(true);
-      mockSubscriptionContext.useSubscriptionOptional.mockReturnValue({
-        isActive: false,
-        isLoading: false,
-      });
-
-      renderWithQueryClient(<CloudSyncSection />);
-
-      // Should show "paused" messages (appears in description and warning banner)
-      // Verify warning banner with its specific text
-      expect(screen.getByText('Subscription Required')).toBeInTheDocument();
-      // Verify syncs to cloud message is NOT shown
-      expect(screen.queryByText(/syncs to the cloud.*access from any device/i)).not.toBeInTheDocument();
+      // While loading, show cloud description (optimistic)
+      expect(screen.getByText(/syncs to the cloud/i)).toBeInTheDocument();
     });
   });
 

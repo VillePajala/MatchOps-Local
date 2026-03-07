@@ -8,16 +8,16 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { usePlayBilling, grantMockSubscription, BillingResult } from './usePlayBilling';
+import { usePlayBilling, grantMockPurchase, BillingResult } from './usePlayBilling';
 import type { PurchaseResult } from '@/utils/playBilling';
 
 // Mock playBilling utilities
 jest.mock('@/utils/playBilling', () => ({
   isPlayBillingAvailable: jest.fn(),
-  purchaseSubscription: jest.fn(),
-  getSubscriptionDetails: jest.fn(),
+  purchaseFullVersion: jest.fn(),
+  getProductDetails: jest.fn(),
   getExistingPurchases: jest.fn(),
-  SUBSCRIPTION_PRODUCT_ID: 'matchops_premium_monthly',
+  FULL_VERSION_PRODUCT_ID: 'matchops_full_version',
 }));
 
 // Mock Supabase client
@@ -50,15 +50,15 @@ jest.mock('@/utils/logger', () => ({
 
 import {
   isPlayBillingAvailable,
-  purchaseSubscription,
-  getSubscriptionDetails,
+  purchaseFullVersion,
+  getProductDetails,
   getExistingPurchases,
 } from '@/utils/playBilling';
 import { getSupabaseClient } from '@/datastore/supabase/client';
 
 const mockIsPlayBillingAvailable = isPlayBillingAvailable as jest.MockedFunction<typeof isPlayBillingAvailable>;
-const mockPurchaseSubscription = purchaseSubscription as jest.MockedFunction<typeof purchaseSubscription>;
-const mockGetSubscriptionDetails = getSubscriptionDetails as jest.MockedFunction<typeof getSubscriptionDetails>;
+const mockPurchaseFullVersion = purchaseFullVersion as jest.MockedFunction<typeof purchaseFullVersion>;
+const mockGetProductDetails = getProductDetails as jest.MockedFunction<typeof getProductDetails>;
 const mockGetExistingPurchases = getExistingPurchases as jest.MockedFunction<typeof getExistingPurchases>;
 const mockGetSupabaseClient = getSupabaseClient as jest.MockedFunction<typeof getSupabaseClient>;
 
@@ -78,8 +78,8 @@ describe('usePlayBilling', () => {
 
     // Default mock implementations
     mockIsPlayBillingAvailable.mockResolvedValue(false);
-    mockGetSubscriptionDetails.mockResolvedValue(null);
-    mockPurchaseSubscription.mockResolvedValue({ success: false, error: 'Not available' });
+    mockGetProductDetails.mockResolvedValue(null);
+    mockPurchaseFullVersion.mockResolvedValue({ success: false, error: 'Not available' });
     mockGetExistingPurchases.mockResolvedValue([]);
 
     // Setup Supabase mock with auth - include access_token and expires_at
@@ -107,10 +107,10 @@ describe('usePlayBilling', () => {
 
     it('sets isAvailable to true when Play Billing is available', async () => {
       mockIsPlayBillingAvailable.mockResolvedValue(true);
-      mockGetSubscriptionDetails.mockResolvedValue({
-        productId: 'matchops_premium_monthly',
+      mockGetProductDetails.mockResolvedValue({
+        productId: 'matchops_full_version',
         title: 'MatchOps Premium',
-        description: 'Premium subscription',
+        description: 'Unlimited seasons and tournaments',
         price: '4.99',
         priceMicros: 4990000,
         currencyCode: 'EUR',
@@ -156,10 +156,10 @@ describe('usePlayBilling', () => {
   describe('purchase flow', () => {
     beforeEach(() => {
       mockIsPlayBillingAvailable.mockResolvedValue(true);
-      mockGetSubscriptionDetails.mockResolvedValue({
-        productId: 'matchops_premium_monthly',
+      mockGetProductDetails.mockResolvedValue({
+        productId: 'matchops_full_version',
         title: 'MatchOps Premium',
-        description: 'Premium subscription',
+        description: 'Unlimited seasons and tournaments',
         price: '4.99',
         priceMicros: 4990000,
         currencyCode: 'EUR',
@@ -194,7 +194,7 @@ describe('usePlayBilling', () => {
       });
 
       // Mock a slow purchase
-      mockPurchaseSubscription.mockImplementation(
+      mockPurchaseFullVersion.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve({ success: true, purchaseToken: 'token-1' }), 100))
       );
       mockFunctionsInvoke.mockResolvedValue({ data: { success: true }, error: null });
@@ -222,7 +222,7 @@ describe('usePlayBilling', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      mockPurchaseSubscription.mockResolvedValue({
+      mockPurchaseFullVersion.mockResolvedValue({
         success: true,
         purchaseToken: 'purchase-token-123',
       });
@@ -245,7 +245,7 @@ describe('usePlayBilling', () => {
       expect(mockFunctionsInvoke).toHaveBeenCalledWith('verify-subscription', {
         body: {
           purchaseToken: 'purchase-token-123',
-          productId: 'matchops_premium_monthly',
+          productId: 'matchops_full_version',
         },
         headers: {
           Authorization: 'Bearer valid-test-token',
@@ -260,7 +260,7 @@ describe('usePlayBilling', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      mockPurchaseSubscription.mockResolvedValue({
+      mockPurchaseFullVersion.mockResolvedValue({
         success: false,
         error: 'cancelled',
       });
@@ -284,7 +284,7 @@ describe('usePlayBilling', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      mockPurchaseSubscription.mockResolvedValue({
+      mockPurchaseFullVersion.mockResolvedValue({
         success: true,
         purchaseToken: 'purchase-token-123',
       });
@@ -311,7 +311,7 @@ describe('usePlayBilling', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      mockPurchaseSubscription.mockResolvedValue({
+      mockPurchaseFullVersion.mockResolvedValue({
         success: true,
         purchaseToken: 'purchase-token-123',
       });
@@ -341,7 +341,7 @@ describe('usePlayBilling', () => {
       expect(result.current.isPurchasing).toBe(false);
 
       let resolvePromise: () => void;
-      mockPurchaseSubscription.mockImplementation(
+      mockPurchaseFullVersion.mockImplementation(
         () => new Promise((resolve) => {
           resolvePromise = () => resolve({ success: true, purchaseToken: 'token' });
         })
@@ -372,10 +372,10 @@ describe('usePlayBilling', () => {
   describe('restore flow', () => {
     beforeEach(() => {
       mockIsPlayBillingAvailable.mockResolvedValue(true);
-      mockGetSubscriptionDetails.mockResolvedValue({
-        productId: 'matchops_premium_monthly',
+      mockGetProductDetails.mockResolvedValue({
+        productId: 'matchops_full_version',
         title: 'MatchOps Premium',
-        description: 'Premium subscription',
+        description: 'Unlimited seasons and tournaments',
         price: '4.99',
         priceMicros: 4990000,
         currencyCode: 'EUR',
@@ -449,7 +449,7 @@ describe('usePlayBilling', () => {
       expect(mockFunctionsInvoke).toHaveBeenCalledWith('verify-subscription', {
         body: {
           purchaseToken: 'existing-token-123',
-          productId: 'matchops_premium_monthly',
+          productId: 'matchops_full_version',
         },
         headers: {
           Authorization: 'Bearer valid-test-token',
@@ -500,16 +500,16 @@ describe('usePlayBilling', () => {
         await result.current.refreshDetails();
       });
 
-      // getSubscriptionDetails should only be called during init (but not on refresh since not available)
-      expect(mockGetSubscriptionDetails).toHaveBeenCalledTimes(0);
+      // getProductDetails should only be called during init (but not on refresh since not available)
+      expect(mockGetProductDetails).toHaveBeenCalledTimes(0);
     });
 
     it('refreshes product details when available', async () => {
       mockIsPlayBillingAvailable.mockResolvedValue(true);
-      mockGetSubscriptionDetails.mockResolvedValue({
-        productId: 'matchops_premium_monthly',
+      mockGetProductDetails.mockResolvedValue({
+        productId: 'matchops_full_version',
         title: 'MatchOps Premium',
-        description: 'Premium subscription',
+        description: 'Unlimited seasons and tournaments',
         price: '4.99',
         priceMicros: 4990000,
         currencyCode: 'EUR',
@@ -522,13 +522,13 @@ describe('usePlayBilling', () => {
       });
 
       // Initial call during init
-      expect(mockGetSubscriptionDetails).toHaveBeenCalledTimes(1);
+      expect(mockGetProductDetails).toHaveBeenCalledTimes(1);
 
       // Update mock to return new price
-      mockGetSubscriptionDetails.mockResolvedValue({
-        productId: 'matchops_premium_monthly',
+      mockGetProductDetails.mockResolvedValue({
+        productId: 'matchops_full_version',
         title: 'MatchOps Premium',
-        description: 'Premium subscription',
+        description: 'Unlimited seasons and tournaments',
         price: '5.99',
         priceMicros: 5990000,
         currencyCode: 'EUR',
@@ -539,13 +539,13 @@ describe('usePlayBilling', () => {
       });
 
       // Called again on refresh
-      expect(mockGetSubscriptionDetails).toHaveBeenCalledTimes(2);
+      expect(mockGetProductDetails).toHaveBeenCalledTimes(2);
       expect(result.current.details?.price).toBe('5.99');
     });
   });
 });
 
-describe('grantMockSubscription', () => {
+describe('grantMockPurchase', () => {
   let mockFunctionsInvoke: jest.Mock;
   let mockGetSession: jest.Mock;
 
@@ -586,13 +586,13 @@ describe('grantMockSubscription', () => {
       error: null,
     });
 
-    const result = await grantMockSubscription('test-12345-abc');
+    const result = await grantMockPurchase('test-12345-abc');
 
     expect(result).toEqual({ success: true, purchaseToken: 'test-12345-abc' });
     expect(mockFunctionsInvoke).toHaveBeenCalledWith('verify-subscription', {
       body: {
         purchaseToken: 'test-12345-abc',
-        productId: 'matchops_premium_monthly',
+        productId: 'matchops_full_version',
       },
       headers: {
         Authorization: 'Bearer valid-token',
@@ -606,7 +606,7 @@ describe('grantMockSubscription', () => {
       error: null,
     });
 
-    const result = await grantMockSubscription('test-12345-abc');
+    const result = await grantMockPurchase('test-12345-abc');
 
     expect(result).toEqual({
       success: false,
@@ -620,7 +620,7 @@ describe('grantMockSubscription', () => {
       error: { message: 'Network error' },
     });
 
-    const result = await grantMockSubscription('test-12345-abc');
+    const result = await grantMockPurchase('test-12345-abc');
 
     expect(result).toEqual({
       success: false,
@@ -649,7 +649,7 @@ describe('grantMockSubscription', () => {
       },
     } as unknown as ReturnType<typeof getSupabaseClient>);
 
-    const result = await grantMockSubscription('test-12345-abc');
+    const result = await grantMockPurchase('test-12345-abc');
 
     expect(result).toEqual({
       success: false,
@@ -695,7 +695,7 @@ describe('grantMockSubscription', () => {
       error: null,
     });
 
-    const result = await grantMockSubscription('test-12345-abc');
+    const result = await grantMockPurchase('test-12345-abc');
 
     expect(result).toEqual({ success: true, purchaseToken: 'test-12345-abc' });
     expect(mockRefreshSession).toHaveBeenCalled();
@@ -721,10 +721,10 @@ describe('usePlayBilling - Race Conditions', () => {
     jest.clearAllMocks();
 
     mockIsPlayBillingAvailable.mockResolvedValue(true);
-    mockGetSubscriptionDetails.mockResolvedValue({
-      productId: 'matchops_premium_monthly',
+    mockGetProductDetails.mockResolvedValue({
+      productId: 'matchops_full_version',
       title: 'MatchOps Premium',
-      description: 'Premium subscription',
+      description: 'Unlimited seasons and tournaments',
       price: '4.99',
       priceMicros: 4990000,
       currencyCode: 'EUR',
@@ -757,7 +757,7 @@ describe('usePlayBilling - Race Conditions', () => {
 
     // Mock purchase that takes some time
     let purchaseCallCount = 0;
-    mockPurchaseSubscription.mockImplementation(() => {
+    mockPurchaseFullVersion.mockImplementation(() => {
       purchaseCallCount++;
       return new Promise((resolve) =>
         setTimeout(() => resolve({ success: true, purchaseToken: `token-${purchaseCallCount}` }), 50)
@@ -837,10 +837,10 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
     jest.clearAllMocks();
 
     mockIsPlayBillingAvailable.mockResolvedValue(true);
-    mockGetSubscriptionDetails.mockResolvedValue({
-      productId: 'matchops_premium_monthly',
+    mockGetProductDetails.mockResolvedValue({
+      productId: 'matchops_full_version',
       title: 'MatchOps Premium',
-      description: 'Premium subscription',
+      description: 'Unlimited seasons and tournaments',
       price: '4.99',
       priceMicros: 4990000,
       currencyCode: 'EUR',
@@ -871,7 +871,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    mockPurchaseSubscription.mockResolvedValue({
+    mockPurchaseFullVersion.mockResolvedValue({
       success: true,
       purchaseToken: 'purchase-token-123',
     });
@@ -903,7 +903,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    mockPurchaseSubscription.mockResolvedValue({
+    mockPurchaseFullVersion.mockResolvedValue({
       success: true,
       purchaseToken: 'purchase-token-123',
     });
@@ -935,7 +935,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    mockPurchaseSubscription.mockResolvedValue({
+    mockPurchaseFullVersion.mockResolvedValue({
       success: true,
       purchaseToken: 'purchase-token-123',
     });
@@ -970,7 +970,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
 
     // Play Billing returns success but no token (shouldn't happen but defensive)
     // Cast to unknown to simulate malformed response for defensive testing
-    mockPurchaseSubscription.mockResolvedValue({
+    mockPurchaseFullVersion.mockResolvedValue({
       success: true,
       purchaseToken: undefined, // Missing token
     } as unknown as PurchaseResult);
@@ -998,10 +998,10 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
     jest.clearAllMocks();
 
     mockIsPlayBillingAvailable.mockResolvedValue(true);
-    mockGetSubscriptionDetails.mockResolvedValue({
-      productId: 'matchops_premium_monthly',
+    mockGetProductDetails.mockResolvedValue({
+      productId: 'matchops_full_version',
       title: 'MatchOps Premium',
-      description: 'Premium subscription',
+      description: 'Unlimited seasons and tournaments',
       price: '4.99',
       priceMicros: 4990000,
       currencyCode: 'EUR',
@@ -1048,7 +1048,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    mockPurchaseSubscription.mockResolvedValue({
+    mockPurchaseFullVersion.mockResolvedValue({
       success: true,
       purchaseToken: 'purchase-token-123',
     });
@@ -1102,7 +1102,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    mockPurchaseSubscription.mockResolvedValue({
+    mockPurchaseFullVersion.mockResolvedValue({
       success: true,
       purchaseToken: 'purchase-token-123',
     });
@@ -1149,7 +1149,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
       success: false,
       error: 'Please sign in to purchase',
     });
-    expect(mockPurchaseSubscription).not.toHaveBeenCalled();
+    expect(mockPurchaseFullVersion).not.toHaveBeenCalled();
     expect(mockFunctionsInvoke).not.toHaveBeenCalled();
   });
 
@@ -1175,7 +1175,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    mockPurchaseSubscription.mockResolvedValue({
+    mockPurchaseFullVersion.mockResolvedValue({
       success: true,
       purchaseToken: 'purchase-token-123',
     });

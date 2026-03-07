@@ -30,7 +30,6 @@ import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useDataStore } from '@/hooks/useDataStore';
 import UnifiedTeamModal from './UnifiedTeamModal';
 import DeleteBlockedDialog from './DeleteBlockedDialog';
-import { useResourceLimit } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 
 interface TeamManagerModalProps {
@@ -52,10 +51,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const queryClient = useQueryClient();
   const { userId, getStore } = useDataStore();
   const { showToast } = useToast();
-
-  // Premium limit check for team creation (count non-archived teams)
-  const activeTeamCount = teams.filter(team => !team.archived).length;
-  const { checkAndPrompt: checkTeamLimitAndPrompt } = useResourceLimit('team', activeTeamCount);
 
   // State management
   const [unifiedModalOpen, setUnifiedModalOpen] = useState(false);
@@ -218,14 +213,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   };
 
   const handleToggleArchive = (teamId: string, currentArchived: boolean) => {
-    // If unarchiving (archived -> not archived), check premium limits first
-    if (currentArchived) {
-      if (!checkTeamLimitAndPrompt()) {
-        setActionsMenuTeamId(null);
-        return; // Upgrade prompt shown
-      }
-    }
-
     updateTeamMutation.mutate({
       teamId,
       updates: {
@@ -236,10 +223,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   };
 
   const handleCreateTeam = () => {
-    // Check premium limit before allowing team creation
-    if (!checkTeamLimitAndPrompt()) {
-      return; // Upgrade prompt shown, don't open create modal
-    }
     setSelectedTeamId(null);
     setUnifiedModalMode('create');
     setUnifiedModalOpen(true);

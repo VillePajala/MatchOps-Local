@@ -152,60 +152,50 @@ export async function isPremiumUser(): Promise<boolean> {
 
 /**
  * Resource count providers - these need to be passed in to avoid circular dependencies
+ *
+ * Only seasons and tournaments are limited in the freemium model.
+ * Teams, players, and games are unlimited for all users.
  */
 export interface ResourceCounts {
-  teams: number;
-  /** Maximum game count in any single season (not total across all seasons) */
-  gamesInSeason: number;
-  /** Maximum game count in any single tournament (not total across all tournaments) */
-  gamesInTournament: number;
-  players: number;
   seasons: number;
   tournaments: number;
 }
 
 /**
- * Check if user can create a new resource
+ * Check if user can create a new resource (season or tournament)
  *
- * Business Model (as of 2026-01):
- * - Local mode: FREE, unlimited
- * - Account creation: FREE on all platforms
- * - Cloud sync: Subscription required (checked via SubscriptionContext)
+ * Business Model (as of 2026-03):
+ * - Free tier: 3 seasons + 3 tournaments
+ * - Full Version (one-time purchase): unlimited
+ * - Local mode: always unlimited (no server cost)
  *
- * Resource limits are NOT enforced - all users have unlimited access.
- *
- * @param _resource - The type of resource to create (unused - no limits)
- * @param _currentCount - Current count of that resource (unused - no limits)
- * @param _isPremium - Whether user has premium (unused - no limits)
- * @returns always true - no resource limits
+ * Currently DISABLED via PREMIUM_ENFORCEMENT_ENABLED flag.
+ * Will be enabled when Play Store billing is ready.
  */
 export function canCreateResource(
-  _resource: ResourceType,
-  _currentCount: number,
-  _isPremium: boolean
+  resource: ResourceType,
+  currentCount: number,
+  isPremium: boolean
 ): boolean {
-  // No resource limits - local is free unlimited, cloud subscription gates sync only
-  return true;
+  if (!PREMIUM_ENFORCEMENT_ENABLED) return true;
+  if (isPremium) return true;
+  return currentCount < getLimit(resource);
 }
 
 /**
  * Get remaining count for a resource
  *
- * Business Model: No resource limits - always returns Infinity.
- * Cloud sync is gated via SubscriptionContext (subscription required).
- *
- * @param _resource - The type of resource (unused - no limits)
- * @param _currentCount - Current count (unused - no limits)
- * @param _isPremium - Premium status (unused - no limits)
- * @returns always Infinity - no resource limits
+ * Returns how many more of this resource the user can create.
+ * Returns Infinity for premium users or when enforcement is disabled.
  */
 export function getRemainingCount(
-  _resource: ResourceType,
-  _currentCount: number,
-  _isPremium: boolean
+  resource: ResourceType,
+  currentCount: number,
+  isPremium: boolean
 ): number {
-  // No resource limits - all users have unlimited access
-  return Infinity;
+  if (!PREMIUM_ENFORCEMENT_ENABLED) return Infinity;
+  if (isPremium) return Infinity;
+  return Math.max(0, getLimit(resource) - currentCount);
 }
 
 /**
