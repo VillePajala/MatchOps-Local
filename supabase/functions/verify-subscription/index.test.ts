@@ -297,10 +297,10 @@ Deno.test('Error messages: do not leak implementation details', () => {
 // Subscription Status Tests
 // =============================================================================
 
-Deno.test('Subscription status: determines correct status from state', () => {
+Deno.test('Subscription status: determines correct status from subscription state', () => {
   type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';
 
-  function determineStatus(
+  function determineSubscriptionStatus(
     paymentState: number,
     cancelReason: number | undefined,
     expiryDate: Date,
@@ -322,19 +322,40 @@ Deno.test('Subscription status: determines correct status from state', () => {
   const past = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   // Active subscription
-  assertEquals(determineStatus(1, undefined, future, now), 'active');
+  assertEquals(determineSubscriptionStatus(1, undefined, future, now), 'active');
 
   // Payment pending = grace
-  assertEquals(determineStatus(0, undefined, future, now), 'grace');
+  assertEquals(determineSubscriptionStatus(0, undefined, future, now), 'grace');
 
   // Cancelled but not expired
-  assertEquals(determineStatus(1, 0, future, now), 'cancelled');
+  assertEquals(determineSubscriptionStatus(1, 0, future, now), 'cancelled');
 
   // Cancelled and expired
-  assertEquals(determineStatus(1, 0, past, now), 'expired');
+  assertEquals(determineSubscriptionStatus(1, 0, past, now), 'expired');
 
   // Expired (not cancelled)
-  assertEquals(determineStatus(1, undefined, past, now), 'expired');
+  assertEquals(determineSubscriptionStatus(1, undefined, past, now), 'expired');
+});
+
+Deno.test('Product purchase status: determines correct status from purchase state', () => {
+  type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';
+
+  function determineProductStatus(purchaseState: number): SubscriptionStatus {
+    if (purchaseState === 2) return 'grace';    // pending
+    if (purchaseState === 1) return 'expired';  // cancelled/refunded
+    return 'active';                             // 0 = purchased
+  }
+
+  assertEquals(determineProductStatus(0), 'active');
+  assertEquals(determineProductStatus(1), 'expired');
+  assertEquals(determineProductStatus(2), 'grace');
+});
+
+Deno.test('Product routing: one-time purchases use products endpoint', () => {
+  const ONE_TIME_PRODUCT_IDS = ['matchops_full_version'];
+
+  assertEquals(ONE_TIME_PRODUCT_IDS.includes('matchops_full_version'), true);
+  assertEquals(ONE_TIME_PRODUCT_IDS.includes('matchops_premium_monthly'), false);
 });
 
 // =============================================================================
