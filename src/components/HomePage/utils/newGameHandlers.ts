@@ -8,7 +8,6 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import type { AppState, Player, SavedGamesCollection, GameType, Gender } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
-import type { ResourceType } from '@/config/premiumLimits';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
 type SaveGameFn = typeof import('@/utils/savedGames').saveGame;
@@ -32,9 +31,6 @@ export interface StartNewGameDependencies {
   utilSaveGame: SaveGameFn;
   utilSaveCurrentGameIdSetting: SaveCurrentGameIdSettingFn;
   defaultSubIntervalMinutes: number;
-  // Premium limit checking
-  canCreate: (resource: ResourceType, currentCount: number) => boolean;
-  showUpgradePrompt: (resource?: ResourceType, currentCount?: number) => void;
   // User-scoped storage
   userId?: string;
 }
@@ -112,31 +108,8 @@ export async function startNewGameWithSetup(
     utilSaveGame,
     utilSaveCurrentGameIdSetting,
     defaultSubIntervalMinutes,
-    canCreate,
-    showUpgradePrompt,
     userId,
   } = deps;
-
-  // Premium limit check: count games in the selected season or tournament
-  // Limit applies per-competition (10 games per season OR 10 games per tournament)
-  if (seasonId || tournamentId) {
-    const competitionId = seasonId || tournamentId;
-    const isSeasonGame = !!seasonId;
-
-    // Count existing games in this competition
-    const gamesInCompetition = Object.values(savedGames).filter(game => {
-      if (isSeasonGame) {
-        return game.seasonId === competitionId;
-      } else {
-        return game.tournamentId === competitionId;
-      }
-    }).length;
-
-    if (!canCreate('game', gamesInCompetition)) {
-      showUpgradePrompt('game', gamesInCompetition);
-      return;
-    }
-  }
 
   const finalSelectedPlayerIds =
     initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0

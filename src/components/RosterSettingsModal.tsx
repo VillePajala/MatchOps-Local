@@ -18,7 +18,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import ConfirmationModal from './ConfirmationModal';
 import PlayerDetailsModal from './PlayerDetailsModal';
-import { useResourceLimit } from '@/hooks/usePremium';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 
@@ -74,9 +73,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   void onRenamePlayer;
   void onSetJerseyNumber;
   void onSetPlayerNotes;
-
-  // Premium limit check for player creation
-  const { checkAndPrompt: checkPlayerLimitAndPrompt } = useResourceLimit('player', availablePlayers.length);
 
   const [createPlayerModalOpen, setCreatePlayerModalOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
@@ -147,10 +143,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   };
 
   const handleAddPlayer = () => {
-    // Check premium limit before allowing player creation
-    if (!checkPlayerLimitAndPrompt()) {
-      return; // Upgrade prompt shown, don't open create modal
-    }
     setCreatePlayerModalOpen(true);
   };
 

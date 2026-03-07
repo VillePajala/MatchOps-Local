@@ -45,7 +45,6 @@ import { exportJson } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
-import { usePremium } from '@/hooks/usePremium';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
@@ -149,9 +148,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Wrap in useCallback to satisfy custom lint rule (already stable from hook)
   const saveStateToHistory = useCallback(saveStateToHistoryFromSession, [saveStateToHistoryFromSession]);
   const saveTacticalStateToHistory = useCallback(saveTacticalStateToHistoryFromSession, [saveTacticalStateToHistoryFromSession]);
-
-  // --- Premium limits ---
-  const { canCreate, showUpgradePrompt } = usePremium();
 
   // --- Get showToast early (needed by Field Coordination) ---
   const { showToast } = useToast();
@@ -1856,8 +1852,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         utilSaveGame,
         utilSaveCurrentGameIdSetting,
         defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
-        canCreate,
-        showUpgradePrompt,
         userId,
       },
       {
@@ -1906,8 +1900,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setDrawings,
     setTacticalDiscs,
     setTacticalDrawings,
-    canCreate,
-    showUpgradePrompt,
     userId,
   ]);
 

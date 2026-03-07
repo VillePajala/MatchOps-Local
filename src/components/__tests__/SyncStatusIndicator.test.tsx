@@ -150,7 +150,7 @@ describe('SyncStatusIndicator', () => {
 
       expect(screen.getByRole('button')).toHaveAttribute(
         'title',
-        'Sync paused - subscription required'
+        'Sync paused'
       );
     });
 
@@ -489,7 +489,7 @@ describe('SyncStatusIndicator', () => {
 
       expect(screen.getByRole('button')).toHaveAttribute(
         'title',
-        'Sync paused - subscription required'
+        'Sync paused'
       );
     });
   });

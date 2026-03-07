@@ -389,7 +389,7 @@ describe('LoginScreen', () => {
     it('should show Play Store link when allowRegistration is false', () => {
       render(<LoginScreen allowRegistration={false} />);
 
-      expect(screen.getByText("Don't have an account? Subscribe via the Android app.")).toBeInTheDocument();
+      expect(screen.getByText("Don't have an account? Get the Android app to create one.")).toBeInTheDocument();
       expect(screen.getByText('Get on Google Play')).toBeInTheDocument();
     });
 

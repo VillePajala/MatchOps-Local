@@ -773,10 +773,10 @@ export default function AuthForm({
                 </button>
               </div>
             ) : (
-              // No registration - must subscribe via Android app
+              // No registration - must create account via Android app
               <div className="mt-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 text-center">
                 <p className="text-slate-400 text-sm">
-                  {t('auth.androidOnlyRegistration', "Don't have an account? Subscribe via the Android app.")}
+                  {t('auth.androidOnlyRegistration', "Don't have an account? Get the Android app to create one.")}
                 </p>
                 <a
                   href="https://play.google.com/store/apps/details?id=com.matchops.local"

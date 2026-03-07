@@ -4,14 +4,15 @@
 
 /**
  * Premium Manager Tests
- * @critical - Core monetization logic for cloud subscription model
+ * @critical - Core monetization logic for freemium model
  *
- * Business Model (2026-01):
- * - Local mode: FREE, unlimited
- * - Cloud mode: Subscription required for sync only, no resource limits
+ * Business Model (2026-03):
+ * - Free tier: 3 seasons + 3 tournaments, unlimited everything else
+ * - Full Version: one-time purchase for unlimited seasons/tournaments
+ * - Cloud sync: FREE for all users
+ * - PREMIUM_ENFORCEMENT_ENABLED currently false (returns unlimited for all)
  *
- * Tests license storage and premium status management.
- * Resource limit functions always return "no limits" (true/Infinity/empty).
+ * Tests license storage, premium status management, and resource limits.
  */
 
 import {
@@ -144,58 +145,46 @@ describe('premiumManager', () => {
   });
 
   describe('canCreateResource', () => {
-    // Business model: No resource limits - all users have unlimited access
-    // Cloud sync is gated via SubscriptionContext (subscription required)
+    // PREMIUM_ENFORCEMENT_ENABLED is currently false, so all return true
+    // When enabled: free users limited to 3 seasons + 3 tournaments
 
-    it('should always return true regardless of premium status', () => {
+    it('should always return true when enforcement is disabled', () => {
       // Premium users - unlimited
-      expect(canCreateResource('team', 100, true)).toBe(true);
-      expect(canCreateResource('player', 1000, true)).toBe(true);
       expect(canCreateResource('season', 50, true)).toBe(true);
+      expect(canCreateResource('tournament', 50, true)).toBe(true);
 
-      // Non-premium users - also unlimited (no resource limits)
-      expect(canCreateResource('team', 100, false)).toBe(true);
-      expect(canCreateResource('player', 1000, false)).toBe(true);
+      // Non-premium users - also unlimited (enforcement disabled)
       expect(canCreateResource('season', 50, false)).toBe(true);
       expect(canCreateResource('tournament', 100, false)).toBe(true);
-      expect(canCreateResource('game', 500, false)).toBe(true);
     });
   });
 
   describe('getRemainingCount', () => {
-    // Business model: No resource limits - always returns Infinity
+    // PREMIUM_ENFORCEMENT_ENABLED is currently false, so all return Infinity
 
-    it('should always return Infinity regardless of premium status', () => {
+    it('should always return Infinity when enforcement is disabled', () => {
       // Premium users
-      expect(getRemainingCount('team', 100, true)).toBe(Infinity);
-      expect(getRemainingCount('player', 1000, true)).toBe(Infinity);
+      expect(getRemainingCount('season', 10, true)).toBe(Infinity);
+      expect(getRemainingCount('tournament', 10, true)).toBe(Infinity);
 
-      // Non-premium users - also unlimited
-      expect(getRemainingCount('team', 100, false)).toBe(Infinity);
-      expect(getRemainingCount('player', 1000, false)).toBe(Infinity);
+      // Non-premium users - also Infinity (enforcement disabled)
       expect(getRemainingCount('season', 50, false)).toBe(Infinity);
+      expect(getRemainingCount('tournament', 50, false)).toBe(Infinity);
     });
   });
 
   describe('getResourceLimit', () => {
     it('should return correct limits', () => {
-      expect(getResourceLimit('team')).toBe(FREE_LIMITS.maxTeams);
-      expect(getResourceLimit('player')).toBe(FREE_LIMITS.maxPlayers);
       expect(getResourceLimit('season')).toBe(FREE_LIMITS.maxSeasons);
       expect(getResourceLimit('tournament')).toBe(FREE_LIMITS.maxTournaments);
-      expect(getResourceLimit('game')).toBe(FREE_LIMITS.maxGamesPerSeason);
     });
   });
 
   describe('isOverFreeLimit', () => {
-    // Business model: No resource limits - always returns false
+    // PREMIUM_ENFORCEMENT_ENABLED is currently false, so always returns false
 
-    it('should always return false regardless of counts', () => {
+    it('should always return false when enforcement is disabled', () => {
       const baseCounts: ResourceCounts = {
-        teams: 0,
-        gamesInSeason: 0,
-        gamesInTournament: 0,
-        players: 0,
         seasons: 0,
         tournaments: 0,
       };
@@ -203,37 +192,17 @@ describe('premiumManager', () => {
       // Zero counts
       expect(isOverFreeLimit(baseCounts)).toBe(false);
 
-      // Large counts - still no limits
-      expect(isOverFreeLimit({ ...baseCounts, teams: 100 })).toBe(false);
-      expect(isOverFreeLimit({ ...baseCounts, players: 500 })).toBe(false);
-      expect(isOverFreeLimit({ ...baseCounts, seasons: 50 })).toBe(false);
-      expect(isOverFreeLimit({ ...baseCounts, gamesInSeason: 200 })).toBe(false);
+      // Large counts - still no limits (enforcement disabled)
+      expect(isOverFreeLimit({ seasons: 50, tournaments: 30 })).toBe(false);
     });
   });
 
   describe('getOverLimitSummary', () => {
-    // Business model: No resource limits - always returns empty array
+    // PREMIUM_ENFORCEMENT_ENABLED is currently false, so always returns empty
 
-    it('should always return empty array regardless of counts', () => {
-      const lowCounts: ResourceCounts = {
-        teams: 0,
-        gamesInSeason: 0,
-        gamesInTournament: 0,
-        players: 0,
-        seasons: 0,
-        tournaments: 0,
-      };
-      expect(getOverLimitSummary(lowCounts)).toEqual([]);
-
-      const highCounts: ResourceCounts = {
-        teams: 100,
-        gamesInSeason: 500,
-        gamesInTournament: 200,
-        players: 1000,
-        seasons: 50,
-        tournaments: 30,
-      };
-      expect(getOverLimitSummary(highCounts)).toEqual([]);
+    it('should always return empty array when enforcement is disabled', () => {
+      expect(getOverLimitSummary({ seasons: 0, tournaments: 0 })).toEqual([]);
+      expect(getOverLimitSummary({ seasons: 50, tournaments: 30 })).toEqual([]);
     });
   });
 });

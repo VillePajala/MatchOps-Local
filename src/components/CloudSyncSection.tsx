@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineCloud, HiOutlineServer, HiOutlineArrowPath, HiOutlineExclamationTriangle, HiOutlineTrash, HiOutlineUser, HiOutlineLockClosed, HiOutlineArrowRightOnRectangle, HiOutlineArrowUpTray, HiOutlinePause, HiOutlinePlay } from 'react-icons/hi2';
-// HiOutlineCreditCard removed — Manage Subscription link hidden until subscription support is live
 import {
   getBackendMode,
   isCloudAvailable,
@@ -18,7 +17,7 @@ import {
 import type { LocalDataCheckResult } from '@/services/migrationService';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
-import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
+import { useSubscriptionOptional } from '@/contexts/SubscriptionContext';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { isPlayStoreContext } from '@/utils/platform';
@@ -27,7 +26,6 @@ import { useSyncStatus } from '@/hooks/useSyncStatus';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import CloudAuthModal from './CloudAuthModal';
 import ReverseMigrationWizard from './ReverseMigrationWizard';
-import UpgradePromptModal from './UpgradePromptModal';
 import PendingSyncWarningModal from './PendingSyncWarningModal';
 import TransitionOverlay from './TransitionOverlay';
 
@@ -83,9 +81,6 @@ export default function CloudSyncSection({
   // Sync status for cloud mode (shows sync details)
   const syncStatus = useSyncStatus();
 
-  // State for showing upgrade modal when user wants to subscribe
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-
   // Use lazy initialization to load values only once on mount (avoids lint warning about setState in useEffect)
   const [currentMode] = useState<'local' | 'cloud'>(() => getBackendMode());
   const [cloudAvailable] = useState(() => isCloudAvailable());
@@ -118,24 +113,6 @@ export default function CloudSyncSection({
       isMountedRef.current = false;
     };
   }, []);
-
-  // Track if we've shown the auto upgrade modal this session
-  const hasShownAutoUpgradeRef = useRef(false);
-
-  // Auto-show upgrade modal when in cloud mode without subscription
-  // This makes the subscription requirement more prominent than just a banner
-  useEffect(() => {
-    if (
-      currentMode === 'cloud' &&
-      user && // User is authenticated
-      !subscriptionLoading &&
-      !hasSubscription &&
-      !hasShownAutoUpgradeRef.current
-    ) {
-      hasShownAutoUpgradeRef.current = true;
-      setShowUpgradeModal(true);
-    }
-  }, [currentMode, user, subscriptionLoading, hasSubscription]);
 
   // Actually enable cloud mode (called after premium check passes)
   const executeEnableCloud = useCallback(() => {
@@ -549,7 +526,7 @@ export default function CloudSyncSection({
         {currentMode === 'cloud'
           ? (subscriptionLoading || hasSubscription
             ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
-            : t('cloudSync.cloudNoSubscription', 'You have a cloud account but sync is paused. Subscribe to enable cloud sync.'))
+            : t('cloudSync.cloudNoSubscription', 'You have a cloud account. Upgrade to premium for unlimited seasons and tournaments.'))
           : t('cloudSync.localDescription', 'Your data is stored locally on this device. Works offline, but data is not synced.')
         }
       </p>
@@ -679,28 +656,6 @@ export default function CloudSyncSection({
         </div>
       )}
 
-      {/* Subscription Warning - shown in cloud mode without active subscription */}
-      {/* Only show when we've confirmed no subscription (not while loading) */}
-      {currentMode === 'cloud' && !subscriptionLoading && !hasSubscription && (
-        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
-          <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm text-amber-300 font-medium">
-              {t('cloudSync.subscriptionRequired', 'Subscription Required')}
-            </p>
-            <p className="text-sm text-amber-300/80 mt-1">
-              {t('cloudSync.subscriptionRequiredDescription', 'Your account is active but cloud sync is paused. Subscribe to sync your data across devices.')}
-            </p>
-            <button
-              onClick={() => setShowUpgradeModal(true)}
-              className="mt-2 px-3 py-1.5 text-sm font-medium bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-md transition-colors"
-            >
-              {t('cloudSync.subscribeButton', 'Subscribe Now')}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Sign Out Button - Only shown in cloud mode */}
       {currentMode === 'cloud' && (
         <div className="pt-2 space-y-2">
@@ -721,19 +676,6 @@ export default function CloudSyncSection({
               </>
             )}
           </button>
-
-          {/* Manage Subscription Link - Hidden until subscription support is live */}
-          {/* {hasSubscription && (
-            <a
-              href="https://play.google.com/store/account/subscriptions"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm no-underline`}
-            >
-              <HiOutlineCreditCard className="h-4 w-4" />
-              {t('cloudSync.manageSubscription', 'Manage Subscription')}
-            </a>
-          )} */}
 
           {/* Import Local Data Button - for users who want to migrate local data to cloud */}
           {hasSubscription && (
@@ -775,7 +717,7 @@ export default function CloudSyncSection({
         <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
           <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-amber-300">
-            {t('cloudSync.notAvailable', 'Cloud sync is not available. This feature requires a premium subscription and server configuration.')}
+            {t('cloudSync.notAvailable', 'Cloud sync is not available. Server configuration is required.')}
           </p>
         </div>
       )}
@@ -900,29 +842,6 @@ export default function CloudSyncSection({
           userId={user?.id}
         />
       )}
-
-      {/* Upgrade modal - shown when user wants to subscribe */}
-      <UpgradePromptModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        variant="cloudUpgrade"
-        onUpgradeSuccess={async () => {
-          setShowUpgradeModal(false);
-          // CRITICAL: Clear subscription cache before reload
-          // Otherwise the stale "none" cached value will be used on reload
-          if (user) {
-            await clearSubscriptionCache(user.id);
-          }
-          // After subscription, reload page to trigger fresh migration check
-          // This ensures migration wizard shows if there's local data to import
-          setTransitionMessage(
-            t('cloudSync.subscriptionSuccess', 'Subscription activated! Reloading...')
-          );
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        }}
-      />
 
       {/* Pending sync warning modal - shown when trying to switch to local with unsynced changes */}
       {showPendingSyncWarning && (

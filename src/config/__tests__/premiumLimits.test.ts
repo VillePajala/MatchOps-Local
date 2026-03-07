@@ -11,18 +11,23 @@ import {
   PREMIUM_PRODUCT_ID,
   PREMIUM_PRICE,
   PREMIUM_PRICE_AMOUNT,
+  PREMIUM_IS_SUBSCRIPTION,
   ResourceType,
 } from '../premiumLimits';
 
 describe('premiumLimits', () => {
   describe('FREE_LIMITS', () => {
     it('should have expected limit values', () => {
-      expect(FREE_LIMITS.maxTeams).toBe(1);
-      expect(FREE_LIMITS.maxGamesPerSeason).toBe(10);
-      expect(FREE_LIMITS.maxGamesPerTournament).toBe(10);
-      expect(FREE_LIMITS.maxPlayers).toBe(18);
-      expect(FREE_LIMITS.maxSeasons).toBe(1);
-      expect(FREE_LIMITS.maxTournaments).toBe(1);
+      expect(FREE_LIMITS.maxSeasons).toBe(3);
+      expect(FREE_LIMITS.maxTournaments).toBe(3);
+    });
+
+    it('should only have season and tournament limits', () => {
+      // Teams, players, and games are unlimited
+      expect(FREE_LIMITS).toEqual({
+        maxSeasons: 3,
+        maxTournaments: 3,
+      });
     });
 
     it('should be readonly', () => {
@@ -30,25 +35,13 @@ describe('premiumLimits', () => {
       // This test documents the expected behavior
       expect(Object.isFrozen(FREE_LIMITS)).toBe(false); // as const doesn't freeze at runtime
       expect(FREE_LIMITS).toMatchObject({
-        maxTeams: expect.any(Number),
-        maxGamesPerSeason: expect.any(Number),
+        maxSeasons: expect.any(Number),
+        maxTournaments: expect.any(Number),
       });
     });
   });
 
   describe('getLimit', () => {
-    it('should return team limit', () => {
-      expect(getLimit('team')).toBe(FREE_LIMITS.maxTeams);
-    });
-
-    it('should return game limit (per season)', () => {
-      expect(getLimit('game')).toBe(FREE_LIMITS.maxGamesPerSeason);
-    });
-
-    it('should return player limit', () => {
-      expect(getLimit('player')).toBe(FREE_LIMITS.maxPlayers);
-    });
-
     it('should return season limit', () => {
       expect(getLimit('season')).toBe(FREE_LIMITS.maxSeasons);
     });
@@ -64,42 +57,39 @@ describe('premiumLimits', () => {
 
   describe('getResourceName', () => {
     it('should return singular form for count 1', () => {
-      expect(getResourceName('team', 1)).toBe('team');
-      expect(getResourceName('game', 1)).toBe('game');
-      expect(getResourceName('player', 1)).toBe('player');
       expect(getResourceName('season', 1)).toBe('season');
       expect(getResourceName('tournament', 1)).toBe('tournament');
     });
 
     it('should return plural form for count > 1', () => {
-      expect(getResourceName('team', 2)).toBe('teams');
-      expect(getResourceName('game', 5)).toBe('games');
-      expect(getResourceName('player', 18)).toBe('players');
       expect(getResourceName('season', 3)).toBe('seasons');
       expect(getResourceName('tournament', 10)).toBe('tournaments');
     });
 
     it('should return plural form for count 0', () => {
-      expect(getResourceName('team', 0)).toBe('teams');
+      expect(getResourceName('season', 0)).toBe('seasons');
     });
 
     it('should default to singular when count not provided', () => {
-      expect(getResourceName('team')).toBe('team');
+      expect(getResourceName('season')).toBe('season');
     });
   });
 
   describe('constants', () => {
-    it('should have correct product ID', () => {
-      expect(PREMIUM_PRODUCT_ID).toBe('matchops_premium');
+    it('should have correct product ID for full version', () => {
+      expect(PREMIUM_PRODUCT_ID).toBe('matchops_full_version');
     });
 
-    it('should have correct price string in European format', () => {
-      // European format: symbol + space + comma decimal + /kk (per month in Finnish)
-      expect(PREMIUM_PRICE).toBe('€ 4,99/kk');
+    it('should have correct price string', () => {
+      expect(PREMIUM_PRICE).toBe('4,99 \u20AC');
     });
 
     it('should have correct price amount', () => {
       expect(PREMIUM_PRICE_AMOUNT).toBe(4.99);
+    });
+
+    it('should be a one-time purchase (not subscription)', () => {
+      expect(PREMIUM_IS_SUBSCRIPTION).toBe(false);
     });
   });
 });

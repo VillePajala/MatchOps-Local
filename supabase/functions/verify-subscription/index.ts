@@ -33,7 +33,7 @@ const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
 
 // Google Play package and product configuration
 const GOOGLE_PLAY_PACKAGE = 'com.matchops.local';
-const VALID_PRODUCT_IDS = ['matchops_premium_monthly'];
+const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
 
 // Subscription timing constants
 const MOCK_SUBSCRIPTION_DAYS = 30;

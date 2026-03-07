@@ -4,12 +4,12 @@
 
 import {
   isPlayBillingAvailable,
-  getSubscriptionDetails,
-  purchaseSubscription,
+  getProductDetails,
+  purchaseFullVersion,
   getExistingPurchases,
   isMockBillingEnabled,
   generateTestPurchaseToken,
-  SUBSCRIPTION_PRODUCT_ID,
+  FULL_VERSION_PRODUCT_ID,
 } from './playBilling';
 
 // Store original env
@@ -51,9 +51,9 @@ describe('playBilling utilities', () => {
     });
   });
 
-  describe('SUBSCRIPTION_PRODUCT_ID', () => {
+  describe('FULL_VERSION_PRODUCT_ID', () => {
     it('has correct product ID', () => {
-      expect(SUBSCRIPTION_PRODUCT_ID).toBe('matchops_premium_monthly');
+      expect(FULL_VERSION_PRODUCT_ID).toBe('matchops_full_version');
     });
   });
 
@@ -100,9 +100,9 @@ describe('playBilling utilities', () => {
     });
   });
 
-  describe('getSubscriptionDetails', () => {
+  describe('getProductDetails', () => {
     it('returns null when service is not available', async () => {
-      const result = await getSubscriptionDetails();
+      const result = await getProductDetails();
       expect(result).toBeNull();
     });
 
@@ -114,17 +114,17 @@ describe('playBilling utilities', () => {
       const mockGetService = jest.fn().mockResolvedValue(mockService);
       (window as unknown as { getDigitalGoodsService: typeof mockGetService }).getDigitalGoodsService = mockGetService;
 
-      const result = await getSubscriptionDetails();
+      const result = await getProductDetails();
       expect(result).toBeNull();
 
       delete (window as unknown as { getDigitalGoodsService?: unknown }).getDigitalGoodsService;
     });
 
-    it('returns subscription details when available', async () => {
+    it('returns product details when available', async () => {
       const mockItem = {
-        itemId: 'matchops_premium_monthly',
-        title: 'MatchOps Premium',
-        description: 'Premium subscription',
+        itemId: 'matchops_full_version',
+        title: 'MatchOps Full Version',
+        description: 'Unlimited seasons and tournaments',
         price: {
           currency: 'EUR',
           value: '4.99',
@@ -138,11 +138,11 @@ describe('playBilling utilities', () => {
       const mockGetService = jest.fn().mockResolvedValue(mockService);
       (window as unknown as { getDigitalGoodsService: typeof mockGetService }).getDigitalGoodsService = mockGetService;
 
-      const result = await getSubscriptionDetails();
+      const result = await getProductDetails();
       expect(result).toEqual({
-        productId: 'matchops_premium_monthly',
-        title: 'MatchOps Premium',
-        description: 'Premium subscription',
+        productId: 'matchops_full_version',
+        title: 'MatchOps Full Version',
+        description: 'Unlimited seasons and tournaments',
         price: '4.99',
         priceMicros: 4990000,
         currencyCode: 'EUR',
@@ -152,10 +152,10 @@ describe('playBilling utilities', () => {
     });
   });
 
-  describe('purchaseSubscription', () => {
+  describe('purchaseFullVersion', () => {
     it('returns error when product not available', async () => {
       // No Digital Goods Service = no product details
-      const result = await purchaseSubscription();
+      const result = await purchaseFullVersion();
       expect(result).toEqual({ success: false, error: 'Product not available' });
     });
   });
@@ -168,9 +168,9 @@ describe('playBilling utilities', () => {
 
     it('returns purchase tokens for matching product', async () => {
       const mockPurchases = [
-        { itemId: 'matchops_premium_monthly', purchaseToken: 'token-123' },
+        { itemId: 'matchops_full_version', purchaseToken: 'token-123' },
         { itemId: 'other_product', purchaseToken: 'token-456' },
-        { itemId: 'matchops_premium_monthly', purchaseToken: 'token-789' },
+        { itemId: 'matchops_full_version', purchaseToken: 'token-789' },
       ];
       const mockService = {
         getDetails: jest.fn(),
@@ -231,15 +231,15 @@ describe('playBilling mock mode', () => {
     });
   });
 
-  it('getSubscriptionDetails returns mock details in mock mode', async () => {
+  it('getProductDetails returns mock details in mock mode', async () => {
     jest.isolateModules(async () => {
       process.env.NEXT_PUBLIC_MOCK_BILLING = 'true';
-      const { getSubscriptionDetails: mockGetDetails } = await import('./playBilling');
+      const { getProductDetails: mockGetDetails } = await import('./playBilling');
       const result = await mockGetDetails();
       expect(result).toEqual({
-        productId: 'matchops_premium_monthly',
-        title: 'MatchOps Premium',
-        description: 'Unlimited teams, players, and cloud sync',
+        productId: 'matchops_full_version',
+        title: 'MatchOps Full Version',
+        description: 'Unlimited seasons and tournaments',
         price: '4.99',
         priceMicros: 4990000,
         currencyCode: 'EUR',
@@ -247,11 +247,11 @@ describe('playBilling mock mode', () => {
     });
   });
 
-  it('purchaseSubscription returns test token in mock mode', async () => {
+  it('purchaseFullVersion returns test token in mock mode', async () => {
     jest.isolateModules(async () => {
       process.env.NEXT_PUBLIC_MOCK_BILLING = 'true';
-      const { purchaseSubscription: mockPurchase } = await import('./playBilling');
-      const result = await mockPurchase();
+      const { purchaseFullVersion: mockPurchaseFullVersion } = await import('./playBilling');
+      const result = await mockPurchaseFullVersion();
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.purchaseToken).toMatch(/^test-\d+-[a-z0-9]+$/);

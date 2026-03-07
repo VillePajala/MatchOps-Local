@@ -128,10 +128,10 @@ describe('UpgradePromptManager', () => {
       );
 
       await act(async () => {
-        registeredHandler?.('team');
+        registeredHandler?.('season');
       });
 
-      expect(screen.getByTestId('modal-resource')).toHaveTextContent('team');
+      expect(screen.getByTestId('modal-resource')).toHaveTextContent('season');
     });
 
     it('passes different resource types correctly', async () => {
@@ -141,11 +141,11 @@ describe('UpgradePromptManager', () => {
         </UpgradePromptManager>
       );
 
-      // Test with 'player'
+      // Test with 'tournament'
       await act(async () => {
-        registeredHandler?.('player');
+        registeredHandler?.('tournament');
       });
-      expect(screen.getByTestId('modal-resource')).toHaveTextContent('player');
+      expect(screen.getByTestId('modal-resource')).toHaveTextContent('tournament');
 
       // Close and reopen with different resource
       await act(async () => {
@@ -153,9 +153,9 @@ describe('UpgradePromptManager', () => {
       });
 
       await act(async () => {
-        registeredHandler?.('game');
+        registeredHandler?.('season');
       });
-      expect(screen.getByTestId('modal-resource')).toHaveTextContent('game');
+      expect(screen.getByTestId('modal-resource')).toHaveTextContent('season');
     });
 
     it('handles no resource (undefined) correctly', async () => {
