@@ -173,13 +173,16 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
       if (isVercelPreview || isInternalTesting) {
         const token = `test-${isInternalTesting ? 'internal' : 'preview'}-${Date.now()}`;
 
-        // Call Edge Function to create purchase record in database (for cloud users)
-        const result = await grantMockPurchase(token);
-        if (!result.success) {
-          const errorMsg = result.error || 'Unknown error';
-          logger.error('[UpgradePromptModal] Mock purchase failed:', errorMsg);
-          showToast(t('premium.purchaseFailed', 'Purchase failed. Please try again.'), 'error');
-          return;
+        // Cloud users: call Edge Function to create purchase record in database
+        // Local users: skip server call — only local premium state is needed
+        if (user) {
+          const result = await grantMockPurchase(token);
+          if (!result.success) {
+            const errorMsg = result.error || 'Unknown error';
+            logger.error('[UpgradePromptModal] Mock purchase failed:', errorMsg);
+            showToast(t('premium.purchaseFailed', 'Purchase failed. Please try again.'), 'error');
+            return;
+          }
         }
 
         // Grant local premium status
