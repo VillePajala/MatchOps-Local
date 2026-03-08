@@ -278,13 +278,13 @@ Deno.test('Subscription status: determines correct status from subscription stat
 
   function determineSubscriptionStatus(
     paymentState: number,
-    cancelReason: number | undefined,
+    cancelReason: number | undefined | null,
     expiryDate: Date,
     now: Date
   ): SubscriptionStatus {
     if (paymentState === 0) {
       return 'grace';
-    } else if (cancelReason !== undefined) {
+    } else if (cancelReason != null) {
       return expiryDate > now ? 'cancelled' : 'expired';
     } else if (expiryDate < now) {
       return 'expired';
@@ -303,7 +303,7 @@ Deno.test('Subscription status: determines correct status from subscription stat
   // Payment pending = grace
   assertEquals(determineSubscriptionStatus(0, undefined, future, now), 'grace');
 
-  // Cancelled but not expired
+  // Cancelled but not expired (cancelReason: 0 = user-initiated cancel)
   assertEquals(determineSubscriptionStatus(1, 0, future, now), 'cancelled');
 
   // Cancelled and expired
@@ -311,6 +311,10 @@ Deno.test('Subscription status: determines correct status from subscription stat
 
   // Expired (not cancelled)
   assertEquals(determineSubscriptionStatus(1, undefined, past, now), 'expired');
+
+  // cancelReason: null — field present but no cancel reason (not cancelled)
+  // != null correctly treats null same as undefined (no cancel)
+  assertEquals(determineSubscriptionStatus(1, null, future, now), 'active');
 });
 
 Deno.test('Product purchase status: determines correct status from purchase state', () => {
