@@ -203,6 +203,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Google Play tokens use URL-safe base64 (A-Za-z0-9, -, _, .)
+    // Standard base64 padding (=) and + are not expected; if Google changes
+    // token format, this regex should be updated.
     if (!/^[a-zA-Z0-9._-]+$/.test(purchaseToken)) {
       return new Response(
         JSON.stringify({ error: 'Invalid purchase token format' }),
@@ -331,7 +334,9 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Calculate grace period end (after subscription expires)
+    // Calculate grace period end (after subscription/purchase expires)
+    // For one-time purchases, periodEnd is ~100 years out, so graceEnd is cosmetic.
+    // The column is still populated for schema consistency across purchase types.
     const graceEnd = new Date(periodEnd.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
     const now = new Date().toISOString();
 

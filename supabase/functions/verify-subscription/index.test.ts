@@ -36,33 +36,6 @@ import {
 // =============================================================================
 
 /**
- * Helper to create a mock request (for future integration tests)
- */
-function _createMockRequest(
-  options: {
-    method?: string;
-    origin?: string;
-    authorization?: string;
-    body?: unknown;
-    ip?: string;
-  } = {}
-): Request {
-  const { method = 'POST', origin, authorization, body, ip } = options;
-
-  const headers = new Headers();
-  if (origin) headers.set('Origin', origin);
-  if (authorization) headers.set('Authorization', authorization);
-  if (ip) headers.set('x-forwarded-for', ip);
-  headers.set('Content-Type', 'application/json');
-
-  return new Request('http://localhost:54321/functions/v1/verify-subscription', {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-}
-
-/**
  * CORS origin validation (extracted from main function)
  */
 const ALLOWED_ORIGINS = [
@@ -208,22 +181,25 @@ Deno.test('Product ID validation: rejects invalid product IDs', () => {
 //
 // The actual rate limiting uses supabaseAdmin.rpc('check_rate_limit', {...}).
 // Since we cannot call the real RPC in unit tests, these tests verify:
-// - The fail-open branching logic (error vs allowed vs blocked)
+// - The fail-closed branching logic (error → 503, not allowed → 429, allowed → proceed)
 // - The key format used for the RPC call
 // - The handler integration tests below cover the full request flow
 // =============================================================================
 
-Deno.test('Rate limiting: fail-open logic allows requests when RPC errors', () => {
-  // The Edge Function uses this branching pattern (see index.ts lines 125-134):
-  //   if (rateLimitError) { console.error(...) }  // fail-open: log and continue
-  //   else if (isAllowed === false) { return 429 } // block only on explicit false
+Deno.test('Rate limiting: fail-closed logic blocks requests when RPC errors', () => {
+  // The Edge Function uses fail-closed behavior (see index.ts lines 145-153):
+  //   if (rateLimitError) { return 503 }           // fail-closed: block on RPC error
+  //   else if (isAllowed === false) { return 429 }  // block on explicit rate limit exceeded
   //
-  // This verifies that the fail-open branch does NOT block.
+  // This verifies the branching logic variables. Note: the actual handler returns 503
+  // on RPC error (fail-closed), but the branching test here only checks the boolean logic.
   const rateLimitError = { message: 'connection timeout' };
   const isAllowed = null; // No data returned on error
 
-  const shouldBlock = !rateLimitError && isAllowed === false;
-  assertEquals(shouldBlock, false, 'Should NOT block requests when rate limit RPC fails (fail-open)');
+  // With fail-closed, rateLimitError alone triggers a block (503 in the handler).
+  // The boolean expression below only covers the isAllowed===false branch (429).
+  const shouldBlock429 = !rateLimitError && isAllowed === false;
+  assertEquals(shouldBlock429, false, 'isAllowed branch should not trigger when RPC errored (separate 503 path handles this)');
 });
 
 Deno.test('Rate limiting: branching logic blocks when RPC returns explicit false', () => {

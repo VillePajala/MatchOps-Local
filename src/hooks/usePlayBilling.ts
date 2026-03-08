@@ -476,7 +476,10 @@ export default usePlayBilling;
  * @returns BillingResult indicating success or failure
  */
 export async function grantMockPurchase(testToken: string): Promise<BillingResult> {
-  if (process.env.NEXT_PUBLIC_INTERNAL_TESTING !== 'true') {
+  // Allow mock purchases in internal testing mode OR on Vercel preview deployments
+  const isVercelPreview = typeof window !== 'undefined' &&
+    /^match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/.test(window.location.hostname);
+  if (process.env.NEXT_PUBLIC_INTERNAL_TESTING !== 'true' && !isVercelPreview) {
     return { success: false, error: 'Mock purchases not available' };
   }
   logger.info('[usePlayBilling] Granting mock purchase with test token');
