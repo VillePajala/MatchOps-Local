@@ -429,6 +429,9 @@ export function usePlayBilling(): UsePlayBillingResult {
       }
 
       // Step 2: Verify the most recent purchase with server
+      // Note: Only tries the first token. If user has multiple purchases (e.g., refund + re-buy),
+      // Play Store typically removes refunded tokens from getExistingPurchases().
+      // If this proves insufficient, iterate tokens until one verifies successfully.
       logger.info('[usePlayBilling] Verifying existing purchase with server');
       const verifyResult = await verifyPurchaseWithServer(purchases[0]);
 

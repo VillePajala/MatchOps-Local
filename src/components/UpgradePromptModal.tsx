@@ -142,10 +142,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
       // Grant local premium with the restored purchase token
       await grantPremiumAccess(result.purchaseToken);
-      // Clear subscription cache to ensure fresh data on next check
-      if (user) {
-        await clearSubscriptionCache(user.id);
-      }
+      // Note: restore() already clears subscription cache internally
       showToast(t('playBilling.restoreSuccess', 'Purchases restored successfully!'), 'success');
       onClose();
       onUpgradeSuccess?.();
