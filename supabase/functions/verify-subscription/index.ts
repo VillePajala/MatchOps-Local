@@ -313,7 +313,7 @@ Deno.serve(async (req: Request) => {
           if (googleSubscription.paymentState === 0) {
             // Payment pending
             status = 'grace';
-          } else if (googleSubscription.cancelReason !== undefined) {
+          } else if (googleSubscription.cancelReason != null) {
             // User cancelled but period not ended
             status = periodEnd > new Date() ? 'cancelled' : 'expired';
           } else if (periodEnd < new Date()) {

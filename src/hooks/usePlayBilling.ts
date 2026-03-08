@@ -71,8 +71,8 @@ let sessionRefreshPromise: Promise<Session | null> | null = null;
  * Timeout for session refresh operations (10 seconds).
  * Prevents deadlock if Supabase auth hangs.
  */
-// Must exceed Edge Function call timeout (~15s) to avoid refresh timing out
-// while the function is still running with a nearly-expired token
+// Deadlock guard: if Supabase auth.refreshSession() hangs, abort after 20s
+// rather than blocking the purchase flow indefinitely.
 const SESSION_REFRESH_TIMEOUT_MS = 20000;
 
 /**
