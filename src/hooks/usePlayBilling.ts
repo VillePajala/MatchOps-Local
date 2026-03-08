@@ -71,7 +71,9 @@ let sessionRefreshPromise: Promise<Session | null> | null = null;
  * Timeout for session refresh operations (10 seconds).
  * Prevents deadlock if Supabase auth hangs.
  */
-const SESSION_REFRESH_TIMEOUT_MS = 10000;
+// Must exceed Edge Function call timeout (~15s) to avoid refresh timing out
+// while the function is still running with a nearly-expired token
+const SESSION_REFRESH_TIMEOUT_MS = 20000;
 
 /**
  * Ensure we have a fresh, valid session for Edge Function calls.
@@ -129,10 +131,11 @@ async function ensureFreshSession(): Promise<Session | null> {
       return recoveredSession;
     }
 
-    // Check if token is expired or about to expire (within 60 seconds)
+    // Check if token is expired or about to expire (within 90 seconds)
+    // Buffer accounts for network latency + Edge Function cold start
     const expiresAt = cachedSession.expires_at;
     const now = Math.floor(Date.now() / 1000);
-    const bufferSeconds = 60;
+    const bufferSeconds = 90;
 
     if (expiresAt && expiresAt < now + bufferSeconds) {
       logger.info('[usePlayBilling] Access token expired or expiring soon, refreshing...');
@@ -211,9 +214,8 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyRe
       return { success: false, error: 'Session invalid. Please sign in again.' };
     }
 
-    logger.info('[usePlayBilling] Calling Edge Function with fresh session:', {
+    logger.debug('[usePlayBilling] Calling Edge Function with fresh session:', {
       userId: session.user?.id?.slice(0, 8) ?? 'unknown',
-      expiresAt: session.expires_at,
       hasAccessToken: !!accessToken,
       hasPurchaseToken: !!purchaseToken,
       productId: FULL_VERSION_PRODUCT_ID,

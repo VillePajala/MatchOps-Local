@@ -236,6 +236,7 @@ Deno.test('Error messages: do not leak implementation details', () => {
   // These are the public error messages - verify they are generic
   const publicErrors = [
     'Method not allowed',
+    'Service temporarily unavailable. Please try again.',  // Rate limit RPC failure (fail-closed)
     'Too many requests. Please try again later.',
     'Missing or invalid authorization header',
     'Server configuration error', // Was: "Google Play verification not configured"
@@ -245,8 +246,7 @@ Deno.test('Error messages: do not leak implementation details', () => {
     'Purchase token too long',
     'Invalid purchase token format',
     'Invalid product ID',
-    'Test token too long',
-    'Invalid purchase token', // Was: "Test tokens not accepted in production"
+    'Invalid purchase token', // Generic: covers test token too long + test token in production
     'Failed to verify with Google Play',
     'This purchase is already associated with another account',
     'Failed to save subscription',
@@ -433,6 +433,15 @@ function createMockSupabaseClient(): MockSupabaseClient {
 
 /**
  * Simplified handler for testing (extracted logic without Deno.serve wrapper)
+ *
+ * MAINTENANCE NOTE: This is a reimplementation of index.ts handler logic.
+ * It intentionally does NOT cover:
+ * - Rate limiting (RPC calls to check_rate_limit)
+ * - Real Google Play API verification (verifySubscriptionWithGoogle/verifyProductWithGoogle)
+ * - Product type routing (one-time vs subscription)
+ * - RPC-based upsert (upsert_subscription)
+ *
+ * When index.ts logic changes, verify these tests still test relevant behavior.
  */
 async function handleRequest(req: Request): Promise<Response> {
   // Get origin for CORS
@@ -535,9 +544,9 @@ async function handleRequest(req: Request): Promise<Response> {
   // Check if test token
   const isTestToken = purchaseToken.startsWith('test-');
 
-  if (isTestToken && purchaseToken.length > 100) {
+  if (isTestToken && mockBilling && purchaseToken.length > 100) {
     return new Response(
-      JSON.stringify({ error: 'Test token too long' }),
+      JSON.stringify({ error: 'Invalid purchase token' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -765,8 +774,9 @@ Deno.test('Handler: returns 400 for test token when mock billing disabled', asyn
   assertEquals(body.error, 'Invalid purchase token');
 });
 
-Deno.test('Handler: returns 400 for test token over 100 chars', async () => {
+Deno.test('Handler: returns 400 for test token over 100 chars in mock mode', async () => {
   resetMocks();
+  mockEnv['MOCK_BILLING'] = 'true';
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
@@ -776,7 +786,7 @@ Deno.test('Handler: returns 400 for test token over 100 chars', async () => {
 
   assertEquals(res.status, 400);
   const body = await res.json();
-  assertEquals(body.error, 'Test token too long');
+  assertEquals(body.error, 'Invalid purchase token');
 });
 
 Deno.test('Handler: returns 409 for token already claimed by another user', async () => {

@@ -219,52 +219,56 @@ describe('playBilling utilities', () => {
 });
 
 describe('playBilling mock mode', () => {
-  // These tests require re-importing the module with different env
-  // We use jest.isolateModules to test mock mode behavior
+  // These tests require re-importing the module with different env.
+  // jest.isolateModules is synchronous — async callbacks are not awaited.
+  // Use jest.resetModules() + dynamic require/import instead.
+
+  const originalMockBilling = process.env.NEXT_PUBLIC_MOCK_BILLING;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env.NEXT_PUBLIC_MOCK_BILLING = 'true';
+  });
+
+  afterEach(() => {
+    if (originalMockBilling === undefined) {
+      delete process.env.NEXT_PUBLIC_MOCK_BILLING;
+    } else {
+      process.env.NEXT_PUBLIC_MOCK_BILLING = originalMockBilling;
+    }
+  });
 
   it('isPlayBillingAvailable returns true in mock mode', async () => {
-    jest.isolateModules(async () => {
-      process.env.NEXT_PUBLIC_MOCK_BILLING = 'true';
-      const { isPlayBillingAvailable: mockIsAvailable } = await import('./playBilling');
-      const result = await mockIsAvailable();
-      expect(result).toBe(true);
-    });
+    const { isPlayBillingAvailable: mockIsAvailable } = await import('./playBilling');
+    const result = await mockIsAvailable();
+    expect(result).toBe(true);
   });
 
   it('getProductDetails returns mock details in mock mode', async () => {
-    jest.isolateModules(async () => {
-      process.env.NEXT_PUBLIC_MOCK_BILLING = 'true';
-      const { getProductDetails: mockGetDetails } = await import('./playBilling');
-      const result = await mockGetDetails();
-      expect(result).toEqual({
-        productId: 'matchops_full_version',
-        title: 'MatchOps Full Version',
-        description: 'Unlimited seasons and tournaments',
-        price: '4.99',
-        priceMicros: 4990000,
-        currencyCode: 'EUR',
-      });
+    const { getProductDetails: mockGetDetails } = await import('./playBilling');
+    const result = await mockGetDetails();
+    expect(result).toEqual({
+      productId: 'matchops_full_version',
+      title: 'MatchOps Full Version',
+      description: 'Unlimited seasons and tournaments',
+      price: '4.99',
+      priceMicros: 4990000,
+      currencyCode: 'EUR',
     });
   });
 
   it('purchaseFullVersion returns test token in mock mode', async () => {
-    jest.isolateModules(async () => {
-      process.env.NEXT_PUBLIC_MOCK_BILLING = 'true';
-      const { purchaseFullVersion: mockPurchaseFullVersion } = await import('./playBilling');
-      const result = await mockPurchaseFullVersion();
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.purchaseToken).toMatch(/^test-\d+-[a-z0-9]+$/);
-      }
-    });
+    const { purchaseFullVersion: mockPurchaseFullVersion } = await import('./playBilling');
+    const result = await mockPurchaseFullVersion();
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.purchaseToken).toMatch(/^test-\d+-[a-z0-9]+$/);
+    }
   });
 
   it('getExistingPurchases returns empty array in mock mode', async () => {
-    jest.isolateModules(async () => {
-      process.env.NEXT_PUBLIC_MOCK_BILLING = 'true';
-      const { getExistingPurchases: mockGetPurchases } = await import('./playBilling');
-      const result = await mockGetPurchases();
-      expect(result).toEqual([]);
-    });
+    const { getExistingPurchases: mockGetPurchases } = await import('./playBilling');
+    const result = await mockGetPurchases();
+    expect(result).toEqual([]);
   });
 });

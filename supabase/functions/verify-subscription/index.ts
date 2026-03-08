@@ -228,16 +228,15 @@ Deno.serve(async (req: Request) => {
     // Check if this is a mock/test token
     const isTestToken = purchaseToken.startsWith('test-');
 
-    // Test tokens should be short (e.g., "test-preview-1234567890")
-    // Reject overly long test tokens as potential abuse
-    if (isTestToken && purchaseToken.length > 100) {
-      return new Response(
-        JSON.stringify({ error: 'Test token too long' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     if (isTestToken && mockBilling) {
+      // Test tokens should be short (e.g., "test-preview-1234567890")
+      // Reject overly long test tokens as potential abuse
+      if (purchaseToken.length > 100) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid purchase token' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       // Mock mode: Accept test tokens
       console.log(`Mock mode: accepting test token for user ${userId}`);
       periodEnd = new Date(Date.now() + MOCK_PURCHASE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
@@ -340,8 +339,10 @@ Deno.serve(async (req: Request) => {
     const graceEnd = new Date(periodEnd.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
     const now = new Date().toISOString();
 
-    // Idempotency check: Verify this purchase token isn't already claimed by another user
-    // This prevents token reuse attacks where an attacker tries to use someone else's token
+    // Cross-user token theft check: Verify this purchase token isn't claimed by a different user.
+    // Same-user re-calls are allowed (idempotent upsert below). For refunded tokens,
+    // Google's API returns purchaseState=1 (cancelled) which maps to status='expired',
+    // so the upsert would set status to 'expired' — no re-grant of active premium.
     const { data: existingSubscription } = await supabaseAdmin
       .from('subscriptions')
       .select('user_id')
