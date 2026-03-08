@@ -2,34 +2,24 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    types: [opened]
+    # Only trigger on PR open, not on every push (synchronize).
+    # This prevents flooding the PR with duplicate reviews after each fix commit.
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Run Claude Code Review
         id: claude-review
@@ -37,18 +27,21 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
+            Review this pull request. Read the full diff with `gh pr diff`. Then compose a SINGLE comprehensive review comment covering:
+            - Bugs and correctness issues (with file:line references)
             - Security concerns
-            - Test coverage
-            
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            - Performance considerations
+            - Test coverage gaps
+            - Code quality relative to CLAUDE.md conventions
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
-          
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://docs.anthropic.com/en/docs/claude-code/sdk#command-line for available options
+            IMPORTANT FORMATTING RULES:
+            1. Compose your ENTIRE review as ONE markdown-formatted comment. Do NOT split into multiple comments.
+            2. Use proper GitHub-flavored markdown: ## headings, **bold**, `code`, tables, etc.
+            3. Categorize findings by severity: Bug, Issue, Minor, Nit.
+            4. End with a summary table and a clear merge recommendation.
+            5. Post the review using a SINGLE `gh pr comment` call. Use a heredoc for the body to preserve formatting.
+
+            Use the repository's CLAUDE.md for guidance on project conventions and quality bar.
+
           claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
 

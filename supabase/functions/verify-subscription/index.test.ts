@@ -859,7 +859,8 @@ Deno.test('Handler: uses production origin for disallowed origin', async () => {
   });
   const res = await handleRequest(req);
 
-  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://matchops.app');
+  // Falls back to ALLOWED_ORIGINS[0] for disallowed origins
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://app.match-ops.com');
 });
 
 console.log('\n✅ All verify-subscription unit tests completed\n');
