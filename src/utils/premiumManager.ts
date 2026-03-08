@@ -207,26 +207,27 @@ export const getResourceLimit = getLimit;
 /**
  * Check if any resource is over the free limit (for import warnings)
  *
- * Business Model: No resource limits - always returns false.
- * All data imports are allowed without limit warnings.
+ * Import/restore policy: limits are never enforced on data imports or restores.
+ * New creation limits are checked in canCreateResource(), not here.
  *
- * @param _counts - Resource counts (unused - no limits)
- * @returns always false - no resource limits
+ * @param _counts - Resource counts (unused - imports bypass limits)
+ * @returns always false - imports are always allowed regardless of limits
  */
 export function isOverFreeLimit(_counts: ResourceCounts): boolean {
-  // No resource limits - imports always allowed
+  // Imports/restores bypass resource limits — only canCreateResource() enforces them
   return false;
 }
 
 /**
- * Get a summary of which resources are over limit
+ * Get a summary of which resources are over limit (for import/restore warnings)
  *
- * Business Model: No resource limits - always returns empty array.
+ * Import/restore policy: limits are never enforced on data imports or restores.
+ * New creation limits are checked in canCreateResource(), not here.
  *
- * @param _counts - Resource counts (unused - no limits)
- * @returns always empty - no resource limits
+ * @param _counts - Resource counts (unused - imports bypass limits)
+ * @returns always empty - imports never show limit warnings
  */
 export function getOverLimitSummary(_counts: ResourceCounts): string[] {
-  // No resource limits - no over-limit warnings
+  // Imports/restores bypass resource limits — no warnings needed
   return [];
 }
