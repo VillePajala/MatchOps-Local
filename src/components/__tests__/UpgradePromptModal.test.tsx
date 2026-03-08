@@ -45,6 +45,7 @@ jest.mock('@/hooks/usePremium', () => ({
 }));
 
 // Mock usePlayBilling hook
+const mockGrantMockPurchase = jest.fn().mockResolvedValue({ success: true });
 jest.mock('@/hooks/usePlayBilling', () => ({
   usePlayBilling: () => ({
     isAvailable: false,
@@ -54,7 +55,7 @@ jest.mock('@/hooks/usePlayBilling', () => ({
     restore: jest.fn(),
     refreshDetails: jest.fn(),
   }),
-  grantMockPurchase: jest.fn().mockResolvedValue({ success: true }),
+  grantMockPurchase: (...args: unknown[]) => mockGrantMockPurchase(...args),
 }));
 
 // Mock SubscriptionContext
@@ -62,11 +63,12 @@ jest.mock('@/contexts/SubscriptionContext', () => ({
   clearSubscriptionCache: jest.fn().mockResolvedValue(undefined),
 }));
 
-// Mock AuthProvider
+// Mock AuthProvider (controllable per-test)
+let mockUser: { id: string; email: string } | null = { id: 'test-user-id', email: 'test@example.com' };
 jest.mock('@/contexts/AuthProvider', () => ({
   useAuth: () => ({
-    user: { id: 'test-user-id', email: 'test@example.com' },
-    mode: 'cloud',
+    user: mockUser,
+    mode: mockUser ? 'cloud' : 'local',
   }),
 }));
 
@@ -106,6 +108,9 @@ describe('UpgradePromptModal', () => {
     });
     // Default to Android to test upgrade button (most tests expect it)
     mockIsAndroid.mockReturnValue(true);
+    // Default to cloud user (most tests expect it)
+    mockUser = { id: 'test-user-id', email: 'test@example.com' };
+    mockGrantMockPurchase.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
@@ -338,6 +343,53 @@ describe('UpgradePromptModal', () => {
         expect(mockGrantPremiumAccess).toHaveBeenCalledWith(expect.stringMatching(/^test-internal-\d+$/));
         expect(onClose).toHaveBeenCalled();
       });
+    });
+
+    it('skips server call and grants premium directly for local-mode user', async () => {
+      // Local-mode user: no authenticated user, no server call needed
+      mockUser = null;
+      const onClose = jest.fn();
+      mockGrantPremiumAccess.mockResolvedValue(undefined);
+
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+
+      const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
+      await act(async () => {
+        fireEvent.click(upgradeButton);
+      });
+
+      await waitFor(() => {
+        // grantMockPurchase should NOT be called (no user = no server record needed)
+        expect(mockGrantMockPurchase).not.toHaveBeenCalled();
+        // But premium should still be granted locally
+        expect(mockGrantPremiumAccess).toHaveBeenCalledWith(expect.stringMatching(/^test-internal-\d+$/));
+        expect(onClose).toHaveBeenCalled();
+      });
+    });
+
+    it('blocks upgrade for cloud user when server call fails', async () => {
+      // Cloud user: server call fails → should NOT grant premium
+      mockGrantMockPurchase.mockResolvedValue({ success: false, error: 'Mock purchases not available' });
+      const onClose = jest.fn();
+
+      // Expected logger.error from the component's error handler
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+
+      const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
+      await act(async () => {
+        fireEvent.click(upgradeButton);
+      });
+
+      await waitFor(() => {
+        expect(mockGrantMockPurchase).toHaveBeenCalled();
+        // Premium should NOT be granted when server call fails for cloud user
+        expect(mockGrantPremiumAccess).not.toHaveBeenCalled();
+        expect(onClose).not.toHaveBeenCalled();
+      });
+
+      consoleSpy.mockRestore();
     });
   });
 

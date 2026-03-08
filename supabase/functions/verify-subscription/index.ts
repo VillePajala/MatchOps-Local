@@ -36,10 +36,13 @@ const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
 
 // Google Play package and product configuration
 const GOOGLE_PLAY_PACKAGE = 'com.matchops.local';
+// Backward compat: accept legacy 'matchops_premium_monthly' for users who purchased
+// before the switch to one-time purchase model. New purchases use 'matchops_full_version'.
 const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
 
 // Timing constants
-const MOCK_SUBSCRIPTION_DAYS = 30;
+// Mock purchase validity period (used in mock/test mode only, not for real purchases)
+const MOCK_PURCHASE_VALIDITY_DAYS = 30;
 const GRACE_PERIOD_DAYS = 7;
 // One-time purchases never expire — use 100 years as "permanent"
 const ONE_TIME_PURCHASE_YEARS = 100;
@@ -234,7 +237,7 @@ Deno.serve(async (req: Request) => {
     if (isTestToken && mockBilling) {
       // Mock mode: Accept test tokens
       console.log(`Mock mode: accepting test token for user ${userId}`);
-      periodEnd = new Date(Date.now() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
+      periodEnd = new Date(Date.now() + MOCK_PURCHASE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
       orderId = `mock-order-${Date.now()}`;
     } else if (isTestToken && !mockBilling) {
       // Test token in production mode - reject with generic error to avoid leaking test mode existence
