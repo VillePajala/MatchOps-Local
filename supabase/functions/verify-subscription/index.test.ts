@@ -374,10 +374,10 @@ Deno.test('Grace period: adds 7 days to period end', () => {
 // Mock Subscription Duration Tests
 // =============================================================================
 
-Deno.test('Mock subscription: lasts 30 days', () => {
-  const MOCK_SUBSCRIPTION_DAYS = 30;
+Deno.test('Mock purchase: validity period is 30 days', () => {
+  const MOCK_PURCHASE_VALIDITY_DAYS = 30;
   const now = new Date('2026-01-15T12:00:00Z');
-  const periodEnd = new Date(now.getTime() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
+  const periodEnd = new Date(now.getTime() + MOCK_PURCHASE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
 
   assertEquals(periodEnd.toISOString(), '2026-02-14T12:00:00.000Z');
 });
@@ -601,9 +601,9 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // Success
-  const MOCK_SUBSCRIPTION_DAYS = 30;
+  const MOCK_PURCHASE_VALIDITY_DAYS = 30;
   const GRACE_PERIOD_DAYS = 7;
-  const periodEnd = new Date(Date.now() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
+  const periodEnd = new Date(Date.now() + MOCK_PURCHASE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
   const graceEnd = new Date(periodEnd.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
   return new Response(
