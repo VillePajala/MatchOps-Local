@@ -40,8 +40,12 @@ export function getLimit(resource: ResourceType): number {
       return FREE_LIMITS.maxSeasons;
     case 'tournament':
       return FREE_LIMITS.maxTournaments;
-    default:
-      return 0;
+    default: {
+      // TypeScript exhaustive check — if a new ResourceType is added without
+      // a case here, this will be a compile error
+      const _exhaustive: never = resource;
+      return _exhaustive;
+    }
   }
 }
 
