@@ -303,7 +303,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         {/* Price - use Play Billing price if available, otherwise fallback */}
         <div className="mb-5 text-center">
           <div className="text-2xl font-bold text-amber-400">
-            {details?.price ? `${details.currencyCode} ${details.price}` : PREMIUM_PRICE}
+            {details?.price && details?.currencyCode ? `${details.currencyCode} ${details.price}` : PREMIUM_PRICE}
           </div>
           <div className="text-slate-400 text-sm">
             {t('premium.oneTimePayment', 'one-time payment')}
