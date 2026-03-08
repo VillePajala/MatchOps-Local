@@ -14,6 +14,13 @@ export const DEFAULT_GAME_ID = 'unsaved_game';
 export const PREMIUM_ENFORCEMENT_ENABLED = false;
 
 /**
+ * Vercel preview deployment hostname pattern.
+ * Used to enable test purchase flows on preview deployments for QA.
+ * Must be kept in sync with actual Vercel project name.
+ */
+export const VERCEL_PREVIEW_PATTERN = /^match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/;
+
+/**
  * Current Terms of Service and Privacy Policy version.
  *
  * Format: YYYY-MM (year and month when policy was last updated)

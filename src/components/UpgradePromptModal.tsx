@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
+import { VERCEL_PREVIEW_PATTERN } from '@/config/constants';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -96,9 +97,9 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
   const onAndroid = isAndroid();
 
-  // Detect Vercel preview deployment (match-ops-local-*.vercel.app)
+  // Detect Vercel preview deployment
   const isVercelPreview = typeof window !== 'undefined' &&
-    /^match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/.test(window.location.hostname);
+    VERCEL_PREVIEW_PATTERN.test(window.location.hostname);
 
   // Debug logging for purchase availability
   if (typeof window !== 'undefined') {

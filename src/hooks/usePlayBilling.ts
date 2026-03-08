@@ -328,6 +328,10 @@ export function usePlayBilling(): UsePlayBillingResult {
   }, [isAvailable]);
 
   // Purchase flow
+  // NOTE: Unlike restore(), purchase() does NOT call clearSubscriptionCache().
+  // The caller (UpgradePromptModal) is responsible for clearing the cache after
+  // granting premium access. This is intentional — purchase() only handles the
+  // Play Billing + server verification steps.
   const purchase = useCallback(async (): Promise<BillingResult> => {
     if (!isAvailable) {
       return { success: false, error: 'Play Billing not available' };
@@ -479,8 +483,9 @@ export default usePlayBilling;
  */
 export async function grantMockPurchase(testToken: string): Promise<BillingResult> {
   // Allow mock purchases in internal testing mode OR on Vercel preview deployments
+  const { VERCEL_PREVIEW_PATTERN } = await import('@/config/constants');
   const isVercelPreview = typeof window !== 'undefined' &&
-    /^match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/.test(window.location.hostname);
+    VERCEL_PREVIEW_PATTERN.test(window.location.hostname);
   if (process.env.NEXT_PUBLIC_INTERNAL_TESTING !== 'true' && !isVercelPreview) {
     return { success: false, error: 'Mock purchases not available' };
   }
