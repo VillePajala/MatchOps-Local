@@ -78,9 +78,8 @@ const TEST_TOKEN_PATTERN = /^test-/;
  * @throws Error if token validation fails
  */
 function validatePurchaseToken(purchaseToken?: string): void {
-  const isDev = process.env.NODE_ENV !== 'production';
-  const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
   const isProduction = process.env.NODE_ENV === 'production';
+  const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
 
   // If token matches test pattern, validate environment
   if (purchaseToken && TEST_TOKEN_PATTERN.test(purchaseToken)) {
@@ -91,17 +90,17 @@ function validatePurchaseToken(purchaseToken?: string): void {
     }
 
     // When enforcement is enabled in production, block test tokens
-    if (isProduction && !isDev && !isInternalTesting) {
+    if (isProduction && !isInternalTesting) {
       logger.error('Test token rejected in production', { tokenPrefix: purchaseToken.split('-')[0] });
       throw new Error('Invalid purchase token');
     }
-    logger.debug('Test token accepted', { isDev, isInternalTesting });
+    logger.debug('Test token accepted', { isProduction, isInternalTesting });
     return;
   }
 
   // TODO: P4C - Add Digital Goods API token validation for real tokens
   // For now, require a token in production (will be validated via Play Store)
-  if (!purchaseToken && !isDev && !isInternalTesting) {
+  if (!purchaseToken && isProduction && !isInternalTesting) {
     logger.error('Missing purchase token in production');
     throw new Error('Purchase token required');
   }

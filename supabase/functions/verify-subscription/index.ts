@@ -222,7 +222,7 @@ Deno.serve(async (req: Request) => {
     }
 
     let status: SubscriptionStatus = 'active';
-    let periodEnd: Date;
+    let periodEnd: Date = new Date();  // Initialized to satisfy control-flow; all branches reassign
     let orderId: string | undefined;
 
     // Check if this is a mock/test token
