@@ -97,6 +97,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     [isPremium]
   );
 
+  // NOTE: isOverFreeLimit always returns false — imports/restores bypass limits.
+  // New resource creation limits are enforced via canCreateResource(), not here.
   const isImportOverLimits = useCallback(
     (counts: ResourceCounts): boolean => {
       if (isPremium) return false;
