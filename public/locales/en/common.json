@@ -2085,15 +2085,15 @@
     },
     "premiumSubscription": {
       "title": "Paid Features",
-      "intro": "We may introduce paid subscription plans in the future. If offered, paid features may include:",
+      "intro": "MatchOps offers a one-time Full Version purchase that unlocks premium features:",
       "features": {
-        "cloudSync": "Cloud Sync: Access your data across multiple devices",
-        "unlimitedEntities": "Unlimited players, teams, seasons, and tournaments",
-        "prioritySupport": "Priority support"
+        "cloudSync": "Cloud Sync: Access your data across multiple devices (free for all users)",
+        "unlimitedEntities": "Unlimited seasons and tournaments",
+        "prioritySupport": "Support independent development"
       },
-      "billing": "If paid subscriptions are introduced, they will be billed through Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.",
-      "cancellation": "If you have an active subscription, you can cancel at any time through Google Play. After cancellation, you retain access until the end of your billing period.",
-      "dataAfterCancel": "If a paid subscription is cancelled, your cloud data remains accessible. You can export or delete it at any time. We reserve the right to remove cloud data after an extended period of account inactivity, with prior notice."
+      "billing": "The Full Version is a one-time purchase through Google Play Store. See Google Play's terms for billing and refund policies.",
+      "cancellation": "As a one-time purchase, the Full Version does not require cancellation. Your premium access is permanent.",
+      "dataAfterCancel": "Your cloud data remains accessible regardless of purchase status. You can export or delete it at any time. We reserve the right to remove cloud data after an extended period of account inactivity, with prior notice."
     },
     "cloudSync": {
       "title": "Cloud Sync Terms",
@@ -2161,7 +2161,7 @@
     "purchaseComingSoon": "In-app purchase coming soon!",
     "grantSuccess": "Premium activated! You can reset in Settings.",
     "grantError": "Failed to activate premium. Please try again.",
-    "purchaseFailed": "Purchase failed: {{error}}",
+    "purchaseFailed": "Purchase failed. Please try again.",
     "processing": "Processing...",
     "billingNotAvailable": "Play Billing not available. Please try again.",
     "availableSoon": "Premium upgrade will be available soon via Google Play!",
@@ -2169,16 +2169,16 @@
     "getAndroidApp": "Get on Google Play"
   },
   "subscription": {
-    "graceWarning": "Your subscription has expired. Renew within {{days}} days to keep cloud access.",
-    "expiredWarning": "Your subscription has expired. Renew to restore cloud access.",
-    "renewNow": "Renew Now",
-    "renewOnAndroid": "Renew via Android app",
+    "graceWarning": "Your premium access is expiring. Restore your purchase within {{days}} days to keep full access.",
+    "expiredWarning": "Your premium access has expired. Restore your purchase to regain full access.",
+    "renewNow": "Restore Purchase",
+    "renewOnAndroid": "Restore via Android app",
     "statusActive": "Active",
     "statusCancelled": "Cancelled",
     "statusGrace": "Grace Period",
     "statusExpired": "Expired",
-    "statusNone": "No Subscription",
-    "periodEnds": "Period ends: {{date}}",
+    "statusNone": "Free",
+    "periodEnds": "Access until: {{date}}",
     "graceEnds": "Grace period ends: {{date}}"
   },
   "playBilling": {

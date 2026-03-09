@@ -2085,15 +2085,15 @@
     },
     "premiumSubscription": {
       "title": "Maksulliset ominaisuudet",
-      "intro": "Saatamme tulevaisuudessa ottaa käyttöön maksullisia tilaussuunnitelmia. Jos niitä tarjotaan, maksulliset ominaisuudet voivat sisältää:",
+      "intro": "MatchOps tarjoaa kertaostoksena Täysversion, joka avaa premium-ominaisuudet:",
       "features": {
-        "cloudSync": "Pilvisynkronointi: Pääsy tietoihisi useilta laitteilta",
-        "unlimitedEntities": "Rajattomat pelaajat, joukkueet, kaudet ja turnaukset",
-        "prioritySupport": "Ensisijainen tuki"
+        "cloudSync": "Pilvisynkronointi: Pääsy tietoihisi useilta laitteilta (ilmainen kaikille)",
+        "unlimitedEntities": "Rajattomat sarjat ja turnaukset",
+        "prioritySupport": "Tue itsenäistä kehitystä"
       },
-      "billing": "Jos maksullisia tilauksia otetaan käyttöön, ne laskutetaan Google Play Kaupan kautta. Katso Google Playn ehdot laskutuksesta, peruutuksesta ja hyvityksistä.",
-      "cancellation": "Jos sinulla on aktiivinen tilaus, voit peruuttaa sen milloin tahansa Google Playn kautta. Peruutuksen jälkeen säilytät pääsyn laskutusjakson loppuun asti.",
-      "dataAfterCancel": "Jos maksullinen tilaus peruutetaan, pilvitietosi pysyvät saatavilla. Voit viedä tai poistaa ne milloin tahansa. Pidätämme oikeuden poistaa pilvitiedot pitkittyneen tilin käyttämättömyyden jälkeen ennakkoilmoituksella."
+      "billing": "Täysversio on kertaostos Google Play Kaupan kautta. Katso Google Playn ehdot laskutuksesta ja hyvityksistä.",
+      "cancellation": "Kertaostoksena Täysversio ei vaadi peruuttamista. Premium-käyttöoikeutesi on pysyvä.",
+      "dataAfterCancel": "Pilvitietosi pysyvät saatavilla ostoksen tilasta riippumatta. Voit viedä tai poistaa ne milloin tahansa. Pidätämme oikeuden poistaa pilvitiedot pitkittyneen tilin käyttämättömyyden jälkeen ennakkoilmoituksella."
     },
     "cloudSync": {
       "title": "Pilvisynkronoinnin ehdot",
@@ -2161,7 +2161,7 @@
     "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!",
     "grantSuccess": "Premium aktivoitu! Voit nollata Asetuksissa.",
     "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
-    "purchaseFailed": "Osto epäonnistui: {{error}}",
+    "purchaseFailed": "Osto epäonnistui. Yritä uudelleen.",
     "processing": "Käsitellään...",
     "billingNotAvailable": "Play Billing ei ole käytettävissä. Yritä uudelleen.",
     "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!",
@@ -2169,16 +2169,16 @@
     "getAndroidApp": "Lataa Google Playsta"
   },
   "subscription": {
-    "graceWarning": "Tilauksesi on päättynyt. Uusi tilaus {{days}} päivän kuluessa säilyttääksesi pilvipalvelun käytön.",
-    "expiredWarning": "Tilauksesi on päättynyt. Uusi tilaus palauttaaksesi pilvipalvelun käytön.",
-    "renewNow": "Uusi tilaus",
-    "renewOnAndroid": "Uusi tilaus Android-sovelluksessa",
+    "graceWarning": "Premium-käyttöoikeutesi on päättymässä. Palauta ostoksesi {{days}} päivän kuluessa säilyttääksesi täyden käyttöoikeuden.",
+    "expiredWarning": "Premium-käyttöoikeutesi on päättynyt. Palauta ostoksesi saadaksesi täyden käyttöoikeuden takaisin.",
+    "renewNow": "Palauta ostos",
+    "renewOnAndroid": "Palauta Android-sovelluksessa",
     "statusActive": "Aktiivinen",
     "statusCancelled": "Peruutettu",
     "statusGrace": "Lisäaika",
     "statusExpired": "Päättynyt",
-    "statusNone": "Ei tilausta",
-    "periodEnds": "Kausi päättyy: {{date}}",
+    "statusNone": "Ilmainen",
+    "periodEnds": "Käyttöoikeus: {{date}} asti",
     "graceEnds": "Lisäaika päättyy: {{date}}"
   },
   "playBilling": {

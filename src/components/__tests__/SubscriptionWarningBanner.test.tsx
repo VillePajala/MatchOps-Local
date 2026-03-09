@@ -15,10 +15,10 @@ jest.mock('@/contexts/SubscriptionContext');
 jest.mock('@/utils/platform');
 // Translation map for tests
 const translations: Record<string, string> = {
-  'subscription.graceWarning': 'Your subscription has expired. Renew within {{days}} days to keep cloud access.',
-  'subscription.expiredWarning': 'Your subscription has expired. Renew to restore cloud access.',
-  'subscription.renewNow': 'Renew Now',
-  'subscription.renewOnAndroid': 'Renew via Android app',
+  'subscription.graceWarning': 'Your premium access is expiring. Restore your purchase within {{days}} days to keep full access.',
+  'subscription.expiredWarning': 'Your premium access has expired. Restore your purchase to regain full access.',
+  'subscription.renewNow': 'Restore Purchase',
+  'subscription.renewOnAndroid': 'Restore via Android app',
 };
 
 jest.mock('react-i18next', () => ({
@@ -130,7 +130,7 @@ describe('SubscriptionWarningBanner', () => {
 
       render(<SubscriptionWarningBanner onRenew={jest.fn()} />);
 
-      expect(screen.getByText('Renew via Android app')).toBeInTheDocument();
+      expect(screen.getByText('Restore via Android app')).toBeInTheDocument();
     });
 
     it('shows renew button on Android', () => {
@@ -139,7 +139,7 @@ describe('SubscriptionWarningBanner', () => {
 
       render(<SubscriptionWarningBanner onRenew={onRenew} />);
 
-      const button = screen.getByText('Renew Now');
+      const button = screen.getByText('Restore Purchase');
       expect(button).toBeInTheDocument();
 
       fireEvent.click(button);
@@ -164,7 +164,7 @@ describe('SubscriptionWarningBanner', () => {
       render(<SubscriptionWarningBanner />);
 
       expect(screen.getByRole('alert')).toBeInTheDocument();
-      expect(screen.getByText('Your subscription has expired. Renew to restore cloud access.')).toBeInTheDocument();
+      expect(screen.getByText('Your premium access has expired. Restore your purchase to regain full access.')).toBeInTheDocument();
     });
 
     it('applies red styling for expired', () => {
@@ -180,7 +180,7 @@ describe('SubscriptionWarningBanner', () => {
 
       render(<SubscriptionWarningBanner onRenew={onRenew} />);
 
-      const button = screen.getByText('Renew Now');
+      const button = screen.getByText('Restore Purchase');
       expect(button.className).toContain('bg-red-600');
     });
   });
