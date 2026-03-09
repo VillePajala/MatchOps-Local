@@ -2,9 +2,7 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened]
-    # Only trigger on PR open, not on every push (synchronize).
-    # This prevents flooding the PR with duplicate reviews after each fix commit.
+    types: [opened, synchronize]  # TEMP: testing review format, revert to [opened] after
 
 jobs:
   claude-review:
