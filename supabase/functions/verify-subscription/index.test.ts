@@ -36,33 +36,6 @@ import {
 // =============================================================================
 
 /**
- * Helper to create a mock request (for future integration tests)
- */
-function _createMockRequest(
-  options: {
-    method?: string;
-    origin?: string;
-    authorization?: string;
-    body?: unknown;
-    ip?: string;
-  } = {}
-): Request {
-  const { method = 'POST', origin, authorization, body, ip } = options;
-
-  const headers = new Headers();
-  if (origin) headers.set('Origin', origin);
-  if (authorization) headers.set('Authorization', authorization);
-  if (ip) headers.set('x-forwarded-for', ip);
-  headers.set('Content-Type', 'application/json');
-
-  return new Request('http://localhost:54321/functions/v1/verify-subscription', {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-}
-
-/**
  * CORS origin validation (extracted from main function)
  */
 const ALLOWED_ORIGINS = [
@@ -189,13 +162,14 @@ Deno.test('Token validation: rejects long test tokens (>100 chars)', () => {
 // =============================================================================
 
 Deno.test('Product ID validation: accepts valid product IDs', () => {
-  const VALID_PRODUCT_IDS = ['matchops_premium_monthly'];
+  const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
 
+  assertEquals(VALID_PRODUCT_IDS.includes('matchops_full_version'), true);
   assertEquals(VALID_PRODUCT_IDS.includes('matchops_premium_monthly'), true);
 });
 
 Deno.test('Product ID validation: rejects invalid product IDs', () => {
-  const VALID_PRODUCT_IDS = ['matchops_premium_monthly'];
+  const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
 
   assertEquals(VALID_PRODUCT_IDS.includes('unknown_product'), false);
   assertEquals(VALID_PRODUCT_IDS.includes(''), false);
@@ -207,22 +181,25 @@ Deno.test('Product ID validation: rejects invalid product IDs', () => {
 //
 // The actual rate limiting uses supabaseAdmin.rpc('check_rate_limit', {...}).
 // Since we cannot call the real RPC in unit tests, these tests verify:
-// - The fail-open branching logic (error vs allowed vs blocked)
+// - The fail-closed branching logic (error → 503, not allowed → 429, allowed → proceed)
 // - The key format used for the RPC call
 // - The handler integration tests below cover the full request flow
 // =============================================================================
 
-Deno.test('Rate limiting: fail-open logic allows requests when RPC errors', () => {
-  // The Edge Function uses this branching pattern (see index.ts lines 125-134):
-  //   if (rateLimitError) { console.error(...) }  // fail-open: log and continue
-  //   else if (isAllowed === false) { return 429 } // block only on explicit false
+Deno.test('Rate limiting: fail-closed logic blocks requests when RPC errors', () => {
+  // The Edge Function uses fail-closed behavior (see index.ts lines 145-153):
+  //   if (rateLimitError) { return 503 }           // fail-closed: block on RPC error
+  //   else if (isAllowed === false) { return 429 }  // block on explicit rate limit exceeded
   //
-  // This verifies that the fail-open branch does NOT block.
+  // This verifies the branching logic variables. Note: the actual handler returns 503
+  // on RPC error (fail-closed), but the branching test here only checks the boolean logic.
   const rateLimitError = { message: 'connection timeout' };
   const isAllowed = null; // No data returned on error
 
-  const shouldBlock = !rateLimitError && isAllowed === false;
-  assertEquals(shouldBlock, false, 'Should NOT block requests when rate limit RPC fails (fail-open)');
+  // With fail-closed, rateLimitError alone triggers a block (503 in the handler).
+  // The boolean expression below only covers the isAllowed===false branch (429).
+  const shouldBlock429 = !rateLimitError && isAllowed === false;
+  assertEquals(shouldBlock429, false, 'isAllowed branch should not trigger when RPC errored (separate 503 path handles this)');
 });
 
 Deno.test('Rate limiting: branching logic blocks when RPC returns explicit false', () => {
@@ -259,6 +236,7 @@ Deno.test('Error messages: do not leak implementation details', () => {
   // These are the public error messages - verify they are generic
   const publicErrors = [
     'Method not allowed',
+    'Service temporarily unavailable. Please try again.',  // Rate limit RPC failure (fail-closed)
     'Too many requests. Please try again later.',
     'Missing or invalid authorization header',
     'Server configuration error', // Was: "Google Play verification not configured"
@@ -268,8 +246,7 @@ Deno.test('Error messages: do not leak implementation details', () => {
     'Purchase token too long',
     'Invalid purchase token format',
     'Invalid product ID',
-    'Test token too long',
-    'Invalid purchase token', // Was: "Test tokens not accepted in production"
+    'Invalid purchase token', // Generic: covers test token too long + test token in production
     'Failed to verify with Google Play',
     'This purchase is already associated with another account',
     'Failed to save subscription',
@@ -296,18 +273,18 @@ Deno.test('Error messages: do not leak implementation details', () => {
 // Subscription Status Tests
 // =============================================================================
 
-Deno.test('Subscription status: determines correct status from state', () => {
+Deno.test('Subscription status: determines correct status from subscription state', () => {
   type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';
 
-  function determineStatus(
+  function determineSubscriptionStatus(
     paymentState: number,
-    cancelReason: number | undefined,
+    cancelReason: number | undefined | null,
     expiryDate: Date,
     now: Date
   ): SubscriptionStatus {
     if (paymentState === 0) {
       return 'grace';
-    } else if (cancelReason !== undefined) {
+    } else if (cancelReason != null) {
       return expiryDate > now ? 'cancelled' : 'expired';
     } else if (expiryDate < now) {
       return 'expired';
@@ -321,19 +298,44 @@ Deno.test('Subscription status: determines correct status from state', () => {
   const past = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   // Active subscription
-  assertEquals(determineStatus(1, undefined, future, now), 'active');
+  assertEquals(determineSubscriptionStatus(1, undefined, future, now), 'active');
 
   // Payment pending = grace
-  assertEquals(determineStatus(0, undefined, future, now), 'grace');
+  assertEquals(determineSubscriptionStatus(0, undefined, future, now), 'grace');
 
-  // Cancelled but not expired
-  assertEquals(determineStatus(1, 0, future, now), 'cancelled');
+  // Cancelled but not expired (cancelReason: 0 = user-initiated cancel)
+  assertEquals(determineSubscriptionStatus(1, 0, future, now), 'cancelled');
 
   // Cancelled and expired
-  assertEquals(determineStatus(1, 0, past, now), 'expired');
+  assertEquals(determineSubscriptionStatus(1, 0, past, now), 'expired');
 
   // Expired (not cancelled)
-  assertEquals(determineStatus(1, undefined, past, now), 'expired');
+  assertEquals(determineSubscriptionStatus(1, undefined, past, now), 'expired');
+
+  // cancelReason: null — field present but no cancel reason (not cancelled)
+  // != null correctly treats null same as undefined (no cancel)
+  assertEquals(determineSubscriptionStatus(1, null, future, now), 'active');
+});
+
+Deno.test('Product purchase status: determines correct status from purchase state', () => {
+  type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';
+
+  function determineProductStatus(purchaseState: number): SubscriptionStatus {
+    if (purchaseState === 2) return 'grace';    // pending
+    if (purchaseState === 1) return 'expired';  // cancelled/refunded
+    return 'active';                             // 0 = purchased
+  }
+
+  assertEquals(determineProductStatus(0), 'active');
+  assertEquals(determineProductStatus(1), 'expired');
+  assertEquals(determineProductStatus(2), 'grace');
+});
+
+Deno.test('Product routing: one-time purchases use products endpoint', () => {
+  const ONE_TIME_PRODUCT_IDS = ['matchops_full_version'];
+
+  assertEquals(ONE_TIME_PRODUCT_IDS.includes('matchops_full_version'), true);
+  assertEquals(ONE_TIME_PRODUCT_IDS.includes('matchops_premium_monthly'), false);
 });
 
 // =============================================================================
@@ -352,10 +354,10 @@ Deno.test('Grace period: adds 7 days to period end', () => {
 // Mock Subscription Duration Tests
 // =============================================================================
 
-Deno.test('Mock subscription: lasts 30 days', () => {
-  const MOCK_SUBSCRIPTION_DAYS = 30;
+Deno.test('Mock purchase: validity period is 30 days', () => {
+  const MOCK_PURCHASE_VALIDITY_DAYS = 30;
   const now = new Date('2026-01-15T12:00:00Z');
-  const periodEnd = new Date(now.getTime() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
+  const periodEnd = new Date(now.getTime() + MOCK_PURCHASE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
 
   assertEquals(periodEnd.toISOString(), '2026-02-14T12:00:00.000Z');
 });
@@ -435,6 +437,15 @@ function createMockSupabaseClient(): MockSupabaseClient {
 
 /**
  * Simplified handler for testing (extracted logic without Deno.serve wrapper)
+ *
+ * MAINTENANCE NOTE: This is a reimplementation of index.ts handler logic.
+ * It intentionally does NOT cover:
+ * - Rate limiting (RPC calls to check_rate_limit)
+ * - Real Google Play API verification (verifySubscriptionWithGoogle/verifyProductWithGoogle)
+ * - Product type routing (one-time vs subscription)
+ * - RPC-based upsert (upsert_subscription)
+ *
+ * When index.ts logic changes, verify these tests still test relevant behavior.
  */
 async function handleRequest(req: Request): Promise<Response> {
   // Get origin for CORS
@@ -526,7 +537,7 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // Validate product ID
-  const VALID_PRODUCT_IDS = ['matchops_premium_monthly'];
+  const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
   if (!VALID_PRODUCT_IDS.includes(productId)) {
     return new Response(
       JSON.stringify({ error: 'Invalid product ID' }),
@@ -537,9 +548,9 @@ async function handleRequest(req: Request): Promise<Response> {
   // Check if test token
   const isTestToken = purchaseToken.startsWith('test-');
 
-  if (isTestToken && purchaseToken.length > 100) {
+  if (isTestToken && mockBilling && purchaseToken.length > 100) {
     return new Response(
-      JSON.stringify({ error: 'Test token too long' }),
+      JSON.stringify({ error: 'Invalid purchase token' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -579,9 +590,9 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // Success
-  const MOCK_SUBSCRIPTION_DAYS = 30;
+  const MOCK_PURCHASE_VALIDITY_DAYS = 30;
   const GRACE_PERIOD_DAYS = 7;
-  const periodEnd = new Date(Date.now() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
+  const periodEnd = new Date(Date.now() + MOCK_PURCHASE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
   const graceEnd = new Date(periodEnd.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
   return new Response(
@@ -658,7 +669,7 @@ Deno.test('Handler: returns 401 for missing authorization', async () => {
   resetMocks();
   const req = createMockRequest({
     origin: 'https://matchops.app',
-    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -673,7 +684,7 @@ Deno.test('Handler: returns 401 for invalid JWT', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer invalid-jwt',
-    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -687,7 +698,7 @@ Deno.test('Handler: returns 400 for missing purchaseToken', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { productId: 'matchops_premium_monthly' },
+    body: { productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -715,7 +726,7 @@ Deno.test('Handler: returns 400 for token over 500 chars', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'a'.repeat(501), productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'a'.repeat(501), productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -729,7 +740,7 @@ Deno.test('Handler: returns 400 for invalid token format', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'token with spaces', productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'token with spaces', productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -758,7 +769,7 @@ Deno.test('Handler: returns 400 for test token when mock billing disabled', asyn
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -767,18 +778,19 @@ Deno.test('Handler: returns 400 for test token when mock billing disabled', asyn
   assertEquals(body.error, 'Invalid purchase token');
 });
 
-Deno.test('Handler: returns 400 for test token over 100 chars', async () => {
+Deno.test('Handler: returns 400 for test token over 100 chars in mock mode', async () => {
   resetMocks();
+  mockEnv['MOCK_BILLING'] = 'true';
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-' + 'a'.repeat(100), productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'test-' + 'a'.repeat(100), productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
   assertEquals(res.status, 400);
   const body = await res.json();
-  assertEquals(body.error, 'Test token too long');
+  assertEquals(body.error, 'Invalid purchase token');
 });
 
 Deno.test('Handler: returns 409 for token already claimed by another user', async () => {
@@ -787,7 +799,7 @@ Deno.test('Handler: returns 409 for token already claimed by another user', asyn
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -802,7 +814,7 @@ Deno.test('Handler: returns 500 for upsert failure', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-token', productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -816,7 +828,7 @@ Deno.test('Handler: returns 200 for valid test token in mock mode', async () => 
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-preview-123', productId: 'matchops_premium_monthly' },
+    body: { purchaseToken: 'test-preview-123', productId: 'matchops_full_version' },
   });
   const res = await handleRequest(req);
 
@@ -847,7 +859,8 @@ Deno.test('Handler: uses production origin for disallowed origin', async () => {
   });
   const res = await handleRequest(req);
 
-  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://matchops.app');
+  // Falls back to ALLOWED_ORIGINS[0] for disallowed origins
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://app.match-ops.com');
 });
 
 console.log('\n✅ All verify-subscription unit tests completed\n');

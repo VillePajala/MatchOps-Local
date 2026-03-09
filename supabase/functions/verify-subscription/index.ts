@@ -1,7 +1,10 @@
 /**
- * Verify Subscription Edge Function
+ * Verify Purchase Edge Function
  *
- * Verifies Google Play subscription purchases and stores subscription status in Supabase.
+ * Verifies Google Play purchases and stores purchase status in Supabase.
+ * Routes to the correct Google API based on product type:
+ * - One-time products (matchops_full_version): .../purchases/products/... endpoint
+ * - Subscriptions (matchops_premium_monthly): .../purchases/subscriptions/... endpoint
  *
  * Security Model:
  * 1. Client sends JWT + purchase token
@@ -33,11 +36,19 @@ const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
 
 // Google Play package and product configuration
 const GOOGLE_PLAY_PACKAGE = 'com.matchops.local';
-const VALID_PRODUCT_IDS = ['matchops_premium_monthly'];
+// Backward compat: accept legacy 'matchops_premium_monthly' for users who purchased
+// before the switch to one-time purchase model. New purchases use 'matchops_full_version'.
+const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
 
-// Subscription timing constants
-const MOCK_SUBSCRIPTION_DAYS = 30;
+// Timing constants
+// Mock purchase validity period (used in mock/test mode only, not for real purchases)
+const MOCK_PURCHASE_VALIDITY_DAYS = 30;
 const GRACE_PERIOD_DAYS = 7;
+// One-time purchases never expire — use 100 years as "permanent"
+const ONE_TIME_PURCHASE_YEARS = 100;
+
+// Product type routing: which product IDs are one-time purchases vs subscriptions
+const ONE_TIME_PRODUCT_IDS = ['matchops_full_version'];
 
 // Subscription status type (matches database enum)
 type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';
@@ -47,12 +58,21 @@ interface VerifyRequest {
   productId: string;
 }
 
+// Google Play Subscriptions API response
 interface GoogleSubscription {
   expiryTimeMillis: string;
   paymentState: number; // 0=pending, 1=received, 2=free trial, 3=deferred
   acknowledgementState: number; // 0=not acknowledged, 1=acknowledged
   autoRenewing: boolean;
   cancelReason?: number;
+}
+
+// Google Play Products (one-time purchases) API response
+interface GoogleProductPurchase {
+  purchaseState: number; // 0=purchased, 1=cancelled, 2=pending
+  consumptionState: number; // 0=not consumed, 1=consumed
+  purchaseTimeMillis: string;
+  acknowledgementState: number; // 0=not acknowledged, 1=acknowledged
 }
 
 Deno.serve(async (req: Request) => {
@@ -183,6 +203,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Google Play tokens use URL-safe base64 (A-Za-z0-9, -, _, .)
+    // Standard base64 padding (=) and + are not expected; if Google changes
+    // token format, this regex should be updated.
     if (!/^[a-zA-Z0-9._-]+$/.test(purchaseToken)) {
       return new Response(
         JSON.stringify({ error: 'Invalid purchase token format' }),
@@ -199,25 +222,24 @@ Deno.serve(async (req: Request) => {
     }
 
     let status: SubscriptionStatus = 'active';
-    let periodEnd: Date;
+    let periodEnd: Date = new Date();  // Initialized to satisfy control-flow; all branches reassign
     let orderId: string | undefined;
 
     // Check if this is a mock/test token
     const isTestToken = purchaseToken.startsWith('test-');
 
-    // Test tokens should be short (e.g., "test-preview-1234567890")
-    // Reject overly long test tokens as potential abuse
-    if (isTestToken && purchaseToken.length > 100) {
-      return new Response(
-        JSON.stringify({ error: 'Test token too long' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     if (isTestToken && mockBilling) {
+      // Test tokens should be short (e.g., "test-preview-1234567890")
+      // Reject overly long test tokens as potential abuse
+      if (purchaseToken.length > 100) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid purchase token' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       // Mock mode: Accept test tokens
       console.log(`Mock mode: accepting test token for user ${userId}`);
-      periodEnd = new Date(Date.now() + MOCK_SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
+      periodEnd = new Date(Date.now() + MOCK_PURCHASE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
       orderId = `mock-order-${Date.now()}`;
     } else if (isTestToken && !mockBilling) {
       // Test token in production mode - reject with generic error to avoid leaking test mode existence
@@ -236,37 +258,72 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const isOneTimePurchase = ONE_TIME_PRODUCT_IDS.includes(productId);
+
       try {
-        const googleSubscription = await verifyWithGoogle(
-          purchaseToken,
-          productId,
-          googleServiceAccount
-        );
-
-        if (!googleSubscription) {
-          return new Response(
-            JSON.stringify({ error: 'Invalid purchase token' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        if (isOneTimePurchase) {
+          // One-time purchase: verify via products endpoint
+          const productPurchase = await verifyProductWithGoogle(
+            purchaseToken,
+            productId,
+            googleServiceAccount
           );
-        }
 
-        // Calculate period end from Google response
-        periodEnd = new Date(parseInt(googleSubscription.expiryTimeMillis));
+          if (!productPurchase) {
+            return new Response(
+              JSON.stringify({ error: 'Invalid purchase token' }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
 
-        // Determine status based on Google subscription state
-        if (googleSubscription.paymentState === 0) {
-          // Payment pending
-          status = 'grace';
-        } else if (googleSubscription.cancelReason !== undefined) {
-          // User cancelled but period not ended
-          status = periodEnd > new Date() ? 'cancelled' : 'expired';
-        } else if (periodEnd < new Date()) {
-          status = 'expired';
+          // Determine status from product purchase state
+          if (productPurchase.purchaseState === 2) {
+            // Payment pending
+            status = 'grace';
+          } else if (productPurchase.purchaseState === 1) {
+            // Cancelled/refunded
+            status = 'expired';
+          } else {
+            // purchaseState === 0: purchased successfully
+            status = 'active';
+          }
+
+          // One-time purchases don't expire — set far-future period end
+          periodEnd = new Date(Date.now() + ONE_TIME_PURCHASE_YEARS * 365 * 24 * 60 * 60 * 1000);
+          console.log(`Google product verification successful. Status: ${status}`);
         } else {
-          status = 'active';
-        }
+          // Subscription: verify via subscriptions endpoint
+          const googleSubscription = await verifySubscriptionWithGoogle(
+            purchaseToken,
+            productId,
+            googleServiceAccount
+          );
 
-        console.log(`Google verification successful. Status: ${status}, Expires: ${periodEnd.toISOString()}`);
+          if (!googleSubscription) {
+            return new Response(
+              JSON.stringify({ error: 'Invalid purchase token' }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          // Calculate period end from Google response
+          periodEnd = new Date(parseInt(googleSubscription.expiryTimeMillis));
+
+          // Determine status based on Google subscription state
+          if (googleSubscription.paymentState === 0) {
+            // Payment pending
+            status = 'grace';
+          } else if (googleSubscription.cancelReason != null) {
+            // User cancelled but period not ended
+            status = periodEnd > new Date() ? 'cancelled' : 'expired';
+          } else if (periodEnd < new Date()) {
+            status = 'expired';
+          } else {
+            status = 'active';
+          }
+
+          console.log(`Google subscription verification successful. Status: ${status}, Expires: ${periodEnd.toISOString()}`);
+        }
       } catch (error) {
         console.error('Google Play verification failed:', error);
         return new Response(
@@ -276,12 +333,16 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Calculate grace period end (after subscription expires)
+    // Calculate grace period end (after subscription/purchase expires)
+    // For one-time purchases, periodEnd is ~100 years out, so graceEnd is cosmetic.
+    // The column is still populated for schema consistency across purchase types.
     const graceEnd = new Date(periodEnd.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
     const now = new Date().toISOString();
 
-    // Idempotency check: Verify this purchase token isn't already claimed by another user
-    // This prevents token reuse attacks where an attacker tries to use someone else's token
+    // Cross-user token theft check: Verify this purchase token isn't claimed by a different user.
+    // Same-user re-calls are allowed (idempotent upsert below). For refunded tokens,
+    // Google's API returns purchaseState=1 (cancelled) which maps to status='expired',
+    // so the upsert would set status to 'expired' — no re-grant of active premium.
     const { data: existingSubscription } = await supabaseAdmin
       .from('subscriptions')
       .select('user_id')
@@ -342,38 +403,32 @@ Deno.serve(async (req: Request) => {
 });
 
 /**
- * Verify subscription with Google Play Developer API
+ * Verify a one-time product purchase with Google Play Developer API
+ * Uses: .../purchases/products/{productId}/tokens/{token}
  */
-async function verifyWithGoogle(
+async function verifyProductWithGoogle(
   purchaseToken: string,
   productId: string,
   serviceAccountJson: string
-): Promise<GoogleSubscription | null> {
+): Promise<GoogleProductPurchase | null> {
   try {
     const credentials = JSON.parse(serviceAccountJson);
-
-    // Get access token via service account JWT
     const accessToken = await getGoogleAccessToken(credentials);
 
-    // Call Google Play Developer API
-    // URL-encode the purchase token to handle any special characters safely
-    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
+    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
 
-    // Use AbortController for timeout (15 seconds) to prevent hanging
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
       const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
+        headers: { 'Authorization': `Bearer ${accessToken}` },
         signal: controller.signal,
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Google API error:', response.status, errorText);
+        console.error('Google Products API error:', response.status, errorText);
         return null;
       }
 
@@ -382,7 +437,47 @@ async function verifyWithGoogle(
       clearTimeout(timeoutId);
     }
   } catch (error) {
-    console.error('Error verifying with Google:', error);
+    console.error('Error verifying product with Google:', error);
+    throw error;
+  }
+}
+
+/**
+ * Verify a subscription purchase with Google Play Developer API
+ * Uses: .../purchases/subscriptions/{subscriptionId}/tokens/{token}
+ */
+async function verifySubscriptionWithGoogle(
+  purchaseToken: string,
+  productId: string,
+  serviceAccountJson: string
+): Promise<GoogleSubscription | null> {
+  try {
+    const credentials = JSON.parse(serviceAccountJson);
+    const accessToken = await getGoogleAccessToken(credentials);
+
+    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Google Subscriptions API error:', response.status, errorText);
+        return null;
+      }
+
+      return await response.json();
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  } catch (error) {
+    console.error('Error verifying subscription with Google:', error);
     throw error;
   }
 }

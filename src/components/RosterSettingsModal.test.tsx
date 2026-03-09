@@ -14,8 +14,7 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
-// Mock usePremium to enable limit testing
-// Default mock allows all operations (checkAndPrompt returns true)
+// Mock usePremium (players are unlimited - no limit checks)
 jest.mock('@/hooks/usePremium', () => ({
   usePremium: () => ({
     isPremium: false,
@@ -23,13 +22,13 @@ jest.mock('@/hooks/usePremium', () => ({
     hasLimits: true,
     grantPremiumAccess: jest.fn(),
     revokePremiumAccess: jest.fn(),
-    PREMIUM_PRICE: '€ 4,99/kk',
+    PREMIUM_PRICE: '4,99 €',
   }),
   useResourceLimit: () => ({
     canAdd: true,
-    remaining: 10,
-    limit: 18,
-    current: 2,
+    remaining: Infinity,
+    limit: Infinity,
+    current: 0,
     checkAndPrompt: jest.fn().mockReturnValue(true),
   }),
 }));
@@ -441,73 +440,17 @@ describe('RosterSettingsModal - Sorting', () => {
 });
 
 /**
- * Premium limit enforcement tests
- * @critical - Tests that free users are blocked when hitting player limit
+ * Player creation tests (players are unlimited - no premium limits)
  */
-describe('RosterSettingsModal - Premium Limit Enforcement', () => {
-  let mockCheckAndPrompt: jest.Mock;
-
+describe('RosterSettingsModal - Player Creation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCheckAndPrompt = jest.fn();
   });
 
   /**
-   * Tests player creation blocked when limit reached
-   * @critical - Monetization: free users cannot exceed 18 player limit
+   * Tests player creation works without limit checks
    */
-  test('blocks player creation when free limit is reached', async () => {
-    mockCheckAndPrompt.mockReturnValue(false);
-
-    // Re-mock usePremium for this specific test
-    const usePremiumModule = require('@/hooks/usePremium');
-    const originalUseResourceLimit = usePremiumModule.useResourceLimit;
-
-    usePremiumModule.useResourceLimit = jest.fn(() => ({
-      canAdd: false,
-      remaining: 0,
-      limit: 18,
-      current: 18,
-      checkAndPrompt: mockCheckAndPrompt,
-    }));
-
-    // Create 18 players to hit the limit
-    const playersAtLimit: Player[] = Array.from({ length: 18 }, (_, i) => ({
-      id: `p${i + 1}`,
-      name: `Player ${i + 1}`,
-      nickname: `P${i + 1}`,
-      jerseyNumber: `${i + 1}`,
-      notes: '',
-    }));
-
-    render(
-      <TestWrapper>
-        <RosterSettingsModal {...defaultProps} availablePlayers={playersAtLimit} />
-      </TestWrapper>
-    );
-
-    // The Add Player button should still be visible
-    const addButton = screen.getByRole('button', { name: /Add Player/i });
-    expect(addButton).toBeInTheDocument();
-
-    // Click the button
-    fireEvent.click(addButton);
-
-    // checkAndPrompt should have been called
-    expect(mockCheckAndPrompt).toHaveBeenCalled();
-
-    // Modal should NOT open (no player name input visible)
-    expect(screen.queryByPlaceholderText(/Enter player name/i)).not.toBeInTheDocument();
-
-    // Restore original mock
-    usePremiumModule.useResourceLimit = originalUseResourceLimit;
-  });
-
-  /**
-   * Tests player creation allowed when under limit
-   */
-  test('allows player creation when under limit', async () => {
-    // With only 2 players, we're well under the 18 player limit
+  test('allows player creation', async () => {
     render(
       <TestWrapper>
         <RosterSettingsModal {...defaultProps} availablePlayers={mockPlayers} />

@@ -4,18 +4,17 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
-import { ResourceType, PREMIUM_PRICE, PREMIUM_IS_SUBSCRIPTION, getLimit } from '@/config/premiumLimits';
+import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
+import { VERCEL_PREVIEW_PATTERN } from '@/config/constants';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { usePlayBilling, grantMockSubscription } from '@/hooks/usePlayBilling';
+import { usePlayBilling, grantMockPurchase } from '@/hooks/usePlayBilling';
 import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthProvider';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 import { isAndroid } from '@/utils/platform';
-
-export type UpgradePromptVariant = 'resourceLimit' | 'cloudUpgrade';
 
 export interface UpgradePromptModalProps {
   isOpen: boolean;
@@ -24,9 +23,7 @@ export interface UpgradePromptModalProps {
   resource?: ResourceType;
   /** Current count of the resource (for display) */
   currentCount?: number;
-  /** Variant determines UI content: 'resourceLimit' for hitting limits, 'cloudUpgrade' for enabling cloud */
-  variant?: UpgradePromptVariant;
-  /** Callback after successful upgrade (used by cloudUpgrade variant to continue action) */
+  /** Callback after successful upgrade */
   onUpgradeSuccess?: () => void;
 }
 
@@ -44,7 +41,6 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   onClose,
   resource,
   currentCount,
-  variant = 'resourceLimit',
   onUpgradeSuccess,
 }) => {
   const { t } = useTranslation();
@@ -101,9 +97,9 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
   const onAndroid = isAndroid();
 
-  // Detect Vercel preview deployment (match-ops-local-*.vercel.app)
+  // Detect Vercel preview deployment
   const isVercelPreview = typeof window !== 'undefined' &&
-    /^match-ops-local(-[a-z0-9-]+)?\.vercel\.app$/.test(window.location.hostname);
+    VERCEL_PREVIEW_PATTERN.test(window.location.hostname);
 
   // Debug logging for purchase availability
   if (typeof window !== 'undefined') {
@@ -146,10 +142,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
       // Grant local premium with the restored purchase token
       await grantPremiumAccess(result.purchaseToken);
-      // Clear subscription cache to ensure fresh data on next check
-      if (user) {
-        await clearSubscriptionCache(user.id);
-      }
+      // Note: restore() already clears subscription cache internally
       showToast(t('playBilling.restoreSuccess', 'Purchases restored successfully!'), 'success');
       onClose();
       onUpgradeSuccess?.();
@@ -178,16 +171,14 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
       if (isVercelPreview || isInternalTesting) {
         const token = `test-${isInternalTesting ? 'internal' : 'preview'}-${Date.now()}`;
 
-        // For cloud sync, we need a database subscription record
-        // For resource limits, local premium is sufficient
-        if (variant === 'cloudUpgrade') {
-          // Call Edge Function to create subscription record in database
-          const result = await grantMockSubscription(token);
+        // Cloud users: call Edge Function to create purchase record in database
+        // Local users: skip server call — only local premium state is needed
+        if (user) {
+          const result = await grantMockPurchase(token);
           if (!result.success) {
-            // Always show the actual error message for debugging
             const errorMsg = result.error || 'Unknown error';
-            logger.error('[UpgradePromptModal] Mock subscription failed:', errorMsg);
-            showToast(t('premium.subscriptionFailed', 'Subscription failed: {{error}}', { error: errorMsg }), 'error');
+            logger.error('[UpgradePromptModal] Mock purchase failed:', errorMsg);
+            showToast(t('premium.purchaseFailed', 'Purchase failed. Please try again.'), 'error');
             return;
           }
         }
@@ -261,23 +252,12 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
             <HiSparkles className="w-6 h-6 text-amber-400" aria-hidden="true" />
           </div>
           <h3 id={titleId} className="text-lg font-semibold text-slate-100">
-            {variant === 'cloudUpgrade'
-              ? t('premium.cloudUpgradeTitle', 'Cloud Sync Requires Premium')
-              : t('premium.freeVersionLimitReached', 'Free version limit reached')}
+            {t('premium.freeVersionLimitReached', 'Free version limit reached')}
           </h3>
         </div>
 
-        {/* Cloud upgrade description (cloudUpgrade variant only) */}
-        {variant === 'cloudUpgrade' && (
-          <div className="mb-4 p-3 bg-slate-700/50 rounded-md border border-slate-600">
-            <p className="text-slate-300 text-sm">
-              {t('premium.cloudUpgradeDescription', 'Cloud sync lets you backup and access your data from any device. Upgrade to premium to unlock this feature.')}
-            </p>
-          </div>
-        )}
-
-        {/* Limit explanation - only show for resourceLimit variant */}
-        {variant === 'resourceLimit' && resource && (
+        {/* Limit explanation */}
+        {resource && (
           <div className="mb-4 p-3 bg-slate-700/50 rounded-md border border-slate-600">
             <p className="text-slate-300 text-sm">
               {t('premium.limitExplanation', {
@@ -298,16 +278,16 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           </div>
         )}
 
-        {/* What subscription offers - cloud benefits only (no resource limits in app) */}
+        {/* What full version offers */}
         <div className="mb-5">
           <p className="text-slate-200 font-medium mb-2">
-            {t('premium.subscriptionIncludes', 'Your subscription includes:')}
+            {t('premium.fullVersionIncludes', 'Full Version includes:')}
           </p>
           <ul className="space-y-1.5">
             {[
-              t('premium.cloudBenefit.sync', 'Sync across all your devices'),
-              t('premium.cloudBenefit.backup', 'Automatic cloud backup'),
-              t('premium.cloudBenefit.security', 'Secure cloud storage'),
+              t('premium.benefit.unlimitedSeasons', 'Unlimited seasons'),
+              t('premium.benefit.unlimitedTournaments', 'Unlimited tournaments'),
+              t('premium.benefit.supportDev', 'Support independent development'),
             ].map((benefit, index) => (
               <li key={index} className="flex items-center gap-2 text-sm text-slate-300">
                 <HiCheck className="w-4 h-4 text-green-400 flex-shrink-0" aria-hidden="true" />
@@ -320,18 +300,13 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         {/* Price - use Play Billing price if available, otherwise fallback */}
         <div className="mb-5 text-center">
           <div className="text-2xl font-bold text-amber-400">
-            {details?.price ? `${details.currencyCode} ${details.price}` : PREMIUM_PRICE}
+            {details?.price && details?.currencyCode
+              ? new Intl.NumberFormat('fi-FI', { style: 'currency', currency: details.currencyCode }).format(parseFloat(details.price))
+              : PREMIUM_PRICE}
           </div>
           <div className="text-slate-400 text-sm">
-            {PREMIUM_IS_SUBSCRIPTION
-              ? t('premium.monthlySubscription', 'monthly subscription')
-              : t('premium.oneTimePayment', 'one-time payment')}
+            {t('premium.oneTimePayment', 'one-time payment')}
           </div>
-          {PREMIUM_IS_SUBSCRIPTION && (
-            <div className="text-slate-500 text-xs mt-1">
-              {t('premium.cancelAnytime', 'Cancel anytime')}
-            </div>
-          )}
         </div>
 
         {/* Action Buttons */}
@@ -368,10 +343,10 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
             </>
           ) : !onAndroid ? (
             <>
-              {/* Not on Android - subscriptions require Android app */}
+              {/* Not on Android - purchases require Android app */}
               <div className="text-center py-3 px-4 bg-slate-700/50 rounded-md border border-slate-600">
                 <p className="text-slate-300 text-sm mb-2">
-                  {t('premium.androidOnly', 'Subscriptions are available on the Android app.')}
+                  {t('premium.androidOnly', 'Purchases are available on the Android app.')}
                 </p>
                 <a
                   href="https://play.google.com/store/apps/details?id=com.matchops.local"

@@ -5,7 +5,7 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { usePlayBilling, grantMockSubscription } from '../usePlayBilling';
+import { usePlayBilling, grantMockPurchase } from '../usePlayBilling';
 import * as playBilling from '@/utils/playBilling';
 
 // Mock the playBilling utilities
@@ -55,10 +55,10 @@ describe('usePlayBilling', () => {
 
     // Default mock implementations
     mockPlayBilling.isPlayBillingAvailable.mockResolvedValue(false);
-    mockPlayBilling.getSubscriptionDetails.mockResolvedValue(null);
-    mockPlayBilling.purchaseSubscription.mockResolvedValue({ success: false, error: 'Not available' });
+    mockPlayBilling.getProductDetails.mockResolvedValue(null);
+    mockPlayBilling.purchaseFullVersion.mockResolvedValue({ success: false, error: 'Not available' });
     mockPlayBilling.getExistingPurchases.mockResolvedValue([]);
-    // Note: SUBSCRIPTION_PRODUCT_ID is read-only, we just verify its value in tests
+    // Note: FULL_VERSION_PRODUCT_ID is read-only, we just verify its value in tests
   });
 
   describe('initialization', () => {
@@ -81,17 +81,17 @@ describe('usePlayBilling', () => {
     });
 
     it('sets isAvailable to true and loads details when Play Billing is available', async () => {
-      const mockDetails: playBilling.SubscriptionDetails = {
-        productId: 'matchops_premium_monthly',
+      const mockDetails: playBilling.ProductDetails = {
+        productId: 'matchops_full_version',
         title: 'MatchOps Premium',
-        description: 'Monthly subscription',
+        description: 'Unlimited seasons and tournaments',
         price: '4.99',
         priceMicros: 4990000,
         currencyCode: 'EUR',
       };
 
       mockPlayBilling.isPlayBillingAvailable.mockResolvedValue(true);
-      mockPlayBilling.getSubscriptionDetails.mockResolvedValue(mockDetails);
+      mockPlayBilling.getProductDetails.mockResolvedValue(mockDetails);
 
       const { result } = renderHook(() => usePlayBilling());
 
@@ -124,15 +124,15 @@ describe('usePlayBilling', () => {
 
     it('completes purchase flow successfully', async () => {
       mockPlayBilling.isPlayBillingAvailable.mockResolvedValue(true);
-      mockPlayBilling.getSubscriptionDetails.mockResolvedValue({
-        productId: 'matchops_premium_monthly',
+      mockPlayBilling.getProductDetails.mockResolvedValue({
+        productId: 'matchops_full_version',
         title: 'Premium',
         description: 'Monthly',
         price: '4.99',
         priceMicros: 4990000,
         currencyCode: 'EUR',
       });
-      mockPlayBilling.purchaseSubscription.mockResolvedValue({
+      mockPlayBilling.purchaseFullVersion.mockResolvedValue({
         success: true,
         purchaseToken: 'test-token-123',
       });
@@ -159,7 +159,7 @@ describe('usePlayBilling', () => {
       const purchasePromise = new Promise<playBilling.PurchaseResult>((resolve) => {
         resolvePurchase = resolve;
       });
-      mockPlayBilling.purchaseSubscription.mockReturnValue(purchasePromise);
+      mockPlayBilling.purchaseFullVersion.mockReturnValue(purchasePromise);
 
       const { result } = renderHook(() => usePlayBilling());
 
@@ -234,8 +234,8 @@ describe('usePlayBilling', () => {
 
   describe('refreshDetails', () => {
     it('refreshes product details', async () => {
-      const initialDetails: playBilling.SubscriptionDetails = {
-        productId: 'matchops_premium_monthly',
+      const initialDetails: playBilling.ProductDetails = {
+        productId: 'matchops_full_version',
         title: 'Premium',
         description: 'Monthly',
         price: '4.99',
@@ -243,14 +243,14 @@ describe('usePlayBilling', () => {
         currencyCode: 'EUR',
       };
 
-      const updatedDetails: playBilling.SubscriptionDetails = {
+      const updatedDetails: playBilling.ProductDetails = {
         ...initialDetails,
         price: '5.99',
         priceMicros: 5990000,
       };
 
       mockPlayBilling.isPlayBillingAvailable.mockResolvedValue(true);
-      mockPlayBilling.getSubscriptionDetails
+      mockPlayBilling.getProductDetails
         .mockResolvedValueOnce(initialDetails)
         .mockResolvedValueOnce(updatedDetails);
 
@@ -271,7 +271,7 @@ describe('usePlayBilling', () => {
   });
 });
 
-describe('grantMockSubscription', () => {
+describe('grantMockPurchase', () => {
   beforeEach(() => {
     process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
   });
@@ -280,7 +280,7 @@ describe('grantMockSubscription', () => {
   });
 
   it('calls verify-subscription Edge Function with test token', async () => {
-    const result = await grantMockSubscription('test-token-123');
+    const result = await grantMockPurchase('test-token-123');
 
     expect(result.success).toBe(true);
   });
@@ -306,7 +306,7 @@ describe('grantMockSubscription', () => {
       },
     });
 
-    const result = await grantMockSubscription('test-token-456');
+    const result = await grantMockPurchase('test-token-456');
 
     expect(result).toEqual({ success: false, error: 'Server error' });
   });

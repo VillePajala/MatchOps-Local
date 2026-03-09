@@ -102,7 +102,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
     );
   }
 
-  // Cloud mode without subscription: show paused state (subscription required)
+  // Cloud mode without active subscription: show paused state
   // Don't show confusing pending/error counts when sync is effectively disabled
   if (!subscriptionLoading && !hasSubscription) {
     const pausedContainerClass = isField
@@ -114,8 +114,8 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
         type="button"
         onClick={handleClick}
         className={pausedContainerClass}
-        title={t('syncStatus.pausedTitle', 'Sync paused - subscription required')}
-        aria-label={t('syncStatus.pausedTitle', 'Sync paused - subscription required')}
+        title={t('syncStatus.pausedTitle', 'Sync paused')}
+        aria-label={t('syncStatus.pausedTitle', 'Sync paused')}
       >
         <HiOutlinePause className={`${iconClass} text-amber-400`} />
       </button>

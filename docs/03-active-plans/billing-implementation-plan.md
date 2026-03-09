@@ -1,2107 +1,863 @@
 # Billing Implementation Plan
 
-**Status:** In Progress (Phases 1-7 Complete, Local-First Sync Complete)
-**Last Updated:** January 26, 2026
-**Consolidates Issues:** #171, #258, #291, #292, #293, #299, #300, #301
+**Status:** Revised (March 2026 -- model changed from subscription to one-time purchase)
+**Last Updated:** March 2026
+**Supersedes:** January 2026 subscription-based plan
+**Monetization Strategy:** See `docs/07-business/monetization-strategies.md`
 
 ---
 
 ## Executive Summary
 
-This document consolidates all billing-related work into a single implementation plan. The goal is to enable Google Play Billing for premium subscriptions while ensuring:
+MatchOps uses a **generous freemium model** with a **one-time purchase** to unlock unlimited competitions. Account creation is free. Cloud sync is free. The purchase gates the ability to create more than 3 seasons or 3 tournaments.
 
-1. **Account creation is tied to subscription** (no free cloud accounts)
-2. **Subscription status lives in Supabase** (not just local IndexedDB)
-3. **Cross-device sync works** (subscribe on one device, use on all)
-4. **Non-Android platforms handled gracefully** (sign-in only, no purchase)
-5. **Each phase is independently testable**
+### Model Overview
+
+| Resource | Free | Full Version (~4.99 EUR one-time) |
+|----------|------|----------------------------------|
+| Teams | Unlimited | -- |
+| Players | Unlimited | -- |
+| Games | Unlimited | -- |
+| Seasons | 3 | Unlimited |
+| Tournaments | 3 | Unlimited |
+| Features | All | -- |
+| Cloud Sync | Included | -- |
+
+### Key Principle: No Surprises
+
+Users must know about the free tier limits BEFORE they hit them. Limits are communicated:
+1. **Play Store listing** -- app description mentions "3 free competitions"
+2. **In-app indicators** -- competition list shows "2 of 3 free seasons used"
+3. **Approaching limit** -- gentle reminder when creating competition #3: "This is your last free season"
+4. **At limit** -- clear upgrade prompt when creating competition #4
+5. **Settings page** -- tier status and usage always visible
+
+The user should NEVER be surprised by the upgrade prompt. By competition #4, they've seen the limit communicated at least 2-3 times.
 
 ---
 
-## Current State (Problems)
+## What's Already Built
 
-| Component | Current | Problem |
-|-----------|---------|---------|
-| Account creation | `signUp()` works without payment | Users can create cloud accounts for free |
-| Premium storage | Local IndexedDB only | Doesn't sync across devices |
-| Platform detection | None | Desktop users see payment UI that won't work |
-| Server verification | None | Easy to spoof premium status |
-| Cross-device | Broken | New device = appears non-premium |
+### Infrastructure (Reusable)
+
+| Component | File | Status | Changes Needed |
+|-----------|------|--------|---------------|
+| Premium limits config | `src/config/premiumLimits.ts` | Exists | Update limits to 3 seasons + 3 tournaments only; update product ID to `matchops_full_version`; set `PREMIUM_IS_SUBSCRIPTION = false` |
+| Premium manager | `src/utils/premiumManager.ts` | Exists (disabled) | Re-enable `canCreateResource`/`getRemainingCount` for seasons + tournaments only |
+| Premium context | `src/contexts/PremiumContext.tsx` | Exists (disabled) | Re-enable enforcement logic (currently hard-coded `isPremium: true`) |
+| Upgrade prompt modal | `src/components/UpgradePromptModal.tsx` | Exists | Update copy from subscription to one-time purchase |
+| Upgrade prompt manager | `src/components/UpgradePromptManager.tsx` | Exists | Already wired via ClientWrapper -- no changes needed |
+| Resource limit hook | `src/hooks/usePremium.ts` | Exists | Add "approaching limit" warning (remaining === 1); currently only has hard block |
+| Enforcement flag | `src/config/constants.ts` | Exists | `PREMIUM_ENFORCEMENT_ENABLED` -- flip to true in Phase 7 |
+| Platform detection | `src/utils/platform.ts` | Exists | `isPlayStoreContext()`, `isDigitalGoodsAvailable()` -- no changes needed |
+| Play Billing utils | `src/utils/playBilling.ts` | Exists | Update product ID from `matchops_premium_monthly` to `matchops_full_version`; change `purchaseSubscription()` to `purchaseFullVersion()` for one-time flow |
+| Play Billing hook | `src/hooks/usePlayBilling.ts` | Exists | Update `purchase()` for one-time flow; update `restore()` to pass purchase type |
+| Subscriptions table | `supabase/migrations/010_subscriptions.sql` | Exists | No schema change needed -- use `status = 'active'` with `period_end = NULL` for permanent purchase |
+| Subscription RPC | `get_subscription_status()` in `010_subscriptions.sql` | Exists | No change needed -- already returns `is_active = true` for `status = 'active'` regardless of `period_end` |
+| Verify Edge Function | `supabase/functions/verify-subscription/` | Exists | Significant update: add `purchaseType` param, branch verification logic, use Google `purchases/products` endpoint for one-time |
+| Subscription context | `src/contexts/SubscriptionContext.tsx` | Exists (disabled) | See "SubscriptionContext Decision" below |
+| Season/tournament management | `src/components/SeasonTournamentManagementModal.tsx` | Exists | Already has `useResourceLimit` checks on Add buttons (lines 48-49); needs limit visibility indicators |
+| i18n keys | `public/locales/{en,fi}/common.json` | Exists | Update limit text (old: "1 season / 1 tournament", new: "3 seasons / 3 tournaments"); remove team/player/game limit text |
+| ClientWrapper | `src/components/ClientWrapper.tsx` | Exists | Already wraps PremiumProvider > UpgradePromptManager > children -- no changes needed |
+
+### Infrastructure NOT Needed Anymore
+
+| Component | Old Purpose | Why Not Needed |
+|-----------|-------------|---------------|
+| Account-gated-to-subscription | Required payment before account creation | Accounts are now free |
+| Monthly subscription logic | Recurring billing cycle | One-time purchase, no renewal |
+| Grace period handling | Payment failure recovery | No recurring payments |
+| Subscription expiry checking | Period end enforcement | Purchase is permanent |
+
+### SubscriptionContext Decision
+
+**Problem:** Two overlapping contexts exist:
+- **PremiumContext** -- resource limits (seasons/tournaments)
+- **SubscriptionContext** -- cloud sync eligibility
+
+**Old model:** SubscriptionContext gated cloud sync access (subscription required).
+**New model:** Cloud sync is free for everyone.
+
+**Decision:** Keep SubscriptionContext but simplify:
+- Cloud sync remains free -- `isSubscriptionActive()` always returns `true` (already does this)
+- SubscriptionContext fetches `get_subscription_status()` RPC on sign-in -- this is the cross-device premium detection mechanism
+- This avoids merging two contexts (risky refactor)
+
+**Cross-device premium detection:**
+
+The bridge between SubscriptionContext and PremiumContext must be a **hook** in a component that renders inside BOTH providers. It cannot live in SubscriptionContext.tsx because SubscriptionProvider is a parent of PremiumProvider in the component tree:
+
+```
+layout.tsx: QueryProvider > AuthProvider > SubscriptionProvider > ClientWrapper
+ClientWrapper.tsx: ToastProvider > PremiumProvider > UpgradePromptManager > children
+```
+
+**Implementation: `usePremiumSubscriptionBridge` hook**
+
+Place in a component inside ClientWrapper (e.g., UpgradePromptManager or a new bridge component):
+
+```typescript
+function usePremiumSubscriptionBridge() {
+  const { status } = useSubscription();       // from SubscriptionContext
+  const { isPremium, grantPremiumAccess } = usePremiumContext();
+  const hasGrantedRef = useRef(false);
+
+  useEffect(() => {
+    // Bridge: when Supabase says user has an active purchase,
+    // grant premium locally (cross-device detection).
+    // Check raw status, NOT isActive (which is always true for free cloud sync).
+    // status === 'active' means user has a real purchase record in the DB.
+    // status === 'none' means no purchase.
+    if (status === 'active' && !isPremium && !hasGrantedRef.current) {
+      hasGrantedRef.current = true;
+      grantPremiumAccess();
+    }
+  }, [status, isPremium, grantPremiumAccess]);
+}
+```
+
+**Key detail:** The bridge checks the **raw `status` field** (not `isActive`), because `isActive` is hardcoded to `true` for all users (cloud sync is free). Only a real purchase creates a `subscriptions` row with `status = 'active'`. Users without purchases have no row (status defaults to `'none'` from the RPC).
+
+**Important:** The `cloudUpgrade` variant of `UpgradePromptModal` (used in `page.tsx` lines 935-938 and `CloudSyncSection.tsx`) must be removed -- it contradicts "cloud sync is free." Cloud sync no longer requires any payment.
 
 ---
 
-## Target Architecture
+## Import/Restore/Migration Policy
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ANDROID DEVICE                            │
-│  ┌──────────────┐                                               │
-│  │ User clicks  │                                               │
-│  │ "Subscribe"  │                                               │
-│  └──────┬───────┘                                               │
-│         ▼                                                        │
-│  ┌──────────────┐     ┌──────────────┐                          │
-│  │ Play Billing │────▶│ Purchase     │                          │
-│  │ (Digital     │     │ Token        │                          │
-│  │  Goods API)  │     └──────┬───────┘                          │
-│  └──────────────┘            │                                   │
-└──────────────────────────────┼───────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        SUPABASE                                  │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     │
-│  │ Edge Function│────▶│ Google Play  │────▶│ subscriptions│     │
-│  │ verify-      │     │ API Verify   │     │ table        │     │
-│  │ subscription │     └──────────────┘     └──────┬───────┘     │
-│  └──────────────┘                                 │              │
-│                                                   │              │
-│  ┌──────────────┐                                 │              │
-│  │ auth.users   │◀────────────────────────────────┘              │
-│  │ (account)    │  (subscription linked to user)                 │
-│  └──────────────┘                                               │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     ANY DEVICE (Android/Desktop/iOS)             │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     │
-│  │ User signs   │────▶│ Fetch sub    │────▶│ Premium      │     │
-│  │ in           │     │ from Supabase│     │ features     │     │
-│  └──────────────┘     └──────────────┘     │ unlocked     │     │
-│                                            └──────────────┘     │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Problem
+
+Limits are enforced at the UI layer (SeasonTournamentManagementModal). But seasons/tournaments can also be created via:
+
+| Path | File | Method | Currently Checks Limits? |
+|------|------|--------|-------------------------|
+| UI creation | `SeasonTournamentManagementModal.tsx` | `addSeasonMutation` | Yes (via `useResourceLimit`) |
+| Backup import | `src/utils/fullBackup.ts` (lines 636-653) | `dataStore.upsertSeason()` | **No** |
+| File import | `src/utils/importHelper.ts` | Delegates to `fullBackup.ts` | **No** |
+| Local-to-cloud migration | `src/services/migrationService.ts` | `cloudStore.createSeason()` | **No** |
+| Cloud-to-local migration | `src/services/reverseMigrationService.ts` | `localStore.upsertSeason()` | **No** |
+
+### Policy: Allow Import/Migration, Enforce on New Creation
+
+**Principle:** Never punish users for having existing data. Never block data restoration.
+
+**Rules:**
+1. **Import/restore always succeeds** -- if a backup has 10 seasons, all 10 are restored regardless of tier
+2. **Migration always succeeds** -- moving data between local/cloud is never blocked
+3. **Limits apply only to NEW creation** -- after import, if user has 10 seasons and is on free tier, they can't create #11 but keep all 10
+4. **Import shows a post-import notice** (not blocker): "You have 10 seasons. Free tier allows creating up to 3 new seasons. Unlock Full Version for unlimited."
+
+### Implementation
+
+**No changes needed in import/migration code.** The enforcement is at the UI layer (SeasonTournamentManagementModal), which already checks `useResourceLimit()` before allowing creation. Import/migration uses `upsert` which bypasses the UI.
+
+**One addition needed:** After import, if imported data exceeds free limits, show an informational notice (not a blocker). This uses the existing `isOverFreeLimit()` function in `premiumManager.ts`.
+
+**Files to change:**
+- `src/utils/fullBackup.ts` -- after import completes, check if data exceeds limits and return a flag
+- Import result handler (wherever import success is shown) -- show informational notice if flag is set
+
+**Edge case: Archived seasons count:**
+- `SeasonTournamentManagementModal` counts only non-archived: `seasons.filter(s => !s.archived).length`
+- This is correct -- archiving a season frees up a slot, unarchiving counts against the limit
+- Import may bring in archived seasons -- those don't count against limit
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Database Foundation ✅ COMPLETE
+### Phase 1: Update Limits Configuration, Product IDs, and Remove Old Resource Types
 
-**Goal:** Create subscription storage in Supabase with proper security.
+**Goal:** Update all configuration to reflect the new model AND clean up all usages of removed resource types in the same phase.
 
-**Completed:** January 23, 2026 - Migration `010_subscriptions.sql` applied to Supabase.
+**IMPORTANT: Narrowing `ResourceType` from 5 types to 2 will break any file that references removed types ('team', 'game', 'player'). All such usages must be updated in this phase to avoid build failures.**
 
-#### 1.1 Subscriptions Table Migration
+**Files to change:**
 
-```sql
--- supabase/migrations/010_subscriptions.sql
-
--- Subscription status enum for type safety
-CREATE TYPE subscription_status AS ENUM (
-  'none',       -- Never subscribed
-  'active',     -- Paid and valid
-  'cancelled',  -- User cancelled, but period not ended
-  'grace',      -- Payment failed, in grace period
-  'expired'     -- Grace ended, no access
-);
-
--- Main subscriptions table
-CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  status subscription_status NOT NULL DEFAULT 'none',
-
-  -- Google Play fields
-  google_purchase_token TEXT,
-  google_order_id TEXT,
-  product_id TEXT,
-
-  -- Period tracking
-  period_start TIMESTAMPTZ,
-  period_end TIMESTAMPTZ,
-  grace_end TIMESTAMPTZ,
-
-  -- Audit
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  last_verified_at TIMESTAMPTZ,
-
-  -- Ensure one subscription per user
-  CONSTRAINT unique_user_subscription UNIQUE (user_id)
-);
-
--- RLS Policies
-ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-
--- Users can only read their own subscription
-CREATE POLICY "Users can read own subscription"
-  ON subscriptions FOR SELECT
-  USING (auth.uid() = user_id);
-
--- Only Edge Functions can insert/update (via service role)
--- No direct user writes allowed
-
--- Index for fast lookups
-CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
-CREATE INDEX idx_subscriptions_status ON subscriptions(status);
-
--- Auto-update updated_at
-CREATE TRIGGER update_subscriptions_updated_at
-  BEFORE UPDATE ON subscriptions
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-```
-
-#### 1.2 RPC for Subscription Check
-
-```sql
--- Function to get subscription status (used by app)
-CREATE OR REPLACE FUNCTION get_subscription_status()
-RETURNS TABLE (
-  status subscription_status,
-  period_end TIMESTAMPTZ,
-  grace_end TIMESTAMPTZ,
-  is_active BOOLEAN
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT
-    s.status,
-    s.period_end,
-    s.grace_end,
-    (s.status IN ('active', 'cancelled', 'grace')) AS is_active
-  FROM subscriptions s
-  WHERE s.user_id = auth.uid();
-
-  -- Return none status if no subscription record
-  IF NOT FOUND THEN
-    RETURN QUERY SELECT
-      'none'::subscription_status,
-      NULL::TIMESTAMPTZ,
-      NULL::TIMESTAMPTZ,
-      FALSE;
-  END IF;
-END;
-$$;
-```
-
-#### 1.3 Testing Phase 1
-
+1. **`src/config/premiumLimits.ts`** -- limits, product config, and type narrowing:
 ```typescript
-// Test: Can create subscription record via service role
-// Test: User can only read their own subscription
-// Test: User cannot directly insert/update subscription
-// Test: get_subscription_status() returns correct data
+export const FREE_LIMITS = {
+  maxSeasons: 3,
+  maxTournaments: 3,
+} as const;
+
+export type ResourceType = 'season' | 'tournament';
+
+export const PREMIUM_PRODUCT_ID = 'matchops_full_version';
+export const PREMIUM_PRICE = '4,99 EUR';  // TBD -- final price
+export const PREMIUM_PRICE_AMOUNT = 4.99;
+export const PREMIUM_IS_SUBSCRIPTION = false;
+```
+   - Simplify `getLimit()` to seasons and tournaments only
+   - Simplify `getResourceName()` to seasons and tournaments only
+
+2. **`src/utils/playBilling.ts`** -- update product ID and rename subscription-oriented names:
+   - Rename `SUBSCRIPTION_PRODUCT_ID` -> import `PREMIUM_PRODUCT_ID` from premiumLimits
+   - Rename `purchaseSubscription()` -> `purchaseProduct()` (or `purchaseFullVersion()`)
+   - Rename `SubscriptionDetails` interface -> `ProductDetails`
+   - Rename `getSubscriptionDetails()` -> `getProductDetails()`
+
+3. **`src/hooks/usePlayBilling.ts`** -- update to use renamed functions from playBilling.ts
+
+4. **`supabase/functions/verify-subscription/index.ts`** -- update valid product IDs (line 36):
+```typescript
+const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
+// Keep old ID for any existing test purchases; add new one-time product
 ```
 
-**Manual Test:**
-1. Apply migration to Supabase
-2. Insert test subscription via SQL editor (service role)
-3. Verify RLS blocks direct user writes
-4. Verify user can read own subscription
+5. **Remove `useResourceLimit` for non-limited resources** (CRITICAL -- prevents build break):
+   - `src/components/TeamManagerModal.tsx` -- remove `useResourceLimit('team', ...)` call and related premium limit check
+   - `src/components/RosterSettingsModal.tsx` -- remove `useResourceLimit('player', ...)` call and related premium limit check
+   - `src/components/HomePage/utils/newGameHandlers.ts` -- remove `canCreate('game', ...)` and `showUpgradePrompt('game', ...)` calls (lines 115-139)
+   - `src/components/HomePage/hooks/useGameOrchestration.ts` -- remove passing of `canCreate`/`showUpgradePrompt` for games if no longer needed
+
+6. **Remove `cloudUpgrade` variant** (cloud sync is free -- entire flow is dead code):
+   - `src/components/UpgradePromptModal.tsx` -- remove `cloudUpgrade` variant and `UpgradePromptVariant` type (only `resourceLimit` remains; consider removing the variant prop entirely)
+   - `src/app/page.tsx` -- remove the FULL post-login cloud upgrade flow:
+     - `showPostLoginUpgrade` state variable
+     - `handlePostLoginUpgradeClose` and `handlePostLoginUpgradeSuccess` callbacks
+     - The post-login subscription check effect that triggers the upgrade modal
+     - The `UpgradePromptModal` rendering with `variant="cloudUpgrade"`
+   - `src/components/CloudSyncSection.tsx` -- remove upgrade prompt for cloud sync
+   - `src/components/HomePage/hooks/useGameOrchestration.ts` -- remove `usePremium()` call and `canCreate`/`showUpgradePrompt` destructuring (no longer needed after game limit removal)
+   - `src/components/HomePage/utils/newGameHandlers.ts` -- also remove `canCreate`/`showUpgradePrompt` from `StartNewGameDeps` interface
+
+7. **`public/locales/en/common.json`** and **`public/locales/fi/common.json`** -- update i18n:
+   - `settings.limitSeasons`: "1 season / 1 tournament" -> "3 seasons / 3 tournaments"
+   - Remove `settings.limitTeams`, `settings.limitPlayers`, `settings.limitGames` (no longer limited)
+   - Update `premium.benefit.*` and `premium.cloudBenefit.*` keys
+   - Update `premium.resource.team/teamPlural`, `premium.resource.player/playerPlural`, `premium.resource.game/gamePlural` -- remove or keep as unused (won't cause build break but should clean up)
+   - Add new keys for "approaching limit" reminder and post-import notice
+   - Update non-Android upgrade text: "Subscriptions are available..." -> "Purchases are available..."
+
+**Tests to update (MUST be done in this phase to prevent build failures):**
+- `src/config/__tests__/premiumLimits.test.ts` (if exists)
+- `src/utils/__tests__/premiumManager.test.ts`
+- `src/components/__tests__/UpgradePromptModal.test.tsx` -- remove cloudUpgrade variant tests
+- `src/components/__tests__/TeamManagerModal.test.tsx` -- remove premium limit mock/assertions
+- `src/components/__tests__/RosterSettingsModal.test.tsx` -- remove premium limit mock/assertions
+- `src/components/HomePage/utils/__tests__/newGameHandlers.test.ts` -- remove game limit tests (lines ~173-269)
+- `src/components/HomePage/hooks/__tests__/useGameOrchestration.*.test.tsx` -- update `showUpgradePrompt` mocks
+- `src/contexts/__tests__/PremiumContext.test.tsx` -- update for new resource types
+- `src/__tests__/i18n-validation.test.ts` -- update for changed/removed keys
+- Any test file mocking `useResourceLimit` must include the new return fields (`isApproaching`, `isAtLimit`) once Phase 3 adds them. In Phase 1, existing shape is fine.
 
 ---
 
-### Phase 2: Platform Detection & UI Gating ✅ COMPLETE
+### Phase 2: Re-enable Premium Enforcement
 
-**Goal:** Different UI for Android vs Desktop/iOS.
+**Goal:** Make `premiumManager.ts` and `PremiumContext.tsx` enforce limits (gated by `PREMIUM_ENFORCEMENT_ENABLED`).
 
-**Completed:** January 23, 2026 - Platform detection utility, comprehensive tests, and platform-aware UI in WelcomeScreen and UpgradePromptModal.
+**Files to change:**
 
-#### 2.1 Platform Detection Utility
+1. **`src/utils/premiumManager.ts`** -- re-enable enforcement functions:
+```typescript
+export function canCreateResource(
+  resource: ResourceType,
+  currentCount: number,
+  isPremium: boolean
+): boolean {
+  if (!PREMIUM_ENFORCEMENT_ENABLED) return true;  // Feature flag bypass
+  if (isPremium) return true;
+  return currentCount < getLimit(resource);
+}
+
+export function getRemainingCount(
+  resource: ResourceType,
+  currentCount: number,
+  isPremium: boolean
+): number {
+  if (!PREMIUM_ENFORCEMENT_ENABLED) return Infinity;
+  if (isPremium) return Infinity;
+  return Math.max(0, getLimit(resource) - currentCount);
+}
+
+export function isOverFreeLimit(counts: ResourceCounts): boolean {
+  if (!PREMIUM_ENFORCEMENT_ENABLED) return false;
+  return counts.seasons > FREE_LIMITS.maxSeasons
+    || counts.tournaments > FREE_LIMITS.maxTournaments;
+}
+```
+
+2. **`src/contexts/PremiumContext.tsx`** -- restore mode-based logic:
+```typescript
+// Replace the hard-coded setIsPremium(true) with:
+const mode = getBackendMode();
+if (mode === 'local') {
+  setIsPremium(true);  // Local mode = always premium
+} else {
+  // Cloud mode: check actual license from storage
+  const license = await getPremiumLicense();
+  setIsPremium(license.isPremium);
+}
+```
+
+3. **`src/utils/premiumManager.ts`** -- update `ResourceCounts` type:
+```typescript
+export interface ResourceCounts {
+  seasons: number;
+  tournaments: number;
+  // Removed: teams, gamesInSeason, gamesInTournament, players (no longer limited)
+}
+```
+
+4. **`src/config/constants.ts`** -- keep `PREMIUM_ENFORCEMENT_ENABLED = false` until Phase 7
+
+5. **Cross-device premium bridge:**
+   Add `usePremiumSubscriptionBridge` hook (see "SubscriptionContext Decision" section above).
+
+   **File:** New hook in `src/hooks/usePremiumSubscriptionBridge.ts`, called from `src/components/UpgradePromptManager.tsx` (or new bridge component in ClientWrapper)
+
+   **Architecture constraint:** Bridge MUST live inside a component that renders within BOTH SubscriptionProvider (outer) and PremiumProvider (inner). It cannot live in SubscriptionContext.tsx itself.
+
+   **Key logic:** Check raw `status` field from SubscriptionContext (not `isActive` which is always `true`). Only `status === 'active'` means a real purchase exists in the database. Use a ref to prevent redundant grants.
+
+   **Note on token:** The bridge calls `grantPremiumAccess()` without a purchase token (since the token lives server-side). Pass a sentinel value like `'cross-device-grant'` to distinguish bridge-granted premium from direct-purchase premium in the local license record.
+
+**Tests:**
+- `canCreateResource` with enforcement enabled: blocks at limit
+- `canCreateResource` with enforcement disabled: always allows
+- `getRemainingCount` accuracy
+- PremiumContext mode-based behavior (local vs cloud)
+- Cross-device bridge: subscription active -> premium granted
+
+---
+
+### Phase 3: Limit Visibility (No Surprises UX)
+
+**Goal:** Show users their limit usage so the upgrade prompt is never a surprise.
+
+**3.1: "Approaching Limit" Hook Enhancement**
+
+The existing `useResourceLimit` hook (in `src/hooks/usePremium.ts`) has `canAdd` (boolean) and `remaining` (number) but no concept of "approaching limit." Add:
 
 ```typescript
-// src/utils/platform.ts
+// In useResourceLimit return value:
+return {
+  canAdd,           // existing: false when at limit
+  remaining,        // existing: number of slots left
+  isApproaching,    // NEW: true when remaining === 1 (last free slot)
+  isAtLimit,        // NEW: true when remaining === 0
+  checkAndPrompt,   // existing: shows upgrade prompt if blocked
+};
+```
 
-/**
- * Platform detection utilities for billing
- */
+**File:** `src/hooks/usePremium.ts`
 
-export function isAndroid(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /Android/i.test(navigator.userAgent);
-}
+**3.2: Competition List Indicators**
 
-export function isIOS(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
+In `SeasonTournamentManagementModal.tsx`, add usage indicator for free users:
 
-export function isDesktop(): boolean {
-  return !isAndroid() && !isIOS();
-}
+```
+Seasons (2 of 3 free)        |  Tournaments (1 of 3 free)
+  - Spring 2026 League       |    - Summer Cup 2026
+  - Fall 2025 League          |
+```
 
-/**
- * Check if Play Billing is potentially available
- * Note: Actual availability checked via Digital Goods API
- */
-export function canUsePlayBilling(): boolean {
-  return isAndroid();
-}
+Premium users see no indicator (or "Unlimited").
 
-/**
- * Check if Digital Goods API is available (TWA context)
- */
-export async function isDigitalGoodsAvailable(): Promise<boolean> {
-  if (!isAndroid()) return false;
+**Files to change:**
+- `src/components/SeasonTournamentManagementModal.tsx` -- add indicator near list header
+- Uses existing `useResourceLimit` hook data
 
-  try {
-    // Digital Goods API only available in TWA context
-    if ('getDigitalGoodsService' in window) {
-      const service = await (window as any).getDigitalGoodsService(
-        'https://play.google.com/billing'
-      );
-      return service !== null;
-    }
-    return false;
-  } catch {
-    return false;
+**3.3: "Last Free" Reminder**
+
+When creating competition #3 (the last free one), show a subtle inline note in the creation modal:
+
+> "This is your last free season. After this, you can unlock unlimited seasons with MatchOps Full Version."
+
+This is NOT a blocker -- the user can proceed normally. It's informational only.
+
+**Files to change:**
+- `src/components/SeasonDetailsModal.tsx` -- show note when `isApproaching` is true
+- `src/components/TournamentDetailsModal.tsx` -- same pattern
+- Pass `isApproaching` from `SeasonTournamentManagementModal` to the detail modals
+
+**3.4: Settings Page -- Tier Display**
+
+In Settings Account tab, add a "Plan" section:
+
+```
+Plan: Free
+Seasons: 2 / 3 used
+Tournaments: 1 / 3 used
+[Unlock Full Version - 4.99 EUR]
+```
+
+Premium users see:
+```
+Plan: Full Version
+Seasons: Unlimited
+Tournaments: Unlimited
+```
+
+**Files to change:**
+- `src/components/SettingsModal.tsx` -- add plan section to Account tab (above CloudSyncSection)
+- Needs season/tournament counts from React Query + `usePremiumContext()`
+
+**3.5: Post-Import Notice**
+
+After backup import, if imported data exceeds free limits, show informational toast:
+
+> "Your imported data includes X seasons. Free tier allows creating 3 new seasons. All imported data is preserved."
+
+**Files to change:**
+- `src/utils/fullBackup.ts` -- return counts in import result
+- Import success handler -- check `isOverFreeLimit()` and show toast if true
+
+**Tests:**
+- Render tests for limit indicators (free vs premium)
+- `isApproaching` logic (remaining === 1)
+- Settings tier display for free and premium users
+- Post-import notice appears when data exceeds limits
+- Post-import notice does NOT appear when under limits
+
+---
+
+### Phase 4: Upgrade Prompt at Limit
+
+**Goal:** Update upgrade prompt copy for one-time purchase model.
+
+**Note:** Game limit removal and `cloudUpgrade` variant removal are done in Phase 1 (required to avoid build breaks from ResourceType narrowing).
+
+**Files to change:**
+
+1. **`src/components/UpgradePromptModal.tsx`** -- update copy for one-time purchase:
+   - Title: "Free version limit reached" (keep existing)
+   - Body: "You've used all 3 free seasons." (update limit number)
+   - Benefits section header: "Full Version includes:" (was "Your subscription includes:")
+   - Benefits content: Replace cloud sync benefits (sync, backup, storage) with competition benefits ("Unlimited seasons & tournaments"). Cloud sync is free and should NOT be listed as a premium benefit.
+   - Button: "Unlock Full Version - 4.99 EUR" (change from "Upgrade to Premium")
+   - Remove ALL subscription-specific language: monthly, per month, /kk, `premium.subscriptionIncludes` key
+   - Update non-Android text: "Purchases are available on the Android app" (not "Subscriptions")
+
+2. **`src/components/SeasonTournamentManagementModal.tsx`** -- already has `checkSeasonLimitAndPrompt()` and `checkTournamentLimitAndPrompt()` (lines 124-138). These call `useResourceLimit` which triggers `UpgradePromptModal`. No new wiring needed -- just verify it works with updated limits.
+
+**Flow (already implemented, just needs correct limits):**
+1. User clicks "Add Season" in SeasonTournamentManagementModal
+2. `checkSeasonLimitAndPrompt()` calls `useResourceLimit('season', activeSeasonCount)`
+3. If `canAdd` is false: `showUpgradePrompt('season', activeSeasonCount)` opens UpgradePromptModal
+4. If `canAdd` is true: proceed to SeasonDetailsModal
+
+**Platform-specific behavior in UpgradePromptModal (already implemented):**
+- **Android TWA**: "Unlock Full Version" triggers Play Billing (Digital Goods API)
+- **Vercel preview / internal testing**: Test token flow (mock purchase)
+- **Other platforms**: "Available on the Android app" with Play Store link
+
+**Tests:**
+- Modal renders with correct one-time purchase copy
+- Modal shows when season limit reached (count >= 3)
+- Modal shows when tournament limit reached (count >= 3)
+- Modal does NOT show when under limit
+- Game creation no longer triggers limit checks
+- "Not Now" dismisses without side effects
+- Purchase flow triggers correctly on Android (existing tests, update expectations)
+
+---
+
+### Phase 5: Play Store Billing Integration (One-Time Purchase)
+
+**Goal:** Update Play Billing code for one-time in-app purchase instead of subscription.
+
+**5.1: Play Store Product Setup**
+
+Create in-app product in Google Play Console:
+- Product ID: `matchops_full_version`
+- Type: **One-time (non-consumable)**
+- Price: ~4.99 EUR (localized pricing)
+- Title: "MatchOps Full Version"
+- Description: "Unlock unlimited seasons and tournaments"
+
+**5.2: Update `src/utils/playBilling.ts`**
+
+Key changes:
+- Rename `purchaseSubscription()` to `purchaseFullVersion()` (or make generic)
+- Product ID already updated in Phase 1
+- Purchase flow: Payment Request API is the same for one-time and subscription in Digital Goods API
+- Acknowledgement: Use `'onetime'` type instead of `'subscription'`
+- `getExistingPurchases()`: Digital Goods API `listPurchases()` returns both one-time and subscriptions -- verify it includes one-time purchases for restore
+
+```typescript
+// Key difference in acknowledge:
+// Old: await service.acknowledge(purchaseToken, 'repeatable');
+// New: await service.acknowledge(purchaseToken, 'onetime');
+```
+
+**5.3: Update `src/hooks/usePlayBilling.ts`**
+
+- Update `purchase()` to call new one-time purchase function
+- Update `restore()` to filter for `matchops_full_version` product
+- Pass `purchaseType: 'onetime'` to `verifyPurchaseWithServer()`
+- Remove subscription-specific state (subscription details, renewal info)
+
+**5.4: Restore Purchases**
+
+One-time purchases must be restorable (reinstall, new device):
+
+```typescript
+export async function restorePurchases(): Promise<boolean> {
+  const service = await window.getDigitalGoodsService(
+    'https://play.google.com/billing'
+  );
+  const purchases = await service.listPurchases();
+  const fullVersion = purchases.find(p => p.itemId === PREMIUM_PRODUCT_ID);
+
+  if (fullVersion) {
+    // Verify with server, then grant locally
+    await verifyPurchaseWithServer(fullVersion.purchaseToken, 'onetime');
+    await grantPremium(fullVersion.purchaseToken);
+    return true;
   }
+  return false;
 }
 ```
 
-#### 2.2 Platform-Aware Components
+**5.5: Cross-Device via Supabase**
 
-**WelcomeScreen Changes:**
+When user purchases on one device and signs in on another:
+1. On purchase: Edge Function writes `status = 'active'`, `period_end = NULL` to `subscriptions` table
+2. On sign-in: SubscriptionContext fetches `get_subscription_status()` RPC
+3. If `is_active = true`: bridge to PremiumContext grants premium locally (see Phase 2)
 
-```typescript
-// src/components/WelcomeScreen.tsx
+**No schema change needed.** Using `status = 'active'` with `period_end = NULL` is sufficient and cleaner than adding a new enum value. The RPC already returns `is_active = true` for any `'active'` status regardless of `period_end`.
 
-import { isAndroid } from '@/utils/platform';
-
-// In render:
-{isCloudAvailable && (
-  isAndroid() ? (
-    // Android: Can subscribe and create account
-    <button onClick={onSubscribeAndCreateAccount}>
-      {t('welcome.subscribeAndCreate', 'Subscribe & Create Account')}
-      <span className="badge">{t('welcome.badgePaid', 'Paid')}</span>
-    </button>
-  ) : (
-    // Desktop/iOS: Sign in only
-    <>
-      <button onClick={onSignIn}>
-        {t('welcome.signInOnly', 'Sign In')}
-      </button>
-      <div className="mt-4 p-4 bg-slate-800 rounded-lg">
-        <p>{t('welcome.androidRequired', 'New here? Subscribe via the Android app.')}</p>
-        <a href="https://play.google.com/store/apps/details?id=com.matchops"
-           className="text-amber-400">
-          {t('welcome.getAndroidApp', 'Get on Google Play')}
-        </a>
-      </div>
-    </>
-  )
-)}
-```
-
-**UpgradePromptModal Changes:**
-
-```typescript
-// In UpgradePromptModal.tsx
-
-import { isAndroid } from '@/utils/platform';
-
-// Replace canPurchase logic:
-const canPurchase = isAndroid() && (!PREMIUM_ENFORCEMENT_ENABLED || isDev || isInternalTesting);
-
-// In render, when !isAndroid():
-{!isAndroid() && (
-  <div className="text-center p-4 bg-slate-700/50 rounded-lg">
-    <p>{t('premium.androidOnly', 'Subscriptions are available on the Android app.')}</p>
-    <a href="https://play.google.com/store/apps/details?id=com.matchops">
-      {t('premium.getAndroidApp', 'Get on Google Play')}
-    </a>
-    <div className="mt-4 border-t border-slate-600 pt-4">
-      <p className="text-sm text-slate-400">
-        {t('premium.alreadySubscribed', 'Already subscribed?')}
-      </p>
-      <button onClick={onSignIn}>
-        {t('premium.signIn', 'Sign In')}
-      </button>
-    </div>
-  </div>
-)}
-```
-
-#### 2.3 Testing Phase 2
-
-```typescript
-// Unit tests for platform detection
-describe('platform utils', () => {
-  it('detects Android user agent', () => {
-    Object.defineProperty(navigator, 'userAgent', {
-      value: 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
-      configurable: true
-    });
-    expect(isAndroid()).toBe(true);
-    expect(isDesktop()).toBe(false);
-  });
-
-  it('detects desktop user agent', () => {
-    Object.defineProperty(navigator, 'userAgent', {
-      value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      configurable: true
-    });
-    expect(isAndroid()).toBe(false);
-    expect(isDesktop()).toBe(true);
-  });
-});
-```
-
-**Manual Test:**
-1. Open app in Chrome desktop → should see "Sign In" only
-2. Open app in Chrome Android (or DevTools mobile emulation) → should see "Subscribe"
-3. Verify upgrade prompts show correct UI per platform
+**Tests:**
+- Mock Digital Goods API for unit tests
+- Purchase flow: happy path, user cancels, network error
+- Restore purchases: found, not found, verification fails
+- Cross-device: sign in detects existing purchase
+- Acknowledge uses 'onetime' type
 
 ---
 
-### Phase 3: Verification Edge Function ✅ COMPLETE
+### Phase 6: Update verify-subscription Edge Function
 
-**Goal:** Server-side purchase verification with Google Play API.
+**Goal:** Handle one-time purchase verification alongside existing subscription support.
 
-**Completed:** January 23, 2026 - Edge Function `verify-subscription` deployed to Supabase.
+**This is a significant update, not a minor change.**
 
-**Environment Variables Required:**
-- `MOCK_BILLING=true` - Enable for testing with test tokens (prefix: `test-`)
-- `GOOGLE_SERVICE_ACCOUNT_JSON` - Google Cloud service account for production
+**File:** `supabase/functions/verify-subscription/index.ts`
 
-#### 3.1 Edge Function Setup
+**Changes needed:**
 
+1. **Accept `purchaseType` parameter:**
 ```typescript
-// supabase/functions/verify-subscription/index.ts
-
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const GOOGLE_PLAY_PACKAGE = 'com.matchops.app';
-const SUBSCRIPTION_PRODUCT_ID = 'matchops_premium_monthly';
-
 interface VerifyRequest {
   purchaseToken: string;
   productId: string;
+  purchaseType: 'onetime' | 'subscription';  // NEW -- required
 }
+```
 
-interface GoogleSubscription {
-  expiryTimeMillis: string;
-  paymentState: number;
-  acknowledgementState: number;
-  autoRenewing: boolean;
+2. **Branch verification by purchase type:**
+```typescript
+if (purchaseType === 'onetime') {
+  // Google Play API: purchases.products.get
+  // Endpoint: androidpublisher/v3/applications/{packageName}/purchases/products/{productId}/tokens/{token}
+  // Response: { purchaseState: 0|1, purchaseTimeMillis, consumptionState, ... }
+  // purchaseState: 0 = purchased, 1 = cancelled
+} else {
+  // Existing subscription flow
+  // Google Play API: purchases.subscriptions.get
+  // Endpoint: androidpublisher/v3/applications/{packageName}/purchases/subscriptions/{productId}/tokens/{token}
+  // Response: { expiryTimeMillis, paymentState, ... }
 }
+```
 
-serve(async (req) => {
-  try {
-    // CORS headers
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST',
-          'Access-Control-Allow-Headers': 'authorization, content-type',
-        },
-      });
-    }
-
-    // Get user from auth header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-    // Verify JWT and get user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401
-      });
-    }
-
-    // Parse request
-    const { purchaseToken, productId }: VerifyRequest = await req.json();
-
-    if (!purchaseToken || !productId) {
-      return new Response(JSON.stringify({ error: 'Missing fields' }), {
-        status: 400
-      });
-    }
-
-    // Verify with Google Play API
-    const googleSubscription = await verifyWithGoogle(purchaseToken, productId);
-
-    if (!googleSubscription) {
-      return new Response(JSON.stringify({ error: 'Invalid purchase' }), {
-        status: 400
-      });
-    }
-
-    // Calculate dates
-    const periodEnd = new Date(parseInt(googleSubscription.expiryTimeMillis));
-    const graceEnd = new Date(periodEnd.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days grace
-
-    // Determine status
-    let status = 'active';
-    if (googleSubscription.paymentState === 0) {
-      status = 'grace'; // Payment pending
-    }
-
-    // Upsert subscription record
-    const { error: upsertError } = await supabase
-      .from('subscriptions')
-      .upsert({
-        user_id: user.id,
-        status,
-        google_purchase_token: purchaseToken,
-        product_id: productId,
-        period_end: periodEnd.toISOString(),
-        grace_end: graceEnd.toISOString(),
-        last_verified_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
-      });
-
-    if (upsertError) {
-      console.error('Failed to upsert subscription:', upsertError);
-      return new Response(JSON.stringify({ error: 'Database error' }), {
-        status: 500
-      });
-    }
-
-    return new Response(JSON.stringify({
-      success: true,
-      status,
-      periodEnd: periodEnd.toISOString(),
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-  } catch (error) {
-    console.error('Verification error:', error);
-    return new Response(JSON.stringify({ error: 'Internal error' }), {
-      status: 500
-    });
-  }
+3. **Store one-time purchase result:**
+```typescript
+// For one-time purchases: no expiry, no grace period
+await supabaseAdmin.rpc('upsert_subscription', {
+  p_user_id: userId,
+  p_status: 'active',
+  p_google_purchase_token: purchaseToken,
+  p_google_order_id: orderId ?? null,
+  p_product_id: productId,
+  p_period_start: new Date().toISOString(),
+  p_period_end: null,      // Permanent -- no expiry
+  p_grace_end: null,       // No grace period for one-time
 });
-
-async function verifyWithGoogle(
-  purchaseToken: string,
-  productId: string
-): Promise<GoogleSubscription | null> {
-  // Get Google API credentials from env
-  const credentials = JSON.parse(Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')!);
-
-  // Get access token via service account
-  const accessToken = await getGoogleAccessToken(credentials);
-
-  // Call Google Play Developer API
-  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE}/purchases/subscriptions/${productId}/tokens/${purchaseToken}`;
-
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    console.error('Google API error:', await response.text());
-    return null;
-  }
-
-  return response.json();
-}
-
-async function getGoogleAccessToken(credentials: any): Promise<string> {
-  // JWT-based service account authentication
-  // Implementation details: create JWT, exchange for access token
-  // ... (standard Google OAuth2 service account flow)
-}
 ```
 
-#### 3.2 Environment Variables Needed
-
-```bash
-# In Supabase Dashboard > Edge Functions > Secrets
-GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
-```
-
-#### 3.3 Testing Phase 3
-
-**Mock Mode for Testing:**
-
+4. **Update mock mode** to support one-time purchases:
 ```typescript
-// Add to Edge Function for testing
-const MOCK_MODE = Deno.env.get('MOCK_BILLING') === 'true';
-
-if (MOCK_MODE && purchaseToken.startsWith('test-')) {
-  // Accept test tokens in mock mode
-  const mockSubscription = {
-    status: 'active',
-    periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  };
-  // ... upsert and return
+if (isMockMode && purchaseType === 'onetime') {
+  // Accept test tokens for one-time purchases
+  status = 'active';
+  periodEnd = null;
+  graceEnd = null;
 }
 ```
 
-**Manual Test:**
-1. Deploy Edge Function with `MOCK_BILLING=true`
-2. Call with test token → should create subscription record
-3. Verify subscription appears in database
-4. Call `get_subscription_status()` → should return active
-
----
-
-### Phase 4: Play Billing Integration (Client) ✅ COMPLETE
-
-**Goal:** Integrate Digital Goods API for purchases.
-
-**Completed:** January 23, 2026 - Play Billing utilities and React hook created with 18 tests.
-
-#### 4.1 Play Billing Service
-
+5. **Update `VALID_PRODUCT_IDS`:**
 ```typescript
-// src/utils/playBilling.ts
-
-import logger from './logger';
-
-const PLAY_BILLING_SERVICE = 'https://play.google.com/billing';
-const PRODUCT_ID = 'matchops_premium_monthly';
-
-export interface PurchaseResult {
-  success: boolean;
-  purchaseToken?: string;
-  error?: string;
-}
-
-export interface SubscriptionDetails {
-  productId: string;
-  title: string;
-  description: string;
-  price: string;
-  priceMicros: number;
-  currencyCode: string;
-}
-
-/**
- * Check if Digital Goods API is available
- */
-export async function isPlayBillingAvailable(): Promise<boolean> {
-  try {
-    if (!('getDigitalGoodsService' in window)) {
-      return false;
-    }
-    const service = await (window as any).getDigitalGoodsService(PLAY_BILLING_SERVICE);
-    return service !== null;
-  } catch (error) {
-    logger.warn('Digital Goods API not available:', error);
-    return false;
-  }
-}
-
-/**
- * Get subscription product details
- */
-export async function getSubscriptionDetails(): Promise<SubscriptionDetails | null> {
-  try {
-    const service = await (window as any).getDigitalGoodsService(PLAY_BILLING_SERVICE);
-    if (!service) return null;
-
-    const details = await service.getDetails([PRODUCT_ID]);
-    if (!details || details.length === 0) return null;
-
-    const item = details[0];
-    return {
-      productId: item.itemId,
-      title: item.title,
-      description: item.description,
-      price: item.price.value,
-      priceMicros: item.price.valueMicros,
-      currencyCode: item.price.currency,
-    };
-  } catch (error) {
-    logger.error('Failed to get subscription details:', error);
-    return null;
-  }
-}
-
-/**
- * Launch purchase flow
- */
-export async function purchaseSubscription(): Promise<PurchaseResult> {
-  try {
-    // Use Payment Request API with Digital Goods
-    const details = await getSubscriptionDetails();
-    if (!details) {
-      return { success: false, error: 'Product not available' };
-    }
-
-    const paymentMethod = {
-      supportedMethods: PLAY_BILLING_SERVICE,
-      data: {
-        sku: PRODUCT_ID,
-      },
-    };
-
-    const paymentDetails = {
-      total: {
-        label: details.title,
-        amount: {
-          currency: details.currencyCode,
-          value: details.price,
-        },
-      },
-    };
-
-    const request = new PaymentRequest([paymentMethod], paymentDetails);
-    const response = await request.show();
-
-    // Get purchase token from response
-    const purchaseToken = response.details?.purchaseToken;
-
-    if (!purchaseToken) {
-      await response.complete('fail');
-      return { success: false, error: 'No purchase token received' };
-    }
-
-    await response.complete('success');
-
-    return {
-      success: true,
-      purchaseToken,
-    };
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      return { success: false, error: 'cancelled' };
-    }
-    logger.error('Purchase failed:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Check for existing purchases (restore)
- */
-export async function getExistingPurchases(): Promise<string[]> {
-  try {
-    const service = await (window as any).getDigitalGoodsService(PLAY_BILLING_SERVICE);
-    if (!service) return [];
-
-    const purchases = await service.listPurchases();
-    return purchases
-      .filter((p: any) => p.itemId === PRODUCT_ID)
-      .map((p: any) => p.purchaseToken);
-  } catch (error) {
-    logger.error('Failed to get existing purchases:', error);
-    return [];
-  }
-}
+const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
 ```
 
-#### 4.2 Purchase Hook
+6. **Keep existing subscription logic intact** for potential future Pro tier.
 
-```typescript
-// src/hooks/usePlayBilling.ts
-
-import { useState, useCallback, useEffect } from 'react';
-import {
-  isPlayBillingAvailable,
-  purchaseSubscription,
-  getSubscriptionDetails,
-  getExistingPurchases,
-  SubscriptionDetails
-} from '@/utils/playBilling';
-import { useAuth } from '@/contexts/AuthProvider';
-import { getSupabaseClient } from '@/auth/supabaseClient';
-import logger from '@/utils/logger';
-
-interface UsePlayBillingResult {
-  isAvailable: boolean;
-  isLoading: boolean;
-  isPurchasing: boolean;
-  details: SubscriptionDetails | null;
-  purchase: () => Promise<{ success: boolean; error?: string }>;
-  restore: () => Promise<{ success: boolean; error?: string }>;
-}
-
-export function usePlayBilling(): UsePlayBillingResult {
-  const [isAvailable, setIsAvailable] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPurchasing, setIsPurchasing] = useState(false);
-  const [details, setDetails] = useState<SubscriptionDetails | null>(null);
-  const { user } = useAuth();
-
-  // Check availability on mount
-  useEffect(() => {
-    async function checkAvailability() {
-      const available = await isPlayBillingAvailable();
-      setIsAvailable(available);
-
-      if (available) {
-        const productDetails = await getSubscriptionDetails();
-        setDetails(productDetails);
-      }
-
-      setIsLoading(false);
-    }
-    checkAvailability();
-  }, []);
-
-  // Verify purchase with server
-  const verifyPurchase = useCallback(async (purchaseToken: string) => {
-    const supabase = await getSupabaseClient();
-
-    const { data, error } = await supabase.functions.invoke('verify-subscription', {
-      body: {
-        purchaseToken,
-        productId: 'matchops_premium_monthly',
-      },
-    });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return data;
-  }, []);
-
-  // Purchase flow
-  const purchase = useCallback(async () => {
-    if (!isAvailable) {
-      return { success: false, error: 'Play Billing not available' };
-    }
-
-    setIsPurchasing(true);
-
-    try {
-      // 1. Launch Play Billing
-      const result = await purchaseSubscription();
-
-      if (!result.success) {
-        return { success: false, error: result.error };
-      }
-
-      // 2. Verify with server
-      await verifyPurchase(result.purchaseToken!);
-
-      return { success: true };
-    } catch (error: any) {
-      logger.error('Purchase flow failed:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setIsPurchasing(false);
-    }
-  }, [isAvailable, verifyPurchase]);
-
-  // Restore purchases
-  const restore = useCallback(async () => {
-    if (!isAvailable) {
-      return { success: false, error: 'Play Billing not available' };
-    }
-
-    try {
-      const purchases = await getExistingPurchases();
-
-      if (purchases.length === 0) {
-        return { success: false, error: 'No purchases found' };
-      }
-
-      // Verify the most recent purchase
-      await verifyPurchase(purchases[0]);
-
-      return { success: true };
-    } catch (error: any) {
-      logger.error('Restore failed:', error);
-      return { success: false, error: error.message };
-    }
-  }, [isAvailable, verifyPurchase]);
-
-  return {
-    isAvailable,
-    isLoading,
-    isPurchasing,
-    details,
-    purchase,
-    restore,
-  };
-}
-```
-
-#### 4.3 Testing Phase 4
-
-**Test Mode Flag:**
-```typescript
-// In development, allow mock purchases
-const MOCK_PURCHASES = process.env.NODE_ENV === 'development'
-  || process.env.NEXT_PUBLIC_MOCK_BILLING === 'true';
-
-export async function purchaseSubscription(): Promise<PurchaseResult> {
-  if (MOCK_PURCHASES) {
-    // Simulate successful purchase
-    return {
-      success: true,
-      purchaseToken: `test-token-${Date.now()}`,
-    };
-  }
-  // ... real implementation
-}
-```
-
-**Manual Test:**
-1. Set `NEXT_PUBLIC_MOCK_BILLING=true`
-2. Click "Subscribe" → should get mock token
-3. Token sent to Edge Function (with `MOCK_BILLING=true`)
-4. Subscription created in database
-5. User sees premium features
+**Tests:**
+- Edge Function unit tests for one-time purchase verification (mock Google API)
+- Test rejection of invalid tokens
+- Test mock mode for one-time purchases
+- Test upsert stores `period_end = null` for one-time
+- Test existing subscription flow still works (regression)
 
 ---
 
-### Phase 5: Subscription State Management ✅ COMPLETE
+### Phase 7: Enable Enforcement & Launch
 
-**Goal:** Track subscription state across the app.
+**Goal:** Flip the switch and go live.
 
-**Completed:** January 23, 2026 - SubscriptionContext.tsx created with caching, useSubscription hook, and useSubscriptionOptional for conditional access.
+**Steps:**
+1. Set `PREMIUM_ENFORCEMENT_ENABLED = true` in `src/config/constants.ts`
+2. Verify all tests pass with enforcement enabled
+3. Manual testing checklist:
 
-#### 5.1 Subscription Context
+**Free tier testing:**
+- [ ] Create 3 seasons -- verify indicators show "1/3", "2/3", "3/3"
+- [ ] On season #3 creation -- verify "last free" reminder shown
+- [ ] Try creating season #4 -- verify upgrade prompt appears
+- [ ] Dismiss upgrade prompt -- verify user stays on free tier, can still use existing seasons
+- [ ] Same flow for tournaments
+- [ ] Create games without season/tournament -- verify no limit interference
+- [ ] Verify Settings shows "Plan: Free" with correct usage counts
 
-```typescript
-// src/contexts/SubscriptionContext.tsx
+**Import/migration testing:**
+- [ ] Import backup with 5 seasons as free user -- verify all 5 restored
+- [ ] After import, verify "post-import notice" shown
+- [ ] After import, try creating new season -- verify blocked at limit (5 >= 3)
+- [ ] Local-to-cloud migration with existing data -- verify all data migrates
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth } from './AuthProvider';
-import { getSupabaseClient } from '@/auth/supabaseClient';
-import { getStorageItem, setStorageItem } from '@/utils/storage';
-import logger from '@/utils/logger';
+**Purchase testing:**
+- [ ] Purchase full version on Android TWA -- verify limits removed
+- [ ] After purchase, Settings shows "Plan: Full Version"
+- [ ] After purchase, create season #4 -- verify allowed
+- [ ] Sign out and sign in -- verify premium persists
+- [ ] New device sign-in -- verify cross-device premium via Supabase
+- [ ] Restore purchases on new device -- verify works
 
-type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';
+**Platform testing:**
+- [ ] Android TWA: upgrade button triggers Play Billing
+- [ ] Desktop browser: upgrade prompt shows "Available on Android app"
+- [ ] Local mode: no limits enforced (always premium)
 
-interface SubscriptionState {
-  status: SubscriptionStatus;
-  periodEnd: Date | null;
-  graceEnd: Date | null;
-  isActive: boolean;
-  isLoading: boolean;
-}
+4. Deploy to staging, full end-to-end testing
+5. Update Play Store listing to mention "3 free competitions"
+6. Deploy to production
 
-interface SubscriptionContextValue extends SubscriptionState {
-  refresh: () => Promise<void>;
-}
-
-const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
-
-const CACHE_KEY = 'matchops_subscription_cache';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
-  const { user, mode } = useAuth();
-  const [state, setState] = useState<SubscriptionState>({
-    status: 'none',
-    periodEnd: null,
-    graceEnd: null,
-    isActive: false,
-    isLoading: true,
-  });
-
-  // Fetch subscription from Supabase
-  const fetchSubscription = useCallback(async () => {
-    if (mode !== 'cloud' || !user) {
-      setState(s => ({ ...s, isLoading: false }));
-      return;
-    }
-
-    try {
-      // Check cache first
-      const cached = await getCachedSubscription();
-      if (cached) {
-        setState({
-          ...cached,
-          isLoading: false,
-        });
-        return;
-      }
-
-      // Fetch from server
-      const supabase = await getSupabaseClient();
-      const { data, error } = await supabase.rpc('get_subscription_status');
-
-      if (error) throw error;
-
-      const subscription = data?.[0] || { status: 'none', is_active: false };
-
-      const newState: SubscriptionState = {
-        status: subscription.status,
-        periodEnd: subscription.period_end ? new Date(subscription.period_end) : null,
-        graceEnd: subscription.grace_end ? new Date(subscription.grace_end) : null,
-        isActive: subscription.is_active,
-        isLoading: false,
-      };
-
-      // Cache the result
-      await cacheSubscription(newState);
-
-      setState(newState);
-    } catch (error) {
-      logger.error('Failed to fetch subscription:', error);
-      // Fall back to cached or none
-      const cached = await getCachedSubscription();
-      setState({
-        ...(cached || { status: 'none', periodEnd: null, graceEnd: null, isActive: false }),
-        isLoading: false,
-      });
-    }
-  }, [user, mode]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchSubscription();
-  }, [fetchSubscription]);
-
-  // Refresh function for manual updates
-  const refresh = useCallback(async () => {
-    // Clear cache and refetch
-    await clearSubscriptionCache();
-    await fetchSubscription();
-  }, [fetchSubscription]);
-
-  return (
-    <SubscriptionContext.Provider value={{ ...state, refresh }}>
-      {children}
-    </SubscriptionContext.Provider>
-  );
-}
-
-export function useSubscription() {
-  const context = useContext(SubscriptionContext);
-  if (!context) {
-    throw new Error('useSubscription must be used within SubscriptionProvider');
-  }
-  return context;
-}
-
-// Cache helpers
-async function getCachedSubscription(): Promise<SubscriptionState | null> {
-  try {
-    const cached = await getStorageItem(CACHE_KEY);
-    if (!cached) return null;
-
-    const { data, timestamp } = JSON.parse(cached);
-    if (Date.now() - timestamp > CACHE_DURATION) {
-      return null; // Expired
-    }
-
-    return {
-      ...data,
-      periodEnd: data.periodEnd ? new Date(data.periodEnd) : null,
-      graceEnd: data.graceEnd ? new Date(data.graceEnd) : null,
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function cacheSubscription(state: SubscriptionState): Promise<void> {
-  await setStorageItem(CACHE_KEY, JSON.stringify({
-    data: state,
-    timestamp: Date.now(),
-  }));
-}
-
-async function clearSubscriptionCache(): Promise<void> {
-  await setStorageItem(CACHE_KEY, '');
-}
-```
-
-#### 5.2 Testing Phase 5
-
-**Manual Test:**
-1. Sign in with account that has subscription
-2. Verify `useSubscription()` returns correct status
-3. Go offline → verify cached status is used
-4. Come back online → verify status refreshes
+**Pre-launch checklist:**
+- [ ] Toiminimi registered (required for accepting payments in Finland)
+- [ ] Google Play Console: `matchops_full_version` product created and approved
+- [ ] Edge Function updated and deployed for one-time purchase verification
+- [ ] All limit indicators working in UI
+- [ ] Upgrade prompt tested on Android TWA with real purchase
+- [ ] Restore purchases tested
+- [ ] Cross-device premium tested (purchase on device A, sign in on device B)
+- [ ] Import/migration tested with data exceeding limits
+- [ ] Play Store listing updated to mention free tier limits
+- [ ] i18n keys updated for both English and Finnish
+- [ ] Privacy policy reviewed (no changes likely needed for one-time purchase)
+- [ ] `PREMIUM_ENFORCEMENT_ENABLED = true` committed
+- [ ] All tests pass
 
 ---
 
-### Phase 6: Grace Period & Expiration UI ✅ COMPLETE
-
-**Goal:** Handle expired/grace states gracefully.
-
-**Completed:** January 23, 2026 - SubscriptionWarningBanner.tsx created with grace period countdown and expired state handling. Translation keys added for EN/FI.
-
-#### 6.1 Subscription Warning Banner
-
-```typescript
-// src/components/SubscriptionWarningBanner.tsx
-
-import { useSubscription } from '@/contexts/SubscriptionContext';
-import { useTranslation } from 'react-i18next';
-
-export function SubscriptionWarningBanner() {
-  const { t } = useTranslation();
-  const { status, graceEnd } = useSubscription();
-
-  if (status !== 'grace' && status !== 'expired') {
-    return null;
-  }
-
-  const daysLeft = graceEnd
-    ? Math.ceil((graceEnd.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
-    : 0;
-
-  return (
-    <div className={`p-3 ${status === 'expired' ? 'bg-red-900/50' : 'bg-amber-900/50'}`}>
-      {status === 'grace' ? (
-        <p>
-          {t('subscription.graceWarning', {
-            defaultValue: 'Your subscription has expired. Renew within {{days}} days to keep cloud access.',
-            days: daysLeft,
-          })}
-        </p>
-      ) : (
-        <p>
-          {t('subscription.expiredWarning',
-            'Your subscription has expired. Renew to restore cloud access.'
-          )}
-        </p>
-      )}
-      <button onClick={openRenewFlow}>
-        {t('subscription.renewNow', 'Renew Now')}
-      </button>
-    </div>
-  );
-}
-```
-
-#### 6.2 Expired State Handling
-
-```typescript
-// In data operations, check subscription
-async function saveGame(game: AppState) {
-  const { isActive, status } = useSubscription();
-
-  if (!isActive && status === 'expired') {
-    throw new SubscriptionExpiredError(
-      'Your subscription has expired. Renew or switch to local mode.'
-    );
-  }
-
-  // ... save operation
-}
-```
-
----
-
-### Phase 7: Cross-Device Sync ✅ COMPLETE
-
-**Goal:** Subscription works on any device after sign-in.
-
-**Completed:** January 23, 2026 - usePlayBilling hook updated to return purchaseToken in BillingResult. UpgradePromptModal integrated with Play Billing for real purchases. Purchase token stored locally via grantPremiumAccess for cross-device sync.
-
-#### 7.1 Post-Login Subscription Check
-
-```typescript
-// In AuthProvider, after successful sign-in:
-
-async function handleSignIn(email: string, password: string) {
-  const result = await authService.signIn(email, password);
-
-  if (!result.error) {
-    // Fetch subscription status
-    const subscription = await fetchSubscriptionStatus();
-
-    // Grant local premium if active
-    if (subscription.isActive) {
-      await grantPremium(subscription.purchaseToken);
-    }
-  }
-
-  return result;
-}
-```
-
-#### 7.2 Testing Phase 7
-
-**Manual Test:**
-1. Subscribe on Device A (Android)
-2. Sign in on Device B (can be desktop)
-3. Verify premium features available on Device B
-4. Sign out on Device B → premium revoked locally
-5. Sign in again → premium restored
-
----
-
-### Phase 8: Enable Enforcement
-
-**Goal:** Flip the production switch.
-
-#### 8.1 Final Checklist
-
-```typescript
-// Before setting PREMIUM_ENFORCEMENT_ENABLED = true:
-
-// [ ] Play Billing integration complete
-// [ ] Edge Function deployed and tested
-// [ ] Subscriptions table in production
-// [ ] Platform detection working
-// [ ] Cross-device sync tested
-// [ ] Grace period UI tested
-// [ ] Restore purchases working
-// [ ] Error handling comprehensive
-```
-
-#### 8.2 Enable Flag
-
-```typescript
-// src/config/constants.ts
-export const PREMIUM_ENFORCEMENT_ENABLED = true;
-```
-
-#### 8.3 Update Tests
-
-```typescript
-// src/__tests__/security/premium-env.test.ts
-expect(PREMIUM_ENFORCEMENT_ENABLED).toBe(true);
-```
-
----
-
-## Testing Strategy
-
-### Environment Flags
-
-| Flag | Purpose | Where |
-|------|---------|-------|
-| `NEXT_PUBLIC_MOCK_BILLING` | Mock client-side purchases | `.env.local` |
-| `MOCK_BILLING` | Accept test tokens in Edge Function | Supabase secrets |
-| `PREMIUM_ENFORCEMENT_ENABLED` | Block free premium in production | `constants.ts` |
-
-### Test Scenarios
-
-| Scenario | Mock Billing | Enforcement | Expected |
-|----------|--------------|-------------|----------|
-| Development | true | false | Can "purchase" freely |
-| Staging | true | true | Mock purchases work, real blocked |
-| Production | false | true | Only real Play Store works |
-
-### Manual Test Checklist
-
-- [ ] Platform detection (Android vs Desktop)
-- [ ] Mock purchase flow
-- [ ] Subscription created in Supabase
-- [ ] Cross-device sign-in restores premium
-- [ ] Grace period banner shows
-- [ ] Expired state blocks cloud writes
-- [ ] Restore purchases works
-- [ ] Desktop shows "Get Android app"
-
----
-
-## Staging vs Production Architecture
-
-**Last Updated:** January 26, 2026
-
-### Overview
-
-Two separate Supabase projects are used to enable realistic billing testing on preview deployments while keeping production secure:
-
-| Environment | Supabase Project | Billing Mode | Purpose |
-|-------------|------------------|--------------|---------|
-| **Production** | `matchops-cloud` | Real Google Play | Live users with real payments |
-| **Staging** | `matchops-staging` | Mock billing enabled | Preview deployments & testing |
-
-### Architecture Diagram
+## Implementation Priority & Dependencies
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              VERCEL                                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐ │
-│  │     PREVIEW DEPLOYMENTS          │  │     PRODUCTION DEPLOYMENT        │ │
-│  │  (PR branches, feature branches) │  │     (master/main branch)         │ │
-│  │                                  │  │                                  │ │
-│  │  Environment:                    │  │  Environment:                    │ │
-│  │  NEXT_PUBLIC_SUPABASE_URL=       │  │  NEXT_PUBLIC_SUPABASE_URL=       │ │
-│  │    staging-project.supabase.co   │  │    prod-project.supabase.co      │ │
-│  │  NEXT_PUBLIC_SUPABASE_ANON_KEY=  │  │  NEXT_PUBLIC_SUPABASE_ANON_KEY=  │ │
-│  │    (staging key)                 │  │    (production key)              │ │
-│  └──────────────┬───────────────────┘  └──────────────┬───────────────────┘ │
-│                 │                                      │                     │
-└─────────────────┼──────────────────────────────────────┼─────────────────────┘
-                  │                                      │
-                  ▼                                      ▼
-┌─────────────────────────────────────┐  ┌─────────────────────────────────────┐
-│         MATCHOPS-STAGING            │  │         MATCHOPS-CLOUD              │
-│      (Supabase Project)             │  │      (Supabase Project)             │
-├─────────────────────────────────────┤  ├─────────────────────────────────────┤
-│                                     │  │                                     │
-│  Database:                          │  │  Database:                          │
-│  - Same schema as production        │  │  - Production data                  │
-│  - Test data only                   │  │  - Real user subscriptions          │
-│                                     │  │                                     │
-│  Edge Function:                     │  │  Edge Function:                     │
-│  verify-subscription                │  │  verify-subscription                │
-│  - MOCK_BILLING=true                │  │  - MOCK_BILLING=false               │
-│  - Accepts test- prefix tokens      │  │  - Calls Google Play API            │
-│  - No Google Play credentials       │  │  - Real verification only           │
-│                                     │  │                                     │
-│  Purpose:                           │  │  Purpose:                           │
-│  ✓ PR review testing               │  │  ✓ Real users                       │
-│  ✓ Feature development             │  │  ✓ Real payments                    │
-│  ✓ CI/CD integration tests         │  │  ✓ Real subscriptions               │
-│  ✓ Demo environments               │  │                                     │
-└─────────────────────────────────────┘  └─────────────────────────────────────┘
+Phase 1 (Limits Config + Product IDs)
+    |
+    v
+Phase 2 (Re-enable Enforcement + SubscriptionContext Bridge)
+    |
+    v
+Phase 3 (Limit Visibility UX)     <-- Testable without billing
+    |
+    v
+Phase 4 (Upgrade Prompt Copy Update)            <-- Testable without billing
+    |
+    v
+Phase 5 (Play Billing)  +  Phase 6 (Edge Function)  <-- Parallel, require Play Store
+    |                          |
+    v                          v
+            Phase 7 (Launch)
 ```
 
-### Supabase Project Details
+**Phases 1-4 can be built and tested without any Play Store setup.** The upgrade prompt shows "Purchase not available in this environment" on non-Android, or uses test tokens on Vercel preview. This means the bulk of the work is frontend-only and locally testable.
 
-#### Production: `matchops-cloud`
-- **Project ID:** `aybjmnxxtgspqesdiqxd`
-- **URL:** `https://aybjmnxxtgspqesdiqxd.supabase.co`
-- **Edge Function Secrets:**
-  - `MOCK_BILLING=false` (or not set)
-  - `GOOGLE_PLAY_SERVICE_ACCOUNT` — Real service account JSON
-  - `SUPABASE_SERVICE_ROLE_KEY` — Production service role key
-
-#### Staging: `matchops-staging`
-- **Project ID:** `hwcqpvvqnmetjrwvzlfr`
-- **URL:** `https://hwcqpvvqnmetjrwvzlfr.supabase.co`
-- **Edge Function Secrets:**
-  - `MOCK_BILLING=true` — Enables test token acceptance
-  - `SUPABASE_SERVICE_ROLE_KEY` — Staging service role key
-  - (No Google Play credentials needed)
-
-### Vercel Environment Configuration
-
-Configure environment variables in Vercel Dashboard → Settings → Environment Variables:
-
-| Variable | Production | Preview | Development |
-|----------|------------|---------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://aybjmnxxtgspqesdiqxd.supabase.co` | `https://hwcqpvvqnmetjrwvzlfr.supabase.co` | `.env.local` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (production anon key) | (staging anon key) | `.env.local` |
-
-**Important:** Vercel allows different values for Production vs Preview environments. Set:
-1. Production environment → production Supabase credentials
-2. Preview environment → staging Supabase credentials
-
-### Edge Function Deployment
-
-The `verify-subscription` Edge Function must be deployed to **both** Supabase projects with different configuration:
-
-**Deploy to Staging:**
-```bash
-# From project root
-cd supabase/functions
-supabase link --project-ref hwcqpvvqnmetjrwvzlfr
-supabase functions deploy verify-subscription
-supabase secrets set MOCK_BILLING=true
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY="<staging-service-role-key>"
-```
-
-**Deploy to Production:**
-```bash
-cd supabase/functions
-supabase link --project-ref aybjmnxxtgspqesdiqxd
-supabase functions deploy verify-subscription
-supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT='<service-account-json>'
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY="<prod-service-role-key>"
-# Note: Do NOT set MOCK_BILLING in production (or set to false)
-```
-
-### Testing on Preview Deployments
-
-With staging configured, preview deployments can test the full billing flow:
-
-1. **Create preview deployment** (push to feature branch)
-2. **Open preview URL** — Uses staging Supabase automatically
-3. **Test mock purchase:**
-   ```typescript
-   // In browser console or test
-   const result = await purchase();  // Triggers mock flow
-   ```
-4. **Verify subscription created** in staging Supabase dashboard
-
-### Mock Token Format
-
-When `MOCK_BILLING=true`, the Edge Function accepts tokens with `test-` prefix:
-
-```typescript
-// Valid test tokens (accepted by staging)
-'test-preview-123'
-'test-ci-integration'
-'test-demo-user'
-
-// Invalid (rejected even in staging)
-'real-token-xyz'      // No test- prefix
-'test-' + 'a'.repeat(100)  // Too long (max 100 chars)
-```
-
-### Schema Synchronization
-
-Keep staging schema in sync with production by applying migrations to both:
-
-```bash
-# Apply new migration to staging
-supabase link --project-ref hwcqpvvqnmetjrwvzlfr
-supabase db push
-
-# Apply same migration to production
-supabase link --project-ref aybjmnxxtgspqesdiqxd
-supabase db push
-```
-
-### Security Considerations
-
-| Concern | Mitigation |
-|---------|------------|
-| Staging data leaks | Staging has no real user data, only test accounts |
-| Mock billing in production | `MOCK_BILLING` secret never set to `true` in production |
-| Cross-environment tokens | Token validation rejects test- prefix in production |
-| Accidental production write | Vercel env vars ensure preview → staging only |
-
-### Local Development
-
-For local development, create `.env.local`:
-
-```bash
-# Use staging for local development
-NEXT_PUBLIC_SUPABASE_URL=https://hwcqpvvqnmetjrwvzlfr.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<staging-anon-key>
-
-# Or use local Supabase (supabase start)
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<local-anon-key>
-```
+**Phases 5-6 require:**
+- Google Play Console access
+- `matchops_full_version` product created
+- Edge Function deployment to Supabase
+- Toiminimi registered
 
 ---
 
-## Related Issues (Consolidated)
+## Complete File Change Inventory
 
-This plan consolidates and supersedes:
+Every file that needs changes, organized by phase.
 
-- [x] #171 - Epic: P4C - Play Billing API Integration
-- [x] #258 - Enable PREMIUM_ENFORCEMENT_ENABLED
-- [x] #291 - Integrate Google Play Billing
-- [x] #292 - Subscription state management
-- [x] #293 - Grace period and expiration handling
-- [x] #299 - Platform-aware billing (was: Limit cloud sync)
-- [x] #300 - Server-side subscription verification
-- [x] #301 - Cross-device subscription sync
+### Phase 1 Files (Config + Resource Type Cleanup)
 
----
+**Configuration:**
+| File | Change |
+|------|--------|
+| `src/config/premiumLimits.ts` | New limits (3/3), narrow `ResourceType` to season/tournament, new product ID, `PREMIUM_IS_SUBSCRIPTION = false` |
+| `src/utils/playBilling.ts` | Rename `SUBSCRIPTION_PRODUCT_ID` -> use `PREMIUM_PRODUCT_ID`; rename `purchaseSubscription()`, `SubscriptionDetails`, `getSubscriptionDetails()` |
+| `src/hooks/usePlayBilling.ts` | Update to use renamed functions/types from playBilling.ts |
+| `supabase/functions/verify-subscription/index.ts` | Add `matchops_full_version` to `VALID_PRODUCT_IDS` |
 
-## Implementation Order
+**Remove old resource type usages (required to avoid build break):**
+| File | Change |
+|------|--------|
+| `src/components/TeamManagerModal.tsx` | Remove `useResourceLimit('team', ...)` |
+| `src/components/RosterSettingsModal.tsx` | Remove `useResourceLimit('player', ...)` |
+| `src/components/HomePage/utils/newGameHandlers.ts` | Remove `canCreate('game', ...)` and `showUpgradePrompt('game', ...)` (lines 115-139) |
+| `src/components/HomePage/hooks/useGameOrchestration.ts` | Remove game limit props if no longer passed |
 
-1. **Phase 1:** Database foundation (migration + RPC)
-2. **Phase 2:** Platform detection + UI gating
-3. **Phase 3:** Edge Function for verification
-4. **Phase 4:** Play Billing client integration
-5. **Phase 5:** Subscription context/state management
-6. **Phase 6:** Grace period UI
-7. **Phase 7:** Cross-device sync
-8. **Phase 8:** Enable enforcement (final step)
+**Remove `cloudUpgrade` variant (cloud sync is free):**
+| File | Change |
+|------|--------|
+| `src/components/UpgradePromptModal.tsx` | Remove `cloudUpgrade` variant handling |
+| `src/app/page.tsx` | Remove post-login cloud upgrade flow (~lines 935-938, 1284-1289) |
+| `src/components/CloudSyncSection.tsx` | Remove upgrade prompt for cloud sync |
 
-Each phase can be tested independently before moving to the next.
+**i18n:**
+| File | Change |
+|------|--------|
+| `public/locales/en/common.json` | Update limit strings, remove team/player/game limits, update subscription wording |
+| `public/locales/fi/common.json` | Same as English |
 
----
+**Tests (MUST update in Phase 1):**
+| File | Change |
+|------|--------|
+| `src/utils/__tests__/premiumManager.test.ts` | Update for new ResourceType, new limits |
+| `src/contexts/__tests__/PremiumContext.test.tsx` | Update resource type mocks |
+| `src/components/__tests__/UpgradePromptModal.test.tsx` | Remove cloudUpgrade tests |
+| `src/components/__tests__/TeamManagerModal.test.tsx` | Remove premium limit mock/assertions |
+| `src/components/__tests__/RosterSettingsModal.test.tsx` | Remove premium limit mock/assertions |
+| `src/components/HomePage/utils/__tests__/newGameHandlers.test.ts` | Remove game limit tests |
+| `src/components/HomePage/hooks/__tests__/useGameOrchestration.*.test.tsx` | Update `showUpgradePrompt` mocks |
+| `src/__tests__/i18n-validation.test.ts` | Update for changed/removed keys |
+| `src/components/__tests__/CloudSyncSection.test.tsx` | Remove upgrade prompt tests |
 
-# PART 2: Account-Subscription Separation Model
+### Phase 2 Files (Enforcement Logic)
+| File | Change |
+|------|--------|
+| `src/utils/premiumManager.ts` | Re-enable `canCreateResource`, `getRemainingCount`, `isOverFreeLimit`; update `ResourceCounts` type |
+| `src/contexts/PremiumContext.tsx` | Restore mode-based logic (local=premium, cloud=check license) |
+| `src/hooks/usePremiumSubscriptionBridge.ts` | **NEW** -- cross-device bridge hook (check raw `status`, grant premium) |
+| `src/components/UpgradePromptManager.tsx` | Call `usePremiumSubscriptionBridge()` hook |
 
-**Added:** January 23, 2026
-**Status:** Implementation In Progress
+### Phase 3 Files (Limit Visibility UX)
+| File | Change |
+|------|--------|
+| `src/hooks/usePremium.ts` | Add `isApproaching`, `isAtLimit` to `useResourceLimit` return |
+| `src/components/SeasonTournamentManagementModal.tsx` | Add "X of 3 free" indicator |
+| `src/components/SeasonDetailsModal.tsx` | Add "last free" reminder when `isApproaching` |
+| `src/components/TournamentDetailsModal.tsx` | Add "last free" reminder when `isApproaching` |
+| `src/components/SettingsModal.tsx` | Add plan/tier section to Account tab |
+| `src/utils/fullBackup.ts` | Return counts in import result for post-import notice |
+| `public/locales/en/common.json` | Add keys for indicators and reminders |
+| `public/locales/fi/common.json` | Same |
+| Test files mocking `useResourceLimit` | Add `isApproaching`/`isAtLimit` to mocks (SeasonTournamentManagementModal.test.tsx, etc.) |
 
-This section documents the **revised billing model** that separates account creation from subscription. This supersedes the original model where "account creation is tied to subscription."
+### Phase 4 Files (Upgrade Prompt Copy)
+| File | Change |
+|------|--------|
+| `src/components/UpgradePromptModal.tsx` | Update copy for one-time purchase (benefits, button text, non-Android text) |
 
----
+### Phase 5 Files (Play Billing)
+| File | Change |
+|------|--------|
+| `src/utils/playBilling.ts` | Update purchase flow for one-time; update acknowledge type to 'onetime' |
+| `src/hooks/usePlayBilling.ts` | Update purchase/restore for one-time; pass purchaseType to verify |
 
-## Model Overview
+### Phase 6 Files (Edge Function)
+| File | Change |
+|------|--------|
+| `supabase/functions/verify-subscription/index.ts` | Add `purchaseType` param; branch Google API call (products vs subscriptions endpoint); handle one-time response; store with `period_end = null` |
 
-### Core Principle
-
-**Account and Subscription are SEPARATE concepts.**
-
-| Concept | Cost | What It Provides |
-|---------|------|------------------|
-| **Account** | FREE | Identity, sign-in, future recovery, support |
-| **Subscription** | PAID | Active cloud sync across devices |
-
-### The Three User States
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         USER STATES                                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  STATE 1: Anonymous Local                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │ • No account                                                     │    │
-│  │ • Data in local IndexedDB only                                   │    │
-│  │ • Works offline                                                  │    │
-│  │ • Single device                                                  │    │
-│  │ • FREE                                                           │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-│                              │                                           │
-│                              ▼ (Create free account)                     │
-│  STATE 2: Account without Subscription                                   │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │ • Has account (email + password)                                 │    │
-│  │ • Data in local IndexedDB (NOT synced)                           │    │
-│  │ • Can sign in on any device (but data doesn't sync)              │    │
-│  │ • Cloud sync PAUSED                                              │    │
-│  │ • FREE                                                           │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-│                              │                                           │
-│                              ▼ (Subscribe)                               │
-│  STATE 3: Account with Active Subscription                               │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │ • Has account                                                    │    │
-│  │ • Data in Supabase cloud (actively syncing)                      │    │
-│  │ • Works across all devices                                       │    │
-│  │ • Cloud sync ACTIVE                                              │    │
-│  │ • PAID (subscription required)                                   │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-│                              │                                           │
-│                              ▼ (Cancel subscription)                     │
-│  STATE 4: Account with Expired Subscription                              │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │ • Has account                                                    │    │
-│  │ • Cloud data FROZEN (preserved, not deleted)                     │    │
-│  │ • New data goes to local storage                                 │    │
-│  │ • Cloud sync PAUSED                                              │    │
-│  │ • FREE (until resubscribe)                                       │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-│                              │                                           │
-│                              ▼ (Resubscribe)                             │
-│                       Back to STATE 3                                    │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+### Phase 7 Files (Launch)
+| File | Change |
+|------|--------|
+| `src/config/constants.ts` | `PREMIUM_ENFORCEMENT_ENABLED = true` |
+| `src/__tests__/security/premium-env.test.ts` | Update assertion: `PREMIUM_ENFORCEMENT_ENABLED` now `true` |
+| Play Store listing | Update description to mention free tier limits |
 
 ---
 
-## Detailed State Definitions
+## Migration from Old Plan
 
-### State 1: Anonymous Local
+The previous billing plan (January 2026) was subscription-based with account gating:
 
-**Entry:** User selects "Start without account" on Welcome Screen
-
-| Aspect | Value |
-|--------|-------|
-| Account | None |
-| Data location | Local IndexedDB |
-| Sync status | N/A (no account) |
-| Cost | Free |
-| Devices | Single device only |
-| Data recovery | Not possible (no account) |
-
-**Available actions:**
-- Use app fully (unlimited local features)
-- Create account anytime (→ State 2)
-- Export/import backups manually
+| Aspect | Old Plan (Jan 2026) | New Plan (Mar 2026) |
+|--------|-------------------|-------------------|
+| Account creation | Required payment | Free |
+| Payment model | Monthly subscription (4.99 EUR/mo) | One-time purchase (~4.99 EUR) |
+| What's gated | Cloud sync access | Competition count (>3 seasons/tournaments) |
+| Limits | Teams, games, players, seasons, tournaments | Seasons and tournaments only |
+| Grace period | Yes (payment failures) | N/A (permanent purchase) |
+| Subscription table | Tracks renewal cycles | Uses `active` + `period_end=NULL` for permanent |
+| Edge Function | Validates subscription only | Validates both subscription and one-time |
+| SubscriptionContext | Gates cloud sync | Detects premium for cross-device |
 
 ---
 
-### State 2: Account without Subscription
+## Edge Cases & Risk Mitigation
 
-**Entry:** User creates free account OR subscription expires
+### Refund Handling
 
-| Aspect | Value |
-|--------|-------|
-| Account | Active (email + password) |
-| Data location | Local IndexedDB |
-| Sync status | PAUSED |
-| Cost | Free |
-| Devices | Can sign in anywhere, but data is local to each device |
-| Data recovery | Account recovery via password reset |
+**Scenario:** Google refunds a one-time purchase (via Play Console or user complaint).
 
-**Available actions:**
-- Use app fully (unlimited local features)
-- Sign in/out on any device
-- Subscribe to enable sync (→ State 3)
-- Delete account
+**Google's behavior:** Purchase `purchaseState` changes from `0` (purchased) to `1` (cancelled). Google can notify via Real-Time Developer Notifications (RTDN) or Voided Purchases API.
 
-**UI indicators:**
-- CloudSyncSection: "Account: Active ✓ | Sync: Paused ⚠"
-- Banner: "Subscribe to sync your data across devices"
+**Current plan:** No RTDN integration. This means a refunded user keeps premium locally until:
+1. They sign out and sign in (SubscriptionContext re-fetches from Supabase)
+2. The Edge Function is called for some other reason and detects the revocation
 
----
+**Acceptable for launch:** At small scale, refunds are rare and manual handling is fine. If someone refunds and keeps premium for a few days, the cost is negligible.
 
-### State 3: Account with Active Subscription
+**Future improvement (if scale justifies):**
+- Add periodic re-verification: on app launch, every 24h, check `get_subscription_status()` RPC
+- If status is no longer `active`, call `revokePremiumAccess()` locally
+- Consider RTDN webhook to update `subscriptions` table on refund events
 
-**Entry:** User subscribes via Google Play Billing
+### Desktop-Only Users
 
-| Aspect | Value |
-|--------|-------|
-| Account | Active |
-| Data location | Supabase cloud |
-| Sync status | ACTIVE |
-| Cost | Paid (monthly subscription) |
-| Devices | All devices sync automatically |
-| Data recovery | Cloud backup + account recovery |
+**Scenario:** User only uses the app on desktop browser and wants to purchase.
 
-**Available actions:**
-- Use app fully with cloud sync
-- Sign in on any device (data syncs)
-- Cancel subscription (→ State 4)
-- Delete account
+**Current behavior:** UpgradePromptModal shows "Available on the Android app" with Play Store link.
 
-**UI indicators:**
-- CloudSyncSection: "Account: Active ✓ | Sync: Active ✓"
-- No warning banners
+**Acceptable for launch:** Desktop users are a small minority (app is phone-first). They can:
+1. Install the Android app, purchase there, then continue on desktop (cross-device premium works)
+2. Use the free tier (3 seasons + 3 tournaments is generous)
+
+**Future improvement:** Add web-based payment option (Stripe or similar) if desktop user base grows.
+
+### Existing Data Migration
+
+**Scenario:** App launches with limits enabled. Existing users already have >3 seasons.
+
+**Impact:** None -- limits only gate NEW creation. Existing data is never restricted. Existing users who already have >3 seasons simply can't create new ones without purchasing.
 
 ---
 
-### State 4: Account with Expired Subscription
-
-**Entry:** User cancels subscription OR payment fails after grace period
-
-| Aspect | Value |
-|--------|-------|
-| Account | Active |
-| Cloud data | FROZEN (preserved, read-only) |
-| New data location | Local IndexedDB |
-| Sync status | PAUSED |
-| Cost | Free |
-| Devices | Can sign in, but data doesn't sync |
-
-**Available actions:**
-- Use app with local data
-- View frozen cloud data (read-only)
-- Resubscribe to resume sync (→ State 3)
-- Delete account
-
-**UI indicators:**
-- CloudSyncSection: "Account: Active ✓ | Sync: Paused (subscription expired)"
-- Banner: "Resubscribe to sync your data"
-
----
-
-## Data Flow Diagrams
-
-### Creating Account and Subscribing
-
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ Welcome      │     │ Create       │     │ App (Local)  │
-│ Screen       │────▶│ Account      │────▶│ with Account │
-│              │     │ (FREE)       │     │ No Sync      │
-└──────────────┘     └──────────────┘     └──────┬───────┘
-                                                  │
-                                                  │ User subscribes
-                                                  ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ App (Cloud)  │     │ Verify       │     │ Play Billing │
-│ Syncing      │◀────│ Subscription │◀────│ Purchase     │
-│              │     │ (Edge Func)  │     │              │
-└──────────────┘     └──────────────┘     └──────────────┘
-```
-
-### Subscription Expiration Flow
-
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ Active       │     │ User         │     │ Grace        │
-│ Subscription │────▶│ Cancels      │────▶│ Period       │
-│              │     │              │     │ (7 days)     │
-└──────────────┘     └──────────────┘     └──────┬───────┘
-                                                  │
-                                                  │ Grace expires
-                                                  ▼
-┌──────────────┐                          ┌──────────────┐
-│ Local Mode   │                          │ Subscription │
-│ Cloud Frozen │◀─────────────────────────│ Expired      │
-│ Account OK   │                          │              │
-└──────────────┘                          └──────────────┘
-```
-
-### Resubscription Flow
-
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ Expired Sub  │     │ User         │     │ Merge        │
-│ Local Data   │────▶│ Resubscribes │────▶│ Wizard       │
-│ Cloud Frozen │     │              │     │              │
-└──────────────┘     └──────────────┘     └──────┬───────┘
-                                                  │
-                                                  │ User chooses merge strategy
-                                                  ▼
-                     ┌──────────────┐     ┌──────────────┐
-                     │ Sync         │     │ Active       │
-                     │ Resumed      │◀────│ Subscription │
-                     │              │     │              │
-                     └──────────────┘     └──────────────┘
-```
-
----
-
-## User Experience Specifications
-
-### Welcome Screen
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                  │
-│                         MatchOps                                 │
-│                                                                  │
-│                        Welcome!                                  │
-│                Choose how to get started                         │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │ Start without an account                                 │    │
-│  │ FREE                                                     │    │
-│  │ Your data is saved on this device only.                  │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │ Sign in or create an account                             │    │
-│  │ FREE ACCOUNT                                             │    │
-│  │ Create a free account. Subscribe anytime to sync         │    │
-│  │ across devices.                                          │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │ Import a backup                                          │    │
-│  │ FREE                                                     │    │
-│  │ Restore your previous data from a file.                  │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│              You can change this later in Settings               │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Settings - Cloud Sync Section (No Subscription)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Account & Sync                                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │ 👤 Account: user@email.com                              ✓   │ │
-│ │ [Sign Out]                                                  │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │ ⚠ Sync Status: Paused                                       │ │
-│ │                                                             │ │
-│ │ Your account is active but cloud sync is paused.            │ │
-│ │ Subscribe to sync your data across devices.                 │ │
-│ │                                                             │ │
-│ │ [Subscribe Now]                                             │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│ Your data is stored locally on this device.                      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Settings - Cloud Sync Section (With Subscription)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Account & Sync                                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │ ☁ Cloud Mode: Active                                    ✓   │ │
-│ │ Your data syncs to the cloud.                               │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│ [Sign Out]                                                       │
-│ [Switch to Local Mode]                                           │
-│                                                                  │
-│ ─────────────────────────────────────────────────────────────── │
-│ Danger Zone                                                      │
-│ [Clear All Cloud Data]                                           │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## What This Model Does NOT Change
-
-The following remain exactly the same:
-
-| Component | Behavior |
-|-----------|----------|
-| Local mode features | Unlimited, free, works offline |
-| Play Billing integration | Same - verifies via Edge Function |
-| Subscription storage | Same - Supabase `subscriptions` table |
-| SubscriptionContext | Same - fetches status from RPC |
-| Migration wizard | Same - used when switching modes |
-| Reverse migration | Same - downloads cloud data to local |
-| Grace period handling | Same - 7 days after payment failure |
-
----
-
-## What This Model DOES Change
-
-| Component | Old Behavior | New Behavior |
-|-----------|--------------|--------------|
-| Account creation | Gated behind subscription | Free on all platforms |
-| WelcomeScreen | "PAID" badge for cloud | "FREE ACCOUNT" badge |
-| WelcomeScreen (Desktop) | Sign-in only, no registration | Full registration allowed |
-| Post-login check | No subscription → kick to local | No subscription → stay logged in, show banner |
-| CloudSyncSection | "Enable Cloud" gated | "Enable Cloud" free, sync status shown |
-| useCloudUpgradeGate | Gates cloud enabling | Removed or gates sync-only operations |
-| AuthProvider.signUp | Granted mock subscription (Android) | No subscription granted |
-
----
-
-## Business Rationale
-
-### Why Separate Account from Subscription?
-
-1. **Lower barrier to entry**
-   - Users can try cloud account without commitment
-   - More users create accounts → larger potential customer base
-
-2. **Reduced churn friction**
-   - Canceling subscription ≠ losing everything
-   - Users feel safe to try, cancel, and return
-
-3. **Higher return rate**
-   - Account remains active after cancellation
-   - One-click resubscribe vs. starting from scratch
-
-4. **Standard SaaS pattern**
-   - Netflix, Spotify, etc. don't delete accounts on cancellation
-   - Users expect this behavior
-
-### Revenue Impact
-
-| Metric | Old Model | New Model | Impact |
-|--------|-----------|-----------|--------|
-| Account creation rate | Lower (payment barrier) | Higher (free) | ↑ Funnel size |
-| Conversion to paid | Higher % of smaller base | Lower % of larger base | ≈ Net neutral |
-| Churn anxiety | High | Low | ↓ Cancellation fear |
-| Return rate | Low | High | ↑ Resubscriptions |
-
----
-
-## Edge Cases and Handling
-
-### Edge Case 1: User Signs In on New Device (No Subscription)
-
-**Scenario:** User has account but no subscription. Signs in on Device B.
-
-**Behavior:**
-- Sign-in succeeds (account exists)
-- App loads in "cloud mode" but sync is paused
-- Local data on Device B is empty (or whatever was there before)
-- Banner: "Subscribe to sync your data"
-
-**NOT expected:** User's data from Device A magically appears (that requires subscription).
-
----
-
-### Edge Case 2: Subscription Expires Mid-Session
-
-**Scenario:** User is actively using app when subscription expires.
-
-**Behavior:**
-- Current session continues normally
-- On next app launch or subscription check:
-  - Cloud data is frozen
-  - New changes go to local storage
-  - Banner appears: "Subscription expired. Your data is stored locally."
-
----
-
-### Edge Case 3: User Resubscribes After Using Local for a While
-
-**Scenario:** User had subscription, cancelled, made local changes, now resubscribes.
-
-**Behavior:**
-1. Subscription verified
-2. Migration wizard appears with options:
-   - **Merge:** Combine local and cloud data
-   - **Cloud wins:** Discard local changes, use cloud
-   - **Local wins:** Replace cloud with local data
-3. User chooses, sync resumes
-
----
-
-### Edge Case 4: User Deletes Account
-
-**Scenario:** User wants to completely remove their account.
-
-**Behavior:**
-- Account deletion available in Settings (GDPR compliance)
-- Deletes: auth user, all cloud data, subscription record
-- User returns to State 1 (Anonymous Local)
-- Local data on current device remains (user's choice to keep or delete)
-
----
-
-## Security Considerations
-
-### What's Protected
-
-| Resource | Protection |
-|----------|------------|
-| Cloud data | Only accessible with valid session + subscription |
-| Subscription status | Read-only for users, write via Edge Function only |
-| Account | Standard Supabase auth security |
-
-### Attack Vectors Addressed
-
-| Attack | Mitigation |
-|--------|------------|
-| Create account, never pay, use cloud | Sync is paused without subscription - no cloud storage used |
-| Spoof subscription status | Server-side verification via Edge Function |
-| Access other users' data | RLS policies restrict to own user_id |
-
----
-
-# PART 3: Implementation Plan for Model Migration
-
-**Goal:** Migrate from "Account tied to Subscription" to "Account-Subscription Separation"
-
----
-
-## Pre-Implementation State
-
-### Files Modified (Partially Complete)
-
-| File | Status | Changes Made |
-|------|--------|--------------|
-| `AuthProvider.tsx` | ✅ Done | Removed mock subscription grant from signUp |
-| `AuthProvider.test.tsx` | ✅ Done | Removed platform/billing mocks |
-| `CloudSyncSection.tsx` | ✅ Done | Removed useCloudUpgradeGate, added subscription banner |
-| `WelcomeScreen.tsx` | ✅ Done | Unified "FREE ACCOUNT" for all platforms |
-
-### Files Still Need Changes
-
-| File | Status | Changes Needed |
-|------|--------|----------------|
-| `page.tsx` | ✅ Done | useCloudUpgradeGate never existed in page.tsx (verified Jan 2026) |
-| `useCloudUpgradeGate.ts` | ✅ Done | File never existed / already deleted (verified Jan 2026) |
-| `LoginScreen.tsx` | ✅ Done | Registration allowed on all platforms |
-| Translation files | ✅ Done | Keys added |
-| Tests | ✅ Done | Tests updated |
-
-**Note (Jan 2026):** These tasks were marked Todo but verification shows they're all complete. The `useCloudUpgradeGate` hook was never implemented or has been fully removed from the codebase.
-
----
-
-## Implementation Steps
-
-### Step 1: Update page.tsx - Remove Cloud Upgrade Gate
-
-**File:** `src/app/page.tsx`
-
-**Changes:**
-1. Remove `useCloudUpgradeGate` import
-2. Remove gate-related state and handlers
-3. Simplify `handleEnableCloudSync` to call `executeEnableCloudSync` directly
-4. Remove the gate-based `UpgradePromptModal`
-
-**Before:**
-```typescript
-import { useCloudUpgradeGate } from '@/hooks/useCloudUpgradeGate';
-
-const {
-  showModal: showCloudUpgradeModal,
-  gateCloudAction,
-  handleUpgradeSuccess: handleCloudUpgradeSuccess,
-  handleCancel: handleCloudUpgradeCancel,
-} = useCloudUpgradeGate();
-
-const handleEnableCloudSync = useCallback(() => {
-  gateCloudAction(executeEnableCloudSync);
-}, [gateCloudAction, executeEnableCloudSync]);
-```
-
-**After:**
-```typescript
-// No useCloudUpgradeGate import
-
-const handleEnableCloudSync = useCallback(() => {
-  executeEnableCloudSync();
-}, [executeEnableCloudSync]);
-```
-
----
-
-### Step 2: Update page.tsx - Fix Post-Login Flow
-
-**File:** `src/app/page.tsx`
-
-**Current behavior:** If user signs in without subscription, they're kicked back to local mode.
-
-**New behavior:** User stays logged in, sync is paused, banner shown.
-
-**Changes:**
-1. Remove the effect that checks premium after login and kicks to local
-2. Let user stay in cloud mode (logged in but sync paused)
-3. SubscriptionContext + CloudSyncSection handle the "no subscription" UI
-
-**Find and remove/modify:**
-```typescript
-// Current: kicks user to local if no premium
-if (!isPremium) {
-  setShowPostLoginUpgradeModal(true);
-}
-
-// handlePostLoginUpgradeCancel: disables cloud mode
-```
-
-**Replace with:**
-```typescript
-// New: let user stay logged in, sync is paused
-// No modal, no kick to local
-// CloudSyncSection shows subscription banner
-```
-
----
-
-### Step 3: Update LoginScreen.tsx - Allow Registration Everywhere
-
-**File:** `src/components/LoginScreen.tsx`
-
-**Current:** `allowRegistration` prop controls whether signup is shown.
-
-**New:** Registration always allowed (prop removed or always true).
-
-**Changes:**
-1. Remove `allowRegistration` prop or default to `true`
-2. Show signup form on all platforms
-3. Update messaging: "Create a free account"
-
----
-
-### Step 4: Clean Up useCloudUpgradeGate
-
-**File:** `src/hooks/useCloudUpgradeGate.ts`
-
-**Options:**
-1. **Delete entirely** - if no longer used
-2. **Repurpose** - rename to `useSyncGate` for gating sync-only operations
-
-**Recommendation:** Delete if CloudSyncSection no longer uses it.
-
-Also update/delete the test file: `src/hooks/__tests__/useCloudUpgradeGate.test.ts`
-
----
-
-### Step 5: Add Translation Keys
-
-**Files:**
-- `public/locales/en/common.json`
-- `public/locales/fi/common.json`
-
-**New keys needed:**
-```json
-{
-  "welcome": {
-    "badgeFreeAccount": "Free Account",
-    "signInCloudDescFree": "Create a free account. Subscribe anytime to sync across devices."
-  },
-  "cloudSync": {
-    "subscriptionRequired": "Subscription Required",
-    "subscriptionRequiredDescription": "Your account is active but cloud sync is paused. Subscribe to sync your data across devices.",
-    "subscribeButton": "Subscribe Now",
-    "cloudNoSubscription": "You have a cloud account but sync is paused. Subscribe to enable cloud sync."
-  }
-}
-```
-
----
-
-### Step 6: Update Migration Wizard Trigger
-
-**File:** Where migration wizard is triggered (likely `page.tsx`)
-
-**Current:** Migration wizard shown when entering cloud mode with local data.
-
-**New:** Migration wizard shown when:
-- Entering cloud mode with local data AND
-- User has active subscription
-
-**Changes:**
-1. Add subscription check before showing migration wizard
-2. If no subscription: show "Subscribe to migrate your data" message
-
----
-
-### Step 7: Update Tests
-
-**Files to update:**
-- `src/contexts/__tests__/AuthProvider.test.tsx` - already updated
-- `src/app/__tests__/page.test.tsx` - remove gate expectations
-- `src/components/__tests__/CloudSyncSection.test.tsx` - update for new behavior
-- `src/components/__tests__/WelcomeScreen.test.tsx` - update for unified button
-- `src/hooks/__tests__/useCloudUpgradeGate.test.ts` - delete or update
-
----
-
-### Step 8: Manual Testing Checklist
-
-**Test each user state:**
-
-| Test | Steps | Expected Result |
-|------|-------|-----------------|
-| Anonymous local | Choose "Start without account" | App works, data local |
-| Create free account | Click "Create account", sign up | Account created, sync paused, banner shown |
-| Subscribe | Click "Subscribe Now" on Android | Play Billing flow, subscription verified, sync enabled |
-| Sign out | Click "Sign Out" | Returns to login screen |
-| Sign in (with subscription) | Sign in | Cloud mode, syncing |
-| Sign in (no subscription) | Sign in | Cloud mode, sync paused, banner shown |
-| Cancel subscription | Cancel in Play Store | After grace period: sync paused, banner shown |
-| Resubscribe | Subscribe again | Merge wizard if needed, sync resumes |
-| Desktop account creation | On desktop, create account | Works (no platform restriction) |
-
----
-
-## Implementation Order Summary
-
-```
-Step 1: page.tsx - Remove useCloudUpgradeGate usage
-         ↓
-Step 2: page.tsx - Fix post-login flow (no kick to local)
-         ↓
-Step 3: LoginScreen.tsx - Allow registration everywhere
-         ↓
-Step 4: useCloudUpgradeGate.ts - Delete or repurpose
-         ↓
-Step 5: Translation files - Add new keys
-         ↓
-Step 6: Migration wizard - Add subscription check
-         ↓
-Step 7: Tests - Update all affected tests
-         ↓
-Step 8: Manual testing - Verify all states
-```
-
----
-
-## Rollback Plan
-
-If issues arise, revert to previous model:
-
-1. Restore `useCloudUpgradeGate` usage in `CloudSyncSection` and `page.tsx`
-2. Restore post-login premium check that kicks to local
-3. Restore platform-specific WelcomeScreen buttons
-4. Restore mock subscription grant in `AuthProvider.signUp`
-
-All changes are in application code (no database migrations needed for rollback).
-
----
-
-## Success Criteria
-
-The implementation is complete when:
-
-1. ✅ Users can create accounts for free on all platforms
-2. ✅ Users with accounts but no subscription see "sync paused" UI
-3. ✅ Users are NOT kicked to local mode after signing in without subscription
-4. ✅ Subscribe button works and enables sync
-5. ✅ Canceling subscription pauses sync but preserves account
-6. ✅ Resubscribing prompts merge wizard and resumes sync
-7. ✅ All tests pass
-8. ✅ Manual testing of all user states passes
+## Future Considerations
+
+### Phase 2 Monetization (Pro Tier)
+
+If a Pro subscription tier is added later (see monetization-strategies.md):
+- The `subscriptions` table already supports recurring subscriptions
+- The Edge Function keeps subscription verification alongside one-time
+- Add a second product ID (`matchops_pro_annual`)
+- Full Version buyers are grandfathered (unlimited competitions forever)
+- Pro adds NEW features on top (analytics, reports)
+
+### Phase 3 Monetization (Club Tier)
+
+Club tier would be a separate system entirely:
+- Multi-tenant backend
+- Organization management
+- Not through Play Store billing (direct B2B invoicing)
+- Separate implementation plan when/if needed

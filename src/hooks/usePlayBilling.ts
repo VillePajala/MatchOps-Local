@@ -20,11 +20,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   isPlayBillingAvailable,
-  purchaseSubscription,
-  getSubscriptionDetails,
+  purchaseFullVersion,
+  getProductDetails,
   getExistingPurchases,
-  SubscriptionDetails,
-  SUBSCRIPTION_PRODUCT_ID,
+  ProductDetails,
+  FULL_VERSION_PRODUCT_ID,
 } from '@/utils/playBilling';
 import type { Session } from '@supabase/supabase-js';
 import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
@@ -51,8 +51,8 @@ export interface UsePlayBillingResult {
   isLoading: boolean;
   /** Whether a purchase/restore is in progress */
   isPurchasing: boolean;
-  /** Subscription product details from Play Store */
-  details: SubscriptionDetails | null;
+  /** Product details from Play Store */
+  details: ProductDetails | null;
   /** Initiate a purchase flow */
   purchase: () => Promise<BillingResult>;
   /** Restore existing purchases */
@@ -71,7 +71,9 @@ let sessionRefreshPromise: Promise<Session | null> | null = null;
  * Timeout for session refresh operations (10 seconds).
  * Prevents deadlock if Supabase auth hangs.
  */
-const SESSION_REFRESH_TIMEOUT_MS = 10000;
+// Deadlock guard: if Supabase auth.refreshSession() hangs, abort after 20s
+// rather than blocking the purchase flow indefinitely.
+const SESSION_REFRESH_TIMEOUT_MS = 20000;
 
 /**
  * Ensure we have a fresh, valid session for Edge Function calls.
@@ -129,10 +131,11 @@ async function ensureFreshSession(): Promise<Session | null> {
       return recoveredSession;
     }
 
-    // Check if token is expired or about to expire (within 60 seconds)
+    // Check if token is expired or about to expire (within 90 seconds)
+    // Buffer accounts for network latency + Edge Function cold start
     const expiresAt = cachedSession.expires_at;
     const now = Math.floor(Date.now() / 1000);
-    const bufferSeconds = 60;
+    const bufferSeconds = 90;
 
     if (expiresAt && expiresAt < now + bufferSeconds) {
       logger.info('[usePlayBilling] Access token expired or expiring soon, refreshing...');
@@ -211,12 +214,11 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyRe
       return { success: false, error: 'Session invalid. Please sign in again.' };
     }
 
-    logger.info('[usePlayBilling] Calling Edge Function with fresh session:', {
+    logger.debug('[usePlayBilling] Calling Edge Function with fresh session:', {
       userId: session.user?.id?.slice(0, 8) ?? 'unknown',
-      expiresAt: session.expires_at,
       hasAccessToken: !!accessToken,
       hasPurchaseToken: !!purchaseToken,
-      productId: SUBSCRIPTION_PRODUCT_ID,
+      productId: FULL_VERSION_PRODUCT_ID,
     });
 
     // Explicitly pass the Authorization header to ensure it's included
@@ -225,7 +227,7 @@ async function verifyPurchaseWithServer(purchaseToken: string): Promise<VerifyRe
     const { data, error } = await supabase.functions.invoke('verify-subscription', {
       body: {
         purchaseToken,
-        productId: SUBSCRIPTION_PRODUCT_ID,
+        productId: FULL_VERSION_PRODUCT_ID,
       },
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -274,7 +276,7 @@ export function usePlayBilling(): UsePlayBillingResult {
   const [isAvailable, setIsAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [details, setDetails] = useState<SubscriptionDetails | null>(null);
+  const [details, setDetails] = useState<ProductDetails | null>(null);
 
   // Ref-based lock to prevent race conditions (state updates are async)
   // This provides synchronous check to ensure only one operation runs at a time
@@ -292,7 +294,7 @@ export function usePlayBilling(): UsePlayBillingResult {
         setIsAvailable(available);
 
         if (available) {
-          const productDetails = await getSubscriptionDetails();
+          const productDetails = await getProductDetails();
           if (mounted) {
             setDetails(productDetails);
           }
@@ -318,7 +320,7 @@ export function usePlayBilling(): UsePlayBillingResult {
     if (!isAvailable) return;
 
     try {
-      const productDetails = await getSubscriptionDetails();
+      const productDetails = await getProductDetails();
       setDetails(productDetails);
     } catch (error) {
       logger.error('[usePlayBilling] Failed to refresh details:', error);
@@ -326,6 +328,10 @@ export function usePlayBilling(): UsePlayBillingResult {
   }, [isAvailable]);
 
   // Purchase flow
+  // NOTE: Unlike restore(), purchase() does NOT call clearSubscriptionCache().
+  // The caller (UpgradePromptModal) is responsible for clearing the cache after
+  // granting premium access. This is intentional — purchase() only handles the
+  // Play Billing + server verification steps.
   const purchase = useCallback(async (): Promise<BillingResult> => {
     if (!isAvailable) {
       return { success: false, error: 'Play Billing not available' };
@@ -353,7 +359,7 @@ export function usePlayBilling(): UsePlayBillingResult {
 
       // Step 1: Launch Play Billing purchase flow
       logger.info('[usePlayBilling] Starting purchase flow');
-      const purchaseResult = await purchaseSubscription();
+      const purchaseResult = await purchaseFullVersion();
 
       if (!purchaseResult.success) {
         logger.warn('[usePlayBilling] Purchase flow failed:', purchaseResult.error);
@@ -423,6 +429,9 @@ export function usePlayBilling(): UsePlayBillingResult {
       }
 
       // Step 2: Verify the most recent purchase with server
+      // Note: Only tries the first token. If user has multiple purchases (e.g., refund + re-buy),
+      // Play Store typically removes refunded tokens from getExistingPurchases().
+      // If this proves insufficient, iterate tokens until one verifies successfully.
       logger.info('[usePlayBilling] Verifying existing purchase with server');
       const verifyResult = await verifyPurchaseWithServer(purchases[0]);
 
@@ -464,22 +473,26 @@ export function usePlayBilling(): UsePlayBillingResult {
 export default usePlayBilling;
 
 /**
- * Grant mock subscription for a user
+ * Grant mock purchase for a user
  *
- * Creates a subscription record in Supabase by calling the verify-subscription
+ * Creates a purchase record in Supabase by calling the verify-subscription
  * Edge Function with a test token. The Edge Function must have MOCK_BILLING=true
  * for this to work.
  *
- * Used for testing purposes - automatically grants subscription on signup for Android users.
+ * Used for testing purposes - automatically grants premium on signup for Android users.
  *
  * @param testToken - A test token (must start with 'test-' prefix)
  * @returns BillingResult indicating success or failure
  */
-export async function grantMockSubscription(testToken: string): Promise<BillingResult> {
-  if (process.env.NEXT_PUBLIC_INTERNAL_TESTING !== 'true') {
-    return { success: false, error: 'Mock subscriptions not available' };
+export async function grantMockPurchase(testToken: string): Promise<BillingResult> {
+  // Allow mock purchases in internal testing mode OR on Vercel preview deployments
+  const { VERCEL_PREVIEW_PATTERN } = await import('@/config/constants');
+  const isVercelPreview = typeof window !== 'undefined' &&
+    VERCEL_PREVIEW_PATTERN.test(window.location.hostname);
+  if (process.env.NEXT_PUBLIC_INTERNAL_TESTING !== 'true' && !isVercelPreview) {
+    return { success: false, error: 'Mock purchases not available' };
   }
-  logger.info('[usePlayBilling] Granting mock subscription with test token');
+  logger.info('[usePlayBilling] Granting mock purchase with test token');
   const result = await verifyPurchaseWithServer(testToken);
   if (!result.success) {
     return result;

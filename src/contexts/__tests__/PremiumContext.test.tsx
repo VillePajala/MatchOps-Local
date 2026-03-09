@@ -338,8 +338,8 @@ describe('PremiumContext', () => {
         </PremiumProvider>
       );
 
-      // Price in European format: "€ 4,99/kk" includes per-month indicator
-      expect(screen.getByTestId('price').textContent).toBe('€ 4,99/kk');
+      // Price in European format: "4,99 €" (one-time purchase)
+      expect(screen.getByTestId('price').textContent).toBe('4,99 €');
     });
 
     it('should handle license load error gracefully', async () => {
@@ -397,11 +397,11 @@ describe('PremiumContext', () => {
 
       const TestComponent = () => {
         const { canCreate, getRemaining } = usePremiumContext();
-        const canCreateTeam = canCreate('team', 1);
-        const remaining = getRemaining('team', 1);
+        const canCreateSeason = canCreate('season', 1);
+        const remaining = getRemaining('season', 1);
         return (
           <div>
-            <span data-testid="can-create">{canCreateTeam.toString()}</span>
+            <span data-testid="can-create">{canCreateSeason.toString()}</span>
             <span data-testid="remaining">{remaining}</span>
           </div>
         );
@@ -427,10 +427,6 @@ describe('PremiumContext', () => {
       const TestComponent = () => {
         const { isImportOverLimits } = usePremiumContext();
         const overLimit = isImportOverLimits({
-          teams: 10,
-          gamesInSeason: 100,
-          gamesInTournament: 100,
-          players: 100,
           seasons: 10,
           tournaments: 10,
         });
@@ -457,10 +453,6 @@ describe('PremiumContext', () => {
         const { isImportOverLimits, isLoading } = usePremiumContext();
         if (isLoading) return <span>Loading</span>;
         const overLimit = isImportOverLimits({
-          teams: 10,
-          gamesInSeason: 100,
-          gamesInTournament: 100,
-          players: 100,
           seasons: 10,
           tournaments: 10,
         });
@@ -492,7 +484,7 @@ describe('PremiumContext', () => {
         }, [setUpgradePromptHandler]);
 
         return (
-          <button onClick={() => showUpgradePrompt('team', 5)}>Show Prompt</button>
+          <button onClick={() => showUpgradePrompt('season', 5)}>Show Prompt</button>
         );
       };
 
@@ -506,7 +498,7 @@ describe('PremiumContext', () => {
         screen.getByRole('button').click();
       });
 
-      expect(mockHandler).toHaveBeenCalledWith('team', 5);
+      expect(mockHandler).toHaveBeenCalledWith('season', 5);
     });
 
     it('should warn when handler not registered', async () => {
@@ -515,7 +507,7 @@ describe('PremiumContext', () => {
       const TestComponent = () => {
         const { showUpgradePrompt } = usePremiumContext();
         return (
-          <button onClick={() => showUpgradePrompt('team', 5)}>Show Prompt</button>
+          <button onClick={() => showUpgradePrompt('season', 5)}>Show Prompt</button>
         );
       };
 
@@ -571,8 +563,8 @@ describe('usePremium hook', () => {
     // Limits disabled - everyone is premium with no limits
     expect(screen.getByTestId('premium').textContent).toBe('true');
     expect(screen.getByTestId('has-limits').textContent).toBe('false');
-    // Price in European format: "€ 4,99/kk" includes per-month indicator
-    expect(screen.getByTestId('price').textContent).toBe('€ 4,99/kk');
+    // Price in European format: "4,99 €" (one-time purchase)
+    expect(screen.getByTestId('price').textContent).toBe('4,99 €');
   });
 });
 
@@ -587,7 +579,7 @@ describe('useResourceLimit hook', () => {
     mockGetRemainingCount.mockReturnValue(5);
 
     const TestComponent = () => {
-      const { canAdd, remaining, currentCount } = useResourceLimit('player', 13);
+      const { canAdd, remaining, currentCount } = useResourceLimit('season', 2);
       return (
         <div>
           <span data-testid="can-add">{canAdd.toString()}</span>
@@ -607,7 +599,7 @@ describe('useResourceLimit hook', () => {
       expect(screen.getByTestId('can-add').textContent).toBe('true');
     });
     expect(screen.getByTestId('remaining').textContent).toBe('5');
-    expect(screen.getByTestId('current').textContent).toBe('13');
+    expect(screen.getByTestId('current').textContent).toBe('2');
   });
 
   it('should return false when at limit', async () => {
@@ -615,7 +607,7 @@ describe('useResourceLimit hook', () => {
     mockGetRemainingCount.mockReturnValue(0);
 
     const TestComponent = () => {
-      const { canAdd, remaining } = useResourceLimit('team', 1);
+      const { canAdd, remaining } = useResourceLimit('tournament', 3);
       return (
         <div>
           <span data-testid="can-add">{canAdd.toString()}</span>
@@ -642,7 +634,7 @@ describe('useResourceLimit hook', () => {
 
     const TestComponent = () => {
       const { setUpgradePromptHandler } = usePremiumContext();
-      const { checkAndPrompt } = useResourceLimit('team', 1);
+      const { checkAndPrompt } = useResourceLimit('season', 3);
 
       React.useEffect(() => {
         setUpgradePromptHandler(mockHandler);
@@ -667,7 +659,7 @@ describe('useResourceLimit hook', () => {
       screen.getByRole('button').click();
     });
 
-    expect(mockHandler).toHaveBeenCalledWith('team', 1);
+    expect(mockHandler).toHaveBeenCalledWith('season', 3);
   });
 
   it('should return true from checkAndPrompt when allowed', async () => {
@@ -675,7 +667,7 @@ describe('useResourceLimit hook', () => {
     let result: boolean | undefined;
 
     const TestComponent = () => {
-      const { checkAndPrompt } = useResourceLimit('player', 10);
+      const { checkAndPrompt } = useResourceLimit('tournament', 1);
       return (
         <button onClick={() => { result = checkAndPrompt(); }}>Check</button>
       );

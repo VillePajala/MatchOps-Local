@@ -45,6 +45,7 @@ jest.mock('@/hooks/usePremium', () => ({
 }));
 
 // Mock usePlayBilling hook
+const mockGrantMockPurchase = jest.fn().mockResolvedValue({ success: true });
 jest.mock('@/hooks/usePlayBilling', () => ({
   usePlayBilling: () => ({
     isAvailable: false,
@@ -54,6 +55,7 @@ jest.mock('@/hooks/usePlayBilling', () => ({
     restore: jest.fn(),
     refreshDetails: jest.fn(),
   }),
+  grantMockPurchase: (...args: unknown[]) => mockGrantMockPurchase(...args),
 }));
 
 // Mock SubscriptionContext
@@ -61,11 +63,12 @@ jest.mock('@/contexts/SubscriptionContext', () => ({
   clearSubscriptionCache: jest.fn().mockResolvedValue(undefined),
 }));
 
-// Mock AuthProvider
+// Mock AuthProvider (controllable per-test)
+let mockUser: { id: string; email: string } | null = { id: 'test-user-id', email: 'test@example.com' };
 jest.mock('@/contexts/AuthProvider', () => ({
   useAuth: () => ({
-    user: { id: 'test-user-id', email: 'test@example.com' },
-    mode: 'cloud',
+    user: mockUser,
+    mode: mockUser ? 'cloud' : 'local',
   }),
 }));
 
@@ -105,6 +108,9 @@ describe('UpgradePromptModal', () => {
     });
     // Default to Android to test upgrade button (most tests expect it)
     mockIsAndroid.mockReturnValue(true);
+    // Default to cloud user (most tests expect it)
+    mockUser = { id: 'test-user-id', email: 'test@example.com' };
+    mockGrantMockPurchase.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
@@ -127,23 +133,22 @@ describe('UpgradePromptModal', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    it('displays cloud sync benefits list', () => {
-      // Note: No resource limits in the app (local is free unlimited)
-      // Modal shows cloud-specific benefits only
+    it('displays full version benefits list', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      expect(screen.getByText('Sync across all your devices')).toBeInTheDocument();
-      expect(screen.getByText('Automatic cloud backup')).toBeInTheDocument();
-      expect(screen.getByText('Secure cloud storage')).toBeInTheDocument();
+      expect(screen.getByText('Unlimited seasons')).toBeInTheDocument();
+      expect(screen.getByText('Unlimited tournaments')).toBeInTheDocument();
+      expect(screen.getByText('Support independent development')).toBeInTheDocument();
     });
 
     it('displays price', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      // Price displayed in European format (€ 4,99/kk includes per-month indicator)
-      expect(screen.getByText('€ 4,99/kk')).toBeInTheDocument();
-      expect(screen.getByText('monthly subscription')).toBeInTheDocument();
-      expect(screen.getByText('Cancel anytime')).toBeInTheDocument();
+      // Price displayed in European format
+      expect(screen.getByText('4,99 €')).toBeInTheDocument();
+      expect(screen.getByText('one-time payment')).toBeInTheDocument();
+      // No "Cancel anytime" for one-time purchase
+      expect(screen.queryByText('Cancel anytime')).not.toBeInTheDocument();
     });
 
     it('displays upgrade and dismiss buttons on Android', () => {
@@ -160,7 +165,7 @@ describe('UpgradePromptModal', () => {
 
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      expect(screen.getByText('Subscriptions are available on the Android app.')).toBeInTheDocument();
+      expect(screen.getByText('Purchases are available on the Android app.')).toBeInTheDocument();
       expect(screen.getByText('Get on Google Play')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /ok/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /upgrade to premium/i })).not.toBeInTheDocument();
@@ -172,8 +177,8 @@ describe('UpgradePromptModal', () => {
       renderWithProviders(
         <UpgradePromptModal
           {...defaultProps}
-          resource="team"
-          currentCount={1}
+          resource="season"
+          currentCount={3}
         />
       );
 
@@ -185,8 +190,8 @@ describe('UpgradePromptModal', () => {
       renderWithProviders(
         <UpgradePromptModal
           {...defaultProps}
-          resource="player"
-          currentCount={18}
+          resource="tournament"
+          currentCount={3}
         />
       );
 
@@ -339,6 +344,53 @@ describe('UpgradePromptModal', () => {
         expect(onClose).toHaveBeenCalled();
       });
     });
+
+    it('skips server call and grants premium directly for local-mode user', async () => {
+      // Local-mode user: no authenticated user, no server call needed
+      mockUser = null;
+      const onClose = jest.fn();
+      mockGrantPremiumAccess.mockResolvedValue(undefined);
+
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+
+      const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
+      await act(async () => {
+        fireEvent.click(upgradeButton);
+      });
+
+      await waitFor(() => {
+        // grantMockPurchase should NOT be called (no user = no server record needed)
+        expect(mockGrantMockPurchase).not.toHaveBeenCalled();
+        // But premium should still be granted locally
+        expect(mockGrantPremiumAccess).toHaveBeenCalledWith(expect.stringMatching(/^test-internal-\d+$/));
+        expect(onClose).toHaveBeenCalled();
+      });
+    });
+
+    it('blocks upgrade for cloud user when server call fails', async () => {
+      // Cloud user: server call fails → should NOT grant premium
+      mockGrantMockPurchase.mockResolvedValue({ success: false, error: 'Mock purchases not available' });
+      const onClose = jest.fn();
+
+      // Expected logger.error from the component's error handler
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+
+      const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
+      await act(async () => {
+        fireEvent.click(upgradeButton);
+      });
+
+      await waitFor(() => {
+        expect(mockGrantMockPurchase).toHaveBeenCalled();
+        // Premium should NOT be granted when server call fails for cloud user
+        expect(mockGrantPremiumAccess).not.toHaveBeenCalled();
+        expect(onClose).not.toHaveBeenCalled();
+      });
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('production mode behavior', () => {
@@ -364,7 +416,7 @@ describe('UpgradePromptModal', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       // Desktop users see message to get Android app
-      expect(screen.getByText('Subscriptions are available on the Android app.')).toBeInTheDocument();
+      expect(screen.getByText('Purchases are available on the Android app.')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /upgrade to premium/i })).not.toBeInTheDocument();
     });
 

@@ -11,12 +11,12 @@ import { ResourceType } from '@/config/premiumLimits';
  * ```tsx
  * const { isPremium, canCreate, showUpgradePrompt } = usePremium();
  *
- * const handleAddTeam = () => {
- *   if (!canCreate('team', currentTeamCount)) {
- *     showUpgradePrompt('team', currentTeamCount);
+ * const handleAddSeason = () => {
+ *   if (!canCreate('season', currentSeasonCount)) {
+ *     showUpgradePrompt('season', currentSeasonCount);
  *     return;
  *   }
- *   // ... create team
+ *   // ... create season
  * };
  * ```
  */
@@ -53,7 +53,7 @@ export function usePremium() {
  *
  * @example
  * ```tsx
- * const { canAdd, remaining, checkAndPrompt } = useResourceLimit('team', teams.length);
+ * const { canAdd, remaining, checkAndPrompt } = useResourceLimit('season', seasons.length);
  *
  * // Simple check
  * if (canAdd) { ... }
@@ -61,7 +61,7 @@ export function usePremium() {
  * // Check and show prompt if needed
  * const handleAdd = () => {
  *   if (!checkAndPrompt()) return;
- *   // ... add team
+ *   // ... add season
  * };
  * ```
  */
