@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Skills — Home Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --emerald-glow: rgba(16, 185, 129, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --amber-dark: #d97706;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139, 92, 246, 0.15);
+    --sky: #38bdf8;
+    --indigo: #6366f1;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --orange: #f97316;
+    --cyan: #06b6d4;
+    --pink: #ec4899;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-shell {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 72px;
+    position: relative;
+  }
+
+  /* === BACKGROUND LAYERS (MatchOps family signature) === */
+  .bg-layers {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Indigo wash (mix-blend-soft-light) */
+  .bg-layers__indigo {
+    position: absolute;
+    inset: 0;
+    background: rgba(99, 102, 241, 0.07);
+    mix-blend-mode: soft-light;
+  }
+  /* Sky gradient from top */
+  .bg-layers__sky-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(56, 189, 248, 0.08), transparent 40%);
+  }
+  /* Ambient sky glow - top right */
+  .bg-layers__glow-top {
+    position: absolute;
+    top: -20%;
+    right: -15%;
+    width: 60%;
+    height: 60%;
+    background: rgba(56, 189, 248, 0.08);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  /* Ambient sky glow - bottom left */
+  .bg-layers__glow-bottom {
+    position: absolute;
+    bottom: -15%;
+    left: -10%;
+    width: 55%;
+    height: 55%;
+    background: rgba(56, 189, 248, 0.1);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  /* Noise texture overlay */
+  .bg-layers__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  /* === TOP BAR === */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .top-bar__profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--emerald), var(--cyan));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border: 2px solid var(--emerald);
+  }
+
+  .top-bar__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  .top-bar__level {
+    font-size: 11px;
+    color: var(--emerald);
+    font-weight: 600;
+  }
+
+  .top-bar__streak {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--amber-glow);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .streak-icon {
+    font-size: 16px;
+  }
+
+  .streak-count {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--amber-light);
+  }
+
+  .streak-label {
+    font-size: 10px;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* === XP BAR === */
+  .xp-section {
+    padding: 12px 16px;
+  }
+
+  .xp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+
+  .xp-level {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--emerald);
+  }
+
+  .xp-amount {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .xp-bar {
+    height: 14px;
+    background: var(--surface);
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .xp-hint {
+    font-size: 11px;
+    color: var(--emerald);
+    text-align: right;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  .xp-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--emerald-dark), var(--emerald));
+    border-radius: 6px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  }
+
+  /* Pulsing glow when close to leveling up */
+  .xp-bar--near-level .xp-bar__fill {
+    animation: xpPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes xpPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 0 0 30px rgba(16, 185, 129, 0.3); }
+  }
+
+  /* === DAILY QUESTS === */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 16px 8px;
+  }
+
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  .section-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface);
+    padding: 3px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .quests {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .quest-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .quest-card:hover {
+    background: rgba(30, 41, 59, 0.5);
+    border-color: rgba(71, 85, 105, 0.7);
+  }
+
+  .quest-card--completed {
+    opacity: 0.6;
+    border-color: var(--emerald);
+  }
+
+  .quest-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .quest-icon--easy {
+    background: var(--emerald-glow);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .quest-icon--main {
+    background: var(--purple-glow);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .quest-icon--bonus {
+    background: var(--amber-glow);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .quest-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .quest-type {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
+
+  .quest-type--easy { color: var(--emerald); }
+  .quest-type--main { color: var(--purple); }
+  .quest-type--bonus { color: var(--amber); }
+
+  .quest-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .quest-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .quest-xp {
+    font-weight: 600;
+    color: var(--emerald);
+    font-size: 13px;
+    font-family: 'Rajdhani', sans-serif;
+    white-space: nowrap;
+  }
+
+  .quest-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: transparent;
+  }
+
+  .quest-check--done {
+    background: var(--emerald);
+    border-color: var(--emerald);
+    color: white;
+  }
+
+  /* === DAILY BONUS === */
+  .daily-bonus {
+    margin: 12px 16px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(245, 158, 11, 0.1));
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .daily-bonus__icon {
+    font-size: 28px;
+  }
+
+  .daily-bonus__text {
+    flex: 1;
+  }
+
+  .daily-bonus__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--amber-light);
+  }
+
+  .daily-bonus__desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .daily-bonus__progress {
+    display: flex;
+    gap: 4px;
+  }
+
+  .daily-bonus__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .daily-bonus__dot--done {
+    background: var(--emerald);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+  }
+
+  /* === CATEGORY QUICK ACCESS === */
+  .categories {
+    padding: 0 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .category-tile {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 10px;
+    padding: 10px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .category-tile:hover {
+    border-color: var(--border-light);
+    transform: translateY(-1px);
+  }
+
+  .category-tile__icon {
+    font-size: 24px;
+  }
+
+  .category-tile__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+  }
+
+  .category-tile__progress {
+    width: 28px;
+    height: 28px;
+    position: relative;
+  }
+
+  .category-tile__progress svg {
+    width: 28px;
+    height: 28px;
+    transform: rotate(-90deg);
+  }
+
+  .category-tile__progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 8px;
+    color: var(--text-muted);
+  }
+
+  /* === ACTIVE CHALLENGE BANNER === */
+  .active-banner {
+    margin: 8px 16px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, var(--emerald-glow), rgba(16, 185, 129, 0.08));
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    animation: bannerGlow 3s ease-in-out infinite;
+  }
+
+  @keyframes bannerGlow {
+    0%, 100% { border-color: rgba(16, 185, 129, 0.35); }
+    50% { border-color: rgba(16, 185, 129, 0.6); }
+  }
+
+  .active-banner__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--emerald-glow);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .active-banner__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .active-banner__label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--emerald);
+    margin-bottom: 1px;
+  }
+
+  .active-banner__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .active-banner__timer {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .active-banner__cta {
+    padding: 6px 14px;
+    background: linear-gradient(to right, var(--amber), var(--amber-dark));
+    border: none;
+    border-radius: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--bg);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  /* === SURPRISE ME BUTTON === */
+  .surprise-btn {
+    margin: 12px 16px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--purple-glow), var(--amber-glow));
+    border: 1px dashed rgba(139, 92, 246, 0.4);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s;
+  }
+
+  .surprise-btn:hover {
+    border-color: var(--purple);
+    transform: translateY(-1px);
+  }
+
+  .surprise-btn:active {
+    transform: scale(0.98);
+  }
+
+  .surprise-btn__icon {
+    font-size: 22px;
+  }
+
+  .surprise-btn__text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  .surprise-btn__sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* === RECENT BADGES === */
+  .badges-row {
+    padding: 0 16px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .badges-row::-webkit-scrollbar { display: none; }
+
+  .badge-item {
+    flex-shrink: 0;
+    width: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .badge-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .badge-icon--common {
+    background: linear-gradient(135deg, #374151, #4b5563);
+    border: 2px solid #6b7280;
+  }
+
+  .badge-icon--rare {
+    background: linear-gradient(135deg, #1e3a5f, #2563eb);
+    border: 2px solid #3b82f6;
+  }
+
+  .badge-icon--epic {
+    background: linear-gradient(135deg, #4c1d95, #7c3aed);
+    border: 2px solid #8b5cf6;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
+  }
+
+  .badge-icon--locked {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    opacity: 0.4;
+  }
+
+  .badge-name {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  /* === BOTTOM NAV === */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 12px;
+    z-index: 100;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 4px 12px;
+  }
+
+  .nav-item__icon {
+    font-size: 22px;
+    opacity: 0.5;
+  }
+
+  .nav-item--active .nav-item__icon {
+    opacity: 1;
+  }
+
+  .nav-item__label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .nav-item--active .nav-item__label {
+    color: var(--amber);
+  }
+
+  /* === MOCKUP LABEL === */
+  .mockup-label {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">Mockup</div>
+
+<div class="app-shell">
+
+  <!-- Background Layers (MatchOps family signature) -->
+  <div class="bg-layers">
+    <div class="bg-layers__indigo"></div>
+    <div class="bg-layers__sky-gradient"></div>
+    <div class="bg-layers__glow-top"></div>
+    <div class="bg-layers__glow-bottom"></div>
+    <div class="bg-layers__noise"></div>
+  </div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-bar__profile">
+      <div class="avatar">&#9917;</div>
+      <div>
+        <div class="top-bar__name">Pikkupeluri</div>
+        <div class="top-bar__level">Taso 7</div>
+      </div>
+    </div>
+    <div class="top-bar__streak">
+      <span class="streak-icon">&#128293;</span>
+      <div>
+        <div class="streak-count">12</div>
+        <div class="streak-label">paivaa</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- XP Bar -->
+  <div class="xp-section">
+    <div class="xp-header">
+      <span class="xp-level">TASO 7</span>
+      <span class="xp-amount">1,830 / 2,078 XP</span>
+    </div>
+    <div class="xp-bar xp-bar--near-level">
+      <div class="xp-bar__fill" style="width: 88%"></div>
+    </div>
+    <div class="xp-hint">248 XP tasoon 8!</div>
+  </div>
+
+  <!-- Active Challenge Banner -->
+  <div class="active-banner">
+    <div class="active-banner__icon">&#9889;</div>
+    <div class="active-banner__info">
+      <div class="active-banner__label">Jatka harjoitusta</div>
+      <div class="active-banner__name">Kartiokuljetus</div>
+      <div class="active-banner__timer">&#9201; 12 min sitten aloitettu</div>
+    </div>
+    <button class="active-banner__cta">Tein sen!</button>
+  </div>
+
+  <!-- Daily Quests -->
+  <div class="section-header">
+    <div class="section-title">Paivan tehtavat</div>
+    <div class="section-badge">1/3 tehty</div>
+  </div>
+
+  <div class="quests">
+    <!-- Completed quest -->
+    <div class="quest-card quest-card--completed">
+      <div class="quest-icon quest-icon--easy">&#9917;</div>
+      <div class="quest-info">
+        <div class="quest-type quest-type--easy">Helppo</div>
+        <div class="quest-name">Varpaankosketukset</div>
+        <div class="quest-meta">
+          <span>Pallon hallinta &middot; 5 min</span>
+        </div>
+      </div>
+      <div class="quest-xp">+10 XP</div>
+      <div class="quest-check quest-check--done">&#10003;</div>
+    </div>
+
+    <!-- Active quest -->
+    <div class="quest-card">
+      <div class="quest-icon quest-icon--main">&#127942;</div>
+      <div class="quest-info">
+        <div class="quest-type quest-type--main">Paatehtava</div>
+        <div class="quest-name">Kartiokuljetus</div>
+        <div class="quest-meta">
+          <span>Kuljetus &middot; 10 min &middot; Kartiot</span>
+        </div>
+      </div>
+      <div class="quest-xp">+25 XP</div>
+      <div class="quest-check"></div>
+    </div>
+
+    <!-- Bonus quest -->
+    <div class="quest-card">
+      <div class="quest-icon quest-icon--bonus">&#11088;</div>
+      <div class="quest-info">
+        <div class="quest-type quest-type--bonus">Bonustehtava</div>
+        <div class="quest-name">Syottosarja seinaan</div>
+        <div class="quest-meta">
+          <span>Syotot &middot; 10 min &middot; Seina</span>
+        </div>
+      </div>
+      <div class="quest-xp">+50 XP</div>
+      <div class="quest-check"></div>
+    </div>
+  </div>
+
+  <!-- Daily Bonus -->
+  <div class="daily-bonus">
+    <div class="daily-bonus__icon">&#127873;</div>
+    <div class="daily-bonus__text">
+      <div class="daily-bonus__title">Paivan bonus: +30 XP</div>
+      <div class="daily-bonus__desc">Suorita kaikki 3 tehtavaa</div>
+    </div>
+    <div class="daily-bonus__progress">
+      <div class="daily-bonus__dot daily-bonus__dot--done"></div>
+      <div class="daily-bonus__dot"></div>
+      <div class="daily-bonus__dot"></div>
+    </div>
+  </div>
+
+  <!-- Categories -->
+  <div class="section-header">
+    <div class="section-title">Harjoitukset</div>
+  </div>
+
+  <!-- Surprise Me! Button -->
+  <div class="surprise-btn">
+    <div class="surprise-btn__icon">&#127922;</div>
+    <div>
+      <div class="surprise-btn__text">Yllata minut!</div>
+      <div class="surprise-btn__sub">Satunnainen harjoitus sinulle</div>
+    </div>
+  </div>
+
+  <div class="categories">
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--emerald)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="18.8" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">75%</div>
+      </div>
+      <div class="category-tile__name">Pallon hallinta</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="41.5" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">45%</div>
+      </div>
+      <div class="category-tile__name">Kuljetus</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="52.8" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">30%</div>
+      </div>
+      <div class="category-tile__name">Syotot</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="60.3" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">20%</div>
+      </div>
+      <div class="category-tile__name">Laukaus</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="56.5" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">25%</div>
+      </div>
+      <div class="category-tile__name">Haltuun-otot</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="30.2" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">60%</div>
+      </div>
+      <div class="category-tile__name">Jongleeraus</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--pink)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="45.2" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">40%</div>
+      </div>
+      <div class="category-tile__name">Ketteryys</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="64.1" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">15%</div>
+      </div>
+      <div class="category-tile__name">Temput</div>
+    </div>
+  </div>
+
+  <!-- Recent Badges -->
+  <div class="section-header">
+    <div class="section-title">Viimeisimmat merkit</div>
+  </div>
+
+  <div class="badges-row">
+    <div class="badge-item">
+      <div class="badge-icon badge-icon--epic">&#128293;</div>
+      <div class="badge-name">Viikon soturi</div>
+    </div>
+    <div class="badge-item">
+      <div class="badge-icon badge-icon--rare">&#9917;</div>
+      <div class="badge-name">Pallomestari</div>
+    </div>
+    <div class="badge-item">
+      <div class="badge-icon badge-icon--common">&#128170;</div>
+      <div class="badge-name">10 harjoitusta</div>
+    </div>
+    <div class="badge-item">
+      <div class="badge-icon badge-icon--locked">?</div>
+      <div class="badge-name">???</div>
+    </div>
+    <div class="badge-item">
+      <div class="badge-icon badge-icon--locked">?</div>
+      <div class="badge-name">???</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <div class="nav-item nav-item--active">
+    <div class="nav-item__icon">&#127968;</div>
+    <div class="nav-item__label">Koti</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#128218;</div>
+    <div class="nav-item__label">Harjoitukset</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#127942;</div>
+    <div class="nav-item__label">Merkit</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#128100;</div>
+    <div class="nav-item__label">Profiili</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Skills — Completion Celebration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --emerald-glow: rgba(16, 185, 129, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --amber-dark: #d97706;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139, 92, 246, 0.15);
+    --sky: #38bdf8;
+    --indigo: #6366f1;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-shell {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 24px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* === BACKGROUND LAYERS (MatchOps family signature) === */
+  .bg-layers {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-layers__indigo {
+    position: absolute;
+    inset: 0;
+    background: rgba(99, 102, 241, 0.07);
+    mix-blend-mode: soft-light;
+  }
+  .bg-layers__sky-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(56, 189, 248, 0.08), transparent 40%);
+  }
+  .bg-layers__glow-top {
+    position: absolute;
+    top: -20%;
+    right: -15%;
+    width: 60%;
+    height: 60%;
+    background: rgba(56, 189, 248, 0.08);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__glow-bottom {
+    position: absolute;
+    bottom: -15%;
+    left: -10%;
+    width: 55%;
+    height: 55%;
+    background: rgba(56, 189, 248, 0.1);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  /* === CONFETTI PARTICLES === */
+  .confetti {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    animation: confettiFall 3s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  .confetti-piece:nth-child(1) { left: 10%; background: var(--emerald); animation-delay: 0s; }
+  .confetti-piece:nth-child(2) { left: 25%; background: var(--amber); animation-delay: 0.1s; width: 6px; height: 12px; }
+  .confetti-piece:nth-child(3) { left: 40%; background: var(--purple); animation-delay: 0.2s; }
+  .confetti-piece:nth-child(4) { left: 55%; background: var(--amber-light); animation-delay: 0.15s; width: 10px; height: 6px; }
+  .confetti-piece:nth-child(5) { left: 70%; background: var(--emerald); animation-delay: 0.3s; }
+  .confetti-piece:nth-child(6) { left: 85%; background: var(--purple); animation-delay: 0.05s; width: 6px; height: 10px; }
+  .confetti-piece:nth-child(7) { left: 15%; background: var(--amber); animation-delay: 0.25s; }
+  .confetti-piece:nth-child(8) { left: 50%; background: var(--emerald); animation-delay: 0.35s; width: 10px; height: 10px; }
+  .confetti-piece:nth-child(9) { left: 65%; background: var(--amber-light); animation-delay: 0.4s; }
+  .confetti-piece:nth-child(10) { left: 30%; background: var(--purple); animation-delay: 0.12s; width: 12px; height: 6px; }
+  .confetti-piece:nth-child(11) { left: 80%; background: var(--emerald); animation-delay: 0.22s; }
+  .confetti-piece:nth-child(12) { left: 5%; background: var(--amber); animation-delay: 0.32s; width: 8px; height: 12px; }
+
+  /* === CELEBRATION CONTENT === */
+  .celebration {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  /* Big check / success icon */
+  .success-burst {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--emerald-dark), var(--emerald));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.5), 0 0 80px rgba(16, 185, 129, 0.2);
+    animation: burstIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes burstIn {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .celebration__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, var(--emerald), var(--amber-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: titleSlide 0.6s ease-out 0.3s both;
+  }
+
+  @keyframes titleSlide {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .celebration__challenge {
+    font-size: 14px;
+    color: var(--text-secondary);
+    animation: fadeIn 0.5s ease-out 0.5s both;
+  }
+
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* === XP EARNED === */
+  .xp-earned {
+    background: var(--emerald-glow);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 16px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeIn 0.5s ease-out 0.6s both;
+  }
+
+  .xp-earned__amount {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    color: var(--emerald);
+    line-height: 1;
+  }
+
+  .xp-earned__label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--emerald);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .xp-earned__breakdown {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* === STATS ROW === */
+  .celebration-stats {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    animation: fadeIn 0.5s ease-out 0.8s both;
+  }
+
+  .celebration-stat {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    padding: 12px 8px;
+    text-align: center;
+  }
+
+  .celebration-stat__icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .celebration-stat__value {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .celebration-stat__label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+
+  /* === MASTERY UPGRADE === */
+  .mastery-upgrade {
+    background: var(--amber-glow);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    animation: fadeIn 0.5s ease-out 1s both;
+  }
+
+  .mastery-upgrade__stars {
+    font-size: 28px;
+    display: flex;
+    gap: 2px;
+  }
+
+  .mastery-upgrade__text {
+    flex: 1;
+  }
+
+  .mastery-upgrade__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--amber-light);
+    text-transform: uppercase;
+  }
+
+  .mastery-upgrade__desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* === NEW BADGE === */
+  .new-badge {
+    background: var(--purple-glow);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    animation: badgePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s both;
+  }
+
+  @keyframes badgePop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .new-badge__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #4c1d95, #7c3aed);
+    border: 2px solid #8b5cf6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);
+    animation: epicShimmer 3s ease-in-out infinite 1.5s;
+  }
+
+  @keyframes epicShimmer {
+    0%, 100% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.4); }
+    50% { box-shadow: 0 0 24px rgba(139, 92, 246, 0.7), 0 0 40px rgba(139, 92, 246, 0.2); }
+  }
+
+  .new-badge__text {
+    flex: 1;
+  }
+
+  .new-badge__label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--purple);
+    margin-bottom: 2px;
+  }
+
+  .new-badge__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  /* === PRACTICE DURATION === */
+  .practice-duration {
+    font-size: 13px;
+    color: var(--text-secondary);
+    animation: fadeIn 0.5s ease-out 0.7s both;
+  }
+
+  .practice-duration span {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* === CTA === */
+  .celebration-cta {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    background: linear-gradient(to right, var(--amber), var(--amber-dark));
+    color: var(--bg);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+    animation: fadeIn 0.5s ease-out 1.4s both;
+  }
+
+  .celebration-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  }
+
+  .celebration-cta:active {
+    transform: scale(0.98);
+  }
+
+  /* === MOCKUP LABEL === */
+  .mockup-label {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">Mockup</div>
+
+<div class="app-shell">
+
+  <!-- Background Layers -->
+  <div class="bg-layers">
+    <div class="bg-layers__indigo"></div>
+    <div class="bg-layers__sky-gradient"></div>
+    <div class="bg-layers__glow-top"></div>
+    <div class="bg-layers__glow-bottom"></div>
+    <div class="bg-layers__noise"></div>
+  </div>
+
+  <!-- Confetti -->
+  <div class="confetti">
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+    <div class="confetti-piece"></div>
+  </div>
+
+  <!-- Celebration Content -->
+  <div class="celebration">
+
+    <!-- Success burst -->
+    <div class="success-burst">&#10003;</div>
+
+    <div class="celebration__title">Hienoa!</div>
+    <div class="celebration__challenge">Kartiokuljetus suoritettu</div>
+
+    <!-- Practice duration -->
+    <div class="practice-duration">Harjoittelit <span>12 minuuttia</span></div>
+
+    <!-- XP earned -->
+    <div class="xp-earned">
+      <div>
+        <div class="xp-earned__amount">+25</div>
+      </div>
+      <div>
+        <div class="xp-earned__label">XP ansaittu</div>
+        <div class="xp-earned__breakdown">25 perus-XP</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="celebration-stats">
+      <div class="celebration-stat">
+        <div class="celebration-stat__icon">&#128293;</div>
+        <div class="celebration-stat__value">13</div>
+        <div class="celebration-stat__label">Putki</div>
+      </div>
+      <div class="celebration-stat">
+        <div class="celebration-stat__icon">&#11088;</div>
+        <div class="celebration-stat__value">7</div>
+        <div class="celebration-stat__label">Taso</div>
+      </div>
+      <div class="celebration-stat">
+        <div class="celebration-stat__icon">&#9917;</div>
+        <div class="celebration-stat__value">48</div>
+        <div class="celebration-stat__label">Yhteensa</div>
+      </div>
+    </div>
+
+    <!-- Mastery upgrade (shown when mastery changes) -->
+    <div class="mastery-upgrade">
+      <div class="mastery-upgrade__stars">
+        <span style="color: #d4976a;">&#9733;</span>
+        <span style="color: #d1d5db;">&#9733;</span>
+        <span style="opacity: 0.2;">&#9733;</span>
+      </div>
+      <div class="mastery-upgrade__text">
+        <div class="mastery-upgrade__title">Hopeatahti saavutettu!</div>
+        <div class="mastery-upgrade__desc">3 suoritusta — 7 kultaan</div>
+      </div>
+    </div>
+
+    <!-- New badge (shown when badge unlocked) -->
+    <div class="new-badge">
+      <div class="new-badge__icon">&#9889;</div>
+      <div class="new-badge__text">
+        <div class="new-badge__label">Uusi merkki!</div>
+        <div class="new-badge__name">Kuljetustaitaja</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <button class="celebration-cta">Jatka &#8594;</button>
+
+  </div>
+</div>
+
+</body>
+</html>

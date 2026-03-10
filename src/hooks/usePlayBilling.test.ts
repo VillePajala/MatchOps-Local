@@ -17,7 +17,7 @@ jest.mock('@/utils/playBilling', () => ({
   purchaseFullVersion: jest.fn(),
   getProductDetails: jest.fn(),
   getExistingPurchases: jest.fn(),
-  FULL_VERSION_PRODUCT_ID: 'matchops_full_version',
+  FULL_VERSION_PRODUCT_ID: 'premium_unlock',
 }));
 
 // Mock Supabase client
@@ -108,7 +108,7 @@ describe('usePlayBilling', () => {
     it('sets isAvailable to true when Play Billing is available', async () => {
       mockIsPlayBillingAvailable.mockResolvedValue(true);
       mockGetProductDetails.mockResolvedValue({
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'MatchOps Premium',
         description: 'Unlimited seasons and tournaments',
         price: '4.99',
@@ -157,7 +157,7 @@ describe('usePlayBilling', () => {
     beforeEach(() => {
       mockIsPlayBillingAvailable.mockResolvedValue(true);
       mockGetProductDetails.mockResolvedValue({
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'MatchOps Premium',
         description: 'Unlimited seasons and tournaments',
         price: '4.99',
@@ -245,7 +245,7 @@ describe('usePlayBilling', () => {
       expect(mockFunctionsInvoke).toHaveBeenCalledWith('verify-subscription', {
         body: {
           purchaseToken: 'purchase-token-123',
-          productId: 'matchops_full_version',
+          productId: 'premium_unlock',
         },
         headers: {
           Authorization: 'Bearer valid-test-token',
@@ -373,7 +373,7 @@ describe('usePlayBilling', () => {
     beforeEach(() => {
       mockIsPlayBillingAvailable.mockResolvedValue(true);
       mockGetProductDetails.mockResolvedValue({
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'MatchOps Premium',
         description: 'Unlimited seasons and tournaments',
         price: '4.99',
@@ -449,7 +449,7 @@ describe('usePlayBilling', () => {
       expect(mockFunctionsInvoke).toHaveBeenCalledWith('verify-subscription', {
         body: {
           purchaseToken: 'existing-token-123',
-          productId: 'matchops_full_version',
+          productId: 'premium_unlock',
         },
         headers: {
           Authorization: 'Bearer valid-test-token',
@@ -507,7 +507,7 @@ describe('usePlayBilling', () => {
     it('refreshes product details when available', async () => {
       mockIsPlayBillingAvailable.mockResolvedValue(true);
       mockGetProductDetails.mockResolvedValue({
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'MatchOps Premium',
         description: 'Unlimited seasons and tournaments',
         price: '4.99',
@@ -526,7 +526,7 @@ describe('usePlayBilling', () => {
 
       // Update mock to return new price
       mockGetProductDetails.mockResolvedValue({
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'MatchOps Premium',
         description: 'Unlimited seasons and tournaments',
         price: '5.99',
@@ -592,7 +592,7 @@ describe('grantMockPurchase', () => {
     expect(mockFunctionsInvoke).toHaveBeenCalledWith('verify-subscription', {
       body: {
         purchaseToken: 'test-12345-abc',
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
       },
       headers: {
         Authorization: 'Bearer valid-token',
@@ -722,7 +722,7 @@ describe('usePlayBilling - Race Conditions', () => {
 
     mockIsPlayBillingAvailable.mockResolvedValue(true);
     mockGetProductDetails.mockResolvedValue({
-      productId: 'matchops_full_version',
+      productId: 'premium_unlock',
       title: 'MatchOps Premium',
       description: 'Unlimited seasons and tournaments',
       price: '4.99',
@@ -838,7 +838,7 @@ describe('usePlayBilling - Edge Function Error Responses', () => {
 
     mockIsPlayBillingAvailable.mockResolvedValue(true);
     mockGetProductDetails.mockResolvedValue({
-      productId: 'matchops_full_version',
+      productId: 'premium_unlock',
       title: 'MatchOps Premium',
       description: 'Unlimited seasons and tournaments',
       price: '4.99',
@@ -999,7 +999,7 @@ describe('usePlayBilling - Session Expiry Scenarios', () => {
 
     mockIsPlayBillingAvailable.mockResolvedValue(true);
     mockGetProductDetails.mockResolvedValue({
-      productId: 'matchops_full_version',
+      productId: 'premium_unlock',
       title: 'MatchOps Premium',
       description: 'Unlimited seasons and tournaments',
       price: '4.99',

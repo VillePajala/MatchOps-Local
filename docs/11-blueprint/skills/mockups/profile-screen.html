@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Skills — Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --emerald-glow: rgba(16, 185, 129, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --amber-dark: #d97706;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139, 92, 246, 0.15);
+    --sky: #38bdf8;
+    --indigo: #6366f1;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --orange: #f97316;
+    --cyan: #06b6d4;
+    --pink: #ec4899;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-shell {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 72px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* === BACKGROUND LAYERS (MatchOps family signature) === */
+  .bg-layers {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-layers__indigo {
+    position: absolute;
+    inset: 0;
+    background: rgba(99, 102, 241, 0.07);
+    mix-blend-mode: soft-light;
+  }
+  .bg-layers__sky-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(56, 189, 248, 0.08), transparent 40%);
+  }
+  .bg-layers__glow-top {
+    position: absolute;
+    top: -20%;
+    right: -15%;
+    width: 60%;
+    height: 60%;
+    background: rgba(56, 189, 248, 0.08);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__glow-bottom {
+    position: absolute;
+    bottom: -15%;
+    left: -10%;
+    width: 55%;
+    height: 55%;
+    background: rgba(56, 189, 248, 0.1);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  /* === PROFILE HERO === */
+  .profile-hero {
+    text-align: center;
+    padding: 24px 16px 20px;
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  }
+
+  .profile-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--emerald), var(--cyan));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 10px;
+    border: 3px solid var(--emerald);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+
+  .profile-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: var(--text);
+  }
+
+  .profile-level-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--emerald-glow);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-top: 4px;
+  }
+
+  .profile-level-badge__text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--emerald);
+  }
+
+  /* === STATS ROW === */
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    padding: 12px 8px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .stat-value--emerald { color: var(--emerald); }
+  .stat-value--amber { color: var(--amber-light); }
+  .stat-value--purple { color: var(--purple); }
+  .stat-value--cyan { color: var(--cyan); }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+
+  /* === XP PROGRESS === */
+  .xp-card {
+    margin: 0 16px 16px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    padding: 14px 16px;
+  }
+
+  .xp-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+
+  .xp-card__level {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--emerald);
+  }
+
+  .xp-card__amount {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .xp-bar {
+    height: 10px;
+    background: var(--bg);
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .xp-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--emerald-dark), var(--emerald));
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  }
+
+  .xp-card__next {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* === SKILL RADAR === */
+  .radar-card {
+    margin: 0 16px 16px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    padding: 14px 16px;
+  }
+
+  .radar-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .radar-chart {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+  }
+
+  /* Simplified radar as horizontal bars instead */
+  .skill-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .skill-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .skill-bar__label {
+    width: 90px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .skill-bar__track {
+    flex: 1;
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .skill-bar__fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+
+  .skill-bar__value {
+    width: 28px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  /* === BADGE COLLECTION === */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 16px 8px;
+  }
+
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+  }
+
+  .section-count {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .badge-grid {
+    padding: 0 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .badge-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .badge-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+  }
+
+  .badge-icon--common {
+    background: linear-gradient(135deg, #374151, #4b5563);
+    border: 2px solid #6b7280;
+  }
+
+  .badge-icon--rare {
+    background: linear-gradient(135deg, #1e3a5f, #2563eb);
+    border: 2px solid #3b82f6;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+  }
+
+  .badge-icon--legendary {
+    background: linear-gradient(135deg, #92400e, #f59e0b);
+    border: 2px solid var(--amber-light);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+    animation: legendaryPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes legendaryPulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(245, 158, 11, 0.4); }
+    50% { box-shadow: 0 0 24px rgba(245, 158, 11, 0.7), 0 0 40px rgba(245, 158, 11, 0.2); }
+  }
+
+  .badge-icon--epic {
+    background: linear-gradient(135deg, #4c1d95, #7c3aed);
+    border: 2px solid #8b5cf6;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
+    animation: epicShimmer 4s ease-in-out infinite;
+  }
+
+  @keyframes epicShimmer {
+    0%, 100% { box-shadow: 0 0 12px rgba(139, 92, 246, 0.3); }
+    50% { box-shadow: 0 0 18px rgba(139, 92, 246, 0.5), 0 0 30px rgba(139, 92, 246, 0.15); }
+  }
+
+  .badge-icon--locked {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    opacity: 0.35;
+    font-size: 18px;
+    color: var(--text-muted);
+    animation: lockedMystery 5s ease-in-out infinite;
+  }
+
+  @keyframes lockedMystery {
+    0%, 85%, 100% { opacity: 0.35; }
+    90% { opacity: 0.5; }
+  }
+
+  .badge-name {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.2;
+    max-width: 72px;
+  }
+
+  /* === RECENT ACTIVITY === */
+  .activity-list {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .activity-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 8px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .activity-icon {
+    font-size: 18px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .activity-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .activity-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .activity-xp {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--emerald);
+    white-space: nowrap;
+  }
+
+  /* === SETTINGS LINK === */
+  .settings-btn {
+    margin: 0 16px 16px;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .settings-btn:hover {
+    border-color: var(--border-light);
+  }
+
+  .settings-btn__icon {
+    font-size: 18px;
+  }
+
+  .settings-btn__text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+
+  .settings-btn__arrow {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* === BOTTOM NAV === */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 12px;
+    z-index: 100;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 4px 12px;
+  }
+
+  .nav-item__icon { font-size: 22px; opacity: 0.5; }
+  .nav-item--active .nav-item__icon { opacity: 1; }
+  .nav-item__label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+  .nav-item--active .nav-item__label { color: var(--amber); }
+
+  .mockup-label {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">Mockup</div>
+
+<div class="app-shell">
+
+  <!-- Background Layers -->
+  <div class="bg-layers">
+    <div class="bg-layers__indigo"></div>
+    <div class="bg-layers__sky-gradient"></div>
+    <div class="bg-layers__glow-top"></div>
+    <div class="bg-layers__glow-bottom"></div>
+    <div class="bg-layers__noise"></div>
+  </div>
+
+  <!-- Profile Hero -->
+  <div class="profile-hero">
+    <div class="profile-avatar">&#9917;</div>
+    <div class="profile-name">Pikkupeluri</div>
+    <div class="profile-level-badge">
+      <span class="profile-level-badge__text">&#11088; Taso 7</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value stat-value--emerald">47</div>
+      <div class="stat-label">Harjoitusta</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value stat-value--amber">12</div>
+      <div class="stat-label">Putki nyt</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value stat-value--purple">18</div>
+      <div class="stat-label">Paras putki</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value stat-value--cyan">6h</div>
+      <div class="stat-label">Treeniaikaa</div>
+    </div>
+  </div>
+
+  <!-- XP Progress -->
+  <div class="xp-card">
+    <div class="xp-card__header">
+      <span class="xp-card__level">Taso 7 &#8594; 8</span>
+      <span class="xp-card__amount">1,830 / 2,078 XP</span>
+    </div>
+    <div class="xp-bar">
+      <div class="xp-bar__fill" style="width: 88%"></div>
+    </div>
+    <div class="xp-card__next">248 XP seuraavaan tasoon</div>
+  </div>
+
+  <!-- Skill Breakdown -->
+  <div class="radar-card">
+    <div class="radar-title">Taitoprofiili</div>
+    <div class="skill-bars">
+      <div class="skill-bar">
+        <div class="skill-bar__label">Pallon hallinta</div>
+        <div class="skill-bar__track">
+          <div class="skill-bar__fill" style="width: 75%; background: var(--emerald);"></div>
+        </div>
+        <div class="skill-bar__value">75%</div>
+      </div>
+      <div class="skill-bar">
+        <div class="skill-bar__label">Kuljetus</div>
+        <div class="skill-bar__track">
+          <div class="skill-bar__fill" style="width: 55%; background: var(--blue);"></div>
+        </div>
+        <div class="skill-bar__value">55%</div>
+      </div>
+      <div class="skill-bar">
+        <div class="skill-bar__label">Syotot</div>
+        <div class="skill-bar__track">
+          <div class="skill-bar__fill" style="width: 40%; background: var(--amber);"></div>
+        </div>
+        <div class="skill-bar__value">40%</div>
+      </div>
+      <div class="skill-bar">
+        <div class="skill-bar__label">Laukaus</div>
+        <div class="skill-bar__track">
+          <div class="skill-bar__fill" style="width: 30%; background: var(--red);"></div>
+        </div>
+        <div class="skill-bar__value">30%</div>
+      </div>
+      <div class="skill-bar">
+        <div class="skill-bar__label">Jongleeraus</div>
+        <div class="skill-bar__track">
+          <div class="skill-bar__fill" style="width: 60%; background: var(--purple);"></div>
+        </div>
+        <div class="skill-bar__value">60%</div>
+      </div>
+      <div class="skill-bar">
+        <div class="skill-bar__label">Haltuunotot</div>
+        <div class="skill-bar__track">
+          <div class="skill-bar__fill" style="width: 25%; background: var(--cyan);"></div>
+        </div>
+        <div class="skill-bar__value">25%</div>
+      </div>
+      <div class="skill-bar">
+        <div class="skill-bar__label">Ketteryys</div>
+        <div class="skill-bar__track">
+          <div class="skill-bar__fill" style="width: 45%; background: var(--pink);"></div>
+        </div>
+        <div class="skill-bar__value">45%</div>
+      </div>
+      <div class="skill-bar">
+        <div class="skill-bar__label">Temput</div>
+        <div class="skill-bar__track">
+          <div class="skill-bar__fill" style="width: 15%; background: var(--orange);"></div>
+        </div>
+        <div class="skill-bar__value">15%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badge Collection -->
+  <div class="section-header">
+    <span class="section-title">Merkkikokoelma</span>
+    <span class="section-count">7 / 24</span>
+  </div>
+
+  <div class="badge-grid">
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--legendary">&#128293;</div>
+      <div class="badge-name">Kuukauden mestari</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--epic">&#9889;</div>
+      <div class="badge-name">Viikon soturi</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--rare">&#9917;</div>
+      <div class="badge-name">Pallomestari</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--rare">&#127919;</div>
+      <div class="badge-name">Tarkka- ampuja</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--common">&#128170;</div>
+      <div class="badge-name">10 harjoitusta</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--common">&#127775;</div>
+      <div class="badge-name">Ensimmainen!</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--common">&#128640;</div>
+      <div class="badge-name">Tutkimusretkeilja</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--locked">?</div>
+      <div class="badge-name">???</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--locked">?</div>
+      <div class="badge-name">???</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--locked">?</div>
+      <div class="badge-name">???</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--locked">?</div>
+      <div class="badge-name">???</div>
+    </div>
+    <div class="badge-cell">
+      <div class="badge-icon badge-icon--locked">?</div>
+      <div class="badge-name">???</div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="section-header">
+    <span class="section-title">Viimeaikainen toiminta</span>
+  </div>
+
+  <div class="activity-list">
+    <div class="activity-item">
+      <div class="activity-icon">&#9917;</div>
+      <div class="activity-text">Varpaankosketukset</div>
+      <div class="activity-xp">+10 XP</div>
+      <div class="activity-time">Tanaan</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-icon">&#127942;</div>
+      <div class="activity-text">Merkki: Viikon soturi</div>
+      <div class="activity-xp">+50 XP</div>
+      <div class="activity-time">Eilen</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-icon">&#9889;</div>
+      <div class="activity-text">Kartiokuljetus</div>
+      <div class="activity-xp">+25 XP</div>
+      <div class="activity-time">Eilen</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-icon">&#127873;</div>
+      <div class="activity-text">Paivan bonus!</div>
+      <div class="activity-xp">+30 XP</div>
+      <div class="activity-time">2 pv sitten</div>
+    </div>
+  </div>
+
+  <!-- Parent Settings -->
+  <div class="settings-btn">
+    <div class="settings-btn__icon">&#9881;</div>
+    <div class="settings-btn__text">Vanhemman asetukset</div>
+    <div class="settings-btn__arrow">&#8250;</div>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <div class="nav-item">
+    <div class="nav-item__icon">&#127968;</div>
+    <div class="nav-item__label">Koti</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#128218;</div>
+    <div class="nav-item__label">Harjoitukset</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#127942;</div>
+    <div class="nav-item__label">Merkit</div>
+  </div>
+  <div class="nav-item nav-item--active">
+    <div class="nav-item__icon">&#128100;</div>
+    <div class="nav-item__label">Profiili</div>
+  </div>
+</div>
+
+</body>
+</html>

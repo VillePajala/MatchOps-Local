@@ -82,7 +82,7 @@ describe('usePlayBilling', () => {
 
     it('sets isAvailable to true and loads details when Play Billing is available', async () => {
       const mockDetails: playBilling.ProductDetails = {
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'MatchOps Premium',
         description: 'Unlimited seasons and tournaments',
         price: '4.99',
@@ -125,7 +125,7 @@ describe('usePlayBilling', () => {
     it('completes purchase flow successfully', async () => {
       mockPlayBilling.isPlayBillingAvailable.mockResolvedValue(true);
       mockPlayBilling.getProductDetails.mockResolvedValue({
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'Premium',
         description: 'Monthly',
         price: '4.99',
@@ -235,7 +235,7 @@ describe('usePlayBilling', () => {
   describe('refreshDetails', () => {
     it('refreshes product details', async () => {
       const initialDetails: playBilling.ProductDetails = {
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'Premium',
         description: 'Monthly',
         price: '4.99',

@@ -34,11 +34,20 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
+
+  /* === BACKGROUND LAYERS (MatchOps family signature) === */
+  .bg-layers { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .bg-layers__indigo { position: absolute; inset: 0; background: rgba(99, 102, 241, 0.07); mix-blend-mode: soft-light; }
+  .bg-layers__sky-gradient { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(56, 189, 248, 0.08), transparent 40%); }
+  .bg-layers__glow-top { position: absolute; top: -20%; right: -15%; width: 60%; height: 60%; background: rgba(56, 189, 248, 0.08); border-radius: 50%; filter: blur(60px); }
+  .bg-layers__glow-bottom { position: absolute; bottom: -15%; left: -10%; width: 55%; height: 55%; background: rgba(56, 189, 248, 0.1); border-radius: 50%; filter: blur(60px); }
+  .bg-layers__noise { position: absolute; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"); opacity: 0.5; }
 
   /* ======= FIELD MODE WRAPPER ======= */
   .field-mode {
@@ -47,6 +56,8 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
   }
 
   /* ======= TOP STATUS BAR ======= */
@@ -55,9 +66,11 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 16px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.85);
+    border-bottom: 1px solid rgba(51, 65, 85, 0.7);
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .status-bar__team {
@@ -110,6 +123,8 @@
     height: 32px;
     background: rgba(30, 41, 59, 0.6);
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .progress-segment {
@@ -158,6 +173,8 @@
     gap: 8px;
     padding: 8px 16px 4px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .now-label__dot {
@@ -197,11 +214,14 @@
     gap: 8px;
     padding: 6px 12px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .station-cell {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
     border-radius: 12px;
     padding: 8px;
     display: flex;
@@ -285,6 +305,8 @@
     gap: 8px;
     padding: 8px 16px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .rotation-info__text {
@@ -311,6 +333,8 @@
     align-items: center;
     gap: 8px;
     padding: 12px 16px 6px;
+    position: relative;
+    z-index: 1;
   }
 
   .section-divider__label {
@@ -333,6 +357,8 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    position: relative;
+    z-index: 1;
   }
 
   .upcoming-item {
@@ -341,8 +367,9 @@
     gap: 10px;
     padding: 10px 12px;
     border-radius: 10px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
   }
 
   .upcoming-item--done {
@@ -426,7 +453,7 @@
   }
 
   .overlay__sheet {
-    background: var(--surface);
+    background: rgba(15, 23, 42, 0.95);
     border-radius: 20px 20px 0 0;
     max-height: 85vh;
     overflow-y: auto;
@@ -588,6 +615,15 @@
 <body>
 
 <div class="field-mode">
+
+  <!-- Background layers (MatchOps family signature) -->
+  <div class="bg-layers">
+    <div class="bg-layers__indigo"></div>
+    <div class="bg-layers__sky-gradient"></div>
+    <div class="bg-layers__glow-top"></div>
+    <div class="bg-layers__glow-bottom"></div>
+    <div class="bg-layers__noise"></div>
+  </div>
 
   <!-- Status bar: minimal info -->
   <div class="status-bar">

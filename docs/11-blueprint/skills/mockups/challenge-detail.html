@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Skills — Challenge Detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --emerald-glow: rgba(16, 185, 129, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --amber-dark: #d97706;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139, 92, 246, 0.15);
+    --sky: #38bdf8;
+    --indigo: #6366f1;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-shell {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* === BACKGROUND LAYERS (MatchOps family signature) === */
+  .bg-layers {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-layers__indigo {
+    position: absolute;
+    inset: 0;
+    background: rgba(99, 102, 241, 0.07);
+    mix-blend-mode: soft-light;
+  }
+  .bg-layers__sky-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(56, 189, 248, 0.08), transparent 40%);
+  }
+  .bg-layers__glow-top {
+    position: absolute;
+    top: -20%;
+    right: -15%;
+    width: 60%;
+    height: 60%;
+    background: rgba(56, 189, 248, 0.08);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__glow-bottom {
+    position: absolute;
+    bottom: -15%;
+    left: -10%;
+    width: 55%;
+    height: 55%;
+    background: rgba(56, 189, 248, 0.1);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  /* === HEADER === */
+  .detail-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--text-secondary);
+  }
+
+  .detail-header__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    flex: 1;
+  }
+
+  .difficulty-badge {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .difficulty-badge--silver {
+    background: linear-gradient(135deg, #374151, #6b7280);
+    color: #e5e7eb;
+    border: 1px solid #9ca3af;
+  }
+
+  /* === VIDEO PLACEHOLDER === */
+  .video-area {
+    background: var(--surface);
+    aspect-ratio: 16/9;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .video-play {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+  }
+
+  .video-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* === CONTENT === */
+  .detail-content {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Meta row */
+  .meta-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .meta-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .meta-chip__icon {
+    font-size: 14px;
+  }
+
+  .xp-chip {
+    background: var(--emerald-glow);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--emerald);
+    font-weight: 600;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+  }
+
+  /* === MASTERY PROGRESS === */
+  .mastery-bar {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mastery-stars {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .mastery-star {
+    font-size: 20px;
+    opacity: 0.2;
+  }
+
+  .mastery-star--earned {
+    opacity: 1;
+  }
+
+  .mastery-star--bronze { color: #d4976a; }
+  .mastery-star--silver { color: #d1d5db; }
+  .mastery-star--gold { color: var(--amber-light); }
+
+  .mastery-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mastery-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .mastery-track {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .mastery-track__fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .mastery-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  .first-bonus {
+    background: var(--amber-glow);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: var(--amber);
+    font-weight: 600;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+  }
+
+  /* Sections */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .section__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+  }
+
+  .section__text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  /* Instructions list */
+  .instructions {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .instructions li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .step-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--emerald-glow);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--emerald);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  /* Success criteria */
+  .success-box {
+    background: var(--emerald-glow);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .success-icon {
+    font-size: 24px;
+  }
+
+  .success-text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--emerald);
+    font-weight: 500;
+  }
+
+  /* Tips */
+  .tip-box {
+    background: var(--purple-glow);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .tip-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--purple);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  .tip-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  /* === CTA BUTTON === */
+  .cta-area {
+    padding: 12px 16px 24px;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+
+  /* Two-step CTA */
+  .cta-primary {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    background: linear-gradient(to right, var(--amber), var(--amber-dark));
+    color: var(--bg);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .cta-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  }
+
+  .cta-primary:active {
+    transform: scale(0.98);
+  }
+
+  .cta-btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    background: linear-gradient(to right, var(--amber), var(--amber-dark));
+    color: var(--bg);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+    display: none; /* hidden until practice started */
+  }
+
+  .cta-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  }
+
+  .cta-btn:active {
+    transform: scale(0.98);
+  }
+
+  .cta-subtitle {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* === MOCKUP LABEL === */
+  .mockup-label {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">Mockup</div>
+
+<div class="app-shell">
+
+  <!-- Background Layers -->
+  <div class="bg-layers">
+    <div class="bg-layers__indigo"></div>
+    <div class="bg-layers__sky-gradient"></div>
+    <div class="bg-layers__glow-top"></div>
+    <div class="bg-layers__glow-bottom"></div>
+    <div class="bg-layers__noise"></div>
+  </div>
+
+  <!-- Header -->
+  <div class="detail-header">
+    <div class="back-btn">&#8592;</div>
+    <div class="detail-header__title">Kartiokuljetus</div>
+    <div class="difficulty-badge difficulty-badge--silver">Hopea</div>
+  </div>
+
+  <!-- Video -->
+  <div class="video-area">
+    <div class="video-play">&#9654;</div>
+    <div class="video-label">Katso miten se tehdaan (15s)</div>
+  </div>
+
+  <!-- Content -->
+  <div class="detail-content">
+
+    <!-- Mastery Progress -->
+    <div class="mastery-bar">
+      <div class="mastery-stars">
+        <span class="mastery-star mastery-star--bronze mastery-star--earned">&#9733;</span>
+        <span class="mastery-star mastery-star--silver">&#9733;</span>
+        <span class="mastery-star mastery-star--gold">&#9733;</span>
+      </div>
+      <div class="mastery-info">
+        <div class="mastery-label">Pronssi &#8594; Hopea</div>
+        <div class="mastery-track">
+          <div class="mastery-track__fill" style="width: 33%; background: #d1d5db;"></div>
+        </div>
+        <div class="mastery-count">1/3 suoritusta hopeaan</div>
+      </div>
+    </div>
+
+    <!-- Meta chips -->
+    <div class="meta-row">
+      <div class="meta-chip xp-chip">+25 XP</div>
+      <div class="meta-chip"><span class="meta-chip__icon">&#9200;</span> 10 min</div>
+      <div class="meta-chip"><span class="meta-chip__icon">&#9917;</span> Pallo</div>
+      <div class="meta-chip"><span class="meta-chip__icon">&#128992;</span> Kartiot</div>
+    </div>
+
+    <!-- Description -->
+    <div class="section">
+      <div class="section__title">Kuvaus</div>
+      <div class="section__text">
+        Kuljeta palloa kartioiden valisteompien mahdollisimman nopeasti ja tarkasti. Harjoittele molempia jalkoja!
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="section">
+      <div class="section__title">Ohjeet</div>
+      <ol class="instructions">
+        <li>
+          <div class="step-number">1</div>
+          <div class="step-text">Aseta 5-6 kartiota riviin noin 1 metrin valein.</div>
+        </li>
+        <li>
+          <div class="step-number">2</div>
+          <div class="step-text">Kuljeta pallo kartioiden valisteomiten kayttaen jalan sisasyrjaa ja ulkosyrjaa.</div>
+        </li>
+        <li>
+          <div class="step-number">3</div>
+          <div class="step-text">Kaanny viimeisella kartiolla ja tule takaisin.</div>
+        </li>
+        <li>
+          <div class="step-number">4</div>
+          <div class="step-text">Toista 5 kertaa oikealla jalalla ja 5 kertaa vasemmalla.</div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Success criteria -->
+    <div class="success-box">
+      <div class="success-icon">&#127919;</div>
+      <div class="success-text">Tee 10 edestakaista suoritusta (5 + 5) ilman, etta pallo karkaa kauas kartioista.</div>
+    </div>
+
+    <!-- Coaching tip -->
+    <div class="tip-box">
+      <div class="tip-label">&#128161; Vinkki</div>
+      <div class="tip-text">Pida pallo lahella jalkaa ja kayteilla pieniea kosketuksia. Nosta katse yloes kartioiden valissa — oikeassa pelissa pitaa nahda kenttaa!</div>
+    </div>
+
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-area">
+    <button class="cta-primary">&#9654; Aloita harjoitus</button>
+    <div class="cta-subtitle">Ajastin kaynnistyy — harjoittele rauhassa ja merkitse tehdyksi</div>
+  </div>
+
+</div>
+
+</body>
+</html>

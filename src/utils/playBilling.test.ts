@@ -53,7 +53,7 @@ describe('playBilling utilities', () => {
 
   describe('FULL_VERSION_PRODUCT_ID', () => {
     it('has correct product ID', () => {
-      expect(FULL_VERSION_PRODUCT_ID).toBe('matchops_full_version');
+      expect(FULL_VERSION_PRODUCT_ID).toBe('premium_unlock');
     });
   });
 
@@ -122,7 +122,7 @@ describe('playBilling utilities', () => {
 
     it('returns product details when available', async () => {
       const mockItem = {
-        itemId: 'matchops_full_version',
+        itemId: 'premium_unlock',
         title: 'MatchOps Full Version',
         description: 'Unlimited seasons and tournaments',
         price: {
@@ -140,7 +140,7 @@ describe('playBilling utilities', () => {
 
       const result = await getProductDetails();
       expect(result).toEqual({
-        productId: 'matchops_full_version',
+        productId: 'premium_unlock',
         title: 'MatchOps Full Version',
         description: 'Unlimited seasons and tournaments',
         price: '4.99',
@@ -168,9 +168,9 @@ describe('playBilling utilities', () => {
 
     it('returns purchase tokens for matching product', async () => {
       const mockPurchases = [
-        { itemId: 'matchops_full_version', purchaseToken: 'token-123' },
+        { itemId: 'premium_unlock', purchaseToken: 'token-123' },
         { itemId: 'other_product', purchaseToken: 'token-456' },
-        { itemId: 'matchops_full_version', purchaseToken: 'token-789' },
+        { itemId: 'premium_unlock', purchaseToken: 'token-789' },
       ];
       const mockService = {
         getDetails: jest.fn(),
@@ -248,7 +248,7 @@ describe('playBilling mock mode', () => {
     const { getProductDetails: mockGetDetails } = await import('./playBilling');
     const result = await mockGetDetails();
     expect(result).toEqual({
-      productId: 'matchops_full_version',
+      productId: 'premium_unlock',
       title: 'MatchOps Full Version',
       description: 'Unlimited seasons and tournaments',
       price: '4.99',

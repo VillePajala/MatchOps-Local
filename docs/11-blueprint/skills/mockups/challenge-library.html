@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Skills — Challenge Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --emerald-glow: rgba(16, 185, 129, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --amber-dark: #d97706;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --purple: #8b5cf6;
+    --sky: #38bdf8;
+    --indigo: #6366f1;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-shell {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 72px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* === BACKGROUND LAYERS (MatchOps family signature) === */
+  .bg-layers {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-layers__indigo {
+    position: absolute;
+    inset: 0;
+    background: rgba(99, 102, 241, 0.07);
+    mix-blend-mode: soft-light;
+  }
+  .bg-layers__sky-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(56, 189, 248, 0.08), transparent 40%);
+  }
+  .bg-layers__glow-top {
+    position: absolute;
+    top: -20%;
+    right: -15%;
+    width: 60%;
+    height: 60%;
+    background: rgba(56, 189, 248, 0.08);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__glow-bottom {
+    position: absolute;
+    bottom: -15%;
+    left: -10%;
+    width: 55%;
+    height: 55%;
+    background: rgba(56, 189, 248, 0.1);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  /* === HEADER === */
+  .lib-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+  }
+
+  .lib-header__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Search */
+  .search-bar {
+    margin: 12px 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+  }
+
+  .search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .search-input:focus {
+    border-color: var(--indigo);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+
+  /* Filters */
+  .filter-row {
+    padding: 0 16px;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-bottom: 12px;
+  }
+
+  .filter-row::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+
+  .filter-chip--active {
+    background: var(--emerald-glow);
+    border-color: var(--emerald);
+    color: var(--emerald);
+  }
+
+  .filter-chip--bronze {
+    background: rgba(180, 120, 60, 0.15);
+    border-color: #b4783c;
+    color: #d4976a;
+  }
+
+  .filter-chip--silver {
+    background: rgba(156, 163, 175, 0.15);
+    border-color: #9ca3af;
+    color: #d1d5db;
+  }
+
+  .filter-chip--gold {
+    background: var(--amber-glow);
+    border-color: var(--amber);
+    color: var(--amber-light);
+  }
+
+  /* === CATEGORY SECTION === */
+  .category-section {
+    padding: 0 16px;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .category-icon {
+    font-size: 20px;
+  }
+
+  .category-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex: 1;
+  }
+
+  .category-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  /* Challenge cards */
+  .challenge-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .challenge-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .challenge-card:hover {
+    background: rgba(30, 41, 59, 0.5);
+    border-color: rgba(71, 85, 105, 0.7);
+  }
+
+  .challenge-card--completed {
+    border-left: 3px solid var(--emerald);
+  }
+
+  .challenge-card--locked {
+    opacity: 0.5;
+  }
+
+  .challenge-diff {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .challenge-diff--bronze {
+    background: rgba(180, 120, 60, 0.2);
+    border: 1px solid rgba(180, 120, 60, 0.4);
+  }
+
+  .challenge-diff--silver {
+    background: rgba(156, 163, 175, 0.15);
+    border: 1px solid rgba(156, 163, 175, 0.3);
+  }
+
+  .challenge-diff--gold {
+    background: var(--amber-glow);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .challenge-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .challenge-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .challenge-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .challenge-xp {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--emerald);
+    white-space: nowrap;
+  }
+
+  .challenge-status {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .challenge-status--done {
+    color: var(--emerald);
+  }
+
+  .challenge-status--locked {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .challenge-times {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  /* Mastery star indicators */
+  .mastery-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    flex-shrink: 0;
+  }
+
+  .mastery-stars-small {
+    display: flex;
+    gap: 1px;
+  }
+
+  .mastery-stars-small span {
+    font-size: 12px;
+  }
+
+  .mastery-star-active--bronze { color: #d4976a; }
+  .mastery-star-active--silver { color: #d1d5db; }
+  .mastery-star-active--gold { color: var(--amber-light); }
+  .mastery-star-dim { color: var(--border); font-size: 12px; }
+
+  .mastery-next {
+    font-size: 8px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+  }
+
+  /* Premium badge */
+  .premium-tag {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    background: var(--amber-glow);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  /* === BOTTOM NAV === */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 12px;
+    z-index: 100;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 4px 12px;
+  }
+
+  .nav-item__icon { font-size: 22px; opacity: 0.5; }
+  .nav-item--active .nav-item__icon { opacity: 1; }
+  .nav-item__label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+  .nav-item--active .nav-item__label { color: var(--amber); }
+
+  .mockup-label {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">Mockup</div>
+
+<div class="app-shell">
+
+  <!-- Background Layers -->
+  <div class="bg-layers">
+    <div class="bg-layers__indigo"></div>
+    <div class="bg-layers__sky-gradient"></div>
+    <div class="bg-layers__glow-top"></div>
+    <div class="bg-layers__glow-bottom"></div>
+    <div class="bg-layers__noise"></div>
+  </div>
+
+  <div class="lib-header">
+    <div class="lib-header__title">Harjoitukset</div>
+  </div>
+
+  <div class="search-bar">
+    <span class="search-icon">&#128269;</span>
+    <input class="search-input" type="text" placeholder="Etsi harjoituksia...">
+  </div>
+
+  <!-- Difficulty filters -->
+  <div class="filter-row">
+    <div class="filter-chip filter-chip--active">Kaikki</div>
+    <div class="filter-chip filter-chip--bronze">&#129353; Pronssi</div>
+    <div class="filter-chip filter-chip--silver">&#129352; Hopea</div>
+    <div class="filter-chip filter-chip--gold">&#129351; Kulta</div>
+    <div class="filter-chip">Tekemattomat</div>
+  </div>
+
+  <!-- Ball Mastery -->
+  <div class="category-section">
+    <div class="category-header">
+      <span class="category-icon">&#9917;</span>
+      <span class="category-name">Pallon hallinta</span>
+      <span class="category-count">8/12 tehty</span>
+    </div>
+    <div class="challenge-list">
+      <div class="challenge-card challenge-card--completed">
+        <div class="challenge-diff challenge-diff--bronze">&#129353;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">Varpaankosketukset</div>
+          <div class="challenge-meta"><span>5 min</span><span>Pallo</span></div>
+        </div>
+        <div class="challenge-xp">10 XP</div>
+        <div class="mastery-indicator">
+          <div class="mastery-stars-small">
+            <span class="mastery-star-active--silver">&#9733;</span>
+            <span class="mastery-star-active--silver">&#9733;</span>
+            <span class="mastery-star-dim">&#9733;</span>
+          </div>
+          <div class="mastery-next">4/10 kultaan</div>
+        </div>
+      </div>
+      <div class="challenge-card challenge-card--completed">
+        <div class="challenge-diff challenge-diff--bronze">&#129353;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">Pohjarullaus</div>
+          <div class="challenge-meta"><span>5 min</span><span>Pallo</span></div>
+        </div>
+        <div class="challenge-xp">10 XP</div>
+        <div class="mastery-indicator">
+          <div class="mastery-stars-small">
+            <span class="mastery-star-active--bronze">&#9733;</span>
+            <span class="mastery-star-dim">&#9733;</span>
+            <span class="mastery-star-dim">&#9733;</span>
+          </div>
+          <div class="mastery-next">2/3 hopeaan</div>
+        </div>
+      </div>
+      <div class="challenge-card">
+        <div class="challenge-diff challenge-diff--silver">&#129352;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">V-veto ja kaannos</div>
+          <div class="challenge-meta"><span>10 min</span><span>Pallo</span></div>
+        </div>
+        <div class="challenge-xp">25 XP</div>
+        <div class="challenge-status"></div>
+      </div>
+      <div class="challenge-card">
+        <div class="challenge-diff challenge-diff--gold">&#129351;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">Pallon hallinta -yhdistelma</div>
+          <div class="challenge-meta"><span>15 min</span><span>Pallo</span></div>
+        </div>
+        <div class="challenge-xp">50 XP</div>
+        <div class="challenge-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dribbling -->
+  <div class="category-section">
+    <div class="category-header">
+      <span class="category-icon">&#9889;</span>
+      <span class="category-name">Kuljetus</span>
+      <span class="category-count">3/10 tehty</span>
+    </div>
+    <div class="challenge-list">
+      <div class="challenge-card challenge-card--completed">
+        <div class="challenge-diff challenge-diff--bronze">&#129353;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">Suora kuljetus</div>
+          <div class="challenge-meta"><span>5 min</span><span>Pallo</span></div>
+        </div>
+        <div class="challenge-xp">10 XP</div>
+        <div class="mastery-indicator">
+          <div class="mastery-stars-small">
+            <span class="mastery-star-active--silver">&#9733;</span>
+            <span class="mastery-star-active--silver">&#9733;</span>
+            <span class="mastery-star-dim">&#9733;</span>
+          </div>
+          <div class="mastery-next">3/10 kultaan</div>
+        </div>
+      </div>
+      <div class="challenge-card">
+        <div class="challenge-diff challenge-diff--silver">&#129352;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">Kartiokuljetus</div>
+          <div class="challenge-meta"><span>10 min</span><span>Pallo, Kartiot</span></div>
+        </div>
+        <div class="challenge-xp">25 XP</div>
+        <div class="challenge-status"></div>
+      </div>
+      <div class="challenge-card challenge-card--locked">
+        <div class="challenge-diff challenge-diff--gold">&#129351;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">Nopeuskuljetus</div>
+          <div class="challenge-meta"><span>10 min</span><span>Pallo, Kartiot</span></div>
+        </div>
+        <div class="challenge-xp">50 XP</div>
+        <div class="challenge-status"><span class="premium-tag">Premium</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passing -->
+  <div class="category-section">
+    <div class="category-header">
+      <span class="category-icon">&#127919;</span>
+      <span class="category-name">Syotot</span>
+      <span class="category-count">1/8 tehty</span>
+    </div>
+    <div class="challenge-list">
+      <div class="challenge-card challenge-card--completed">
+        <div class="challenge-diff challenge-diff--bronze">&#129353;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">Seinasyotto — sisasyrja</div>
+          <div class="challenge-meta"><span>5 min</span><span>Pallo, Seina</span></div>
+        </div>
+        <div class="challenge-xp">10 XP</div>
+        <div class="mastery-indicator">
+          <div class="mastery-stars-small">
+            <span class="mastery-star-active--bronze">&#9733;</span>
+            <span class="mastery-star-dim">&#9733;</span>
+            <span class="mastery-star-dim">&#9733;</span>
+          </div>
+          <div class="mastery-next">1/3 hopeaan</div>
+        </div>
+      </div>
+      <div class="challenge-card">
+        <div class="challenge-diff challenge-diff--silver">&#129352;</div>
+        <div class="challenge-info">
+          <div class="challenge-name">Syottosarja seinaan</div>
+          <div class="challenge-meta"><span>10 min</span><span>Pallo, Seina</span></div>
+        </div>
+        <div class="challenge-xp">25 XP</div>
+        <div class="challenge-status"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <div class="nav-item">
+    <div class="nav-item__icon">&#127968;</div>
+    <div class="nav-item__label">Koti</div>
+  </div>
+  <div class="nav-item nav-item--active">
+    <div class="nav-item__icon">&#128218;</div>
+    <div class="nav-item__label">Harjoitukset</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#127942;</div>
+    <div class="nav-item__label">Merkit</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#128100;</div>
+    <div class="nav-item__label">Profiili</div>
+  </div>
+</div>
+
+</body>
+</html>

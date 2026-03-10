@@ -42,7 +42,7 @@ The user should NEVER be surprised by the upgrade prompt. By competition #4, the
 
 | Component | File | Status | Changes Needed |
 |-----------|------|--------|---------------|
-| Premium limits config | `src/config/premiumLimits.ts` | Exists | Update limits to 3 seasons + 3 tournaments only; update product ID to `matchops_full_version`; set `PREMIUM_IS_SUBSCRIPTION = false` |
+| Premium limits config | `src/config/premiumLimits.ts` | Exists | Update limits to 3 seasons + 3 tournaments only; update product ID to `premium_unlock`; set `PREMIUM_IS_SUBSCRIPTION = false` |
 | Premium manager | `src/utils/premiumManager.ts` | Exists (disabled) | Re-enable `canCreateResource`/`getRemainingCount` for seasons + tournaments only |
 | Premium context | `src/contexts/PremiumContext.tsx` | Exists (disabled) | Re-enable enforcement logic (currently hard-coded `isPremium: true`) |
 | Upgrade prompt modal | `src/components/UpgradePromptModal.tsx` | Exists | Update copy from subscription to one-time purchase |
@@ -50,7 +50,7 @@ The user should NEVER be surprised by the upgrade prompt. By competition #4, the
 | Resource limit hook | `src/hooks/usePremium.ts` | Exists | Add "approaching limit" warning (remaining === 1); currently only has hard block |
 | Enforcement flag | `src/config/constants.ts` | Exists | `PREMIUM_ENFORCEMENT_ENABLED` -- flip to true in Phase 7 |
 | Platform detection | `src/utils/platform.ts` | Exists | `isPlayStoreContext()`, `isDigitalGoodsAvailable()` -- no changes needed |
-| Play Billing utils | `src/utils/playBilling.ts` | Exists | Update product ID from `matchops_premium_monthly` to `matchops_full_version`; change `purchaseSubscription()` to `purchaseFullVersion()` for one-time flow |
+| Play Billing utils | `src/utils/playBilling.ts` | Exists | Update product ID from `matchops_premium_monthly` to `premium_unlock`; change `purchaseSubscription()` to `purchaseFullVersion()` for one-time flow |
 | Play Billing hook | `src/hooks/usePlayBilling.ts` | Exists | Update `purchase()` for one-time flow; update `restore()` to pass purchase type |
 | Subscriptions table | `supabase/migrations/010_subscriptions.sql` | Exists | No schema change needed -- use `status = 'active'` with `period_end = NULL` for permanent purchase |
 | Subscription RPC | `get_subscription_status()` in `010_subscriptions.sql` | Exists | No change needed -- already returns `is_active = true` for `status = 'active'` regardless of `period_end` |
@@ -182,7 +182,7 @@ export const FREE_LIMITS = {
 
 export type ResourceType = 'season' | 'tournament';
 
-export const PREMIUM_PRODUCT_ID = 'matchops_full_version';
+export const PREMIUM_PRODUCT_ID = 'premium_unlock';
 export const PREMIUM_PRICE = '4,99 EUR';  // TBD -- final price
 export const PREMIUM_PRICE_AMOUNT = 4.99;
 export const PREMIUM_IS_SUBSCRIPTION = false;
@@ -200,7 +200,7 @@ export const PREMIUM_IS_SUBSCRIPTION = false;
 
 4. **`supabase/functions/verify-subscription/index.ts`** -- update valid product IDs (line 36):
 ```typescript
-const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
+const VALID_PRODUCT_IDS = ['premium_unlock', 'matchops_premium_monthly'];
 // Keep old ID for any existing test purchases; add new one-time product
 ```
 
@@ -461,7 +461,7 @@ After backup import, if imported data exceeds free limits, show informational to
 **5.1: Play Store Product Setup**
 
 Create in-app product in Google Play Console:
-- Product ID: `matchops_full_version`
+- Product ID: `premium_unlock`
 - Type: **One-time (non-consumable)**
 - Price: ~4.99 EUR (localized pricing)
 - Title: "MatchOps Full Version"
@@ -485,7 +485,7 @@ Key changes:
 **5.3: Update `src/hooks/usePlayBilling.ts`**
 
 - Update `purchase()` to call new one-time purchase function
-- Update `restore()` to filter for `matchops_full_version` product
+- Update `restore()` to filter for `premium_unlock` product
 - Pass `purchaseType: 'onetime'` to `verifyPurchaseWithServer()`
 - Remove subscription-specific state (subscription details, renewal info)
 
@@ -590,7 +590,7 @@ if (isMockMode && purchaseType === 'onetime') {
 
 5. **Update `VALID_PRODUCT_IDS`:**
 ```typescript
-const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
+const VALID_PRODUCT_IDS = ['premium_unlock', 'matchops_premium_monthly'];
 ```
 
 6. **Keep existing subscription logic intact** for potential future Pro tier.
@@ -647,7 +647,7 @@ const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
 
 **Pre-launch checklist:**
 - [ ] Toiminimi registered (required for accepting payments in Finland)
-- [ ] Google Play Console: `matchops_full_version` product created and approved
+- [ ] Google Play Console: `premium_unlock` product created and approved
 - [ ] Edge Function updated and deployed for one-time purchase verification
 - [ ] All limit indicators working in UI
 - [ ] Upgrade prompt tested on Android TWA with real purchase
@@ -687,7 +687,7 @@ Phase 5 (Play Billing)  +  Phase 6 (Edge Function)  <-- Parallel, require Play S
 
 **Phases 5-6 require:**
 - Google Play Console access
-- `matchops_full_version` product created
+- `premium_unlock` product created
 - Edge Function deployment to Supabase
 - Toiminimi registered
 
@@ -705,7 +705,7 @@ Every file that needs changes, organized by phase.
 | `src/config/premiumLimits.ts` | New limits (3/3), narrow `ResourceType` to season/tournament, new product ID, `PREMIUM_IS_SUBSCRIPTION = false` |
 | `src/utils/playBilling.ts` | Rename `SUBSCRIPTION_PRODUCT_ID` -> use `PREMIUM_PRODUCT_ID`; rename `purchaseSubscription()`, `SubscriptionDetails`, `getSubscriptionDetails()` |
 | `src/hooks/usePlayBilling.ts` | Update to use renamed functions/types from playBilling.ts |
-| `supabase/functions/verify-subscription/index.ts` | Add `matchops_full_version` to `VALID_PRODUCT_IDS` |
+| `supabase/functions/verify-subscription/index.ts` | Add `premium_unlock` to `VALID_PRODUCT_IDS` |
 
 **Remove old resource type usages (required to avoid build break):**
 | File | Change |

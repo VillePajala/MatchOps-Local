@@ -31,11 +31,20 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     padding-bottom: 80px;
   }
+
+  /* === BACKGROUND LAYERS (MatchOps family signature) === */
+  .bg-layers { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .bg-layers__indigo { position: absolute; inset: 0; background: rgba(99, 102, 241, 0.07); mix-blend-mode: soft-light; }
+  .bg-layers__sky-gradient { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(56, 189, 248, 0.08), transparent 40%); }
+  .bg-layers__glow-top { position: absolute; top: -20%; right: -15%; width: 60%; height: 60%; background: rgba(56, 189, 248, 0.08); border-radius: 50%; filter: blur(60px); }
+  .bg-layers__glow-bottom { position: absolute; bottom: -15%; left: -10%; width: 55%; height: 55%; background: rgba(56, 189, 248, 0.1); border-radius: 50%; filter: blur(60px); }
+  .bg-layers__noise { position: absolute; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"); opacity: 0.5; }
 
   /* Search bar */
   .search-area {
@@ -51,8 +60,9 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
     border-radius: 10px;
     padding: 8px 14px;
     margin-bottom: 10px;
@@ -138,21 +148,25 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     padding: 16px;
+    position: relative;
+    z-index: 1;
   }
 
   /* Exercise card */
   .exercise-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.15s, border-color 0.15s;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
     position: relative;
   }
 
   .exercise-card:hover {
-    border-color: var(--border-light);
+    background: rgba(30, 41, 59, 0.5);
+    border-color: rgba(71, 85, 105, 0.7);
     transform: translateY(-1px);
   }
 
@@ -348,6 +362,15 @@
 </style>
 </head>
 <body>
+
+<!-- Background layers (MatchOps family signature) -->
+<div class="bg-layers">
+  <div class="bg-layers__indigo"></div>
+  <div class="bg-layers__sky-gradient"></div>
+  <div class="bg-layers__glow-top"></div>
+  <div class="bg-layers__glow-bottom"></div>
+  <div class="bg-layers__noise"></div>
+</div>
 
 <!-- Search area -->
 <div class="search-area">
