@@ -18,7 +18,7 @@ import logger from './logger';
 const PLAY_BILLING_SERVICE = 'https://play.google.com/billing';
 
 // Product ID for full version one-time purchase (must match Play Console)
-export const FULL_VERSION_PRODUCT_ID = 'matchops_full_version';
+export const FULL_VERSION_PRODUCT_ID = 'premium_unlock';
 
 // Check if mock billing is enabled
 // SECURITY: Mock billing bypasses real payments - NEVER enable in production

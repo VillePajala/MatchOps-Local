@@ -24,7 +24,7 @@ export const FREE_LIMITS = {
 
 export type ResourceType = 'season' | 'tournament';
 
-export const PREMIUM_PRODUCT_ID = 'matchops_full_version';
+export const PREMIUM_PRODUCT_ID = 'premium_unlock';
 /** Price display string (TBD -- final price set in Play Store) */
 export const PREMIUM_PRICE = '4,99 \u20AC';
 export const PREMIUM_PRICE_AMOUNT = 4.99;

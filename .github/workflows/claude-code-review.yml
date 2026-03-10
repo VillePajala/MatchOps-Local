@@ -2,7 +2,7 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]  # TEMP: testing review format, revert to [opened] after
+    types: [opened]
 
 jobs:
   claude-review:

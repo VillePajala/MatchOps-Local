@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Skills — New User Home (Post-First-Win)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --emerald-glow: rgba(16, 185, 129, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --amber-dark: #d97706;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139, 92, 246, 0.15);
+    --sky: #38bdf8;
+    --indigo: #6366f1;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --orange: #f97316;
+    --cyan: #06b6d4;
+    --pink: #ec4899;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-shell {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 72px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* === BACKGROUND LAYERS (MatchOps family signature) === */
+  .bg-layers {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-layers__indigo {
+    position: absolute;
+    inset: 0;
+    background: rgba(99, 102, 241, 0.07);
+    mix-blend-mode: soft-light;
+  }
+  .bg-layers__sky-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(56, 189, 248, 0.08), transparent 40%);
+  }
+  .bg-layers__glow-top {
+    position: absolute;
+    top: -20%;
+    right: -15%;
+    width: 60%;
+    height: 60%;
+    background: rgba(56, 189, 248, 0.08);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__glow-bottom {
+    position: absolute;
+    bottom: -15%;
+    left: -10%;
+    width: 55%;
+    height: 55%;
+    background: rgba(56, 189, 248, 0.1);
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg-layers__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  /* === TOP BAR === */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .top-bar__profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--emerald), var(--cyan));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border: 2px solid var(--emerald);
+  }
+
+  .top-bar__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .top-bar__level {
+    font-size: 11px;
+    color: var(--emerald);
+    font-weight: 600;
+  }
+
+  .top-bar__streak {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--amber-glow);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .streak-icon { font-size: 16px; }
+
+  .streak-count {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--amber-light);
+  }
+
+  .streak-label {
+    font-size: 10px;
+    color: var(--amber);
+    text-transform: uppercase;
+  }
+
+  /* === XP BAR === */
+  .xp-section { padding: 12px 16px; }
+
+  .xp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+
+  .xp-level {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--emerald);
+  }
+
+  .xp-amount {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .xp-bar {
+    height: 14px;
+    background: var(--surface);
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .xp-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--emerald-dark), var(--emerald));
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  }
+
+  .xp-hint {
+    font-size: 11px;
+    color: var(--emerald);
+    text-align: right;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  /* === WELCOME CARD (new user only) === */
+  .welcome-card {
+    margin: 8px 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--emerald-glow), rgba(16, 185, 129, 0.05));
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .welcome-card__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--emerald);
+    margin-bottom: 4px;
+  }
+
+  .welcome-card__text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .welcome-card__highlight {
+    font-weight: 600;
+    color: var(--amber-light);
+  }
+
+  /* === SECTIONS === */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 16px 8px;
+  }
+
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .section-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface);
+    padding: 3px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  /* === QUESTS === */
+  .quests {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .quest-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    transition: background 0.15s;
+  }
+
+  .quest-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .quest-icon--easy {
+    background: var(--emerald-glow);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .quest-icon--main {
+    background: var(--purple-glow);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .quest-icon--bonus {
+    background: var(--amber-glow);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .quest-info { flex: 1; min-width: 0; }
+
+  .quest-type {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
+
+  .quest-type--easy { color: var(--emerald); }
+  .quest-type--main { color: var(--purple); }
+  .quest-type--bonus { color: var(--amber); }
+
+  .quest-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .quest-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .quest-xp {
+    font-weight: 600;
+    color: var(--emerald);
+    font-size: 13px;
+    font-family: 'Rajdhani', sans-serif;
+    white-space: nowrap;
+  }
+
+  .quest-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border-light);
+    flex-shrink: 0;
+  }
+
+  /* === SURPRISE ME === */
+  .surprise-btn {
+    margin: 12px 16px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--purple-glow), var(--amber-glow));
+    border: 1px dashed rgba(139, 92, 246, 0.4);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .surprise-btn__icon { font-size: 22px; }
+
+  .surprise-btn__text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .surprise-btn__sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* === CATEGORIES (all at 0%) === */
+  .categories {
+    padding: 0 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .category-tile {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    padding: 10px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  .category-tile__progress {
+    width: 28px;
+    height: 28px;
+    position: relative;
+  }
+
+  .category-tile__progress svg {
+    width: 28px;
+    height: 28px;
+    transform: rotate(-90deg);
+  }
+
+  .category-tile__progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 8px;
+    color: var(--text-muted);
+  }
+
+  .category-tile__name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+  }
+
+  /* === FIRST BADGE === */
+  .first-badge-section {
+    margin: 12px 16px;
+    padding: 14px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .first-badge-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #374151, #4b5563);
+    border: 2px solid #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .first-badge-info { flex: 1; }
+
+  .first-badge-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .first-badge-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* === MOTIVATION HINT === */
+  .motivation {
+    margin: 8px 16px;
+    padding: 12px 14px;
+    background: var(--amber-glow);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--amber);
+    font-weight: 500;
+  }
+
+  /* === BOTTOM NAV === */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 12px;
+    z-index: 100;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 4px 12px;
+  }
+
+  .nav-item__icon { font-size: 22px; opacity: 0.5; }
+  .nav-item--active .nav-item__icon { opacity: 1; }
+  .nav-item__label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+  .nav-item--active .nav-item__label { color: var(--amber); }
+
+  .mockup-label {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">Mockup — New User (Day 1, Post-First-Win)</div>
+
+<div class="app-shell">
+
+  <!-- Background Layers -->
+  <div class="bg-layers">
+    <div class="bg-layers__indigo"></div>
+    <div class="bg-layers__sky-gradient"></div>
+    <div class="bg-layers__glow-top"></div>
+    <div class="bg-layers__glow-bottom"></div>
+    <div class="bg-layers__noise"></div>
+  </div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-bar__profile">
+      <div class="avatar">&#128038;</div>
+      <div>
+        <div class="top-bar__name">Pikkupeluri</div>
+        <div class="top-bar__level">Taso 1</div>
+      </div>
+    </div>
+    <div class="top-bar__streak">
+      <span class="streak-icon">&#128293;</span>
+      <div>
+        <div class="streak-count">1</div>
+        <div class="streak-label">paiva</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- XP Bar (very early) -->
+  <div class="xp-section">
+    <div class="xp-header">
+      <span class="xp-level">TASO 1</span>
+      <span class="xp-amount">25 / 100 XP</span>
+    </div>
+    <div class="xp-bar">
+      <div class="xp-bar__fill" style="width: 25%"></div>
+    </div>
+    <div class="xp-hint">75 XP tasoon 2!</div>
+  </div>
+
+  <!-- Welcome card (new user only, dismissible) -->
+  <div class="welcome-card">
+    <div class="welcome-card__title">Hienoa, ensimmainen harjoituksesi on tehty!</div>
+    <div class="welcome-card__text">Tee <span class="welcome-card__highlight">paivan tehtavat</span> ansaitaksesi bonuspisteet. Jatka huomenna pitaaksesi putken!</div>
+  </div>
+
+  <!-- Daily Quests (all uncompleted — first challenge was separate) -->
+  <div class="section-header">
+    <div class="section-title">Paivan tehtavat</div>
+    <div class="section-badge">0/3 tehty</div>
+  </div>
+
+  <div class="quests">
+    <div class="quest-card">
+      <div class="quest-icon quest-icon--easy">&#9917;</div>
+      <div class="quest-info">
+        <div class="quest-type quest-type--easy">Helppo</div>
+        <div class="quest-name">Pohjarullaus</div>
+        <div class="quest-meta">Pallon hallinta &middot; 5 min</div>
+      </div>
+      <div class="quest-xp">+10 XP</div>
+      <div class="quest-check"></div>
+    </div>
+    <div class="quest-card">
+      <div class="quest-icon quest-icon--main">&#127942;</div>
+      <div class="quest-info">
+        <div class="quest-type quest-type--main">Paatehtava</div>
+        <div class="quest-name">Suora kuljetus</div>
+        <div class="quest-meta">Kuljetus &middot; 5 min</div>
+      </div>
+      <div class="quest-xp">+10 XP</div>
+      <div class="quest-check"></div>
+    </div>
+    <div class="quest-card">
+      <div class="quest-icon quest-icon--bonus">&#11088;</div>
+      <div class="quest-info">
+        <div class="quest-type quest-type--bonus">Bonustehtava</div>
+        <div class="quest-name">Jongleeraus — aloittelijat</div>
+        <div class="quest-meta">Jongleeraus &middot; 5 min</div>
+      </div>
+      <div class="quest-xp">+10 XP</div>
+      <div class="quest-check"></div>
+    </div>
+  </div>
+
+  <!-- Surprise Me -->
+  <div class="surprise-btn">
+    <div class="surprise-btn__icon">&#127922;</div>
+    <div>
+      <div class="surprise-btn__text">Yllata minut!</div>
+      <div class="surprise-btn__sub">Satunnainen harjoitus sinulle</div>
+    </div>
+  </div>
+
+  <!-- Categories (all near 0%) -->
+  <div class="section-header">
+    <div class="section-title">Harjoitukset</div>
+  </div>
+
+  <div class="categories">
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="var(--emerald)" stroke-width="2.5" stroke-dasharray="75.4" stroke-dashoffset="68" stroke-linecap="round"/></svg>
+        <div class="category-tile__progress-text">10%</div>
+      </div>
+      <div class="category-tile__name">Pallon hallinta</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/></svg>
+        <div class="category-tile__progress-text">0%</div>
+      </div>
+      <div class="category-tile__name">Kuljetus</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/></svg>
+        <div class="category-tile__progress-text">0%</div>
+      </div>
+      <div class="category-tile__name">Syotot</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/></svg>
+        <div class="category-tile__progress-text">0%</div>
+      </div>
+      <div class="category-tile__name">Laukaus</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/></svg>
+        <div class="category-tile__progress-text">0%</div>
+      </div>
+      <div class="category-tile__name">Haltuun-otot</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/></svg>
+        <div class="category-tile__progress-text">0%</div>
+      </div>
+      <div class="category-tile__name">Jongleeraus</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/></svg>
+        <div class="category-tile__progress-text">0%</div>
+      </div>
+      <div class="category-tile__name">Ketteryys</div>
+    </div>
+    <div class="category-tile">
+      <div class="category-tile__progress">
+        <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--border)" stroke-width="2.5"/></svg>
+        <div class="category-tile__progress-text">0%</div>
+      </div>
+      <div class="category-tile__name">Temput</div>
+    </div>
+  </div>
+
+  <!-- First badge earned -->
+  <div class="section-header">
+    <div class="section-title">Merkit</div>
+  </div>
+
+  <div class="first-badge-section">
+    <div class="first-badge-icon">&#127775;</div>
+    <div class="first-badge-info">
+      <div class="first-badge-title">Ensimmainen!</div>
+      <div class="first-badge-desc">Suoritit ensimmaisen harjoituksesi. Hyvaa alkua!</div>
+    </div>
+  </div>
+
+  <!-- Motivation -->
+  <div class="motivation">&#128293; Tee viela 2 tehtavaa ansaitaksesi paivittaisen bonuksen! &#128293;</div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <div class="nav-item nav-item--active">
+    <div class="nav-item__icon">&#127968;</div>
+    <div class="nav-item__label">Koti</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#128218;</div>
+    <div class="nav-item__label">Harjoitukset</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#127942;</div>
+    <div class="nav-item__label">Merkit</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-item__icon">&#128100;</div>
+    <div class="nav-item__label">Profiili</div>
+  </div>
+</div>
+
+</body>
+</html>

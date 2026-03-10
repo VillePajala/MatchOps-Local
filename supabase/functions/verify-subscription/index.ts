@@ -3,7 +3,7 @@
  *
  * Verifies Google Play purchases and stores purchase status in Supabase.
  * Routes to the correct Google API based on product type:
- * - One-time products (matchops_full_version): .../purchases/products/... endpoint
+ * - One-time products (premium_unlock): .../purchases/products/... endpoint
  * - Subscriptions (matchops_premium_monthly): .../purchases/subscriptions/... endpoint
  *
  * Security Model:
@@ -36,9 +36,9 @@ const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
 
 // Google Play package and product configuration
 const GOOGLE_PLAY_PACKAGE = 'com.matchops.local';
-// Backward compat: accept legacy 'matchops_premium_monthly' for users who purchased
-// before the switch to one-time purchase model. New purchases use 'matchops_full_version'.
-const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
+// Backward compat: accept legacy IDs for users who purchased before the rename.
+// New purchases use 'premium_unlock' (matches Play Console product ID).
+const VALID_PRODUCT_IDS = ['premium_unlock', 'matchops_full_version', 'matchops_premium_monthly'];
 
 // Timing constants
 // Mock purchase validity period (used in mock/test mode only, not for real purchases)
@@ -48,7 +48,7 @@ const GRACE_PERIOD_DAYS = 7;
 const ONE_TIME_PURCHASE_YEARS = 100;
 
 // Product type routing: which product IDs are one-time purchases vs subscriptions
-const ONE_TIME_PRODUCT_IDS = ['matchops_full_version'];
+const ONE_TIME_PRODUCT_IDS = ['premium_unlock', 'matchops_full_version'];
 
 // Subscription status type (matches database enum)
 type SubscriptionStatus = 'none' | 'active' | 'cancelled' | 'grace' | 'expired';

@@ -1,4 +1,4 @@
-# Blueprint: How to Build a Local-First PWA with Supabase Cloud Sync
+# Blueprint: How to Build a PWA with Supabase
 
 > **Audience**: AI agent (Claude, GPT, etc.) tasked with building a new app
 > **Source**: Extracted from MatchOps-Local — a production soccer coaching PWA
@@ -7,13 +7,38 @@
 
 ## What This Is
 
-This blueprint documents every architectural decision, configuration, pattern, and gotcha from building MatchOps-Local — a local-first Progressive Web App with optional Supabase cloud sync. Use it to build a structurally identical app with a different domain.
+This blueprint documents every architectural decision, configuration, pattern, and gotcha from building MatchOps-Local — a Progressive Web App with Supabase cloud backend. Use it to build a structurally similar app with a different domain.
 
 **This is NOT documentation.** These are **build instructions** written for an AI agent. Each file tells you:
 - **What** to build
 - **WHY** it was designed this way (so you don't deviate)
 - **HOW** to build it (with copy-paste-ready code and configs)
 - **TRAPS** to avoid (things that cost hours to debug)
+
+## App-Specific Domain Files
+
+The shared blueprint (files 01-16) is domain-agnostic. Each app has its own domain files in a subdirectory:
+
+| App | Directory | Description |
+|-----|-----------|-------------|
+| **MatchOps Practice** | [`practice/`](./practice/) | Coach-facing practice session planner. Local-first + optional cloud (dual-mode). |
+| **MatchOps Skills** | [`skills/`](./skills/) | Kid-facing gamified skills app. Cloud-first (parent account required, no dual-mode). |
+
+Each subdirectory contains:
+- `18-app-vision.md` — What the app IS (features, users, flows, scope)
+- `17-data-model-sketch.md` — Entity design, schema, transforms
+
+**Read the app-specific vision doc (18) FIRST**, then come back to the shared files (01-16) for implementation guidance.
+
+### Architecture Variations by App
+
+| Aspect | Practice (dual-mode) | Skills (cloud-first) |
+|--------|---------------------|---------------------|
+| Auth | Optional (adult email) | Required (parent email + child profiles) |
+| Data layer | LocalDataStore + SupabaseDataStore + SyncedDataStore | SupabaseDataStore only |
+| Offline | Full offline via IndexedDB | React Query cache + mutation retry |
+| Blueprint files used | All 01-16 | 01-08, 10-16 (skip 09-sync-engine) |
+| Local storage | IndexedDB (primary in local mode) | React Query persistence only |
 
 ---
 
@@ -141,8 +166,13 @@ Read these in order when building a new app. Each file is self-contained but bui
 | # | File | What You'll Learn |
 |---|------|-------------------|
 | 16 | [16-gotchas.md](./16-gotchas.md) | Every trap and lesson learned — the expensive knowledge |
-| 17 | [17-data-model-sketch.md](./17-data-model-sketch.md) | Practice app entity design (domain-specific) |
-| 18 | [18-app-vision.md](./18-app-vision.md) | What the practice app IS — features, users, flows, scope |
+
+### App-Specific (in subdirectories)
+
+| # | Practice | Skills | What It Covers |
+|---|----------|--------|----------------|
+| 17 | [practice/17-data-model-sketch.md](./practice/17-data-model-sketch.md) | [skills/17-data-model-sketch.md](./skills/17-data-model-sketch.md) | Entity design, schema, transforms |
+| 18 | [practice/18-app-vision.md](./practice/18-app-vision.md) | [skills/18-app-vision.md](./skills/18-app-vision.md) | App vision, features, users, flows |
 
 ---
 

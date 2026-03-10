@@ -77,7 +77,7 @@ describe('premiumLimits', () => {
 
   describe('constants', () => {
     it('should have correct product ID for full version', () => {
-      expect(PREMIUM_PRODUCT_ID).toBe('matchops_full_version');
+      expect(PREMIUM_PRODUCT_ID).toBe('premium_unlock');
     });
 
     it('should have correct price string', () => {

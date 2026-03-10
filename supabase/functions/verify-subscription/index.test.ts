@@ -162,14 +162,15 @@ Deno.test('Token validation: rejects long test tokens (>100 chars)', () => {
 // =============================================================================
 
 Deno.test('Product ID validation: accepts valid product IDs', () => {
-  const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
+  const VALID_PRODUCT_IDS = ['premium_unlock', 'matchops_full_version', 'matchops_premium_monthly'];
 
+  assertEquals(VALID_PRODUCT_IDS.includes('premium_unlock'), true);
   assertEquals(VALID_PRODUCT_IDS.includes('matchops_full_version'), true);
   assertEquals(VALID_PRODUCT_IDS.includes('matchops_premium_monthly'), true);
 });
 
 Deno.test('Product ID validation: rejects invalid product IDs', () => {
-  const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
+  const VALID_PRODUCT_IDS = ['premium_unlock', 'matchops_full_version', 'matchops_premium_monthly'];
 
   assertEquals(VALID_PRODUCT_IDS.includes('unknown_product'), false);
   assertEquals(VALID_PRODUCT_IDS.includes(''), false);
@@ -332,8 +333,9 @@ Deno.test('Product purchase status: determines correct status from purchase stat
 });
 
 Deno.test('Product routing: one-time purchases use products endpoint', () => {
-  const ONE_TIME_PRODUCT_IDS = ['matchops_full_version'];
+  const ONE_TIME_PRODUCT_IDS = ['premium_unlock', 'matchops_full_version'];
 
+  assertEquals(ONE_TIME_PRODUCT_IDS.includes('premium_unlock'), true);
   assertEquals(ONE_TIME_PRODUCT_IDS.includes('matchops_full_version'), true);
   assertEquals(ONE_TIME_PRODUCT_IDS.includes('matchops_premium_monthly'), false);
 });
@@ -537,7 +539,7 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // Validate product ID
-  const VALID_PRODUCT_IDS = ['matchops_full_version', 'matchops_premium_monthly'];
+  const VALID_PRODUCT_IDS = ['premium_unlock', 'matchops_full_version', 'matchops_premium_monthly'];
   if (!VALID_PRODUCT_IDS.includes(productId)) {
     return new Response(
       JSON.stringify({ error: 'Invalid product ID' }),
@@ -669,7 +671,7 @@ Deno.test('Handler: returns 401 for missing authorization', async () => {
   resetMocks();
   const req = createMockRequest({
     origin: 'https://matchops.app',
-    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
+    body: { purchaseToken: 'test-token', productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -684,7 +686,7 @@ Deno.test('Handler: returns 401 for invalid JWT', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer invalid-jwt',
-    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
+    body: { purchaseToken: 'test-token', productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -698,7 +700,7 @@ Deno.test('Handler: returns 400 for missing purchaseToken', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { productId: 'matchops_full_version' },
+    body: { productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -726,7 +728,7 @@ Deno.test('Handler: returns 400 for token over 500 chars', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'a'.repeat(501), productId: 'matchops_full_version' },
+    body: { purchaseToken: 'a'.repeat(501), productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -740,7 +742,7 @@ Deno.test('Handler: returns 400 for invalid token format', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'token with spaces', productId: 'matchops_full_version' },
+    body: { purchaseToken: 'token with spaces', productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -769,7 +771,7 @@ Deno.test('Handler: returns 400 for test token when mock billing disabled', asyn
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
+    body: { purchaseToken: 'test-token', productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -784,7 +786,7 @@ Deno.test('Handler: returns 400 for test token over 100 chars in mock mode', asy
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-' + 'a'.repeat(100), productId: 'matchops_full_version' },
+    body: { purchaseToken: 'test-' + 'a'.repeat(100), productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -799,7 +801,7 @@ Deno.test('Handler: returns 409 for token already claimed by another user', asyn
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
+    body: { purchaseToken: 'test-token', productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -814,7 +816,7 @@ Deno.test('Handler: returns 500 for upsert failure', async () => {
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-token', productId: 'matchops_full_version' },
+    body: { purchaseToken: 'test-token', productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 
@@ -828,7 +830,7 @@ Deno.test('Handler: returns 200 for valid test token in mock mode', async () => 
   const req = createMockRequest({
     origin: 'https://matchops.app',
     authorization: 'Bearer valid-jwt',
-    body: { purchaseToken: 'test-preview-123', productId: 'matchops_full_version' },
+    body: { purchaseToken: 'test-preview-123', productId: 'premium_unlock' },
   });
   const res = await handleRequest(req);
 

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>MatchOps Skills — Onboarding Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-raised: #253349;
+    --border: #334155;
+    --border-light: #475569;
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --emerald-glow: rgba(16, 185, 129, 0.15);
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --amber-dark: #d97706;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139, 92, 246, 0.15);
+    --sky: #38bdf8;
+    --indigo: #6366f1;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === SHARED LAYOUT === */
+  .screen {
+    max-width: 420px;
+    margin: 0 auto 40px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid rgba(56, 189, 248, 0.15);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background:
+      radial-gradient(ellipse at top right, rgba(56, 189, 248, 0.06), transparent 60%),
+      radial-gradient(ellipse at bottom left, rgba(56, 189, 248, 0.08), transparent 60%),
+      var(--bg);
+  }
+
+  /* Indigo wash + noise overlay per screen */
+  .screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(99, 102, 241, 0.07);
+    mix-blend-mode: soft-light;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen-label {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: var(--purple);
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 10;
+  }
+
+  .flow-arrow {
+    text-align: center;
+    padding: 20px;
+    font-size: 28px;
+    color: var(--emerald);
+  }
+
+  /* === STEP 1: WELCOME === */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .welcome__logo {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--emerald-dark), var(--emerald));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+    margin-bottom: 8px;
+  }
+
+  .welcome__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .welcome__tagline {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--emerald);
+    letter-spacing: 0.1em;
+  }
+
+  .welcome__desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 300px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    max-width: 300px;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    background: linear-gradient(to right, var(--amber), var(--amber-dark));
+    color: var(--bg);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+    margin-top: 8px;
+  }
+
+  .btn-secondary {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+
+  /* === STEP 2: SIGNUP === */
+  .form-screen {
+    flex: 1;
+    padding: 60px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .form-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .form-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .form-input {
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .form-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .form-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .form-checkbox input {
+    margin-top: 2px;
+    accent-color: var(--emerald);
+  }
+
+  .form-spacer { flex: 1; }
+
+  /* === STEP 3: CHILD PROFILE === */
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 8px 0;
+  }
+
+  .avatar-option {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    margin: 0 auto;
+  }
+
+  .avatar-option--selected {
+    border-color: var(--emerald);
+    background: var(--emerald-glow);
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .age-chips {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0;
+  }
+
+  .age-chip {
+    flex: 1;
+    padding: 12px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .age-chip--selected {
+    border-color: var(--emerald);
+    background: var(--emerald-glow);
+  }
+
+  .age-chip__range {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .age-chip--selected .age-chip__range {
+    color: var(--emerald);
+  }
+
+  .age-chip__label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .equip-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 4px 0;
+  }
+
+  .equip-chip {
+    padding: 8px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .equip-chip--selected {
+    border-color: var(--emerald);
+    background: var(--emerald-glow);
+    color: var(--emerald);
+  }
+
+  /* === STEP 4: FIRST CHALLENGE === */
+  .first-challenge {
+    flex: 1;
+    padding: 60px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .first-challenge__badge {
+    background: var(--amber-glow);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .first-challenge__title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+  }
+
+  .first-challenge__desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 300px;
+  }
+
+  .first-challenge__card {
+    width: 100%;
+    background: var(--surface);
+    border: 2px solid var(--emerald);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: left;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+  }
+
+  .first-challenge__card-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .first-challenge__card-meta {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .first-challenge__card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .first-challenge__card-criteria {
+    background: var(--emerald-glow);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--emerald);
+    font-weight: 500;
+  }
+
+  .first-challenge__xp {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--emerald);
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .first-challenge__spacer { flex: 1; }
+
+  /* === STEP INDICATOR === */
+  .steps-indicator {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px;
+  }
+
+  .step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .step-dot--active {
+    background: var(--emerald);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+  }
+
+  .step-dot--done {
+    background: var(--emerald);
+    opacity: 0.5;
+  }
+
+  .mockup-label {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">Mockup — Onboarding Flow (4 steps)</div>
+
+<!-- === STEP 1: WELCOME === -->
+<div class="screen">
+  <div class="screen-label">Vaihe 1 — Tervetuloa</div>
+  <div class="welcome">
+    <div class="welcome__logo">&#9917;</div>
+    <div class="welcome__title">MatchOps Skills</div>
+    <div class="welcome__tagline">PLAY &middot; TRAIN &middot; LEVEL UP</div>
+    <div class="welcome__desc">Harjoittele jalkapallotaitoja, keraa kokemuspistetta ja nouse tasolle. Muuta ruutuaika treeniaikaan!</div>
+    <button class="btn-primary">Aloita</button>
+    <button class="btn-secondary">Kirjaudu sisaan</button>
+  </div>
+  <div class="steps-indicator">
+    <div class="step-dot step-dot--active"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+</div>
+
+<div class="flow-arrow">&#8595;</div>
+
+<!-- === STEP 2: PARENT SIGNUP === -->
+<div class="screen">
+  <div class="screen-label">Vaihe 2 — Luo tili (vanhempi)</div>
+  <div class="form-screen">
+    <div class="form-title">Luo tili</div>
+    <div class="form-subtitle">Vanhemman sahkopostilla — lapsi ei tarvitse omaa tilia</div>
+    <div class="form-field">
+      <div class="form-label">Sahkoposti</div>
+      <input class="form-input" type="email" placeholder="vanhempi@esimerkki.fi">
+    </div>
+    <div class="form-field">
+      <div class="form-label">Salasana</div>
+      <input class="form-input" type="password" placeholder="Vahva salasana">
+    </div>
+    <div class="form-field">
+      <div class="form-label">Vahvista salasana</div>
+      <input class="form-input" type="password" placeholder="Sama salasana uudelleen">
+    </div>
+    <div class="form-checkbox">
+      <input type="checkbox" checked>
+      <span>Hyvaksyn kayttoehdot ja tietosuojakäytannon. Vahvistan olevani yli 16-vuotias.</span>
+    </div>
+    <div class="form-spacer"></div>
+    <button class="btn-primary">Luo tili</button>
+  </div>
+  <div class="steps-indicator">
+    <div class="step-dot step-dot--done"></div>
+    <div class="step-dot step-dot--active"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+</div>
+
+<div class="flow-arrow">&#8595;</div>
+
+<!-- === STEP 3: CHILD PROFILE === -->
+<div class="screen">
+  <div class="screen-label">Vaihe 3 — Lisaa pelaaja</div>
+  <div class="form-screen">
+    <div class="form-title">Lisaa pelaaja</div>
+    <div class="form-subtitle">Valitse avatar ja nimimerkki lapsellesi</div>
+
+    <div class="form-label">Valitse avatar</div>
+    <div class="avatar-grid">
+      <div class="avatar-option">&#129409;</div>
+      <div class="avatar-option avatar-option--selected">&#128038;</div>
+      <div class="avatar-option">&#129412;</div>
+      <div class="avatar-option">&#128029;</div>
+      <div class="avatar-option">&#129418;</div>
+      <div class="avatar-option">&#128039;</div>
+      <div class="avatar-option">&#129421;</div>
+      <div class="avatar-option">&#128048;</div>
+    </div>
+
+    <div class="form-field">
+      <div class="form-label">Nimimerkki</div>
+      <input class="form-input" type="text" value="Pikkupeluri" placeholder="Nimimerkki (ei oikea nimi)">
+    </div>
+
+    <div class="form-label">Ikaryhmä</div>
+    <div class="age-chips">
+      <div class="age-chip">
+        <div class="age-chip__range">6-8</div>
+        <div class="age-chip__label">Aloittelija</div>
+      </div>
+      <div class="age-chip age-chip--selected">
+        <div class="age-chip__range">9-11</div>
+        <div class="age-chip__label">Kehittyva</div>
+      </div>
+      <div class="age-chip">
+        <div class="age-chip__range">12-14</div>
+        <div class="age-chip__label">Edistynyt</div>
+      </div>
+    </div>
+
+    <div class="form-label">Mita valineita on kaytossa?</div>
+    <div class="equip-row">
+      <div class="equip-chip equip-chip--selected">&#9917; Pallo</div>
+      <div class="equip-chip equip-chip--selected">&#128992; Kartiot</div>
+      <div class="equip-chip">&#129521; Seina</div>
+      <div class="equip-chip">&#129349; Maali</div>
+    </div>
+
+    <div class="form-spacer"></div>
+    <button class="btn-primary">Jatka</button>
+  </div>
+  <div class="steps-indicator">
+    <div class="step-dot step-dot--done"></div>
+    <div class="step-dot step-dot--done"></div>
+    <div class="step-dot step-dot--active"></div>
+    <div class="step-dot"></div>
+  </div>
+</div>
+
+<div class="flow-arrow">&#8595;</div>
+
+<!-- === STEP 4: FIRST CHALLENGE (Instant First Win) === -->
+<div class="screen">
+  <div class="screen-label">Vaihe 4 — Ensimmainen harjoitus!</div>
+  <div class="first-challenge">
+    <div class="first-challenge__badge">&#11088; Ensimmainen harjoituksesi!</div>
+    <div class="first-challenge__title">Aloitetaan heti!</div>
+    <div class="first-challenge__desc">Tee ensimmäinen harjoituksesi nyt — se kestaa vain muutaman minuutin!</div>
+
+    <div class="first-challenge__card">
+      <div class="first-challenge__card-name">Varpaankosketukset</div>
+      <div class="first-challenge__card-meta">
+        <span>&#9917; Pallo</span>
+        <span>&#9200; 3 min</span>
+        <span>&#129353; Pronssi</span>
+      </div>
+      <div class="first-challenge__card-criteria">
+        &#127919; Kosketa palloa vuorotellen molempien jalkojen varpailla 20 kertaa!
+      </div>
+      <div class="first-challenge__xp">+10 XP + 15 bonusta = +25 XP!</div>
+    </div>
+
+    <div class="first-challenge__spacer"></div>
+    <button class="btn-primary">&#9654; Aloita harjoitus!</button>
+  </div>
+  <div class="steps-indicator">
+    <div class="step-dot step-dot--done"></div>
+    <div class="step-dot step-dot--done"></div>
+    <div class="step-dot step-dot--done"></div>
+    <div class="step-dot step-dot--active"></div>
+  </div>
+</div>
+
+<div class="flow-arrow">&#8595; Harjoittele ja paina "Tein sen!" &#8595;</div>
+
+<!-- Note: After completing the first challenge, the kid sees the
+     Completion Celebration screen (see completion-celebration.html),
+     then lands on the Home Screen with 1 completion, streak 1, and XP earned. -->
+
+</body>
+</html>
