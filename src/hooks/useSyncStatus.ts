@@ -44,6 +44,9 @@ export interface UseSyncStatusResult {
   /** Whether sync status is still initializing (state may not reflect actual status yet) */
   isLoading: boolean;
 
+  /** Whether sync is paused due to session expiry */
+  hasAuthFailure: boolean;
+
   /** Whether cloud backend is connected (executor set). If false, sync won't work. */
   cloudConnected: boolean;
 
@@ -77,6 +80,7 @@ const LOCAL_MODE_STATUS: UseSyncStatusResult = {
   isSyncing: false,
   isPaused: false,
   isLoading: false,
+  hasAuthFailure: false,
   cloudConnected: true, // N/A for local mode, but true to avoid warnings
   syncNow: async () => {},
   retryFailed: async () => {},
@@ -446,6 +450,7 @@ export function useSyncStatus(): UseSyncStatusResult {
         isSyncing: false,
         isPaused: false,
         isLoading: true,
+        hasAuthFailure: false,
         cloudConnected: false,
         syncNow,
         retryFailed,
@@ -467,6 +472,7 @@ export function useSyncStatus(): UseSyncStatusResult {
       isSyncing: status.state === 'syncing',
       isPaused: status.isPaused ?? false,
       isLoading: false,
+      hasAuthFailure: status.hasAuthFailure ?? false,
       cloudConnected: status.cloudConnected ?? false,
       syncNow,
       retryFailed,

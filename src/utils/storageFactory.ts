@@ -464,13 +464,19 @@ export class StorageFactory {
         };
 
         const timeout = setTimeout(() => {
-          this.logger.debug('IndexedDB support test timed out');
+          this.logger.warn('[StorageFactory] IndexedDB support test timed out', {
+            timeoutMs: this.indexedDBTimeout,
+          });
           cleanup();
           resolve(false);
         }, this.indexedDBTimeout); // Configurable timeout via NEXT_PUBLIC_INDEXEDDB_TIMEOUT_MS
 
         request.onerror = () => {
-          this.logger.debug('IndexedDB support test failed', { error: request.error });
+          const err = request.error;
+          this.logger.error('[StorageFactory] IndexedDB support test failed', {
+            errorName: err?.name,
+            errorMessage: err?.message,
+          });
           clearTimeout(timeout);
           cleanup();
           resolve(false);
@@ -484,7 +490,7 @@ export class StorageFactory {
         };
 
         request.onblocked = () => {
-          this.logger.debug('IndexedDB support test blocked');
+          this.logger.warn('[StorageFactory] IndexedDB support test blocked (another connection is open)');
           clearTimeout(timeout);
           cleanup();
           resolve(false);
@@ -649,10 +655,16 @@ export class StorageFactory {
       return adapter;
 
     } catch (error) {
-      const errorMessage = `IndexedDB adapter creation failed. This application requires IndexedDB to function. ${error instanceof Error ? error.message : 'Unknown error'}`;
+      const errName = error instanceof DOMException ? error.name : (error instanceof Error ? error.name : 'Unknown');
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = `IndexedDB adapter creation failed (${errName}): ${errMsg}`;
       const indexedDBError = new Error(errorMessage);
 
-      this.logger.error('Failed to create IndexedDB adapter - no fallback available', { error });
+      this.logger.error('[StorageFactory] Failed to create IndexedDB adapter - no fallback available', {
+        errorName: errName,
+        errorMessage: errMsg,
+        error,
+      });
 
       throw indexedDBError;
     }

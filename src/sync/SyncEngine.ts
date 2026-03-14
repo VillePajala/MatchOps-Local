@@ -77,6 +77,8 @@ export class SyncEngine {
   private staleResetRetryCount = 0; // Counter for periodic retry attempts
   private pendingStatusEmit = false; // Coalesces rapid status change emissions
   private statusEmitRequested = false; // Tracks if another status change occurred during emission
+  private consecutiveAuthFailures = 0;
+  private isAuthPaused = false; // True when sync is paused due to repeated auth failures (session expired)
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = true;
   private lastSyncedAt: number | null = null;
@@ -386,13 +388,23 @@ export class SyncEngine {
    * Immediately processes any queued operations.
    */
   resume(): void {
-    if (!this.isPaused) {
+    // Clear auth pause if active — user is explicitly requesting sync
+    const wasAuthPaused = this.isAuthPaused;
+    if (wasAuthPaused) {
+      logger.info('[SyncEngine] Clearing auth pause on resume');
+      this.consecutiveAuthFailures = 0;
+      this.isAuthPaused = false;
+    }
+
+    if (!this.isPaused && !wasAuthPaused) {
       logger.debug('[SyncEngine] Not paused');
       return;
     }
 
-    logger.info('[SyncEngine] Resuming sync');
-    this.isPaused = false;
+    if (this.isPaused) {
+      logger.info('[SyncEngine] Resuming sync');
+      this.isPaused = false;
+    }
     this.emitStatusChange();
 
     // Process queue immediately if conditions allow
@@ -428,6 +440,7 @@ export class SyncEngine {
         hasStaleResetFailure: false,
         cloudConnected: this.executor !== null,
         isPaused: this.isPaused,
+        hasAuthFailure: this.isAuthPaused,
       };
     }
 
@@ -455,6 +468,7 @@ export class SyncEngine {
       hasStaleResetFailure: this.staleResetFailed,
       cloudConnected: this.executor !== null,
       isPaused: this.isPaused,
+      hasAuthFailure: this.isAuthPaused,
     };
   }
 
@@ -569,6 +583,13 @@ export class SyncEngine {
    * Use this when user wants immediate sync without waiting for backoff.
    */
   async forceRetryAll(): Promise<void> {
+    // Clear auth pause if active — user is explicitly requesting sync
+    if (this.isAuthPaused) {
+      logger.info('[SyncEngine] Clearing auth pause on force retry');
+      this.consecutiveAuthFailures = 0;
+      this.isAuthPaused = false;
+    }
+
     // DIAGNOSTIC: Log full engine state to help diagnose sync issues
     logger.info('[SyncEngine] Force retry all - ENGINE STATE', {
       isRunning: this.isRunning,
@@ -731,6 +752,12 @@ export class SyncEngine {
     // Check online status
     if (!this.isOnline) {
       logger.debug('[SyncEngine] Offline, skipping sync');
+      return;
+    }
+
+    // Check auth pause
+    if (this.isAuthPaused) {
+      logger.debug('[SyncEngine] Auth paused (session expired), skipping sync');
       return;
     }
 
@@ -942,6 +969,14 @@ export class SyncEngine {
       await this.queue.markCompleted(op.id);
       logger.info(`[SyncEngine] Completed successfully: ${opInfo}`);
 
+      // Reset auth failure counter on success
+      if (this.consecutiveAuthFailures > 0 || this.isAuthPaused) {
+        logger.info(`[SyncEngine] Auth recovered after ${this.consecutiveAuthFailures} failures`);
+        this.consecutiveAuthFailures = 0;
+        this.isAuthPaused = false;
+        this.emitStatusChange();
+      }
+
       // Emit completion event
       for (const listener of this.completeListeners) {
         try {
@@ -1005,18 +1040,42 @@ export class SyncEngine {
         return;
       }
 
-      // AuthError is expected during app startup when sync engine starts before auth is ready
-      // CRITICAL FIX: Don't count AuthError as a retry failure - reset to pending without penalty.
-      // The session will be established soon, so the operation should retry fresh.
-      // This prevents operations from failing permanently due to auth timing issues.
-      // See Sentry MATCHOPS-LOCAL-3J
+      // AuthError handling: distinguish startup timing from session expiry.
+      // During startup, auth may not be ready yet (1-2 failures then success).
+      // A truly expired session produces 3+ consecutive auth failures.
       const isAuthError = error instanceof AuthError ||
         (error instanceof Error && error.name === 'AuthError');
       if (isAuthError) {
-        logger.info(`[SyncEngine] Auth not ready: ${opInfo} - resetting to pending (will retry when auth is available)`);
+        this.consecutiveAuthFailures++;
+
+        // After 3 consecutive auth failures, pause sync — session is likely expired
+        if (this.consecutiveAuthFailures >= 3) {
+          if (!this.isAuthPaused) {
+            logger.warn(`[SyncEngine] Auth failed ${this.consecutiveAuthFailures} consecutive times — pausing sync (session likely expired)`);
+            this.isAuthPaused = true;
+            try {
+              Sentry.captureMessage('SyncEngine paused: session expired after repeated auth failures', {
+                tags: { component: 'SyncEngine', action: 'authPause' },
+                level: 'warning',
+                extra: { consecutiveFailures: this.consecutiveAuthFailures },
+              });
+            } catch {
+              // Sentry failure is acceptable
+            }
+            this.emitStatusChange();
+          }
+          // Reset to pending but don't process more — wait for re-auth
+          try {
+            await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
+          } catch (resetError) {
+            logger.info(`[SyncEngine] Could not reset auth-paused operation ${opInfo}:`, resetError);
+          }
+          return;
+        }
+
+        // First few failures: startup timing — reset to pending without penalty
+        logger.info(`[SyncEngine] Auth not ready (${this.consecutiveAuthFailures}/3): ${opInfo} - resetting to pending`);
         try {
-          // Reset to pending WITHOUT incrementing retry count
-          // Auth timing issues are not real failures - session just isn't ready yet
           const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
           if (reset) {
             logger.info(`[SyncEngine] Successfully reset auth-blocked operation ${opInfo} to pending`);
@@ -1026,7 +1085,6 @@ export class SyncEngine {
         } catch (resetError) {
           logger.info(`[SyncEngine] Could not reset auth-blocked operation ${opInfo}:`, resetError);
         }
-        // Don't emit failure events for auth timing issues - they're temporary
         return;
       }
 

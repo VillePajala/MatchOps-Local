@@ -279,16 +279,16 @@ describe('Translation File Validation', () => {
       // Common keys: done, retry
       // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
       // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419
-      // Auth grace period: offlineGracePeriod (cloud)
-      expect(enKeys.length).toBe(2419);
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420
+      // Sync auth expired: authExpiredTitle (syncStatus)
+      expect(enKeys.length).toBe(2420);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419
-      // Auth grace period: offlineGracePeriod (cloud)
-      expect(fiKeys.length).toBe(2419);
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420
+      // Sync auth expired: authExpiredTitle (syncStatus)
+      expect(fiKeys.length).toBe(2420);
     });
   });
 });

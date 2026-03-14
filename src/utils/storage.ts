@@ -6,6 +6,7 @@
  * - Next: Branches 2-4 will build advanced features on this foundation
  */
 
+import * as Sentry from '@sentry/nextjs';
 import { createStorageAdapter, createUserAdapter } from './storageFactory';
 import { StorageAdapter } from './storageAdapter';
 import { MutexManager } from './storageMutex';
@@ -81,6 +82,30 @@ export async function checkStorageQuota(): Promise<void> {
   } catch (error) {
     logger.warn('Storage estimate check failed, IndexedDB may be restricted', error);
   }
+}
+
+/**
+ * Collect diagnostic info about storage availability for error reporting.
+ * Called when IndexedDB is unexpectedly unavailable to help identify root cause.
+ */
+async function collectStorageDiagnostics(): Promise<Record<string, unknown>> {
+  const diagnostics: Record<string, unknown> = {
+    indexedDBExists: typeof window !== 'undefined' && !!window.indexedDB,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unavailable',
+    standalone: typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)')?.matches ?? false),
+  };
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
+      const estimate = await navigator.storage.estimate();
+      diagnostics.quotaBytes = estimate.quota;
+      diagnostics.usageBytes = estimate.usage;
+    }
+  } catch {
+    diagnostics.storageEstimateFailed = true;
+  }
+
+  return diagnostics;
 }
 
 /**
@@ -724,12 +749,41 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       adapterPromise = null;
       adapterCreatedAt = null;
 
+      // On first failure, collect diagnostics for Sentry
+      if (adapterRetryCount === 1) {
+        collectStorageDiagnostics().then(diag => {
+          try {
+            Sentry.setContext('storage_diagnostics', diag);
+          } catch {
+            // Sentry not available
+          }
+        }).catch(() => {
+          // Diagnostics collection failed — non-critical
+        });
+      }
+
       const nextDelay = calculateRetryDelay(adapterRetryCount);
-      logger.error(`Storage adapter creation failed (attempt ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS}). Next retry in ${nextDelay}ms`, error);
+      const errName = error instanceof DOMException ? error.name : (error instanceof Error ? error.name : 'Unknown');
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Storage adapter creation failed (attempt ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS}, ${errName}). Next retry in ${nextDelay}ms`, error);
+
+      // Add Sentry breadcrumb with original error details before wrapping in user-friendly message
+      try {
+        Sentry.addBreadcrumb({
+          category: 'storage',
+          message: `IndexedDB adapter failed: ${errName}: ${errMsg}`,
+          level: 'error',
+          data: {
+            attempt: adapterRetryCount,
+            errorName: errName,
+          },
+        });
+      } catch {
+        // Sentry not available — no-op
+      }
 
       // Include retry information in error message with user-friendly suggestions
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const userFriendlyError = getUserFriendlyErrorMessage(errorMessage);
+      const userFriendlyError = getUserFriendlyErrorMessage(errMsg);
       const finalError = new Error(`${userFriendlyError} (Retry ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS} in ${Math.ceil(nextDelay / 1000)}s)`);
 
       throw finalError;

@@ -140,6 +140,9 @@ export interface SyncStatusInfo {
    * When paused, operations are still queued but not processed until resumed.
    */
   isPaused?: boolean;
+
+  /** Whether sync is paused due to repeated auth failures (session expired) */
+  hasAuthFailure?: boolean;
 }
 
 /**

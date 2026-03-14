@@ -2022,6 +2022,7 @@ export type TranslationKey =
   | 'subscription.statusExpired'
   | 'subscription.statusGrace'
   | 'subscription.statusNone'
+  | 'syncStatus.authExpiredTitle'
   | 'syncStatus.cloud'
   | 'syncStatus.cloudTitle'
   | 'syncStatus.error'
