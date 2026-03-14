@@ -2455,7 +2455,8 @@
     "loadingTitle": "Checking sync status...",
     "cloud": "Cloud",
     "cloudTitle": "Data syncs to cloud",
-    "online": "Online"
+    "online": "Online",
+    "authExpiredTitle": "Session expired - tap to sign in again"
   },
   "cloudSync": {
     "title": "Account & Sync",

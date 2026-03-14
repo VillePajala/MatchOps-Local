@@ -49,7 +49,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   const smallIconClass = isField ? 'w-5 h-5' : (isSmall ? 'w-3 h-3' : 'w-5 h-5');
   const badgeIconClass = isSmall ? 'w-2 h-2' : 'w-3 h-3';
   const { t } = useTranslation();
-  const { mode, state, pendingCount, failedCount, isPaused, isLoading: syncLoading } = useSyncStatus();
+  const { mode, state, pendingCount, failedCount, isPaused, hasAuthFailure, isLoading: syncLoading } = useSyncStatus();
   const subscription = useSubscriptionOptional();
   const { openSettingsToTab } = useModalContext();
 
@@ -147,6 +147,25 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
             {pendingCount}
           </span>
         )}
+      </button>
+    );
+  }
+
+  // Cloud mode with auth failure: show re-sign-in prompt
+  if (hasAuthFailure) {
+    const authFailContainerClass = isField
+      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+      : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-red-500/20 border-red-500/40 hover:opacity-80 cursor-pointer`;
+
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className={authFailContainerClass}
+        title={t('syncStatus.authExpiredTitle', 'Session expired - tap to sign in again')}
+        aria-label={t('syncStatus.authExpiredTitle', 'Session expired - tap to sign in again')}
+      >
+        <HiOutlineExclamationCircle className={`${iconClass} text-red-400`} />
       </button>
     );
   }
