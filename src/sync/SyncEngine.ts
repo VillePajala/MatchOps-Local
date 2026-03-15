@@ -79,6 +79,7 @@ export class SyncEngine {
   private statusEmitRequested = false; // Tracks if another status change occurred during emission
   private consecutiveAuthFailures = 0;
   private isAuthPaused = false; // True when sync is paused due to repeated auth failures (session expired)
+  private consecutiveAbortFailures = 0; // Tracks persistent AbortErrors (browser killing requests)
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = true;
   private lastSyncedAt: number | null = null;
@@ -388,13 +389,14 @@ export class SyncEngine {
    * Immediately processes any queued operations.
    */
   resume(): void {
-    // Clear auth pause if active — user is explicitly requesting sync
+    // Clear auth/abort pause if active — user is explicitly requesting sync
     const wasAuthPaused = this.isAuthPaused;
     if (wasAuthPaused) {
       logger.info('[SyncEngine] Clearing auth pause on resume');
       this.consecutiveAuthFailures = 0;
       this.isAuthPaused = false;
     }
+    this.consecutiveAbortFailures = 0;
 
     if (!this.isPaused && !wasAuthPaused) {
       logger.debug('[SyncEngine] Not paused');
@@ -583,12 +585,13 @@ export class SyncEngine {
    * Use this when user wants immediate sync without waiting for backoff.
    */
   async forceRetryAll(): Promise<void> {
-    // Clear auth pause if active — user is explicitly requesting sync
+    // Clear auth/abort state if active — user is explicitly requesting sync
     if (this.isAuthPaused) {
       logger.info('[SyncEngine] Clearing auth pause on force retry');
       this.consecutiveAuthFailures = 0;
       this.isAuthPaused = false;
     }
+    this.consecutiveAbortFailures = 0;
 
     // DIAGNOSTIC: Log full engine state to help diagnose sync issues
     logger.info('[SyncEngine] Force retry all - ENGINE STATE', {
@@ -969,13 +972,14 @@ export class SyncEngine {
       await this.queue.markCompleted(op.id);
       logger.info(`[SyncEngine] Completed successfully: ${opInfo}`);
 
-      // Reset auth failure counter on success
+      // Reset failure counters on success
       if (this.consecutiveAuthFailures > 0 || this.isAuthPaused) {
         logger.info(`[SyncEngine] Auth recovered after ${this.consecutiveAuthFailures} failures`);
         this.consecutiveAuthFailures = 0;
         this.isAuthPaused = false;
         this.emitStatusChange();
       }
+      this.consecutiveAbortFailures = 0;
 
       // Emit completion event
       for (const listener of this.completeListeners) {
@@ -1013,30 +1017,34 @@ export class SyncEngine {
         return; // Don't emit failure events for operations we never owned
       }
 
-      // AbortError/timeout is expected during page navigation, hot reload, timeout, or user-initiated cancellation
-      // CRITICAL FIX: Don't count AbortError or timeout as a retry failure - just reset to pending.
-      // The request was cancelled before completion, so it should be retried fresh.
-      // This prevents operations from getting stuck when users navigate/refresh or operations time out.
-      // See Sentry MATCHOPS-LOCAL-24, MATCHOPS-LOCAL-1E
+      // AbortError/timeout handling: distinguish transient aborts (page navigation, hot reload)
+      // from persistent aborts (browser killing requests due to battery saver, Doze mode, etc.).
+      // First few aborts: reset to pending without retry penalty (handles navigation/reload).
+      // After 5 consecutive aborts: increment retry count so the operation eventually fails
+      // and stops looping. See Sentry MATCHOPS-LOCAL-87, MATCHOPS-LOCAL-24.
       if (isAbortError) {
-        const reason = errorMessage.includes('timed out') ? 'timeout' : 'navigation/reload';
-        logger.info(`[SyncEngine] Aborted: ${opInfo} (${reason}) - resetting to pending`);
+        this.consecutiveAbortFailures++;
+        const reason = errorMessage.includes('timed out') ? 'timeout' : 'abort';
+        const isPersistent = this.consecutiveAbortFailures >= 5;
+
+        if (isPersistent) {
+          logger.warn(`[SyncEngine] Persistent abort (${this.consecutiveAbortFailures}x): ${opInfo} (${reason}) - incrementing retry count`);
+        } else {
+          logger.info(`[SyncEngine] Aborted (${this.consecutiveAbortFailures}/5): ${opInfo} (${reason}) - resetting to pending`);
+        }
+
         try {
-          // Reset to pending WITHOUT incrementing retry count
-          // AbortError means the request was cancelled, not that it failed
-          // Use incrementRetry: false so the operation gets a fresh retry
-          const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
+          // After 5 consecutive aborts, increment retry count so the operation
+          // eventually hits maxRetries and gets marked as failed
+          const reset = await this.queue.resetOperationToPending(op.id, { incrementRetry: isPersistent });
           if (reset) {
-            logger.info(`[SyncEngine] Successfully reset aborted operation ${opInfo} to pending`);
+            logger.info(`[SyncEngine] Reset aborted operation ${opInfo} to pending (incrementRetry: ${isPersistent})`);
           } else {
-            // Operation not found - may have been deleted during abort, that's fine
             logger.info(`[SyncEngine] Aborted operation ${opInfo} not found (may be already processed)`);
           }
         } catch (resetError) {
-          // Best effort - if reset fails, the stale syncing recovery will catch it on next start
           logger.info(`[SyncEngine] Could not reset aborted operation ${opInfo}:`, resetError);
         }
-        // Don't emit failure events for aborts - they're not real failures
         return;
       }
 
