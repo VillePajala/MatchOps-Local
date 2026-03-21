@@ -243,9 +243,8 @@ describe('<GameSettingsModal />', () => {
       const onNumPeriodsChange = jest.fn();
       const onPeriodDurationChange = jest.fn();
 
-      renderModal({
+      const seasonProps = {
         ...defaultProps,
-        seasonId: 'season-100',
         seasons: [
           { id: 'season-100', name: 'Elite League', location: 'North Dome', periodCount: 2, periodDuration: 30, ageGroup: 'u13' },
         ],
@@ -253,7 +252,16 @@ describe('<GameSettingsModal />', () => {
         onAgeGroupChange,
         onNumPeriodsChange,
         onPeriodDurationChange,
-      });
+      };
+
+      // Start without a season, then simulate user selecting one
+      const { rerender } = renderModal({ ...seasonProps, seasonId: '' });
+
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...seasonProps} seasonId="season-100" />
+        </ToastProvider>
+      );
 
       await waitFor(() => expect(onGameLocationChange).toHaveBeenCalledWith('North Dome'));
       expect(onAgeGroupChange).toHaveBeenCalledWith('u13');
@@ -1090,11 +1098,17 @@ describe('<GameSettingsModal />', () => {
     });
 
     test('should auto-set filters when season has a league', async () => {
-      // s1 has leagueId: 'sm-sarja' which is a national league
-      renderModal({
+      // Start without a season, then simulate user selecting s1 which has leagueId: 'sm-sarja'
+      const { rerender } = renderModal({
         ...leagueProps,
-        seasonId: 's1',
+        seasonId: '',
       });
+
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...leagueProps} seasonId="s1" />
+        </ToastProvider>
+      );
 
       // Wait for league section to appear
       await waitFor(() => {
@@ -1106,7 +1120,7 @@ describe('<GameSettingsModal />', () => {
       const areaFilter = document.getElementById('league-area-filter-game') as HTMLSelectElement;
 
       // sm-sarja is national level with no area
-      expect(levelFilter.value).toBe('national');
+      await waitFor(() => expect(levelFilter.value).toBe('national'));
       expect(areaFilter.value).toBe('all');
 
       // League dropdown should show national leagues + custom + placeholder = 7

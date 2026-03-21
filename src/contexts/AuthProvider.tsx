@@ -338,6 +338,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(newSession);
           setUser(newSession?.user ?? null);
 
+          // Clear grace period if we now have a valid session — connectivity restored.
+          // Without this, the orange "offline" banner persists even after the auth
+          // state recovers (e.g., token refresh succeeds after app resume).
+          if (newSession && isAuthGracePeriod) {
+            logger.info('[AuthProvider] Clearing grace period - valid session received via auth state change');
+            setIsAuthGracePeriod(false);
+          }
+
           // Re-verify consent on token refresh to catch policy version updates
           // Without this, users with auto-refreshing tokens could avoid re-consent indefinitely
           // Issue #336: Check consent when cloud is available, regardless of data storage mode
@@ -419,8 +427,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Safety timeout: if init hangs for 10 seconds, stop loading to prevent blank screen
-    // This prevents users from seeing a blank screen indefinitely
+    // Safety timeout: if init hangs for 20 seconds, stop loading to prevent blank screen
+    // Increased from 10s to 20s: auth init involves chunk loading (~3s), navigator.locks
+    // acquisition, session validation with getUser() (5s timeout), and subsequent getSession()
+    // calls. On slow networks or cold starts, 10s was too aggressive and caused false timeouts.
     timeoutId = setTimeout(() => {
       if (mounted) {
         // Log detailed context for debugging init hangs
@@ -429,7 +439,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           mode: getBackendMode(),
           online: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
         };
-        logger.error('[AuthProvider] Init timeout after 10s - auth may be in incomplete state', context);
+        logger.error('[AuthProvider] Init timeout after 20s - auth may be in incomplete state', context);
 
         // Grace period trigger 2: Init timed out + cached session exists in cloud mode.
         // Unlike trigger 1, we do NOT check navigator.onLine here. The timeout itself is evidence
@@ -469,7 +479,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           logger.warn('[AuthProvider] Failed to report timeout to Sentry', sentryErr);
         }
       }
-    }, 10000);
+    }, 20000);
 
     initAuth();
 
@@ -1015,11 +1025,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Memoize the context value to prevent unnecessary re-renders
   // Compute whether to show the marketing prompt:
   // - Cloud must be available
-  // - User must be authenticated
+  // - User must be authenticated with a real session
   // - Marketing consent must be null (never asked)
   // - User must not have dismissed the prompt already
-  // - Not during loading or sign-out
-  const showMarketingPrompt = isCloudAvailable() && !!session && marketingConsent === null && !hasSeenMarketingPrompt && !isLoading && !isSigningOut;
+  // - Not during loading, sign-out, auth timeout, re-consent, or grace period
+  // The extra guards prevent the prompt from appearing during error states,
+  // post-login loading, or when the app is in offline/recovery mode.
+  const showMarketingPrompt = isCloudAvailable() && !!session && marketingConsent === null && !hasSeenMarketingPrompt && !isLoading && !isSigningOut && !initTimedOut && !needsReConsent && !isAuthGracePeriod;
 
   const value: AuthContextValue = useMemo(() => ({
     user,
