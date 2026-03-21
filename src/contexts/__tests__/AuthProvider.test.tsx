@@ -735,7 +735,7 @@ describe('AuthProvider', () => {
      * Issue #330: When auth initialization hangs, users should see initTimedOut=true
      * and have the option to retry.
      */
-    it('should set initTimedOut to true after 10 second timeout', async () => {
+    it('should set initTimedOut to true after 20 second timeout', async () => {
       // Make getAuthService hang indefinitely
       const factory = require('@/datastore/factory');
       factory.getAuthService.mockImplementation(() => new Promise(() => {}));
@@ -752,7 +752,7 @@ describe('AuthProvider', () => {
 
       // Advance past the 10 second timeout
       await act(async () => {
-        jest.advanceTimersByTime(10001);
+        jest.advanceTimersByTime(20001);
       });
 
       // Should show timed out state
@@ -790,7 +790,7 @@ describe('AuthProvider', () => {
 
       // Wait for timeout
       await act(async () => {
-        jest.advanceTimersByTime(10001);
+        jest.advanceTimersByTime(20001);
       });
 
       await waitFor(() => {
@@ -1105,7 +1105,7 @@ describe('AuthProvider', () => {
         // Re-init hangs — advance past 10s timeout
         // The timeout handler finds the valid cached token and re-enters grace period
         await act(async () => {
-          jest.advanceTimersByTime(10001);
+          jest.advanceTimersByTime(20001);
         });
 
         await waitFor(() => {
