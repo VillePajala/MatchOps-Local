@@ -1700,15 +1700,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   const handleUpdateSelectedPlayers = useCallback((playerIds: string[]) => {
     dispatchGameSession({ type: 'SET_SELECTED_PLAYER_IDS', payload: playerIds });
-
-    // Remove discs from the field for players that were deselected
-    const selectedSet = new Set(playerIds);
-    setPlayersOnField(currentPlayers => {
-      const filtered = currentPlayers.filter(p => selectedSet.has(p.id));
-      if (filtered.length === currentPlayers.length) return currentPlayers;
-      return filtered;
-    });
-  }, [dispatchGameSession, setPlayersOnField]);
+  }, [dispatchGameSession]);
 
   // Deterministic init fallback: auto-select latest real game if default or stale
   useEffect(() => {

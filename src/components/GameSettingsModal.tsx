@@ -321,26 +321,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       });
   }, [tournaments]);
 
-  // Track if we've already applied season/tournament updates to prevent infinite loops.
-  // Initialize with current prop values so prefill doesn't re-run for already-assigned
-  // seasons/tournaments when opening game settings for existing games.
-  const appliedSeasonRef = useRef<string | null>(seasonId || null);
-  const appliedTournamentRef = useRef<string | null>(tournamentId || null);
+  // Track if we've already applied season/tournament updates to prevent infinite loops
+  const appliedSeasonRef = useRef<string | null>(null);
+  const appliedTournamentRef = useRef<string | null>(null);
   // Track if component is mounted to prevent setState on unmounted component
   const isMountedRef = useRef<boolean>(true);
   const mutationSequenceRef = useRef<number>(0);
-
-  // Sync applied refs when the game changes (component stays mounted across game switches).
-  // Without this, refs keep stale values from the previous game, causing prefill to
-  // re-run and overwrite manually-set dates/settings when opening settings for a different game.
-  const prevGameIdRef = useRef<string | null>(currentGameId);
-  useEffect(() => {
-    if (currentGameId !== prevGameIdRef.current) {
-      prevGameIdRef.current = currentGameId;
-      appliedSeasonRef.current = seasonId || null;
-      appliedTournamentRef.current = tournamentId || null;
-    }
-  }, [currentGameId, seasonId, tournamentId]);
 
   // Track mount state to prevent race conditions with deferred mutations
   useEffect(() => {
@@ -851,15 +837,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Prefill game settings when selecting a tournament
   useEffect(() => {
     if (!isOpen || !tournamentId) {
-      // Reset the ref only when tournament is cleared (not when modal closes).
-      // This prevents re-applying tournament defaults when reopening the modal,
-      // which would overwrite user's manual date/settings changes.
-      //
-      // Note: If user clears tournament then re-selects the same tournament, defaults
-      // WILL be re-applied. This is intentional - clearing the tournament breaks
-      // the association, and re-selecting creates a new association that should
-      // use the tournament's defaults. Only modal close/reopen preserves overrides.
-      if (!tournamentId) {
+      // Reset the ref when modal closes or tournament is cleared
+      if (!isOpen || !tournamentId) {
         appliedTournamentRef.current = null;
       }
       return;
