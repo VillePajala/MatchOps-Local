@@ -25,6 +25,7 @@ import { SyncStatusInfo } from '../types';
 // Import logger for spying (we'll spy on its methods in tests)
 import logger from '@/utils/logger';
 import { SyncEntityType, SyncOperationType } from '../types';
+import { StorageError } from '@/interfaces/DataStoreErrors';
 
 /**
  * Helper to create a sync operation input for testing.
@@ -762,6 +763,167 @@ describe('SyncEngine', () => {
       expect(instance1).toBe(instance2);
 
       await reset();
+    });
+  });
+
+  describe('server circuit breaker', () => {
+    let queue: SyncQueue;
+    let engine: SyncEngine;
+
+    beforeEach(async () => {
+      await resetSyncEngine();
+      queue = new SyncQueue(`test-circuit-breaker-${Date.now()}`);
+      await queue.initialize();
+      engine = new SyncEngine(queue);
+    });
+
+    afterEach(async () => {
+      await engine.dispose();
+      await resetSyncEngine();
+    });
+
+    it('should activate circuit breaker on StorageError and pause sync', async () => {
+      const failingExecutor: SyncOperationExecutor = jest.fn().mockRejectedValue(
+        new StorageError('Server error, please try again later')
+      );
+
+      await queue.enqueue(createTestOperation({ entityId: 'game_cb_activate' }));
+      engine.setExecutor(failingExecutor);
+      engine.start();
+
+      // Advance past stale reset + sync interval to trigger processing
+      await jest.advanceTimersByTimeAsync(31000);
+      await flushAllAsync(50);
+
+      const status = await engine.getStatus();
+      expect(status.hasServerFailure).toBe(true);
+    });
+
+    it('should allow forceRetryAll to bypass server pause', async () => {
+      const failingExecutor: SyncOperationExecutor = jest.fn().mockRejectedValue(
+        new StorageError('Server error, please try again later')
+      );
+
+      await queue.enqueue(createTestOperation({ entityId: 'game_cb_force' }));
+      engine.setExecutor(failingExecutor);
+      engine.start();
+
+      // Trigger processing and circuit breaker
+      await jest.advanceTimersByTimeAsync(31000);
+      await flushAllAsync(50);
+
+      expect((await engine.getStatus()).hasServerFailure).toBe(true);
+
+      // Replace with succeeding executor before force retry
+      engine.setExecutor(jest.fn().mockResolvedValue(undefined));
+
+      // forceRetryAll should clear the pause and process successfully
+      await engine.forceRetryAll();
+      await flushAllAsync(50);
+
+      const status = await engine.getStatus();
+      expect(status.hasServerFailure).toBe(false);
+    });
+
+    it('should stop processing batch when circuit breaker trips', async () => {
+      const executorCalls: string[] = [];
+      const executor: SyncOperationExecutor = jest.fn().mockImplementation(async (op) => {
+        executorCalls.push(op.entityId);
+        // First call always fails with server error
+        if (executorCalls.length === 1) {
+          throw new StorageError('Server error, please try again later');
+        }
+      });
+
+      // Use same entity type so priority sorting doesn't reorder
+      await queue.enqueue(createTestOperation({ entityType: 'game', entityId: 'batch_1' }));
+      await queue.enqueue(createTestOperation({ entityType: 'game', entityId: 'batch_2' }));
+      await queue.enqueue(createTestOperation({ entityType: 'game', entityId: 'batch_3' }));
+
+      engine.setExecutor(executor);
+      engine.start();
+
+      // Trigger processing
+      await jest.advanceTimersByTimeAsync(31000);
+      await flushAllAsync(50);
+
+      // Only the first operation should have been attempted — batch stopped after circuit breaker
+      expect(executorCalls).toHaveLength(1);
+    });
+  });
+
+  describe('visibility change and app resume recovery', () => {
+    let queue: SyncQueue;
+    let engine: SyncEngine;
+
+    beforeEach(async () => {
+      await resetSyncEngine();
+      queue = new SyncQueue(`test-visibility-${Date.now()}`);
+      await queue.initialize();
+      engine = new SyncEngine(queue);
+    });
+
+    afterEach(async () => {
+      await engine.dispose();
+      await resetSyncEngine();
+    });
+
+    it('should reset abort counter on visibilitychange so subsequent aborts do not permanently fail', async () => {
+      engine.start();
+      await flushAllAsync();
+
+      // Executor that always aborts
+      const abortExecutor: SyncOperationExecutor = jest.fn().mockRejectedValue(
+        Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' })
+      );
+      await queue.enqueue(createTestOperation({ entityId: 'abort_vis_1' }));
+      engine.setExecutor(abortExecutor);
+
+      // Run 4 sync cycles to accumulate 4 abort failures (threshold is 5)
+      for (let i = 0; i < 4; i++) {
+        await jest.advanceTimersByTimeAsync(31000);
+        await flushAllAsync(50);
+      }
+
+      // Simulate visibilitychange to visible — should reset counter to 0
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // Run one more sync cycle — this would be the 5th abort WITHOUT the reset,
+      // which would cross the persistent-abort threshold and increment retryCount.
+      // WITH the reset, it's abort #1 (safe, no penalty).
+      await jest.advanceTimersByTimeAsync(31000);
+      await flushAllAsync(50);
+
+      // The operation should still be pending (not failed) — the visibility reset
+      // prevented the counter from reaching the persistent-abort threshold
+      const ops = await queue.getAllOperations();
+      const op = ops.find(o => o.entityId === 'abort_vis_1');
+      expect(op).toBeDefined();
+      expect(op!.status).toBe('pending');
+    });
+
+    it('should clear server pause and nudge on app-resume', async () => {
+      const failingExecutor: SyncOperationExecutor = jest.fn().mockRejectedValue(
+        new StorageError('Server error, please try again later')
+      );
+
+      await queue.enqueue(createTestOperation({ entityId: 'resume_1' }));
+      engine.setExecutor(failingExecutor);
+      engine.start();
+
+      // Trigger processing and circuit breaker
+      await jest.advanceTimersByTimeAsync(31000);
+      await flushAllAsync(50);
+
+      expect((await engine.getStatus()).hasServerFailure).toBe(true);
+
+      // Simulate app-resume event
+      window.dispatchEvent(new Event('app-resume'));
+      await flushAllAsync(20);
+
+      const status = await engine.getStatus();
+      expect(status.hasServerFailure).toBe(false);
     });
   });
 });

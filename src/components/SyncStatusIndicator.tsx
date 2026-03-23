@@ -49,7 +49,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   const smallIconClass = isField ? 'w-5 h-5' : (isSmall ? 'w-3 h-3' : 'w-5 h-5');
   const badgeIconClass = isSmall ? 'w-2 h-2' : 'w-3 h-3';
   const { t } = useTranslation();
-  const { mode, state, pendingCount, failedCount, isPaused, hasAuthFailure, isLoading: syncLoading } = useSyncStatus();
+  const { mode, state, pendingCount, failedCount, isPaused, hasAuthFailure, hasServerFailure, isLoading: syncLoading } = useSyncStatus();
   const subscription = useSubscriptionOptional();
   const { openSettingsToTab } = useModalContext();
 
@@ -151,7 +151,8 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
     );
   }
 
-  // Cloud mode with auth failure: show re-sign-in prompt
+  // Cloud mode with auth failure: show re-sign-in prompt (checked BEFORE server failure
+  // because auth requires user action, while server failures auto-resolve).
   if (hasAuthFailure) {
     const authFailContainerClass = isField
       ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
@@ -166,6 +167,25 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
         aria-label={t('syncStatus.authExpiredTitle', 'Session expired - tap to sign in again')}
       >
         <HiOutlineExclamationCircle className={`${iconClass} text-red-400`} />
+      </button>
+    );
+  }
+
+  // Cloud mode with server failure: show temporary unavailable indicator
+  if (hasServerFailure) {
+    const serverFailContainerClass = isField
+      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+      : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-amber-500/20 border-amber-500/40 hover:opacity-80 cursor-pointer`;
+
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className={serverFailContainerClass}
+        title={t('syncStatus.serverUnavailableTitle', 'Server temporarily unavailable — will retry automatically')}
+        aria-label={t('syncStatus.serverUnavailableTitle', 'Server temporarily unavailable — will retry automatically')}
+      >
+        <HiOutlineExclamationCircle className={`${iconClass} text-amber-400`} />
       </button>
     );
   }
