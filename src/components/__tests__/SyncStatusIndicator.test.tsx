@@ -72,6 +72,7 @@ describe('SyncStatusIndicator', () => {
     isPaused: false,
     isLoading: false,
     hasAuthFailure: false,
+    hasServerFailure: false,
     cloudConnected: true,
     syncNow: jest.fn(),
     retryFailed: jest.fn(),
@@ -290,6 +291,48 @@ describe('SyncStatusIndicator', () => {
       expect(screen.getByRole('button')).toHaveAttribute(
         'title',
         '3 changes waiting to sync'
+      );
+    });
+  });
+
+  describe('cloud mode - server failure state', () => {
+    it('should render amber indicator when hasServerFailure is true', () => {
+      mockUseSyncStatus.mockReturnValue({
+        ...defaultSyncStatus,
+        mode: 'cloud',
+        state: 'pending',
+        hasServerFailure: true,
+        isLoading: false,
+      });
+
+      render(<SyncStatusIndicator />);
+
+      const button = screen.getByRole('button');
+      expect(button).toHaveClass('bg-amber-500/20');
+      expect(button).toHaveAttribute(
+        'title',
+        'Server temporarily unavailable — will retry automatically'
+      );
+    });
+
+    it('should show auth failure instead of server failure when both are true', () => {
+      mockUseSyncStatus.mockReturnValue({
+        ...defaultSyncStatus,
+        mode: 'cloud',
+        state: 'pending',
+        hasAuthFailure: true,
+        hasServerFailure: true,
+        isLoading: false,
+      });
+
+      render(<SyncStatusIndicator />);
+
+      const button = screen.getByRole('button');
+      // Auth failure takes priority (requires user action)
+      expect(button).toHaveClass('bg-red-500/20');
+      expect(button).toHaveAttribute(
+        'title',
+        'Session expired - tap to sign in again'
       );
     });
   });

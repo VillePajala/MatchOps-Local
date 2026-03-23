@@ -164,6 +164,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Set true BEFORE authService.signOut() so the onAuthStateChange handler sees it.
   const isIntentionalSignOutRef = useRef(false);
 
+  // Ref to track grace period state inside onAuthStateChange callback without
+  // adding isAuthGracePeriod to the init effect's dependency array (which would
+  // cause the entire auth init to re-run on every grace period change).
+  const isAuthGracePeriodRef = useRef(isAuthGracePeriod);
+  isAuthGracePeriodRef.current = isAuthGracePeriod;
+
   // Track if password reset flow is in progress (OTP verified, waiting for new password).
   // When true, onAuthStateChange ignores the recovery session — prevents the app from
   // treating the recovery session as a real sign-in and navigating away from the
@@ -341,7 +347,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Clear grace period if we now have a valid session — connectivity restored.
           // Without this, the orange "offline" banner persists even after the auth
           // state recovers (e.g., token refresh succeeds after app resume).
-          if (newSession && isAuthGracePeriod) {
+          // Uses ref to avoid adding isAuthGracePeriod to the init effect's deps.
+          if (newSession && isAuthGracePeriodRef.current) {
             logger.info('[AuthProvider] Clearing grace period - valid session received via auth state change');
             setIsAuthGracePeriod(false);
           }

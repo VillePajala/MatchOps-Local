@@ -20,7 +20,7 @@ import {
   SyncError,
   SyncErrorCode,
 } from './types';
-import { AuthError } from '@/interfaces/DataStoreErrors';
+import { AuthError, StorageError } from '@/interfaces/DataStoreErrors';
 
 /**
  * Callback type for sync operations.
@@ -80,6 +80,9 @@ export class SyncEngine {
   private consecutiveAuthFailures = 0;
   private isAuthPaused = false; // True when sync is paused due to repeated auth failures (session expired)
   private consecutiveAbortFailures = 0; // Tracks persistent AbortErrors (browser killing requests)
+  private consecutiveServerFailures = 0; // Tracks 503/5xx errors for circuit breaker
+  private isServerPaused = false; // True when sync is paused due to server overload (503s)
+  private serverPauseUntil = 0; // Timestamp when server pause expires
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = true;
   private lastSyncedAt: number | null = null;
@@ -89,6 +92,8 @@ export class SyncEngine {
   // Event listener references for cleanup
   private boundOnlineHandler: (() => void) | null = null;
   private boundOfflineHandler: (() => void) | null = null;
+  private boundAppResumeHandler: (() => void) | null = null;
+  private boundVisibilityChangeHandler: (() => void) | null = null;
 
   // Event listeners
   private statusListeners: Set<StatusChangeListener> = new Set();
@@ -162,8 +167,12 @@ export class SyncEngine {
     if (typeof window !== 'undefined') {
       this.boundOnlineHandler = this.handleOnline;
       this.boundOfflineHandler = this.handleOffline;
+      this.boundAppResumeHandler = this.handleAppResume;
+      this.boundVisibilityChangeHandler = this.handleVisibilityChange;
       window.addEventListener('online', this.boundOnlineHandler);
       window.addEventListener('offline', this.boundOfflineHandler);
+      window.addEventListener('app-resume', this.boundAppResumeHandler);
+      document.addEventListener('visibilitychange', this.boundVisibilityChangeHandler);
     }
 
     // Reset any operations stuck in 'syncing' state from previous crash/close
@@ -246,6 +255,14 @@ export class SyncEngine {
       if (this.boundOfflineHandler) {
         window.removeEventListener('offline', this.boundOfflineHandler);
         this.boundOfflineHandler = null;
+      }
+      if (this.boundAppResumeHandler) {
+        window.removeEventListener('app-resume', this.boundAppResumeHandler);
+        this.boundAppResumeHandler = null;
+      }
+      if (this.boundVisibilityChangeHandler) {
+        document.removeEventListener('visibilitychange', this.boundVisibilityChangeHandler);
+        this.boundVisibilityChangeHandler = null;
       }
     }
 
@@ -363,6 +380,16 @@ export class SyncEngine {
       return;
     }
 
+    if (this.isAuthPaused) {
+      logger.debug('[SyncEngine] Auth paused, nudge ignored (status emitted)');
+      return;
+    }
+
+    if (this.isServerPaused) {
+      logger.debug('[SyncEngine] Server paused, nudge ignored (status emitted)');
+      return;
+    }
+
     logger.debug('[SyncEngine] Nudge received, processing queue');
     this.doProcessQueue().catch((e) => {
       logger.error('[SyncEngine] Error processing queue after nudge:', e);
@@ -443,6 +470,7 @@ export class SyncEngine {
         cloudConnected: this.executor !== null,
         isPaused: this.isPaused,
         hasAuthFailure: this.isAuthPaused,
+        hasServerFailure: this.isServerPaused,
       };
     }
 
@@ -471,6 +499,7 @@ export class SyncEngine {
       cloudConnected: this.executor !== null,
       isPaused: this.isPaused,
       hasAuthFailure: this.isAuthPaused,
+      hasServerFailure: this.isServerPaused,
     };
   }
 
@@ -585,11 +614,17 @@ export class SyncEngine {
    * Use this when user wants immediate sync without waiting for backoff.
    */
   async forceRetryAll(): Promise<void> {
-    // Clear auth/abort state if active — user is explicitly requesting sync
+    // Clear all pause states — user is explicitly requesting sync
     if (this.isAuthPaused) {
       logger.info('[SyncEngine] Clearing auth pause on force retry');
       this.consecutiveAuthFailures = 0;
       this.isAuthPaused = false;
+    }
+    if (this.isServerPaused) {
+      logger.info('[SyncEngine] Clearing server pause on force retry');
+      this.consecutiveServerFailures = 0;
+      this.isServerPaused = false;
+      this.serverPauseUntil = 0;
     }
     this.consecutiveAbortFailures = 0;
 
@@ -679,6 +714,76 @@ export class SyncEngine {
     this.emitStatusChange();
   };
 
+  /**
+   * Handle any foreground transition (visibilitychange → visible).
+   * Resets abort counter on EVERY foreground transition, not just long backgrounds.
+   * Chrome Mobile kills in-flight requests even on brief app switches (<30s),
+   * so the abort counter must reset on every return to prevent accumulation
+   * toward the persistent-abort failure threshold.
+   */
+  private handleVisibilityChange = (): void => {
+    if (typeof document === 'undefined' || document.visibilityState !== 'visible') {
+      return;
+    }
+
+    // Reset abort counter — Chrome kills requests on ANY background transition,
+    // not just long ones. Without this, quick app switches accumulate abort
+    // failures and eventually mark operations as permanently failed.
+    if (this.consecutiveAbortFailures > 0) {
+      logger.info(`[SyncEngine] Visibility restored, resetting abort counter from ${this.consecutiveAbortFailures}`);
+      this.consecutiveAbortFailures = 0;
+    }
+  };
+
+  /**
+   * Handle app resume from extended background (app-resume event, >30s).
+   * Performs heavier recovery: clears server pause, refreshes online state,
+   * and nudges the sync engine to retry pending operations immediately.
+   * Without the nudge, the engine waits up to 30s for the next interval.
+   */
+  private handleAppResume = (): void => {
+    logger.info('[SyncEngine] App resumed from extended background', {
+      consecutiveAbortFailures: this.consecutiveAbortFailures,
+      consecutiveServerFailures: this.consecutiveServerFailures,
+      isServerPaused: this.isServerPaused,
+    });
+
+    // Abort counter already reset by handleVisibilityChange (fires first).
+    // Safety net: also clear here for browsers where visibilitychange doesn't fire
+    // before app-resume (e.g., Safari bfcache restore via pageshow without
+    // preceding visibilitychange, or edge cases in WebView containers).
+    if (this.consecutiveAbortFailures > 0) {
+      this.consecutiveAbortFailures = 0;
+    }
+
+    // Clear server pause flags — the server may have recovered while app was backgrounded.
+    // consecutiveServerFailures intentionally preserved so backoff continues from where
+    // it left off if the server is still failing. Only reset on genuine success.
+    if (this.isServerPaused) {
+      logger.info('[SyncEngine] Clearing server pause on app resume');
+      this.isServerPaused = false;
+      this.serverPauseUntil = 0;
+    }
+
+    // Refresh online state from navigator (might have changed while backgrounded)
+    if (typeof navigator !== 'undefined') {
+      const wasOnline = this.isOnline;
+      this.isOnline = navigator.onLine;
+      if (!wasOnline && this.isOnline) {
+        logger.info('[SyncEngine] Connectivity restored during background');
+      }
+    }
+
+    this.emitStatusChange();
+
+    // Nudge immediately to retry pending operations.
+    // isServerPaused is cleared above, but check it explicitly so this guard
+    // stays correct if the clearing logic changes (e.g., min-pause-on-resume).
+    if (this.isRunning && this.isOnline && !this.isPaused && !this.isAuthPaused && !this.isServerPaused) {
+      this.nudge();
+    }
+  };
+
   private async doProcessQueue(): Promise<void> {
     // DIAGNOSTIC: Log entry point to track why processing might not happen
     logger.debug('[SyncEngine] doProcessQueue called', {
@@ -764,6 +869,24 @@ export class SyncEngine {
       return;
     }
 
+    // Circuit breaker: pause sync when server is overloaded (503s).
+    // Prevents self-DDoS where aggressive retries exhaust PostgREST connection pool.
+    if (this.isServerPaused) {
+      const now = Date.now();
+      if (now < this.serverPauseUntil) {
+        const remainingSec = Math.ceil((this.serverPauseUntil - now) / 1000);
+        logger.debug(`[SyncEngine] Server pause active, ${remainingSec}s remaining`);
+        return;
+      }
+      // Pause expired — allow retry.
+      // consecutiveServerFailures intentionally preserved — only reset on success.
+      // This ensures backoff accumulates across pause cycles until the server genuinely recovers.
+      logger.info('[SyncEngine] Server pause expired, resuming sync');
+      this.isServerPaused = false;
+      this.serverPauseUntil = 0;
+      this.emitStatusChange();
+    }
+
     // Check executor
     if (!this.executor) {
       logger.warn('[SyncEngine] No executor set, skipping sync');
@@ -843,9 +966,13 @@ export class SyncEngine {
         // Emit status change after each operation
         this.emitStatusChange();
 
-        // Check if we went offline during processing
+        // Check if we should stop processing the current batch
         if (!this.isOnline) {
           logger.info('[SyncEngine] Went offline during sync, pausing');
+          break;
+        }
+        if (this.isServerPaused) {
+          logger.info('[SyncEngine] Server circuit breaker tripped, stopping batch');
           break;
         }
       }
@@ -979,6 +1106,13 @@ export class SyncEngine {
         this.isAuthPaused = false;
         this.emitStatusChange();
       }
+      if (this.consecutiveServerFailures > 0 || this.isServerPaused) {
+        logger.info(`[SyncEngine] Server recovered after ${this.consecutiveServerFailures} failures`);
+        this.consecutiveServerFailures = 0;
+        this.isServerPaused = false;
+        this.serverPauseUntil = 0;
+        this.emitStatusChange();
+      }
       this.consecutiveAbortFailures = 0;
 
       // Emit completion event
@@ -1093,6 +1227,60 @@ export class SyncEngine {
         } catch (resetError) {
           logger.info(`[SyncEngine] Could not reset auth-blocked operation ${opInfo}:`, resetError);
         }
+        return;
+      }
+
+      // StorageError (server 5xx) handling: circuit breaker to prevent self-DDoS.
+      // When PostgREST returns 503, aggressive retries exhaust the connection pool,
+      // making the situation worse. Instead, pause sync with exponential backoff.
+      // Detection relies on typed StorageError from SupabaseDataStore.classifyAndThrowError
+      // (which maps all 5xx + PostgreSQL internal error codes to StorageError).
+      // Fallback: name check handles cross-realm instanceof failures
+      // (e.g. different module instances in test environments or code splitting)
+      const isServerError = error instanceof StorageError ||
+        (error instanceof Error && error.name === 'StorageError');
+      if (isServerError) {
+        this.consecutiveServerFailures++;
+
+        // Exponential backoff: 30s, 60s, 120s, 240s, cap at 300s (5 min)
+        const pauseDurationMs = Math.min(30000 * Math.pow(2, this.consecutiveServerFailures - 1), 300000);
+        const pauseDurationSec = Math.round(pauseDurationMs / 1000);
+
+        logger.warn(
+          `[SyncEngine] Server error (${this.consecutiveServerFailures}x): ${opInfo} — ` +
+          `pausing sync for ${pauseDurationSec}s to prevent overload`
+        );
+
+        this.isServerPaused = true;
+        this.serverPauseUntil = Date.now() + pauseDurationMs;
+
+        try {
+          if (this.consecutiveServerFailures >= 3) {
+            Sentry.captureMessage('SyncEngine: server circuit breaker activated', {
+              tags: { component: 'SyncEngine', action: 'serverCircuitBreaker' },
+              level: 'warning',
+              extra: {
+                consecutiveFailures: this.consecutiveServerFailures,
+                pauseDurationMs,
+                operationInfo: opInfo,
+              },
+            });
+          }
+        } catch {
+          // Sentry failure is acceptable
+        }
+
+        // Reset to pending — will retry after pause expires.
+        // incrementRetry: false — server errors are infrastructure failures, not operation
+        // failures. The circuit breaker's pause/backoff provides throttling; the retry
+        // budget should only be burned for genuine operation failures (bad data, conflicts).
+        try {
+          await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
+        } catch (resetError) {
+          logger.info(`[SyncEngine] Could not reset server-error operation ${opInfo}:`, resetError);
+        }
+
+        this.emitStatusChange();
         return;
       }
 

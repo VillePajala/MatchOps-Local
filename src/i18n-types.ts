@@ -2041,6 +2041,7 @@ export type TranslationKey =
   | 'syncStatus.pending'
   | 'syncStatus.pendingCount'
   | 'syncStatus.pendingTitle'
+  | 'syncStatus.serverUnavailableTitle'
   | 'syncStatus.synced'
   | 'syncStatus.syncedTitle'
   | 'syncStatus.syncing'
