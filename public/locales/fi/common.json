@@ -2456,7 +2456,8 @@
     "cloud": "Pilvi",
     "cloudTitle": "Tiedot synkronoidaan pilveen",
     "online": "Online",
-    "authExpiredTitle": "Istunto vanhentunut - kirjaudu sisään uudelleen"
+    "authExpiredTitle": "Istunto vanhentunut - kirjaudu sisään uudelleen",
+    "serverUnavailableTitle": "Palvelin tilapäisesti poissa käytöstä — yritetään uudelleen automaattisesti"
   },
   "cloudSync": {
     "title": "Tili ja synkronointi",

@@ -85,7 +85,7 @@ const securityHeaders = [
       "img-src 'self'", // Strict: no data: or blob: URIs needed for images
       "font-src 'self'",
       `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com`,
-      "worker-src 'self'",
+      "worker-src 'self' blob:",  // blob: required for Supabase realtime-js heartbeat workers
       "object-src 'none'", // Block Flash, Java applets, and other plugins
       "frame-ancestors 'none'",
       "form-action 'self'",
