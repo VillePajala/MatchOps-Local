@@ -64,6 +64,17 @@ const logger: Logger = {
     // Wrapped in try/catch to prevent Sentry SDK failures from crashing app
     try {
       const error = data.find((d): d is Error => d instanceof Error);
+
+      // Skip Sentry for transient network errors — these are retried at the
+      // call site and would otherwise flood Sentry with non-actionable noise.
+      // Check both class name (cross-realm safe) and error code.
+      if (error && (
+        error.name === 'NetworkError' ||
+        (error as { code?: string }).code === 'NETWORK_ERROR'
+      )) {
+        return; // Already logged to console above
+      }
+
       if (error) {
         Sentry.captureException(error, {
           extra: { message, data: data.filter(d => !(d instanceof Error)) },

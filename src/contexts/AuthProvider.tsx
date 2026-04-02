@@ -474,10 +474,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setInitTimedOut(true);
 
         // Track in Sentry AFTER state updates (so failure doesn't block UI recovery)
-        // Use 'error' level because timeout leaves app in incomplete/broken state
+        // Use 'warning' level — timeouts are often caused by slow networks or cold starts,
+        // not broken auth. The UI shows a retry option, so this is recoverable.
         try {
           Sentry.captureMessage('AuthProvider init timeout', {
-            level: 'error',
+            level: 'warning',
             tags: { flow: 'auth-init-timeout' },
             extra: context,
           });

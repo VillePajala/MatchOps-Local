@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
+import { NetworkError } from '@/interfaces/DataStoreErrors';
 
 /**
  * State group configuration for auto-save
@@ -215,14 +216,19 @@ export const useAutoSave = ({
           await saveWithRetry(saveFunctionRef.current, 3, 'immediate', () => cancelled);
         } catch (error) {
           if (cancelled) return;
-          logger.error('[useAutoSave] Save failed after retries (immediate):', error);
-          try {
-            Sentry.captureException(error, {
-              tags: { operation: 'auto_save_immediate', gameId: currentGameId || 'unknown' },
-              extra: { trigger: 'immediate_state_change', retriesFailed: true },
-            });
-          } catch {
-            // Sentry failure must not affect auto-save error handling
+          // Network errors are transient and already retried — only warn, don't flood Sentry
+          if (error instanceof NetworkError) {
+            logger.warn('[useAutoSave] Network error after retries (immediate):', error.message);
+          } else {
+            logger.error('[useAutoSave] Save failed after retries (immediate):', error);
+            try {
+              Sentry.captureException(error, {
+                tags: { operation: 'auto_save_immediate', gameId: currentGameId || 'unknown' },
+                extra: { trigger: 'immediate_state_change', retriesFailed: true },
+              });
+            } catch {
+              // Sentry failure must not affect auto-save error handling
+            }
           }
         }
       })();
@@ -256,14 +262,18 @@ export const useAutoSave = ({
             await saveWithRetry(saveFunctionRef.current, 3, 'short-delay', () => cancelled);
           } catch (error) {
             if (cancelled) return;
-            logger.error('[useAutoSave] Save failed after retries (short-delay):', error);
-            try {
-              Sentry.captureException(error, {
-                tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
-                extra: { trigger: 'short_delay_state_change', delay: shortDelay, retriesFailed: true },
-              });
-            } catch {
-              // Sentry failure must not affect auto-save error handling
+            if (error instanceof NetworkError) {
+              logger.warn('[useAutoSave] Network error after retries (short-delay):', error.message);
+            } else {
+              logger.error('[useAutoSave] Save failed after retries (short-delay):', error);
+              try {
+                Sentry.captureException(error, {
+                  tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
+                  extra: { trigger: 'short_delay_state_change', delay: shortDelay, retriesFailed: true },
+                });
+              } catch {
+                // Sentry failure must not affect auto-save error handling
+              }
             }
           }
         } else {
@@ -310,14 +320,18 @@ export const useAutoSave = ({
             await saveWithRetry(saveFunctionRef.current, 3, 'long-delay', () => cancelled);
           } catch (error) {
             if (cancelled) return;
-            logger.error('[useAutoSave] Save failed after retries (long-delay):', error);
-            try {
-              Sentry.captureException(error, {
-                tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
-                extra: { trigger: 'long_delay_state_change', delay: longDelay, retriesFailed: true },
-              });
-            } catch {
-              // Sentry failure must not affect auto-save error handling
+            if (error instanceof NetworkError) {
+              logger.warn('[useAutoSave] Network error after retries (long-delay):', error.message);
+            } else {
+              logger.error('[useAutoSave] Save failed after retries (long-delay):', error);
+              try {
+                Sentry.captureException(error, {
+                  tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
+                  extra: { trigger: 'long_delay_state_change', delay: longDelay, retriesFailed: true },
+                });
+              } catch {
+                // Sentry failure must not affect auto-save error handling
+              }
             }
           }
         } else {

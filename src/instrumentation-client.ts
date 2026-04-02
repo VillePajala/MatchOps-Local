@@ -185,15 +185,22 @@ if (dsn && (isProduction || isForceEnabled)) {
         return null;
       }
 
-      // Filter out raw browser network errors (user connectivity issues).
-      // Only match known browser-level patterns, NOT app-level NetworkError instances
-      // from retry exhaustion (which are actionable and should be reported).
+      // Filter out browser-level network errors (user connectivity issues)
       if (
         exceptionValue === 'NetworkError when attempting to fetch resource.' ||
         exceptionValue === 'Failed to fetch' ||
         exceptionValue === 'Network request failed' ||
         exceptionValue === 'Load failed'
       ) {
+        return null;
+      }
+
+      // Filter out app-level NetworkError instances (from DataStoreErrors).
+      // These are transient connectivity failures already retried at the call site.
+      // They reach Sentry via captureException in catch blocks that pre-date the
+      // per-site filtering — this is a safety net to prevent any remaining noise.
+      const exceptionType = event.exception?.values?.[0]?.type ?? '';
+      if (exceptionType === 'NetworkError' && exceptionValue.includes('Network error')) {
         return null;
       }
 
