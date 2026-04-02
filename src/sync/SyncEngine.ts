@@ -1290,7 +1290,8 @@ export class SyncEngine {
 
         // DIAGNOSTIC: Log full operation details to help identify why specific operations fail
         // This helps diagnose the "one item stuck" issue where most ops succeed but one fails
-        logger.error('[SyncEngine] SYNC FAILURE DETAILS', {
+        // Using warn (not error) to avoid flooding Sentry — failures are already retried
+        logger.warn('[SyncEngine] SYNC FAILURE DETAILS', {
           operationId: op.id,
           entityType: op.entityType,
           entityId: op.entityId,

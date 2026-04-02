@@ -3408,11 +3408,12 @@ export class SupabaseDataStore implements DataStore {
       const errorMsg = `Failed to load ${allFailedIds.length} of ${totalCount} games. ` +
         `Loaded ${loadedCount} successfully. Failed IDs: ${failedSample}${allFailedIds.length > 5 ? '...' : ''}`;
 
-      logger.error(`[SupabaseDataStore] ${errorMsg}`);
+      logger.warn(`[SupabaseDataStore] ${errorMsg}`);
       // Wrap in try/catch - Sentry failure must not break returning valid games
+      // Use warning level — partial failures are often transient network issues
       try {
         Sentry.captureMessage('getGames completed with partial failures', {
-          level: 'error',
+          level: 'warning',
           tags: { component: 'SupabaseDataStore', action: 'getGames-partialFailure' },
           extra: {
             failedCount: allFailedIds.length,

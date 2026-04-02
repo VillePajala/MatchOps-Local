@@ -978,7 +978,7 @@ export class SupabaseAuthService implements AuthService {
       }, { operationName: 'hasConsentedToVersion' });
 
       if (error) {
-        logger.error('[SupabaseAuthService] Failed to get consent:', error.message);
+        logger.warn('[SupabaseAuthService] Failed to get consent:', error.message);
         throw new AuthError('Failed to check consent status. Please try again.');
       }
 
@@ -1016,7 +1016,7 @@ export class SupabaseAuthService implements AuthService {
       }, { operationName: 'getLatestConsent' });
 
       if (error) {
-        logger.error('[SupabaseAuthService] Failed to get consent:', error.message);
+        logger.warn('[SupabaseAuthService] Failed to get consent:', error.message);
         throw new AuthError('Failed to check consent status. Please try again.');
       }
 
@@ -1057,7 +1057,7 @@ export class SupabaseAuthService implements AuthService {
       }, { operationName: 'getMarketingConsentStatus' });
 
       if (error) {
-        logger.error('[SupabaseAuthService] Failed to get marketing consent status:', error.message);
+        logger.warn('[SupabaseAuthService] Failed to get marketing consent status:', error.message);
         throw new AuthError('Failed to get marketing consent status. Please try again.');
       }
 

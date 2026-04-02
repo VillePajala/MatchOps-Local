@@ -54,6 +54,7 @@ import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { AppState, GameEvent, PlayerAssessment, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { UseFieldCoordinationReturn } from './useFieldCoordination';
@@ -315,24 +316,28 @@ export function useGamePersistence({
         }
 
       } catch (error) {
-        logger.error("Failed to quick save game state:", error);
+        // Network errors are transient — warn only, don't flood Sentry
+        if (error instanceof NetworkError) {
+          logger.warn("Network error saving game:", error.message);
+        } else {
+          logger.error("Failed to quick save game state:", error);
 
-        // Always report to Sentry for monitoring, even for silent auto-saves
-        // Wrapped in try/catch to prevent Sentry SDK failures from affecting save error handling
-        try {
-          Sentry.captureException(error, {
-            tags: {
-              operation: 'quick_save_game',
-              silent,
-              gameId: currentGameId,
-            },
-            extra: {
-              teamId: gameSessionState.teamId,
-              tournamentId: gameSessionState.tournamentId,
-            },
-          });
-        } catch {
-          // Sentry failure must not affect save error handling
+          // Report non-network errors to Sentry for monitoring
+          try {
+            Sentry.captureException(error, {
+              tags: {
+                operation: 'quick_save_game',
+                silent,
+                gameId: currentGameId,
+              },
+              extra: {
+                teamId: gameSessionState.teamId,
+                tournamentId: gameSessionState.tournamentId,
+              },
+            });
+          } catch {
+            // Sentry failure must not affect save error handling
+          }
         }
 
         // Show error toast unless explicitly suppressed (for retry logic)
@@ -365,23 +370,27 @@ export function useGamePersistence({
         logger.log(`New game created with ID: ${newGameId}`);
 
       } catch (error) {
-        logger.error("Failed to create new saved game:", error);
+        // Network errors are transient — warn only, don't flood Sentry
+        if (error instanceof NetworkError) {
+          logger.warn("Network error creating new game:", error.message);
+        } else {
+          logger.error("Failed to create new saved game:", error);
 
-        // Always report to Sentry for monitoring
-        // Wrapped in try/catch to prevent Sentry SDK failures from affecting error handling
-        try {
-          Sentry.captureException(error, {
-            tags: {
-              operation: 'create_new_game',
-              silent,
-            },
-            extra: {
-              teamId: gameSessionState.teamId,
-              tournamentId: gameSessionState.tournamentId,
-            },
-          });
-        } catch {
-          // Sentry failure must not affect create game error handling
+          // Report non-network errors to Sentry for monitoring
+          try {
+            Sentry.captureException(error, {
+              tags: {
+                operation: 'create_new_game',
+                silent,
+              },
+              extra: {
+                teamId: gameSessionState.teamId,
+                tournamentId: gameSessionState.tournamentId,
+              },
+            });
+          } catch {
+            // Sentry failure must not affect create game error handling
+          }
         }
 
         // Show error toast unless explicitly suppressed
