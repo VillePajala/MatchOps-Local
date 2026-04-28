@@ -21,6 +21,7 @@ describe('planDraftFromImport', () => {
     expect(r.draft.startingXI).toEqual({ GK: 'p1', LB: 'p2' });
     expect(r.draft.bench).toEqual(['p3', 'p4']);
     expect(r.unknownPlayerIds).toEqual([]);
+    expect(r.duplicateRoleAssignments).toEqual([]);
   });
 
   it('strips unknown player ids and surfaces them', () => {
@@ -31,6 +32,20 @@ describe('planDraftFromImport', () => {
     expect(r.draft.startingXI).toEqual({ GK: 'p1' });
     expect(r.unknownPlayerIds).toEqual(['pUnknown']);
     expect(r.draft.bench).toEqual(['p2', 'p3', 'p4']);
+  });
+
+  it('drops duplicate role assignments (first-seen wins) and surfaces them — Codex P2', () => {
+    const r = planDraftFromImport(
+      { startingXI: { GK: 'p1', LB: 'p1', RB: 'p2' } },
+      roster,
+    );
+    // p1 stays at GK (first seen); LB is dropped.
+    expect(r.draft.startingXI).toEqual({ GK: 'p1', RB: 'p2' });
+    expect(r.duplicateRoleAssignments).toEqual([
+      { role: 'LB', playerId: 'p1' },
+    ]);
+    // p1 still on field, not on bench.
+    expect(r.draft.bench).toEqual(['p3', 'p4']);
   });
 
   it('skips empty-string player slots from the standalone', () => {

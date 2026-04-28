@@ -1,11 +1,6 @@
 /**
  * Apply-now: convert an in-memory PlanDraft into the AppState updates that
- * land on a Game record (playersOnField + selectedPlayerIds).
- *
- * Pure: returns the deltas, never mutates input. The caller wires the
- * result into `mutateGameDetails` / SyncedDataStore (PR 5c).
- *
- * @see PR 5b — Phase 1 editor foundation
+ * land on a Game record (playersOnField + selectedPlayerIds). Pure.
  */
 
 import type { Player } from '@/types';
@@ -43,12 +38,15 @@ export interface ApplyResult {
 /**
  * Build the playersOnField + selectedPlayerIds for a single game.
  *
- * Role → coords resolution uses the preset's `roles` map (PR 5a). Roles
- * not present in the map (or in legacy presets without one) get filtered
- * out with their player ids surfaced via `unknownRoles`.
+ * Role → coords resolution uses the preset's `roles` map. Roles not
+ * present in the map (or in legacy presets without one) are filtered out
+ * and surfaced via `unknownRoles`. Players in the draft that aren't in
+ * the roster are filtered out and surfaced via `unknownPlayerIds`.
  *
- * Players in the draft that aren't in the roster are filtered out — caller
- * sees them via `unknownPlayerIds`.
+ * **Does not deduplicate player ids across roles.** A pathological draft
+ * with the same player in two roles produces two `playersOnField`
+ * entries. The editor UI is responsible for preventing that state; the
+ * engine treats it as the caller's contract violation.
  */
 export function applyDraftToGame(
   draft: PlanDraft,
@@ -62,12 +60,11 @@ export function applyDraftToGame(
     (preset?.roles ?? []).map((r) => r.name),
   );
 
-  const unknownRoles: string[] = [];
-  const unknownPlayerIds: PlayerId[] = [];
+  const unknownRolesSet = new Set<string>();
+  const unknownPlayerIdsSet = new Set<PlayerId>();
 
   // 1. Build playersOnField in role order from the preset (where possible).
   const playersOnField: Player[] = [];
-  const placedPlayerIds = new Set<PlayerId>();
 
   if (preset?.roles) {
     for (const role of preset.roles) {
@@ -75,7 +72,7 @@ export function applyDraftToGame(
       if (!playerId) continue; // empty slot — skip
       const player = rosterMap.get(playerId);
       if (!player) {
-        unknownPlayerIds.push(playerId);
+        unknownPlayerIdsSet.add(playerId);
         continue;
       }
       playersOnField.push({
@@ -83,20 +80,16 @@ export function applyDraftToGame(
         relX: role.relX,
         relY: role.relY,
       });
-      placedPlayerIds.add(playerId);
     }
   }
 
-  // 2. Defensive: any role in draft.startingXI that wasn't covered above
-  //    (either no preset roles map, or the role isn't in the preset).
-  for (const [roleName, playerId] of Object.entries(draft.startingXI)) {
-    if (placedPlayerIds.has(playerId)) continue;
+  // 2. Detect roles in the draft that aren't in the preset. Iterate over
+  //    role NAMES (not player ids), so a reused player id at an unknown
+  //    role still surfaces — matters for legacy / corrupt drafts.
+  for (const roleName of Object.keys(draft.startingXI)) {
     if (!presetRoleNames.has(roleName)) {
-      unknownRoles.push(roleName);
+      unknownRolesSet.add(roleName);
     }
-    // We can't place a player without coords; surface as unknown role and
-    // do NOT include in playersOnField. The player still appears in
-    // selectedPlayerIds below if they're in the roster.
   }
 
   // 3. selectedPlayerIds = startingXI ∪ bench, filtered to roster members.
@@ -108,29 +101,31 @@ export function applyDraftToGame(
   for (const id of idsInDraft) {
     if (rosterMap.has(id)) {
       selectedPlayerIds.push(id);
-    } else if (!unknownPlayerIds.includes(id)) {
-      unknownPlayerIds.push(id);
+    } else {
+      unknownPlayerIdsSet.add(id);
     }
   }
 
   return {
     playersOnField,
     selectedPlayerIds,
-    unknownRoles,
-    unknownPlayerIds,
+    unknownRoles: [...unknownRolesSet],
+    unknownPlayerIds: [...unknownPlayerIdsSet],
   };
 }
 
 /**
- * Resolve a player's role from existing on-field coords (the inverse path
- * used when loading an existing game's lineup into the planner editor).
- *
- * Returns the role name (within tolerance) or `null` for off-formation
- * positions. Off-formation players surface in the editor as drag-targets
- * the coach can manually slot — see PR 5b's documented legacy-coord
- * fallback.
- *
- * Re-exports `coordForRole`'s tolerance for callers that want to apply
- * the same metric to their own snapping.
+ * Re-exports the role/coord helpers callers need alongside the editor's
+ * Apply path:
+ * - `coordForRole(preset, name)` → forward (role → {relX, relY})
+ * - `roleForCoord(preset, x, y, tol?)` → inverse (coords → role) used to
+ *   reconstruct a draft from an existing game's `playersOnField` when
+ *   loading into the editor.
+ * - `ROLE_COORD_TOLERANCE` for callers that want to apply the same snap
+ *   metric to their own pointer/touch handling.
  */
-export { coordForRole, ROLE_COORD_TOLERANCE } from '@/utils/formations';
+export {
+  coordForRole,
+  roleForCoord,
+  ROLE_COORD_TOLERANCE,
+} from '@/utils/formations';

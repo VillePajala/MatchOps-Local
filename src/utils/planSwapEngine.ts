@@ -1,10 +1,11 @@
 /**
- * In-memory swap engine for the planner editor (PR 5b).
+ * In-memory swap engine for the planner editor.
  *
- * Operates on a `PlanDraft` shape — the in-memory representation of a
- * single game's lineup before Apply. Pure: all operations return a new
- * draft, never mutate the input. Decisions deferred to PR 6 (timeline
- * editor): cross-half splits, merge-unwind, double-position checks.
+ * Operates on a `PlanDraft` — the in-memory representation of a single
+ * game's lineup before Apply. Pure: all operations return a new draft,
+ * never mutate the input. Cross-half splits, merge-unwind, and
+ * double-position checks belong with the timeline editor and live in a
+ * separate module when that lands.
  */
 
 export type PlayerId = string;

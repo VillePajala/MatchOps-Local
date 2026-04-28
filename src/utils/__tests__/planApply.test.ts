@@ -133,25 +133,42 @@ describe('applyDraftToGame — defensive paths', () => {
     expect(r.unknownRoles).toEqual(['GK']);
   });
 
-  it('does not duplicate players when draft references the same id multiple times', () => {
-    // Pathological draft: same player in two roles. Defensive — UI guards
-    // against this, but the engine shouldn't double up in playersOnField.
+  it('does not deduplicate players when draft references the same id multiple times — UI is responsible (documented contract)', () => {
+    // Pathological draft: same player in two roles. The engine treats it
+    // as a contract violation — both slots are placed; selectedPlayerIds
+    // dedupes via Set semantics. The editor UI is responsible for
+    // preventing this state at the source. See JSDoc on applyDraftToGame.
     const draft: PlanDraft = {
       startingXI: { GK: 'p1', LB: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
     const r = applyDraftToGame(draft, preset5v5_2_2, roster);
     const ids = r.playersOnField.map((p) => p.id);
-    // p1 appears in both roles → both spots placed (preset role order),
-    // because the engine doesn't dedupe; UI must guard. But the player
-    // metadata is correct.
     expect(ids.filter((id) => id === 'p1').length).toBe(2);
     expect(r.selectedPlayerIds.filter((id) => id === 'p1').length).toBe(1);
+  });
+
+  it('surfaces unknown role names even when the player id appears at a known role too (Codex P2)', () => {
+    // Reused player id at both a known and an unknown role: the unknown
+    // role must still be reported via unknownRoles. Earlier code skipped
+    // entries by player id, swallowing the unknown role in this case.
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p1', NotARole: 'p1' },
+      bench: ['p2', 'p3', 'p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster);
+    expect(r.unknownRoles).toContain('NotARole');
   });
 });
 
 describe('applyDraftToGame — 8v8 sanity check', () => {
-  it('places all 8 starting-XI roles correctly', () => {
+  it('places all 8 starting-XI roles with a clean roster', () => {
+    const fullRoster = [
+      ...roster,
+      { id: 'p6', name: 'Frank', isGoalie: false },
+      { id: 'p7', name: 'Gina', isGoalie: false },
+      { id: 'p8', name: 'Hank', isGoalie: false },
+    ] as Player[];
     const draft: PlanDraft = {
       startingXI: {
         GK: 'p1',
@@ -159,20 +176,18 @@ describe('applyDraftToGame — 8v8 sanity check', () => {
         CB: 'p3',
         RB: 'p4',
         LM: 'p5',
-        CM: 'p1',
-        RM: 'p2',
-        ST: 'p3',
+        CM: 'p6',
+        RM: 'p7',
+        ST: 'p8',
       },
       bench: [],
     };
-    const fullRoster = [
-      ...roster,
-      { id: 'p6', name: 'Frank', isGoalie: false },
-      { id: 'p7', name: 'Gina', isGoalie: false },
-      { id: 'p8', name: 'Hank', isGoalie: false },
-    ] as Player[];
     const r = applyDraftToGame(draft, preset8v8, fullRoster);
-    expect(r.playersOnField.length).toBeGreaterThanOrEqual(5);
+    expect(r.playersOnField).toHaveLength(8);
     expect(r.unknownRoles).toEqual([]);
+    expect(r.unknownPlayerIds).toEqual([]);
+    // Every starter appears exactly once in playersOnField.
+    const ids = r.playersOnField.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
