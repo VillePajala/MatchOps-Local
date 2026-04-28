@@ -22,6 +22,29 @@ export interface FieldPosition {
 }
 
 /**
+ * Stamina tag attached to a formation role for the fair-share suggester.
+ * - `never`: GK — not subbed in normal play.
+ * - `preserved`: spine roles that conventionally play full match.
+ * - `preferred`: flank/wing/striker roles routinely subbed.
+ */
+export type RoleStaminaTag = 'never' | 'preserved' | 'preferred';
+
+/**
+ * A named formation role with its canonical pitch coordinates.
+ *
+ * The role name is the bridge between coordinate-only `playersOnField` and
+ * the planner's role-keyed lineup map. Coordinates mirror the standalone
+ * matchops-planner exactly, so plans round-trip through the JSON bridge
+ * without coordinate drift.
+ */
+export interface FormationRole extends FieldPosition {
+  /** Role identifier (e.g. "GK", "LB", "CDM"). Unique within a formation. */
+  name: string;
+  /** Stamina tag used by the fair-share suggester (PR 6+). */
+  sub: RoleStaminaTag;
+}
+
+/**
  * Generate positions for a single row of players
  * @param count - Number of players in this row
  * @param relY - The Y position for this row
@@ -396,4 +419,72 @@ function generateDynamicFormation(playerCount: number): FieldPosition[] {
   }
 
   return positions;
+}
+
+/* ─────────── Role / coord bridge (planner integration phase 1) ─────────── */
+
+/**
+ * Maximum coordinate distance tolerated by `roleForCoord` when matching a
+ * player position to a formation role. Coordinates are normalised 0..1, so
+ * 0.04 ≈ 4 % of pitch width / height — comfortably wider than the rounding
+ * jitter we see between the standalone planner and MatchOps-Local imports
+ * but narrower than any two distinct roles in any current preset.
+ */
+export const ROLE_COORD_TOLERANCE = 0.04;
+
+/**
+ * Return the role list for a preset, or `null` if the preset doesn't define
+ * one (legacy presets without `roles` data).
+ */
+export function rolesForPreset(
+  preset: { roles?: readonly FormationRole[] } | null | undefined,
+): readonly FormationRole[] | null {
+  if (!preset || !preset.roles || preset.roles.length === 0) return null;
+  return preset.roles;
+}
+
+/**
+ * Given a preset and a role name, return its canonical pitch coordinates.
+ * Returns `null` for unknown role names or presets without a roles map.
+ */
+export function coordForRole(
+  preset: { roles?: readonly FormationRole[] } | null | undefined,
+  roleName: string,
+): FieldPosition | null {
+  const roles = rolesForPreset(preset);
+  if (!roles) return null;
+  const role = roles.find((r) => r.name === roleName);
+  if (!role) return null;
+  return { relX: role.relX, relY: role.relY };
+}
+
+/**
+ * Inverse of `coordForRole`. Picks the role whose canonical coordinates are
+ * closest to (relX, relY) within `ROLE_COORD_TOLERANCE`. Returns `null` if
+ * no role lies within tolerance — typically means the player is not on a
+ * formation slot (e.g. dragged off-formation).
+ *
+ * Tie-break: lowest squared distance, then array order.
+ */
+export function roleForCoord(
+  preset: { roles?: readonly FormationRole[] } | null | undefined,
+  relX: number,
+  relY: number,
+  tolerance: number = ROLE_COORD_TOLERANCE,
+): FormationRole | null {
+  const roles = rolesForPreset(preset);
+  if (!roles) return null;
+  let best: FormationRole | null = null;
+  let bestDistSq = Number.POSITIVE_INFINITY;
+  const tolSq = tolerance * tolerance;
+  for (const role of roles) {
+    const dx = role.relX - relX;
+    const dy = role.relY - relY;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= tolSq && distSq < bestDistSq) {
+      best = role;
+      bestDistSq = distSq;
+    }
+  }
+  return best;
 }

@@ -14,7 +14,7 @@
  * @category Config
  */
 
-import type { FieldPosition } from '@/utils/formations';
+import type { FieldPosition, FormationRole } from '@/utils/formations';
 
 /**
  * Field size categories for formations
@@ -37,11 +37,56 @@ export interface FormationPreset {
   playerCount: number;
   /** Positions for field players (goalkeeper excluded) */
   positions: FieldPosition[];
+  /**
+   * Named roles with canonical pitch coordinates and stamina tags.
+   *
+   * Mirrors the standalone matchops-planner registry exactly so plans
+   * round-trip through the JSON bridge without coordinate drift. Includes
+   * GK at the same canonical coords. Optional only for backwards
+   * compatibility with any future dynamic preset; all built-in presets
+   * define this.
+   */
+  roles?: readonly FormationRole[];
 }
 
 // Standard margins matching formations.ts
 const MARGIN = 0.15;
 const TIGHT_MARGIN = 0.10;
+
+/**
+ * Stamina presets per field size (mirrors the standalone planner). GK is
+ * always 'never'; the listed roles are 'preserved'; everything else is
+ * 'preferred'. 5v5 deliberately has no preserved roles per the standalone
+ * (all outfield positions are equal at that scale).
+ */
+const PRESERVED_ROLES_BY_SIZE: Record<FieldSize, ReadonlySet<string>> = {
+  '3v3': new Set(['DEF']),
+  '5v5': new Set<string>(),
+  '8v8': new Set(['LB', 'CB', 'RB', 'CDM', 'CM', 'CAM']),
+  '11v11': new Set([
+    'LB', 'LCB', 'RCB', 'CB', 'RB',
+    'LDM', 'RDM', 'CDM',
+    'LCM', 'CM', 'RCM',
+    'CAM',
+  ]),
+};
+
+/** Stamp `sub` tags on a roles array (GK→never, preserved set→preserved, rest→preferred). */
+function withStamina(
+  fieldSize: FieldSize,
+  roles: ReadonlyArray<{ name: string; relX: number; relY: number }>,
+): readonly FormationRole[] {
+  const preserved = PRESERVED_ROLES_BY_SIZE[fieldSize];
+  return roles.map((r) => ({
+    ...r,
+    sub:
+      r.name === 'GK'
+        ? 'never'
+        : preserved.has(r.name)
+          ? 'preserved'
+          : 'preferred',
+  }));
+}
 
 /**
  * Helper to generate evenly spaced positions in a row
@@ -76,6 +121,11 @@ const FORMATIONS_3V3: FormationPreset[] = [
       { relX: 0.5, relY: 0.70 },  // Defender
       { relX: 0.5, relY: 0.35 },  // Forward
     ],
+    roles: withStamina('3v3', [
+      { name: 'GK',  relX: 0.50, relY: 0.95 },
+      { name: 'DEF', relX: 0.50, relY: 0.70 },
+      { name: 'ST',  relX: 0.50, relY: 0.35 },
+    ]),
   },
   {
     id: '3v3-2-0',
@@ -84,6 +134,11 @@ const FORMATIONS_3V3: FormationPreset[] = [
     fieldSize: '3v3',
     playerCount: 2,
     positions: row(2, 0.55, 0.25),  // Two midfielders side by side
+    roles: withStamina('3v3', [
+      { name: 'GK', relX: 0.50, relY: 0.95 },
+      { name: 'LM', relX: 0.25, relY: 0.55 },
+      { name: 'RM', relX: 0.75, relY: 0.55 },
+    ]),
   },
 ];
 
@@ -103,6 +158,13 @@ const FORMATIONS_5V5: FormationPreset[] = [
       ...row(2, 0.70, 0.25),  // Two defenders
       ...row(2, 0.40, 0.25),  // Two forwards
     ],
+    roles: withStamina('5v5', [
+      { name: 'GK', relX: 0.50, relY: 0.95 },
+      { name: 'LB', relX: 0.25, relY: 0.70 },
+      { name: 'RB', relX: 0.75, relY: 0.70 },
+      { name: 'LF', relX: 0.25, relY: 0.40 },
+      { name: 'RF', relX: 0.75, relY: 0.40 },
+    ]),
   },
   {
     id: '5v5-1-2-1',
@@ -115,6 +177,13 @@ const FORMATIONS_5V5: FormationPreset[] = [
       ...row(2, 0.50, 0.25),      // Two midfielders
       { relX: 0.5, relY: 0.25 },  // Forward
     ],
+    roles: withStamina('5v5', [
+      { name: 'GK',  relX: 0.50, relY: 0.95 },
+      { name: 'DEF', relX: 0.50, relY: 0.75 },
+      { name: 'LM',  relX: 0.25, relY: 0.50 },
+      { name: 'RM',  relX: 0.75, relY: 0.50 },
+      { name: 'ST',  relX: 0.50, relY: 0.25 },
+    ]),
   },
   {
     id: '5v5-3-1',
@@ -126,6 +195,13 @@ const FORMATIONS_5V5: FormationPreset[] = [
       ...row(3, 0.65, MARGIN),   // Three defenders/midfielders
       { relX: 0.5, relY: 0.30 }, // Forward
     ],
+    roles: withStamina('5v5', [
+      { name: 'GK', relX: 0.50, relY: 0.95 },
+      { name: 'LM', relX: 0.15, relY: 0.65 },
+      { name: 'CM', relX: 0.50, relY: 0.65 },
+      { name: 'RM', relX: 0.85, relY: 0.65 },
+      { name: 'ST', relX: 0.50, relY: 0.30 },
+    ]),
   },
   {
     id: '5v5-2-1-1',
@@ -138,6 +214,13 @@ const FORMATIONS_5V5: FormationPreset[] = [
       { relX: 0.5, relY: 0.50 },  // One midfielder
       { relX: 0.5, relY: 0.28 },  // One forward
     ],
+    roles: withStamina('5v5', [
+      { name: 'GK', relX: 0.50, relY: 0.95 },
+      { name: 'LB', relX: 0.25, relY: 0.70 },
+      { name: 'RB', relX: 0.75, relY: 0.70 },
+      { name: 'CM', relX: 0.50, relY: 0.50 },
+      { name: 'ST', relX: 0.50, relY: 0.28 },
+    ]),
   },
 ];
 
@@ -158,6 +241,16 @@ const FORMATIONS_8V8: FormationPreset[] = [
       ...row(3, 0.55, MARGIN),    // Three midfielders
       { relX: 0.5, relY: 0.30 },  // One forward
     ],
+    roles: withStamina('8v8', [
+      { name: 'GK', relX: 0.50, relY: 0.95 },
+      { name: 'LB', relX: 0.15, relY: 0.78 },
+      { name: 'CB', relX: 0.50, relY: 0.78 },
+      { name: 'RB', relX: 0.85, relY: 0.78 },
+      { name: 'LM', relX: 0.15, relY: 0.55 },
+      { name: 'CM', relX: 0.50, relY: 0.55 },
+      { name: 'RM', relX: 0.85, relY: 0.55 },
+      { name: 'ST', relX: 0.50, relY: 0.30 },
+    ]),
   },
   {
     id: '8v8-2-3-2',
@@ -170,6 +263,16 @@ const FORMATIONS_8V8: FormationPreset[] = [
       ...row(3, 0.55, MARGIN),   // Three midfielders
       ...row(2, 0.30, 0.25),     // Two forwards
     ],
+    roles: withStamina('8v8', [
+      { name: 'GK', relX: 0.50, relY: 0.95 },
+      { name: 'LB', relX: 0.25, relY: 0.78 },
+      { name: 'RB', relX: 0.75, relY: 0.78 },
+      { name: 'LM', relX: 0.15, relY: 0.55 },
+      { name: 'CM', relX: 0.50, relY: 0.55 },
+      { name: 'RM', relX: 0.85, relY: 0.55 },
+      { name: 'LF', relX: 0.25, relY: 0.30 },
+      { name: 'RF', relX: 0.75, relY: 0.30 },
+    ]),
   },
   {
     id: '8v8-3-2-2',
@@ -182,6 +285,16 @@ const FORMATIONS_8V8: FormationPreset[] = [
       ...row(2, 0.55, 0.25),     // Two midfielders
       ...row(2, 0.30, 0.25),     // Two forwards
     ],
+    roles: withStamina('8v8', [
+      { name: 'GK', relX: 0.50, relY: 0.95 },
+      { name: 'LB', relX: 0.15, relY: 0.78 },
+      { name: 'CB', relX: 0.50, relY: 0.78 },
+      { name: 'RB', relX: 0.85, relY: 0.78 },
+      { name: 'LM', relX: 0.25, relY: 0.55 },
+      { name: 'RM', relX: 0.75, relY: 0.55 },
+      { name: 'LF', relX: 0.25, relY: 0.30 },
+      { name: 'RF', relX: 0.75, relY: 0.30 },
+    ]),
   },
   {
     id: '8v8-2-1-2-1-1',
@@ -196,6 +309,16 @@ const FORMATIONS_8V8: FormationPreset[] = [
       { relX: 0.5, relY: 0.38 },  // One attacking midfielder
       { relX: 0.5, relY: 0.24 },  // One forward
     ],
+    roles: withStamina('8v8', [
+      { name: 'GK',  relX: 0.50, relY: 0.95 },
+      { name: 'LB',  relX: 0.25, relY: 0.82 },
+      { name: 'RB',  relX: 0.75, relY: 0.82 },
+      { name: 'CDM', relX: 0.50, relY: 0.68 },
+      { name: 'LM',  relX: 0.25, relY: 0.52 },
+      { name: 'RM',  relX: 0.75, relY: 0.52 },
+      { name: 'CAM', relX: 0.50, relY: 0.38 },
+      { name: 'ST',  relX: 0.50, relY: 0.24 },
+    ]),
   },
 ];
 
@@ -216,6 +339,19 @@ const FORMATIONS_11V11: FormationPreset[] = [
       ...row(3, 0.55, MARGIN),        // Three midfielders
       ...row(3, 0.30, MARGIN),        // Three forwards
     ],
+    roles: withStamina('11v11', [
+      { name: 'GK',  relX: 0.50, relY: 0.95 },
+      { name: 'LB',  relX: 0.10, relY: 0.80 },
+      { name: 'LCB', relX: 0.37, relY: 0.80 },
+      { name: 'RCB', relX: 0.63, relY: 0.80 },
+      { name: 'RB',  relX: 0.90, relY: 0.80 },
+      { name: 'LCM', relX: 0.20, relY: 0.55 },
+      { name: 'CM',  relX: 0.50, relY: 0.55 },
+      { name: 'RCM', relX: 0.80, relY: 0.55 },
+      { name: 'LW',  relX: 0.15, relY: 0.30 },
+      { name: 'ST',  relX: 0.50, relY: 0.30 },
+      { name: 'RW',  relX: 0.85, relY: 0.30 },
+    ]),
   },
   {
     id: '11v11-4-4-2',
@@ -228,6 +364,19 @@ const FORMATIONS_11V11: FormationPreset[] = [
       ...row(4, 0.55, TIGHT_MARGIN),  // Four midfielders
       ...row(2, 0.30, 0.30),          // Two forwards
     ],
+    roles: withStamina('11v11', [
+      { name: 'GK',  relX: 0.50, relY: 0.95 },
+      { name: 'LB',  relX: 0.10, relY: 0.80 },
+      { name: 'LCB', relX: 0.37, relY: 0.80 },
+      { name: 'RCB', relX: 0.63, relY: 0.80 },
+      { name: 'RB',  relX: 0.90, relY: 0.80 },
+      { name: 'LM',  relX: 0.10, relY: 0.55 },
+      { name: 'LCM', relX: 0.37, relY: 0.55 },
+      { name: 'RCM', relX: 0.63, relY: 0.55 },
+      { name: 'RM',  relX: 0.90, relY: 0.55 },
+      { name: 'LF',  relX: 0.30, relY: 0.30 },
+      { name: 'RF',  relX: 0.70, relY: 0.30 },
+    ]),
   },
   {
     id: '11v11-3-5-2',
@@ -240,6 +389,19 @@ const FORMATIONS_11V11: FormationPreset[] = [
       ...row(5, 0.55, TIGHT_MARGIN),  // Five midfielders
       ...row(2, 0.30, 0.30),          // Two forwards
     ],
+    roles: withStamina('11v11', [
+      { name: 'GK',  relX: 0.50, relY: 0.95 },
+      { name: 'LB',  relX: 0.15, relY: 0.80 },
+      { name: 'CB',  relX: 0.50, relY: 0.80 },
+      { name: 'RB',  relX: 0.85, relY: 0.80 },
+      { name: 'LWB', relX: 0.10, relY: 0.55 },
+      { name: 'LCM', relX: 0.30, relY: 0.55 },
+      { name: 'CM',  relX: 0.50, relY: 0.55 },
+      { name: 'RCM', relX: 0.70, relY: 0.55 },
+      { name: 'RWB', relX: 0.90, relY: 0.55 },
+      { name: 'LF',  relX: 0.30, relY: 0.30 },
+      { name: 'RF',  relX: 0.70, relY: 0.30 },
+    ]),
   },
   {
     id: '11v11-4-2-3-1',
@@ -253,6 +415,19 @@ const FORMATIONS_11V11: FormationPreset[] = [
       ...row(3, 0.45, MARGIN),        // Three attacking midfielders
       { relX: 0.5, relY: 0.25 },      // One forward
     ],
+    roles: withStamina('11v11', [
+      { name: 'GK',  relX: 0.50, relY: 0.95 },
+      { name: 'LB',  relX: 0.10, relY: 0.82 },
+      { name: 'LCB', relX: 0.37, relY: 0.82 },
+      { name: 'RCB', relX: 0.63, relY: 0.82 },
+      { name: 'RB',  relX: 0.90, relY: 0.82 },
+      { name: 'LDM', relX: 0.35, relY: 0.65 },
+      { name: 'RDM', relX: 0.65, relY: 0.65 },
+      { name: 'LAM', relX: 0.20, relY: 0.45 },
+      { name: 'CAM', relX: 0.50, relY: 0.45 },
+      { name: 'RAM', relX: 0.80, relY: 0.45 },
+      { name: 'ST',  relX: 0.50, relY: 0.25 },
+    ]),
   },
 ];
 
