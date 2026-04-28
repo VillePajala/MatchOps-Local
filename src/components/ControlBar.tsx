@@ -27,6 +27,7 @@ import {
   HiOutlineScale,
   HiOutlineHome,
   HiOutlineArrowRightOnRectangle,
+  HiOutlineCalendarDays,
 } from 'react-icons/hi2';
 import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
@@ -96,6 +97,7 @@ interface ControlBarProps {
   // Menu (existing functionality)
   onToggleTrainingResources: () => void;
   onToggleRulesDirectory: () => void;
+  onOpenPlanningModal: () => void;
   onToggleGameStatsModal: () => void;
   onOpenLoadGameModal: () => void;
   onStartNewGame: () => void;
@@ -140,6 +142,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onToggleDrawingMode,
   onToggleTrainingResources,
   onToggleRulesDirectory,
+  onOpenPlanningModal,
   onToggleGameStatsModal,
   onOpenLoadGameModal,
   onStartNewGame,
@@ -608,6 +611,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.analysisTools', 'Analysis & Tools')}
             </h4>
+            <button onClick={wrapModal(onOpenPlanningModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+              <HiOutlineCalendarDays className="w-5 h-5 mr-2" />{t('controlBar.planning', 'Planning')}
+            </button>
             <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />{t('controlBar.stats', 'Stats')}
             </button>

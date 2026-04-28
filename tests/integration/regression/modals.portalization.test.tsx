@@ -72,6 +72,7 @@ const createMutation = <T, V>(): UseMutationResult<T, Error, V, unknown> =>
 
 const createProps = (): ModalManagerProps => ({
   state: {
+    isPlanningModalOpen: false,
     isTrainingResourcesOpen: false,
     isRulesDirectoryOpen: false,
     isInstructionsModalOpen: false,
@@ -168,6 +169,7 @@ const createProps = (): ModalManagerProps => ({
     openPlayerStats: noop,
     closeSeasonTournamentModal: noop,
     closeGameSettingsModal: noop,
+    closePlanningModal: noop,
     teamNameChange: noop,
     opponentNameChange: noop,
     gameDateChange: noop,

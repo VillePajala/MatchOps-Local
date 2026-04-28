@@ -1,0 +1,223 @@
+'use client';
+
+import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { HiOutlineArrowUpTray, HiOutlineXMark } from 'react-icons/hi2';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import {
+  parsePlanExport,
+  type ImportedPlan,
+  type PlanImportError,
+} from '@/utils/planExport';
+
+interface PlanningModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+/**
+ * Phase 0.5 bridge stub — empty state + JSON import button.
+ *
+ * Shows:
+ *   - Empty state when no saved sessions exist (saved-session list lands in
+ *     PR 7 with the PlanningSession entity).
+ *   - "Import plan from JSON" button. On success the modal surfaces a small
+ *     summary of what landed; on parse failure it shows the validator's
+ *     specific error path.
+ *
+ * The imported plan is NOT yet applied to game records — that's PR 5+.
+ * This PR is just the bridge pipe; the in-app editor reads from it later.
+ */
+const PlanningModal: React.FC<PlanningModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importedPlan, setImportedPlan] = useState<ImportedPlan | null>(null);
+  const [importError, setImportError] = useState<PlanImportError | null>(null);
+
+  const reset = () => {
+    setImportedPlan(null);
+    setImportError(null);
+  };
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-importing the same file
+    if (!file) return;
+
+    reset();
+    // FileReader rather than `file.text()` for broader runtime support
+    // (jsdom's File polyfill in tests, older mobile Safari).
+    const reader = new FileReader();
+    reader.onerror = () =>
+      setImportError({
+        message: t('planningModal.readError', 'Failed to read file.'),
+      });
+    reader.onload = () => {
+      const text = typeof reader.result === 'string' ? reader.result : '';
+      const result = parsePlanExport(text);
+      if (result.ok) {
+        setImportedPlan(result.plan);
+      } else {
+        setImportError(result.error);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+      data-testid="planning-modal"
+    >
+      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
+
+        <div className="relative z-10 flex flex-col min-h-0 h-full">
+          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
+            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
+              {t('planningModal.title', 'Planning')}
+            </h2>
+          </div>
+
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-6">
+              {/* Empty / saved-list area */}
+              {!importedPlan && !importError && (
+                <div className="space-y-3 text-center py-8">
+                  <p className="text-slate-200 text-base">
+                    {t(
+                      'planningModal.emptyTitle',
+                      'No saved planning sessions yet.',
+                    )}
+                  </p>
+                  <p className="text-slate-400 text-sm">
+                    {t(
+                      'planningModal.emptyHint',
+                      'Import a plan exported from the standalone planner to get started. Saved sessions land in a later phase.',
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {/* Import success */}
+              {importedPlan && (
+                <div className="space-y-3 rounded-md bg-emerald-900/30 border border-emerald-700/40 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-base font-semibold text-emerald-200">
+                      {t(
+                        'planningModal.importSuccessTitle',
+                        'Plan imported',
+                      )}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={reset}
+                      className="rounded-md p-1 text-emerald-200 hover:bg-emerald-900/50"
+                      aria-label={t('planningModal.dismissImport', 'Dismiss')}
+                    >
+                      <HiOutlineXMark className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <ul className="text-sm text-emerald-100/90 space-y-1">
+                    <li>
+                      <strong>{t('planningModal.team', 'Team')}:</strong>{' '}
+                      {importedPlan.teamName}
+                    </li>
+                    <li>
+                      <strong>{t('planningModal.formation', 'Formation')}:</strong>{' '}
+                      {importedPlan.formationId}
+                    </li>
+                    <li>
+                      <strong>{t('planningModal.gameCount', 'Games')}:</strong>{' '}
+                      {importedPlan.games.length}
+                    </li>
+                    <li>
+                      <strong>{t('planningModal.subCount', 'Scheduled subs')}:</strong>{' '}
+                      {importedPlan.games.reduce(
+                        (n, g) => n + g.scheduledSubs.length,
+                        0,
+                      )}
+                    </li>
+                  </ul>
+                  <p className="text-xs text-emerald-200/80 pt-2">
+                    {t(
+                      'planningModal.importNoApply',
+                      'Apply-to-games lands in a later phase. The plan is currently in memory only.',
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {/* Import failure */}
+              {importError && (
+                <div className="space-y-2 rounded-md bg-rose-900/30 border border-rose-700/40 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-base font-semibold text-rose-200">
+                      {t('planningModal.importFailedTitle', 'Import failed')}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={reset}
+                      className="rounded-md p-1 text-rose-200 hover:bg-rose-900/50"
+                      aria-label={t('planningModal.dismissImport', 'Dismiss')}
+                    >
+                      <HiOutlineXMark className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-rose-100/90">{importError.message}</p>
+                  {importError.path ? (
+                    <p className="text-xs font-mono text-rose-200/80">
+                      {t('planningModal.errorPath', 'at')}: {importError.path}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleImportClick}
+                  className="inline-flex items-center gap-2 rounded-md bg-amber-500/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-amber-400"
+                >
+                  <HiOutlineArrowUpTray className="h-4 w-4" />
+                  {t(
+                    'planningModal.importButton',
+                    'Import plan from JSON',
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  data-testid="planning-modal-file-input"
+                />
+              </div>
+            </div>
+          </div>
+
+          <ModalFooter>
+            <button onClick={handleClose} className={primaryButtonStyle}>
+              {t('common.doneButton', 'Done')}
+            </button>
+          </ModalFooter>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PlanningModal;

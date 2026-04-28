@@ -117,22 +117,25 @@ None — doc-only PR plus an idempotent SQL backport that's already live everywh
 ## PR 4 — Phase 0.5: External planner bridge (JSON envelope)
 
 **Branch:** `planner/04-bridge-export-import` → `feature/planner-integration`
+**Status:** in flight
 
 ### Scope
 
-- [ ] `src/components/PlanningModal.tsx` — new modal. Empty state + "Import plan from JSON" button. (Saved-session listing comes in Phase 3.)
-- [ ] `src/components/HomePage/containers/ModalManager.tsx` — register PlanningModal.
-- [ ] `src/contexts/ModalProvider.tsx` — `isPlanningModalOpen` state.
-- [ ] `src/components/ControlBar.tsx` — "Planning" menu item (Analysis & Tools section).
-- [ ] `src/utils/planExport.ts` — JSON envelope reader/writer with `formatVersion: 1`. Matches the standalone planner's contract verbatim.
-- [ ] `src/utils/planExport.ts` — game-picker constraint: homogeneous selection (same team, format, duration).
-- [ ] i18n keys for the menu item and modal labels (en + fi).
+- [x] `src/components/PlanningModal.tsx` — new modal. Empty state + "Import plan from JSON" file-picker. Surfaces a per-error path on validation failure and a parsed-summary card on success. Saved-session listing remains a Phase 3 deliverable.
+- [x] `src/components/HomePage/containers/ModalManager.tsx` — registers PlanningModal via the `dynamic` lazy-load pattern, alongside the new `closePlanningModal` handler in the props interface.
+- [x] `src/contexts/ModalProvider.tsx` — `isPlanningModalOpen` + setter added to the context value and memo deps.
+- [x] `src/components/ControlBar.tsx` — "Planning" menu item with `HiOutlineCalendarDays` icon, placed first in the Analysis & Tools section.
+- [x] `src/utils/planExport.ts` — `parsePlanExport` (reader/validator with structured `{message, path}` errors) and `serializePlanExport` (writer). Translates field names `timeSec`↔`timeSeconds`, `role`↔`positionRole`; stamps `status: 'pending'` on import, strips it on export. Matches standalone's `formatVersion: 1` envelope verbatim.
+- [x] i18n keys for the menu item and modal labels (en + fi). Counts +14 in `i18n-validation` snapshot.
+
+**Deferred to PR 5/8 (deliberate scope decision):** game-picker constraint (homogeneous selection by team/format/duration). The planExport reader doesn't need it — the constraint is a UI concern that lives next to the editor in PR 5. Tracked in the modal's empty-state hint.
 
 ### Tests
 
-- [ ] Unit tests for `planExport`: round-trip a sample envelope.
-- [ ] Validator rejects malformed envelopes (wrong version, missing fields, bad role names for the formation).
-- [ ] Modal test: open/close lifecycle, "Import" file picker.
+- [x] `src/utils/__tests__/planExport.test.ts` — 13 cases. Reader: well-formed accept, JSON parse error, formatVersion mismatch, kind mismatch, missing tournament, empty games array, fractional rosterSize, fractional timeSec, out===in, duplicate sub ids, included[] padding. Writer: round-trip, wire-shape (timeSec/role not timeSeconds/positionRole, status stripped).
+- [x] `src/components/__tests__/PlanningModal.test.tsx` — 8 cases. Closed-render no-op, empty-state copy, Done callback, success summary, validation-failure error + path display, JSON parse failure surfacing, state reset on close + reopen.
+- [x] `ModalManager.test.tsx` regression: handler/state fixtures updated for `closePlanningModal` / `isPlanningModalOpen`.
+- [x] Integration regressions (`modals.portalization`, `controlBar.modal-guard`, `menu.modal-deferral`) updated for the new ControlBar prop and ModalManager state field.
 
 ### Verification
 
