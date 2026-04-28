@@ -139,6 +139,60 @@ describe('PlanningGamePicker', () => {
     ).toBeDisabled();
   });
 
+  it('blocks continue for legacy games with no teamId but different teamNames (Codex P2)', () => {
+    // Both games have undefined teamId but different teamNames — these
+    // are likely different teams. Older code accepted them because
+    // `undefined === undefined` is true; the homogeneity check now
+    // falls back to teamName when teamId is absent on both sides.
+    renderPicker({
+      teamFilterId: undefined,
+      games: [
+        baseGame('g1', { teamId: undefined, teamName: 'Pepo U10' }),
+        baseGame('g2', { teamId: undefined, teamName: 'Pepo U12' }),
+      ],
+    });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    expect(
+      screen.getByRole('button', { name: /continue|jatka/i }),
+    ).toBeDisabled();
+  });
+
+  it('blocks mixing legacy (no teamId) and modern (with teamId) games', () => {
+    // Defensive: a game without teamId is unknown-provenance; never merge
+    // with a game that has one, even if the teamName matches.
+    renderPicker({
+      teamFilterId: undefined,
+      games: [
+        baseGame('g1', { teamId: 'team_a', teamName: 'Pepo U10' }),
+        baseGame('g2', { teamId: undefined, teamName: 'Pepo U10' }),
+      ],
+    });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    expect(
+      screen.getByRole('button', { name: /continue|jatka/i }),
+    ).toBeDisabled();
+  });
+
+  it('allows two legacy games with the same teamName when teamId is missing on both', () => {
+    const { props } = renderPicker({
+      teamFilterId: undefined,
+      games: [
+        baseGame('g1', { teamId: undefined, teamName: 'Pepo U10' }),
+        baseGame('g2', {
+          teamId: undefined,
+          teamName: 'Pepo U10',
+          gameDate: '2026-05-01',
+        }),
+      ],
+    });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    expect(props.onContinue).toHaveBeenCalledWith(['g1', 'g2']);
+  });
+
   it('allows multiple games sharing all relevant fields', () => {
     const { props } = renderPicker({
       games: [

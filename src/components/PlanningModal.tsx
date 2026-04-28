@@ -76,6 +76,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // PR 5d wires this into the editor page; for now Continue closes
     // the modal so the picker's homogeneous-set guard ships visibly
     // without a half-built editor pretending to do something.
+    // Reset modal state so the next open lands on the list page, not the
+    // picker we just left.
+    resetImportState();
+    setPage('list');
     onClose();
   };
 

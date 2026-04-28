@@ -224,6 +224,64 @@ describe('PlanningModal', () => {
     ).toBeInTheDocument();
   });
 
+  it('resets to list page when Continue is pressed, so re-open lands on list (Codex P2)', () => {
+    // Continue closes the modal in PR 5c. Re-opening with isOpen=true
+    // must land on the list page (with New plan visible), not the picker.
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <I18nextProvider i18n={i18n}>
+        <PlanningModal
+          isOpen
+          onClose={onClose}
+          savedGames={{
+            g1: {
+              teamId: 'team_a',
+              teamName: 'Pepo',
+              opponentName: 'Opp',
+              gameDate: '2026-04-28',
+              numberOfPeriods: 2,
+              periodDurationMinutes: 25,
+            } as never,
+          }}
+          currentTeamId="team_a"
+        />
+      </I18nextProvider>,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    expect(onClose).toHaveBeenCalled();
+
+    // Re-render to simulate the modal being re-opened.
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlanningModal
+          isOpen
+          onClose={onClose}
+          savedGames={{
+            g1: {
+              teamId: 'team_a',
+              teamName: 'Pepo',
+              opponentName: 'Opp',
+              gameDate: '2026-04-28',
+              numberOfPeriods: 2,
+              periodDurationMinutes: 25,
+            } as never,
+          }}
+          currentTeamId="team_a"
+        />
+      </I18nextProvider>,
+    );
+    // Should be on the list page, not the picker.
+    expect(screen.queryByTestId('planning-game-picker')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    ).toBeInTheDocument();
+  });
+
   it('passes the active team id to the picker so it filters to that team', () => {
     renderModal({
       currentTeamId: 'team_a',

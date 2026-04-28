@@ -24,6 +24,27 @@ export interface PlanningGamePickerGame {
   >;
 }
 
+/**
+ * Two games count as same-team when:
+ * - Both have a `teamId` and the ids match, OR
+ * - Both lack a `teamId` AND their `teamName` matches (legacy fallback).
+ *
+ * A game with a `teamId` is never considered same-team as one without —
+ * the missing id signals legacy data of unknown provenance.
+ */
+function sameTeam(
+  a: PlanningGamePickerGame,
+  b: PlanningGamePickerGame,
+): boolean {
+  if (a.game.teamId && b.game.teamId) {
+    return a.game.teamId === b.game.teamId;
+  }
+  if (!a.game.teamId && !b.game.teamId) {
+    return a.game.teamName === b.game.teamName;
+  }
+  return false;
+}
+
 export interface PlanningGamePickerProps {
   /**
    * Games available for selection. The caller pre-filters to the active
@@ -42,12 +63,13 @@ export interface PlanningGamePickerProps {
  * Two games are "homogeneous" when their team, formation footprint, and
  * timing are identical. We approximate "formation footprint" with
  * `playerCount` — the planner editor (PR 5d) needs the same role list
- * across selected games, which `numberOfPeriods + periodDurationMinutes
- * + teamId` covers without yet introducing a formation field on Game.
+ * across selected games, which `numberOfPeriods + periodDurationMinutes`
+ * + same-team semantics covers without yet introducing a formation
+ * field on Game.
  */
 function isHomogeneousWith(a: PlanningGamePickerGame, b: PlanningGamePickerGame): boolean {
   return (
-    a.game.teamId === b.game.teamId &&
+    sameTeam(a, b) &&
     a.game.numberOfPeriods === b.game.numberOfPeriods &&
     a.game.periodDurationMinutes === b.game.periodDurationMinutes
   );
