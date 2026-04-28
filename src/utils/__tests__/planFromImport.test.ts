@@ -6,10 +6,10 @@ import { planDraftFromImport } from '@/utils/planFromImport';
 import type { Player } from '@/types';
 
 const roster: Player[] = [
-  { id: 'p1', name: 'Alice' },
-  { id: 'p2', name: 'Bob' },
-  { id: 'p3', name: 'Cara' },
-  { id: 'p4', name: 'Dan' },
+  { id: 'p1', name: 'Alice', isGoalie: true, jerseyNumber: '1' },
+  { id: 'p2', name: 'Bob', isGoalie: false, jerseyNumber: '2' },
+  { id: 'p3', name: 'Cara', isGoalie: false, jerseyNumber: '3' },
+  { id: 'p4', name: 'Dan', isGoalie: false, jerseyNumber: '4' },
 ];
 
 describe('planDraftFromImport', () => {

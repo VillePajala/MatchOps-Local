@@ -10,14 +10,13 @@ import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
 export interface ApplyResult {
   /**
    * Players placed on the pitch with their resolved (relX, relY) coords.
-   * Order: roles in the preset's role order (skipping GK first if not assigned),
-   * then any roles in startingXI not in the preset's role list (defensive).
+   * Order: matches the preset's role order; empty role slots are skipped.
    */
   playersOnField: Player[];
   /**
-   * Union of starting-XI player ids and bench player ids — every roster
-   * member who's part of this game. Equals roster − any unknown ids that
-   * snuck in via a malformed draft (filtered out for safety).
+   * `(startingXI ∪ bench) ∩ roster` — i.e. roster members the draft
+   * references, deduped. Roster members not referenced by the draft are
+   * intentionally excluded; unknown ids surface in `unknownPlayerIds`.
    */
   selectedPlayerIds: PlayerId[];
   /**

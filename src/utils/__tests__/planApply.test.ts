@@ -148,6 +148,19 @@ describe('applyDraftToGame — defensive paths', () => {
     expect(r.selectedPlayerIds.filter((id) => id === 'p1').length).toBe(1);
   });
 
+  it('dedupes selectedPlayerIds when the same player is in startingXI and bench (malformed draft)', () => {
+    // Pathological draft: p1 in both startingXI and bench. Set semantics
+    // in step 3 of applyDraftToGame deduplicate, so selectedPlayerIds
+    // contains p1 exactly once even though the draft references it twice.
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p1' },
+      bench: ['p1', 'p2', 'p3', 'p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster);
+    expect(r.selectedPlayerIds.filter((id) => id === 'p1').length).toBe(1);
+    expect(r.unknownPlayerIds).toEqual([]);
+  });
+
   it('surfaces unknown role names even when the player id appears at a known role too (Codex P2)', () => {
     // Reused player id at both a known and an unknown role: the unknown
     // role must still be reported via unknownRoles. Earlier code skipped

@@ -83,10 +83,12 @@ describe('performSwap — field ↔ field', () => {
     expect(next.startingXI.GK).toBeUndefined();
   });
 
-  it('does not mutate the input draft', () => {
+  it('does not mutate the input draft (startingXI or bench)', () => {
     const draft = draftWith();
+    const benchSnapshot = [...draft.bench];
     performSwap(draft, { source: 'GK', target: 'LB' });
     expect(draft.startingXI).toEqual({ GK: 'p1', LB: 'p2', RB: 'p3' });
+    expect(draft.bench).toEqual(benchSnapshot);
   });
 });
 
@@ -121,7 +123,7 @@ describe('performSwap — bench ↔ field', () => {
     expect(next.bench).toEqual(['p4', 'p5', 'p1']);
   });
 
-  it('mirror: target=BENCH, source=role behaves the same as source=BENCH on field op direction', () => {
+  it('bench-to-field and field-to-bench each preserve roster integrity (different ops, both clean)', () => {
     const draft = draftWith();
     const a = performSwap(draft, {
       source: BENCH,
@@ -132,10 +134,9 @@ describe('performSwap — bench ↔ field', () => {
       source: 'GK',
       target: BENCH,
     });
-    // a: bench player replaces GK
-    // b: GK goes to bench
-    // These are different operations but both involve the bench. Verify
-    // they each preserve roster integrity.
+    // a: bench player p4 replaces GK p1; p1 displaced to bench tail.
+    // b: GK p1 moved to bench; GK slot becomes empty.
+    // Different state, but each individually preserves roster integrity.
     expect(checkRosterIntegrity(a, roster)).toEqual({
       duplicates: [],
       missing: [],
