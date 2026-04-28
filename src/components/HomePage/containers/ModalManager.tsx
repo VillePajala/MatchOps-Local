@@ -36,6 +36,7 @@ import type {
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
+import type { ScheduledSub } from '@/types/game';
 
 interface LoadGameState {
   isLoadingGamesList: boolean;
@@ -195,6 +196,9 @@ interface ModalManagerHandlers {
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
   setGamePersonnel?: (personnelIds: string[]) => void;
+  addScheduledSub: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
+  updateScheduledSub: (sub: ScheduledSub) => void;
+  deleteScheduledSub: (id: string) => void;
   closeSettingsModal: () => void;
   setAppLanguage: (lang: string) => void;
   setDefaultTeamName: (name: string) => void;
@@ -462,6 +466,10 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           masterRoster={data.masterRoster}
           teams={data.teams}
           onTeamIdChange={(teamId) => handlers.teamIdChange(teamId ?? undefined)}
+          scheduledSubs={data.gameSessionState.scheduledSubs}
+          onAddScheduledSub={handlers.addScheduledSub}
+          onUpdateScheduledSub={handlers.updateScheduledSub}
+          onDeleteScheduledSub={handlers.deleteScheduledSub}
         />
 
         <SettingsModal

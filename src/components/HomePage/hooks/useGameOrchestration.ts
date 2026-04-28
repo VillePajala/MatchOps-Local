@@ -23,7 +23,7 @@ import { getDataStore } from '@/datastore';
 import { setMigrationCompleted } from '@/config/backendConfig';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
-import type { GameType } from '@/types/game';
+import type { GameType, ScheduledSub } from '@/types/game';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
 import { setPlayerFairPlayCardStatus } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -113,6 +113,16 @@ export interface UseGameOrchestrationReturn {
   modalManagerProps: ModalManagerProps;
   isBootstrapping: boolean;
   isResetting: boolean;
+  /** Scheduled-sub banner props for HomePage to mount; null when no active prompt. */
+  scheduledSubBannerProps:
+    | {
+        prompt: ScheduledSub;
+        outPlayerName?: string;
+        inPlayerName?: string;
+        onApply: () => void;
+        onSkip: () => void;
+      }
+    | null;
 }
 
 export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen, initialGameType }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
@@ -1751,6 +1761,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleSetWentToPenalties = sessionCoordination.handlers.setWentToPenalties;
   const handleSetShowPositionLabels = sessionCoordination.handlers.setShowPositionLabels;
   const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
+  const handleAddScheduledSub = sessionCoordination.handlers.addScheduledSub;
+  const handleUpdateScheduledSub = sessionCoordination.handlers.updateScheduledSub;
+  const handleDeleteScheduledSub = sessionCoordination.handlers.deleteScheduledSub;
+  const handleApplyScheduledSub = sessionCoordination.handlers.applyScheduledSub;
+  const handleSkipScheduledSub = sessionCoordination.handlers.skipScheduledSub;
 
   // --- AGGREGATE EXPORT HANDLERS ---
 
@@ -2284,6 +2299,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
       handleSetGamePersonnel,
+      handleAddScheduledSub,
+      handleUpdateScheduledSub,
+      handleDeleteScheduledSub,
       handleShowAppGuide,
       handleHardResetApp,
       handleResyncFromCloud,
@@ -2326,10 +2344,32 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsInstructionsModalOpenRef.current = setIsInstructionsModalOpen;
   }, [setIsTeamManagerOpen, setIsInstructionsModalOpen]);
 
+  // Banner props — memoised on the prompt + roster + stable handlers so the
+  // banner doesn't receive new function refs every timer tick (the timer
+  // dispatches SET_TIMER_ELAPSED every second, which re-renders this hook).
+  // The coordination layer's apply/skip handlers are already stable refs;
+  // wrapping them in fresh arrows on every render would silently negate
+  // that work.
+  const activeScheduledSubPrompt = gameSessionState.activeScheduledSubPrompt;
+  const scheduledSubBannerProps = useMemo(
+    () =>
+      activeScheduledSubPrompt
+        ? {
+            prompt: activeScheduledSubPrompt,
+            outPlayerName: availablePlayers.find((p) => p.id === activeScheduledSubPrompt.outPlayer)?.name,
+            inPlayerName: availablePlayers.find((p) => p.id === activeScheduledSubPrompt.inPlayer)?.name,
+            onApply: () => handleApplyScheduledSub(activeScheduledSubPrompt.id),
+            onSkip: () => handleSkipScheduledSub(activeScheduledSubPrompt.id),
+          }
+        : null,
+    [activeScheduledSubPrompt, availablePlayers, handleApplyScheduledSub, handleSkipScheduledSub],
+  );
+
   return {
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
     isResetting,
+    scheduledSubBannerProps,
   };
 }

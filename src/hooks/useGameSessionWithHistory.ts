@@ -74,6 +74,15 @@ export const HISTORY_SAVING_ACTIONS = new Set([
   'CONFIRM_SUBSTITUTION',
   // Timer (pause is user-initiated and should save timer state)
   'PAUSE_TIMER',
+  // Scheduled substitutions (planner integration phase 0b) — all five are
+  // coach-driven and produce undoable state changes. APPLY also mutates
+  // gameEvents which is independently history-tracked, but the snapshot
+  // still wants the scheduledSubs[].status flip captured.
+  'ADD_SCHEDULED_SUB',
+  'UPDATE_SCHEDULED_SUB',
+  'DELETE_SCHEDULED_SUB',
+  'SKIP_SCHEDULED_SUB',
+  'APPLY_SCHEDULED_SUB',
 ]);
 
 // Actions that should NOT trigger history saves (state loads, system actions, timer)

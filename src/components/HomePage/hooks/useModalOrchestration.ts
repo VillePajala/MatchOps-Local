@@ -30,6 +30,7 @@ import type { UseGamePersistenceReturn } from './useGamePersistence';
 import type { UseTimerManagementReturn } from './useTimerManagement';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState, UpdateGameDetailsMutationVariables } from '@/types';
+import type { ScheduledSub } from '@/types/game';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 /**
@@ -158,6 +159,9 @@ export interface ModalHandlers {
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
+  handleAddScheduledSub: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
+  handleUpdateScheduledSub: (sub: ScheduledSub) => void;
+  handleDeleteScheduledSub: (id: string) => void;
   handleShowAppGuide: () => void;
   handleHardResetApp: () => void;
   handleResyncFromCloud: () => void;
@@ -308,6 +312,9 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
     handleSetGamePersonnel,
+    handleAddScheduledSub,
+    handleUpdateScheduledSub,
+    handleDeleteScheduledSub,
     handleShowAppGuide,
     handleHardResetApp,
     handleResyncFromCloud,
@@ -622,6 +629,9 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,
       setGamePersonnel: handleSetGamePersonnel,
+      addScheduledSub: handleAddScheduledSub,
+      updateScheduledSub: handleUpdateScheduledSub,
+      deleteScheduledSub: handleDeleteScheduledSub,
       closeSettingsModal: handleCloseSettingsModal,
       setAppLanguage,
       setDefaultTeamName: setDefaultTeamNameSetting,

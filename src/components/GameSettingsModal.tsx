@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
-import type { GameEvent } from '@/types/game';
+import type { GameEvent, ScheduledSub } from '@/types/game';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
@@ -15,6 +15,7 @@ import { TFunction } from 'i18next';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
+import ScheduledSubsSection from './ScheduledSubsSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import {
@@ -149,6 +150,11 @@ export interface GameSettingsModalProps {
   masterRoster?: Player[]; // Full roster for tournament player award display
   teams: Team[]; // Available teams for selection
   onTeamIdChange: (teamId: string | null) => void; // Handler to update game's teamId
+  // --- Scheduled substitutions (planner integration phase 0b) ---
+  scheduledSubs?: ScheduledSub[];
+  onAddScheduledSub?: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
+  onUpdateScheduledSub?: (sub: ScheduledSub) => void;
+  onDeleteScheduledSub?: (id: string) => void;
 }
 
 // Helper to format time from seconds to MM:SS
@@ -253,6 +259,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // masterRoster removed - was only used in sync useEffect which is now removed
   teams,
   onTeamIdChange,
+  scheduledSubs = [],
+  onAddScheduledSub,
+  onUpdateScheduledSub,
+  onDeleteScheduledSub,
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
@@ -1640,6 +1650,23 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 }}
                 title={t('gameSettingsModal.selectPersonnel', 'Select Personnel')}
               />
+
+              {/* Scheduled Substitutions Section.
+                  Persistence is handled by the auto-save tier in
+                  useGamePersistence (scheduledSubs is on `immediate`), so
+                  the section's callbacks dispatch via the coordination
+                  handlers and let auto-save catch the resulting state. */}
+              {onAddScheduledSub && onUpdateScheduledSub && onDeleteScheduledSub ? (
+                <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
+                  <ScheduledSubsSection
+                    subs={scheduledSubs}
+                    availablePlayers={availablePlayers}
+                    onAdd={onAddScheduledSub}
+                    onUpdate={onUpdateScheduledSub}
+                    onDelete={onDeleteScheduledSub}
+                  />
+                </div>
+              ) : null}
 
               {/* Fair Play Card Section */}
               <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">

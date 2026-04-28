@@ -133,10 +133,15 @@ Accessed from the new **"Planning"** menu item.
    - (a) Extend `FormationPreset` with a `roleCoordinates` table.
    - (b) Add a parallel `RoleLayout` entity linked to formations.
    - (c) Store both on the game (a `positionRole` per `playersOnField` entry).
-   Pick before phase 1.
+   Pick before phase 1. — Tracked as issue #372; will close with option (a) in PR 5.
 2. **Auto-active on open.** When a coach opens a game that has an active plan, do we auto-apply the starting XI, or just show a "plan available — apply?" prompt? Default: prompt. Worth a short test with a real user.
 3. **Migration from the standalone.** Offer a one-time import that reads the standalone's JSON export and creates `PlanningSession` records. When? Could be a phase 5 nice-to-have.
 4. **Plan-to-plan copy.** "Duplicate this plan as a contingency" UX. Trivial once the entity exists but not critical for MVP.
+
+## Decisions closed in PR 3 (Phase 0b)
+
+- **Pause-time edge case** (banner fires while timer is paused?). **No.** `SET_TIMER_ELAPSED` early-returns when `isTimerRunning === false`, so no banner during stoppages. The first tick after resume picks up any pending sub whose `timeSeconds` has been crossed. Rationale: pausing means the coach is off-clock (half-time, injury, weather); a banner during those moments is noise.
+- **Duplicate-time edge case** (multiple subs share the same `timeSeconds`). **One banner at a time.** The reducer surfaces the first pending due sub it finds in array order; additional due subs queue silently and surface on the next tick after Apply/Skip clears the current prompt. Rationale: two banners stacked is cognitively heavier than two consecutive prompts, and the Apply/Skip flow is second-nature once the first one fires.
 
 ## Data-model constraints to respect
 

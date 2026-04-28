@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { GameContainer } from '@/components/HomePage/containers/GameContainer';
 import { ModalManager } from '@/components/HomePage/containers/ModalManager';
+import ScheduledSubBanner from '@/components/ScheduledSubBanner';
 import {
   useGameOrchestration,
   type UseGameOrchestrationProps,
@@ -19,6 +20,7 @@ function HomePage(props: HomePageProps) {
     modalManagerProps,
     isBootstrapping,
     isResetting,
+    scheduledSubBannerProps,
   } = useGameOrchestration(props);
 
   // "Cheat" to avoid layout shift: when bootstrapping ends, render GameContainer
@@ -89,6 +91,7 @@ function HomePage(props: HomePageProps) {
         <GameContainer {...gameContainerProps} />
       </div>
       <ModalManager {...modalManagerProps} />
+      {scheduledSubBannerProps ? <ScheduledSubBanner {...scheduledSubBannerProps} /> : null}
     </>
   );
 }

@@ -1648,6 +1648,30 @@
     "readyMessage": "Reload the page to apply the update.",
     "dismissButton": "Dismiss"
   },
+  "scheduledSubBanner": {
+    "title": "Planned substitution",
+    "summary": "OUT {{outName}} / IN {{inName}}",
+    "atRole": "at {{role}}",
+    "applyButton": "Apply",
+    "skipButton": "Skip"
+  },
+  "scheduledSubsSection": {
+    "heading": "Scheduled substitutions",
+    "empty": "No scheduled substitutions yet.",
+    "addButton": "Add scheduled sub",
+    "outLabel": "Out",
+    "inLabel": "In",
+    "roleLabel": "Role / position",
+    "timeLabel": "Time (minutes)",
+    "saveButton": "Save",
+    "cancelButton": "Cancel",
+    "deleteButton": "Delete",
+    "editButton": "Edit",
+    "statusPending": "Pending",
+    "statusFired": "Applied",
+    "statusSkipped": "Skipped",
+    "rowSummary": "{{minutes}}:{{seconds}} — OUT {{outName}} / IN {{inName}} at {{role}}"
+  },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",
     "installButton": "Install",

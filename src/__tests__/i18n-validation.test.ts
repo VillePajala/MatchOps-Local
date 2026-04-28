@@ -281,14 +281,16 @@ describe('Translation File Validation', () => {
       // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
       // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420
       // Sync auth expired: authExpiredTitle (syncStatus)
-      expect(enKeys.length).toBe(2421);
+      // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
+      expect(enKeys.length).toBe(2441);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421
       // Sync auth expired: authExpiredTitle (syncStatus)
-      expect(fiKeys.length).toBe(2421);
+      // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
+      expect(fiKeys.length).toBe(2441);
     });
   });
 });
