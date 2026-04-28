@@ -2656,6 +2656,14 @@ describe('SupabaseDataStore', () => {
         // gameDate should default to today
         expect(gameData.gameDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       });
+
+      it('should default scheduledSubs to an empty array (Rule 10 parity with LocalDataStore)', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
+
+        const { gameData } = await dataStore.createGame({});
+
+        expect(gameData.scheduledSubs).toEqual([]);
+      });
     });
 
     describe('saveGame', () => {

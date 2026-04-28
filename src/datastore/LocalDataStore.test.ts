@@ -1622,6 +1622,16 @@ describe('LocalDataStore', () => {
         expect(gameData.homeScore).toBe(3);
         expect(gameData.awayScore).toBe(2);
       });
+
+      it('should default scheduledSubs to an empty array', async () => {
+        // Locks in CLAUDE.md Rule 10 for the new field; if the default is
+        // ever dropped, this test fails before subtle UI bugs do.
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+
+        const { gameData } = await dataStore.createGame({});
+
+        expect(gameData.scheduledSubs).toEqual([]);
+      });
     });
 
     describe('saveGame', () => {

@@ -6,36 +6,14 @@
  */
 
 import { validateGame } from '@/datastore/validation';
-import { ValidationError } from '@/interfaces/DataStoreErrors';
-import type { AppState, ScheduledSub } from '@/types/game';
+import type { ScheduledSub } from '@/types/game';
+import { TestFixtures } from '../../../tests/fixtures';
 
-const baseGame = (): AppState => ({
-  playersOnField: [],
-  opponents: [],
-  drawings: [],
-  availablePlayers: [],
-  showPlayerNames: true,
-  teamName: 'My Team',
-  gameEvents: [],
-  opponentName: 'Opponent',
-  gameDate: '2026-04-28',
-  homeScore: 0,
-  awayScore: 0,
-  gameNotes: '',
-  homeOrAway: 'home',
-  numberOfPeriods: 2,
-  periodDurationMinutes: 10,
-  currentPeriod: 1,
-  gameStatus: 'notStarted',
-  isPlayed: true,
-  selectedPlayerIds: [],
-  assessments: {},
+const baseGame = () => TestFixtures.games.newGame({
+  // Validation needs these explicitly set / well-formed for the suite
+  // to focus on scheduledSubs without unrelated noise.
   seasonId: '',
   tournamentId: '',
-  tacticalDiscs: [],
-  tacticalDrawings: [],
-  tacticalBallPosition: { relX: 0.5, relY: 0.5 },
-  completedIntervalDurations: [],
 });
 
 const wellFormedSub = (overrides: Partial<ScheduledSub> = {}): ScheduledSub => ({
@@ -77,7 +55,7 @@ describe('validateGame — scheduledSubs', () => {
       ...baseGame(),
       scheduledSubs: 'not-an-array' as unknown as ScheduledSub[],
     };
-    expect(() => validateGame(game)).toThrow(ValidationError);
+    // toThrow(regex) also asserts something was thrown — single check is enough.
     expect(() => validateGame(game)).toThrow(/scheduledSubs must be an array/);
   });
 

@@ -154,6 +154,14 @@ export interface AppState {
    * @remarks
    * Optional for backwards compatibility with old games and legacy local data.
    * Treated as `[]` when undefined. See `ScheduledSub` for shape.
+   *
+   * **Backend asymmetry:** legacy games loaded from `LocalDataStore` may
+   * surface as `undefined` (the key is absent from the stored JSON), while
+   * `SupabaseDataStore` always returns `[]` (the column is `NOT NULL DEFAULT
+   * '[]'::jsonb` and backfills existing rows on migration 029). Always
+   * default with `?? []` at consumer sites to handle both modes uniformly;
+   * never branch on `=== undefined` vs `.length === 0` as a meaningful
+   * distinction.
    */
   scheduledSubs?: ScheduledSub[];
   /** Formation snap points for player positioning assistance */

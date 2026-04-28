@@ -27,5 +27,10 @@
 ALTER TABLE games
   ADD COLUMN IF NOT EXISTS scheduled_subs jsonb NOT NULL DEFAULT '[]'::jsonb;
 
+-- No GIN index added: current usage reads/writes the whole array (no JSONB
+-- path or containment queries). If a future feature filters by sub id or
+-- player across many games, add `CREATE INDEX … ON games USING GIN
+-- (scheduled_subs)` in a separate migration rather than retro-fitting here.
+
 COMMENT ON COLUMN games.scheduled_subs IS
   'Pre-planned substitutions consumed by the live-game timer banner. JSONB array of {id, timeSeconds, outPlayer, inPlayer, positionRole, status}. See migration 029 header.';
