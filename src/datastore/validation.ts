@@ -41,11 +41,13 @@ const validateScheduledSubs = (
     }
     if (
       typeof sub.timeSeconds !== 'number' ||
-      !Number.isFinite(sub.timeSeconds) ||
+      !Number.isInteger(sub.timeSeconds) ||
       sub.timeSeconds < 0
     ) {
+      // Integer-only: the live-game timer ticks in whole seconds, so a
+      // fractional value would never match the firing condition.
       throw new ValidationError(
-        `${prefix}${at}.timeSeconds must be a finite number >= 0`,
+        `${prefix}${at}.timeSeconds must be a non-negative integer`,
         `${at}.timeSeconds`,
         sub.timeSeconds,
       );
@@ -60,6 +62,15 @@ const validateScheduledSubs = (
     if (!isNonEmptyString(sub.inPlayer)) {
       throw new ValidationError(
         `${prefix}${at}.inPlayer must be a non-empty player id`,
+        `${at}.inPlayer`,
+        sub.inPlayer,
+      );
+    }
+    if (sub.outPlayer === sub.inPlayer) {
+      // A player cannot substitute for themselves; the live-banner Apply
+      // would emit a corrupt `substitution` GameEvent.
+      throw new ValidationError(
+        `${prefix}${at}.inPlayer must differ from outPlayer`,
         `${at}.inPlayer`,
         sub.inPlayer,
       );

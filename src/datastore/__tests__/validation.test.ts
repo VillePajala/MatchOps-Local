@@ -113,6 +113,14 @@ describe('validateGame — scheduledSubs', () => {
     expect(() => validateGame(game)).toThrow(/timeSeconds/);
   });
 
+  it('rejects an entry with fractional timeSeconds (live timer ticks in whole seconds)', () => {
+    const game = {
+      ...baseGame(),
+      scheduledSubs: [wellFormedSub({ timeSeconds: 600.5 })],
+    };
+    expect(() => validateGame(game)).toThrow(/timeSeconds.*integer/i);
+  });
+
   it('rejects an entry missing outPlayer', () => {
     const game = {
       ...baseGame(),
@@ -127,6 +135,14 @@ describe('validateGame — scheduledSubs', () => {
       scheduledSubs: [wellFormedSub({ inPlayer: '   ' })],
     };
     expect(() => validateGame(game)).toThrow(/inPlayer/);
+  });
+
+  it('rejects an entry where outPlayer equals inPlayer (player cannot sub for themselves)', () => {
+    const game = {
+      ...baseGame(),
+      scheduledSubs: [wellFormedSub({ outPlayer: 'p1', inPlayer: 'p1' })],
+    };
+    expect(() => validateGame(game)).toThrow(/inPlayer must differ from outPlayer/);
   });
 
   it('rejects an entry missing positionRole', () => {

@@ -1696,6 +1696,25 @@ describe('LocalDataStore', () => {
         await expect(dataStore.saveGame('game_1', invalidGame))
           .rejects.toThrow(/scheduledSubs\[0\]\.id/);
       });
+
+      it('should round-trip a legacy game with no scheduledSubs field as undefined', async () => {
+        // Legacy games stored before migration 029 have no scheduledSubs key.
+        // saveGame must not synthesise a value, and getGameById must surface
+        // it as undefined so consumers know to default with `?? []`.
+        const legacyGame = { ...mockGame };
+        delete legacyGame.scheduledSubs;
+
+        let storedJson = '';
+        mockGetStorageItem.mockImplementation(async () => storedJson || '{}');
+        mockSetStorageItem.mockImplementation(async (_key: string, value: string) => {
+          storedJson = value;
+        });
+
+        await dataStore.saveGame('game_legacy', legacyGame);
+        const loaded = await dataStore.getGameById('game_legacy');
+
+        expect(loaded?.scheduledSubs).toBeUndefined();
+      });
     });
 
     describe('deleteGame', () => {
