@@ -2344,19 +2344,26 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsInstructionsModalOpenRef.current = setIsInstructionsModalOpen;
   }, [setIsTeamManagerOpen, setIsInstructionsModalOpen]);
 
-  // Active scheduled-sub prompt + apply/skip handlers exposed for the live-game
-  // banner mounted in HomePage. The banner reads `prompt` and dispatches via
-  // the apply/skip callbacks. Player names resolved from the current roster.
+  // Banner props — memoised on the prompt + roster + stable handlers so the
+  // banner doesn't receive new function refs every timer tick (the timer
+  // dispatches SET_TIMER_ELAPSED every second, which re-renders this hook).
+  // The coordination layer's apply/skip handlers are already stable refs;
+  // wrapping them in fresh arrows on every render would silently negate
+  // that work.
   const activeScheduledSubPrompt = gameSessionState.activeScheduledSubPrompt;
-  const scheduledSubBannerProps = activeScheduledSubPrompt
-    ? {
-        prompt: activeScheduledSubPrompt,
-        outPlayerName: availablePlayers.find((p) => p.id === activeScheduledSubPrompt.outPlayer)?.name,
-        inPlayerName: availablePlayers.find((p) => p.id === activeScheduledSubPrompt.inPlayer)?.name,
-        onApply: () => handleApplyScheduledSub(activeScheduledSubPrompt.id),
-        onSkip: () => handleSkipScheduledSub(activeScheduledSubPrompt.id),
-      }
-    : null;
+  const scheduledSubBannerProps = useMemo(
+    () =>
+      activeScheduledSubPrompt
+        ? {
+            prompt: activeScheduledSubPrompt,
+            outPlayerName: availablePlayers.find((p) => p.id === activeScheduledSubPrompt.outPlayer)?.name,
+            inPlayerName: availablePlayers.find((p) => p.id === activeScheduledSubPrompt.inPlayer)?.name,
+            onApply: () => handleApplyScheduledSub(activeScheduledSubPrompt.id),
+            onSkip: () => handleSkipScheduledSub(activeScheduledSubPrompt.id),
+          }
+        : null,
+    [activeScheduledSubPrompt, availablePlayers, handleApplyScheduledSub, handleSkipScheduledSub],
+  );
 
   return {
     gameContainerProps,

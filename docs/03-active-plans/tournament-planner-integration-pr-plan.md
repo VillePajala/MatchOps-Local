@@ -93,7 +93,7 @@ None — doc-only PR plus an idempotent SQL backport that's already live everywh
 
 ### Scope
 
-- [x] `src/hooks/useGameSessionReducer.ts` — adds `scheduledSubs?` and `activeScheduledSubPrompt?` state, six new actions: `ADD_SCHEDULED_SUB`, `UPDATE_SCHEDULED_SUB`, `DELETE_SCHEDULED_SUB`, `FIRE_SCHEDULED_SUB`, `SKIP_SCHEDULED_SUB`, `APPLY_SCHEDULED_SUB`. `SET_TIMER_ELAPSED` now surfaces the first pending due sub when the timer is running.
+- [x] `src/hooks/useGameSessionReducer.ts` — adds `scheduledSubs?` and `activeScheduledSubPrompt?` state and five new actions: `ADD_SCHEDULED_SUB`, `UPDATE_SCHEDULED_SUB`, `DELETE_SCHEDULED_SUB`, `SKIP_SCHEDULED_SUB`, `APPLY_SCHEDULED_SUB`. Banner firing is implicit via `SET_TIMER_ELAPSED` (it surfaces the first pending due sub whenever the timer is running) — no separate FIRE action.
 - [x] `src/components/ScheduledSubBanner.tsx` — sticky `role="alert"` banner with Apply / Skip buttons, modelled on `UpdateBanner.tsx`.
 - [x] `src/components/ScheduledSubsSection.tsx` — minimal add/edit/delete editor wired into `GameSettingsModal`. Save disabled when out=in or fields missing; edit disabled on already-fired/skipped subs.
 - [x] Wiring: handlers added to `useGameSessionCoordination`, threaded through `useGameOrchestration` → `useModalOrchestration` → `ModalManager` → `GameSettingsModal`. Banner mounts in `HomePage.tsx` reading from a new `scheduledSubBannerProps` exposed by the orchestration return.

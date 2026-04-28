@@ -40,11 +40,19 @@ const formatMMSS = (seconds: number): string => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
+const parseDraftMinutes = (raw: string): number | null => {
+  const m = Number.parseInt(raw, 10);
+  return Number.isFinite(m) && m >= 0 ? m : null;
+};
+
 const draftIsValid = (d: DraftSub): boolean => {
+  // positionRole is required at the form level (the live banner UX needs a
+  // role label) but the type is `string`, leaving "" valid at the type
+  // level. That asymmetry is fine for the planner bridge in PR 4 which
+  // imports legacy data; this guard only blocks coach-typed entries.
   if (!d.outPlayer || !d.inPlayer || !d.positionRole) return false;
   if (d.outPlayer === d.inPlayer) return false;
-  const m = Number.parseInt(d.minutes, 10);
-  return Number.isFinite(m) && m >= 0;
+  return parseDraftMinutes(d.minutes) !== null;
 };
 
 const ScheduledSubsSection: React.FC<ScheduledSubsSectionProps> = ({
@@ -83,8 +91,8 @@ const ScheduledSubsSection: React.FC<ScheduledSubsSectionProps> = ({
   };
 
   const save = () => {
-    if (!draftIsValid(draft)) return;
-    const minutes = Number.parseInt(draft.minutes, 10);
+    const minutes = parseDraftMinutes(draft.minutes);
+    if (!draftIsValid(draft) || minutes === null) return;
     const timeSeconds = minutes * 60;
     if (editingId) {
       const existing = subs.find((s) => s.id === editingId);
@@ -134,7 +142,7 @@ const ScheduledSubsSection: React.FC<ScheduledSubsSectionProps> = ({
         </p>
       ) : (
         <ul className="mb-3 space-y-1">
-          {subs.map((sub) => {
+          {[...subs].sort((a, b) => a.timeSeconds - b.timeSeconds).map((sub) => {
             const minutes = Math.floor(sub.timeSeconds / 60);
             const seconds = sub.timeSeconds % 60;
             return (

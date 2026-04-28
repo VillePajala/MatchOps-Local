@@ -523,12 +523,13 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         scheduledSubs: [...(state.scheduledSubs ?? []), action.payload],
       };
     case 'UPDATE_SCHEDULED_SUB': {
+      // Defensive: only mutate pending subs. Editing a fired sub would
+      // overwrite its status (lost audit trail) and editing a skipped sub
+      // would let it re-fire. The UI disables editing for non-pending rows
+      // already; this guard makes the contract explicit at the reducer.
       const next = (state.scheduledSubs ?? []).map((s) =>
-        s.id === action.payload.id ? action.payload : s,
+        s.id === action.payload.id && s.status === 'pending' ? action.payload : s,
       );
-      // Sync the active prompt if it points at the same id — otherwise the
-      // banner keeps showing stale outPlayer/inPlayer/positionRole values
-      // until the coach Apply/Skip-clears it.
       const activeScheduledSubPrompt =
         state.activeScheduledSubPrompt?.id === action.payload.id
           ? action.payload
@@ -536,8 +537,12 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, scheduledSubs: next, activeScheduledSubPrompt };
     }
     case 'DELETE_SCHEDULED_SUB': {
-      const next = (state.scheduledSubs ?? []).filter((s) => s.id !== action.payload);
-      // If the deleted sub was the active prompt, clear it.
+      // Defensive: only delete pending subs. Fired subs are part of the
+      // audit trail and shouldn't disappear; the UI already guards against
+      // this and the reducer mirrors the contract.
+      const next = (state.scheduledSubs ?? []).filter(
+        (s) => !(s.id === action.payload && s.status === 'pending'),
+      );
       const activeScheduledSubPrompt =
         state.activeScheduledSubPrompt?.id === action.payload
           ? undefined

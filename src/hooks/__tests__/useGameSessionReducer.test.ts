@@ -402,6 +402,27 @@ describe('gameSessionReducer', () => {
       expect(result.activeScheduledSubPrompt?.positionRole).toBe('CAM');
     });
 
+    it('UPDATE_SCHEDULED_SUB is a no-op for fired subs (audit-trail guard)', () => {
+      const fired = wellFormedSub({ id: 'done', status: 'fired' });
+      const start: GameSessionState = { ...baseState, scheduledSubs: [fired] };
+      const result = gameSessionReducer(start, {
+        type: 'UPDATE_SCHEDULED_SUB',
+        payload: { ...fired, positionRole: 'CAM' },
+      });
+      expect(result.scheduledSubs?.[0].positionRole).toBe('CDM');
+      expect(result.scheduledSubs?.[0].status).toBe('fired');
+    });
+
+    it('DELETE_SCHEDULED_SUB is a no-op for fired subs (audit-trail guard)', () => {
+      const fired = wellFormedSub({ id: 'done', status: 'fired' });
+      const start: GameSessionState = { ...baseState, scheduledSubs: [fired] };
+      const result = gameSessionReducer(start, {
+        type: 'DELETE_SCHEDULED_SUB',
+        payload: 'done',
+      });
+      expect(result.scheduledSubs).toHaveLength(1);
+    });
+
     it('UPDATE_SCHEDULED_SUB leaves an active prompt untouched if ids differ', () => {
       const promptSub = wellFormedSub({ id: 'shown' });
       const otherSub = wellFormedSub({ id: 'other', timeSeconds: 900 });
