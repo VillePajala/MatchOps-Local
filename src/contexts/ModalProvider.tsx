@@ -45,7 +45,6 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
   const [isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen] = useState(false);
-  // Planner integration phase 0.5 — bridge modal (PR 4)
   const [isPlanningModalOpen, setIsPlanningModalOpen] = useState(false);
 
   // Anti-flash guard: ignore closes occurring too soon after opening for critical modals

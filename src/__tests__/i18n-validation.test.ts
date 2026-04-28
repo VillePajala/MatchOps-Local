@@ -282,8 +282,8 @@ describe('Translation File Validation', () => {
       // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420
       // Sync auth expired: authExpiredTitle (syncStatus)
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
-      // Planner Phase 0.5: planningModal (14 keys) + controlBar.planning (1 key)
-      expect(enKeys.length).toBe(2456);
+      // Planner Phase 0.5: planningModal (15 keys) + controlBar.planning (1 key)
+      expect(enKeys.length).toBe(2457);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -291,8 +291,8 @@ describe('Translation File Validation', () => {
       // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421 → 2441
       // Sync auth expired: authExpiredTitle (syncStatus)
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
-      // Planner Phase 0.5: planningModal (14 keys) + controlBar.planning (1 key)
-      expect(fiKeys.length).toBe(2456);
+      // Planner Phase 0.5: planningModal (15 keys) + controlBar.planning (1 key)
+      expect(fiKeys.length).toBe(2457);
     });
   });
 });

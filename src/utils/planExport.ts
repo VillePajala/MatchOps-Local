@@ -1,17 +1,8 @@
 /**
- * Plan export / import — JSON envelope bridge between MatchOps-Local and the
- * standalone matchops-planner.
+ * Plan export / import — JSON envelope bridge for the standalone matchops-planner.
  *
- * The standalone planner already ships an export format (formatVersion: 1).
- * This module reads / writes that exact shape so a coach can move plans
- * between the two apps without manual retyping. The contract is fixed:
- * adding fields is allowed (forward-compatible), changing or removing them
- * needs a `formatVersion` bump on both sides.
- *
- * @see docs/03-active-plans/tournament-planner-integration.md "Phase 0.5 —
- *      External planner bridge"
- * @see /home/villepajala/projects/matchops-planner/index.html `exportJson`
- *      and `_coerceImportToTournament` for the canonical reference.
+ * Wire format owned jointly with the standalone (`formatVersion: 1`); changing
+ * field shapes here requires a version bump on both sides.
  */
 
 import type { ScheduledSub, ScheduledSubStatus } from '@/types/game';
@@ -102,7 +93,7 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
     );
   }
 
-  if (!isObject(parsed)) return fail('Envelope must be a JSON object', '/');
+  if (!isObject(parsed)) return fail('Envelope must be a JSON object');
 
   if (parsed.formatVersion !== PLAN_FORMAT_VERSION) {
     return fail(
@@ -235,20 +226,59 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
       });
     }
 
-    const numberOfPeriods =
-      g.numberOfPeriods === 1 || g.numberOfPeriods === 2 ? g.numberOfPeriods : 2;
+    // Structural fields fail hard — a 0-minute game would silently break the
+    // downstream UI. Optional display fields (label/time/field) keep their
+    // soft defaults below.
+    if (g.numberOfPeriods !== 1 && g.numberOfPeriods !== 2) {
+      return fail(
+        `${at}.numberOfPeriods must be 1 or 2`,
+        `${at}.numberOfPeriods`,
+      );
+    }
+    if (
+      typeof g.periodDurationMinutes !== 'number' ||
+      !Number.isFinite(g.periodDurationMinutes) ||
+      g.periodDurationMinutes <= 0
+    ) {
+      return fail(
+        `${at}.periodDurationMinutes must be a positive number`,
+        `${at}.periodDurationMinutes`,
+      );
+    }
+    if (
+      typeof g.durationMin !== 'number' ||
+      !Number.isFinite(g.durationMin) ||
+      g.durationMin <= 0
+    ) {
+      return fail(
+        `${at}.durationMin must be a positive number`,
+        `${at}.durationMin`,
+      );
+    }
+    if (
+      typeof g.halfTimeMin !== 'number' ||
+      !Number.isFinite(g.halfTimeMin) ||
+      g.halfTimeMin <= 0
+    ) {
+      return fail(
+        `${at}.halfTimeMin must be a positive number`,
+        `${at}.halfTimeMin`,
+      );
+    }
+    if (!isNonEmptyString(g.opponent)) {
+      return fail(`${at}.opponent must be a non-empty string`, `${at}.opponent`);
+    }
 
     games.push({
-      id: s_or_str(g.id),
+      id: g.id,
       label: typeof g.label === 'string' ? g.label : `Game ${i + 1}`,
       time: typeof g.time === 'string' ? g.time : '',
       field: typeof g.field === 'string' ? g.field : '',
-      opponent: typeof g.opponent === 'string' ? g.opponent : 'Opponent',
-      numberOfPeriods,
-      periodDurationMinutes:
-        typeof g.periodDurationMinutes === 'number' ? g.periodDurationMinutes : 0,
-      durationMin: typeof g.durationMin === 'number' ? g.durationMin : 0,
-      halfTimeMin: typeof g.halfTimeMin === 'number' ? g.halfTimeMin : 0,
+      opponent: g.opponent,
+      numberOfPeriods: g.numberOfPeriods,
+      periodDurationMinutes: g.periodDurationMinutes,
+      durationMin: g.durationMin,
+      halfTimeMin: g.halfTimeMin,
       startingXI: g.startingXI as Record<string, string>,
       scheduledSubs: subs,
     });
@@ -278,12 +308,6 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
     },
   };
 };
-
-// Tiny string-coerce helper used above to satisfy TS narrowing at the cost of
-// no behaviour change — `g.id` is already proven non-empty by isNonEmptyString.
-function s_or_str(v: unknown): string {
-  return typeof v === 'string' ? v : '';
-}
 
 /* ───────────────────────── Writer ───────────────────────── */
 

@@ -34,8 +34,6 @@ const validEnvelope = () => ({
         ],
       },
     ],
-    included: [true],
-    currentVersionName: null,
   },
   included: [true],
   currentVersionName: null,
@@ -146,6 +144,59 @@ describe('PlanningModal', () => {
       ).toBeInTheDocument();
     });
     expect(screen.getByText(/JSON parse error/i)).toBeInTheDocument();
+  });
+
+  it('rejects files larger than 1 MB without reading them', async () => {
+    renderModal();
+    // Build a "large" file via a 2 MB string buffer; the guard short-circuits
+    // before FileReader runs, so we don't actually need real bytes parsed.
+    const big = new File(['x'.repeat(2 * 1024 * 1024)], 'big.json', {
+      type: 'application/json',
+    });
+    const input = screen.getByTestId(
+      'planning-modal-file-input',
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { files: [big] } });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/File is too large|Tiedosto on liian suuri/i),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('shows readError when FileReader errors out', async () => {
+    renderModal();
+    // Replace FileReader with a mock that synchronously fires onerror.
+    const realFileReader = window.FileReader;
+    class MockFileReader {
+      onerror: (() => void) | null = null;
+      onload: (() => void) | null = null;
+      result: string | null = null;
+      readAsText() {
+        // Use a microtask so the React state updates happen during act.
+        Promise.resolve().then(() => this.onerror?.());
+      }
+    }
+    // @ts-expect-error - test injection
+    window.FileReader = MockFileReader;
+
+    try {
+      const file = fileFromText('plan.json', '{}');
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Failed to read file|Tiedoston lukeminen/i),
+        ).toBeInTheDocument();
+      });
+    } finally {
+      window.FileReader = realFileReader;
+    }
   });
 
   it('clears import state when Done is clicked, so a re-open starts fresh', async () => {

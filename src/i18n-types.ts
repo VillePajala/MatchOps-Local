@@ -1406,6 +1406,7 @@ export type TranslationKey =
   | 'planningModal.emptyHint'
   | 'planningModal.emptyTitle'
   | 'planningModal.errorPath'
+  | 'planningModal.fileTooLarge'
   | 'planningModal.formation'
   | 'planningModal.gameCount'
   | 'planningModal.importButton'

@@ -139,4 +139,13 @@ describe('ControlBar reducer-driven modal guards', () => {
     fireEvent.click(screen.getByTestId('close-new'));
     expect(screen.getByTestId('new-state').textContent).toBe('false');
   });
+
+  it('renders the Planning menu item and triggers onOpenPlanningModal', () => {
+    // Targeted regression for PR #382 — the Planning entry must remain
+    // visible in the Analysis & Tools section.
+    renderHarness();
+    fireEvent.click(screen.getByLabelText(/Settings/i));
+    const planning = screen.getByRole('button', { name: /Planning/ });
+    expect(planning).toBeInTheDocument();
+  });
 });

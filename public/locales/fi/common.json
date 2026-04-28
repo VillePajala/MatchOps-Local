@@ -1687,7 +1687,8 @@
     "subCount": "Suunnitellut vaihdot",
     "errorPath": "kohdassa",
     "dismissImport": "Sulje",
-    "readError": "Tiedoston lukeminen epäonnistui."
+    "readError": "Tiedoston lukeminen epäonnistui.",
+    "fileTooLarge": "Tiedosto on liian suuri (yli 1 MB). Suunnitelmien pitäisi olla muutaman KB kokoisia; tarkista tiedosto."
   },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",

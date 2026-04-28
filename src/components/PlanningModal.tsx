@@ -15,19 +15,7 @@ interface PlanningModalProps {
   onClose: () => void;
 }
 
-/**
- * Phase 0.5 bridge stub — empty state + JSON import button.
- *
- * Shows:
- *   - Empty state when no saved sessions exist (saved-session list lands in
- *     PR 7 with the PlanningSession entity).
- *   - "Import plan from JSON" button. On success the modal surfaces a small
- *     summary of what landed; on parse failure it shows the validator's
- *     specific error path.
- *
- * The imported plan is NOT yet applied to game records — that's PR 5+.
- * This PR is just the bridge pipe; the in-app editor reads from it later.
- */
+/** Bridge-stub modal: JSON import + parsed-summary card; in-memory only. */
 const PlanningModal: React.FC<PlanningModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +42,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({ isOpen, onClose }) => {
     if (!file) return;
 
     reset();
+    // Plans are tiny — 1 MB is generous. Guard against accidental large
+    // files that would stall the main thread on low-memory mobile devices.
+    const MAX_BYTES = 1 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      setImportError({
+        message: t(
+          'planningModal.fileTooLarge',
+          'File is too large (over 1 MB). Plans should be a few KB; please check the file.',
+        ),
+      });
+      return;
+    }
     // FileReader rather than `file.text()` for broader runtime support
     // (jsdom's File polyfill in tests, older mobile Safari).
     const reader = new FileReader();
@@ -210,7 +210,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           <ModalFooter>
-            <button onClick={handleClose} className={primaryButtonStyle}>
+            <button type="button" onClick={handleClose} className={primaryButtonStyle}>
               {t('common.doneButton', 'Done')}
             </button>
           </ModalFooter>

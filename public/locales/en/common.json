@@ -1687,7 +1687,8 @@
     "subCount": "Scheduled subs",
     "errorPath": "at",
     "dismissImport": "Dismiss",
-    "readError": "Failed to read file."
+    "readError": "Failed to read file.",
+    "fileTooLarge": "File is too large (over 1 MB). Plans should be a few KB; please check the file."
   },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",
