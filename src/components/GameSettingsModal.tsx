@@ -574,8 +574,23 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }, [isOpen, teamId]);
 
 
-  // Initialize game time state from prop
+  // Tracks the most recent value we ourselves committed up to the parent.
+  // Used by the resync effect below to ignore the prop change that comes
+  // back through onGameTimeChange / mutateGameDetails — without this guard
+  // the parent's padded "HH:MM" was being written back into local state
+  // mid-edit, which clobbered the user's raw digits and silently dropped
+  // the second character of two-digit values (e.g. typing 30 → 03).
+  const lastCommittedTimeRef = useRef<string | null>(null);
+
+  // Initialize / resync game time state from prop. Only takes effect for
+  // EXTERNAL changes (load a different game, undo/redo). Our own commits
+  // are skipped via lastCommittedTimeRef so they don't round-trip back
+  // and overwrite local state mid-edit.
   useEffect(() => {
+    if (lastCommittedTimeRef.current !== null && lastCommittedTimeRef.current === gameTime) {
+      lastCommittedTimeRef.current = null;
+      return;
+    }
     if (gameTime && typeof gameTime === 'string') {
       const [hour, minute] = gameTime.split(':');
       setGameHour(hour || '');
@@ -586,23 +601,31 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
   }, [gameTime]);
 
-  // Helper to keep parent time string consistent (either full HH:MM or cleared)
-  const syncGameTime = (hourValue: string, minuteValue: string) => {
-    const hasHour = hourValue !== '';
-    const hasMinute = minuteValue !== '';
+  // Push hour + minute up to the parent. Called on blur of either field
+  // (not on every keystroke), so the user's raw digits remain in the local
+  // state until they're done editing — no padding round-trip mid-typing,
+  // and clearing one field never wipes the other.
+  const commitGameTime = () => {
+    const hasHour = gameHour !== '';
+    const hasMinute = gameMinute !== '';
 
-    let timeValue = '';
+    let timeValue: string;
     if (!hasHour && !hasMinute) {
       timeValue = '';
     } else if (hasHour && hasMinute) {
-      const formattedHour = hourValue.padStart(2, '0');
-      const formattedMinute = minuteValue.padStart(2, '0');
+      const formattedHour = gameHour.padStart(2, '0');
+      const formattedMinute = gameMinute.padStart(2, '0');
       timeValue = `${formattedHour}:${formattedMinute}`;
     } else {
-      // If only one side has been provided, avoid sending a partial value like "12:" or ":30"
-      timeValue = '';
+      // Partial state (only one of hour/minute filled). Don't push to the
+      // parent — wait for the user to complete or fully clear both fields.
+      // Local state preserves whichever side has a value so the user can
+      // come back and finish.
+      return;
     }
 
+    if (timeValue === gameTime) return; // no-op write
+    lastCommittedTimeRef.current = timeValue;
     onGameTimeChange(timeValue);
     mutateGameDetails(
       { gameTime: timeValue },
@@ -610,31 +633,25 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     );
   };
 
-  // Handle time changes
+  // Handle time changes — local state only; commit happens on blur.
   const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Only allow numeric input and limit to 2 characters
     const numericValue = value.replace(/[^0-9]/g, '');
     if (numericValue.length <= 2) {
       const hourNum = parseInt(numericValue, 10);
-      // Validate hour range (0-23) if number is complete
       if (numericValue === '' || (hourNum >= 0 && hourNum <= 23)) {
         setGameHour(numericValue);
-        syncGameTime(numericValue, gameMinute);
       }
     }
   };
 
   const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Only allow numeric input and limit to 2 characters
     const numericValue = value.replace(/[^0-9]/g, '');
     if (numericValue.length <= 2) {
       const minuteNum = parseInt(numericValue, 10);
-      // Validate minute range (0-59) if number is complete
       if (numericValue === '' || (minuteNum >= 0 && minuteNum <= 59)) {
         setGameMinute(numericValue);
-        syncGameTime(gameHour, numericValue);
       }
     }
   };
@@ -2079,6 +2096,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       maxLength={2}
                       value={gameHour}
                       onChange={handleHourChange}
+                      onBlur={commitGameTime}
                       placeholder={t('gameSettingsModal.hourPlaceholder', 'HH')}
                       className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
                       autoComplete="off"
@@ -2095,6 +2113,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       maxLength={2}
                       value={gameMinute}
                       onChange={handleMinuteChange}
+                      onBlur={commitGameTime}
                       placeholder={t('gameSettingsModal.minutePlaceholder', 'MM')}
                       className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
                       autoComplete="off"
