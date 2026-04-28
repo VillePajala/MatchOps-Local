@@ -199,6 +199,60 @@ describe('PlanningModal', () => {
     }
   });
 
+  it('shows the New plan button on the list page', () => {
+    renderModal();
+    expect(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('navigates to the picker when New plan is clicked, and back to the list on Back', () => {
+    renderModal({ savedGames: {} });
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+    // Picker shows empty state when no games are available.
+    expect(
+      screen.getByText(/No games available|Aktiiviselle joukkueelle ei ole pelejä/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /back|takaisin/i })[0]);
+    // Back on the list — New plan button visible again.
+    expect(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('passes the active team id to the picker so it filters to that team', () => {
+    renderModal({
+      currentTeamId: 'team_a',
+      savedGames: {
+        g1: {
+          teamId: 'team_a',
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-28',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        } as never,
+        g2: {
+          teamId: 'team_b',
+          teamName: 'Other',
+          opponentName: 'Opp',
+          gameDate: '2026-04-28',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        } as never,
+      },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    // Only g1 is eligible (team_a); g2 is filtered out.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+  });
+
   it('clears import state when Done is clicked, so a re-open starts fresh', async () => {
     const { props, rerender } = renderModal();
     const file = fileFromText('plan.json', JSON.stringify(validEnvelope()));

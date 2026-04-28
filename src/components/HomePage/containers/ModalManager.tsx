@@ -254,6 +254,8 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
         <PlanningModal
           isOpen={state.isPlanningModalOpen}
           onClose={handlers.closePlanningModal}
+          savedGames={data.savedGames}
+          currentTeamId={data.gameSessionState.teamId}
         />
 
         <InstructionsModal

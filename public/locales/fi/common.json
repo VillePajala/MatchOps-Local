@@ -1677,6 +1677,7 @@
     "title": "Suunnittelu",
     "emptyTitle": "Ei tallennettuja suunnitelmia.",
     "emptyHint": "Tuo standalone-planneriin viety suunnitelma aloittaaksesi. Tallennetut istunnot tulevat seuraavaan vaiheeseen.",
+    "newPlanButton": "Uusi suunnitelma",
     "importButton": "Tuo suunnitelma JSON-tiedostosta",
     "importSuccessTitle": "Suunnitelma tuotu",
     "importFailedTitle": "Tuonti epäonnistui",
@@ -1689,6 +1690,14 @@
     "dismissImport": "Sulje",
     "readError": "Tiedoston lukeminen epäonnistui.",
     "fileTooLarge": "Tiedosto on liian suuri (yli 1 MB). Suunnitelmien pitäisi olla muutaman KB kokoisia; tarkista tiedosto."
+  },
+  "planningGamePicker": {
+    "subtitle": "Valitse tämän suunnitelman pelit. Niiden tulee jakaa sama joukkue, jaksomäärä ja jakson kesto.",
+    "empty": "Aktiiviselle joukkueelle ei ole pelejä. Tallenna peli ensin.",
+    "selectAtLeastOne": "Valitse vähintään yksi peli jatkaaksesi.",
+    "heterogeneousSet": "Valittujen pelien tulee jakaa sama joukkue, jaksomäärä ja jakson kesto. Muokkaa valintaa tai suunnittele ne erikseen.",
+    "selectedCount": "{{count}} valittu",
+    "continueButton": "Jatka"
   },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",
