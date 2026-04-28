@@ -8,6 +8,21 @@ import {
   PLAN_FORMAT_VERSION,
   PLAN_EXPORT_KIND,
 } from '@/utils/planExport';
+import type { AppState } from '@/types/game';
+
+// Picker reads only a handful of fields off each saved game; this helper
+// builds the minimal shape and casts to AppState so individual tests
+// don't need ad-hoc `as never`/`as unknown as AppState` escapes.
+type PickerGameFixture = Pick<
+  AppState,
+  | 'teamId'
+  | 'teamName'
+  | 'opponentName'
+  | 'gameDate'
+  | 'numberOfPeriods'
+  | 'periodDurationMinutes'
+>;
+const asSavedGame = (game: PickerGameFixture): AppState => game as AppState;
 
 const validEnvelope = () => ({
   formatVersion: PLAN_FORMAT_VERSION,
@@ -234,14 +249,14 @@ describe('PlanningModal', () => {
           isOpen
           onClose={onClose}
           savedGames={{
-            g1: {
+            g1: asSavedGame({
               teamId: 'team_a',
               teamName: 'Pepo',
               opponentName: 'Opp',
               gameDate: '2026-04-28',
               numberOfPeriods: 2,
               periodDurationMinutes: 25,
-            } as never,
+            }),
           }}
           currentTeamId="team_a"
         />
@@ -262,14 +277,14 @@ describe('PlanningModal', () => {
           isOpen
           onClose={onClose}
           savedGames={{
-            g1: {
+            g1: asSavedGame({
               teamId: 'team_a',
               teamName: 'Pepo',
               opponentName: 'Opp',
               gameDate: '2026-04-28',
               numberOfPeriods: 2,
               periodDurationMinutes: 25,
-            } as never,
+            }),
           }}
           currentTeamId="team_a"
         />
@@ -286,22 +301,22 @@ describe('PlanningModal', () => {
     renderModal({
       currentTeamId: 'team_a',
       savedGames: {
-        g1: {
+        g1: asSavedGame({
           teamId: 'team_a',
           teamName: 'Pepo',
           opponentName: 'Opp',
           gameDate: '2026-04-28',
           numberOfPeriods: 2,
           periodDurationMinutes: 25,
-        } as never,
-        g2: {
+        }),
+        g2: asSavedGame({
           teamId: 'team_b',
           teamName: 'Other',
           opponentName: 'Opp',
           gameDate: '2026-04-28',
           numberOfPeriods: 2,
           periodDurationMinutes: 25,
-        } as never,
+        }),
       },
     });
     fireEvent.click(
@@ -309,6 +324,39 @@ describe('PlanningModal', () => {
     );
     // Only g1 is eligible (team_a); g2 is filtered out.
     expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+  });
+
+  it('passes currentTeamName to the picker so legacy games match by name', () => {
+    // Legacy games saved before the teamId column was assigned still
+    // need to be selectable when their teamName matches the active team.
+    renderModal({
+      currentTeamId: 'team_a',
+      currentTeamName: 'Pepo',
+      savedGames: {
+        modern: asSavedGame({
+          teamId: 'team_a',
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-28',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+        legacy: asSavedGame({
+          teamId: undefined,
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-29',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+      },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    // Both modern and legacy match — the legacy game would otherwise
+    // be silently excluded.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
   it('clears import state when Done is clicked, so a re-open starts fresh', async () => {

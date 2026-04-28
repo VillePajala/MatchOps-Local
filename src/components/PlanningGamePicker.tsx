@@ -53,6 +53,12 @@ export interface PlanningGamePickerProps {
   games: PlanningGamePickerGame[];
   /** "Active" team id — only games matching are eligible (when set). */
   teamFilterId?: string;
+  /**
+   * Active team's display name. When set alongside `teamFilterId`,
+   * legacy games (saved before `teamId` was assigned) match if their
+   * `teamName` equals this — otherwise they'd be silently excluded.
+   */
+  teamFilterName?: string;
   /** "Back" navigation. */
   onBack: () => void;
   /** Called with the chosen game ids when the coach confirms a homogeneous set. */
@@ -78,29 +84,35 @@ function isHomogeneousWith(a: PlanningGamePickerGame, b: PlanningGamePickerGame)
 const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
   games,
   teamFilterId,
+  teamFilterName,
   onBack,
   onContinue,
 }) => {
   const { t } = useTranslation();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // When a team filter is active, also include legacy games (no teamId)
+  // whose teamName matches the active team — otherwise older saved games
+  // disappear silently behind the empty state.
   const eligibleGames = teamFilterId
-    ? games.filter((g) => g.game.teamId === teamFilterId)
+    ? games.filter(
+        (g) =>
+          g.game.teamId === teamFilterId ||
+          (!g.game.teamId &&
+            teamFilterName !== undefined &&
+            g.game.teamName === teamFilterName),
+      )
     : games;
 
   // Validate that every selected game is homogeneous with the first
   // selected. Computed inline — the work is cheap (≤ N selections) and
   // the React 19 compiler memoizes automatically.
+  // Note: empty selection → invalid but no message; the disabled
+  // Continue button is the only signal needed in that state.
   const computeValidation = (): { isValid: boolean; message: string } => {
     const selected = eligibleGames.filter((g) => selectedIds.has(g.id));
     if (selected.length === 0) {
-      return {
-        isValid: false,
-        message: t(
-          'planningGamePicker.selectAtLeastOne',
-          'Select at least one game to continue.',
-        ),
-      };
+      return { isValid: false, message: '' };
     }
     const reference = selected[0];
     for (const candidate of selected.slice(1)) {
@@ -203,7 +215,11 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
       )}
 
       {!validation.isValid && selectedIds.size > 1 ? (
-        <div className="flex items-start gap-2 rounded-md bg-amber-900/30 border border-amber-700/40 p-3 text-sm text-amber-100">
+        <div
+          id="planning-game-picker-validation"
+          role="alert"
+          className="flex items-start gap-2 rounded-md bg-amber-900/30 border border-amber-700/40 p-3 text-sm text-amber-100"
+        >
           <HiOutlineExclamationTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <p>{validation.message}</p>
         </div>
@@ -219,6 +235,11 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
           type="button"
           onClick={handleContinue}
           disabled={!validation.isValid}
+          aria-describedby={
+            !validation.isValid && selectedIds.size > 1
+              ? 'planning-game-picker-validation'
+              : undefined
+          }
           className="inline-flex items-center gap-2 rounded-md bg-amber-500/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {t('planningGamePicker.continueButton', 'Continue')}

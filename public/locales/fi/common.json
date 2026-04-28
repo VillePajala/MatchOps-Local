@@ -1694,7 +1694,6 @@
   "planningGamePicker": {
     "subtitle": "Valitse tämän suunnitelman pelit. Niiden tulee jakaa sama joukkue, jaksomäärä ja jakson kesto.",
     "empty": "Aktiiviselle joukkueelle ei ole pelejä. Tallenna peli ensin.",
-    "selectAtLeastOne": "Valitse vähintään yksi peli jatkaaksesi.",
     "heterogeneousSet": "Valittujen pelien tulee jakaa sama joukkue, jaksomäärä ja jakson kesto. Muokkaa valintaa tai suunnittele ne erikseen.",
     "selectedCount": "{{count}} valittu",
     "continueButton": "Jatka"

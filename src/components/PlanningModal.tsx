@@ -31,6 +31,12 @@ interface PlanningModalProps {
    * scoping configured).
    */
   currentTeamId?: string;
+  /**
+   * Active team's display name. Used by the picker as a fallback match
+   * for legacy games that have no `teamId` — without this they'd be
+   * silently excluded when a team filter is active.
+   */
+  currentTeamName?: string;
 }
 
 /** Phase 0.5 + 1c: list page (with JSON import) and game-picker page. */
@@ -39,6 +45,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   onClose,
   savedGames,
   currentTeamId,
+  currentTeamName,
 }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,9 +83,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // PR 5d wires this into the editor page; for now Continue closes
     // the modal so the picker's homogeneous-set guard ships visibly
     // without a half-built editor pretending to do something.
-    // Reset modal state so the next open lands on the list page, not the
-    // picker we just left.
-    resetImportState();
+    // Reset page state so the next open lands on the list. Import state
+    // is already null on this path (picker entry resets it), so no need
+    // to touch it here.
     setPage('list');
     onClose();
   };
@@ -266,6 +273,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                 <PlanningGamePicker
                   games={pickerGames}
                   teamFilterId={currentTeamId}
+                  teamFilterName={currentTeamName}
                   onBack={goToList}
                   onContinue={handlePickerContinue}
                 />

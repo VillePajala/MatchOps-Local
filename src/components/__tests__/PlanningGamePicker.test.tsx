@@ -67,6 +67,47 @@ describe('PlanningGamePicker', () => {
     expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
+  it('includes legacy games with matching teamName when teamFilterName is set', () => {
+    // Older saved games have no `teamId`; falling back to `teamName`
+    // keeps them visible instead of disappearing behind the empty state.
+    renderPicker({
+      teamFilterId: 'team_1',
+      teamFilterName: 'My Team',
+      games: [
+        baseGame('g1', { teamId: 'team_1' }),
+        baseGame('g2', { teamId: undefined, teamName: 'My Team' }),
+        baseGame('g3', { teamId: undefined, teamName: 'Other Team' }),
+      ],
+    });
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+  });
+
+  it('excludes legacy games whose teamName does not match teamFilterName', () => {
+    renderPicker({
+      teamFilterId: 'team_1',
+      teamFilterName: 'My Team',
+      games: [baseGame('g1', { teamId: undefined, teamName: 'Other Team' })],
+    });
+    expect(
+      screen.getByText(/No games available|Aktiiviselle joukkueelle ei ole pelejä/i),
+    ).toBeInTheDocument();
+  });
+
+  it('does not fall back to teamName when teamFilterName is undefined', () => {
+    // Without teamFilterName the picker can't know the active team's
+    // display name, so legacy games stay excluded — preserving the
+    // previous strict behavior for callers that don't supply it.
+    renderPicker({
+      teamFilterId: 'team_1',
+      teamFilterName: undefined,
+      games: [
+        baseGame('g1', { teamId: 'team_1' }),
+        baseGame('g2', { teamId: undefined, teamName: 'My Team' }),
+      ],
+    });
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+  });
+
   it('continue is disabled until at least one game is selected', () => {
     renderPicker();
     const continueBtn = screen.getByRole('button', {

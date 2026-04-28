@@ -283,8 +283,8 @@ describe('Translation File Validation', () => {
       // Sync auth expired: authExpiredTitle (syncStatus)
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
       // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
-      // Planner Phase 1c: planningGamePicker (6 keys)
-      expect(enKeys.length).toBe(2464);
+      // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
+      expect(enKeys.length).toBe(2463);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -293,8 +293,8 @@ describe('Translation File Validation', () => {
       // Sync auth expired: authExpiredTitle (syncStatus)
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
       // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
-      // Planner Phase 1c: planningGamePicker (6 keys)
-      expect(fiKeys.length).toBe(2464);
+      // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
+      expect(fiKeys.length).toBe(2463);
     });
   });
 });

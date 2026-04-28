@@ -1405,7 +1405,6 @@ export type TranslationKey =
   | 'planningGamePicker.continueButton'
   | 'planningGamePicker.empty'
   | 'planningGamePicker.heterogeneousSet'
-  | 'planningGamePicker.selectAtLeastOne'
   | 'planningGamePicker.selectedCount'
   | 'planningGamePicker.subtitle'
   | 'planningModal.dismissImport'

@@ -1694,7 +1694,6 @@
   "planningGamePicker": {
     "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",
     "empty": "No games available for the active team. Save a game first.",
-    "selectAtLeastOne": "Select at least one game to continue.",
     "heterogeneousSet": "Selected games must share the same team, period count, and period duration. Adjust your selection or plan them separately.",
     "selectedCount": "{{count}} selected",
     "continueButton": "Continue"
