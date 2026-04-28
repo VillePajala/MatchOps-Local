@@ -20,7 +20,7 @@ The integration is multi-week, schema-touching work. These rules keep production
 
 4. **Staging first, always.** Every migration applies to `matchops-staging` (project ref `hwcqpvvqnmetjrwvzlfr`) before prod. `npm run dev` already points there via `.env.development`. Soak time on staging: at minimum one full dev session of cloud-mode use; ideally a real test of the affected flow.
 
-5. **Each migration PR contains BOTH the SQL and the matching code update.** No "schema-only" PR that leaves prod tolerating both shapes for an indeterminate time. Each PR is atomic: schema + reads + writes + tests, all together.
+5. **Each migration PR contains BOTH the SQL and the matching code update.** No "schema-only" PR that leaves prod tolerating both shapes for an indeterminate time. Each PR is atomic: schema + reads + writes + tests, all together. **Carve-out:** idempotent backports of patches that are *already live* on prod and staging (e.g. `028_fix_consent_rpc_ordering`) are schema-only by definition — there is no behaviour to ship alongside them, only the missing migration file. Such PRs must say so explicitly in the PR description.
 
 6. **Local mode tests are non-negotiable.** Roughly half of users run in local-only IndexedDB mode and never touch Supabase. Every PR that adds schema must also confirm the corresponding `LocalDataStore` change works. If a feature is cloud-only, that's an explicit per-feature decision, not the default.
 

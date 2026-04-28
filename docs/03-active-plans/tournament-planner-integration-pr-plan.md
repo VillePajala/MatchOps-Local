@@ -30,11 +30,11 @@ Each sub-PR targets `feature/planner-integration`, not master. AI review fires o
 
 ### Scope
 
-- [ ] `supabase/migrations/028_fix_consent_rpc_ordering.sql` — backport of the production-only patch applied 2026-02-10. Idempotent (`CREATE OR REPLACE FUNCTION`), already live on prod and staging.
-- [ ] `docs/03-active-plans/tournament-planner-integration.md` — first-class commit (was untracked).
-- [ ] `docs/03-active-plans/tournament-planner-integration-survey.md` — first-class commit (was untracked).
-- [ ] `docs/03-active-plans/tournament-planner-integration-safety.md` — new, the process rules.
-- [ ] `docs/03-active-plans/tournament-planner-integration-pr-plan.md` — this file.
+- [x] `supabase/migrations/028_fix_consent_rpc_ordering.sql` — backport of the production-only patch applied 2026-02-10. Idempotent (`CREATE OR REPLACE FUNCTION`), already live on prod and staging.
+- [x] `docs/03-active-plans/tournament-planner-integration.md` — first-class commit (was untracked).
+- [x] `docs/03-active-plans/tournament-planner-integration-survey.md` — first-class commit (was untracked).
+- [x] `docs/03-active-plans/tournament-planner-integration-safety.md` — new, the process rules.
+- [x] `docs/03-active-plans/tournament-planner-integration-pr-plan.md` — this file.
 
 ### Doc updates from current planner state (already in the docs)
 

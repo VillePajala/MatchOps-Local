@@ -57,8 +57,8 @@ interface Game {
 interface ScheduledSub {
   id: string;
   timeSeconds: number;           // any valid time in game, not just halftime
-  outPlayerId: PlayerId;
-  inPlayerId: PlayerId;
+  outPlayer: PlayerId;           // matches the standalone planner's JSON envelope
+  inPlayer: PlayerId;
   positionRole: PositionRole;    // the slot the sub affects
   status: 'pending' | 'fired' | 'skipped';
 }
