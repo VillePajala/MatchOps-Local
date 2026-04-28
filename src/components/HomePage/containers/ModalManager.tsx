@@ -20,6 +20,7 @@ const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
 const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
 const RulesDirectoryModal = dynamic(() => import('@/components/RulesDirectoryModal'));
 const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
+const PlanningModal = dynamic(() => import('@/components/PlanningModal'));
 import type {
   Player,
   GameEvent,
@@ -60,6 +61,7 @@ interface SeasonTournamentMutations {
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
 
 interface ModalManagerState {
+  isPlanningModalOpen: boolean;
   isTrainingResourcesOpen: boolean;
   isRulesDirectoryOpen: boolean;
   isInstructionsModalOpen: boolean;
@@ -170,6 +172,7 @@ interface ModalManagerHandlers {
   openPlayerStats: (playerId: string) => void;
   closeSeasonTournamentModal: () => void;
   closeGameSettingsModal: () => void;
+  closePlanningModal: () => void;
   teamNameChange: (name: string) => void;
   opponentNameChange: (name: string) => void;
   gameDateChange: (date: string) => void;
@@ -246,6 +249,11 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
         <RulesDirectoryModal
           isOpen={state.isRulesDirectoryOpen}
           onClose={handlers.toggleRulesDirectory}
+        />
+
+        <PlanningModal
+          isOpen={state.isPlanningModalOpen}
+          onClose={handlers.closePlanningModal}
         />
 
         <InstructionsModal

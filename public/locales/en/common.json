@@ -25,6 +25,7 @@
     "settings": "Settings",
     "training": "Warmup Plan",
     "rulesDirectory": "Rules",
+    "planning": "Planning",
     "logGoal": "Log Goal",
     "enterFullscreen": "Enter Fullscreen",
     "exitFullscreen": "Exit Fullscreen",
@@ -1671,6 +1672,23 @@
     "statusFired": "Applied",
     "statusSkipped": "Skipped",
     "rowSummary": "{{minutes}}:{{seconds}} — OUT {{outName}} / IN {{inName}} at {{role}}"
+  },
+  "planningModal": {
+    "title": "Planning",
+    "emptyTitle": "No saved planning sessions yet.",
+    "emptyHint": "Import a plan exported from the standalone planner to get started. Saved sessions land in a later phase.",
+    "importButton": "Import plan from JSON",
+    "importSuccessTitle": "Plan imported",
+    "importFailedTitle": "Import failed",
+    "importNoApply": "Apply-to-games lands in a later phase. The plan is currently in memory only.",
+    "team": "Team",
+    "formation": "Formation",
+    "gameCount": "Games",
+    "subCount": "Scheduled subs",
+    "errorPath": "at",
+    "dismissImport": "Dismiss",
+    "readError": "Failed to read file.",
+    "fileTooLarge": "File is too large (over 1 MB). Plans should be a few KB; please check the file."
   },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",

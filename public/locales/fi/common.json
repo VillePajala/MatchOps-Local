@@ -25,6 +25,7 @@
     "settings": "Asetukset",
     "training": "Lämmittelysuunnitelma",
     "rulesDirectory": "Säännöt",
+    "planning": "Suunnittelu",
     "logGoal": "Kirjaa maali",
     "enterFullscreen": "Siirry koko näyttöön",
     "exitFullscreen": "Poistu koko näytöstä",
@@ -1671,6 +1672,23 @@
     "statusFired": "Toteutettu",
     "statusSkipped": "Ohitettu",
     "rowSummary": "{{minutes}}:{{seconds}} — ULOS {{outName}} / SISÄÄN {{inName}} rooliin {{role}}"
+  },
+  "planningModal": {
+    "title": "Suunnittelu",
+    "emptyTitle": "Ei tallennettuja suunnitelmia.",
+    "emptyHint": "Tuo standalone-planneriin viety suunnitelma aloittaaksesi. Tallennetut istunnot tulevat seuraavaan vaiheeseen.",
+    "importButton": "Tuo suunnitelma JSON-tiedostosta",
+    "importSuccessTitle": "Suunnitelma tuotu",
+    "importFailedTitle": "Tuonti epäonnistui",
+    "importNoApply": "Suunnitelman soveltaminen peleihin tulee myöhemmässä vaiheessa. Tällä hetkellä se on vain muistissa.",
+    "team": "Joukkue",
+    "formation": "Muodostelma",
+    "gameCount": "Pelit",
+    "subCount": "Suunnitellut vaihdot",
+    "errorPath": "kohdassa",
+    "dismissImport": "Sulje",
+    "readError": "Tiedoston lukeminen epäonnistui.",
+    "fileTooLarge": "Tiedosto on liian suuri (yli 1 MB). Suunnitelmien pitäisi olla muutaman KB kokoisia; tarkista tiedosto."
   },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",

@@ -358,6 +358,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     settingsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
+    isPlanningModalOpen,
+    setIsPlanningModalOpen,
   } = useModalContext();
 
   // --- Local Modal State ---
@@ -499,6 +501,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
 
   const modalManagerProps: ModalManagerProps = {
     state: {
+      isPlanningModalOpen,
       isTrainingResourcesOpen,
       isRulesDirectoryOpen,
       isInstructionsModalOpen,
@@ -603,6 +606,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       openPlayerStats: handleOpenPlayerStats,
       closeSeasonTournamentModal: handleCloseSeasonTournamentModal,
       closeGameSettingsModal: handleCloseGameSettingsModal,
+      closePlanningModal: () => setIsPlanningModalOpen(false),
       teamNameChange: handleTeamNameChange,
       opponentNameChange: handleOpponentNameChange,
       gameDateChange: handleGameDateChange,

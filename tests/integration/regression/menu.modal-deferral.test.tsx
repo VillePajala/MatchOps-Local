@@ -56,6 +56,7 @@ describe('Menu → Modal deferral guard', () => {
         onToggleDrawingMode={noop}
         onToggleTrainingResources={noop}
         onToggleRulesDirectory={noop}
+        onOpenPlanningModal={noop}
         onToggleGameStatsModal={noop}
         onOpenLoadGameModal={onOpenLoadGameModal}
         onStartNewGame={noop}
