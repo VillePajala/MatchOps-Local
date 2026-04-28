@@ -279,6 +279,7 @@ export interface UpdateGameDetailsMutationMeta {
     numberOfPeriods?: number;
     periodDurationMinutes?: number;
     homeOrAway?: 'home' | 'away';
+    scheduledSubs?: import('./game').ScheduledSub[];
   };
   expectedIsPlayed?: boolean;
   sequence: number;

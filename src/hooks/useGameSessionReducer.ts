@@ -1,4 +1,5 @@
 import { GameEvent, SubAlertLevel, GameType, Gender, IntervalLog } from '@/types';
+import type { ScheduledSub } from '@/types/game';
 import logger from '@/utils/logger';
 
 // --- State Definition ---
@@ -43,6 +44,19 @@ export interface GameSessionState {
   completedIntervalDurations?: IntervalLog[]; // Made optional to align with AppState
   showPlayerNames: boolean;
   showPositionLabels?: boolean; // Whether to show position labels on the field (default: true)
+  /**
+   * Pre-planned substitutions consumed by the live-game timer banner.
+   * See `AppState.scheduledSubs` JSDoc for the legacy/cloud-default asymmetry.
+   */
+  scheduledSubs?: ScheduledSub[];
+  /**
+   * The scheduled sub currently surfaced to the coach as a banner. Set by
+   * `SET_TIMER_ELAPSED` when a pending sub's `timeSeconds` is crossed; cleared
+   * by `APPLY_SCHEDULED_SUB` (coach taps Apply) or `SKIP_SCHEDULED_SUB`. Only
+   * one prompt is active at a time — additional due subs queue silently and
+   * surface on the next eligible tick after the current prompt resolves.
+   */
+  activeScheduledSubPrompt?: ScheduledSub;
 }
 
 // IntervalLog is imported from @/types (canonical definition in types/game.ts)
@@ -84,6 +98,8 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   showPlayerNames: true,
   showPositionLabels: true,
   gameType: 'soccer',
+  scheduledSubs: [],
+  activeScheduledSubPrompt: undefined,
 };
 
 
@@ -138,7 +154,14 @@ export type GameSessionAction =
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
   | { type: 'LOAD_PERSISTED_GAME_DATA'; payload: Partial<GameSessionState> } // For loading GameData-like objects
   | { type: 'PAUSE_TIMER_FOR_HIDDEN' }
-  | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } };
+  | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } }
+  // --- Scheduled substitutions (planner integration phase 0b) ---
+  | { type: 'ADD_SCHEDULED_SUB'; payload: ScheduledSub }
+  | { type: 'UPDATE_SCHEDULED_SUB'; payload: ScheduledSub }
+  | { type: 'DELETE_SCHEDULED_SUB'; payload: string } // sub id
+  | { type: 'FIRE_SCHEDULED_SUB'; payload: string } // sub id — surfaces banner; no status change
+  | { type: 'SKIP_SCHEDULED_SUB'; payload: string } // sub id — sets status='skipped', clears prompt
+  | { type: 'APPLY_SCHEDULED_SUB'; payload: { subId: string; gameEvent: GameEvent } }; // sets status='fired', appends event, clears prompt
 
 // --- Reducer Function ---
 export const gameSessionReducer = (state: GameSessionState, action: GameSessionAction): GameSessionState => {
@@ -350,7 +373,33 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         } else if (warningTime >= 0 && newTime >= warningTime) {
             newAlertLevel = 'warning';
         }
-        return { ...state, timeElapsedInSeconds: newTime, subAlertLevel: newAlertLevel };
+
+        // Surface the next due scheduled sub as a banner prompt. Decisions:
+        //   - **Pause-time:** fires only while the timer is running (this case
+        //     early-returns when paused), so banners never appear during a
+        //     stoppage. The first tick after resume picks up any sub whose
+        //     time has been crossed.
+        //   - **Duplicate-time:** only one prompt is active at a time. If
+        //     several pending subs share a `timeSeconds`, the first one in
+        //     array order surfaces; the rest queue silently and surface on
+        //     the next tick after Apply/Skip clears the current prompt.
+        //   - Already-fired/skipped subs are filtered out via status check.
+        let activePrompt = state.activeScheduledSubPrompt;
+        if (!activePrompt && state.scheduledSubs && state.scheduledSubs.length > 0) {
+            const dueSub = state.scheduledSubs.find(
+                (s) => s.status === 'pending' && newTime >= s.timeSeconds,
+            );
+            if (dueSub) {
+                activePrompt = dueSub;
+            }
+        }
+
+        return {
+            ...state,
+            timeElapsedInSeconds: newTime,
+            subAlertLevel: newAlertLevel,
+            activeScheduledSubPrompt: activePrompt,
+        };
     }
     case 'SET_TIMER_RUNNING':
       return { ...state, isTimerRunning: action.payload };
@@ -467,6 +516,51 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
             completedIntervalDurations: [],
         };
     }
+    case 'ADD_SCHEDULED_SUB':
+      return {
+        ...state,
+        scheduledSubs: [...(state.scheduledSubs ?? []), action.payload],
+      };
+    case 'UPDATE_SCHEDULED_SUB': {
+      const next = (state.scheduledSubs ?? []).map((s) =>
+        s.id === action.payload.id ? action.payload : s,
+      );
+      return { ...state, scheduledSubs: next };
+    }
+    case 'DELETE_SCHEDULED_SUB': {
+      const next = (state.scheduledSubs ?? []).filter((s) => s.id !== action.payload);
+      // If the deleted sub was the active prompt, clear it.
+      const activeScheduledSubPrompt =
+        state.activeScheduledSubPrompt?.id === action.payload
+          ? undefined
+          : state.activeScheduledSubPrompt;
+      return { ...state, scheduledSubs: next, activeScheduledSubPrompt };
+    }
+    case 'FIRE_SCHEDULED_SUB': {
+      // Surfaces the banner without changing the sub's status. Status only
+      // changes on Apply ('fired') or Skip ('skipped').
+      const sub = (state.scheduledSubs ?? []).find((s) => s.id === action.payload);
+      if (!sub || sub.status !== 'pending') return state;
+      return { ...state, activeScheduledSubPrompt: sub };
+    }
+    case 'SKIP_SCHEDULED_SUB': {
+      const next = (state.scheduledSubs ?? []).map((s) =>
+        s.id === action.payload ? { ...s, status: 'skipped' as const } : s,
+      );
+      return { ...state, scheduledSubs: next, activeScheduledSubPrompt: undefined };
+    }
+    case 'APPLY_SCHEDULED_SUB': {
+      const { subId, gameEvent } = action.payload;
+      const next = (state.scheduledSubs ?? []).map((s) =>
+        s.id === subId ? { ...s, status: 'fired' as const } : s,
+      );
+      return {
+        ...state,
+        scheduledSubs: next,
+        gameEvents: [...state.gameEvents, gameEvent],
+        activeScheduledSubPrompt: undefined,
+      };
+    }
     case 'RESET_GAME_SESSION_STATE':
       return action.payload;
     case 'LOAD_PERSISTED_GAME_DATA': {
@@ -511,6 +605,11 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const showPositionLabels = loadedData.showPositionLabels ?? true;
       const completedIntervalDurations = loadedData.completedIntervalDurations ?? [];
       const gamePersonnel = loadedData.gamePersonnel ?? [];
+      // Restore scheduled subs from the saved game (Phase 0a column /
+      // local IndexedDB JSON). activeScheduledSubPrompt deliberately
+      // resets — surfacing a stale banner on app reload would be jarring,
+      // so the timer's next tick re-detects.
+      const scheduledSubs = loadedData.scheduledSubs ?? [];
 
       // Calculate fallback time based on period (used if no saved time exists)
       let fallbackTimeElapsed = 0;
@@ -578,6 +677,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         nextSubDueTimeSeconds: nextSubDueTime,
         subAlertLevel: recalculatedAlertLevel,
         lastSubConfirmationTimeSeconds: lastSubConfirmation,
+        scheduledSubs,
+        activeScheduledSubPrompt: undefined,
       };
       logger.debug('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - state to be returned:', stateToBeReturned);
       return stateToBeReturned;

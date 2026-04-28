@@ -92,6 +92,12 @@ export interface UseGameSessionCoordinationReturn {
     setWentToPenalties: (value: boolean) => void;
     setShowPositionLabels: (value: boolean) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
+    // Scheduled-substitution handlers (planner integration phase 0b)
+    addScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+    updateScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+    deleteScheduledSub: (id: string) => void;
+    applyScheduledSub: (subId: string) => void;
+    skipScheduledSub: (subId: string) => void;
   };
 }
 
@@ -525,6 +531,61 @@ export function useGameSessionCoordination({
     });
   }, [dispatchGameSession]);
 
+  // --- Scheduled substitutions (planner integration phase 0b) ---
+  // The full sub (with id + status) is constructed by the caller. This keeps
+  // ids stable across the dispatch + persistence pair, since the modal needs
+  // to call mutateGameDetails with the same array shape the reducer ends up
+  // with.
+  const handleAddScheduledSub = useCallback(
+    (sub: import('@/types/game').ScheduledSub) => {
+      dispatchGameSession({ type: 'ADD_SCHEDULED_SUB', payload: sub });
+    },
+    [dispatchGameSession],
+  );
+
+  const handleUpdateScheduledSub = useCallback(
+    (sub: import('@/types/game').ScheduledSub) => {
+      dispatchGameSession({ type: 'UPDATE_SCHEDULED_SUB', payload: sub });
+    },
+    [dispatchGameSession],
+  );
+
+  const handleDeleteScheduledSub = useCallback(
+    (id: string) => {
+      dispatchGameSession({ type: 'DELETE_SCHEDULED_SUB', payload: id });
+    },
+    [dispatchGameSession],
+  );
+
+  // Apply: convert the active prompt into a substitution GameEvent. Constructs
+  // the event here (reducer stays pure) using the *current* elapsed time, not
+  // the planned timeSeconds — the actual sub happened "now," even if the
+  // banner was sitting unanswered for a while.
+  const handleApplyScheduledSub = useCallback(
+    (subId: string) => {
+      const sub = gameSessionState.scheduledSubs?.find((s) => s.id === subId);
+      if (!sub) return;
+      const gameEvent = {
+        id: `evt_sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        type: 'substitution' as const,
+        time: gameSessionState.timeElapsedInSeconds,
+        entityId: sub.inPlayer,
+      };
+      dispatchGameSession({
+        type: 'APPLY_SCHEDULED_SUB',
+        payload: { subId, gameEvent },
+      });
+    },
+    [dispatchGameSession, gameSessionState.scheduledSubs, gameSessionState.timeElapsedInSeconds],
+  );
+
+  const handleSkipScheduledSub = useCallback(
+    (subId: string) => {
+      dispatchGameSession({ type: 'SKIP_SCHEDULED_SUB', payload: subId });
+    },
+    [dispatchGameSession],
+  );
+
   return {
     // Core session state
     gameSessionState,
@@ -577,6 +638,11 @@ export function useGameSessionCoordination({
       setWentToPenalties: handleSetWentToPenalties,
       setShowPositionLabels: handleSetShowPositionLabels,
       setGamePersonnel: handleSetGamePersonnel,
+      addScheduledSub: handleAddScheduledSub,
+      updateScheduledSub: handleUpdateScheduledSub,
+      deleteScheduledSub: handleDeleteScheduledSub,
+      applyScheduledSub: handleApplyScheduledSub,
+      skipScheduledSub: handleSkipScheduledSub,
     },
   };
 }

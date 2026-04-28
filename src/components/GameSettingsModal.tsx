@@ -15,6 +15,7 @@ import { TFunction } from 'i18next';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
+import ScheduledSubsSection from './ScheduledSubsSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import {
@@ -149,6 +150,11 @@ export interface GameSettingsModalProps {
   masterRoster?: Player[]; // Full roster for tournament player award display
   teams: Team[]; // Available teams for selection
   onTeamIdChange: (teamId: string | null) => void; // Handler to update game's teamId
+  // --- Scheduled substitutions (planner integration phase 0b) ---
+  scheduledSubs?: import('@/types/game').ScheduledSub[];
+  onAddScheduledSub?: (sub: import('@/types/game').ScheduledSub) => void;
+  onUpdateScheduledSub?: (sub: import('@/types/game').ScheduledSub) => void;
+  onDeleteScheduledSub?: (id: string) => void;
 }
 
 // Helper to format time from seconds to MM:SS
@@ -253,6 +259,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // masterRoster removed - was only used in sync useEffect which is now removed
   teams,
   onTeamIdChange,
+  scheduledSubs = [],
+  onAddScheduledSub,
+  onUpdateScheduledSub,
+  onDeleteScheduledSub,
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
@@ -1640,6 +1650,46 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 }}
                 title={t('gameSettingsModal.selectPersonnel', 'Select Personnel')}
               />
+
+              {/* Scheduled Substitutions Section */}
+              {onAddScheduledSub && onUpdateScheduledSub && onDeleteScheduledSub ? (
+                <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
+                  <ScheduledSubsSection
+                    subs={scheduledSubs}
+                    availablePlayers={availablePlayers}
+                    onAdd={(partial) => {
+                      const id = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                      const newSub: import('@/types/game').ScheduledSub = {
+                        ...partial,
+                        id,
+                        status: 'pending',
+                      };
+                      onAddScheduledSub(newSub);
+                      const next = [...scheduledSubs, newSub];
+                      mutateGameDetails(
+                        { scheduledSubs: next },
+                        { source: 'stateSync', expectedState: { scheduledSubs: next } },
+                      );
+                    }}
+                    onUpdate={(updated) => {
+                      onUpdateScheduledSub(updated);
+                      const next = scheduledSubs.map((s) => (s.id === updated.id ? updated : s));
+                      mutateGameDetails(
+                        { scheduledSubs: next },
+                        { source: 'stateSync', expectedState: { scheduledSubs: next } },
+                      );
+                    }}
+                    onDelete={(id) => {
+                      onDeleteScheduledSub(id);
+                      const next = scheduledSubs.filter((s) => s.id !== id);
+                      mutateGameDetails(
+                        { scheduledSubs: next },
+                        { source: 'stateSync', expectedState: { scheduledSubs: next } },
+                      );
+                    }}
+                  />
+                </div>
+              ) : null}
 
               {/* Fair Play Card Section */}
               <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">

@@ -195,6 +195,9 @@ interface ModalManagerHandlers {
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
   setGamePersonnel?: (personnelIds: string[]) => void;
+  addScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+  updateScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+  deleteScheduledSub: (id: string) => void;
   closeSettingsModal: () => void;
   setAppLanguage: (lang: string) => void;
   setDefaultTeamName: (name: string) => void;
@@ -462,6 +465,10 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           masterRoster={data.masterRoster}
           teams={data.teams}
           onTeamIdChange={(teamId) => handlers.teamIdChange(teamId ?? undefined)}
+          scheduledSubs={data.gameSessionState.scheduledSubs}
+          onAddScheduledSub={handlers.addScheduledSub}
+          onUpdateScheduledSub={handlers.updateScheduledSub}
+          onDeleteScheduledSub={handlers.deleteScheduledSub}
         />
 
         <SettingsModal

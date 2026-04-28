@@ -113,6 +113,20 @@ export interface UseGameOrchestrationReturn {
   modalManagerProps: ModalManagerProps;
   isBootstrapping: boolean;
   isResetting: boolean;
+  /**
+   * Props for the live-game scheduled-sub banner. Null when no banner should
+   * be shown (no active prompt). HomePage renders `<ScheduledSubBanner>` with
+   * these props when present.
+   */
+  scheduledSubBannerProps:
+    | {
+        prompt: import('@/types/game').ScheduledSub;
+        outPlayerName?: string;
+        inPlayerName?: string;
+        onApply: () => void;
+        onSkip: () => void;
+      }
+    | null;
 }
 
 export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen, initialGameType }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
@@ -1751,6 +1765,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleSetWentToPenalties = sessionCoordination.handlers.setWentToPenalties;
   const handleSetShowPositionLabels = sessionCoordination.handlers.setShowPositionLabels;
   const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
+  const handleAddScheduledSub = sessionCoordination.handlers.addScheduledSub;
+  const handleUpdateScheduledSub = sessionCoordination.handlers.updateScheduledSub;
+  const handleDeleteScheduledSub = sessionCoordination.handlers.deleteScheduledSub;
+  const handleApplyScheduledSub = sessionCoordination.handlers.applyScheduledSub;
+  const handleSkipScheduledSub = sessionCoordination.handlers.skipScheduledSub;
 
   // --- AGGREGATE EXPORT HANDLERS ---
 
@@ -2284,6 +2303,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
       handleSetGamePersonnel,
+      handleAddScheduledSub,
+      handleUpdateScheduledSub,
+      handleDeleteScheduledSub,
       handleShowAppGuide,
       handleHardResetApp,
       handleResyncFromCloud,
@@ -2326,10 +2348,25 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsInstructionsModalOpenRef.current = setIsInstructionsModalOpen;
   }, [setIsTeamManagerOpen, setIsInstructionsModalOpen]);
 
+  // Active scheduled-sub prompt + apply/skip handlers exposed for the live-game
+  // banner mounted in HomePage. The banner reads `prompt` and dispatches via
+  // the apply/skip callbacks. Player names resolved from the current roster.
+  const activeScheduledSubPrompt = gameSessionState.activeScheduledSubPrompt;
+  const scheduledSubBannerProps = activeScheduledSubPrompt
+    ? {
+        prompt: activeScheduledSubPrompt,
+        outPlayerName: availablePlayers.find((p) => p.id === activeScheduledSubPrompt.outPlayer)?.name,
+        inPlayerName: availablePlayers.find((p) => p.id === activeScheduledSubPrompt.inPlayer)?.name,
+        onApply: () => handleApplyScheduledSub(activeScheduledSubPrompt.id),
+        onSkip: () => handleSkipScheduledSub(activeScheduledSubPrompt.id),
+      }
+    : null;
+
   return {
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
     isResetting,
+    scheduledSubBannerProps,
   };
 }

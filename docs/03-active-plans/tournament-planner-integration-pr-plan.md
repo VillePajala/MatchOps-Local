@@ -89,25 +89,28 @@ None — doc-only PR plus an idempotent SQL backport that's already live everywh
 ## PR 3 — Phase 0b: live-game banner for scheduled subs
 
 **Branch:** `planner/03-scheduled-subs-banner` → `feature/planner-integration`
+**Status:** in flight
 
 ### Scope
 
-- [ ] `src/hooks/useGameSessionReducer.ts` — actions `ADD_SCHEDULED_SUB`, `FIRE_SCHEDULED_SUB`, `SKIP_SCHEDULED_SUB`, `APPLY_SCHEDULED_SUB`. Timer tick handler checks `scheduledSubs` and fires due ones.
-- [ ] `src/components/ScheduledSubBanner.tsx` — sticky banner ("Planned: OUT Roope / IN Tomas at CDM · Apply · Skip"). Reuses pattern from `UpdateBanner.tsx`.
-- [ ] `src/components/GameSettingsModal.tsx` — minimal UI to add/edit/delete a scheduled sub (foundation; richer planner UI comes in Phase 2).
-- [ ] Decision documented in this file: pause-time + duplicate-time edge cases (see "Open questions" in `tournament-planner-integration.md`).
+- [x] `src/hooks/useGameSessionReducer.ts` — adds `scheduledSubs?` and `activeScheduledSubPrompt?` state, six new actions: `ADD_SCHEDULED_SUB`, `UPDATE_SCHEDULED_SUB`, `DELETE_SCHEDULED_SUB`, `FIRE_SCHEDULED_SUB`, `SKIP_SCHEDULED_SUB`, `APPLY_SCHEDULED_SUB`. `SET_TIMER_ELAPSED` now surfaces the first pending due sub when the timer is running.
+- [x] `src/components/ScheduledSubBanner.tsx` — sticky `role="alert"` banner with Apply / Skip buttons, modelled on `UpdateBanner.tsx`.
+- [x] `src/components/ScheduledSubsSection.tsx` — minimal add/edit/delete editor wired into `GameSettingsModal`. Save disabled when out=in or fields missing; edit disabled on already-fired/skipped subs.
+- [x] Wiring: handlers added to `useGameSessionCoordination`, threaded through `useGameOrchestration` → `useModalOrchestration` → `ModalManager` → `GameSettingsModal`. Banner mounts in `HomePage.tsx` reading from a new `scheduledSubBannerProps` exposed by the orchestration return.
+- [x] Decisions documented in `tournament-planner-integration.md` § "Decisions closed in PR 3": pause-time edge (no fire while paused) + duplicate-time edge (one banner at a time, queue tail).
+- [x] i18n keys added to `public/locales/{en,fi}/common.json` for `scheduledSubBanner.*` and `scheduledSubsSection.*`.
 
 ### Tests
 
-- [ ] Reducer unit tests for all four new actions.
-- [ ] Banner component tests (render, Apply→event, Skip→no event).
-- [ ] Integration: timer ticks past a scheduled sub → banner appears.
-- [ ] Edge case: timer paused when sub time arrives → behaviour matches the chosen rule from the docs.
+- [x] Reducer: 12 new cases — ADD/UPDATE/DELETE/FIRE/SKIP/APPLY plus three SET_TIMER_ELAPSED cases (fires due sub, skips while paused, no override of existing prompt, ignores already-fired entries) plus LOAD_PERSISTED restoration.
+- [x] `ScheduledSubBanner.test.tsx` — 10 cases including hidden-when-null, `role`/`aria-live` for assertive announcement, button click delegation, name fallback to player id.
+- [x] `ScheduledSubsSection.test.tsx` — 9 cases including empty state, save flow, validation gates (missing fields, out===in), edit pre-fill, delete, fired-row edit-disable.
+- [x] `ModalManager.test.tsx` regression: existing tests still green after adding three new handler stubs.
 
 ### Verification
 
-- [ ] Manual: schedule a sub, run the game timer past it on staging, banner fires.
-- [ ] Manual: Apply creates a `substitution` GameEvent with correct `order_index`.
+- [ ] Manual: schedule a sub via Game Settings, run the game timer past it on staging, banner fires.
+- [ ] Manual: Apply creates a `substitution` GameEvent at the current elapsed time and persists.
 
 ---
 

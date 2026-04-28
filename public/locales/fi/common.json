@@ -1648,6 +1648,30 @@
     "readyMessage": "Lataa sivu uudelleen ottaaksesi päivityksen käyttöön.",
     "dismissButton": "Sulje"
   },
+  "scheduledSubBanner": {
+    "title": "Suunniteltu vaihto",
+    "summary": "ULOS {{outName}} / SISÄÄN {{inName}}",
+    "atRole": "rooliin {{role}}",
+    "applyButton": "Toteuta",
+    "skipButton": "Ohita"
+  },
+  "scheduledSubsSection": {
+    "heading": "Suunnitellut vaihdot",
+    "empty": "Ei suunniteltuja vaihtoja.",
+    "addButton": "Lisää suunniteltu vaihto",
+    "outLabel": "Ulos",
+    "inLabel": "Sisään",
+    "roleLabel": "Rooli / paikka",
+    "timeLabel": "Aika (minuutit)",
+    "saveButton": "Tallenna",
+    "cancelButton": "Peruuta",
+    "deleteButton": "Poista",
+    "editButton": "Muokkaa",
+    "statusPending": "Odottaa",
+    "statusFired": "Toteutettu",
+    "statusSkipped": "Ohitettu",
+    "rowSummary": "{{minutes}}:{{seconds}} — ULOS {{outName}} / SISÄÄN {{inName}} rooliin {{role}}"
+  },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",
     "installButton": "Asenna",

@@ -158,6 +158,9 @@ export interface ModalHandlers {
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
+  handleAddScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+  handleUpdateScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+  handleDeleteScheduledSub: (id: string) => void;
   handleShowAppGuide: () => void;
   handleHardResetApp: () => void;
   handleResyncFromCloud: () => void;
@@ -308,6 +311,9 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
     handleSetGamePersonnel,
+    handleAddScheduledSub,
+    handleUpdateScheduledSub,
+    handleDeleteScheduledSub,
     handleShowAppGuide,
     handleHardResetApp,
     handleResyncFromCloud,
@@ -622,6 +628,9 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,
       setGamePersonnel: handleSetGamePersonnel,
+      addScheduledSub: handleAddScheduledSub,
+      updateScheduledSub: handleUpdateScheduledSub,
+      deleteScheduledSub: handleDeleteScheduledSub,
       closeSettingsModal: handleCloseSettingsModal,
       setAppLanguage,
       setDefaultTeamName: setDefaultTeamNameSetting,
