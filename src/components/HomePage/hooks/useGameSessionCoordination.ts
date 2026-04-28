@@ -25,6 +25,7 @@ import { useGameSessionWithHistory } from '@/hooks/useGameSessionWithHistory';
 import { useTacticalHistory, type TacticalState } from '@/hooks/useTacticalHistory';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { AppState } from '@/types';
+import type { ScheduledSub } from '@/types/game';
 import logger from '@/utils/logger';
 
 /**
@@ -93,8 +94,8 @@ export interface UseGameSessionCoordinationReturn {
     setShowPositionLabels: (value: boolean) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
     // Scheduled-substitution handlers (planner integration phase 0b)
-    addScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
-    updateScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+    addScheduledSub: (sub: ScheduledSub) => void;
+    updateScheduledSub: (sub: ScheduledSub) => void;
     deleteScheduledSub: (id: string) => void;
     applyScheduledSub: (subId: string) => void;
     skipScheduledSub: (subId: string) => void;
@@ -537,14 +538,14 @@ export function useGameSessionCoordination({
   // to call mutateGameDetails with the same array shape the reducer ends up
   // with.
   const handleAddScheduledSub = useCallback(
-    (sub: import('@/types/game').ScheduledSub) => {
+    (sub: ScheduledSub) => {
       dispatchGameSession({ type: 'ADD_SCHEDULED_SUB', payload: sub });
     },
     [dispatchGameSession],
   );
 
   const handleUpdateScheduledSub = useCallback(
-    (sub: import('@/types/game').ScheduledSub) => {
+    (sub: ScheduledSub) => {
       dispatchGameSession({ type: 'UPDATE_SCHEDULED_SUB', payload: sub });
     },
     [dispatchGameSession],
@@ -557,18 +558,31 @@ export function useGameSessionCoordination({
     [dispatchGameSession],
   );
 
+  // Refs so the Apply handler doesn't re-create on every timer tick. Without
+  // this, `gameSessionState.timeElapsedInSeconds` as a dependency would
+  // produce a new function ref every second, propagating through the
+  // orchestration chain and re-rendering the banner on every tick.
+  const scheduledSubsRef = useRef(gameSessionState.scheduledSubs);
+  const timeElapsedRef = useRef(gameSessionState.timeElapsedInSeconds);
+  useEffect(() => {
+    scheduledSubsRef.current = gameSessionState.scheduledSubs;
+  }, [gameSessionState.scheduledSubs]);
+  useEffect(() => {
+    timeElapsedRef.current = gameSessionState.timeElapsedInSeconds;
+  }, [gameSessionState.timeElapsedInSeconds]);
+
   // Apply: convert the active prompt into a substitution GameEvent. Constructs
   // the event here (reducer stays pure) using the *current* elapsed time, not
   // the planned timeSeconds — the actual sub happened "now," even if the
   // banner was sitting unanswered for a while.
   const handleApplyScheduledSub = useCallback(
     (subId: string) => {
-      const sub = gameSessionState.scheduledSubs?.find((s) => s.id === subId);
+      const sub = scheduledSubsRef.current?.find((s) => s.id === subId);
       if (!sub) return;
       const gameEvent = {
         id: `evt_sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         type: 'substitution' as const,
-        time: gameSessionState.timeElapsedInSeconds,
+        time: timeElapsedRef.current,
         entityId: sub.inPlayer,
       };
       dispatchGameSession({
@@ -576,7 +590,7 @@ export function useGameSessionCoordination({
         payload: { subId, gameEvent },
       });
     },
-    [dispatchGameSession, gameSessionState.scheduledSubs, gameSessionState.timeElapsedInSeconds],
+    [dispatchGameSession],
   );
 
   const handleSkipScheduledSub = useCallback(

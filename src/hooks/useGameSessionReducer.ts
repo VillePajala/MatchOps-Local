@@ -525,7 +525,14 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const next = (state.scheduledSubs ?? []).map((s) =>
         s.id === action.payload.id ? action.payload : s,
       );
-      return { ...state, scheduledSubs: next };
+      // Sync the active prompt if it points at the same id — otherwise the
+      // banner keeps showing stale outPlayer/inPlayer/positionRole values
+      // until the coach Apply/Skip-clears it.
+      const activeScheduledSubPrompt =
+        state.activeScheduledSubPrompt?.id === action.payload.id
+          ? action.payload
+          : state.activeScheduledSubPrompt;
+      return { ...state, scheduledSubs: next, activeScheduledSubPrompt };
     }
     case 'DELETE_SCHEDULED_SUB': {
       const next = (state.scheduledSubs ?? []).filter((s) => s.id !== action.payload);

@@ -34,7 +34,6 @@ const ScheduledSubBanner: React.FC<ScheduledSubBannerProps> = ({
   return (
     <div
       role="alert"
-      aria-live="assertive"
       style={{
         position: "fixed",
         top: "12px",
@@ -60,11 +59,13 @@ const ScheduledSubBanner: React.FC<ScheduledSubBannerProps> = ({
                 inName,
               })}
             </p>
-            <p className="text-xs leading-relaxed text-slate-200/90">
-              {t("scheduledSubBanner.atRole", "at {{role}}", {
-                role: prompt.positionRole,
-              })}
-            </p>
+            {prompt.positionRole ? (
+              <p className="text-xs leading-relaxed text-slate-200/90">
+                {t("scheduledSubBanner.atRole", "at {{role}}", {
+                  role: prompt.positionRole,
+                })}
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-1 flex items-center justify-center gap-3">

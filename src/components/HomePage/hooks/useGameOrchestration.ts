@@ -23,7 +23,7 @@ import { getDataStore } from '@/datastore';
 import { setMigrationCompleted } from '@/config/backendConfig';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
-import type { GameType } from '@/types/game';
+import type { GameType, ScheduledSub } from '@/types/game';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
 import { setPlayerFairPlayCardStatus } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -113,14 +113,10 @@ export interface UseGameOrchestrationReturn {
   modalManagerProps: ModalManagerProps;
   isBootstrapping: boolean;
   isResetting: boolean;
-  /**
-   * Props for the live-game scheduled-sub banner. Null when no banner should
-   * be shown (no active prompt). HomePage renders `<ScheduledSubBanner>` with
-   * these props when present.
-   */
+  /** Scheduled-sub banner props for HomePage to mount; null when no active prompt. */
   scheduledSubBannerProps:
     | {
-        prompt: import('@/types/game').ScheduledSub;
+        prompt: ScheduledSub;
         outPlayerName?: string;
         inPlayerName?: string;
         onApply: () => void;

@@ -82,9 +82,14 @@ describe('ScheduledSubBanner', () => {
     expect(props.onApply).not.toHaveBeenCalled();
   });
 
-  it('uses role=alert with assertive aria-live for screen-reader visibility', () => {
+  it('uses role=alert for screen-reader visibility (implies aria-live=assertive)', () => {
     renderBanner();
-    const alert = screen.getByRole('alert');
-    expect(alert).toHaveAttribute('aria-live', 'assertive');
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
+  it('omits the at-role line when positionRole is empty', () => {
+    renderBanner({ prompt: { ...samplePrompt, positionRole: '' } });
+    // 'CDM' would render via the "at CDM" line; with empty role, no "at " line.
+    expect(screen.queryByText(/^at /i)).not.toBeInTheDocument();
   });
 });

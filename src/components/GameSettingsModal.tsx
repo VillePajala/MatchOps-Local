@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
-import type { GameEvent } from '@/types/game';
+import type { GameEvent, ScheduledSub } from '@/types/game';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
@@ -151,9 +151,9 @@ export interface GameSettingsModalProps {
   teams: Team[]; // Available teams for selection
   onTeamIdChange: (teamId: string | null) => void; // Handler to update game's teamId
   // --- Scheduled substitutions (planner integration phase 0b) ---
-  scheduledSubs?: import('@/types/game').ScheduledSub[];
-  onAddScheduledSub?: (sub: import('@/types/game').ScheduledSub) => void;
-  onUpdateScheduledSub?: (sub: import('@/types/game').ScheduledSub) => void;
+  scheduledSubs?: ScheduledSub[];
+  onAddScheduledSub?: (sub: ScheduledSub) => void;
+  onUpdateScheduledSub?: (sub: ScheduledSub) => void;
   onDeleteScheduledSub?: (id: string) => void;
 }
 
@@ -1659,7 +1659,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     availablePlayers={availablePlayers}
                     onAdd={(partial) => {
                       const id = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-                      const newSub: import('@/types/game').ScheduledSub = {
+                      const newSub: ScheduledSub = {
                         ...partial,
                         id,
                         status: 'pending',

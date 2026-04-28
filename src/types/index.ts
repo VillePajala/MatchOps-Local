@@ -1,4 +1,4 @@
-import type { GameType, Gender, AppState } from './game';
+import type { GameType, Gender, AppState, ScheduledSub } from './game';
 
 export interface Player {
   id: string;
@@ -279,7 +279,7 @@ export interface UpdateGameDetailsMutationMeta {
     numberOfPeriods?: number;
     periodDurationMinutes?: number;
     homeOrAway?: 'home' | 'away';
-    scheduledSubs?: import('./game').ScheduledSub[];
+    scheduledSubs?: ScheduledSub[];
   };
   expectedIsPlayed?: boolean;
   sequence: number;

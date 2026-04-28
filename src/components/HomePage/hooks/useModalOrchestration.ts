@@ -30,6 +30,7 @@ import type { UseGamePersistenceReturn } from './useGamePersistence';
 import type { UseTimerManagementReturn } from './useTimerManagement';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState, UpdateGameDetailsMutationVariables } from '@/types';
+import type { ScheduledSub } from '@/types/game';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 /**
@@ -158,8 +159,8 @@ export interface ModalHandlers {
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
-  handleAddScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
-  handleUpdateScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+  handleAddScheduledSub: (sub: ScheduledSub) => void;
+  handleUpdateScheduledSub: (sub: ScheduledSub) => void;
   handleDeleteScheduledSub: (id: string) => void;
   handleShowAppGuide: () => void;
   handleHardResetApp: () => void;

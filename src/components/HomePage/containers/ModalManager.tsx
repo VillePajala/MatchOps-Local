@@ -36,6 +36,7 @@ import type {
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
+import type { ScheduledSub } from '@/types/game';
 
 interface LoadGameState {
   isLoadingGamesList: boolean;
@@ -195,8 +196,8 @@ interface ModalManagerHandlers {
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
   setGamePersonnel?: (personnelIds: string[]) => void;
-  addScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
-  updateScheduledSub: (sub: import('@/types/game').ScheduledSub) => void;
+  addScheduledSub: (sub: ScheduledSub) => void;
+  updateScheduledSub: (sub: ScheduledSub) => void;
   deleteScheduledSub: (id: string) => void;
   closeSettingsModal: () => void;
   setAppLanguage: (lang: string) => void;

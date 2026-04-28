@@ -387,6 +387,36 @@ describe('gameSessionReducer', () => {
       expect(result.scheduledSubs?.[0].timeSeconds).toBe(600);
     });
 
+    it('UPDATE_SCHEDULED_SUB syncs the active prompt when its id matches', () => {
+      const original = wellFormedSub({ id: 'live', positionRole: 'CDM' });
+      const updated = { ...original, positionRole: 'CAM' };
+      const start: GameSessionState = {
+        ...baseState,
+        scheduledSubs: [original],
+        activeScheduledSubPrompt: original,
+      };
+      const result = gameSessionReducer(start, {
+        type: 'UPDATE_SCHEDULED_SUB',
+        payload: updated,
+      });
+      expect(result.activeScheduledSubPrompt?.positionRole).toBe('CAM');
+    });
+
+    it('UPDATE_SCHEDULED_SUB leaves an active prompt untouched if ids differ', () => {
+      const promptSub = wellFormedSub({ id: 'shown' });
+      const otherSub = wellFormedSub({ id: 'other', timeSeconds: 900 });
+      const start: GameSessionState = {
+        ...baseState,
+        scheduledSubs: [promptSub, otherSub],
+        activeScheduledSubPrompt: promptSub,
+      };
+      const result = gameSessionReducer(start, {
+        type: 'UPDATE_SCHEDULED_SUB',
+        payload: { ...otherSub, timeSeconds: 1200 },
+      });
+      expect(result.activeScheduledSubPrompt).toBe(promptSub);
+    });
+
     it('DELETE_SCHEDULED_SUB removes by id and clears active prompt if it matches', () => {
       const sub = wellFormedSub({ id: 'doomed' });
       const start: GameSessionState = {
