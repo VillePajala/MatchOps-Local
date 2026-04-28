@@ -232,6 +232,7 @@ export function useGamePersistence({
       isTimerRunning, // eslint-disable-line @typescript-eslint/no-unused-vars
       nextSubDueTimeSeconds, // eslint-disable-line @typescript-eslint/no-unused-vars
       subAlertLevel, // eslint-disable-line @typescript-eslint/no-unused-vars
+      activeScheduledSubPrompt, // eslint-disable-line @typescript-eslint/no-unused-vars -- volatile UI state, always re-derived from timer
       ...persistedGameSessionState
     } = gameSessionState;
 
@@ -472,6 +473,11 @@ export function useGamePersistence({
         awayScore: gameSessionState.awayScore,
         // Timer progress is critical - must be saved to preserve when switching games
         timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
+        // Planner phase 0b: Skip / Apply mutate scheduledSubs[].status without
+        // touching gameEvents (Skip especially has zero other side-effects),
+        // so without this entry the coach's Skip would be lost on refresh and
+        // the banner would re-fire.
+        scheduledSubs: gameSessionState.scheduledSubs,
       },
       delay: 0,
     },

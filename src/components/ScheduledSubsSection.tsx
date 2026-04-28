@@ -170,9 +170,10 @@ const ScheduledSubsSection: React.FC<ScheduledSubsSectionProps> = ({
                 </button>
                 <button
                   type="button"
-                  className="flex-shrink-0 rounded-md p-1 text-rose-300 hover:bg-rose-900/40"
+                  className="flex-shrink-0 rounded-md p-1 text-rose-300 hover:bg-rose-900/40 disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label={t("scheduledSubsSection.deleteButton", "Delete") + ` ${formatMMSS(sub.timeSeconds)}`}
                   onClick={() => onDelete(sub.id)}
+                  disabled={sub.status !== "pending"}
                 >
                   <HiOutlineTrash className="h-4 w-4" />
                 </button>
@@ -241,6 +242,7 @@ const ScheduledSubsSection: React.FC<ScheduledSubsSectionProps> = ({
                 type="number"
                 inputMode="numeric"
                 min={0}
+                max={200}
                 value={draft.minutes}
                 onChange={(e) => setDraft({ ...draft, minutes: e.target.value })}
                 className="mt-1 w-full rounded bg-slate-900 px-2 py-1 text-sm text-slate-100"

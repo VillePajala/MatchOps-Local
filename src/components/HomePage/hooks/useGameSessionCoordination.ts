@@ -93,8 +93,11 @@ export interface UseGameSessionCoordinationReturn {
     setWentToPenalties: (value: boolean) => void;
     setShowPositionLabels: (value: boolean) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
-    // Scheduled-substitution handlers (planner integration phase 0b)
-    addScheduledSub: (sub: ScheduledSub) => void;
+    // Scheduled-substitution handlers (planner integration phase 0b).
+    // `addScheduledSub` takes a partial — the coordination layer stamps id
+    // and status='pending' before dispatching, keeping ID generation in one
+    // place rather than letting components mint their own.
+    addScheduledSub: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
     updateScheduledSub: (sub: ScheduledSub) => void;
     deleteScheduledSub: (id: string) => void;
     applyScheduledSub: (subId: string) => void;
@@ -533,13 +536,15 @@ export function useGameSessionCoordination({
   }, [dispatchGameSession]);
 
   // --- Scheduled substitutions (planner integration phase 0b) ---
-  // The full sub (with id + status) is constructed by the caller. This keeps
-  // ids stable across the dispatch + persistence pair, since the modal needs
-  // to call mutateGameDetails with the same array shape the reducer ends up
-  // with.
+  // ID generation lives here so components don't mint their own; matches the
+  // pattern used elsewhere in the coordination layer for game entities.
   const handleAddScheduledSub = useCallback(
-    (sub: ScheduledSub) => {
-      dispatchGameSession({ type: 'ADD_SCHEDULED_SUB', payload: sub });
+    (sub: Omit<ScheduledSub, 'id' | 'status'>) => {
+      const id = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      dispatchGameSession({
+        type: 'ADD_SCHEDULED_SUB',
+        payload: { ...sub, id, status: 'pending' },
+      });
     },
     [dispatchGameSession],
   );
@@ -566,10 +571,8 @@ export function useGameSessionCoordination({
   const timeElapsedRef = useRef(gameSessionState.timeElapsedInSeconds);
   useEffect(() => {
     scheduledSubsRef.current = gameSessionState.scheduledSubs;
-  }, [gameSessionState.scheduledSubs]);
-  useEffect(() => {
     timeElapsedRef.current = gameSessionState.timeElapsedInSeconds;
-  }, [gameSessionState.timeElapsedInSeconds]);
+  }, [gameSessionState.scheduledSubs, gameSessionState.timeElapsedInSeconds]);
 
   // Apply: convert the active prompt into a substitution GameEvent. Constructs
   // the event here (reducer stays pure) using the *current* elapsed time, not

@@ -196,7 +196,7 @@ interface ModalManagerHandlers {
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
   setGamePersonnel?: (personnelIds: string[]) => void;
-  addScheduledSub: (sub: ScheduledSub) => void;
+  addScheduledSub: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
   updateScheduledSub: (sub: ScheduledSub) => void;
   deleteScheduledSub: (id: string) => void;
   closeSettingsModal: () => void;

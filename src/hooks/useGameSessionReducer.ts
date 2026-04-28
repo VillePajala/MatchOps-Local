@@ -156,10 +156,11 @@ export type GameSessionAction =
   | { type: 'PAUSE_TIMER_FOR_HIDDEN' }
   | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } }
   // --- Scheduled substitutions (planner integration phase 0b) ---
+  // Note: there is no FIRE action — `SET_TIMER_ELAPSED` surfaces the banner
+  // automatically when the game-clock crosses a pending sub's timeSeconds.
   | { type: 'ADD_SCHEDULED_SUB'; payload: ScheduledSub }
   | { type: 'UPDATE_SCHEDULED_SUB'; payload: ScheduledSub }
   | { type: 'DELETE_SCHEDULED_SUB'; payload: string } // sub id
-  | { type: 'FIRE_SCHEDULED_SUB'; payload: string } // sub id — surfaces banner; no status change
   | { type: 'SKIP_SCHEDULED_SUB'; payload: string } // sub id — sets status='skipped', clears prompt
   | { type: 'APPLY_SCHEDULED_SUB'; payload: { subId: string; gameEvent: GameEvent } }; // sets status='fired', appends event, clears prompt
 
@@ -542,13 +543,6 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
           ? undefined
           : state.activeScheduledSubPrompt;
       return { ...state, scheduledSubs: next, activeScheduledSubPrompt };
-    }
-    case 'FIRE_SCHEDULED_SUB': {
-      // Surfaces the banner without changing the sub's status. Status only
-      // changes on Apply ('fired') or Skip ('skipped').
-      const sub = (state.scheduledSubs ?? []).find((s) => s.id === action.payload);
-      if (!sub || sub.status !== 'pending') return state;
-      return { ...state, activeScheduledSubPrompt: sub };
     }
     case 'SKIP_SCHEDULED_SUB': {
       const next = (state.scheduledSubs ?? []).map((s) =>

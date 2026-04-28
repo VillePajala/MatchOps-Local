@@ -432,27 +432,6 @@ describe('gameSessionReducer', () => {
       expect(result.activeScheduledSubPrompt).toBeUndefined();
     });
 
-    it('FIRE_SCHEDULED_SUB surfaces the banner without changing the sub status', () => {
-      const sub = wellFormedSub();
-      const start: GameSessionState = { ...baseState, scheduledSubs: [sub] };
-      const result = gameSessionReducer(start, {
-        type: 'FIRE_SCHEDULED_SUB',
-        payload: sub.id,
-      });
-      expect(result.activeScheduledSubPrompt?.id).toBe(sub.id);
-      expect(result.scheduledSubs?.[0].status).toBe('pending');
-    });
-
-    it('FIRE_SCHEDULED_SUB is a no-op for an already-resolved sub', () => {
-      const sub = wellFormedSub({ status: 'fired' });
-      const start: GameSessionState = { ...baseState, scheduledSubs: [sub] };
-      const result = gameSessionReducer(start, {
-        type: 'FIRE_SCHEDULED_SUB',
-        payload: sub.id,
-      });
-      expect(result.activeScheduledSubPrompt).toBeUndefined();
-    });
-
     it('SKIP_SCHEDULED_SUB sets status=skipped and clears the prompt', () => {
       const sub = wellFormedSub();
       const start: GameSessionState = {

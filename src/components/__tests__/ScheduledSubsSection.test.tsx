@@ -126,4 +126,14 @@ describe('ScheduledSubsSection', () => {
     renderSection({ subs: [{ ...baseSub, status: 'fired' }] });
     expect(screen.getByLabelText(/Edit 10:00|Muokkaa 10:00/i)).toBeDisabled();
   });
+
+  it('disables Delete on a fired sub (preserves audit trail of applied subs)', () => {
+    renderSection({ subs: [{ ...baseSub, status: 'fired' }] });
+    expect(screen.getByLabelText(/Delete 10:00|Poista 10:00/i)).toBeDisabled();
+  });
+
+  it('disables Delete on a skipped sub', () => {
+    renderSection({ subs: [{ ...baseSub, status: 'skipped' }] });
+    expect(screen.getByLabelText(/Delete 10:00|Poista 10:00/i)).toBeDisabled();
+  });
 });

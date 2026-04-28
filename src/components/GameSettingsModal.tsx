@@ -152,7 +152,7 @@ export interface GameSettingsModalProps {
   onTeamIdChange: (teamId: string | null) => void; // Handler to update game's teamId
   // --- Scheduled substitutions (planner integration phase 0b) ---
   scheduledSubs?: ScheduledSub[];
-  onAddScheduledSub?: (sub: ScheduledSub) => void;
+  onAddScheduledSub?: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
   onUpdateScheduledSub?: (sub: ScheduledSub) => void;
   onDeleteScheduledSub?: (id: string) => void;
 }
@@ -1651,42 +1651,19 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 title={t('gameSettingsModal.selectPersonnel', 'Select Personnel')}
               />
 
-              {/* Scheduled Substitutions Section */}
+              {/* Scheduled Substitutions Section.
+                  Persistence is handled by the auto-save tier in
+                  useGamePersistence (scheduledSubs is on `immediate`), so
+                  the section's callbacks dispatch via the coordination
+                  handlers and let auto-save catch the resulting state. */}
               {onAddScheduledSub && onUpdateScheduledSub && onDeleteScheduledSub ? (
                 <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
                   <ScheduledSubsSection
                     subs={scheduledSubs}
                     availablePlayers={availablePlayers}
-                    onAdd={(partial) => {
-                      const id = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-                      const newSub: ScheduledSub = {
-                        ...partial,
-                        id,
-                        status: 'pending',
-                      };
-                      onAddScheduledSub(newSub);
-                      const next = [...scheduledSubs, newSub];
-                      mutateGameDetails(
-                        { scheduledSubs: next },
-                        { source: 'stateSync', expectedState: { scheduledSubs: next } },
-                      );
-                    }}
-                    onUpdate={(updated) => {
-                      onUpdateScheduledSub(updated);
-                      const next = scheduledSubs.map((s) => (s.id === updated.id ? updated : s));
-                      mutateGameDetails(
-                        { scheduledSubs: next },
-                        { source: 'stateSync', expectedState: { scheduledSubs: next } },
-                      );
-                    }}
-                    onDelete={(id) => {
-                      onDeleteScheduledSub(id);
-                      const next = scheduledSubs.filter((s) => s.id !== id);
-                      mutateGameDetails(
-                        { scheduledSubs: next },
-                        { source: 'stateSync', expectedState: { scheduledSubs: next } },
-                      );
-                    }}
+                    onAdd={onAddScheduledSub}
+                    onUpdate={onUpdateScheduledSub}
+                    onDelete={onDeleteScheduledSub}
                   />
                 </div>
               ) : null}

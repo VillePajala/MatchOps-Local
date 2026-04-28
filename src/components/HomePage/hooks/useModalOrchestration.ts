@@ -159,7 +159,7 @@ export interface ModalHandlers {
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
-  handleAddScheduledSub: (sub: ScheduledSub) => void;
+  handleAddScheduledSub: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
   handleUpdateScheduledSub: (sub: ScheduledSub) => void;
   handleDeleteScheduledSub: (id: string) => void;
   handleShowAppGuide: () => void;
