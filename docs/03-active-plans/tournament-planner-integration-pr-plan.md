@@ -166,23 +166,49 @@ The original Phase 1 (PR 5) was estimated at ~2.5 weeks. To keep the autonomous 
 
 ---
 
-## PR 5b — Phase 1 editor: planning UI + Apply-now
+## PR 5b — Phase 1 editor foundation: swap engine + Apply utility + import bridge
 
 **Branch:** `planner/05b-editor-ui` → `feature/planner-integration`
+**Status:** in flight
+
+PR 5b further splits into 5b (this — pure-logic foundation) and 5c (the actual editor UI). Same justification as 5a → 5b: the autonomous loop reviews better with smaller, focused pieces, and shipping the pure logic first lets PR 5c's UI build on tested primitives.
 
 ### Scope
 
-- [ ] `src/components/PlanningModal.tsx` — game picker + starting-XI editor + bench drawer. Drag-drop on desktop, tap-to-swap on mobile (port from standalone's `performSwap`).
-- [ ] Game picker: homogeneous-set guard (same team / format / duration); blocked CTA with explanatory hint when violated.
-- [ ] Apply-now flow: write `startingXI` → `Game.playersOnField` (resolving role → relX/relY via `roles` map from PR 5a) + `Game.selectedPlayerIds`. No save of the plan itself yet.
-
-**Legacy-coord fallback (raised on PR 5a):** `applyFormationPreset` shipped before PR 5a used slightly different X-coords for some 11v11 midfield slots than the standalone-aligned `roles` map. PR 5a corrected `positions[]` to align, but pre-existing saved games still hold the old coords (~0.05 drift). When PR 5b's editor or Apply path needs to read role assignments from `playersOnField` of a legacy game, `roleForCoord` will return `null` for those drifted slots. **Strategy:** treat unresolved players as bench → on-field at their stored coord (no role inference); the editor renders them as "off-formation" markers the coach can drag onto a role slot. No data migration needed.
+- [x] `src/utils/planSwapEngine.ts` — pure swap operations on a `PlanDraft = { startingXI: Record<RoleName, PlayerId>, bench: PlayerId[] }`. `performSwap` covers field↔field, bench↔field, field→bench. Returns the same draft for invalid ops (same-source/target, bench↔bench, missing benchPlayerId, empty source). `createEmptyDraft(roster)` and `checkRosterIntegrity(draft, roster)` round out the toolkit. No mutation; all ops return new drafts.
+- [x] `src/utils/planApply.ts` — `applyDraftToGame(draft, preset, roster)` produces `{ playersOnField, selectedPlayerIds, unknownRoles, unknownPlayerIds }`. Resolves role→coords via the PR 5a `roles?` map; surfaces unknown roles + unknown player ids without throwing. Preserves CLAUDE.md Rule 3 (playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers).
+- [x] `src/utils/planFromImport.ts` — `planDraftFromImport(importedGame, roster)` bridges PR 4's reader output to a `PlanDraft`. Strips unknown player ids and surfaces them; bench preserves roster order for snapshot determinism.
 
 ### Tests
 
-- [ ] `PlanningModal.test.tsx` — game picker constraint, swap engine corner cases (cross-half bench overflow, merge unwind, same-position cross-half flip — port the standalone's regression tests).
+- [x] `planSwapEngine.test.ts` — 20 cases. Invalid ops are no-ops; field↔field swap (assigned/empty/both empty); bench↔field (move, displace, return); roster-integrity over a sequence of swaps.
+- [x] `planApply.test.ts` — 11 cases. Coords from preset roles map; player metadata preserved; Rule 3 satisfied; legacy preset (no `roles`) gracefully returns empty playersOnField; unknown role names + unknown player ids filtered + surfaced; null preset; pathological draft with same player in two roles doesn't crash.
+- [x] `planFromImport.test.ts` — 6 cases. Filters unknown ids; skips empty slots; bench order deterministic.
+
+37/37 tests pass.
+
+### Verification
+
+- [x] Pure logic; no UI / orchestration changes. `npm test`-affected only via the new test files.
+
+---
+
+## PR 5c — Phase 1 editor UI: PlanningModal pages + drag-drop + Apply button
+
+**Branch:** `planner/05c-editor-ui` → `feature/planner-integration`
+
+### Scope
+
+- [ ] `src/components/PlanningModal.tsx` — multi-page UI: empty/list → game picker (with homogeneous-set guard) → editor (pitch with role labels + bench drawer + tap-to-swap and desktop drag-drop). Wire the engine from PR 5b.
+- [ ] Apply-now: integrate `applyDraftToGame` with the existing `mutateGameDetails` path so changes persist via the auto-save tier.
+
+**Legacy-coord fallback** (raised on PR 5a): pre-existing saved games hold the old 11v11 midfield X-coords (~0.05 drift). The editor uses the new `roleForCoord` helper to derive role assignments from `playersOnField` when loading a saved game; off-formation players surface as drag-targets the coach can manually slot. No data migration.
+
+### Tests
+
+- [ ] `PlanningModal.test.tsx` — game-picker homogeneous-set guard, multi-page navigation, bench-drawer interactions.
 - [ ] Integration: select games → set XI → Apply → games update.
-- [ ] Legacy-coord case: a saved game with old 11v11 midfield coords loads into the editor without crashing; affected players surface as "off-formation" until manually placed.
+- [ ] Legacy-coord case: a saved game with old midfield coords loads into the editor; affected players surface as "off-formation" until manually placed.
 
 ### Verification
 
