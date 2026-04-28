@@ -143,26 +143,49 @@ None — doc-only PR plus an idempotent SQL backport that's already live everywh
 
 ---
 
-## PR 5 — Phase 1: Planning menu + in-memory editor
+## PR 5a — Phase 1 foundation: formation roles map + helpers
 
 **Branch:** `planner/05-editor-in-memory` → `feature/planner-integration`
+**Status:** in flight
 
-### Scope (revised estimate ~2.5 weeks of work)
+The original Phase 1 (PR 5) was estimated at ~2.5 weeks. To keep the autonomous loop's review windows tight, Phase 1 splits into 5a (this) + 5b.
 
-- [ ] `src/config/formationPresets.ts` — add the `roles?` map per the integration plan's #1 risk fix. Plus the `sub: 'never' | 'preserved' | 'preferred'` tag. Mirror the standalone's role names exactly.
-- [ ] `src/utils/formations.ts` — `rolesForPreset`, `coordForRole`, `roleForCoord` helpers.
-- [ ] `src/components/PlanningModal.tsx` — game picker + starting-XI editor + bench drawer. Drag-drop on desktop, tap-to-swap on mobile (port from standalone's `performSwap`).
-- [ ] Apply-now flow: write `startingXI` → `Game.playersOnField` (resolving role → relX/relY via `roles` map) + `Game.selectedPlayerIds`. No save of the plan itself yet.
+### Scope
+
+- [x] `src/config/formationPresets.ts` — adds the `roles?` map to every built-in preset, mirroring the standalone planner's coordinates exactly. Each role carries `name`, `relX`, `relY`, and a `sub: 'never' | 'preserved' | 'preferred'` stamina tag (GK→`never`; preserved-set per standalone convention; rest→`preferred`). 5v5 has no preserved roles per the standalone.
+- [x] `src/utils/formations.ts` — adds `FormationRole` type, `RoleStaminaTag`, `ROLE_COORD_TOLERANCE` constant, and three helpers: `rolesForPreset`, `coordForRole`, `roleForCoord`. The inverse helper snaps to the closest role within tolerance and returns `null` for off-formation coords.
+- [x] Closes design plan open question #1 (role↔coord bridge) and resolves issue #372.
 
 ### Tests
 
-- [ ] `formations.test.ts` — round-trip role↔coord for every preset.
-- [ ] `PlanningModal.test.tsx` — game picker constraint, swap engine corner cases (cross-half bench overflow, merge unwind, same-position cross-half flip — port the standalone's regression tests).
-- [ ] Integration: select games → set XI → Apply → games update.
+- [x] `src/utils/__tests__/formations.roles.test.ts` — 14 cases. Registry coverage (every preset has roles, GK at canonical (0.5, 0.95) with `sub: 'never'`, role count = playerCount+1, names unique, coords in unit square). Round-trip: `coordForRole` and `roleForCoord` agree for every role of every preset; off-formation coords return `null`; jitter within tolerance still resolves; jitter beyond doesn't; near-tie picks closest. Stamina tags exactly match the standalone's convention.
 
 ### Verification
 
-- [ ] All formation presets have role names matching the standalone.
+- [x] All formation presets have role names matching the standalone (round-trip test confirms).
+
+---
+
+## PR 5b — Phase 1 editor: planning UI + Apply-now
+
+**Branch:** `planner/05b-editor-ui` → `feature/planner-integration`
+
+### Scope
+
+- [ ] `src/components/PlanningModal.tsx` — game picker + starting-XI editor + bench drawer. Drag-drop on desktop, tap-to-swap on mobile (port from standalone's `performSwap`).
+- [ ] Game picker: homogeneous-set guard (same team / format / duration); blocked CTA with explanatory hint when violated.
+- [ ] Apply-now flow: write `startingXI` → `Game.playersOnField` (resolving role → relX/relY via `roles` map from PR 5a) + `Game.selectedPlayerIds`. No save of the plan itself yet.
+
+**Legacy-coord fallback (raised on PR 5a):** `applyFormationPreset` shipped before PR 5a used slightly different X-coords for some 11v11 midfield slots than the standalone-aligned `roles` map. PR 5a corrected `positions[]` to align, but pre-existing saved games still hold the old coords (~0.05 drift). When PR 5b's editor or Apply path needs to read role assignments from `playersOnField` of a legacy game, `roleForCoord` will return `null` for those drifted slots. **Strategy:** treat unresolved players as bench → on-field at their stored coord (no role inference); the editor renders them as "off-formation" markers the coach can drag onto a role slot. No data migration needed.
+
+### Tests
+
+- [ ] `PlanningModal.test.tsx` — game picker constraint, swap engine corner cases (cross-half bench overflow, merge unwind, same-position cross-half flip — port the standalone's regression tests).
+- [ ] Integration: select games → set XI → Apply → games update.
+- [ ] Legacy-coord case: a saved game with old 11v11 midfield coords loads into the editor without crashing; affected players surface as "off-formation" until manually placed.
+
+### Verification
+
 - [ ] Apply preserves `playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers` (CLAUDE.md Rule 3).
 
 ---

@@ -129,11 +129,7 @@ Accessed from the new **"Planning"** menu item.
 
 ## Open questions (still to decide)
 
-1. **Formation role ↔ coordinate bridge.** The planner thinks in named roles (LB, CDM, ST); MatchOps-Local stores positions as `relX/relY`. Options:
-   - (a) Extend `FormationPreset` with a `roleCoordinates` table.
-   - (b) Add a parallel `RoleLayout` entity linked to formations.
-   - (c) Store both on the game (a `positionRole` per `playersOnField` entry).
-   Pick before phase 1. — Tracked as issue #372; will close with option (a) in PR 5.
+1. **Formation role ↔ coordinate bridge.** ✅ **Closed in PR 5a (option (a)).** `FormationPreset` now carries `roles?: FormationRole[]` mirroring the standalone planner's coordinates exactly, with `coordForRole` / `roleForCoord` helpers in `src/utils/formations.ts`. See `tournament-planner-integration-pr-plan.md` § "PR 5a". Issue #372 closed by PR 5a.
 2. **Auto-active on open.** When a coach opens a game that has an active plan, do we auto-apply the starting XI, or just show a "plan available — apply?" prompt? Default: prompt. Worth a short test with a real user.
 3. **Migration from the standalone.** Offer a one-time import that reads the standalone's JSON export and creates `PlanningSession` records. When? Could be a phase 5 nice-to-have.
 4. **Plan-to-plan copy.** "Duplicate this plan as a contingency" UX. Trivial once the entity exists but not critical for MVP.
