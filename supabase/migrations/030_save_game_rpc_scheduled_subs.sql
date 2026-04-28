@@ -16,6 +16,12 @@
 -- 027. The function body is identical to 027 except for the added line in
 -- the ON CONFLICT DO UPDATE SET clause.
 --
+-- ⚠ SYNC WARNING: any future change to save_game_with_relations must update
+-- BOTH this file AND the latest migration that defines it. CREATE OR
+-- REPLACE in plain SQL has no inheritance — the latest applied body wins
+-- in full. The verification script `__tests__/029_030_scheduled_subs.
+-- verification.sql` regression-guards the scheduled_subs clause specifically.
+--
 -- @see supabase/migrations/027_validate_game_fk_references.sql (prior body)
 -- @see supabase/migrations/029_scheduled_subs.sql (the schema change)
 -- ============================================================================
