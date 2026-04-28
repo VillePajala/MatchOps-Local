@@ -24,7 +24,7 @@ import type {
   TeamPlacementInfo,
   PlayerStatAdjustment,
 } from '@/types';
-import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog } from '@/types/game';
+import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog, ScheduledSub } from '@/types/game';
 import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
@@ -3027,6 +3027,8 @@ export class SupabaseDataStore implements DataStore {
           ? game.gamePersonnel.filter((id): id is string => typeof id === 'string' && id.trim() !== '')
           : [],
         formation_snap_points: (game.formationSnapPoints ?? null) as unknown as Json,
+        // CLAUDE.md Rule 8 — JSONB array, default to [] when undefined
+        scheduled_subs: (game.scheduledSubs ?? []) as unknown as Json,
         // === Timer restoration ===
         time_elapsed_in_seconds: (game.timeElapsedInSeconds != null && isFinite(game.timeElapsedInSeconds))
           ? game.timeElapsedInSeconds : null,
@@ -3179,6 +3181,8 @@ export class SupabaseDataStore implements DataStore {
       // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
       gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
       formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as unknown as Point[] : undefined,
+      // CLAUDE.md Rule 8 — DEFENSIVE: corrupt JSONB falls back to empty list
+      scheduledSubs: Array.isArray(game.scheduled_subs) ? game.scheduled_subs as unknown as ScheduledSub[] : [],
       // === Timer restoration ===
       timeElapsedInSeconds: game.time_elapsed_in_seconds ?? undefined,
       // === Player arrays ===
@@ -3494,6 +3498,7 @@ export class SupabaseDataStore implements DataStore {
       tacticalDrawings: [],
       completedIntervalDurations: [],
       gamePersonnel: [],
+      scheduledSubs: [],
       // === Nullable strings default to empty ===
       seasonId: '',
       tournamentId: '',

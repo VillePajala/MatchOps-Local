@@ -58,21 +58,24 @@ None — doc-only PR plus an idempotent SQL backport that's already live everywh
 ## PR 2 — Phase 0a: `scheduledSubs` schema + types
 
 **Branch:** `planner/02-scheduled-subs-schema` → `feature/planner-integration`
+**Status:** in flight
 
 ### Scope
 
-- [ ] `supabase/migrations/029_scheduled_subs.sql` — adds `scheduled_subs` JSONB column to `games` table (default `'[]'::jsonb`). Additive only.
-- [ ] `src/types/game.ts` — extend `Game` interface with `scheduledSubs?: ScheduledSub[]` and a new `ScheduledSub` type per the integration design plan.
-- [ ] `src/datastore/LocalDataStore.ts` — round-trip `scheduledSubs` through IndexedDB transforms. `?? []` defaulting per CLAUDE.md Rule 8.
-- [ ] `src/datastore/SupabaseDataStore.ts` — forward (App→DB) and reverse (DB→App) transforms for `scheduled_subs`. Same `?? []` defaulting.
-- [ ] `src/datastore/validation.ts` — extend `validateGame` to validate `scheduledSubs` shape (id, role, timeSec, outPlayer, inPlayer).
+- [x] `supabase/migrations/029_scheduled_subs.sql` — adds `scheduled_subs` JSONB column to `games` table (default `'[]'::jsonb`). Additive only.
+- [x] `supabase/migrations/030_save_game_rpc_scheduled_subs.sql` — `CREATE OR REPLACE` of `save_game_with_relations` so the upsert clause writes `scheduled_subs`. Without this the RPC silently drops the new column on every save (it enumerates each games-table column explicitly — see `023_fix_save_game_rpc.sql`).
+- [x] `src/types/game.ts` — adds `ScheduledSub`, `ScheduledSubStatus`, and a `PositionRole = string` placeholder (real type lands in PR 5 with the formation-roles map per issue #372). Adds `scheduledSubs?: ScheduledSub[]` on `AppState`.
+- [x] `src/types/supabase.ts` — adds `scheduled_subs: Json` to games Row/Insert/Update.
+- [x] `src/datastore/LocalDataStore.ts` — round-trips `scheduledSubs` through IndexedDB; adds `[]` default to `createGame`. (No per-field transform needed — IndexedDB stores AppState whole.)
+- [x] `src/datastore/SupabaseDataStore.ts` — forward (App→DB) and reverse (DB→App) transforms with `?? []` defaulting (CLAUDE.md Rule 8). Adds `[]` default to `createGame`.
+- [x] `src/datastore/validation.ts` — extends `validateGame` with `validateScheduledSubs` (id, timeSeconds, outPlayer, inPlayer, positionRole, status).
 
 ### Tests
 
-- [ ] `src/datastore/LocalDataStore.test.ts` — round-trip a game with `scheduledSubs[]`.
-- [ ] `src/datastore/SupabaseDataStore.test.ts` — forward + reverse transform tests, `?? []` default cases.
-- [ ] `src/datastore/validation.test.ts` — invalid `scheduledSubs` shape rejected.
-- [ ] `supabase/migrations/__tests__/029_scheduled_subs.test.ts` — column added, default value, RLS policies inherit from `games`.
+- [x] `src/datastore/LocalDataStore.test.ts` — round-trip a game with `scheduledSubs[]`; reject malformed entries.
+- [x] `src/datastore/__tests__/SupabaseDataStore.test.ts` — forward + reverse transform tests covering: undefined → `[]`, well-formed preserved, `null`/non-array DB row → `[]`.
+- [x] `src/datastore/__tests__/validation.test.ts` — rejects every individual malformed shape, accepts valid + omitted.
+- [x] `supabase/migrations/__tests__/029_030_scheduled_subs.verification.sql` — psql verification: column shape + default; RPC body still contains `scheduled_subs = EXCLUDED.scheduled_subs`. Matches the existing `*.verification.sql` pattern in `__tests__/`; the repo has no Jest harness for migrations.
 
 ### Verification
 

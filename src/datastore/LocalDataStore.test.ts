@@ -1653,6 +1653,49 @@ describe('LocalDataStore', () => {
         await expect(dataStore.saveGame('game_1', invalidGame))
           .rejects.toThrow('Missing required game fields');
       });
+
+      it('should round-trip scheduledSubs through save and load', async () => {
+        const subs = [
+          {
+            id: 'sub_1',
+            timeSeconds: 600,
+            outPlayer: 'p1',
+            inPlayer: 'p2',
+            positionRole: 'CDM',
+            status: 'pending' as const,
+          },
+        ];
+        const gameWithSubs = { ...mockGame, scheduledSubs: subs };
+
+        let storedJson = '';
+        mockGetStorageItem.mockImplementation(async () => storedJson || '{}');
+        mockSetStorageItem.mockImplementation(async (_key: string, value: string) => {
+          storedJson = value;
+        });
+
+        await dataStore.saveGame('game_1', gameWithSubs);
+        const loaded = await dataStore.getGameById('game_1');
+
+        expect(loaded?.scheduledSubs).toEqual(subs);
+      });
+
+      it('should reject game with malformed scheduledSubs', async () => {
+        const invalidGame = {
+          ...mockGame,
+          scheduledSubs: [
+            {
+              id: '',
+              timeSeconds: 60,
+              outPlayer: 'p1',
+              inPlayer: 'p2',
+              positionRole: 'CDM',
+              status: 'pending' as const,
+            },
+          ],
+        };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow(/scheduledSubs\[0\]\.id/);
+      });
     });
 
     describe('deleteGame', () => {

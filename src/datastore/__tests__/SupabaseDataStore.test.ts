@@ -4265,6 +4265,199 @@ describe('SupabaseDataStore', () => {
         expect(roundTrippedGame.tacticalBallPosition).toEqual({ relX: 0.5, relY: 0.5 });
       });
     });
+
+    describe('scheduledSubs transforms', () => {
+      it('forward transform: undefined scheduledSubs becomes empty JSONB array', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          isPlayed: true,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          availablePlayers: [],
+          playersOnField: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+        expect(result.game.scheduled_subs).toEqual([]);
+      });
+
+      it('forward transform: well-formed scheduledSubs survives', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const subs = [
+          {
+            id: 'sub_1',
+            timeSeconds: 600,
+            outPlayer: 'p1',
+            inPlayer: 'p2',
+            positionRole: 'CDM',
+            status: 'pending' as const,
+          },
+        ];
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          isPlayed: true,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          availablePlayers: [],
+          playersOnField: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+          scheduledSubs: subs,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+        expect(result.game.scheduled_subs).toEqual(subs);
+      });
+
+      it('reverse transform: missing/null scheduled_subs becomes []', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'notStarted',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            scheduled_subs: null,
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+        expect(result.scheduledSubs).toEqual([]);
+      });
+
+      it('reverse transform: corrupt scheduled_subs (non-array) becomes []', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'notStarted',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            scheduled_subs: { not: 'an array' },
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+        expect(result.scheduledSubs).toEqual([]);
+      });
+
+      it('reverse transform: well-formed scheduled_subs is preserved', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const subs = [
+          {
+            id: 'sub_1',
+            timeSeconds: 600,
+            outPlayer: 'p1',
+            inPlayer: 'p2',
+            positionRole: 'CDM',
+            status: 'pending' as const,
+          },
+        ];
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'notStarted',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            scheduled_subs: subs,
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+        expect(result.scheduledSubs).toEqual(subs);
+      });
+    });
   });
 
   // ==========================================================================

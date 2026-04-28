@@ -218,6 +218,7 @@ export type Database = {
           number_of_periods: number
           opponent_name: string
           period_duration_minutes: number
+          scheduled_subs: Json
           season_id: string | null
           show_player_names: boolean
           show_position_labels: boolean
@@ -258,6 +259,7 @@ export type Database = {
           number_of_periods?: number
           opponent_name: string
           period_duration_minutes?: number
+          scheduled_subs?: Json
           season_id?: string | null
           show_player_names?: boolean
           show_position_labels?: boolean
@@ -298,6 +300,7 @@ export type Database = {
           number_of_periods?: number
           opponent_name?: string
           period_duration_minutes?: number
+          scheduled_subs?: Json
           season_id?: string | null
           show_player_names?: boolean
           show_position_labels?: boolean

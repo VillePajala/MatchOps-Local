@@ -7,10 +7,79 @@
  * @see docs/03-active-plans/supabase-implementation-guide.md Section 5.0.10
  */
 
-import type { AppState } from '@/types/game';
+import type { AppState, ScheduledSub, ScheduledSubStatus } from '@/types/game';
 import { ValidationError } from '@/interfaces/DataStoreErrors';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
+
+const SCHEDULED_SUB_STATUSES: readonly ScheduledSubStatus[] = ['pending', 'fired', 'skipped'];
+
+const isNonEmptyString = (v: unknown): v is string =>
+  typeof v === 'string' && v.trim() !== '';
+
+const validateScheduledSubs = (
+  subs: AppState['scheduledSubs'],
+  prefix: string,
+): void => {
+  if (subs === undefined) return;
+  if (!Array.isArray(subs)) {
+    throw new ValidationError(
+      `${prefix}scheduledSubs must be an array when present`,
+      'scheduledSubs',
+      subs,
+    );
+  }
+
+  subs.forEach((sub: ScheduledSub, index: number) => {
+    const at = `scheduledSubs[${index}]`;
+
+    if (!sub || typeof sub !== 'object') {
+      throw new ValidationError(`${prefix}${at} must be an object`, at, sub);
+    }
+    if (!isNonEmptyString(sub.id)) {
+      throw new ValidationError(`${prefix}${at}.id must be a non-empty string`, `${at}.id`, sub.id);
+    }
+    if (
+      typeof sub.timeSeconds !== 'number' ||
+      !Number.isFinite(sub.timeSeconds) ||
+      sub.timeSeconds < 0
+    ) {
+      throw new ValidationError(
+        `${prefix}${at}.timeSeconds must be a finite number >= 0`,
+        `${at}.timeSeconds`,
+        sub.timeSeconds,
+      );
+    }
+    if (!isNonEmptyString(sub.outPlayer)) {
+      throw new ValidationError(
+        `${prefix}${at}.outPlayer must be a non-empty player id`,
+        `${at}.outPlayer`,
+        sub.outPlayer,
+      );
+    }
+    if (!isNonEmptyString(sub.inPlayer)) {
+      throw new ValidationError(
+        `${prefix}${at}.inPlayer must be a non-empty player id`,
+        `${at}.inPlayer`,
+        sub.inPlayer,
+      );
+    }
+    if (!isNonEmptyString(sub.positionRole)) {
+      throw new ValidationError(
+        `${prefix}${at}.positionRole must be a non-empty string`,
+        `${at}.positionRole`,
+        sub.positionRole,
+      );
+    }
+    if (!SCHEDULED_SUB_STATUSES.includes(sub.status)) {
+      throw new ValidationError(
+        `${prefix}${at}.status must be one of ${SCHEDULED_SUB_STATUSES.join(', ')}`,
+        `${at}.status`,
+        sub.status,
+      );
+    }
+  });
+};
 
 /**
  * Validate a game's required and optional fields.
@@ -91,4 +160,6 @@ export const validateGame = (game: AppState, context?: string): void => {
       game.periodDurationMinutes
     );
   }
+
+  validateScheduledSubs(game.scheduledSubs, prefix);
 };

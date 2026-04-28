@@ -1782,6 +1782,7 @@ export class LocalDataStore implements DataStore {
       completedIntervalDurations: [],
       lastSubConfirmationTimeSeconds: 0,
       gamePersonnel: [],
+      scheduledSubs: [],
       ...game,
     };
 
