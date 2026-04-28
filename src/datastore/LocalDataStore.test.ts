@@ -1697,6 +1697,17 @@ describe('LocalDataStore', () => {
           .rejects.toThrow(/scheduledSubs\[0\]\.id/);
       });
 
+      it('should reject scheduledSubs explicitly set to null', async () => {
+        // null !== undefined, so the early-return in validateScheduledSubs
+        // does not fire; Array.isArray(null) is false → ValidationError.
+        const invalidGame = {
+          ...mockGame,
+          scheduledSubs: null as unknown as AppState['scheduledSubs'],
+        };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow(/scheduledSubs must be an array/);
+      });
+
       it('should round-trip a legacy game with no scheduledSubs field as undefined', async () => {
         // Legacy games stored before migration 029 have no scheduledSubs key.
         // saveGame must not synthesise a value, and getGameById must surface

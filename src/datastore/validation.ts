@@ -30,6 +30,7 @@ const validateScheduledSubs = (
     );
   }
 
+  const seenIds = new Set<string>();
   subs.forEach((sub: ScheduledSub, index: number) => {
     const at = `scheduledSubs[${index}]`;
 
@@ -39,6 +40,16 @@ const validateScheduledSubs = (
     if (!isNonEmptyString(sub.id)) {
       throw new ValidationError(`${prefix}${at}.id must be a non-empty string`, `${at}.id`, sub.id);
     }
+    if (seenIds.has(sub.id)) {
+      // Duplicate ids would make the live-banner Apply/Skip dispatcher
+      // ambiguous (id is the lookup key for marking 'fired' or 'skipped').
+      throw new ValidationError(
+        `${prefix}scheduledSubs contains duplicate id "${sub.id}"`,
+        `${at}.id`,
+        sub.id,
+      );
+    }
+    seenIds.add(sub.id);
     if (
       typeof sub.timeSeconds !== 'number' ||
       !Number.isInteger(sub.timeSeconds) ||

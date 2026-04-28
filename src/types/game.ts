@@ -77,6 +77,8 @@ export interface TacticalDisc {
  * this with a tighter union derived from the formation-roles map on
  * `FormationPreset` (see issue #372). Anything that should already use the
  * tighter type points at `PositionRole` so the future swap is mechanical.
+ *
+ * @since PR 2 (tournament-planner-integration phase 0a)
  */
 export type PositionRole = string;
 

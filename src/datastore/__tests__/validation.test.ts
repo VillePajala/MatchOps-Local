@@ -5,7 +5,7 @@
  * so a regression here breaks both backends silently.
  */
 
-import { validateGame } from '../validation';
+import { validateGame } from '@/datastore/validation';
 import { ValidationError } from '@/interfaces/DataStoreErrors';
 import type { AppState, ScheduledSub } from '@/types/game';
 
@@ -143,6 +143,17 @@ describe('validateGame — scheduledSubs', () => {
       scheduledSubs: [wellFormedSub({ outPlayer: 'p1', inPlayer: 'p1' })],
     };
     expect(() => validateGame(game)).toThrow(/inPlayer must differ from outPlayer/);
+  });
+
+  it('rejects scheduledSubs with duplicate ids (live-timer lookup must be unambiguous)', () => {
+    const game = {
+      ...baseGame(),
+      scheduledSubs: [
+        wellFormedSub({ id: 'sub_dup' }),
+        wellFormedSub({ id: 'sub_dup', timeSeconds: 900 }),
+      ],
+    };
+    expect(() => validateGame(game)).toThrow(/duplicate id "sub_dup"/);
   });
 
   it('rejects an entry missing positionRole', () => {
