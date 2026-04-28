@@ -11,12 +11,23 @@ export interface ApplyResult {
   /**
    * Players placed on the pitch with their resolved (relX, relY) coords.
    * Order: matches the preset's role order; empty role slots are skipped.
+   *
+   * **Not deduped by player id.** A pathological draft with the same
+   * player at two roles produces two entries here; the editor UI prevents
+   * that state at the source — see `applyDraftToGame` JSDoc.
    */
   playersOnField: Player[];
   /**
    * `(startingXI ∪ bench) ∩ roster` — i.e. roster members the draft
    * references, deduped. Roster members not referenced by the draft are
    * intentionally excluded; unknown ids surface in `unknownPlayerIds`.
+   *
+   * **Caller's CLAUDE.md Rule 3 responsibility:** when wiring this into
+   * `mutateGameDetails`, set `availablePlayers` to the full team roster.
+   * `applyDraftToGame` does not return `availablePlayers` because the
+   * roster is already known to the caller; the invariant
+   * `playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers` only holds if
+   * the caller honours that contract.
    */
   selectedPlayerIds: PlayerId[];
   /**
@@ -63,23 +74,21 @@ export function applyDraftToGame(
   const unknownPlayerIdsSet = new Set<PlayerId>();
 
   // 1. Build playersOnField in role order from the preset (where possible).
+  // `preset?.roles ?? []` falls through gracefully — no need to re-guard.
   const playersOnField: Player[] = [];
-
-  if (preset?.roles) {
-    for (const role of preset.roles) {
-      const playerId = draft.startingXI[role.name];
-      if (!playerId) continue; // empty slot — skip
-      const player = rosterMap.get(playerId);
-      if (!player) {
-        unknownPlayerIdsSet.add(playerId);
-        continue;
-      }
-      playersOnField.push({
-        ...player,
-        relX: role.relX,
-        relY: role.relY,
-      });
+  for (const role of preset?.roles ?? []) {
+    const playerId = draft.startingXI[role.name];
+    if (!playerId) continue; // empty slot — skip
+    const player = rosterMap.get(playerId);
+    if (!player) {
+      unknownPlayerIdsSet.add(playerId);
+      continue;
     }
+    playersOnField.push({
+      ...player,
+      relX: role.relX,
+      relY: role.relY,
+    });
   }
 
   // 2. Detect roles in the draft that aren't in the preset. Iterate over

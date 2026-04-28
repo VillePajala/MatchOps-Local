@@ -39,6 +39,10 @@ export interface SwapInput {
    * When source/target is BENCH, identifies which bench player to move.
    * Required when the operation involves a bench player (otherwise the
    * engine wouldn't know which of N bench players is being acted on).
+   *
+   * Silently ignored on field-to-field ops (no bench involvement).
+   * Callers wiring drag/drop handlers can pass it unconditionally without
+   * branching on the swap kind.
    */
   benchPlayerId?: PlayerId;
 }
