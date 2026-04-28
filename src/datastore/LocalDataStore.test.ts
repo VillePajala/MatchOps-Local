@@ -1622,6 +1622,16 @@ describe('LocalDataStore', () => {
         expect(gameData.homeScore).toBe(3);
         expect(gameData.awayScore).toBe(2);
       });
+
+      it('should default scheduledSubs to an empty array', async () => {
+        // Locks in CLAUDE.md Rule 10 for the new field; if the default is
+        // ever dropped, this test fails before subtle UI bugs do.
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+
+        const { gameData } = await dataStore.createGame({});
+
+        expect(gameData.scheduledSubs).toEqual([]);
+      });
     });
 
     describe('saveGame', () => {
@@ -1652,6 +1662,79 @@ describe('LocalDataStore', () => {
         const invalidGame = { ...mockGame, gameDate: '' };
         await expect(dataStore.saveGame('game_1', invalidGame))
           .rejects.toThrow('Missing required game fields');
+      });
+
+      it('should round-trip scheduledSubs through save and load', async () => {
+        const subs = [
+          {
+            id: 'sub_1',
+            timeSeconds: 600,
+            outPlayer: 'p1',
+            inPlayer: 'p2',
+            positionRole: 'CDM',
+            status: 'pending' as const,
+          },
+        ];
+        const gameWithSubs = { ...mockGame, scheduledSubs: subs };
+
+        let storedJson = '';
+        mockGetStorageItem.mockImplementation(async () => storedJson || '{}');
+        mockSetStorageItem.mockImplementation(async (_key: string, value: string) => {
+          storedJson = value;
+        });
+
+        await dataStore.saveGame('game_1', gameWithSubs);
+        const loaded = await dataStore.getGameById('game_1');
+
+        expect(loaded?.scheduledSubs).toEqual(subs);
+      });
+
+      it('should reject game with malformed scheduledSubs', async () => {
+        const invalidGame = {
+          ...mockGame,
+          scheduledSubs: [
+            {
+              id: '',
+              timeSeconds: 60,
+              outPlayer: 'p1',
+              inPlayer: 'p2',
+              positionRole: 'CDM',
+              status: 'pending' as const,
+            },
+          ],
+        };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow(/scheduledSubs\[0\]\.id/);
+      });
+
+      it('should reject scheduledSubs explicitly set to null', async () => {
+        // null !== undefined, so the early-return in validateScheduledSubs
+        // does not fire; Array.isArray(null) is false → ValidationError.
+        const invalidGame = {
+          ...mockGame,
+          scheduledSubs: null as unknown as AppState['scheduledSubs'],
+        };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow(/scheduledSubs must be an array/);
+      });
+
+      it('should round-trip a legacy game with no scheduledSubs field as undefined', async () => {
+        // Legacy games stored before migration 029 have no scheduledSubs key.
+        // saveGame must not synthesise a value, and getGameById must surface
+        // it as undefined so consumers know to default with `?? []`.
+        const legacyGame = { ...mockGame };
+        delete legacyGame.scheduledSubs;
+
+        let storedJson = '';
+        mockGetStorageItem.mockImplementation(async () => storedJson || '{}');
+        mockSetStorageItem.mockImplementation(async (_key: string, value: string) => {
+          storedJson = value;
+        });
+
+        await dataStore.saveGame('game_legacy', legacyGame);
+        const loaded = await dataStore.getGameById('game_legacy');
+
+        expect(loaded?.scheduledSubs).toBeUndefined();
       });
     });
 
