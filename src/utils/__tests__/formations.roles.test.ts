@@ -122,6 +122,47 @@ describe('coordForRole / roleForCoord round-trip', () => {
   });
 });
 
+describe('positions[] alignment with roles[]', () => {
+  // Catches drift between the legacy `positions` array (used by
+  // applyFormationPreset to place players at preset coords) and the
+  // standalone-aligned `roles` map. Without this guard, a player placed
+  // by "Place all" at positions[i] would resolve to `null` via
+  // roleForCoord — breaking any future feature that derives role
+  // assignments from existing coords. Codex P1 on PR #383.
+  it('every position in every preset resolves to some role within tolerance', () => {
+    const offenders: string[] = [];
+    for (const preset of FORMATION_PRESETS) {
+      for (let i = 0; i < preset.positions.length; i++) {
+        const pos = preset.positions[i];
+        const role = roleForCoord(preset, pos.relX, pos.relY);
+        if (!role) {
+          offenders.push(
+            `${preset.id} positions[${i}] (${pos.relX}, ${pos.relY}) does not resolve to any role within tolerance`,
+          );
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('preset.positions covers every non-GK role exactly once (no missing/duplicate slots)', () => {
+    for (const preset of FORMATION_PRESETS) {
+      const outfieldRoles = preset.roles!.filter((r) => r.name !== 'GK');
+      expect(preset.positions.length).toBe(outfieldRoles.length);
+
+      const matchedRoleNames = new Set<string>();
+      for (const pos of preset.positions) {
+        const role = roleForCoord(preset, pos.relX, pos.relY);
+        expect(role).not.toBeNull();
+        expect(role!.name).not.toBe('GK');
+        matchedRoleNames.add(role!.name);
+      }
+      // Every outfield role got covered by at least one position.
+      expect(matchedRoleNames.size).toBe(outfieldRoles.length);
+    }
+  });
+});
+
 describe('Stamina tags follow standalone planner convention', () => {
   // The standalone planner ships these stamina sets per field size.
   // Mirror them here so any drift fails the test.

@@ -334,10 +334,16 @@ const FORMATIONS_11V11: FormationPreset[] = [
     labelKey: 'formations.11v11.4-3-3',
     fieldSize: '11v11',
     playerCount: 10,
+    // Midfielders/forwards aligned to the role coords below so `roleForCoord`
+    // resolves players at the formation slots without exceeding tolerance.
     positions: [
-      ...row(4, 0.80, TIGHT_MARGIN),  // Four defenders
-      ...row(3, 0.55, MARGIN),        // Three midfielders
-      ...row(3, 0.30, MARGIN),        // Three forwards
+      ...row(4, 0.80, TIGHT_MARGIN),  // Four defenders (matches LB/LCB/RCB/RB)
+      { relX: 0.20, relY: 0.55 },     // LCM
+      { relX: 0.50, relY: 0.55 },     // CM
+      { relX: 0.80, relY: 0.55 },     // RCM
+      { relX: 0.15, relY: 0.30 },     // LW
+      { relX: 0.50, relY: 0.30 },     // ST
+      { relX: 0.85, relY: 0.30 },     // RW
     ],
     roles: withStamina('11v11', [
       { name: 'GK',  relX: 0.50, relY: 0.95 },
@@ -409,11 +415,15 @@ const FORMATIONS_11V11: FormationPreset[] = [
     labelKey: 'formations.11v11.4-2-3-1',
     fieldSize: '11v11',
     playerCount: 10,
+    // DMs and attacking mids aligned to the role coords below.
     positions: [
-      ...row(4, 0.82, TIGHT_MARGIN),  // Four defenders
-      ...row(2, 0.65, 0.30),          // Two defensive midfielders
-      ...row(3, 0.45, MARGIN),        // Three attacking midfielders
-      { relX: 0.5, relY: 0.25 },      // One forward
+      ...row(4, 0.82, TIGHT_MARGIN),  // Four defenders (LB/LCB/RCB/RB)
+      { relX: 0.35, relY: 0.65 },     // LDM
+      { relX: 0.65, relY: 0.65 },     // RDM
+      { relX: 0.20, relY: 0.45 },     // LAM
+      { relX: 0.50, relY: 0.45 },     // CAM
+      { relX: 0.80, relY: 0.45 },     // RAM
+      { relX: 0.50, relY: 0.25 },     // ST
     ],
     roles: withStamina('11v11', [
       { name: 'GK',  relX: 0.50, relY: 0.95 },
