@@ -11,7 +11,11 @@
  *   - Stamina tags follow the standalone planner's convention exactly.
  */
 
-import { FORMATION_PRESETS, type FormationPreset, type FieldSize } from '@/config/formationPresets';
+import {
+  FORMATION_PRESETS,
+  PRESERVED_ROLES_BY_SIZE,
+  type FormationPreset,
+} from '@/config/formationPresets';
 import {
   coordForRole,
   roleForCoord,
@@ -128,7 +132,7 @@ describe('positions[] alignment with roles[]', () => {
   // standalone-aligned `roles` map. Without this guard, a player placed
   // by "Place all" at positions[i] would resolve to `null` via
   // roleForCoord — breaking any future feature that derives role
-  // assignments from existing coords. Codex P1 on PR #383.
+  // assignments from existing coords.
   it('every position in every preset resolves to some role within tolerance', () => {
     const offenders: string[] = [];
     for (const preset of FORMATION_PRESETS) {
@@ -164,23 +168,11 @@ describe('positions[] alignment with roles[]', () => {
 });
 
 describe('Stamina tags follow standalone planner convention', () => {
-  // The standalone planner ships these stamina sets per field size.
-  // Mirror them here so any drift fails the test.
-  const expectedPreserved: Record<FieldSize, ReadonlySet<string>> = {
-    '3v3': new Set(['DEF']),
-    '5v5': new Set<string>(),
-    '8v8': new Set(['LB', 'CB', 'RB', 'CDM', 'CM', 'CAM']),
-    '11v11': new Set([
-      'LB', 'LCB', 'RCB', 'CB', 'RB',
-      'LDM', 'RDM', 'CDM',
-      'LCM', 'CM', 'RCM',
-      'CAM',
-    ]),
-  };
-
+  // Single source of truth — imported from the production module so any
+  // change to the preserved-set automatically updates this expectation.
   const stampExpected = (preset: FormationPreset, roleName: string) => {
     if (roleName === 'GK') return 'never' as const;
-    return expectedPreserved[preset.fieldSize].has(roleName)
+    return PRESERVED_ROLES_BY_SIZE[preset.fieldSize].has(roleName)
       ? ('preserved' as const)
       : ('preferred' as const);
   };

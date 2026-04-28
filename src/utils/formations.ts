@@ -464,6 +464,8 @@ export function coordForRole(
  * no role lies within tolerance — typically means the player is not on a
  * formation slot (e.g. dragged off-formation).
  *
+ * Distance metric: Euclidean √(dx²+dy²) (computed via squared distance for
+ * efficiency; the radius compares as ≤ for parity with the L2 interpretation).
  * Tie-break: lowest squared distance, then array order.
  */
 export function roleForCoord(

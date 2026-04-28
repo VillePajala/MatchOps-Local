@@ -176,10 +176,13 @@ The original Phase 1 (PR 5) was estimated at ~2.5 weeks. To keep the autonomous 
 - [ ] Game picker: homogeneous-set guard (same team / format / duration); blocked CTA with explanatory hint when violated.
 - [ ] Apply-now flow: write `startingXI` → `Game.playersOnField` (resolving role → relX/relY via `roles` map from PR 5a) + `Game.selectedPlayerIds`. No save of the plan itself yet.
 
+**Legacy-coord fallback (raised on PR 5a):** `applyFormationPreset` shipped before PR 5a used slightly different X-coords for some 11v11 midfield slots than the standalone-aligned `roles` map. PR 5a corrected `positions[]` to align, but pre-existing saved games still hold the old coords (~0.05 drift). When PR 5b's editor or Apply path needs to read role assignments from `playersOnField` of a legacy game, `roleForCoord` will return `null` for those drifted slots. **Strategy:** treat unresolved players as bench → on-field at their stored coord (no role inference); the editor renders them as "off-formation" markers the coach can drag onto a role slot. No data migration needed.
+
 ### Tests
 
 - [ ] `PlanningModal.test.tsx` — game picker constraint, swap engine corner cases (cross-half bench overflow, merge unwind, same-position cross-half flip — port the standalone's regression tests).
 - [ ] Integration: select games → set XI → Apply → games update.
+- [ ] Legacy-coord case: a saved game with old 11v11 midfield coords loads into the editor without crashing; affected players surface as "off-formation" until manually placed.
 
 ### Verification
 

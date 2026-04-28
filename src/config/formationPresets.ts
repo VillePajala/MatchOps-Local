@@ -58,8 +58,10 @@ const TIGHT_MARGIN = 0.10;
  * always 'never'; the listed roles are 'preserved'; everything else is
  * 'preferred'. 5v5 deliberately has no preserved roles per the standalone
  * (all outfield positions are equal at that scale).
+ *
+ * Exported so tests can lock in the same source of truth.
  */
-const PRESERVED_ROLES_BY_SIZE: Record<FieldSize, ReadonlySet<string>> = {
+export const PRESERVED_ROLES_BY_SIZE: Record<FieldSize, ReadonlySet<string>> = {
   '3v3': new Set(['DEF']),
   '5v5': new Set<string>(),
   '8v8': new Set(['LB', 'CB', 'RB', 'CDM', 'CM', 'CAM']),
