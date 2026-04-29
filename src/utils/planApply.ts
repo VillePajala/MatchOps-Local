@@ -230,10 +230,10 @@ export function applyDraftToGame(
       status: 'pending',
     });
   }
-  // Final sort: validForOutPlayer was sorted by time globally, but
-  // the per-role walk reordered same-time ties. Re-sort to maintain
-  // the global ascending invariant on the persisted list.
-  scheduledSubs.sort((a, b) => a.timeSeconds - b.timeSeconds);
+  // scheduledSubs is already in chronological order: we appended in
+  // validForOutPlayer's order, which was sorted at line 165. The
+  // per-role walk only populated outPlayers (a Map); it didn't
+  // reorder validForOutPlayer.
 
   return {
     playersOnField,

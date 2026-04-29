@@ -21,7 +21,7 @@ function subsByRole(
  * Total on-field seconds per player. Subs outside [0, gameDurationSec]
  * are clamped; bench players never subbed in are excluded from the map.
  */
-export function computePlayerMinutes(
+export function computePlayerSeconds(
   draft: PlanDraft,
   gameDurationSec: number,
 ): Map<PlayerId, number> {

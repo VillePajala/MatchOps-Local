@@ -262,7 +262,7 @@ describe('PlanningTimeline', () => {
     ).toMatch(/between 00:00|välillä/i);
   });
 
-  it('rejects a sub at a role with no current occupant', async () => {
+  it('role dropdown only exposes assigned roles (errNoOccupant path is form-unreachable)', async () => {
     // Build a draft with role[0] (GK) empty and a bench p8.
     const roster = makeRoster(9);
     const startingXI: Record<string, string> = {};

@@ -498,7 +498,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           parts.push(
             t(
               'planningEditor.applyWarnUnreachableSubs',
-              '{{count}} game(s) had subs scheduled past their end; those entries were dropped.',
+              '{{count}} game(s) had subs that could not be applied (past game end, empty role, or self-sub); those entries were dropped.',
               { count: gamesWithUnreachableSubs },
             ),
           );
@@ -552,7 +552,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         errorParts.push(
           t(
             'planningEditor.applyWarnUnreachableSubs',
-            '{{count}} game(s) had subs scheduled past their end; those entries were dropped.',
+            '{{count}} game(s) had subs that could not be applied (past game end, empty role, or self-sub); those entries were dropped.',
             { count: gamesWithUnreachableSubs },
           ),
         );

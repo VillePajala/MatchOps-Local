@@ -822,7 +822,7 @@ describe('PlanningEditor', () => {
     });
     expect(
       screen.getByTestId('planning-editor-warning').textContent,
-    ).toMatch(/scheduled past their end|pelin päättymisen jälkeen/i);
+    ).toMatch(/could not be applied|joita ei voitu soveltaa/i);
     expect(onApplied).not.toHaveBeenCalled();
     // Apply still ran for both games — the dropped sub doesn't
     // prevent persistence of the lineup.

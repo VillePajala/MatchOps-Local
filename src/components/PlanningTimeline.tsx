@@ -18,7 +18,7 @@ import type {
   RoleName,
 } from '@/utils/planSwapEngine';
 import {
-  computePlayerMinutes,
+  computePlayerSeconds,
   getRoleSegments,
 } from '@/utils/planFairness';
 
@@ -68,7 +68,7 @@ interface SubFormState {
   subId: string | null;
   timeText: string;
   positionRole: RoleName;
-  inPlayerId: PlayerId;
+  inPlayer: PlayerId;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
@@ -109,7 +109,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
   );
 
   const minutes = useMemo(
-    () => computePlayerMinutes(draft, gameDurationSec),
+    () => computePlayerSeconds(draft, gameDurationSec),
     [draft, gameDurationSec],
   );
 
@@ -200,7 +200,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       subId: null,
       timeText: '00:00',
       positionRole: assignedRoles[0] ?? '',
-      inPlayerId: '',
+      inPlayer: '',
     });
   };
 
@@ -210,7 +210,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       subId: sub.id,
       timeText: formatMMSS(sub.timeSeconds),
       positionRole: sub.positionRole,
-      inPlayerId: sub.inPlayer,
+      inPlayer: sub.inPlayer,
     });
   };
 
@@ -246,7 +246,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       setFormError(t('planningTimeline.errNoRole', 'Pick a role.'));
       return;
     }
-    if (!form.inPlayerId) {
+    if (!form.inPlayer) {
       setFormError(t('planningTimeline.errNoPlayer', 'Pick a player.'));
       return;
     }
@@ -260,7 +260,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       );
       return;
     }
-    if (outPlayer === form.inPlayerId) {
+    if (outPlayer === form.inPlayer) {
       setFormError(
         t(
           'planningTimeline.errSelfSub',
@@ -283,7 +283,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
         (seg) =>
           timeSec >= seg.startSec &&
           timeSec < seg.endSec &&
-          seg.playerId === form.inPlayerId,
+          seg.playerId === form.inPlayer,
       );
       if (occupied) {
         setFormError(
@@ -299,21 +299,21 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       onUpdateSub(form.subId, {
         timeSeconds: timeSec,
         positionRole: form.positionRole,
-        inPlayer: form.inPlayerId,
+        inPlayer: form.inPlayer,
       });
     } else {
       onAddSub({
         id: newSubId(),
         timeSeconds: timeSec,
         positionRole: form.positionRole,
-        inPlayer: form.inPlayerId,
+        inPlayer: form.inPlayer,
       });
     }
     closeForm();
   };
 
   // Filter out pure-bench players to keep the panel scannable as
-  // rosters grow. Match computePlayerMinutes's referenced-set rule.
+  // rosters grow. Match computePlayerSeconds's referenced-set rule.
   const minuteEntries = useMemo(() => {
     const referenced = new Set<PlayerId>(Object.values(draft.startingXI));
     for (const s of draft.scheduledSubs) {
@@ -449,9 +449,9 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
                       ...f,
                       timeText: e.target.value,
                       // Eligibility depends on (role, time); a stale
-                      // inPlayerId after a time change can sneak past
+                      // inPlayer after a time change can sneak past
                       // the empty-player guard.
-                      inPlayerId: '',
+                      inPlayer: '',
                     }
                   )
                 }
@@ -472,7 +472,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
                       positionRole: e.target.value,
                       // Eligibility depends on (role, time); reset to
                       // force a fresh pick.
-                      inPlayerId: '',
+                      inPlayer: '',
                     }
                   )
                 }
@@ -496,9 +496,9 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
             <label className="text-xs text-slate-400 sm:col-span-2">
               {t('planningTimeline.inPlayer', 'Player coming on')}
               <select
-                value={form.inPlayerId}
+                value={form.inPlayer}
                 onChange={(e) =>
-                  setForm((f) => f && { ...f, inPlayerId: e.target.value })
+                  setForm((f) => f && { ...f, inPlayer: e.target.value })
                 }
                 disabled={disabled}
                 data-testid="planning-timeline-form-in"

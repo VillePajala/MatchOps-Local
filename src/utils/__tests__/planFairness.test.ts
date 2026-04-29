@@ -1,5 +1,5 @@
 import {
-  computePlayerMinutes,
+  computePlayerSeconds,
   getRoleSegments,
 } from '@/utils/planFairness';
 import type { PlanDraft } from '@/utils/planSwapEngine';
@@ -17,9 +17,9 @@ const baseDraft = (): PlanDraft => ({
   scheduledSubs: [],
 });
 
-describe('computePlayerMinutes', () => {
+describe('computePlayerSeconds', () => {
   it('credits each starting-XI player the full game when there are no subs', () => {
-    const totals = computePlayerMinutes(baseDraft(), 1500);
+    const totals = computePlayerSeconds(baseDraft(), 1500);
     expect(totals.get('p0')).toBe(1500);
     expect(totals.get('p1')).toBe(1500);
     expect(totals.get('p2')).toBe(1500);
@@ -31,7 +31,7 @@ describe('computePlayerMinutes', () => {
       ...baseDraft(),
       scheduledSubs: [sub('s1', 600, 'p3', 'LB')],
     };
-    const totals = computePlayerMinutes(draft, 1500);
+    const totals = computePlayerSeconds(draft, 1500);
     expect(totals.get('p1')).toBe(600); // played 0-600
     expect(totals.get('p3')).toBe(900); // played 600-1500
     expect(totals.get('p0')).toBe(1500); // GK never subbed
@@ -45,7 +45,7 @@ describe('computePlayerMinutes', () => {
         sub('s2', 1000, 'p4', 'LB'),
       ],
     };
-    const totals = computePlayerMinutes(draft, 1500);
+    const totals = computePlayerSeconds(draft, 1500);
     expect(totals.get('p1')).toBe(500);
     expect(totals.get('p3')).toBe(500);
     expect(totals.get('p4')).toBe(500);
@@ -61,7 +61,7 @@ describe('computePlayerMinutes', () => {
         sub('s3', 1000, 'p3', 'RB'),
       ],
     };
-    const totals = computePlayerMinutes(draft, 1500);
+    const totals = computePlayerSeconds(draft, 1500);
     // p3: LB 300-800 (500s) + RB 1000-1500 (500s) = 1000
     expect(totals.get('p3')).toBe(1000);
   });
@@ -74,7 +74,7 @@ describe('computePlayerMinutes', () => {
         sub('s2', 9999, 'p4', 'LB'), // past end → clamped to game end
       ],
     };
-    const totals = computePlayerMinutes(draft, 1500);
+    const totals = computePlayerSeconds(draft, 1500);
     // s1 fires at 0 → p1 plays 0s, p3 takes over at 0
     // s2 fires at 1500 (clamped) → p4 plays 0s, p3 plays full 1500
     expect(totals.get('p1') ?? 0).toBe(0);
@@ -83,8 +83,8 @@ describe('computePlayerMinutes', () => {
   });
 
   it('returns an empty map when game duration is 0 or negative', () => {
-    expect(computePlayerMinutes(baseDraft(), 0).size).toBe(0);
-    expect(computePlayerMinutes(baseDraft(), -100).size).toBe(0);
+    expect(computePlayerSeconds(baseDraft(), 0).size).toBe(0);
+    expect(computePlayerSeconds(baseDraft(), -100).size).toBe(0);
   });
 
   it('out-of-order sub array is sorted internally before walking', () => {
@@ -95,7 +95,7 @@ describe('computePlayerMinutes', () => {
         sub('s1', 500, 'p3', 'LB'),
       ],
     };
-    const totals = computePlayerMinutes(draft, 1500);
+    const totals = computePlayerSeconds(draft, 1500);
     expect(totals.get('p1')).toBe(500);
     expect(totals.get('p3')).toBe(500);
     expect(totals.get('p4')).toBe(500);
@@ -108,7 +108,7 @@ describe('computePlayerMinutes', () => {
       bench: ['p0', 'p2'],
       scheduledSubs: [sub('s1', 500, 'p2', 'GK')],
     };
-    const totals = computePlayerMinutes(draft, 1500);
+    const totals = computePlayerSeconds(draft, 1500);
     expect(totals.has('p2')).toBe(false);
     expect(totals.has('p0')).toBe(false);
     expect(totals.get('p1')).toBe(1500);
