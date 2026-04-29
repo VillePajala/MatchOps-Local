@@ -280,7 +280,6 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   };
   const handleDropOnRole = (roleName: string) => (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     performDrop(roleName);
   };
   const handleDropOntoBenchPlayer = (playerId: PlayerId) => (e: React.DragEvent) => {
@@ -319,6 +318,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     if (dragSource.target === BENCH) {
       setDragSource(null);
       setDragOverTarget(null);
+      setSelected(null);
       return;
     }
     performDrop(BENCH);

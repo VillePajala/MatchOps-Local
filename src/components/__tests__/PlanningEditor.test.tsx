@@ -499,6 +499,38 @@ describe('PlanningEditor', () => {
     );
   });
 
+  it('drag-drop: bench → drawer (bench source) clears tap-selection so it does not leak into the next tap', async () => {
+    // 1. tap-select a bench player (this sets `selected`)
+    // 2. start a drag from a different bench player (bench → bench)
+    // 3. drop on the bench drawer area (early-return branch)
+    // 4. tap a role — should NOT swap, because both selected and
+    //    dragSource must be clean by now. Without setSelected(null) in
+    //    the early return, the role tap would auto-swap with the
+    //    originally tap-selected bench player.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const beforeRoleText = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    // Role contents must be unchanged — first tap after the drag
+    // should arm a fresh selection, not auto-swap with a stale one.
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).textContent,
+    ).toBe(beforeRoleText);
+  });
+
   it('drag-drop: bench → bench drag is a no-op', async () => {
     renderEditor();
     const before = screen.getByTestId('planning-editor-bench').textContent;
