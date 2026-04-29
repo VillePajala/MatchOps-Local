@@ -289,7 +289,8 @@ describe('Translation File Validation', () => {
       // shows only when > 0. Generator now also synthesizes the plural
       // base key for every `_one`/`_other` pair so dynamic-key call
       // sites can assert against TranslationKey.
-      expect(enKeys.length).toBe(2479);
+      // +1: applySavedSummary (warning banner saved-count prefix).
+      expect(enKeys.length).toBe(2480);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -301,7 +302,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
       // Planner Phase 1d: planningEditor (16 keys; split warning into
       // applyWarnUnknownPlayers + applyWarnUnknownRoles)
-      expect(fiKeys.length).toBe(2479);
+      // +1: applySavedSummary (warning banner saved-count prefix).
+      expect(fiKeys.length).toBe(2480);
     });
   });
 });

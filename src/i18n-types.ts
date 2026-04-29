@@ -1416,6 +1416,7 @@ export type TranslationKey =
   | 'planningEditor.applyButton_other'
   | 'planningEditor.applyFailed'
   | 'planningEditor.applyFailedPartial'
+  | 'planningEditor.applySavedSummary'
   | 'planningEditor.applyWarnMissing'
   | 'planningEditor.applyWarnUnknownPlayers'
   | 'planningEditor.applyWarnUnknownRoles'

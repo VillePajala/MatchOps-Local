@@ -410,6 +410,44 @@ describe('PlanningEditor', () => {
     expect(onApplied).not.toHaveBeenCalled();
   });
 
+  it('Apply error banner does not over-count drops from the throwing game', async () => {
+    // g1 saves cleanly (no drops). g2 has narrowed availablePlayers (drops
+    // p10) AND its applyToGame throws. Without the post-await guard, g2's
+    // drops would be counted as a saved warning even though g2 never
+    // persisted. Assert the alert reflects only g1's clean save.
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2Base = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+    const game2: AppState = {
+      ...(game2Base as AppState),
+      availablePlayers: roster.filter((p) => p.id !== 'p10'),
+    } as AppState;
+    const applyToGame = jest
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('network down'));
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    const alertText = screen.getByRole('alert').textContent ?? '';
+    expect(alertText).toMatch(/Saved 1 of 2|Tallennettu 1\/2/i);
+    expect(alertText).not.toMatch(
+      /players outside their roster|kokoonpanon ulkopuolisia pelaajia/i,
+    );
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
   it('Apply surfaces a sanitized error and does not call onApplied on failure', async () => {
     // Raw error text from the mutation must never reach the user (CLAUDE
     // Quality Bar). The banner shows the translated fallback only.
@@ -495,6 +533,32 @@ describe('PlanningEditor', () => {
       screen.queryByTestId('planning-editor-preset-confirm'),
     ).not.toBeInTheDocument();
     expect(select).toHaveValue('5v5-2-2');
+  });
+
+  it('role and bench buttons are disabled while the formation-change banner is open', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    const roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[0].name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[1].name}`));
+    });
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    // While the banner is open, no further swaps should be possible.
+    expect(
+      screen.getByTestId(`planning-editor-role-${roles[0].name}`),
+    ).toBeDisabled();
+    expect(screen.getByTestId('planning-editor-bench-p4')).toBeDisabled();
   });
 
   it('confirming the formation-change banner switches the preset', async () => {

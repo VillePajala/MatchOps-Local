@@ -1711,6 +1711,7 @@
     "applying": "Käytetään…",
     "applyFailed": "Käyttö epäonnistui; yritä uudelleen.",
     "applyFailedPartial": "Tallennettu {{saved}}/{{total}} peliä ennen virhettä. Yritä uudelleen.",
+    "applySavedSummary": "Tallennettu {{saved}}/{{total}} peliä.",
     "applyWarnMissing": "{{count}} valittua peliä ei ollut enää saatavilla, ja ne ohitettiin.",
     "applyWarnUnknownPlayers": "{{count}} pelissä oli kokoonpanon ulkopuolisia pelaajia; nämä jätettiin pois.",
     "applyWarnUnknownRoles": "{{count}} pelissä oli pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",

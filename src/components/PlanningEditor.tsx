@@ -240,13 +240,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         // without widening any team's roster. Drops surface as unknown*
         // counters and feed the warning banner.
         const result = applyDraftToGame(draft, preset, game.availablePlayers);
-        if (result.unknownPlayerIds.length > 0) gamesWithUnknownPlayers++;
-        if (result.unknownRoles.length > 0) gamesWithUnknownRoles++;
         await applyToGame(id, {
           playersOnField: result.playersOnField,
           selectedPlayerIds: result.selectedPlayerIds,
         });
         savedCount++;
+        // Count drops only on the success path so a throw doesn't claim
+        // the failed game had partial saves.
+        if (result.unknownPlayerIds.length > 0) gamesWithUnknownPlayers++;
+        if (result.unknownRoles.length > 0) gamesWithUnknownRoles++;
       }
       if (
         gamesWithUnknownPlayers > 0 ||
@@ -254,7 +256,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         gamesNotFound > 0
       ) {
         // Stay in the editor with a warning banner; coach acknowledges via Done.
-        const parts: string[] = [];
+        const parts: string[] = [
+          t(
+            'planningEditor.applySavedSummary',
+            'Saved {{saved}} of {{total}} games.',
+            { saved: savedCount, total: gameIds.length },
+          ),
+        ];
         if (gamesNotFound > 0) {
           parts.push(
             t(
@@ -440,7 +448,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               key={role.name}
               type="button"
               onClick={() => handleRoleTap(role.name)}
-              disabled={isApplying}
+              disabled={isApplying || pendingPresetId !== null}
               data-testid={`planning-editor-role-${role.name}`}
               className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-[11px] leading-tight whitespace-nowrap shadow ${
                 sel
@@ -485,7 +493,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleBenchTap(id)}
-                    disabled={isApplying}
+                    disabled={isApplying || pendingPresetId !== null}
                     data-testid={`planning-editor-bench-${id}`}
                     className={`rounded-md px-3 py-1.5 text-sm shadow ${
                       sel
