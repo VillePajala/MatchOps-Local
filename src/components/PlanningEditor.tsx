@@ -376,7 +376,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           </select>
         </label>
         <span className="text-slate-500">
-          {t('planningEditor.gameCount', '{{count}} games', {
+          {t('planningEditor.gameCount', '{{count}} game', {
             count: gameIds.length,
           })}
         </span>
@@ -548,7 +548,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           <HiOutlineCheck className="h-4 w-4" />
           {isApplying
             ? t('planningEditor.applying', 'Applying…')
-            : t('planningEditor.applyButton', 'Apply to {{count}} games', {
+            : t('planningEditor.applyButton', 'Apply to {{count}} game', {
                 count: gameIds.length,
               })}
         </button>
