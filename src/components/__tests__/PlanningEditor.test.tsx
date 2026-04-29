@@ -248,6 +248,43 @@ describe('PlanningEditor', () => {
     });
   });
 
+  it('tap-to-swap: bench player → empty role fills the role with no displacement', async () => {
+    // GK role left empty; p0 and p8 land on the bench (in selectedPlayerIds
+    // but not on field). Tapping bench p8 then the empty GK role should
+    // place p8 at GK and shrink the bench by one — no displacement.
+    const roster = makeRoster(9);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1)
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const gkRole = (PRESET.roles ?? [])[0];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${gkRole.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${gkRole.name}`),
+      ).toHaveTextContent('P8');
+    });
+    const benchText = screen.getByTestId('planning-editor-bench').textContent ?? '';
+    expect(benchText).not.toMatch(/\bP8\b/);
+  });
+
   it('Apply calls applyToGame for each picked game and then onApplied', async () => {
     const applyToGame = jest.fn().mockResolvedValue(undefined);
     const onApplied = jest.fn();

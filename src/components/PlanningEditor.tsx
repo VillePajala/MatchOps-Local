@@ -41,8 +41,6 @@ export interface PlanningEditorProps {
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 }
 
-// Snap each on-field player to a role via `roleForCoord`; off-formation
-// players fall through to bench.
 // TODO(PR 5e+): include roster members not in selectedPlayerIds.
 function draftFromGame(
   game: AppState | undefined,
@@ -131,8 +129,6 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setDraft(draftFromGame(firstGame, next));
     setSelected(null);
     setPendingPresetId(null);
-    // Stale banners from a previous Apply attempt no longer match the
-    // new draft; clear them.
     setApplyError(null);
     setApplyWarning(null);
   };
@@ -207,7 +203,6 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       return;
     }
     if (selected.target === BENCH) {
-      // Bench→bench is a no-op; just move the selection to the new tap.
       setSelected({ target: BENCH, benchPlayerId: playerId });
       return;
     }
@@ -511,6 +506,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         <div
           role="alert"
           className="flex items-start gap-2 rounded-md bg-rose-900/30 border border-rose-700/40 p-3 text-sm text-rose-100"
+          data-testid="planning-editor-error"
         >
           <HiOutlineExclamationTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <p>{applyError}</p>
