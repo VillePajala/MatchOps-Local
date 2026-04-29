@@ -114,6 +114,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applyWarning, setApplyWarning] = useState<string | null>(null);
+  // Inline-banner confirmation for formation change. Storing the
+  // pending id keeps the controlled <select> on the current preset
+  // until the user confirms — no window.confirm anti-pattern.
+  const [pendingPresetId, setPendingPresetId] = useState<string | null>(null);
 
   const rosterMap = useMemo(() => {
     const m = new Map<string, Player>();
@@ -124,35 +128,37 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   // Prompt only when the draft's role→player map differs from the snap
   // of the loaded game, so a pristine dropdown bump doesn't ask, but a
   // tap-to-swap edit does.
-  const handlePresetChange = (id: string) => {
+  const applyPresetChange = (id: string) => {
     const next = getPresetById(id);
     if (!next) return;
+    setPresetId(id);
+    setDraft(draftFromGame(firstGame, next));
+    setSelected(null);
+    setPendingPresetId(null);
+  };
+
+  const handlePresetChange = (id: string) => {
+    if (id === presetId) return;
+    if (!getPresetById(id)) return;
     const baseline = draftFromGame(firstGame, preset);
     const baselineKeys = Object.keys(baseline.startingXI);
     const draftKeys = Object.keys(draft.startingXI);
+    // When lengths match, a value-mismatch on any baseline key already
+    // covers a different draft key set (the missing key reads as
+    // undefined and never equals the baseline's player id).
     const diverged =
       baselineKeys.length !== draftKeys.length ||
       baselineKeys.some(
         (k) => baseline.startingXI[k] !== draft.startingXI[k],
-      ) ||
-      draftKeys.some((k) => baseline.startingXI[k] !== draft.startingXI[k]);
-    if (
-      diverged &&
-      typeof window !== 'undefined' &&
-      typeof window.confirm === 'function' &&
-      !window.confirm(
-        t(
-          'planningEditor.formationChangeConfirm',
-          'Switching formation will reset your manual assignments. Continue?',
-        ),
-      )
-    ) {
+      );
+    if (diverged) {
+      setPendingPresetId(id);
       return;
     }
-    setPresetId(id);
-    setDraft(draftFromGame(firstGame, next));
-    setSelected(null);
+    applyPresetChange(id);
   };
+
+  const cancelPresetChange = () => setPendingPresetId(null);
 
   const playerLabel = (id: PlayerId): string => {
     const p = rosterMap.get(id);
@@ -222,11 +228,18 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setApplyWarning(null);
     let gamesWithUnknownPlayers = 0;
     let gamesWithUnknownRoles = 0;
+    let gamesNotFound = 0;
     let savedCount = 0;
     try {
       for (const id of gameIds) {
         const game = savedGames[id];
-        if (!game) continue;
+        if (!game) {
+          // Picked id no longer resolves (cloud sync, multi-tab race,
+          // IndexedDB eviction). Skipping silently would auto-close the
+          // modal as if everything saved; surface as a warning instead.
+          gamesNotFound++;
+          continue;
+        }
         // Per-game availablePlayers is the roster filter so CLAUDE.md Rule 3
         // (playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers) holds
         // without widening any team's roster. Drops surface as unknown*
@@ -240,18 +253,35 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         });
         savedCount++;
       }
-      if (gamesWithUnknownPlayers > 0 || gamesWithUnknownRoles > 0) {
+      if (
+        gamesWithUnknownPlayers > 0 ||
+        gamesWithUnknownRoles > 0 ||
+        gamesNotFound > 0
+      ) {
         // Stay in the editor with a warning banner; coach acknowledges via Done.
-        setApplyWarning(
-          t(
-            'planningEditor.applyWarnUnknown',
-            'Saved, but {{players}} game(s) had players outside their roster and {{roles}} game(s) had roles outside the formation; those entries were dropped.',
-            {
-              players: gamesWithUnknownPlayers,
-              roles: gamesWithUnknownRoles,
-            },
-          ),
-        );
+        const parts: string[] = [];
+        if (gamesNotFound > 0) {
+          parts.push(
+            t(
+              'planningEditor.applyWarnMissing',
+              '{{count}} selected game(s) were no longer available and were skipped.',
+              { count: gamesNotFound },
+            ),
+          );
+        }
+        if (gamesWithUnknownPlayers > 0 || gamesWithUnknownRoles > 0) {
+          parts.push(
+            t(
+              'planningEditor.applyWarnUnknown',
+              'Saved, but {{players}} game(s) had players outside their roster and {{roles}} game(s) had roles outside the formation; those entries were dropped.',
+              {
+                players: gamesWithUnknownPlayers,
+                roles: gamesWithUnknownRoles,
+              },
+            ),
+          );
+        }
+        setApplyWarning(parts.join(' '));
         return;
       }
       onApplied();
@@ -303,7 +333,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           <select
             value={presetId}
             onChange={(e) => handlePresetChange(e.target.value)}
-            disabled={isApplying}
+            disabled={isApplying || pendingPresetId !== null}
             className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-slate-100"
           >
             {FORMATION_PRESETS.map((p) => (
@@ -331,6 +361,40 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           })}
         </span>
       </div>
+
+      {pendingPresetId ? (
+        <div
+          role="alertdialog"
+          aria-labelledby="planning-editor-preset-confirm"
+          className="rounded-md bg-amber-900/30 border border-amber-700/40 p-3 text-sm text-amber-100"
+          data-testid="planning-editor-preset-confirm"
+        >
+          <p id="planning-editor-preset-confirm">
+            {t(
+              'planningEditor.formationChangeConfirm',
+              'Switching formation will reset your manual assignments. Continue?',
+            )}
+          </p>
+          <div className="flex justify-end gap-2 mt-3">
+            <button
+              type="button"
+              onClick={cancelPresetChange}
+              data-testid="planning-editor-preset-confirm-cancel"
+              className="rounded-md bg-slate-700/70 px-3 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-700"
+            >
+              {t('common.cancel', 'Cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPresetChange(pendingPresetId)}
+              data-testid="planning-editor-preset-confirm-accept"
+              className="rounded-md bg-amber-500/90 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-amber-400"
+            >
+              {t('common.confirm', 'Confirm')}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Pitch — 2:3 portrait, half-field tactical layout. */}
       <div

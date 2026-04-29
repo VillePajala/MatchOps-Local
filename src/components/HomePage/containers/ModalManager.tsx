@@ -2,6 +2,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
+import logger from '@/utils/logger';
 import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import GoalLogModal from '@/components/GoalLogModal';
@@ -259,15 +260,15 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           currentTeamName={data.gameSessionState.teamName}
           roster={data.masterRoster}
           applyToGame={async (gameId, updates) => {
-            // Each picked game is written sequentially. A failure on
-            // game N stops the loop in the editor; games 1..N-1 are
-            // already persisted, games N+1..M are not. Throwing on a
+            // Sequential writes: failure on game N stops the loop;
+            // 1..N-1 are persisted, N+1..M are not. Throwing on a
             // missing mutation is intentional — silently no-op'ing
             // would close the modal without writing anything.
             if (!data.updateGameDetailsMutation) {
-              throw new Error(
-                'updateGameDetailsMutation not available — cannot apply plan',
+              logger.error(
+                '[ModalManager] PlanningModal applyToGame called without updateGameDetailsMutation',
               );
+              throw new Error('Apply unavailable');
             }
             await data.updateGameDetailsMutation.mutateAsync({
               gameId,

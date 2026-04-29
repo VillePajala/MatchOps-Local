@@ -1406,6 +1406,7 @@ export type TranslationKey =
   | 'planningEditor.applyButton_other'
   | 'planningEditor.applyFailed'
   | 'planningEditor.applyFailedPartial'
+  | 'planningEditor.applyWarnMissing'
   | 'planningEditor.applyWarnUnknown'
   | 'planningEditor.applying'
   | 'planningEditor.assignedCount'

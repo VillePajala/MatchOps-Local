@@ -284,9 +284,10 @@ describe('Translation File Validation', () => {
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
       // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
       // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
-      // Planner Phase 1d: planningEditor (14 keys: _one/_other plurals,
-      // applyWarnUnknown, applyFailedPartial, formationChangeConfirm)
-      expect(enKeys.length).toBe(2477);
+      // Planner Phase 1d: planningEditor (15 keys: _one/_other plurals,
+      // applyWarnUnknown, applyWarnMissing, applyFailedPartial,
+      // formationChangeConfirm)
+      expect(enKeys.length).toBe(2478);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -296,9 +297,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
       // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
       // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
-      // Planner Phase 1d: planningEditor (14 keys incl. applyFailedPartial,
-      // formationChangeConfirm)
-      expect(fiKeys.length).toBe(2477);
+      // Planner Phase 1d: planningEditor (15 keys incl. applyWarnMissing)
+      expect(fiKeys.length).toBe(2478);
     });
   });
 });

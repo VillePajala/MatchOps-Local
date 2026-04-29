@@ -8,9 +8,9 @@ import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { Player } from '@/types';
 import { getPresetById } from '@/config/formationPresets';
 
-// 8v8-3-3-1 has 8 field roles (incl. GK) and is the editor's heuristic
-// default for an 8-player lineup (first 8v8 preset by id), so the test
-// fixture and the editor agree on which preset to render.
+// 8v8-3-3-1 is the editor's heuristic default for an 8-player lineup
+// (the first 8v8 preset by id), so the test fixture and the editor
+// agree on which preset to render.
 const PRESET_ID = '8v8-3-3-1';
 const PRESET = getPresetById(PRESET_ID)!;
 
@@ -81,7 +81,7 @@ describe('PlanningEditor', () => {
     renderEditor();
     const pitch = screen.getByTestId('planning-editor-pitch');
     expect(pitch).toBeInTheDocument();
-    // 8v8-2-3-2 has 8 roles incl. GK.
+    // 8v8-3-3-1 has 8 roles incl. GK.
     expect(pitch.querySelectorAll('button').length).toBe(PRESET.roles!.length);
   });
 
@@ -320,33 +320,107 @@ describe('PlanningEditor', () => {
     });
   });
 
-  it('switching formation prompts only when the draft diverged from the loaded snap', async () => {
-    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
-    try {
-      renderEditor();
-      const select = screen.getByRole('combobox');
-      // Pristine draft → no prompt.
-      await act(async () => {
-        fireEvent.change(select, { target: { value: '5v5-2-2' } });
-      });
-      expect(confirmSpy).not.toHaveBeenCalled();
-      // Make a manual edit: swap GK ↔ next role. Draft now diverges.
-      const roles = getPresetById('5v5-2-2')!.roles ?? [];
-      await act(async () => {
-        fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[0].name}`));
-      });
-      await act(async () => {
-        fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[1].name}`));
-      });
-      // Now switching prompts; confirm=false → switch is cancelled.
-      await act(async () => {
-        fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
-      });
-      expect(confirmSpy).toHaveBeenCalled();
-      // Editor stayed on 5v5-2-2 because confirm returned false.
-      expect(select).toHaveValue('5v5-2-2');
-    } finally {
-      confirmSpy.mockRestore();
-    }
+  it('switching formation shows inline banner only when the draft diverged from the loaded snap', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    // Pristine draft → switch happens immediately, no banner.
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    expect(
+      screen.queryByTestId('planning-editor-preset-confirm'),
+    ).not.toBeInTheDocument();
+    expect(select).toHaveValue('5v5-2-2');
+    // Make a manual edit: swap two roles. Draft now diverges.
+    const roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[0].name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[1].name}`));
+    });
+    // Try switching → banner appears, select stays put.
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    expect(select).toHaveValue('5v5-2-2');
+    // Cancel keeps the current preset.
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId('planning-editor-preset-confirm-cancel'),
+      );
+    });
+    expect(
+      screen.queryByTestId('planning-editor-preset-confirm'),
+    ).not.toBeInTheDocument();
+    expect(select).toHaveValue('5v5-2-2');
+  });
+
+  it('confirming the formation-change banner switches the preset', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    const roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[0].name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[1].name}`));
+    });
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId('planning-editor-preset-confirm-accept'),
+      );
+    });
+    await waitFor(() => {
+      expect(select).toHaveValue('5v5-1-2-1');
+    });
+    expect(
+      screen.queryByTestId('planning-editor-preset-confirm'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('Apply surfaces the missing-game warning when a picked id is no longer in savedGames', async () => {
+    // Picker selected g1 + g2, but g2 has been deleted (cloud sync,
+    // multi-tab race, IndexedDB eviction). The editor must NOT
+    // auto-close as if both saved; instead surface the gap.
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      // g2 missing on purpose.
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    // The save still ran for g1.
+    expect(applyToGame).toHaveBeenCalledTimes(1);
+    expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+    // Modal does not auto-close.
+    expect(onApplied).not.toHaveBeenCalled();
+    // Warning text mentions the skipped game.
+    expect(screen.getByTestId('planning-editor-warning')).toHaveTextContent(
+      /no longer available|ei ollut enää saatavilla/i,
+    );
   });
 });
