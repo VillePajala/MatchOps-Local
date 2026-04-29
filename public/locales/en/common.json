@@ -1677,6 +1677,7 @@
     "title": "Planning",
     "emptyTitle": "No saved planning sessions yet.",
     "emptyHint": "Import a plan exported from the standalone planner to get started. Saved sessions land in a later phase.",
+    "newPlanButton": "New plan",
     "importButton": "Import plan from JSON",
     "importSuccessTitle": "Plan imported",
     "importFailedTitle": "Import failed",
@@ -1689,6 +1690,13 @@
     "dismissImport": "Dismiss",
     "readError": "Failed to read file.",
     "fileTooLarge": "File is too large (over 1 MB). Plans should be a few KB; please check the file."
+  },
+  "planningGamePicker": {
+    "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",
+    "empty": "No games available for the active team. Save a game first.",
+    "heterogeneousSet": "Selected games must share the same team, period count, and period duration. Adjust your selection or plan them separately.",
+    "selectedCount": "{{count}} selected",
+    "continueButton": "Continue"
   },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",

@@ -8,6 +8,21 @@ import {
   PLAN_FORMAT_VERSION,
   PLAN_EXPORT_KIND,
 } from '@/utils/planExport';
+import type { AppState } from '@/types/game';
+
+// Picker reads only a handful of fields off each saved game; this helper
+// builds the minimal shape and casts to AppState so individual tests
+// don't need ad-hoc `as never`/`as unknown as AppState` escapes.
+type PickerGameFixture = Pick<
+  AppState,
+  | 'teamId'
+  | 'teamName'
+  | 'opponentName'
+  | 'gameDate'
+  | 'numberOfPeriods'
+  | 'periodDurationMinutes'
+>;
+const asSavedGame = (game: PickerGameFixture): AppState => game as AppState;
 
 const validEnvelope = () => ({
   formatVersion: PLAN_FORMAT_VERSION,
@@ -197,6 +212,151 @@ describe('PlanningModal', () => {
     } finally {
       window.FileReader = realFileReader;
     }
+  });
+
+  it('shows the New plan button on the list page', () => {
+    renderModal();
+    expect(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('navigates to the picker when New plan is clicked, and back to the list on Back', () => {
+    renderModal({ savedGames: {} });
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+    // Picker shows empty state when no games are available.
+    expect(
+      screen.getByText(/No games available|Aktiiviselle joukkueelle ei ole pelejä/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /back|takaisin/i })[0]);
+    // Back on the list — New plan button visible again.
+    expect(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('resets to list page when Continue is pressed, so re-open lands on list', () => {
+    // Re-opening with isOpen=true after Continue must land on the list
+    // page (with New plan visible), not the picker we just left.
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <I18nextProvider i18n={i18n}>
+        <PlanningModal
+          isOpen
+          onClose={onClose}
+          savedGames={{
+            g1: asSavedGame({
+              teamId: 'team_a',
+              teamName: 'Pepo',
+              opponentName: 'Opp',
+              gameDate: '2026-04-28',
+              numberOfPeriods: 2,
+              periodDurationMinutes: 25,
+            }),
+          }}
+          currentTeamId="team_a"
+        />
+      </I18nextProvider>,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    expect(onClose).toHaveBeenCalled();
+
+    // Re-render to simulate the modal being re-opened.
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlanningModal
+          isOpen
+          onClose={onClose}
+          savedGames={{
+            g1: asSavedGame({
+              teamId: 'team_a',
+              teamName: 'Pepo',
+              opponentName: 'Opp',
+              gameDate: '2026-04-28',
+              numberOfPeriods: 2,
+              periodDurationMinutes: 25,
+            }),
+          }}
+          currentTeamId="team_a"
+        />
+      </I18nextProvider>,
+    );
+    // Should be on the list page, not the picker.
+    expect(screen.queryByTestId('planning-game-picker')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('passes the active team id to the picker so it filters to that team', () => {
+    renderModal({
+      currentTeamId: 'team_a',
+      savedGames: {
+        g1: asSavedGame({
+          teamId: 'team_a',
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-28',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+        g2: asSavedGame({
+          teamId: 'team_b',
+          teamName: 'Other',
+          opponentName: 'Opp',
+          gameDate: '2026-04-28',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+      },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    // Only g1 is eligible (team_a); g2 is filtered out.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+  });
+
+  it('passes currentTeamName to the picker so legacy games match by name', () => {
+    // Legacy games saved before the teamId column was assigned still
+    // need to be selectable when their teamName matches the active team.
+    renderModal({
+      currentTeamId: 'team_a',
+      currentTeamName: 'Pepo',
+      savedGames: {
+        modern: asSavedGame({
+          teamId: 'team_a',
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-28',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+        legacy: asSavedGame({
+          teamId: undefined,
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-29',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+      },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    // Both modern and legacy match — the legacy game would otherwise
+    // be silently excluded.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
   it('clears import state when Done is clicked, so a re-open starts fresh', async () => {

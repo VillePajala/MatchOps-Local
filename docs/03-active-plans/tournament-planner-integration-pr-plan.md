@@ -193,26 +193,64 @@ PR 5b further splits into 5b (this — pure-logic foundation) and 5c (the actual
 
 ---
 
-## PR 5c — Phase 1 editor UI: PlanningModal pages + drag-drop + Apply button
+## PR 5c — Phase 1 UI part 1: multi-page navigation + game picker
 
 **Branch:** `planner/05c-editor-ui` → `feature/planner-integration`
+**Status:** in flight
+
+Phase 1 UI (originally PR 5c) further splits into 5c (this — picker) + 5d (editor + Apply) + 5e (drag-drop polish, optional). Keeps each PR focused enough to review in one sitting. Editor + Apply ride together in 5d because they have no value separately.
 
 ### Scope
 
-- [ ] `src/components/PlanningModal.tsx` — multi-page UI: empty/list → game picker (with homogeneous-set guard) → editor (pitch with role labels + bench drawer + tap-to-swap and desktop drag-drop). Wire the engine from PR 5b.
-- [ ] Apply-now: integrate `applyDraftToGame` with the existing `mutateGameDetails` path so changes persist via the auto-save tier.
-
-**Legacy-coord fallback** (raised on PR 5a): pre-existing saved games hold the old 11v11 midfield X-coords (~0.05 drift). The editor uses the new `roleForCoord` helper to derive role assignments from `playersOnField` when loading a saved game; off-formation players surface as drag-targets the coach can manually slot. No data migration.
+- [ ] `src/components/PlanningModal.tsx` — convert to a page state machine (`'list' | 'picker'` for now; `'editor'` lands in 5d). Add a "New plan" CTA on the list page that opens the picker.
+- [ ] `src/components/PlanningGamePicker.tsx` — list of saved games for the active team with multi-select. Homogeneous-set guard: same team / formation / numberOfPeriods + periodDurationMinutes; the "Continue" CTA is disabled with a helpful hint when violated.
+- [ ] `ModalManager.tsx` — pass `savedGames`, `currentGameId`, and the `currentTeamId` (or just `gameSessionState.teamId`) into PlanningModal so the picker can scope to the right team.
+- [ ] i18n keys for the picker page (en + fi).
 
 ### Tests
 
-- [ ] `PlanningModal.test.tsx` — game-picker homogeneous-set guard, multi-page navigation, bench-drawer interactions.
-- [ ] Integration: select games → set XI → Apply → games update.
-- [ ] Legacy-coord case: a saved game with old midfield coords loads into the editor; affected players surface as "off-formation" until manually placed.
+- [ ] `PlanningModal.test.tsx` — page navigation: list → picker → back to list; picker disabled state when fewer than one valid game.
+- [ ] `PlanningGamePicker.test.tsx` — homogeneous-set guard rejects mixed formations / mixed durations; allows a single game; allows multiple games sharing all relevant fields.
+
+### Verification
+
+- [ ] Manual: open Planning, click "New plan", verify the picker lists this team's games and blocks heterogeneous selections with a clear hint.
+
+---
+
+## PR 5d — Phase 1 UI part 2: editor + Apply
+
+**Branch:** `planner/05d-editor-apply` → `feature/planner-integration`
+
+### Scope
+
+- [ ] `src/components/PlanningEditor.tsx` — pitch with role labels + bench drawer + tap-to-swap. Uses `planSwapEngine` from PR 5b.
+- [ ] Apply-now: wire `applyDraftToGame` (PR 5b) into the existing `mutateGameDetails` path so each selected game persists via the auto-save tier.
+- [ ] PlanningModal page state extends to `'editor'`; "Continue" from the picker enters the editor.
+
+**Legacy-coord fallback** (raised on PR 5a): pre-existing saved games hold the old 11v11 midfield X-coords (~0.05 drift). The editor uses the `roleForCoord` helper (PR 5b) to derive role assignments from `playersOnField` when loading a saved game; off-formation players surface as drag-targets the coach can manually slot. No data migration.
+
+### Tests
+
+- [ ] `PlanningEditor.test.tsx` — tap-to-swap interactions; legacy-coord game loads without crashing; off-formation players surface separately.
+- [ ] Integration: pick games → set XI → Apply → games update via `mutateGameDetails`.
 
 ### Verification
 
 - [ ] Apply preserves `playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers` (CLAUDE.md Rule 3).
+
+---
+
+## PR 5e — Phase 1 polish (optional): desktop drag-drop
+
+**Branch:** `planner/05e-drag-drop` → `feature/planner-integration`
+
+### Scope
+
+- [ ] Drag-drop on desktop in `PlanningEditor.tsx` (HTML5 drag events). Tap-to-swap remains the mobile fallback.
+- [ ] Visual feedback: drop targets highlight on dragover; drag-source dims.
+
+May fold into a later UX polish pass if not needed in MVP.
 
 ---
 
