@@ -1698,6 +1698,25 @@
     "selectedCount": "{{count}} valittu",
     "continueButton": "Jatka"
   },
+  "planningEditor": {
+    "subtitle": "Aseta kokoonpano. Käytä kirjoittaa sen jokaiseen suunnitelman peliin.",
+    "formation": "Pelisysteemi",
+    "gameCount_one": "{{count}} peli",
+    "gameCount_other": "{{count}} peliä",
+    "assignedCount": "{{filled}}/{{total}} kentällä",
+    "bench": "Vaihtopenkki",
+    "benchEmpty": "Ei pelaajia vaihtopenkillä.",
+    "applyButton_one": "Käytä {{count}} peliin",
+    "applyButton_other": "Käytä {{count}} peleihin",
+    "applying": "Käytetään…",
+    "applyFailed": "Käyttö epäonnistui; yritä uudelleen.",
+    "applyFailedPartial": "Tallennettu {{saved}}/{{total}} peliä ennen virhettä. Yritä uudelleen.",
+    "applySavedSummary": "Tallennettu {{saved}}/{{total}} peliä.",
+    "applyWarnMissing": "{{count}} valittua peliä ei ollut enää saatavilla, ja ne ohitettiin.",
+    "applyWarnUnknownPlayers": "{{count}} pelissä oli kokoonpanon ulkopuolisia pelaajia; nämä jätettiin pois.",
+    "applyWarnUnknownRoles": "{{count}} pelissä oli pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",
+    "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset. Jatketaanko?"
+  },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",
     "installButton": "Asenna",

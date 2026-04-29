@@ -22,12 +22,13 @@ export interface ApplyResult {
    * references, deduped. Roster members not referenced by the draft are
    * intentionally excluded; unknown ids surface in `unknownPlayerIds`.
    *
-   * **Caller's CLAUDE.md Rule 3 responsibility:** when wiring this into
-   * `mutateGameDetails`, set `availablePlayers` to the full team roster.
-   * `applyDraftToGame` does not return `availablePlayers` because the
-   * roster is already known to the caller; the invariant
-   * `playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers` only holds if
-   * the caller honours that contract.
+   * **CLAUDE.md Rule 3 (`playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers`)**
+   * is preserved without the caller touching `availablePlayers`: the
+   * `roster` argument is the game's existing `availablePlayers`, and
+   * `applyDraftToGame` filters both returned arrays through it. The
+   * caller therefore only needs to persist `playersOnField` +
+   * `selectedPlayerIds`; leaving `availablePlayers` untouched on the
+   * game is intentional and Rule-3-safe.
    */
   selectedPlayerIds: PlayerId[];
   /**

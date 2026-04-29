@@ -13,12 +13,14 @@ import {
   type ImportedPlan,
   type PlanImportError,
 } from '@/utils/planExport';
-import type { SavedGamesCollection } from '@/types/game';
+import type { Player } from '@/types';
+import type { AppState, SavedGamesCollection } from '@/types/game';
 import PlanningGamePicker, {
   type PlanningGamePickerGame,
 } from './PlanningGamePicker';
+import PlanningEditor from './PlanningEditor';
 
-type PlanningPage = 'list' | 'picker';
+type PlanningPage = 'list' | 'picker' | 'editor';
 
 interface PlanningModalProps {
   isOpen: boolean;
@@ -37,19 +39,25 @@ interface PlanningModalProps {
    * silently excluded when a team filter is active.
    */
   currentTeamName?: string;
+  /** Master roster — required; the editor renders raw UUIDs without it. */
+  roster: Player[];
+  /** Required — missing at runtime would silently drop saves. */
+  applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 }
 
-/** Phase 0.5 + 1c: list page (with JSON import) and game-picker page. */
 const PlanningModal: React.FC<PlanningModalProps> = ({
   isOpen,
   onClose,
   savedGames,
   currentTeamId,
   currentTeamName,
+  roster,
+  applyToGame,
 }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState<PlanningPage>('list');
+  const [editorGameIds, setEditorGameIds] = useState<string[]>([]);
   const [importedPlan, setImportedPlan] = useState<ImportedPlan | null>(null);
   const [importError, setImportError] = useState<PlanImportError | null>(null);
 
@@ -70,6 +78,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
   const handleClose = () => {
     resetImportState();
+    setEditorGameIds([]);
     setPage('list');
     onClose();
   };
@@ -79,7 +88,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage('picker');
   };
 
-  const handlePickerContinue = (_gameIds: string[]) => {
+  const handlePickerContinue = (gameIds: string[]) => {
+    // Picker's validation already blocks Continue on empty selection;
+    // guarding here makes the contract explicit at the call site.
+    if (gameIds.length === 0) return;
+    setEditorGameIds(gameIds);
+    setPage('editor');
+  };
+
+  const handleEditorBack = () => {
+    setPage('picker');
+  };
+
+  const handleEditorApplied = () => {
+    setEditorGameIds([]);
     setPage('list');
     onClose();
   };
@@ -272,6 +294,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   teamFilterName={currentTeamName}
                   onBack={goToList}
                   onContinue={handlePickerContinue}
+                />
+              )}
+
+              {page === 'editor' && (
+                <PlanningEditor
+                  gameIds={editorGameIds}
+                  savedGames={savedGames ?? {}}
+                  roster={roster}
+                  onBack={handleEditorBack}
+                  onApplied={handleEditorApplied}
+                  applyToGame={applyToGame}
                 />
               )}
             </div>

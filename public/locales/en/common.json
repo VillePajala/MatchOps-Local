@@ -1698,6 +1698,25 @@
     "selectedCount": "{{count}} selected",
     "continueButton": "Continue"
   },
+  "planningEditor": {
+    "subtitle": "Set the lineup. Apply writes it to every game in the plan.",
+    "formation": "Formation",
+    "gameCount_one": "{{count}} game",
+    "gameCount_other": "{{count}} games",
+    "assignedCount": "{{filled}}/{{total}} on field",
+    "bench": "Bench",
+    "benchEmpty": "No players on the bench.",
+    "applyButton_one": "Apply to {{count}} game",
+    "applyButton_other": "Apply to {{count}} games",
+    "applying": "Applying…",
+    "applyFailed": "Apply failed; please try again.",
+    "applyFailedPartial": "Saved {{saved}} of {{total}} games before the error. Please try again.",
+    "applySavedSummary": "Saved {{saved}} of {{total}} games.",
+    "applyWarnMissing": "{{count}} selected game(s) were no longer available and were skipped.",
+    "applyWarnUnknownPlayers": "{{count}} game(s) had players outside their roster; those entries were dropped.",
+    "applyWarnUnknownRoles": "{{count}} game(s) had roles outside the formation; those entries were dropped.",
+    "formationChangeConfirm": "Switching formation will reset your manual assignments. Continue?"
+  },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",
     "installButton": "Install",
