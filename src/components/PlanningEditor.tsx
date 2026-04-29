@@ -45,12 +45,10 @@ export interface PlanningEditorProps {
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 }
 
-/**
- * Reconstruct an initial draft from a saved game's `playersOnField` /
- * `selectedPlayerIds`, snapping each on-field player to a role via
- * `roleForCoord`. Off-formation players (legacy coord drift, ad-hoc tactical
- * placements) fall through to the bench so the coach can re-slot them.
- */
+// Snap each on-field player to a role via `roleForCoord`; off-formation
+// players (legacy coord drift, ad-hoc placements) fall through to bench.
+// TODO(PR 5e or later): also surface roster members not in selectedPlayerIds
+// so a coach can call up freshly added players from this editor.
 function draftFromGame(
   game: AppState | undefined,
   preset: FormationPreset,
@@ -67,8 +65,9 @@ function draftFromGame(
       benchSet.add(p.id);
     }
   }
+  const onFieldIds = new Set(Object.values(startingXI));
   for (const id of game.selectedPlayerIds ?? []) {
-    if (!Object.values(startingXI).includes(id)) {
+    if (!onFieldIds.has(id)) {
       benchSet.add(id);
     }
   }
@@ -90,15 +89,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   applyToGame,
 }) => {
   const { t } = useTranslation();
-  // Picker invariant: gameIds is non-empty when entering the editor.
-  // Guard defensively in case a future caller violates it; the editor
-  // tolerates an undefined firstGame and renders an empty draft.
+  // Picker guarantees ≥1 game; firstGame is undefined-tolerant regardless.
   const firstGame = savedGames[gameIds[0]];
 
-  // Default preset: pick by playersOnField count if the first picked game
-  // already has a lineup; otherwise the largest preset. `playerCount` on
-  // a preset excludes the GK, so add one when matching against the
-  // count we observe (which does include the keeper).
+  // `preset.playerCount` excludes the GK; add one when matching the
+  // observed lineup count (which includes the keeper).
   const defaultPreset = useMemo<FormationPreset>(() => {
     const fieldCount = firstGame?.playersOnField?.length ?? 0;
     return (
@@ -126,13 +121,34 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     return m;
   }, [roster]);
 
-  // Switching formation rebuilds the draft from scratch — manual edits
-  // since the editor opened are intentionally lost. Phase 1 acceptable;
-  // a future revision could prompt to confirm or carry the existing
-  // assignments forward where the role names overlap.
+  // Prompt only when the draft's role→player map differs from the snap
+  // of the loaded game, so a pristine dropdown bump doesn't ask, but a
+  // tap-to-swap edit does.
   const handlePresetChange = (id: string) => {
     const next = getPresetById(id);
     if (!next) return;
+    const baseline = draftFromGame(firstGame, preset);
+    const baselineKeys = Object.keys(baseline.startingXI);
+    const draftKeys = Object.keys(draft.startingXI);
+    const diverged =
+      baselineKeys.length !== draftKeys.length ||
+      baselineKeys.some(
+        (k) => baseline.startingXI[k] !== draft.startingXI[k],
+      ) ||
+      draftKeys.some((k) => baseline.startingXI[k] !== draft.startingXI[k]);
+    if (
+      diverged &&
+      typeof window !== 'undefined' &&
+      typeof window.confirm === 'function' &&
+      !window.confirm(
+        t(
+          'planningEditor.formationChangeConfirm',
+          'Switching formation will reset your manual assignments. Continue?',
+        ),
+      )
+    ) {
+      return;
+    }
     setPresetId(id);
     setDraft(draftFromGame(firstGame, next));
     setSelected(null);
@@ -156,8 +172,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const handleRoleTap = (roleName: string) => {
     const occupant = draft.startingXI[roleName];
     if (!selected) {
-      // Don't enter selection mode on an empty role — there's nothing to
-      // swap from. Tap a player slot or a bench player first.
+      // Empty role can't be a swap source.
       if (!occupant) return;
       setSelected({ target: roleName });
       return;
@@ -186,15 +201,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       return;
     }
     if (selected.target === BENCH) {
-      // Bench-to-bench is a no-op in the engine; just move the
-      // selection to the new bench player so the next role tap acts
-      // on the most recent choice.
+      // Bench→bench is a no-op; just move the selection to the new tap.
       setSelected({ target: BENCH, benchPlayerId: playerId });
       return;
     }
-    // Source is a role → bring the tapped bench player on; the engine's
-    // bench→field branch handles the displacement atomically (existing
-    // role occupant goes to the bench tail).
+    // Engine's bench→field branch displaces the existing occupant atomically.
     setDraft((d) =>
       performSwap(d, {
         source: BENCH,
@@ -211,17 +222,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setApplyWarning(null);
     let gamesWithUnknownPlayers = 0;
     let gamesWithUnknownRoles = 0;
+    let savedCount = 0;
     try {
       for (const id of gameIds) {
         const game = savedGames[id];
         if (!game) continue;
-        // Use the per-game availablePlayers as the roster filter so
-        // CLAUDE.md Rule 3 (playersOnField ⊆ selectedPlayerIds ⊆
-        // availablePlayers) holds for each individual game without us
-        // widening the team roster. Players in the draft that aren't in
-        // the game's roster are dropped from selectedPlayerIds and
-        // surfaced via `unknownPlayerIds` so we can warn the coach
-        // afterwards instead of silently narrowing the lineup.
+        // Per-game availablePlayers is the roster filter so CLAUDE.md Rule 3
+        // (playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers) holds
+        // without widening any team's roster. Drops surface as unknown*
+        // counters and feed the warning banner.
         const result = applyDraftToGame(draft, preset, game.availablePlayers);
         if (result.unknownPlayerIds.length > 0) gamesWithUnknownPlayers++;
         if (result.unknownRoles.length > 0) gamesWithUnknownRoles++;
@@ -229,16 +238,14 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           playersOnField: result.playersOnField,
           selectedPlayerIds: result.selectedPlayerIds,
         });
+        savedCount++;
       }
       if (gamesWithUnknownPlayers > 0 || gamesWithUnknownRoles > 0) {
-        // Saves succeeded but some draft entries didn't fit a game's
-        // roster or the chosen formation. Stay in the editor with a
-        // warning banner; the coach acknowledges by tapping Done in
-        // the modal footer (which still reaches `onClose`).
+        // Stay in the editor with a warning banner; coach acknowledges via Done.
         setApplyWarning(
           t(
             'planningEditor.applyWarnUnknown',
-            'Saved, but {{players}} game(s) had players outside their roster and {{roles}} had roles outside the formation; those entries were dropped.',
+            'Saved, but {{players}} game(s) had players outside their roster and {{roles}} game(s) had roles outside the formation; those entries were dropped.',
             {
               players: gamesWithUnknownPlayers,
               roles: gamesWithUnknownRoles,
@@ -249,19 +256,24 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       }
       onApplied();
     } catch {
-      // Translated fallback only — never surface raw error text. Sentry
-      // captures the original via the mutation's onError; the user sees
-      // a sanitized message.
+      // Translated fallback only — raw error text never reaches the user.
+      // Tell the coach how many games persisted before the failure so a
+      // retry isn't a leap of faith.
       setApplyError(
-        t('planningEditor.applyFailed', 'Apply failed; please try again.'),
+        savedCount > 0
+          ? t(
+              'planningEditor.applyFailedPartial',
+              'Saved {{saved}} of {{total}} games before the error. Please try again.',
+              { saved: savedCount, total: gameIds.length },
+            )
+          : t('planningEditor.applyFailed', 'Apply failed; please try again.'),
       );
     } finally {
       setIsApplying(false);
     }
   };
 
-  // Count the entire role list (incl. GK) so the "5/8 on field" indicator
-  // tracks every slot — `preset.playerCount` excludes the keeper.
+  // Count entire role list (incl. GK); `playerCount` excludes the keeper.
   const fieldPlayerCount = Object.keys(draft.startingXI).length;
   const targetPlayerCount = (preset.roles ?? []).length;
 
@@ -320,10 +332,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         </span>
       </div>
 
-      {/* Pitch */}
+      {/* Pitch — 2:3 portrait, half-field tactical layout. */}
       <div
         className="relative w-full rounded-md bg-emerald-900/30 border border-emerald-800/50"
-        // 2:3 portrait pitch — standard for half-field tactical views.
         style={{ aspectRatio: '2 / 3' }}
         data-testid="planning-editor-pitch"
       >
@@ -410,7 +421,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
       {applyWarning ? (
         <div
-          role="status"
+          role="alert"
           className="flex items-start gap-2 rounded-md bg-amber-900/30 border border-amber-700/40 p-3 text-sm text-amber-100"
           data-testid="planning-editor-warning"
         >

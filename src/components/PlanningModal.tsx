@@ -94,6 +94,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   };
 
   const handlePickerContinue = (gameIds: string[]) => {
+    // Picker's validation already blocks Continue on empty selection;
+    // guarding here makes the contract explicit at the call site.
+    if (gameIds.length === 0) return;
     setEditorGameIds(gameIds);
     setPage('editor');
   };
@@ -107,7 +110,6 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage('list');
     onClose();
   };
-
 
   const handleImportClick = () => {
     fileInputRef.current?.click();

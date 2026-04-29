@@ -1710,7 +1710,9 @@
     "applyButton_other": "Apply to {{count}} games",
     "applying": "Applying…",
     "applyFailed": "Apply failed; please try again.",
-    "applyWarnUnknown": "Saved, but {{players}} game(s) had players outside their roster and {{roles}} had roles outside the formation; those entries were dropped."
+    "applyFailedPartial": "Saved {{saved}} of {{total}} games before the error. Please try again.",
+    "applyWarnUnknown": "Saved, but {{players}} game(s) had players outside their roster and {{roles}} game(s) had roles outside the formation; those entries were dropped.",
+    "formationChangeConfirm": "Switching formation will reset your manual assignments. Continue?"
   },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",

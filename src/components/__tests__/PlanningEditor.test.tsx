@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../../i18n.test';
@@ -127,7 +127,7 @@ describe('PlanningEditor', () => {
     expect(bench).toHaveTextContent('P1');
   });
 
-  it('tap-to-swap: tap two roles swaps their players', () => {
+  it('tap-to-swap: tap two roles swaps their players', async () => {
     renderEditor();
     const role0 = (PRESET.roles ?? [])[0]; // GK
     const role1 = (PRESET.roles ?? [])[1];
@@ -137,35 +137,45 @@ describe('PlanningEditor', () => {
     const before1 = screen
       .getByTestId(`planning-editor-role-${role1.name}`)
       .textContent;
-    fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
-    fireEvent.click(screen.getByTestId(`planning-editor-role-${role1.name}`));
-    expect(
-      screen.getByTestId(`planning-editor-role-${role0.name}`),
-    ).toHaveTextContent(before1!.replace(role1.name, '').trim());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role0.name}`),
+      ).toHaveTextContent(before1!.replace(role1.name, '').trim());
+    });
     expect(
       screen.getByTestId(`planning-editor-role-${role1.name}`),
     ).toHaveTextContent(before0!.replace(role0.name, '').trim());
   });
 
-  it('tap-to-swap: tap role then bench player brings bench player on', () => {
+  it('tap-to-swap: tap role then bench player brings bench player on', async () => {
     renderEditor();
     const role = (PRESET.roles ?? [])[1]; // skip GK to keep semantics obvious
     const fieldPlayerBefore = screen
       .getByTestId(`planning-editor-role-${role.name}`)
       .textContent;
-    fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
-    fireEvent.click(screen.getByTestId('planning-editor-bench-p8'));
-    // Field role now shows P8.
-    expect(
-      screen.getByTestId(`planning-editor-role-${role.name}`),
-    ).toHaveTextContent('P8');
-    // Previous occupant (P1) is now on the bench.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P8');
+    });
     expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
       fieldPlayerBefore!.replace(role.name, '').trim(),
     );
   });
 
-  it('tap on empty role does not enter selection mode', () => {
+  it('tap on empty role does not enter selection mode', async () => {
     // Build a game whose first preset role (GK) is empty.
     const roster = makeRoster(8);
     const playersOnField = (PRESET.roles ?? [])
@@ -186,19 +196,23 @@ describe('PlanningEditor', () => {
     });
     const role0 = (PRESET.roles ?? [])[0];
     const role1 = (PRESET.roles ?? [])[1];
-    // Tapping the empty role should not arm selection — tapping role1
-    // afterwards arms it instead, which we observe by tapping role1
-    // again and confirming no swap happened.
-    fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
-    fireEvent.click(screen.getByTestId(`planning-editor-role-${role1.name}`));
-    fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
-    // role0 should still be empty (selection of role1 -> tap role0 moves
-    // role1's player into role0, which is the expected swap behaviour).
-    // The point of this test is that the FIRST tap on empty did nothing —
-    // we verify by checking role1 is now empty, not role0.
-    expect(
-      screen.getByTestId(`planning-editor-role-${role1.name}`),
-    ).toHaveTextContent('—');
+    // Tap empty role0 (no-op), then role1 (arms it), then role0
+    // (should now move role1's player into role0). We assert role1
+    // ends empty — proving role0's first tap didn't arm selection.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role1.name}`),
+      ).toHaveTextContent('—');
+    });
   });
 
   it('Apply calls applyToGame for each picked game and then onApplied', async () => {
@@ -278,21 +292,61 @@ describe('PlanningEditor', () => {
     expect(onApplied).not.toHaveBeenCalled();
   });
 
-  it('Back invokes onBack', () => {
+  it('Back invokes onBack', async () => {
     const { props } = renderEditor();
-    fireEvent.click(screen.getByRole('button', { name: /back|takaisin/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /back|takaisin/i }));
+    });
     expect(props.onBack).toHaveBeenCalledTimes(1);
   });
 
-  it('switching formation rebuilds the draft and clears any selection', () => {
+  it('switching formation rebuilds the draft and clears any selection', async () => {
     renderEditor();
     // ST is unique to 8v8-3-3-1 (5v5-2-2 has GK/LB/RB/LF/RF, no ST).
     const ROLE_8V8_ONLY = 'ST';
-    fireEvent.click(screen.getByTestId(`planning-editor-role-${ROLE_8V8_ONLY}`));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`planning-editor-role-${ROLE_8V8_ONLY}`),
+      );
+    });
     const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: '5v5-2-2' } });
-    expect(
-      screen.queryByTestId(`planning-editor-role-${ROLE_8V8_ONLY}`),
-    ).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(`planning-editor-role-${ROLE_8V8_ONLY}`),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('switching formation prompts only when the draft diverged from the loaded snap', async () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    try {
+      renderEditor();
+      const select = screen.getByRole('combobox');
+      // Pristine draft → no prompt.
+      await act(async () => {
+        fireEvent.change(select, { target: { value: '5v5-2-2' } });
+      });
+      expect(confirmSpy).not.toHaveBeenCalled();
+      // Make a manual edit: swap GK ↔ next role. Draft now diverges.
+      const roles = getPresetById('5v5-2-2')!.roles ?? [];
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[0].name}`));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[1].name}`));
+      });
+      // Now switching prompts; confirm=false → switch is cancelled.
+      await act(async () => {
+        fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+      });
+      expect(confirmSpy).toHaveBeenCalled();
+      // Editor stayed on 5v5-2-2 because confirm returned false.
+      expect(select).toHaveValue('5v5-2-2');
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 });

@@ -1710,7 +1710,9 @@
     "applyButton_other": "Käytä {{count}} peliin",
     "applying": "Käytetään…",
     "applyFailed": "Käyttö epäonnistui; yritä uudelleen.",
-    "applyWarnUnknown": "Tallennettu, mutta {{players}} pelissä oli kokoonpanon ulkopuolisia pelaajia ja {{roles}} pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois."
+    "applyFailedPartial": "Tallennettu {{saved}}/{{total}} peliä ennen virhettä. Yritä uudelleen.",
+    "applyWarnUnknown": "Tallennettu, mutta {{players}} pelissä oli kokoonpanon ulkopuolisia pelaajia ja {{roles}} pelissä pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",
+    "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset. Jatketaanko?"
   },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",
