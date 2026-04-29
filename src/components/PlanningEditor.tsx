@@ -26,6 +26,8 @@ import {
   roleForCoord,
 } from '@/utils/planApply';
 import logger from '@/utils/logger';
+import PlanningTimeline from './PlanningTimeline';
+import type { DraftScheduledSub } from '@/utils/planSwapEngine';
 
 export interface PlanningEditorProps {
   /** Game ids picked in the previous page; the editor mutates each on Apply. */
@@ -48,7 +50,7 @@ function draftFromGame(
 ): PlanDraft {
   const startingXI: Record<string, PlayerId> = {};
   const benchSet = new Set<PlayerId>();
-  if (!game) return { startingXI, bench: [] };
+  if (!game) return { startingXI, bench: [], scheduledSubs: [] };
 
   for (const p of game.playersOnField ?? []) {
     const role = roleForCoord(preset, p.relX ?? 0.5, p.relY ?? 0.5);
@@ -64,7 +66,20 @@ function draftFromGame(
       benchSet.add(id);
     }
   }
-  return { startingXI, bench: [...benchSet] };
+  // Hydrate any scheduledSubs the game already carries (post-Apply
+  // re-edits or imported plans). Sorted ascending by timeSeconds for
+  // stable timeline rendering. Status is intentionally dropped — the
+  // draft has no concept of fired/skipped state.
+  const scheduledSubs = (game.scheduledSubs ?? [])
+    .map(({ id, timeSeconds, outPlayer, inPlayer, positionRole }) => ({
+      id,
+      timeSeconds,
+      outPlayer,
+      inPlayer,
+      positionRole,
+    }))
+    .sort((a, b) => a.timeSeconds - b.timeSeconds);
+  return { startingXI, bench: [...benchSet], scheduledSubs };
 }
 
 interface SelectedSlot {
@@ -223,6 +238,45 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setSelected(null);
   };
 
+  // Timeline mutation handlers. The draft's `scheduledSubs` array stays
+  // sorted by timeSeconds ascending after every mutation so renderers
+  // and fairness math don't need to re-sort.
+  const handleAddSub = (sub: DraftScheduledSub) => {
+    setDraft((d) => ({
+      ...d,
+      scheduledSubs: [...d.scheduledSubs, sub].sort(
+        (a, b) => a.timeSeconds - b.timeSeconds,
+      ),
+    }));
+  };
+  const handleUpdateSub = (
+    subId: string,
+    updates: Partial<DraftScheduledSub>,
+  ) => {
+    setDraft((d) => ({
+      ...d,
+      scheduledSubs: d.scheduledSubs
+        .map((s) => (s.id === subId ? { ...s, ...updates } : s))
+        .sort((a, b) => a.timeSeconds - b.timeSeconds),
+    }));
+  };
+  const handleRemoveSub = (subId: string) => {
+    setDraft((d) => ({
+      ...d,
+      scheduledSubs: d.scheduledSubs.filter((s) => s.id !== subId),
+    }));
+  };
+
+  // Total game duration in seconds for fairness math + form validation.
+  // Prefers the first game's authored fields; falls back to a sane
+  // 8v8 default (2 × 25 = 50 minutes) if either is missing so the
+  // editor stays usable even on an under-populated game record.
+  const gameDurationSec = useMemo(() => {
+    const periods = firstGame?.numberOfPeriods ?? 2;
+    const len = firstGame?.periodDurationMinutes ?? 25;
+    return Math.max(1, periods * len * 60);
+  }, [firstGame]);
+
   // Drag-drop primitives. Drag piggybacks on the same `performSwap` engine
   // that tap-to-swap uses; drop is the same operation as a tap on the
   // destination after a tap on the source.
@@ -366,6 +420,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         await applyToGame(id, {
           playersOnField: result.playersOnField,
           selectedPlayerIds: result.selectedPlayerIds,
+          scheduledSubs: result.scheduledSubs,
         });
         savedCount++;
         // Count drops only on the success path so a throw doesn't claim
@@ -692,6 +747,17 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           </ul>
         )}
       </div>
+
+      <PlanningTimeline
+        draft={draft}
+        preset={preset}
+        roster={roster}
+        gameDurationSec={gameDurationSec}
+        onAddSub={handleAddSub}
+        onUpdateSub={handleUpdateSub}
+        onRemoveSub={handleRemoveSub}
+        disabled={isApplying || pendingPresetId !== null}
+      />
 
       {applyError ? (
         <div

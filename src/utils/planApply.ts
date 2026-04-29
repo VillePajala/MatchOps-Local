@@ -6,6 +6,7 @@
 import type { Player } from '@/types';
 import type { FormationPreset } from '@/config/formationPresets';
 import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
+import type { ScheduledSub } from '@/types/game';
 
 export interface ApplyResult {
   /**
@@ -44,6 +45,14 @@ export interface ApplyResult {
    * "X players on the plan are not in the team roster" for the import case.
    */
   unknownPlayerIds: PlayerId[];
+  /**
+   * `Game.scheduledSubs` shape (status: 'pending') derived from the
+   * draft's scheduledSubs. Subs whose `inPlayer` or `outPlayer` aren't
+   * in the roster are dropped (the player ids are also surfaced via
+   * `unknownPlayerIds`). Subs whose `positionRole` isn't in the preset
+   * are dropped (and surfaced via `unknownRoles`).
+   */
+  scheduledSubs: ScheduledSub[];
 }
 
 /**
@@ -115,11 +124,40 @@ export function applyDraftToGame(
     }
   }
 
+  // 4. scheduledSubs: filter out subs that reference unknown roles or
+  //    unknown players; the rest get status: 'pending'. Sorted ascending
+  //    by timeSeconds for stable persistence + later timer comparison.
+  const scheduledSubs: ScheduledSub[] = [];
+  for (const s of draft.scheduledSubs) {
+    if (!presetRoleNames.has(s.positionRole)) {
+      unknownRolesSet.add(s.positionRole);
+      continue;
+    }
+    if (!rosterMap.has(s.inPlayer)) {
+      unknownPlayerIdsSet.add(s.inPlayer);
+      continue;
+    }
+    if (!rosterMap.has(s.outPlayer)) {
+      unknownPlayerIdsSet.add(s.outPlayer);
+      continue;
+    }
+    scheduledSubs.push({
+      id: s.id,
+      timeSeconds: s.timeSeconds,
+      outPlayer: s.outPlayer,
+      inPlayer: s.inPlayer,
+      positionRole: s.positionRole,
+      status: 'pending',
+    });
+  }
+  scheduledSubs.sort((a, b) => a.timeSeconds - b.timeSeconds);
+
   return {
     playersOnField,
     selectedPlayerIds,
     unknownRoles: [...unknownRolesSet],
     unknownPlayerIds: [...unknownPlayerIdsSet],
+    scheduledSubs,
   };
 }
 

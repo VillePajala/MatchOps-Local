@@ -15,7 +15,7 @@ const roster: Player[] = [
 describe('planDraftFromImport', () => {
   it('builds a draft with startingXI assignments + remaining roster on bench', () => {
     const r = planDraftFromImport(
-      { startingXI: { GK: 'p1', LB: 'p2' } },
+      { scheduledSubs: [], startingXI: { GK: 'p1', LB: 'p2' } },
       roster,
     );
     expect(r.draft.startingXI).toEqual({ GK: 'p1', LB: 'p2' });
@@ -26,7 +26,7 @@ describe('planDraftFromImport', () => {
 
   it('strips unknown player ids and surfaces them', () => {
     const r = planDraftFromImport(
-      { startingXI: { GK: 'p1', LB: 'pUnknown' } },
+      { scheduledSubs: [], startingXI: { GK: 'p1', LB: 'pUnknown' } },
       roster,
     );
     expect(r.draft.startingXI).toEqual({ GK: 'p1' });
@@ -36,7 +36,7 @@ describe('planDraftFromImport', () => {
 
   it('drops duplicate role assignments (first-seen wins) and surfaces them — Codex P2', () => {
     const r = planDraftFromImport(
-      { startingXI: { GK: 'p1', LB: 'p1', RB: 'p2' } },
+      { scheduledSubs: [], startingXI: { GK: 'p1', LB: 'p1', RB: 'p2' } },
       roster,
     );
     // p1 stays at GK (first seen); LB is dropped.
@@ -50,7 +50,7 @@ describe('planDraftFromImport', () => {
 
   it('skips empty-string player slots from the standalone', () => {
     const r = planDraftFromImport(
-      { startingXI: { GK: 'p1', LB: '' } },
+      { scheduledSubs: [], startingXI: { GK: 'p1', LB: '' } },
       roster,
     );
     expect(r.draft.startingXI).toEqual({ GK: 'p1' });
@@ -60,7 +60,7 @@ describe('planDraftFromImport', () => {
   it('returns an empty bench when all roster members are starters', () => {
     const r = planDraftFromImport(
       {
-        startingXI: { GK: 'p1', LB: 'p2', RB: 'p3', ST: 'p4' },
+        scheduledSubs: [], startingXI: { GK: 'p1', LB: 'p2', RB: 'p3', ST: 'p4' },
       },
       roster,
     );
@@ -69,14 +69,14 @@ describe('planDraftFromImport', () => {
 
   it('preserves roster order in bench (deterministic for snapshot tests)', () => {
     const r = planDraftFromImport(
-      { startingXI: { GK: 'p3' } },
+      { scheduledSubs: [], startingXI: { GK: 'p3' } },
       roster,
     );
     expect(r.draft.bench).toEqual(['p1', 'p2', 'p4']);
   });
 
   it('returns an empty draft for empty startingXI', () => {
-    const r = planDraftFromImport({ startingXI: {} }, roster);
+    const r = planDraftFromImport({ scheduledSubs: [], startingXI: {} }, roster);
     expect(r.draft.startingXI).toEqual({});
     expect(r.draft.bench).toEqual(['p1', 'p2', 'p3', 'p4']);
   });

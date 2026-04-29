@@ -25,6 +25,7 @@ const roster: Player[] = [
 describe('applyDraftToGame — typical Apply path', () => {
   it('places players at their role coords', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2', RB: 'p3', LF: 'p4', RF: 'p5' },
       bench: [],
     };
@@ -40,6 +41,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 
   it('preserves player metadata (name, jerseyNumber, isGoalie)', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
@@ -54,6 +56,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 
   it('selectedPlayerIds contains every roster member referenced by the draft', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2' },
       bench: ['p3', 'p4', 'p5'],
     };
@@ -63,6 +66,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 
   it('preserves Rule 3: playersOnField ⊆ selectedPlayerIds', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2', RB: 'p3', LF: 'p4', RF: 'p5' },
       bench: [],
     };
@@ -75,6 +79,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 
   it('skips empty role slots without errors', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2' }, // RB/LF/RF empty
       bench: ['p3', 'p4', 'p5'],
     };
@@ -88,6 +93,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 describe('applyDraftToGame — defensive paths', () => {
   it('flags player ids not in the roster (filters them out)', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'pUnknown' },
       bench: ['p3'],
     };
@@ -99,6 +105,7 @@ describe('applyDraftToGame — defensive paths', () => {
 
   it('flags role names not in the preset (filters them out of playersOnField)', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', NotARole: 'p2' },
       bench: ['p3', 'p4', 'p5'],
     };
@@ -112,6 +119,7 @@ describe('applyDraftToGame — defensive paths', () => {
   it('handles a preset with no `roles` map (legacy presets)', () => {
     const noRolesPreset = { ...preset5v5_2_2, roles: undefined };
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2' },
       bench: ['p3', 'p4', 'p5'],
     };
@@ -125,6 +133,7 @@ describe('applyDraftToGame — defensive paths', () => {
 
   it('handles a null preset gracefully', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
@@ -139,6 +148,7 @@ describe('applyDraftToGame — defensive paths', () => {
     // dedupes via Set semantics. The editor UI is responsible for
     // preventing this state at the source. See JSDoc on applyDraftToGame.
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
@@ -153,6 +163,7 @@ describe('applyDraftToGame — defensive paths', () => {
     // in step 3 of applyDraftToGame deduplicate, so selectedPlayerIds
     // contains p1 exactly once even though the draft references it twice.
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1' },
       bench: ['p1', 'p2', 'p3', 'p4', 'p5'],
     };
@@ -166,6 +177,7 @@ describe('applyDraftToGame — defensive paths', () => {
     // role must still be reported via unknownRoles. Earlier code skipped
     // entries by player id, swallowing the unknown role in this case.
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', NotARole: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
@@ -183,6 +195,7 @@ describe('applyDraftToGame — 8v8 sanity check', () => {
       { id: 'p8', name: 'Hank', isGoalie: false },
     ] as Player[];
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: {
         GK: 'p1',
         LB: 'p2',

@@ -28,7 +28,7 @@ describe('planner foundation pipeline — import → swap × N → apply', () =>
     // 1. Import: the standalone exports a 5v5 starting XI.
     const importResult = planDraftFromImport(
       {
-        startingXI: { GK: 'p1', LB: 'p2', RB: 'p3', LF: 'p4', RF: 'p5' },
+        scheduledSubs: [], startingXI: { GK: 'p1', LB: 'p2', RB: 'p3', LF: 'p4', RF: 'p5' },
       },
       roster,
     );
@@ -90,6 +90,7 @@ describe('planner foundation pipeline — import → swap × N → apply', () =>
     // (pStranger). The pipeline should clean it up without throwing.
     const importResult = planDraftFromImport(
       {
+        scheduledSubs: [],
         startingXI: {
           GK: 'p1',
           LB: 'p1',           // duplicate — drop with first-seen-wins

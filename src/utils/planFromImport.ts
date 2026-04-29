@@ -38,7 +38,7 @@ export interface PlanFromImportResult {
  *   (deterministic for snapshot tests).
  */
 export function planDraftFromImport(
-  imported: Pick<ImportedPlanGame, 'startingXI'>,
+  imported: Pick<ImportedPlanGame, 'startingXI' | 'scheduledSubs'>,
   roster: readonly Player[],
 ): PlanFromImportResult {
   const rosterIds = new Set(roster.map((p) => p.id));
@@ -65,8 +65,22 @@ export function planDraftFromImport(
   }
 
   const bench = roster.filter((p) => !seenInXI.has(p.id)).map((p) => p.id);
+  // Carry imported scheduled subs onto the draft, dropping the runtime
+  // status (drafts have no concept of fired/skipped). Sorted ascending
+  // by timeSeconds so the timeline editor can treat the array as
+  // monotonic without an additional sort step.
+  const importedSubs = imported.scheduledSubs ?? [];
+  const scheduledSubs = importedSubs
+    .map(({ id, timeSeconds, outPlayer, inPlayer, positionRole }) => ({
+      id,
+      timeSeconds,
+      outPlayer,
+      inPlayer,
+      positionRole,
+    }))
+    .sort((a, b) => a.timeSeconds - b.timeSeconds);
   return {
-    draft: { startingXI, bench },
+    draft: { startingXI, bench, scheduledSubs },
     unknownPlayerIds,
     duplicateRoleAssignments,
   };

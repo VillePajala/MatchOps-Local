@@ -18,6 +18,7 @@ const roster = ['p1', 'p2', 'p3', 'p4', 'p5'];
 const draftWith = (overrides: Partial<PlanDraft> = {}): PlanDraft => ({
   startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
   bench: ['p4', 'p5'],
+  scheduledSubs: [],
   ...overrides,
 });
 
@@ -163,13 +164,14 @@ describe('checkRosterIntegrity', () => {
     const broken: PlanDraft = {
       startingXI: { GK: 'p1', LB: 'p2' },
       bench: ['p1', 'p3'], // p1 appears twice
+      scheduledSubs: [],
     };
     const r = checkRosterIntegrity(broken, ['p1', 'p2', 'p3']);
     expect(r.duplicates).toEqual(['p1']);
   });
 
   it('flags missing players (roster has them, draft does not)', () => {
-    const broken: PlanDraft = { startingXI: { GK: 'p1' }, bench: ['p2'] };
+    const broken: PlanDraft = { startingXI: { GK: 'p1' }, bench: ['p2'], scheduledSubs: [] };
     const r = checkRosterIntegrity(broken, ['p1', 'p2', 'p3']);
     expect(r.missing).toEqual(['p3']);
   });
@@ -178,6 +180,7 @@ describe('checkRosterIntegrity', () => {
     const broken: PlanDraft = {
       startingXI: { GK: 'pX' },
       bench: ['p2'],
+      scheduledSubs: [],
     };
     const r = checkRosterIntegrity(broken, ['p1', 'p2']);
     expect(r.orphans).toEqual(['pX']);

@@ -290,7 +290,11 @@ describe('Translation File Validation', () => {
       // base key for every `_one`/`_other` pair so dynamic-key call
       // sites can assert against TranslationKey.
       // +1: applySavedSummary (warning banner saved-count prefix).
-      expect(enKeys.length).toBe(2480);
+      // Planner Phase 2: planningTimeline (17 keys: title, totalDuration,
+      // empty, addSub, editSub, removeSub, time, role, inPlayer,
+      // pickPlayer, noRoles, errBadTime, errTimeOutOfRange, errNoRole,
+      // errNoPlayer, errNoOccupant, errSelfSub)
+      expect(enKeys.length).toBe(2497);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -303,7 +307,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 1d: planningEditor (16 keys; split warning into
       // applyWarnUnknownPlayers + applyWarnUnknownRoles)
       // +1: applySavedSummary (warning banner saved-count prefix).
-      expect(fiKeys.length).toBe(2480);
+      // Planner Phase 2: planningTimeline section (17 keys).
+      expect(fiKeys.length).toBe(2497);
     });
   });
 });

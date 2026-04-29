@@ -1717,6 +1717,25 @@
     "applyWarnUnknownRoles": "{{count}} pelissä oli pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",
     "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset. Jatketaanko?"
   },
+  "planningTimeline": {
+    "title": "Aikajana",
+    "totalDuration": "Pelin pituus: {{mmss}}",
+    "empty": "Ei ajastettuja vaihtoja. Lisää uusi painikkeesta \"Lisää vaihto\".",
+    "addSub": "Lisää vaihto",
+    "editSub": "Muokkaa vaihtoa",
+    "removeSub": "Poista vaihto",
+    "time": "Aika (mm:ss)",
+    "role": "Rooli",
+    "inPlayer": "Sisään tuleva pelaaja",
+    "pickPlayer": "— valitse pelaaja —",
+    "noRoles": "— ei sijoitettuja rooleja —",
+    "errBadTime": "Virheellinen aika. Käytä muotoa MM:SS.",
+    "errTimeOutOfRange": "Ajan on oltava välillä 00:00 ja pelin pituus.",
+    "errNoRole": "Valitse rooli.",
+    "errNoPlayer": "Valitse pelaaja.",
+    "errNoOccupant": "Tällä roolilla ei ole pelaajaa kyseisenä aikana. Aseta ensin kentälle.",
+    "errSelfSub": "Valittu pelaaja on jo tällä roolilla kyseisenä aikana."
+  },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",
     "installButton": "Asenna",

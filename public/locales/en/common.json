@@ -1717,6 +1717,25 @@
     "applyWarnUnknownRoles": "{{count}} game(s) had roles outside the formation; those entries were dropped.",
     "formationChangeConfirm": "Switching formation will reset your manual assignments. Continue?"
   },
+  "planningTimeline": {
+    "title": "Timeline",
+    "totalDuration": "Game length: {{mmss}}",
+    "empty": "No scheduled subs yet. Press \"Add sub\" to schedule one.",
+    "addSub": "Add sub",
+    "editSub": "Edit sub",
+    "removeSub": "Remove sub",
+    "time": "Time (mm:ss)",
+    "role": "Role",
+    "inPlayer": "Player coming on",
+    "pickPlayer": "— pick a player —",
+    "noRoles": "— no assigned roles —",
+    "errBadTime": "Invalid time. Use MM:SS.",
+    "errTimeOutOfRange": "Time must be between 00:00 and the game duration.",
+    "errNoRole": "Pick a role.",
+    "errNoPlayer": "Pick a player.",
+    "errNoOccupant": "No player at that role at that time. Assign one via the pitch first.",
+    "errSelfSub": "The chosen player is already at that role at that time."
+  },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",
     "installButton": "Install",

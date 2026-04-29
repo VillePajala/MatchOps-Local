@@ -717,11 +717,66 @@ describe('PlanningEditor', () => {
       expect(onApplied).toHaveBeenCalledTimes(1);
     });
     expect(applyToGame).toHaveBeenCalledTimes(2);
-    // Each call carries playersOnField + selectedPlayerIds.
+    // Each call carries playersOnField + selectedPlayerIds + scheduledSubs.
     const [firstId, firstUpdates] = applyToGame.mock.calls[0];
     expect(firstId).toBe('g1');
     expect(firstUpdates).toHaveProperty('playersOnField');
     expect(firstUpdates).toHaveProperty('selectedPlayerIds');
+    expect(firstUpdates).toHaveProperty('scheduledSubs');
+  });
+
+  it('Apply writes scheduledSubs from the timeline to every picked game', async () => {
+    // Add a sub via the timeline form, then Apply, and verify the sub
+    // lands on each picked game's scheduledSubs with status: 'pending'.
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2 = makeGameWithLineup(roster, ['p9']);
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    const role1 = (PRESET.roles ?? [])[1].name;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '08:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role1 },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(onApplied).toHaveBeenCalledTimes(1);
+    });
+    // Both games receive the same scheduledSubs entry.
+    for (const call of applyToGame.mock.calls) {
+      const subs = call[1].scheduledSubs;
+      expect(subs).toHaveLength(1);
+      expect(subs[0]).toMatchObject({
+        timeSeconds: 480,
+        positionRole: role1,
+        inPlayer: 'p8',
+        status: 'pending',
+      });
+    }
   });
 
   it('Apply shows the warning banner and does not call onApplied when a game drops players or roles', async () => {
