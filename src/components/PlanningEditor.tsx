@@ -246,7 +246,16 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
       setDragOverTarget(overKey);
     };
-  const handleDragLeave = () => setDragOverTarget(null);
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Ignore leaves where the cursor is still inside the same element
+    // (e.g. moving between a child <button> and its parent drawer); the
+    // browser fires dragleave on the parent before dragover on the
+    // child, which causes a single-frame ring flicker without this
+    // guard.
+    const related = e.relatedTarget as Node | null;
+    if (related && e.currentTarget.contains(related)) return;
+    setDragOverTarget(null);
+  };
   const performDrop = (
     target: SwapTarget,
     benchPlayerId?: PlayerId,
@@ -271,11 +280,12 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     e.preventDefault();
     performDrop(roleName);
   };
-  const handleDropOnBenchPlayer = (playerId: PlayerId) => (e: React.DragEvent) => {
+  const handleDropOntoBenchPlayer = (playerId: PlayerId) => (e: React.DragEvent) => {
     e.preventDefault();
-    // Drop onto a specific bench player mirrors the tap gesture: source's
-    // occupant trades places with this bench player. Engine handles it
-    // via bench→field with the bench player as the new occupant.
+    // Dropping onto a specific bench player mirrors the tap gesture:
+    // source's occupant trades places with this bench player. Engine
+    // handles it via bench→field with the bench player as the new
+    // occupant.
     if (!dragSource) return;
     if (dragSource.target === BENCH) {
       // Bench→bench is a no-op; just clear drag state.
@@ -634,7 +644,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                         : undefined
                     }
                     onDragEnd={handleDragEnd}
-                    onDrop={handleDropOnBenchPlayer(id)}
+                    onDragOver={handleDragOver('bench-drawer')}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDropOntoBenchPlayer(id)}
                     className={`rounded-md px-3 py-1.5 text-sm shadow ${
                       isSrc ? 'opacity-50 ' : ''
                     }${

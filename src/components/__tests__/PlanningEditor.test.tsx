@@ -370,6 +370,64 @@ describe('PlanningEditor', () => {
     ).toBe(before);
   });
 
+  it('drag-drop: bench → bench drag is a no-op', async () => {
+    renderEditor();
+    const before = screen.getByTestId('planning-editor-bench').textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    expect(screen.getByTestId('planning-editor-bench').textContent).toBe(before);
+  });
+
+  it('drag-drop: role buttons are not draggable while applying', async () => {
+    // Stall applyToGame on a never-resolving promise to keep isApplying
+    // pinned to true through the assertion.
+    const applyToGame = jest.fn().mockReturnValue(new Promise(() => {}));
+    renderEditor({ applyToGame });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-apply')).toBeDisabled();
+    });
+    const role = (PRESET.roles ?? [])[1];
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`),
+    ).toHaveAttribute('draggable', 'false');
+    expect(
+      screen.getByTestId('planning-editor-bench-p8'),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
+  it('drag-drop: role buttons are not draggable while the formation-change banner is open', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    const fivev5Roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`planning-editor-role-${fivev5Roles[0].name}`),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`planning-editor-role-${fivev5Roles[1].name}`),
+      );
+    });
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`planning-editor-role-${fivev5Roles[0].name}`),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
   it('drag-drop: empty role buttons are not draggable', () => {
     // Build a game whose first preset role is empty.
     const roster = makeRoster(8);
