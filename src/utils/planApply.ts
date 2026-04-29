@@ -195,7 +195,8 @@ export function applyDraftToGame(
   }
   const outPlayers = new Map<string, PlayerId>();
   for (const [role, list] of subsByRoleMap) {
-    list.sort((a, b) => a.timeSeconds - b.timeSeconds);
+    // list is already chronological — validForOutPlayer was sorted
+    // upstream, and per-role appends preserved that order.
     let curPlayer: PlayerId = draft.startingXI[role] ?? '';
     for (const s of list) {
       if (curPlayer) outPlayers.set(s.id, curPlayer);

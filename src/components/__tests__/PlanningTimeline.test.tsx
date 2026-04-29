@@ -262,6 +262,60 @@ describe('PlanningTimeline', () => {
     ).toMatch(/between 00:00|välillä/i);
   });
 
+  it('errNoOccupant fires when the form is opened, the role is emptied externally, and the user submits', async () => {
+    // Reachability scenario: open the form on a role with an occupant,
+    // then a parent state change (e.g. a pitch swap) clears that role
+    // from startingXI, then submitForm runs. playerAtRoleTime resolves
+    // to '' → errNoOccupant. We simulate the external clear via a
+    // rerender with an updated draft.
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const initialDraft = makeDraft();
+    const onAddSub = jest.fn();
+    const { rerender, props } = renderTimeline({
+      draft: initialDraft,
+      onAddSub,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '05:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role1 },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    // Now empty role1 in the draft via a parent rerender.
+    const emptiedDraft: PlanDraft = {
+      ...initialDraft,
+      startingXI: { ...initialDraft.startingXI },
+    };
+    delete emptiedDraft.startingXI[role1];
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlanningTimeline {...props} draft={emptiedDraft} />
+      </I18nextProvider>,
+    );
+    // Submit — the form's positionRole was set BEFORE the role was
+    // emptied, so submitForm reaches the playerAtRoleTime → ''
+    // branch and the errNoOccupant guard fires.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    expect(onAddSub).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId('planning-timeline-form-error').textContent,
+    ).toMatch(/No player at that role|Tällä roolilla ei ole pelaajaa/i);
+  });
+
   it('role dropdown only exposes assigned roles (errNoOccupant path is form-unreachable)', async () => {
     // Build a draft with role[0] (GK) empty and a bench p8.
     const roster = makeRoster(9);
