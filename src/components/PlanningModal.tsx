@@ -43,10 +43,11 @@ interface PlanningModalProps {
   roster?: Player[];
   /**
    * Persists the editor's draft to a single saved game. The editor calls
-   * this once per picked game on Apply. Optional so the modal can render
-   * (with a disabled Apply) when the parent isn't ready to wire it.
+   * this once per picked game on Apply. Required — the modal does not
+   * render the editor without it; a missing callback at runtime would
+   * silently drop saves, which is a CLAUDE.md production-bar violation.
    */
-  applyToGame?: (gameId: string, updates: Partial<AppState>) => Promise<void>;
+  applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 }
 
 const PlanningModal: React.FC<PlanningModalProps> = ({
@@ -107,14 +108,6 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     onClose();
   };
 
-  // Editor needs both the roster and a persistence callback to be useful;
-  // when the parent hasn't supplied them, fall back to a no-op so Apply
-  // doesn't silently lose the draft. Tests inject a stub.
-  const editorApply =
-    applyToGame ??
-    (async () => {
-      // No persistence configured — Apply is a no-op.
-    });
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -314,7 +307,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   roster={roster ?? []}
                   onBack={handleEditorBack}
                   onApplied={handleEditorApplied}
-                  applyToGame={editorApply}
+                  applyToGame={applyToGame}
                 />
               )}
             </div>

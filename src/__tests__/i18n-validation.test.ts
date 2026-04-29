@@ -284,8 +284,9 @@ describe('Translation File Validation', () => {
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
       // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
       // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
-      // Planner Phase 1d: planningEditor (11 keys incl. _one/_other plurals)
-      expect(enKeys.length).toBe(2474);
+      // Planner Phase 1d: planningEditor (12 keys incl. _one/_other plurals
+      // and applyWarnUnknown for the per-game roster/role drop banner)
+      expect(enKeys.length).toBe(2475);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -295,8 +296,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
       // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
       // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
-      // Planner Phase 1d: planningEditor (11 keys incl. _one/_other plurals)
-      expect(fiKeys.length).toBe(2474);
+      // Planner Phase 1d: planningEditor (12 keys incl. applyWarnUnknown)
+      expect(fiKeys.length).toBe(2475);
     });
   });
 });

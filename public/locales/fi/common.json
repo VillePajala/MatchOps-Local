@@ -1709,7 +1709,8 @@
     "applyButton_one": "Käytä {{count}} peliin",
     "applyButton_other": "Käytä {{count}} peliin",
     "applying": "Käytetään…",
-    "applyFailed": "Käyttö epäonnistui; yritä uudelleen."
+    "applyFailed": "Käyttö epäonnistui; yritä uudelleen.",
+    "applyWarnUnknown": "Tallennettu, mutta {{players}} pelissä oli kokoonpanon ulkopuolisia pelaajia ja {{roles}} pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois."
   },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",

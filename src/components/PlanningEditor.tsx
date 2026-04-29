@@ -90,6 +90,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   applyToGame,
 }) => {
   const { t } = useTranslation();
+  // Picker invariant: gameIds is non-empty when entering the editor.
+  // Guard defensively in case a future caller violates it; the editor
+  // tolerates an undefined firstGame and renders an empty draft.
   const firstGame = savedGames[gameIds[0]];
 
   // Default preset: pick by playersOnField count if the first picked game
@@ -115,6 +118,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [selected, setSelected] = useState<SelectedSlot | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
+  const [applyWarning, setApplyWarning] = useState<string | null>(null);
 
   const rosterMap = useMemo(() => {
     const m = new Map<string, Player>();
@@ -122,8 +126,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     return m;
   }, [roster]);
 
-  // Switching formation: rebuild from the same game, snap with the new
-  // preset's roles. Drops any in-progress swaps to keep semantics simple.
+  // Switching formation rebuilds the draft from scratch — manual edits
+  // since the editor opened are intentionally lost. Phase 1 acceptable;
+  // a future revision could prompt to confirm or carry the existing
+  // assignments forward where the role names overlap.
   const handlePresetChange = (id: string) => {
     const next = getPresetById(id);
     if (!next) return;
@@ -202,6 +208,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const handleApply = async () => {
     setIsApplying(true);
     setApplyError(null);
+    setApplyWarning(null);
+    let gamesWithUnknownPlayers = 0;
+    let gamesWithUnknownRoles = 0;
     try {
       for (const id of gameIds) {
         const game = savedGames[id];
@@ -209,19 +218,42 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         // Use the per-game availablePlayers as the roster filter so
         // CLAUDE.md Rule 3 (playersOnField ⊆ selectedPlayerIds ⊆
         // availablePlayers) holds for each individual game without us
-        // widening the team roster.
+        // widening the team roster. Players in the draft that aren't in
+        // the game's roster are dropped from selectedPlayerIds and
+        // surfaced via `unknownPlayerIds` so we can warn the coach
+        // afterwards instead of silently narrowing the lineup.
         const result = applyDraftToGame(draft, preset, game.availablePlayers);
+        if (result.unknownPlayerIds.length > 0) gamesWithUnknownPlayers++;
+        if (result.unknownRoles.length > 0) gamesWithUnknownRoles++;
         await applyToGame(id, {
           playersOnField: result.playersOnField,
           selectedPlayerIds: result.selectedPlayerIds,
         });
       }
+      if (gamesWithUnknownPlayers > 0 || gamesWithUnknownRoles > 0) {
+        // Saves succeeded but some draft entries didn't fit a game's
+        // roster or the chosen formation. Stay in the editor with a
+        // warning banner; the coach acknowledges by tapping Done in
+        // the modal footer (which still reaches `onClose`).
+        setApplyWarning(
+          t(
+            'planningEditor.applyWarnUnknown',
+            'Saved, but {{players}} game(s) had players outside their roster and {{roles}} had roles outside the formation; those entries were dropped.',
+            {
+              players: gamesWithUnknownPlayers,
+              roles: gamesWithUnknownRoles,
+            },
+          ),
+        );
+        return;
+      }
       onApplied();
-    } catch (err) {
+    } catch {
+      // Translated fallback only — never surface raw error text. Sentry
+      // captures the original via the mutation's onError; the user sees
+      // a sanitized message.
       setApplyError(
-        err instanceof Error
-          ? err.message
-          : t('planningEditor.applyFailed', 'Apply failed; please try again.'),
+        t('planningEditor.applyFailed', 'Apply failed; please try again.'),
       );
     } finally {
       setIsApplying(false);
@@ -373,6 +405,17 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         >
           <HiOutlineExclamationTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <p>{applyError}</p>
+        </div>
+      ) : null}
+
+      {applyWarning ? (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded-md bg-amber-900/30 border border-amber-700/40 p-3 text-sm text-amber-100"
+          data-testid="planning-editor-warning"
+        >
+          <HiOutlineExclamationTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+          <p>{applyWarning}</p>
         </div>
       ) : null}
 

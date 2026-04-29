@@ -55,7 +55,12 @@ const validEnvelope = () => ({
 });
 
 const renderModal = (overrides: Partial<React.ComponentProps<typeof PlanningModal>> = {}) => {
-  const props = { isOpen: true, onClose: jest.fn(), ...overrides };
+  const props = {
+    isOpen: true,
+    onClose: jest.fn(),
+    applyToGame: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
   return {
     ...render(
       <I18nextProvider i18n={i18n}>
@@ -249,6 +254,7 @@ describe('PlanningModal', () => {
         <PlanningModal
           isOpen
           onClose={onClose}
+          applyToGame={jest.fn().mockResolvedValue(undefined)}
           savedGames={{
             g1: asSavedGame({
               teamId: 'team_a',
@@ -280,6 +286,7 @@ describe('PlanningModal', () => {
         <PlanningModal
           isOpen
           onClose={jest.fn()}
+          applyToGame={jest.fn().mockResolvedValue(undefined)}
           savedGames={{
             g1: asSavedGame({
               teamId: 'team_a',
@@ -383,7 +390,11 @@ describe('PlanningModal', () => {
     // Re-render: empty state again
     rerender(
       <I18nextProvider i18n={i18n}>
-        <PlanningModal isOpen onClose={props.onClose} />
+        <PlanningModal
+          isOpen
+          onClose={props.onClose}
+          applyToGame={jest.fn().mockResolvedValue(undefined)}
+        />
       </I18nextProvider>,
     );
     expect(

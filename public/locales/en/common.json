@@ -1709,7 +1709,8 @@
     "applyButton_one": "Apply to {{count}} game",
     "applyButton_other": "Apply to {{count}} games",
     "applying": "Applying…",
-    "applyFailed": "Apply failed; please try again."
+    "applyFailed": "Apply failed; please try again.",
+    "applyWarnUnknown": "Saved, but {{players}} game(s) had players outside their roster and {{roles}} had roles outside the formation; those entries were dropped."
   },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",

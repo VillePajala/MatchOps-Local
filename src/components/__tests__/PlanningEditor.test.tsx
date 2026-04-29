@@ -74,12 +74,9 @@ const renderEditor = (
   };
 };
 
+// Fixture lineup uses 8 field players (incl. GK), which the editor's
+// default-preset heuristic maps to the first 8v8 preset (8v8-3-3-1).
 describe('PlanningEditor', () => {
-  beforeEach(() => {
-    // Editor's default-preset heuristic picks by playersOnField count;
-    // the fixture has 8 field players → 8v8 preset.
-  });
-
   it('renders the pitch with one button per preset role', () => {
     renderEditor();
     const pitch = screen.getByTestId('planning-editor-pitch');
@@ -229,14 +226,55 @@ describe('PlanningEditor', () => {
     expect(firstUpdates).toHaveProperty('selectedPlayerIds');
   });
 
-  it('Apply surfaces an error and does not call onApplied on failure', async () => {
-    const applyToGame = jest.fn().mockRejectedValueOnce(new Error('boom'));
+  it('Apply shows the warning banner and does not call onApplied when a game drops players or roles', async () => {
+    // Build a game whose availablePlayers excludes one of the bench
+    // players in the draft (p10). applyDraftToGame will drop p10 from
+    // selectedPlayerIds and surface it via unknownPlayerIds; the editor
+    // saves the rest and stays open with the warning banner.
+    const roster = makeRoster(11);
+    const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+    // Narrow the per-game roster: drop p10 entirely.
+    const narrowAvailable = roster.filter((p) => p.id !== 'p10');
+    const game1: AppState = {
+      ...(game as AppState),
+      availablePlayers: narrowAvailable,
+    } as AppState;
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    // The save still ran for the games that succeeded.
+    expect(applyToGame).toHaveBeenCalledTimes(1);
+    // But the modal should not auto-close so the coach acknowledges.
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it('Apply surfaces a sanitized error and does not call onApplied on failure', async () => {
+    // Raw error text from the mutation must never reach the user (CLAUDE
+    // Quality Bar). The banner shows the translated fallback only.
+    const applyToGame = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('Supabase: relation "games" does not exist'));
     const onApplied = jest.fn();
     renderEditor({ applyToGame, onApplied });
     fireEvent.click(screen.getByTestId('planning-editor-apply'));
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/boom/i);
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Apply failed|Käyttö epäonnistui/i,
+    );
+    // Raw mutation message never leaks.
+    expect(screen.getByRole('alert')).not.toHaveTextContent(/Supabase/i);
     expect(onApplied).not.toHaveBeenCalled();
   });
 

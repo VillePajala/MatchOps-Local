@@ -259,10 +259,17 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           currentTeamName={data.gameSessionState.teamName}
           roster={data.masterRoster}
           applyToGame={async (gameId, updates) => {
-            // Each picked game is mutated independently so a transient
-            // failure on one doesn't lose the rest of the batch — the
-            // editor's Promise.all-style loop awaits each in turn.
-            await data.updateGameDetailsMutation?.mutateAsync({
+            // Each picked game is written sequentially. A failure on
+            // game N stops the loop in the editor; games 1..N-1 are
+            // already persisted, games N+1..M are not. Throwing on a
+            // missing mutation is intentional — silently no-op'ing
+            // would close the modal without writing anything.
+            if (!data.updateGameDetailsMutation) {
+              throw new Error(
+                'updateGameDetailsMutation not available — cannot apply plan',
+              );
+            }
+            await data.updateGameDetailsMutation.mutateAsync({
               gameId,
               updates,
             });
