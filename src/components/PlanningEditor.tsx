@@ -299,6 +299,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       // Bench→bench is a no-op; just clear drag state.
       setDragSource(null);
       setDragOverTarget(null);
+      setSelected(null);
       return;
     }
     setDraft((d) =>
@@ -658,7 +659,6 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                         ? handleDragOver('bench-drawer')
                         : undefined
                     }
-                    onDragLeave={handleDragLeave}
                     onDrop={handleDropOntoBenchPlayer(id)}
                     className={`rounded-md px-3 py-1.5 text-sm shadow ${
                       isSrc ? 'opacity-50 ' : ''

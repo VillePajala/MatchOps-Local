@@ -316,6 +316,10 @@ describe('PlanningEditor', () => {
   it('drag-drop: dragging a bench player onto a role brings them on', async () => {
     renderEditor();
     const role = (PRESET.roles ?? [])[1];
+    const displacedLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
     await act(async () => {
       fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
     });
@@ -327,6 +331,10 @@ describe('PlanningEditor', () => {
         screen.getByTestId(`planning-editor-role-${role.name}`),
       ).toHaveTextContent('P8');
     });
+    // Previous occupant should now be on the bench tail.
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      displacedLabel,
+    );
   });
 
   it('drag-drop: dragging a role onto the bench drawer sends the player to bench', async () => {
