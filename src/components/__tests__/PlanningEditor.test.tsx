@@ -780,18 +780,11 @@ describe('PlanningEditor', () => {
   });
 
   it('Apply warning banner reports unreachable subs (sub past per-game end)', async () => {
-    // Two games: g1 is full length, g2 is half length. A sub
-    // scheduled at 14:00 (840s) is reachable in g1 (40-min total) but
-    // past g2's 10-min end. applyDraftToGame should drop it from g2's
-    // scheduledSubs and surface it via the unreachableSubs counter
-    // → applyWarnUnreachableSubs banner row. Note the editor's
-    // gameDurationSec uses min duration across selected games (10 min
-    // here), so we set the time directly via the form using a value
-    // within g2's range and rely on g2's per-game filter rejecting
-    // it... actually no: with min duration = g2's 10 min, the form
-    // wouldn't accept 14:00. We bypass that by injecting a draft sub
-    // directly via game1.scheduledSubs (gets hydrated into the draft
-    // by draftFromGame), so the form-level guard is irrelevant.
+    // g1 is 40 min, g2 is 10 min. A sub at 14:00 reaches g1 but is
+    // past g2's end. We inject the sub directly via game1.scheduledSubs
+    // (hydrated into the draft) so the form-level min-duration guard
+    // doesn't block it; applyDraftToGame's per-game filter siphons it
+    // into g2's unreachableSubs and the banner surfaces the count.
     const roster = makeRoster(11);
     const role1 = (PRESET.roles ?? [])[1].name;
     const game1: AppState = {

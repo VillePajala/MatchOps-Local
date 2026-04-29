@@ -201,9 +201,10 @@ export function applyDraftToGame(
   for (const s of validForOutPlayer) {
     const outPlayer = outPlayers.get(s.id);
     if (!outPlayer) {
-      // Role empty at sub time. Drop the sub rather than persisting
-      // one with no outPlayer — the editor prevents this state but we
-      // degrade gracefully if a draft slips through.
+      // Role empty at sub time — sub can't fire. Editor doesn't allow
+      // creating one this way, but imported drafts can; surface via
+      // unreachableSubs so the warning banner names it.
+      unreachableSubs.push(s);
       continue;
     }
     if (!rosterMap.has(outPlayer)) {

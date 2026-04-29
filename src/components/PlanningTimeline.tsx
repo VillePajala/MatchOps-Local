@@ -26,8 +26,14 @@ export interface PlanningTimelineProps {
   draft: PlanDraft;
   preset: FormationPreset;
   roster: Player[];
-  /** Total game duration in seconds. Caller derives this from
-   * numberOfPeriods × periodDurationMinutes × 60. */
+  /**
+   * Total game duration in seconds. The form's add/edit guard treats
+   * this as the upper bound for sub time. When multiple games are
+   * selected with mixed durations the caller passes the MINIMUM
+   * across them so the form can't accept a time invalid for a
+   * shorter game; per-game enforcement happens separately at Apply
+   * time via applyDraftToGame's gameDurationSec arg.
+   */
   gameDurationSec: number;
   onAddSub: (sub: DraftScheduledSub) => void;
   onUpdateSub: (subId: string, updates: Partial<DraftScheduledSub>) => void;

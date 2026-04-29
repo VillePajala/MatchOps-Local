@@ -7,10 +7,9 @@ import type { PlanDraft } from '@/utils/planSwapEngine';
 const sub = (
   id: string,
   timeSeconds: number,
-  outPlayer: string,
   inPlayer: string,
   positionRole: string,
-) => ({ id, timeSeconds, outPlayer, inPlayer, positionRole });
+) => ({ id, timeSeconds, inPlayer, positionRole });
 
 const baseDraft = (): PlanDraft => ({
   startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
@@ -30,7 +29,7 @@ describe('computePlayerMinutes', () => {
   it('splits time correctly at a single sub mid-game', () => {
     const draft: PlanDraft = {
       ...baseDraft(),
-      scheduledSubs: [sub('s1', 600, 'p1', 'p3', 'LB')],
+      scheduledSubs: [sub('s1', 600, 'p3', 'LB')],
     };
     const totals = computePlayerMinutes(draft, 1500);
     expect(totals.get('p1')).toBe(600); // played 0-600
@@ -42,8 +41,8 @@ describe('computePlayerMinutes', () => {
     const draft: PlanDraft = {
       ...baseDraft(),
       scheduledSubs: [
-        sub('s1', 500, 'p1', 'p3', 'LB'),
-        sub('s2', 1000, 'p3', 'p4', 'LB'),
+        sub('s1', 500, 'p3', 'LB'),
+        sub('s2', 1000, 'p4', 'LB'),
       ],
     };
     const totals = computePlayerMinutes(draft, 1500);
@@ -57,9 +56,9 @@ describe('computePlayerMinutes', () => {
     const draft: PlanDraft = {
       ...baseDraft(),
       scheduledSubs: [
-        sub('s1', 300, 'p1', 'p3', 'LB'),
-        sub('s2', 800, 'p3', 'p4', 'LB'),
-        sub('s3', 1000, 'p2', 'p3', 'RB'),
+        sub('s1', 300, 'p3', 'LB'),
+        sub('s2', 800, 'p4', 'LB'),
+        sub('s3', 1000, 'p3', 'RB'),
       ],
     };
     const totals = computePlayerMinutes(draft, 1500);
@@ -71,8 +70,8 @@ describe('computePlayerMinutes', () => {
     const draft: PlanDraft = {
       ...baseDraft(),
       scheduledSubs: [
-        sub('s1', -100, 'p1', 'p3', 'LB'), // negative → clamped to 0
-        sub('s2', 9999, 'p3', 'p4', 'LB'), // past end → clamped to game end
+        sub('s1', -100, 'p3', 'LB'), // negative → clamped to 0
+        sub('s2', 9999, 'p4', 'LB'), // past end → clamped to game end
       ],
     };
     const totals = computePlayerMinutes(draft, 1500);
@@ -92,8 +91,8 @@ describe('computePlayerMinutes', () => {
     const draft: PlanDraft = {
       ...baseDraft(),
       scheduledSubs: [
-        sub('s2', 1000, 'p3', 'p4', 'LB'),
-        sub('s1', 500, 'p1', 'p3', 'LB'),
+        sub('s2', 1000, 'p4', 'LB'),
+        sub('s1', 500, 'p3', 'LB'),
       ],
     };
     const totals = computePlayerMinutes(draft, 1500);
@@ -107,7 +106,7 @@ describe('computePlayerMinutes', () => {
     const draft: PlanDraft = {
       startingXI: { LB: 'p1' },
       bench: ['p0', 'p2'],
-      scheduledSubs: [sub('s1', 500, 'p0', 'p2', 'GK')],
+      scheduledSubs: [sub('s1', 500, 'p2', 'GK')],
     };
     const totals = computePlayerMinutes(draft, 1500);
     expect(totals.has('p2')).toBe(false);
@@ -126,8 +125,8 @@ describe('getRoleSegments', () => {
     const draft: PlanDraft = {
       ...baseDraft(),
       scheduledSubs: [
-        sub('s1', 500, 'p1', 'p3', 'LB'),
-        sub('s2', 1000, 'p3', 'p4', 'LB'),
+        sub('s1', 500, 'p3', 'LB'),
+        sub('s2', 1000, 'p4', 'LB'),
       ],
     };
     const segs = getRoleSegments(draft, 'LB', 1500);
@@ -148,7 +147,7 @@ describe('getRoleSegments', () => {
     // tolerates them rather than special-casing.
     const draft: PlanDraft = {
       ...baseDraft(),
-      scheduledSubs: [sub('s1', 0, 'p1', 'p3', 'LB')],
+      scheduledSubs: [sub('s1', 0, 'p3', 'LB')],
     };
     const segs = getRoleSegments(draft, 'LB', 1500);
     // The 0-0 segment for p1 is dropped; only p3's 0-1500 remains.
