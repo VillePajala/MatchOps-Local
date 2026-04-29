@@ -104,18 +104,24 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
       )
     : games;
 
+  // Selected ids that survive the eligibility filter — the single
+  // source of truth for the homogeneity check AND the `onContinue`
+  // payload. Sourcing both consumers from the same list guarantees
+  // they can't diverge if `games` changes mid-interaction (e.g., a
+  // saved-games query refreshes and drops a previously-selected id).
+  const eligibleSelected = eligibleGames.filter((g) => selectedIds.has(g.id));
+
   // Validate that every selected game is homogeneous with the first
   // selected. Computed inline — the work is cheap (≤ N selections) and
   // the React 19 compiler memoizes automatically.
   // Note: empty selection → invalid but no message; the disabled
   // Continue button is the only signal needed in that state.
   const computeValidation = (): { isValid: boolean; message: string } => {
-    const selected = eligibleGames.filter((g) => selectedIds.has(g.id));
-    if (selected.length === 0) {
+    if (eligibleSelected.length === 0) {
       return { isValid: false, message: '' };
     }
-    const reference = selected[0];
-    for (const candidate of selected.slice(1)) {
+    const reference = eligibleSelected[0];
+    for (const candidate of eligibleSelected.slice(1)) {
       if (!isHomogeneousWith(reference, candidate)) {
         return {
           isValid: false,
@@ -144,12 +150,16 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
 
   const handleContinue = () => {
     if (!validation.isValid) return;
-    onContinue([...selectedIds]);
+    // Pass eligible-filtered ids only — never raw `selectedIds`. If the
+    // games prop refreshed mid-interaction and removed an id, the Set
+    // could still contain it; the picker's invariant is "validated and
+    // forwarded ids are eligible at confirmation time."
+    onContinue(eligibleSelected.map((g) => g.id));
   };
 
   return (
     <div className="space-y-4" data-testid="planning-game-picker">
-      <div className="flex items-center justify-between">
+      <div className="space-y-2">
         <button
           type="button"
           onClick={onBack}
@@ -159,6 +169,8 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
           <HiOutlineArrowLeft className="h-4 w-4" />
           {t('common.backButton', 'Back')}
         </button>
+        {/* Subtitle sits below the back row so a 320 px-wide phone has
+            room for the full sentence without crowding the button. */}
         <p className="text-xs text-slate-400">
           {t(
             'planningGamePicker.subtitle',
@@ -192,7 +204,6 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
                     checked={checked}
                     onChange={() => toggle(g.id)}
                     className="h-4 w-4 accent-amber-500"
-                    aria-label={`${g.game.teamName} vs ${g.game.opponentName}`}
                   />
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm text-slate-100 truncate">

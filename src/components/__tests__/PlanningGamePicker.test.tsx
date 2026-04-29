@@ -251,6 +251,42 @@ describe('PlanningGamePicker', () => {
     expect(props.onContinue).toHaveBeenCalledWith(['g1', 'g2', 'g3']);
   });
 
+  it('forwards only eligible-filtered ids to onContinue (defensive)', () => {
+    // If `games` prop refreshes mid-interaction (e.g., a saved-games
+    // query refetch removes one of the previously-selected games), the
+    // internal Set still references the dropped id. The picker must
+    // strip it before forwarding so PR 5d never receives an id that
+    // no longer corresponds to an eligible game.
+    const onContinue = jest.fn();
+    const { rerender } = render(
+      <I18nextProvider i18n={i18n}>
+        <PlanningGamePicker
+          games={[baseGame('g1'), baseGame('g2', { gameDate: '2026-05-01' })]}
+          teamFilterId="team_1"
+          onBack={jest.fn()}
+          onContinue={onContinue}
+        />
+      </I18nextProvider>,
+    );
+    // Select both games.
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    // Simulate `games` refresh — g2 is gone. Internal selectedIds Set
+    // still has g2, but it must not be forwarded.
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlanningGamePicker
+          games={[baseGame('g1')]}
+          teamFilterId="team_1"
+          onBack={jest.fn()}
+          onContinue={onContinue}
+        />
+      </I18nextProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    expect(onContinue).toHaveBeenCalledWith(['g1']);
+  });
+
   it('calls onBack when back is clicked', () => {
     const { props } = renderPicker();
     fireEvent.click(screen.getAllByRole('button', { name: /back|takaisin/i })[0]);

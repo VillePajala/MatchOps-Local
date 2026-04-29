@@ -112,6 +112,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       });
       return;
     }
+    // FileReader rather than `file.text()` for broader runtime support
+    // (jsdom's File polyfill in tests, older mobile Safari).
     const reader = new FileReader();
     reader.onerror = () =>
       setImportError({
