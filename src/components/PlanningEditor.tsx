@@ -581,6 +581,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                 draggable ? handleDragStart({ target: role.name }) : undefined
               }
               onDragEnd={handleDragEnd}
+              // Drop targets stay registered even when draggable is false:
+              // empty role slots accept bench→role drops.
               onDragOver={handleDragOver(role.name)}
               onDragLeave={handleDragLeave}
               onDrop={handleDropOnRole(role.name)}
