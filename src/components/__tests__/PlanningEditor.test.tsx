@@ -378,6 +378,29 @@ describe('PlanningEditor', () => {
     ).toBe(before);
   });
 
+  it('drag-drop: hovering the drag source over itself does not show conflicting visuals', async () => {
+    // While dragging, the source button has opacity-50 (dim). If the
+    // drop-target ring also fires when hovering self, the user sees
+    // two contradictory cues (dim = "you're holding it" vs ring =
+    // "drop here"). Ring should be suppressed when isOver === isSrc.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const button = screen.getByTestId(`planning-editor-role-${role.name}`);
+    await act(async () => {
+      fireEvent.dragStart(button);
+    });
+    expect(button.className).toContain('opacity-50');
+    await act(async () => {
+      fireEvent.dragOver(button);
+    });
+    // Still dimmed (still the source)…
+    expect(button.className).toContain('opacity-50');
+    // …but the drop-target ring is suppressed on the source itself.
+    // Other roles use ring on dragover; the source must not.
+    const ringMatches = button.className.match(/\bring-amber-200\b/g) ?? [];
+    expect(ringMatches.length).toBe(0);
+  });
+
   it('drag-drop: dragging a role onto a specific bench player swaps them (does not bubble to bench-drawer)', async () => {
     // Codex P1: a drop on a bench <button> bubbles to the bench-drawer
     // <div> ancestor. Both handlers read the same captured dragSource

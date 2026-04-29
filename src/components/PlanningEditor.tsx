@@ -235,6 +235,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     }
     setDragSource(source);
   };
+  const clearDragState = () => {
+    setDragSource(null);
+    setDragOverTarget(null);
+    setSelected(null);
+  };
   const handleDragEnd = () => {
     setDragSource(null);
     setDragOverTarget(null);
@@ -278,9 +283,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           target === BENCH ? benchPlayerId : dragSource.benchPlayerId,
       }),
     );
-    setDragSource(null);
-    setDragOverTarget(null);
-    setSelected(null);
+    clearDragState();
   };
   const handleDropOnRole = (roleName: string) => (e: React.DragEvent) => {
     e.preventDefault();
@@ -293,18 +296,19 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     // a bubble would run performDrop(BENCH) on the just-placed player
     // and undo the swap.
     e.stopPropagation();
-    // Dropping onto a specific bench player mirrors the tap gesture:
-    // source's occupant trades places with this bench player. Engine
-    // handles it via bench→field with the bench player as the new
-    // occupant.
     if (!dragSource) return;
     if (dragSource.target === BENCH) {
       // Bench→bench is a no-op; just clear drag state.
-      setDragSource(null);
-      setDragOverTarget(null);
-      setSelected(null);
+      clearDragState();
       return;
     }
+    // This is intentionally NOT routed through performDrop. performDrop
+    // applies a `source: dragSource.target → target` mapping (drop
+    // target receives the dragged item), but the gesture here is the
+    // inverse: the dropped-on bench player becomes the new occupant
+    // of the dragged role. Inverting that inside performDrop would
+    // turn it into a special-case helper; the explicit call below
+    // makes the asymmetry obvious.
     setDraft((d) =>
       performSwap(d, {
         source: BENCH,
@@ -312,17 +316,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         benchPlayerId: playerId,
       }),
     );
-    setDragSource(null);
-    setDragOverTarget(null);
-    setSelected(null);
+    clearDragState();
   };
   const handleDropOnBenchDrawer = (e: React.DragEvent) => {
     e.preventDefault();
     if (!dragSource) return;
     if (dragSource.target === BENCH) {
-      setDragSource(null);
-      setDragOverTarget(null);
-      setSelected(null);
+      clearDragState();
       return;
     }
     performDrop(BENCH);
@@ -584,7 +584,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               onDrop={handleDropOnRole(role.name)}
               className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-[11px] leading-tight whitespace-nowrap shadow ${
                 isSrc ? 'opacity-50 ' : ''
-              }${isOver ? 'ring-2 ring-amber-200 ' : ''}${
+              }${isOver && !isSrc ? 'ring-2 ring-amber-200 ' : ''}${
                 sel
                   ? 'bg-amber-400 text-slate-900 ring-2 ring-amber-200'
                   : occupant
@@ -663,6 +663,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                         ? handleDragOver('bench-drawer')
                         : undefined
                     }
+                    // No onDragLeave on bench buttons — they're leaf nodes,
+                    // so currentTarget.contains(relatedTarget) is always
+                    // false and any sibling-button transition would fire
+                    // a clear→re-set ring flicker. The drawer's own
+                    // onDragLeave covers the bench region.
                     onDrop={handleDropOntoBenchPlayer(id)}
                     className={`rounded-md px-3 py-1.5 text-sm shadow ${
                       isSrc ? 'opacity-50 ' : ''
