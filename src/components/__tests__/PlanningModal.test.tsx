@@ -239,9 +239,9 @@ describe('PlanningModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('resets to list page when Continue is pressed, so re-open lands on list (Codex P2)', () => {
-    // Continue closes the modal in PR 5c. Re-opening with isOpen=true
-    // must land on the list page (with New plan visible), not the picker.
+  it('resets to list page when Continue is pressed, so re-open lands on list', () => {
+    // Re-opening with isOpen=true after Continue must land on the list
+    // page (with New plan visible), not the picker we just left.
     const onClose = jest.fn();
     const { rerender } = render(
       <I18nextProvider i18n={i18n}>

@@ -24,14 +24,9 @@ export interface PlanningGamePickerGame {
   >;
 }
 
-/**
- * Two games count as same-team when:
- * - Both have a `teamId` and the ids match, OR
- * - Both lack a `teamId` AND their `teamName` matches (legacy fallback).
- *
- * A game with a `teamId` is never considered same-team as one without —
- * the missing id signals legacy data of unknown provenance.
- */
+// Mixed legacy/modern semantics: a game with a teamId is never same-team
+// as one without — the missing id signals legacy data of unknown
+// provenance. Both-missing falls back to teamName equality.
 function sameTeam(
   a: PlanningGamePickerGame,
   b: PlanningGamePickerGame,
@@ -65,14 +60,6 @@ export interface PlanningGamePickerProps {
   onContinue: (gameIds: string[]) => void;
 }
 
-/**
- * Two games are "homogeneous" when their team, formation footprint, and
- * timing are identical. We approximate "formation footprint" with
- * `playerCount` — the planner editor (PR 5d) needs the same role list
- * across selected games, which `numberOfPeriods + periodDurationMinutes`
- * + same-team semantics covers without yet introducing a formation
- * field on Game.
- */
 function isHomogeneousWith(a: PlanningGamePickerGame, b: PlanningGamePickerGame): boolean {
   return (
     sameTeam(a, b) &&
@@ -104,18 +91,14 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
       )
     : games;
 
-  // Selected ids that survive the eligibility filter — the single
-  // source of truth for the homogeneity check AND the `onContinue`
-  // payload. Sourcing both consumers from the same list guarantees
-  // they can't diverge if `games` changes mid-interaction (e.g., a
-  // saved-games query refreshes and drops a previously-selected id).
+  // Single source of truth for selection: every downstream consumer
+  // (count display, banner gate, validation, onContinue payload) reads
+  // off this list, so they can't diverge if `games` refreshes and drops
+  // a previously-selected id.
   const eligibleSelected = eligibleGames.filter((g) => selectedIds.has(g.id));
 
-  // Validate that every selected game is homogeneous with the first
-  // selected. Computed inline — the work is cheap (≤ N selections) and
-  // the React 19 compiler memoizes automatically.
-  // Note: empty selection → invalid but no message; the disabled
-  // Continue button is the only signal needed in that state.
+  // Empty selection → invalid but no message; the disabled Continue
+  // button is the only signal needed in that state.
   const computeValidation = (): { isValid: boolean; message: string } => {
     if (eligibleSelected.length === 0) {
       return { isValid: false, message: '' };
@@ -150,10 +133,6 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
 
   const handleContinue = () => {
     if (!validation.isValid) return;
-    // Pass eligible-filtered ids only — never raw `selectedIds`. If the
-    // games prop refreshed mid-interaction and removed an id, the Set
-    // could still contain it; the picker's invariant is "validated and
-    // forwarded ids are eligible at confirmation time."
     onContinue(eligibleSelected.map((g) => g.id));
   };
 
@@ -164,12 +143,11 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
           type="button"
           onClick={onBack}
           className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-slate-100"
-          aria-label={t('common.backButton', 'Back')}
         >
           <HiOutlineArrowLeft className="h-4 w-4" />
           {t('common.backButton', 'Back')}
         </button>
-        {/* Subtitle sits below the back row so a 320 px-wide phone has
+        {/* Below the back row, not inline, so a 320 px-wide phone has
             room for the full sentence without crowding the button. */}
         <p className="text-xs text-slate-400">
           {t(
@@ -225,7 +203,7 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
         </ul>
       )}
 
-      {!validation.isValid && selectedIds.size > 1 ? (
+      {!validation.isValid && eligibleSelected.length > 1 ? (
         <div
           id="planning-game-picker-validation"
           role="alert"
@@ -239,7 +217,7 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
       <div className="flex justify-between items-center pt-2">
         <span className="text-xs text-slate-400">
           {t('planningGamePicker.selectedCount', '{{count}} selected', {
-            count: selectedIds.size,
+            count: eligibleSelected.length,
           })}
         </span>
         <button
@@ -247,7 +225,7 @@ const PlanningGamePicker: React.FC<PlanningGamePickerProps> = ({
           onClick={handleContinue}
           disabled={!validation.isValid}
           aria-describedby={
-            !validation.isValid && selectedIds.size > 1
+            !validation.isValid && eligibleSelected.length > 1
               ? 'planning-game-picker-validation'
               : undefined
           }

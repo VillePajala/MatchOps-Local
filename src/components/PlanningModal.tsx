@@ -80,12 +80,6 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   };
 
   const handlePickerContinue = (_gameIds: string[]) => {
-    // PR 5d wires this into the editor page; for now Continue closes
-    // the modal so the picker's homogeneous-set guard ships visibly
-    // without a half-built editor pretending to do something.
-    // Reset page state so the next open lands on the list. Import state
-    // is already null on this path (picker entry resets it), so no need
-    // to touch it here.
     setPage('list');
     onClose();
   };

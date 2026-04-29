@@ -180,7 +180,7 @@ describe('PlanningGamePicker', () => {
     ).toBeDisabled();
   });
 
-  it('blocks continue for legacy games with no teamId but different teamNames (Codex P2)', () => {
+  it('blocks continue for legacy games with no teamId but different teamNames', () => {
     // Both games have undefined teamId but different teamNames — these
     // are likely different teams. Older code accepted them because
     // `undefined === undefined` is true; the homogeneity check now
@@ -251,12 +251,11 @@ describe('PlanningGamePicker', () => {
     expect(props.onContinue).toHaveBeenCalledWith(['g1', 'g2', 'g3']);
   });
 
-  it('forwards only eligible-filtered ids to onContinue (defensive)', () => {
-    // If `games` prop refreshes mid-interaction (e.g., a saved-games
-    // query refetch removes one of the previously-selected games), the
-    // internal Set still references the dropped id. The picker must
-    // strip it before forwarding so PR 5d never receives an id that
-    // no longer corresponds to an eligible game.
+  it('forwards only eligible-filtered ids to onContinue and updates selectedCount on stale refresh', () => {
+    // If the games prop refreshes mid-interaction and removes a
+    // previously-selected entry, the internal Set still references the
+    // dropped id. The count display, banner gate, and onContinue
+    // payload must all read off the eligible-filtered list.
     const onContinue = jest.fn();
     const { rerender } = render(
       <I18nextProvider i18n={i18n}>
@@ -268,11 +267,12 @@ describe('PlanningGamePicker', () => {
         />
       </I18nextProvider>,
     );
-    // Select both games.
     fireEvent.click(screen.getAllByRole('checkbox')[0]);
     fireEvent.click(screen.getAllByRole('checkbox')[1]);
-    // Simulate `games` refresh — g2 is gone. Internal selectedIds Set
-    // still has g2, but it must not be forwarded.
+    // Both selected → count shows 2.
+    expect(screen.getByText(/2 selected|2 valittu/i)).toBeInTheDocument();
+    // Simulate games refresh — g2 is gone. Internal Set still has g2,
+    // but the count display must reflect the surviving selection.
     rerender(
       <I18nextProvider i18n={i18n}>
         <PlanningGamePicker
@@ -283,6 +283,8 @@ describe('PlanningGamePicker', () => {
         />
       </I18nextProvider>,
     );
+    // Count drops to 1 even though Set still has g2.
+    expect(screen.getByText(/1 selected|1 valittu/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
     expect(onContinue).toHaveBeenCalledWith(['g1']);
   });
