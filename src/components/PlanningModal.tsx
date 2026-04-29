@@ -39,8 +39,8 @@ interface PlanningModalProps {
    * silently excluded when a team filter is active.
    */
   currentTeamName?: string;
-  /** Master roster — passed to the editor for player-name lookup. */
-  roster?: Player[];
+  /** Master roster — required; the editor renders raw UUIDs without it. */
+  roster: Player[];
   /** Required — missing at runtime would silently drop saves. */
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 }
@@ -301,7 +301,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                 <PlanningEditor
                   gameIds={editorGameIds}
                   savedGames={savedGames ?? {}}
-                  roster={roster ?? []}
+                  roster={roster}
                   onBack={handleEditorBack}
                   onApplied={handleEditorApplied}
                   applyToGame={applyToGame}

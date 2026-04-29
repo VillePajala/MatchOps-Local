@@ -59,6 +59,7 @@ const renderModal = (overrides: Partial<React.ComponentProps<typeof PlanningModa
     isOpen: true,
     onClose: jest.fn(),
     applyToGame: jest.fn().mockResolvedValue(undefined),
+    roster: [],
     ...overrides,
   };
   return {
@@ -255,6 +256,7 @@ describe('PlanningModal', () => {
           isOpen
           onClose={onClose}
           applyToGame={jest.fn().mockResolvedValue(undefined)}
+          roster={[]}
           savedGames={{
             g1: asSavedGame({
               teamId: 'team_a',
@@ -287,6 +289,7 @@ describe('PlanningModal', () => {
           isOpen
           onClose={jest.fn()}
           applyToGame={jest.fn().mockResolvedValue(undefined)}
+          roster={[]}
           savedGames={{
             g1: asSavedGame({
               teamId: 'team_a',
@@ -394,6 +397,7 @@ describe('PlanningModal', () => {
           isOpen
           onClose={props.onClose}
           applyToGame={jest.fn().mockResolvedValue(undefined)}
+          roster={[]}
         />
       </I18nextProvider>,
     );

@@ -25,6 +25,7 @@ import {
   applyDraftToGame,
   roleForCoord,
 } from '@/utils/planApply';
+import logger from '@/utils/logger';
 
 export interface PlanningEditorProps {
   /** Game ids picked in the previous page; the editor mutates each on Apply. */
@@ -119,9 +120,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     return m;
   }, [roster]);
 
-  // Prompt only when the draft's role→player map differs from the snap
-  // of the loaded game, so a pristine dropdown bump doesn't ask, but a
-  // tap-to-swap edit does.
+  // Prompt only when the draft's role→player map diverged from a fresh
+  // snap against the *current* preset — i.e. the user manually retargeted
+  // roles. A pristine dropdown bump (or a second switch right after
+  // confirming the first) compares clean and skips the banner.
   const applyPresetChange = (id: string) => {
     const next = getPresetById(id);
     if (!next) return;
@@ -289,7 +291,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         return;
       }
       onApplied();
-    } catch {
+    } catch (err) {
+      logger.error('[PlanningEditor] Apply failed', err);
       // Translated fallback only — raw error text never reaches the user.
       // Carry forward warning counters from games that succeeded before
       // the throw so a partial-success error doesn't hide them.

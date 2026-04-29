@@ -8,6 +8,16 @@ import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { Player } from '@/types';
 import { getPresetById } from '@/config/formationPresets';
 
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 // 8v8-3-3-1 is the editor's heuristic default for an 8-player lineup
 // (the first 8v8 preset by id), so the test fixture and the editor
 // agree on which preset to render.
@@ -151,6 +161,29 @@ describe('PlanningEditor', () => {
     expect(
       screen.getByTestId(`planning-editor-role-${role1.name}`),
     ).toHaveTextContent(before0!.replace(role0.name, '').trim());
+  });
+
+  it('tap-to-swap: tapping the same role twice deselects without swapping', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const before = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).className,
+    ).toContain('bg-amber-400');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).className,
+    ).not.toContain('bg-amber-400');
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).textContent,
+    ).toBe(before);
   });
 
   it('tap-to-swap: tap role then bench player brings bench player on', async () => {
