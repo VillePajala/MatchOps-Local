@@ -36,12 +36,7 @@ export interface PlanningEditorProps {
   onBack: () => void;
   /** Called once Apply finishes so the parent can transition out of the editor. */
   onApplied: () => void;
-  /**
-   * Persists `{ playersOnField, selectedPlayerIds }` for a single game. The
-   * editor invokes this once per `gameIds` entry on Apply and waits for all
-   * to settle before calling `onApplied`. Errors propagate so the editor can
-   * show a banner and let the coach retry.
-   */
+  /** Persists one game's lineup; called once per `gameIds` entry on Apply. */
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 }
 
@@ -296,9 +291,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       onApplied();
     } catch {
       // Translated fallback only — raw error text never reaches the user.
-      // Tell the coach how many games persisted before the failure so a
-      // retry isn't a leap of faith.
-      setApplyError(
+      // Carry forward warning counters from games that succeeded before
+      // the throw so a partial-success error doesn't hide them.
+      const errorParts: string[] = [
         savedCount > 0
           ? t(
               'planningEditor.applyFailedPartial',
@@ -306,7 +301,35 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               { saved: savedCount, total: gameIds.length },
             )
           : t('planningEditor.applyFailed', 'Apply failed; please try again.'),
-      );
+      ];
+      if (gamesNotFound > 0) {
+        errorParts.push(
+          t(
+            'planningEditor.applyWarnMissing',
+            '{{count}} selected game(s) were no longer available and were skipped.',
+            { count: gamesNotFound },
+          ),
+        );
+      }
+      if (gamesWithUnknownPlayers > 0) {
+        errorParts.push(
+          t(
+            'planningEditor.applyWarnUnknownPlayers',
+            '{{count}} game(s) had players outside their roster; those entries were dropped.',
+            { count: gamesWithUnknownPlayers },
+          ),
+        );
+      }
+      if (gamesWithUnknownRoles > 0) {
+        errorParts.push(
+          t(
+            'planningEditor.applyWarnUnknownRoles',
+            '{{count}} game(s) had roles outside the formation; those entries were dropped.',
+            { count: gamesWithUnknownRoles },
+          ),
+        );
+      }
+      setApplyError(errorParts.join(' '));
     } finally {
       setIsApplying(false);
     }
@@ -444,7 +467,6 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         })}
       </div>
 
-      {/* Bench drawer */}
       <div>
         <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2">
           {t('planningEditor.bench', 'Bench')} ({draft.bench.length})

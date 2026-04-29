@@ -41,12 +41,7 @@ interface PlanningModalProps {
   currentTeamName?: string;
   /** Master roster — passed to the editor for player-name lookup. */
   roster?: Player[];
-  /**
-   * Persists the editor's draft to a single saved game. The editor calls
-   * this once per picked game on Apply. Required — the modal does not
-   * render the editor without it; a missing callback at runtime would
-   * silently drop saves, which is a CLAUDE.md production-bar violation.
-   */
+  /** Required — missing at runtime would silently drop saves. */
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 }
 

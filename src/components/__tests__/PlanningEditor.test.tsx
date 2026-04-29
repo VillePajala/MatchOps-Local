@@ -303,6 +303,43 @@ describe('PlanningEditor', () => {
     expect(onApplied).not.toHaveBeenCalled();
   });
 
+  it('Apply error banner carries forward warning counters from games that succeeded before the throw', async () => {
+    // g1 succeeds with unknown-players warning (per-game roster narrows
+    // p10), g2 throws. Coach sees both: "Saved 1 of 2…" AND the unknown-
+    // players note about the earlier successful save.
+    const roster = makeRoster(11);
+    const game1Base = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+    const game1: AppState = {
+      ...(game1Base as AppState),
+      availablePlayers: roster.filter((p) => p.id !== 'p10'),
+    } as AppState;
+    const game2 = makeGameWithLineup(roster, ['p8']);
+    const applyToGame = jest
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('network down'));
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    const alertText = screen.getByRole('alert').textContent ?? '';
+    expect(alertText).toMatch(/Saved 1 of 2|Tallennettu 1\/2/i);
+    expect(alertText).toMatch(
+      /players outside their roster|kokoonpanon ulkopuolisia pelaajia/i,
+    );
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
   it('Apply surfaces a sanitized error and does not call onApplied on failure', async () => {
     // Raw error text from the mutation must never reach the user (CLAUDE
     // Quality Bar). The banner shows the translated fallback only.
