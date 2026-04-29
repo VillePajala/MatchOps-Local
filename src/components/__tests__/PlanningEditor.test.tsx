@@ -779,6 +779,63 @@ describe('PlanningEditor', () => {
     }
   });
 
+  it('Apply warning banner reports unreachable subs (sub past per-game end)', async () => {
+    // Two games: g1 is full length, g2 is half length. A sub
+    // scheduled at 14:00 (840s) is reachable in g1 (40-min total) but
+    // past g2's 10-min end. applyDraftToGame should drop it from g2's
+    // scheduledSubs and surface it via the unreachableSubs counter
+    // → applyWarnUnreachableSubs banner row. Note the editor's
+    // gameDurationSec uses min duration across selected games (10 min
+    // here), so we set the time directly via the form using a value
+    // within g2's range and rely on g2's per-game filter rejecting
+    // it... actually no: with min duration = g2's 10 min, the form
+    // wouldn't accept 14:00. We bypass that by injecting a draft sub
+    // directly via game1.scheduledSubs (gets hydrated into the draft
+    // by draftFromGame), so the form-level guard is irrelevant.
+    const roster = makeRoster(11);
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const game1: AppState = {
+      ...makeGameWithLineup(roster, ['p8']),
+      numberOfPeriods: 2,
+      periodDurationMinutes: 20, // 40 min total
+      scheduledSubs: [
+        {
+          id: 's_far',
+          timeSeconds: 840, // 14:00 — reachable in g1 only
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role1,
+          status: 'pending',
+        },
+      ],
+    } as AppState;
+    const game2: AppState = {
+      ...makeGameWithLineup(roster, ['p8']),
+      numberOfPeriods: 2,
+      periodDurationMinutes: 5, // 10 min total
+    } as AppState;
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId('planning-editor-warning').textContent,
+    ).toMatch(/scheduled past their end|pelin päättymisen jälkeen/i);
+    expect(onApplied).not.toHaveBeenCalled();
+    // Apply still ran for both games — the dropped sub doesn't
+    // prevent persistence of the lineup.
+    expect(applyToGame).toHaveBeenCalledTimes(2);
+  });
+
   it('Apply shows the warning banner and does not call onApplied when a game drops players or roles', async () => {
     // Build a game whose availablePlayers excludes one of the bench
     // players in the draft (p10). applyDraftToGame will drop p10 from

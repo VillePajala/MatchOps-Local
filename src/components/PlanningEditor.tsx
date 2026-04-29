@@ -268,13 +268,22 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   };
 
   // Total game duration in seconds for fairness math + form validation.
-  // Defaults match CLAUDE.md Rule 10 (createGame's periodDurationMinutes
-  // default is 10) so an under-populated game record stays usable.
+  // Uses the MINIMUM duration across all selected games so a sub
+  // scheduled here can't silently land outside a shorter game on
+  // Apply (it would have been dropped via unreachableSubs anyway, but
+  // the timeline header would have lied to the coach about what's
+  // valid). Defaults match CLAUDE.md Rule 10 (createGame's
+  // periodDurationMinutes default is 10).
   const gameDurationSec = useMemo(() => {
-    const periods = firstGame?.numberOfPeriods ?? 2;
-    const len = firstGame?.periodDurationMinutes ?? 10;
-    return Math.max(1, periods * len * 60);
-  }, [firstGame]);
+    const durations = gameIds
+      .map((id) => savedGames[id])
+      .filter((g): g is NonNullable<typeof g> => Boolean(g))
+      .map(
+        (g) => (g.numberOfPeriods ?? 2) * (g.periodDurationMinutes ?? 10) * 60,
+      );
+    if (durations.length === 0) return 60 * 20; // Sensible fallback.
+    return Math.max(1, Math.min(...durations));
+  }, [gameIds, savedGames]);
 
   // Drag-drop primitives. Drag piggybacks on the same `performSwap` engine
   // that tap-to-swap uses; drop is the same operation as a tap on the

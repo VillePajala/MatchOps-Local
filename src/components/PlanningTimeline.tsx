@@ -36,12 +36,7 @@ export interface PlanningTimelineProps {
   disabled?: boolean;
 }
 
-const newSubId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `s_${crypto.randomUUID()}`;
-  }
-  return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
-};
+const newSubId = (): string => `s_${crypto.randomUUID()}`;
 
 const formatMMSS = (sec: number): string => {
   const s = Math.max(0, Math.floor(sec));
@@ -51,7 +46,10 @@ const formatMMSS = (sec: number): string => {
 };
 
 const parseMMSS = (text: string): number | null => {
-  const m = text.trim().match(/^(\d+):(\d{1,2})$/);
+  // Strict MM:SS — accept "M:SS" (single-digit minutes) but require
+  // exactly two digits for seconds to match the placeholder + error
+  // copy. "10:5" was previously accepted as 10:05; that's surprising.
+  const m = text.trim().match(/^(\d+):(\d{2})$/);
   if (!m) return null;
   const min = Number(m[1]);
   const sec = Number(m[2]);
@@ -277,15 +275,24 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     closeForm();
   };
 
-  const sortedMinutes = useMemo(
-    () =>
-      roster.map((p) => ({
+  const sortedMinutes = useMemo(() => {
+    // Show only players who have on-field time OR are referenced by
+    // the draft (starting XI + subs). Pure bench players who never
+    // come on render as 00:00 noise — drop them to keep the panel
+    // scannable as the roster grows.
+    const referenced = new Set<PlayerId>(Object.values(draft.startingXI));
+    for (const s of draft.scheduledSubs) {
+      referenced.add(s.inPlayer);
+      referenced.add(s.outPlayer);
+    }
+    return roster
+      .filter((p) => referenced.has(p.id) || (minutes.get(p.id) ?? 0) > 0)
+      .map((p) => ({
         id: p.id,
         label: playerLabel(p.id),
         seconds: minutes.get(p.id) ?? 0,
-      })),
-    [roster, minutes, playerLabel],
-  );
+      }));
+  }, [roster, minutes, playerLabel, draft.startingXI, draft.scheduledSubs]);
 
   // Recomputed on every keystroke when typing into the time input
   // without memoization; cheap to gate behind useMemo.

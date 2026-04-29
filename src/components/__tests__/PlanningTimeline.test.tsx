@@ -61,16 +61,42 @@ describe('PlanningTimeline', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows per-player minutes for everyone in the roster', () => {
+  it('shows per-player minutes for starting XI; pure-bench players are filtered out', () => {
     renderTimeline();
     // Starting-XI players should show full game duration (25:00).
     expect(
       screen.getByTestId('planning-timeline-minutes-p0'),
     ).toHaveTextContent('25:00');
-    // Bench players should show 00:00.
+    // Pure-bench players (never subbed in, not in starting XI) are
+    // hidden — pure 00:00 rows would clutter the panel as the roster
+    // grows.
+    expect(
+      screen.queryByTestId('planning-timeline-minutes-p8'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows minutes for a sub-targeted bench player as soon as a sub is added', () => {
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const draft = makeDraft({
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 600,
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role1,
+        },
+      ],
+    });
+    renderTimeline({ draft });
+    // p8 is now referenced by a sub → row appears with 15:00.
     expect(
       screen.getByTestId('planning-timeline-minutes-p8'),
-    ).toHaveTextContent('00:00');
+    ).toHaveTextContent('15:00');
+    // p9 is still pure bench → still hidden.
+    expect(
+      screen.queryByTestId('planning-timeline-minutes-p9'),
+    ).not.toBeInTheDocument();
   });
 
   it('renders an existing sub row with formatted time, role, out → in', () => {
@@ -181,21 +207,37 @@ describe('PlanningTimeline', () => {
     ).toMatch(/between 00:00|välillä/i);
   });
 
-  it('closes the form when disabled flips true mid-edit', async () => {
+  it('hides the form while disabled and restores it (with state) when re-enabled', async () => {
     // Reproduces the trap where Apply starts while the form is open:
-    // every form button becomes disabled and the coach is stuck. The
-    // useEffect should auto-close on the disabled→true transition.
+    // every form button would become disabled and the coach would be
+    // stuck. The derived `formVisible` gate hides the form while
+    // disabled; state is preserved so re-enabling shows it intact.
     const { rerender, props } = renderTimeline();
     await act(async () => {
       fireEvent.click(screen.getByTestId('planning-timeline-add'));
     });
-    expect(screen.getByTestId('planning-timeline-form')).toBeInTheDocument();
+    // Type a recognisable value into the time field so we can verify
+    // it survives the disable/re-enable cycle.
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '07:30' },
+      });
+    });
     rerender(
       <I18nextProvider i18n={i18n}>
         <PlanningTimeline {...props} disabled={true} />
       </I18nextProvider>,
     );
     expect(screen.queryByTestId('planning-timeline-form')).not.toBeInTheDocument();
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlanningTimeline {...props} disabled={false} />
+      </I18nextProvider>,
+    );
+    const time = screen.getByTestId(
+      'planning-timeline-form-time',
+    ) as HTMLInputElement;
+    expect(time.value).toBe('07:30');
   });
 
   it('rejects time outside [0, gameDurationSec]', async () => {
