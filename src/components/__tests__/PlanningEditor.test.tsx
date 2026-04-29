@@ -285,6 +285,420 @@ describe('PlanningEditor', () => {
     expect(benchText).not.toMatch(/\bP8\b/);
   });
 
+  // ----- Drag-drop (desktop). Touch devices don't fire drag events,
+  // so tap-to-swap remains the mobile-only path. -----
+
+  it('drag-drop: dragging role A onto role B swaps their players', async () => {
+    renderEditor();
+    const role0 = (PRESET.roles ?? [])[0];
+    const role1 = (PRESET.roles ?? [])[1];
+    const before0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    const before1 = screen.getByTestId(`planning-editor-role-${role1.name}`).textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role0.name}`),
+      ).toHaveTextContent(before1!.replace(role1.name, '').trim());
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role1.name}`),
+    ).toHaveTextContent(before0!.replace(role0.name, '').trim());
+  });
+
+  it('drag-drop: dragging a bench player onto a role brings them on', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const displacedLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P8');
+    });
+    // Previous occupant should now be on the bench tail.
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      displacedLabel,
+    );
+  });
+
+  it('drag-drop: dragging a role onto the bench drawer sends the player to bench', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const fieldPlayerLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('—');
+    });
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      fieldPlayerLabel,
+    );
+  });
+
+  it('drag-drop: drop on self is a no-op', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const before = screen.getByTestId(`planning-editor-role-${role.name}`).textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).textContent,
+    ).toBe(before);
+  });
+
+  it('drag-drop: hovering the drag source over itself does not show conflicting visuals', async () => {
+    // While dragging, the source button has opacity-50 (dim). If the
+    // drop-target ring also fires when hovering self, the user sees
+    // two contradictory cues (dim = "you're holding it" vs ring =
+    // "drop here"). Ring should be suppressed when isOver === isSrc.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const button = screen.getByTestId(`planning-editor-role-${role.name}`);
+    await act(async () => {
+      fireEvent.dragStart(button);
+    });
+    expect(button.className).toContain('opacity-50');
+    await act(async () => {
+      fireEvent.dragOver(button);
+    });
+    // Still dimmed (still the source)…
+    expect(button.className).toContain('opacity-50');
+    // …but the drop-target ring is suppressed on the source itself.
+    // Other roles use ring on dragover; the source must not.
+    const ringMatches = button.className.match(/\bring-amber-200\b/g) ?? [];
+    expect(ringMatches.length).toBe(0);
+  });
+
+  it('drag-drop: dragging a role onto a specific bench player swaps them (does not bubble to bench-drawer)', async () => {
+    // Codex P1: a drop on a bench <button> bubbles to the bench-drawer
+    // <div> ancestor. Both handlers read the same captured dragSource
+    // (stale closure), so without stopPropagation the second handler
+    // performs performDrop(BENCH) and benches the just-placed player —
+    // role ends up empty instead of holding the bench player.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const fieldPlayerLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P8');
+    });
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      fieldPlayerLabel,
+    );
+  });
+
+  it('drag-drop: dragLeave keeps the highlight when moving from drawer into a child', async () => {
+    // Browsers fire dragleave on the parent <div> before dragover on
+    // a descendant <button>. Without the relatedTarget contains-guard
+    // the ring would disappear for a frame each time the cursor
+    // crossed an internal boundary. Verify the guard stays the
+    // clear, and that a real exit (relatedTarget outside) still clears.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const drawer = screen.getByTestId('planning-editor-bench-drawer');
+    const childBench = screen.getByTestId('planning-editor-bench-p8');
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(drawer);
+    });
+    await waitFor(() => {
+      expect(drawer.className).toContain('ring-amber-200');
+    });
+    // jsdom's DragEvent constructor doesn't honour the `relatedTarget`
+    // init option — fireEvent's plain object is dropped silently — so
+    // we build the event explicitly and pin relatedTarget via
+    // defineProperty before dispatching.
+    const buildDragLeave = (related: Node) => {
+      const ev = new MouseEvent('dragleave', { bubbles: true, cancelable: true });
+      Object.defineProperty(ev, 'relatedTarget', { value: related });
+      return ev;
+    };
+    await act(async () => {
+      fireEvent(drawer, buildDragLeave(childBench));
+    });
+    expect(drawer.className).toContain('ring-amber-200');
+    await act(async () => {
+      fireEvent(drawer, buildDragLeave(document.body));
+    });
+    expect(drawer.className).not.toContain('ring-amber-200');
+  });
+
+  it('drag-drop: bench → bench dragOver does NOT highlight the bench drawer', async () => {
+    // Without the bench <button>'s onDragOver guard, hovering one bench
+    // player while dragging another previously fired the drawer's
+    // 'bench-drawer' highlight even though the drop is a no-op. The
+    // bench drawer wrapper's ring class only applies when dragOverTarget
+    // === 'bench-drawer'; assert it stays off for bench → bench.
+    renderEditor();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    expect(
+      screen.getByTestId('planning-editor-bench-drawer').className,
+    ).not.toContain('ring-amber-200');
+  });
+
+  it('drag-drop: bench → empty role brings the bench player on with no displacement', async () => {
+    // GK role left empty so the bench → role drop has no field
+    // occupant to displace. Bench should shrink by one; GK takes p8.
+    const roster = makeRoster(9);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1)
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const gkRole = (PRESET.roles ?? [])[0];
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${gkRole.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${gkRole.name}`),
+      ).toHaveTextContent('P8');
+    });
+    expect(screen.getByTestId('planning-editor-bench').textContent).not.toMatch(
+      /\bP8\b/,
+    );
+  });
+
+  it('drag-drop: bench → drawer (bench source) clears tap-selection so it does not leak into the next tap', async () => {
+    // 1. tap-select a bench player (this sets `selected`)
+    // 2. start a drag from a different bench player (bench → bench)
+    // 3. drop on the bench drawer area (early-return branch)
+    // 4. tap a role — should NOT swap, because both selected and
+    //    dragSource must be clean by now. Without setSelected(null) in
+    //    the early return, the role tap would auto-swap with the
+    //    originally tap-selected bench player.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const beforeRoleText = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    // Role contents must be unchanged — first tap after the drag
+    // should arm a fresh selection, not auto-swap with a stale one.
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).textContent,
+    ).toBe(beforeRoleText);
+  });
+
+  it('drag-drop: bench → bench drag is a no-op', async () => {
+    renderEditor();
+    const before = screen.getByTestId('planning-editor-bench').textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    expect(screen.getByTestId('planning-editor-bench').textContent).toBe(before);
+  });
+
+  it('drag-drop: cancelled drag does not leak a prior tap-selection into the next tap', async () => {
+    // Sequence the bug needs to fail without the handleDragStart fix:
+    //   1. tap-select role A           → selected = { target: A }
+    //   2. start dragging role B       → dragSource = { target: B }
+    //   3. cancel the drag (dragEnd)
+    //   4. tap role C                  → must NOT swap A↔C
+    // With handleDragStart calling clearDragState, step 2 already
+    // wipes the prior tap-selection so the cancel path is safe.
+    renderEditor();
+    const role0 = (PRESET.roles ?? [])[0];
+    const role1 = (PRESET.roles ?? [])[1];
+    const role2 = (PRESET.roles ?? [])[2];
+    const beforeRole0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    const beforeRole2 = screen.getByTestId(`planning-editor-role-${role2.name}`).textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragEnd(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role2.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role0.name}`).textContent,
+    ).toBe(beforeRole0);
+    expect(
+      screen.getByTestId(`planning-editor-role-${role2.name}`).textContent,
+    ).toBe(beforeRole2);
+  });
+
+  it('drag-drop: dragend without drop clears drag state', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const sourceEl = screen.getByTestId(`planning-editor-role-${role.name}`);
+    await act(async () => {
+      fireEvent.dragStart(sourceEl);
+    });
+    expect(sourceEl.className).toContain('opacity-50');
+    await act(async () => {
+      fireEvent.dragEnd(sourceEl);
+    });
+    // Drag visuals cleared even though no drop landed.
+    expect(sourceEl.className).not.toContain('opacity-50');
+    // A subsequent unrelated tap should still work — proves dragSource
+    // didn't leak into the tap-selected state.
+    const role0 = (PRESET.roles ?? [])[0];
+    const before0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role0.name}`).textContent,
+    ).toBe(before0);
+  });
+
+  it('drag-drop: role buttons are not draggable while applying', async () => {
+    // Stall applyToGame on a never-resolving promise to keep isApplying
+    // pinned to true through the assertion.
+    const applyToGame = jest.fn().mockReturnValue(new Promise(() => {}));
+    renderEditor({ applyToGame });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-apply')).toBeDisabled();
+    });
+    const role = (PRESET.roles ?? [])[1];
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`),
+    ).toHaveAttribute('draggable', 'false');
+    expect(
+      screen.getByTestId('planning-editor-bench-p8'),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
+  it('drag-drop: role buttons are not draggable while the formation-change banner is open', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    const fivev5Roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`planning-editor-role-${fivev5Roles[0].name}`),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`planning-editor-role-${fivev5Roles[1].name}`),
+      );
+    });
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`planning-editor-role-${fivev5Roles[0].name}`),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
+  it('drag-drop: empty role buttons are not draggable', () => {
+    // Build a game whose first preset role is empty.
+    const roster = makeRoster(8);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1)
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const emptyRole = (PRESET.roles ?? [])[0];
+    expect(
+      screen.getByTestId(`planning-editor-role-${emptyRole.name}`),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
   it('Apply calls applyToGame for each picked game and then onApplied', async () => {
     const applyToGame = jest.fn().mockResolvedValue(undefined);
     const onApplied = jest.fn();
