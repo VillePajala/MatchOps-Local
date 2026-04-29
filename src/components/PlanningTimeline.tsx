@@ -268,7 +268,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
         timeSeconds: timeSec,
         positionRole: form.positionRole,
         inPlayer: form.inPlayerId,
-        outPlayer,
       });
     } else {
       onAddSub({
@@ -276,7 +275,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
         timeSeconds: timeSec,
         positionRole: form.positionRole,
         inPlayer: form.inPlayerId,
-        outPlayer,
       });
     }
     closeForm();
@@ -288,7 +286,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     const referenced = new Set<PlayerId>(Object.values(draft.startingXI));
     for (const s of draft.scheduledSubs) {
       referenced.add(s.inPlayer);
-      referenced.add(s.outPlayer);
     }
     return roster
       .filter((p) => referenced.has(p.id))
@@ -355,7 +352,16 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
             )}
           </p>
         ) : (
-          sortedSubs.map((sub) => (
+          sortedSubs.map((sub) => {
+            // Lazy outPlayer: pre-sub occupant of this role at this
+            // time. Excluding the sub itself prevents the trivial
+            // "out resolves to its own inPlayer" loop.
+            const outPlayer = playerAtRoleTime(
+              sub.positionRole,
+              sub.timeSeconds,
+              sub.id,
+            );
+            return (
             <div
               key={sub.id}
               data-testid={`planning-timeline-sub-${sub.id}`}
@@ -366,7 +372,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
               </span>
               <span className="text-slate-400">{sub.positionRole}</span>
               <span className="flex-1 truncate text-slate-100">
-                {playerLabel(sub.outPlayer)} → {playerLabel(sub.inPlayer)}
+                {outPlayer ? playerLabel(outPlayer) : '—'} → {playerLabel(sub.inPlayer)}
               </span>
               <button
                 type="button"
@@ -389,7 +395,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
                 <HiOutlineTrash className="h-4 w-4" />
               </button>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

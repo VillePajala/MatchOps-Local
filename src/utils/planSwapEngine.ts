@@ -12,15 +12,22 @@ export type PlayerId = string;
 export type RoleName = string;
 
 /**
- * Draft-time scheduled substitution. Mirrors AppState's ScheduledSub but
- * drops the runtime `status` field — drafts haven't been applied yet, so
- * the status doesn't exist until Apply writes it as `'pending'`.
+ * Draft-time scheduled substitution. Mirrors AppState's ScheduledSub
+ * but omits two runtime fields:
+ *
+ * - `status`: drafts haven't been applied yet (set on Apply as
+ *   `'pending'`).
+ * - `outPlayer`: the player going off is whatever occupies the role
+ *   immediately before this sub fires. Storing it on the draft makes
+ *   it go stale every time the user edits the pitch — sub at LB
+ *   originally said `outPlayer: 'p1'`, then the coach swapped p2 onto
+ *   LB, and now the sub still pretends p1 is leaving. Computed
+ *   lazily at display + Apply time via `getRoleSegments`.
  */
 export interface DraftScheduledSub {
   id: string;
   /** Game-clock seconds at which the sub fires. Must be >= 0. */
   timeSeconds: number;
-  outPlayer: PlayerId;
   inPlayer: PlayerId;
   /** Role/slot the sub affects. Must match a role name in the formation. */
   positionRole: RoleName;

@@ -66,15 +66,14 @@ function draftFromGame(
       benchSet.add(id);
     }
   }
-  // Hydrate any scheduledSubs the game already carries (post-Apply
-  // re-edits or imported plans). Sorted ascending by timeSeconds for
-  // stable timeline rendering. Status is intentionally dropped — the
-  // draft has no concept of fired/skipped state.
+  // Hydrate scheduledSubs from the game record. Status is dropped
+  // (the draft has no concept of fired/skipped) and outPlayer is
+  // dropped (it's recomputed lazily — storing it would go stale on
+  // every pitch swap).
   const scheduledSubs = (game.scheduledSubs ?? [])
-    .map(({ id, timeSeconds, outPlayer, inPlayer, positionRole }) => ({
+    .map(({ id, timeSeconds, inPlayer, positionRole }) => ({
       id,
       timeSeconds,
-      outPlayer,
       inPlayer,
       positionRole,
     }))

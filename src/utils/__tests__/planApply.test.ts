@@ -194,7 +194,6 @@ describe('applyDraftToGame — per-game duration filter', () => {
         {
           id: 's1',
           timeSeconds: 300,
-          outPlayer: 'p1',
           inPlayer: 'p4',
           positionRole: 'LB',
         },
@@ -202,7 +201,6 @@ describe('applyDraftToGame — per-game duration filter', () => {
         {
           id: 's2',
           timeSeconds: 600,
-          outPlayer: 'p2',
           inPlayer: 'p5',
           positionRole: 'GK',
         },
@@ -210,7 +208,6 @@ describe('applyDraftToGame — per-game duration filter', () => {
         {
           id: 's3',
           timeSeconds: 999,
-          outPlayer: 'p3',
           inPlayer: 'p4',
           positionRole: 'RB',
         },
@@ -229,7 +226,6 @@ describe('applyDraftToGame — per-game duration filter', () => {
         {
           id: 's1',
           timeSeconds: 999999,
-          outPlayer: 'p1',
           inPlayer: 'p4',
           positionRole: 'LB',
         },
@@ -240,6 +236,72 @@ describe('applyDraftToGame — per-game duration filter', () => {
     const r = applyDraftToGame(draft, preset5v5_2_2, roster);
     expect(r.scheduledSubs).toHaveLength(1);
     expect(r.unreachableSubs).toEqual([]);
+  });
+});
+
+describe('applyDraftToGame — outPlayer derived from current draft state', () => {
+  it('outPlayer reflects the latest startingXI, not what the draft sub may have stored', () => {
+    // The draft has a sub at LB, but startingXI.LB has just been
+    // changed via a pitch swap. The persisted ScheduledSub should
+    // record the NEW startingXI player as outPlayer — the old value
+    // would mean the live-game banner subs out the wrong player.
+    // (DraftScheduledSub no longer carries outPlayer at all; this
+    // test pins the contract.)
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 300,
+          inPlayer: 'p4',
+          positionRole: 'LB',
+        },
+      ],
+      startingXI: { GK: 'p1', LB: 'p3', RB: 'p2' }, // p3 at LB, not p2
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs).toHaveLength(1);
+    expect(r.scheduledSubs[0].outPlayer).toBe('p3');
+    expect(r.scheduledSubs[0].inPlayer).toBe('p4');
+  });
+
+  it('chained subs at the same role: each sub\'s outPlayer is the prior sub\'s inPlayer', () => {
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 200, inPlayer: 'p4', positionRole: 'LB' },
+        { id: 's2', timeSeconds: 400, inPlayer: 'p5', positionRole: 'LB' },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs).toHaveLength(2);
+    expect(r.scheduledSubs[0]).toMatchObject({
+      id: 's1',
+      outPlayer: 'p2', // starter at LB
+      inPlayer: 'p4',
+    });
+    expect(r.scheduledSubs[1]).toMatchObject({
+      id: 's2',
+      outPlayer: 'p4', // s1's inPlayer
+      inPlayer: 'p5',
+    });
+  });
+
+  it('drops a sub whose role is empty at sub-time (no outPlayer to record)', () => {
+    // RB is in the preset but isn't assigned in startingXI, so the
+    // role has no occupant at sub time. The sub can't fire and is
+    // dropped silently. unknownRoles stays empty (RB is a known role).
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 100, inPlayer: 'p4', positionRole: 'RB' },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2' },
+      bench: ['p3', 'p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs).toHaveLength(0);
+    expect(r.unknownRoles).toEqual([]);
   });
 });
 

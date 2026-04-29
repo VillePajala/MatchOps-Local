@@ -7,6 +7,7 @@ import type { Player } from '@/types';
 import type { FormationPreset } from '@/config/formationPresets';
 import type { DraftScheduledSub, PlanDraft, PlayerId } from '@/utils/planSwapEngine';
 import type { ScheduledSub } from '@/types/game';
+import { getRoleSegments } from '@/utils/planFairness';
 
 export interface ApplyResult {
   /**
@@ -139,24 +140,26 @@ export function applyDraftToGame(
     }
   }
 
-  // 4. scheduledSubs: filter out subs that reference unknown roles or
-  //    unknown players; the rest get status: 'pending'. Subs at or past
-  //    the per-game duration (when caller provides one) are siphoned
-  //    into `unreachableSubs` since the live-game timer would never
-  //    fire them. Final list is sorted ascending by timeSeconds.
+  // 4. scheduledSubs: validate roles + inPlayer against the formation
+  //    + roster; siphon time-out-of-range subs into `unreachableSubs`;
+  //    compute outPlayer lazily from the draft's pre-sub segments
+  //    (canonical source of truth — the field state from startingXI +
+  //    earlier subs). The sort order matters: we sort the input by
+  //    timeSeconds first so each sub sees a fresh view of who is at
+  //    its role at its time, then walk in chronological order.
+  const sortedSrc = [...draft.scheduledSubs].sort(
+    (a, b) => a.timeSeconds - b.timeSeconds,
+  );
+  const validForOutPlayer: DraftScheduledSub[] = [];
   const scheduledSubs: ScheduledSub[] = [];
   const unreachableSubs: DraftScheduledSub[] = [];
-  for (const s of draft.scheduledSubs) {
+  for (const s of sortedSrc) {
     if (!presetRoleNames.has(s.positionRole)) {
       unknownRolesSet.add(s.positionRole);
       continue;
     }
     if (!rosterMap.has(s.inPlayer)) {
       unknownPlayerIdsSet.add(s.inPlayer);
-      continue;
-    }
-    if (!rosterMap.has(s.outPlayer)) {
-      unknownPlayerIdsSet.add(s.outPlayer);
       continue;
     }
     if (
@@ -167,16 +170,50 @@ export function applyDraftToGame(
       unreachableSubs.push(s);
       continue;
     }
+    validForOutPlayer.push(s);
+  }
+  // outPlayer = the role's occupant just before this sub fires.
+  // Segments built INCLUDING this sub would put its own inPlayer at
+  // its fire time, so we exclude the sub from the segment build for
+  // each lookup (same pattern as PlanningTimeline.playerAtRoleTime).
+  const outPlayerHorizon = Math.max(
+    typeof gameDurationSec === 'number' ? gameDurationSec : 0,
+    ...validForOutPlayer.map((s) => s.timeSeconds + 1),
+  );
+  for (const s of validForOutPlayer) {
+    const otherSubs = validForOutPlayer.filter((x) => x.id !== s.id);
+    const segs = getRoleSegments(
+      { ...draft, scheduledSubs: otherSubs },
+      s.positionRole,
+      outPlayerHorizon,
+    );
+    let outPlayer: PlayerId = '';
+    for (const seg of segs) {
+      if (s.timeSeconds >= seg.startSec && s.timeSeconds < seg.endSec) {
+        outPlayer = seg.playerId;
+        break;
+      }
+    }
+    if (!outPlayer) {
+      // Role empty at sub time. Drop the sub rather than persisting
+      // one with no outPlayer — the editor prevents this state but we
+      // degrade gracefully if a draft slips through.
+      continue;
+    }
+    if (!rosterMap.has(outPlayer)) {
+      unknownPlayerIdsSet.add(outPlayer);
+      continue;
+    }
     scheduledSubs.push({
       id: s.id,
       timeSeconds: s.timeSeconds,
-      outPlayer: s.outPlayer,
+      outPlayer,
       inPlayer: s.inPlayer,
       positionRole: s.positionRole,
       status: 'pending',
     });
   }
-  scheduledSubs.sort((a, b) => a.timeSeconds - b.timeSeconds);
+  // validForOutPlayer was already chronological; scheduledSubs preserves that.
 
   return {
     playersOnField,

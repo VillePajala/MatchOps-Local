@@ -78,10 +78,9 @@ export function planDraftFromImport(
   // monotonic without an additional sort step.
   const importedSubs = imported.scheduledSubs ?? [];
   const scheduledSubs = importedSubs
-    .map(({ id, timeSeconds, outPlayer, inPlayer, positionRole }) => ({
+    .map(({ id, timeSeconds, inPlayer, positionRole }) => ({
       id,
       timeSeconds,
-      outPlayer,
       inPlayer,
       positionRole,
     }))

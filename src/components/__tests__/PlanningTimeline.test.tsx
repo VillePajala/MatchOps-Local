@@ -82,7 +82,6 @@ describe('PlanningTimeline', () => {
         {
           id: 's1',
           timeSeconds: 600,
-          outPlayer: 'p1',
           inPlayer: 'p8',
           positionRole: role1,
         },
@@ -105,7 +104,6 @@ describe('PlanningTimeline', () => {
         {
           id: 's1',
           timeSeconds: 600,
-          outPlayer: 'p1',
           inPlayer: 'p8',
           positionRole: (PRESET.roles ?? [])[1].name,
         },
@@ -158,7 +156,6 @@ describe('PlanningTimeline', () => {
       timeSeconds: 600,
       positionRole: role1,
       inPlayer: 'p8',
-      outPlayer: 'p1', // currently at role1 per makeDraft fixture
     });
   });
 
@@ -292,7 +289,6 @@ describe('PlanningTimeline', () => {
         {
           id: 's1',
           timeSeconds: 600,
-          outPlayer: 'p1',
           inPlayer: 'p8',
           positionRole: (PRESET.roles ?? [])[1].name,
         },
@@ -314,7 +310,6 @@ describe('PlanningTimeline', () => {
         {
           id: 's1',
           timeSeconds: 600,
-          outPlayer: 'p1',
           inPlayer: 'p8',
           positionRole: (PRESET.roles ?? [])[1].name,
         },
@@ -334,7 +329,6 @@ describe('PlanningTimeline', () => {
         {
           id: 's1',
           timeSeconds: 600,
-          outPlayer: 'p1',
           inPlayer: 'p8',
           positionRole: (PRESET.roles ?? [])[1].name,
         },
@@ -381,7 +375,6 @@ describe('PlanningTimeline', () => {
         {
           id: 's1',
           timeSeconds: 600,
-          outPlayer: 'p1',
           inPlayer: 'p8',
           positionRole: role1,
         },
@@ -400,7 +393,6 @@ describe('PlanningTimeline', () => {
     });
     expect(onUpdateSub).toHaveBeenCalledTimes(1);
     expect(onUpdateSub.mock.calls[0][1]).toMatchObject({
-      outPlayer: 'p1',
       inPlayer: 'p8',
     });
   });
@@ -450,7 +442,6 @@ describe('PlanningTimeline', () => {
         {
           id: 's1',
           timeSeconds: 600,
-          outPlayer: 'p1',
           inPlayer: 'p8',
           positionRole: role1,
         },
