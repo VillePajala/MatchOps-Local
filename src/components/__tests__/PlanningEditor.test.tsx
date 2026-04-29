@@ -370,6 +370,34 @@ describe('PlanningEditor', () => {
     ).toBe(before);
   });
 
+  it('drag-drop: dragging a role onto a specific bench player swaps them (does not bubble to bench-drawer)', async () => {
+    // Codex P1: a drop on a bench <button> bubbles to the bench-drawer
+    // <div> ancestor. Both handlers read the same captured dragSource
+    // (stale closure), so without stopPropagation the second handler
+    // performs performDrop(BENCH) and benches the just-placed player —
+    // role ends up empty instead of holding the bench player.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const fieldPlayerLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P8');
+    });
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      fieldPlayerLabel,
+    );
+  });
+
   it('drag-drop: bench → bench drag is a no-op', async () => {
     renderEditor();
     const before = screen.getByTestId('planning-editor-bench').textContent;
@@ -377,9 +405,37 @@ describe('PlanningEditor', () => {
       fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
     });
     await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    await act(async () => {
       fireEvent.drop(screen.getByTestId('planning-editor-bench-p9'));
     });
     expect(screen.getByTestId('planning-editor-bench').textContent).toBe(before);
+  });
+
+  it('drag-drop: dragend without drop clears drag state', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const sourceEl = screen.getByTestId(`planning-editor-role-${role.name}`);
+    await act(async () => {
+      fireEvent.dragStart(sourceEl);
+    });
+    expect(sourceEl.className).toContain('opacity-50');
+    await act(async () => {
+      fireEvent.dragEnd(sourceEl);
+    });
+    // Drag visuals cleared even though no drop landed.
+    expect(sourceEl.className).not.toContain('opacity-50');
+    // A subsequent unrelated tap should still work — proves dragSource
+    // didn't leak into the tap-selected state.
+    const role0 = (PRESET.roles ?? [])[0];
+    const before0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role0.name}`).textContent,
+    ).toBe(before0);
   });
 
   it('drag-drop: role buttons are not draggable while applying', async () => {

@@ -244,7 +244,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       if (!dragSource) return;
       e.preventDefault();
       if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      setDragOverTarget(overKey);
+      // dragover fires at ~60 Hz; skip the state write when the value
+      // hasn't changed so React doesn't re-render every frame.
+      if (dragOverTarget !== overKey) setDragOverTarget(overKey);
     };
   const handleDragLeave = (e: React.DragEvent) => {
     // Ignore leaves where the cursor is still inside the same element
@@ -278,10 +280,16 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   };
   const handleDropOnRole = (roleName: string) => (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     performDrop(roleName);
   };
   const handleDropOntoBenchPlayer = (playerId: PlayerId) => (e: React.DragEvent) => {
     e.preventDefault();
+    // Stop the drop from bubbling to the bench-drawer ancestor — both
+    // handlers see the same captured `dragSource` (React closure), so
+    // a bubble would run performDrop(BENCH) on the just-placed player
+    // and undo the swap.
+    e.stopPropagation();
     // Dropping onto a specific bench player mirrors the tap gesture:
     // source's occupant trades places with this bench player. Engine
     // handles it via bench→field with the bench player as the new
@@ -321,6 +329,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     if (dragSource.target === BENCH) {
       return dragSource.benchPlayerId === s.benchPlayerId;
     }
+    // Field roles are unique per role name, so matching target is enough.
     return true;
   };
 
