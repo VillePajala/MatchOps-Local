@@ -186,6 +186,63 @@ describe('applyDraftToGame — defensive paths', () => {
   });
 });
 
+describe('applyDraftToGame — per-game duration filter', () => {
+  it('drops subs at or past gameDurationSec into unreachableSubs', () => {
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        // Reachable.
+        {
+          id: 's1',
+          timeSeconds: 300,
+          outPlayer: 'p1',
+          inPlayer: 'p4',
+          positionRole: 'LB',
+        },
+        // At exactly the end — would never fire.
+        {
+          id: 's2',
+          timeSeconds: 600,
+          outPlayer: 'p2',
+          inPlayer: 'p5',
+          positionRole: 'GK',
+        },
+        // Past the end — would never fire.
+        {
+          id: 's3',
+          timeSeconds: 999,
+          outPlayer: 'p3',
+          inPlayer: 'p4',
+          positionRole: 'RB',
+        },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs.map((s) => s.id)).toEqual(['s1']);
+    expect(r.unreachableSubs.map((s) => s.id)).toEqual(['s2', 's3']);
+  });
+
+  it('omitting gameDurationSec passes all subs through (legacy callers)', () => {
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 999999,
+          outPlayer: 'p1',
+          inPlayer: 'p4',
+          positionRole: 'LB',
+        },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster);
+    expect(r.scheduledSubs).toHaveLength(1);
+    expect(r.unreachableSubs).toEqual([]);
+  });
+});
+
 describe('applyDraftToGame — 8v8 sanity check', () => {
   it('places all 8 starting-XI roles with a clean roster', () => {
     const fullRoster = [

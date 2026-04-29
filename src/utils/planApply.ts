@@ -5,7 +5,7 @@
 
 import type { Player } from '@/types';
 import type { FormationPreset } from '@/config/formationPresets';
-import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
+import type { DraftScheduledSub, PlanDraft, PlayerId } from '@/utils/planSwapEngine';
 import type { ScheduledSub } from '@/types/game';
 
 export interface ApplyResult {
@@ -53,6 +53,12 @@ export interface ApplyResult {
    * are dropped (and surfaced via `unknownRoles`).
    */
   scheduledSubs: ScheduledSub[];
+  /**
+   * Subs dropped because their `timeSeconds` is at or past the per-game
+   * duration the caller supplied. They'd never fire on the live timer.
+   * Empty when the caller didn't supply a duration.
+   */
+  unreachableSubs: DraftScheduledSub[];
 }
 
 /**
@@ -72,6 +78,15 @@ export function applyDraftToGame(
   draft: PlanDraft,
   preset: FormationPreset | null | undefined,
   roster: readonly Player[],
+  /**
+   * Per-game total duration in seconds. When supplied, subs whose
+   * timeSeconds is at or past this value are dropped from the result —
+   * they'd never fire on the live timer of a shorter game. Caller
+   * passes `numberOfPeriods × periodDurationMinutes × 60`. When
+   * omitted (legacy callers), all subs pass through regardless of
+   * time.
+   */
+  gameDurationSec?: number,
 ): ApplyResult {
   const rosterMap = new Map<PlayerId, Player>();
   for (const p of roster) rosterMap.set(p.id, p);
@@ -125,9 +140,12 @@ export function applyDraftToGame(
   }
 
   // 4. scheduledSubs: filter out subs that reference unknown roles or
-  //    unknown players; the rest get status: 'pending'. Sorted ascending
-  //    by timeSeconds for stable persistence + later timer comparison.
+  //    unknown players; the rest get status: 'pending'. Subs at or past
+  //    the per-game duration (when caller provides one) are siphoned
+  //    into `unreachableSubs` since the live-game timer would never
+  //    fire them. Final list is sorted ascending by timeSeconds.
   const scheduledSubs: ScheduledSub[] = [];
+  const unreachableSubs: DraftScheduledSub[] = [];
   for (const s of draft.scheduledSubs) {
     if (!presetRoleNames.has(s.positionRole)) {
       unknownRolesSet.add(s.positionRole);
@@ -139,6 +157,14 @@ export function applyDraftToGame(
     }
     if (!rosterMap.has(s.outPlayer)) {
       unknownPlayerIdsSet.add(s.outPlayer);
+      continue;
+    }
+    if (
+      typeof gameDurationSec === 'number' &&
+      gameDurationSec > 0 &&
+      s.timeSeconds >= gameDurationSec
+    ) {
+      unreachableSubs.push(s);
       continue;
     }
     scheduledSubs.push({
@@ -158,6 +184,7 @@ export function applyDraftToGame(
     unknownRoles: [...unknownRolesSet],
     unknownPlayerIds: [...unknownPlayerIdsSet],
     scheduledSubs,
+    unreachableSubs,
   };
 }
 

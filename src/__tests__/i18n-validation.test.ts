@@ -294,7 +294,8 @@ describe('Translation File Validation', () => {
       // empty, addSub, editSub, removeSub, time, role, inPlayer,
       // pickPlayer, noRoles, errBadTime, errTimeOutOfRange, errNoRole,
       // errNoPlayer, errNoOccupant, errSelfSub)
-      expect(enKeys.length).toBe(2497);
+      // +1: applyWarnUnreachableSubs (subs scheduled past per-game end).
+      expect(enKeys.length).toBe(2498);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -308,7 +309,8 @@ describe('Translation File Validation', () => {
       // applyWarnUnknownPlayers + applyWarnUnknownRoles)
       // +1: applySavedSummary (warning banner saved-count prefix).
       // Planner Phase 2: planningTimeline section (17 keys).
-      expect(fiKeys.length).toBe(2497);
+      // +1: applyWarnUnreachableSubs.
+      expect(fiKeys.length).toBe(2498);
     });
   });
 });

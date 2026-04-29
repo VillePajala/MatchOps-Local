@@ -399,6 +399,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setApplyWarning(null);
     let gamesWithUnknownPlayers = 0;
     let gamesWithUnknownRoles = 0;
+    let gamesWithUnreachableSubs = 0;
     let gamesNotFound = 0;
     let savedCount = 0;
     try {
@@ -415,7 +416,18 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         // (playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers) holds
         // without widening any team's roster. Drops surface as unknown*
         // counters and feed the warning banner.
-        const result = applyDraftToGame(draft, preset, game.availablePlayers);
+        const perGameDurationSec = Math.max(
+          1,
+          (game.numberOfPeriods ?? 2) *
+            (game.periodDurationMinutes ?? 10) *
+            60,
+        );
+        const result = applyDraftToGame(
+          draft,
+          preset,
+          game.availablePlayers,
+          perGameDurationSec,
+        );
         await applyToGame(id, {
           playersOnField: result.playersOnField,
           selectedPlayerIds: result.selectedPlayerIds,
@@ -426,10 +438,12 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         // the failed game had partial saves.
         if (result.unknownPlayerIds.length > 0) gamesWithUnknownPlayers++;
         if (result.unknownRoles.length > 0) gamesWithUnknownRoles++;
+        if (result.unreachableSubs.length > 0) gamesWithUnreachableSubs++;
       }
       if (
         gamesWithUnknownPlayers > 0 ||
         gamesWithUnknownRoles > 0 ||
+        gamesWithUnreachableSubs > 0 ||
         gamesNotFound > 0
       ) {
         // Stay in the editor with a warning banner; coach acknowledges via Done.
@@ -464,6 +478,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               'planningEditor.applyWarnUnknownRoles',
               '{{count}} game(s) had roles outside the formation; those entries were dropped.',
               { count: gamesWithUnknownRoles },
+            ),
+          );
+        }
+        if (gamesWithUnreachableSubs > 0) {
+          parts.push(
+            t(
+              'planningEditor.applyWarnUnreachableSubs',
+              '{{count}} game(s) had subs scheduled past their end; those entries were dropped.',
+              { count: gamesWithUnreachableSubs },
             ),
           );
         }
@@ -509,6 +532,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             'planningEditor.applyWarnUnknownRoles',
             '{{count}} game(s) had roles outside the formation; those entries were dropped.',
             { count: gamesWithUnknownRoles },
+          ),
+        );
+      }
+      if (gamesWithUnreachableSubs > 0) {
+        errorParts.push(
+          t(
+            'planningEditor.applyWarnUnreachableSubs',
+            '{{count}} game(s) had subs scheduled past their end; those entries were dropped.',
+            { count: gamesWithUnreachableSubs },
           ),
         );
       }

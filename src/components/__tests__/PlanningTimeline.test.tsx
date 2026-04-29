@@ -156,6 +156,48 @@ describe('PlanningTimeline', () => {
     );
   });
 
+  it('rejects time exactly at gameDurationSec (incoming player would play 0 seconds)', async () => {
+    const onAddSub = jest.fn();
+    renderTimeline({ onAddSub, gameDurationSec: 600 });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '10:00' }, // exactly the 10-minute game end
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    expect(onAddSub).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId('planning-timeline-form-error').textContent,
+    ).toMatch(/between 00:00|välillä/i);
+  });
+
+  it('closes the form when disabled flips true mid-edit', async () => {
+    // Reproduces the trap where Apply starts while the form is open:
+    // every form button becomes disabled and the coach is stuck. The
+    // useEffect should auto-close on the disabled→true transition.
+    const { rerender, props } = renderTimeline();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    expect(screen.getByTestId('planning-timeline-form')).toBeInTheDocument();
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlanningTimeline {...props} disabled={true} />
+      </I18nextProvider>,
+    );
+    expect(screen.queryByTestId('planning-timeline-form')).not.toBeInTheDocument();
+  });
+
   it('rejects time outside [0, gameDurationSec]', async () => {
     const onAddSub = jest.fn();
     renderTimeline({ onAddSub, gameDurationSec: 600 });

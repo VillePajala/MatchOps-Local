@@ -1420,6 +1420,7 @@ export type TranslationKey =
   | 'planningEditor.applyWarnMissing'
   | 'planningEditor.applyWarnUnknownPlayers'
   | 'planningEditor.applyWarnUnknownRoles'
+  | 'planningEditor.applyWarnUnreachableSubs'
   | 'planningEditor.applying'
   | 'planningEditor.assignedCount'
   | 'planningEditor.bench'

@@ -158,17 +158,15 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     ): Player[] => {
       if (!roleName) return [];
       const onFieldElsewhere = new Set<PlayerId>();
+      // Hoist outside the loop — neither expression depends on r.name.
+      const filteredSubs =
+        excludeSubId === null
+          ? draft.scheduledSubs
+          : draft.scheduledSubs.filter((s) => s.id !== excludeSubId);
+      const draftForSegs = { ...draft, scheduledSubs: filteredSubs };
       for (const r of preset.roles ?? []) {
         if (r.name === roleName) continue;
-        const filteredSubs =
-          excludeSubId === null
-            ? draft.scheduledSubs
-            : draft.scheduledSubs.filter((s) => s.id !== excludeSubId);
-        const segs = getRoleSegments(
-          { ...draft, scheduledSubs: filteredSubs },
-          r.name,
-          gameDurationSec,
-        );
+        const segs = getRoleSegments(draftForSegs, r.name, gameDurationSec);
         for (const seg of segs) {
           if (timeSec >= seg.startSec && timeSec < seg.endSec) {
             onFieldElsewhere.add(seg.playerId);
@@ -208,6 +206,13 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     setFormError(null);
   };
 
+  // Apply or formation-change can flip `disabled` while a form is open.
+  // Without this gate every form button becomes inert and the coach is
+  // stuck with an open, uncancellable panel. Hide the form while
+  // disabled and re-show it on re-enable — state is preserved, so the
+  // coach picks up where they left off.
+  const formVisible = form !== null && !disabled;
+
   const submitForm = () => {
     if (!form) return;
     const timeSec = parseMMSS(form.timeText);
@@ -215,7 +220,9 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       setFormError(t('planningTimeline.errBadTime', 'Invalid time. Use MM:SS.'));
       return;
     }
-    if (timeSec > gameDurationSec) {
+    if (timeSec >= gameDurationSec) {
+      // ===: a sub at exactly game-end fires after the timer stops; the
+      // incoming player would play 0 seconds. Treat as out-of-range.
       setFormError(
         t(
           'planningTimeline.errTimeOutOfRange',
@@ -375,7 +382,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       </div>
 
       {/* Add/edit form (inline, controlled) */}
-      {form ? (
+      {formVisible && form ? (
         <div
           className="space-y-2 rounded-md border border-slate-700 bg-slate-900/70 p-3"
           data-testid="planning-timeline-form"

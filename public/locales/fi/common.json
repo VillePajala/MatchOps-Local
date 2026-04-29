@@ -1715,6 +1715,7 @@
     "applyWarnMissing": "{{count}} valittua peliä ei ollut enää saatavilla, ja ne ohitettiin.",
     "applyWarnUnknownPlayers": "{{count}} pelissä oli kokoonpanon ulkopuolisia pelaajia; nämä jätettiin pois.",
     "applyWarnUnknownRoles": "{{count}} pelissä oli pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",
+    "applyWarnUnreachableSubs": "{{count}} pelissä oli vaihtoja pelin päättymisen jälkeen; nämä jätettiin pois.",
     "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset. Jatketaanko?"
   },
   "planningTimeline": {
