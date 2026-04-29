@@ -291,23 +291,17 @@ describe('PlanningTimeline', () => {
       });
     });
     // The role isn't in assignedRoles, so it's not in the dropdown.
-    // Force the value via setForm path: the dropdown shows the
-    // assigned roles only, so this scenario only arises if the form
-    // was initialized with a now-empty role. Verify that submitting
-    // with an unassigned positionRole hits errNoOccupant.
-    // (Manual inject: change selects directly.)
+    // The errNoOccupant guard is still reachable in normal flow:
+    // the form preserves state across the disabled→enabled cycle,
+    // and a pitch swap during Apply can empty the role between the
+    // form opening and the user clicking Save. But that's not what
+    // this test pins — here we just verify the dropdown filter
+    // closes the most common entry path.
     await act(async () => {
       fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
         target: { value: 'p8' },
       });
     });
-    // assignedRoles is computed from startingXI without GK → so the
-    // dropdown won't include GK and the value won't stick. Instead,
-    // the actual reachable case for errNoOccupant: the form's role
-    // dropdown only lists assigned roles, so users can't trigger this
-    // via UI. We pin the apply-layer behaviour separately in
-    // planApply tests; here we just verify the handler exists and
-    // the form's role select doesn't expose unassigned roles.
     const roleSelect = screen.getByTestId(
       'planning-timeline-form-role',
     ) as HTMLSelectElement;

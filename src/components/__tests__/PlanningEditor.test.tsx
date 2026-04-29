@@ -1120,6 +1120,61 @@ describe('PlanningEditor', () => {
     ).toBeInTheDocument();
   });
 
+  it('formation change with only an in-place sub edit also prompts the confirm banner', async () => {
+    // Bug 2 follow-up: editing an existing sub's time (or any other
+    // field) preserves its id and the array length. Before this fix
+    // the diverged check missed it (length unchanged, id still in
+    // baseline set) → silent re-hydration discarded the edit. Now
+    // the check inspects each field by id-keyed lookup.
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const roster = makeRoster(11);
+    // Hydrate the editor with an existing sub via game1.scheduledSubs;
+    // draftFromGame strips status and brings the rest onto the draft.
+    const game1: AppState = {
+      ...makeGameWithLineup(roster, ['p8']),
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 480,
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role1,
+          status: 'pending',
+        },
+      ],
+    } as AppState;
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+    });
+    // Open the existing sub and bump its time.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-sub-edit-s1'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '12:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    // Switch formation — confirm banner must show.
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+  });
+
   it('confirming the formation-change banner switches the preset', async () => {
     renderEditor();
     const select = screen.getByRole('combobox');

@@ -167,9 +167,10 @@ export function applyDraftToGame(
       continue;
     }
     if (
-      // gameDurationSec === 0 (or negative) signals "no duration check"
-      // the same way `undefined` does — callers always pass Math.max(1, …)
-      // in practice so this branch is mainly for legacy / defensive paths.
+      // Production callers always pass Math.max(1, …) so 0 never
+      // reaches here; the `> 0` guard lets legacy / defensive
+      // callers signal "no duration check" by passing 0 or a
+      // negative value the same way `undefined` does.
       typeof gameDurationSec === 'number' &&
       gameDurationSec > 0 &&
       s.timeSeconds >= gameDurationSec
@@ -211,7 +212,12 @@ export function applyDraftToGame(
       continue;
     }
     if (!rosterMap.has(outPlayer)) {
-      unknownPlayerIdsSet.add(outPlayer);
+      // Computed outPlayer (the role's pre-sub occupant per the draft
+      // chain) isn't in the roster. Route to unreachableSubs rather
+      // than unknownPlayerIds — the cause is sub-related, not a stale
+      // starting-XI assignment, so surfacing it under the
+      // "players outside roster" banner would confuse the coach.
+      unreachableSubs.push(s);
       continue;
     }
     if (outPlayer === s.inPlayer) {
@@ -230,10 +236,10 @@ export function applyDraftToGame(
       status: 'pending',
     });
   }
-  // scheduledSubs is already in chronological order: we appended in
-  // validForOutPlayer's order, which was sorted at line 165. The
-  // per-role walk only populated outPlayers (a Map); it didn't
-  // reorder validForOutPlayer.
+  // scheduledSubs is already in chronological order: appended in
+  // validForOutPlayer's order, which is sorted ascending by
+  // timeSeconds. The per-role walk only populates an outPlayers Map;
+  // it doesn't reorder validForOutPlayer.
 
   return {
     playersOnField,
