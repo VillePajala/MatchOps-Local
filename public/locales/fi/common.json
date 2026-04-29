@@ -1715,8 +1715,8 @@
     "applyWarnMissing": "{{count}} valittua peliä ei ollut enää saatavilla, ja ne ohitettiin.",
     "applyWarnUnknownPlayers": "{{count}} pelissä oli kokoonpanon ulkopuolisia pelaajia; nämä jätettiin pois.",
     "applyWarnUnknownRoles": "{{count}} pelissä oli pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",
-    "applyWarnUnreachableSubs": "{{count}} pelissä oli vaihtoja pelin päättymisen jälkeen; nämä jätettiin pois.",
-    "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset. Jatketaanko?"
+    "applyWarnUnreachableSubs": "{{count}} pelissä oli vaihtoja, joita ei voitu soveltaa (pelin jälkeen, tyhjä rooli tai sama pelaaja); nämä jätettiin pois.",
+    "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset ja ajastetut vaihdot. Jatketaanko?"
   },
   "planningTimeline": {
     "title": "Aikajana",
@@ -1735,7 +1735,8 @@
     "errNoRole": "Valitse rooli.",
     "errNoPlayer": "Valitse pelaaja.",
     "errNoOccupant": "Tällä roolilla ei ole pelaajaa kyseisenä aikana. Aseta ensin kentälle.",
-    "errSelfSub": "Valittu pelaaja on jo tällä roolilla kyseisenä aikana."
+    "errSelfSub": "Valittu pelaaja on jo tällä roolilla kyseisenä aikana.",
+    "errDoublePosition": "Valittu pelaaja on jo kentällä toisella roolilla kyseisenä aikana."
   },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",

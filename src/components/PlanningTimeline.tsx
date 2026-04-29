@@ -269,6 +269,32 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       );
       return;
     }
+    // Re-check the double-position guard at submit time. The "in"
+    // dropdown filters by current state, but a pitch swap concurrent
+    // with the form (form open while user taps the pitch) can place
+    // the picked player on field at another role. Without this guard
+    // the persisted sub would put a player at two positions
+    // simultaneously.
+    const draftForCheck = draftWithoutSub(form.subId);
+    for (const r of preset.roles ?? []) {
+      if (r.name === form.positionRole) continue;
+      const segs = getRoleSegments(draftForCheck, r.name, gameDurationSec);
+      const occupied = segs.some(
+        (seg) =>
+          timeSec >= seg.startSec &&
+          timeSec < seg.endSec &&
+          seg.playerId === form.inPlayerId,
+      );
+      if (occupied) {
+        setFormError(
+          t(
+            'planningTimeline.errDoublePosition',
+            'That player is already on the field at another role at that time.',
+          ),
+        );
+        return;
+      }
+    }
     if (form.subId) {
       onUpdateSub(form.subId, {
         timeSeconds: timeSec,

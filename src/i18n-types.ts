@@ -1456,6 +1456,7 @@ export type TranslationKey =
   | 'planningTimeline.editSub'
   | 'planningTimeline.empty'
   | 'planningTimeline.errBadTime'
+  | 'planningTimeline.errDoublePosition'
   | 'planningTimeline.errNoOccupant'
   | 'planningTimeline.errNoPlayer'
   | 'planningTimeline.errNoRole'

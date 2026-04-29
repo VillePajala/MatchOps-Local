@@ -143,8 +143,8 @@ describe('getRoleSegments', () => {
 
   it('skips zero-length segments at the boundary', () => {
     // Sub at exactly t=0 means the starting player plays 0 seconds at
-    // that role; segments shorter than 1s are degenerate but the helper
-    // tolerates them rather than special-casing.
+    // that role. The helper drops the degenerate [0, 0) segment via
+    // its `t > curStart` guard, so only the post-sub segment renders.
     const draft: PlanDraft = {
       ...baseDraft(),
       scheduledSubs: [sub('s1', 0, 'p3', 'LB')],

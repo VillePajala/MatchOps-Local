@@ -167,6 +167,9 @@ export function applyDraftToGame(
       continue;
     }
     if (
+      // gameDurationSec === 0 (or negative) signals "no duration check"
+      // the same way `undefined` does — callers always pass Math.max(1, …)
+      // in practice so this branch is mainly for legacy / defensive paths.
       typeof gameDurationSec === 'number' &&
       gameDurationSec > 0 &&
       s.timeSeconds >= gameDurationSec
@@ -209,6 +212,13 @@ export function applyDraftToGame(
     }
     if (!rosterMap.has(outPlayer)) {
       unknownPlayerIdsSet.add(outPlayer);
+      continue;
+    }
+    if (outPlayer === s.inPlayer) {
+      // Self-sub (no-op) — the editor's UI guard prevents this, but
+      // an imported draft could carry one. Persisting it would fire
+      // a no-op banner during the live game.
+      unreachableSubs.push(s);
       continue;
     }
     scheduledSubs.push({

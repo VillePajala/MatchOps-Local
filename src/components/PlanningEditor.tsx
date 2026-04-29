@@ -162,11 +162,19 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     // When lengths match, a value-mismatch on any baseline key already
     // covers a different draft key set (the missing key reads as
     // undefined and never equals the baseline's player id).
+    // Also count any draft-added subs as a divergence — applyPresetChange
+    // re-hydrates from the saved game, so a silent fire would discard
+    // them.
+    const baselineSubIds = new Set(baseline.scheduledSubs.map((s) => s.id));
+    const subsDiverged =
+      draft.scheduledSubs.length !== baseline.scheduledSubs.length ||
+      draft.scheduledSubs.some((s) => !baselineSubIds.has(s.id));
     const diverged =
       baselineKeys.length !== draftKeys.length ||
       baselineKeys.some(
         (k) => baseline.startingXI[k] !== draft.startingXI[k],
-      );
+      ) ||
+      subsDiverged;
     if (diverged) {
       setPendingPresetId(id);
       return;

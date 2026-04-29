@@ -1080,6 +1080,46 @@ describe('PlanningEditor', () => {
     expect(screen.getByTestId('planning-editor-bench-p4')).toBeDisabled();
   });
 
+  it('formation change with only scheduled-sub edits prompts the confirm banner (does not silently discard subs)', async () => {
+    // Bug 1: handlePresetChange's diverged check only inspected
+    // startingXI; if the user added a sub without touching the pitch,
+    // the change fired silently and applyPresetChange re-hydrated
+    // from the saved game, wiping the sub. Verify the confirm
+    // banner shows up so the coach can choose.
+    renderEditor();
+    const role1 = (PRESET.roles ?? [])[1].name;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '08:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role1 },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    // Sub is on the draft; pitch is untouched. Switching formation
+    // should prompt confirm rather than silently re-hydrate.
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+  });
+
   it('confirming the formation-change banner switches the preset', async () => {
     renderEditor();
     const select = screen.getByRole('combobox');

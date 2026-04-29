@@ -1715,8 +1715,8 @@
     "applyWarnMissing": "{{count}} selected game(s) were no longer available and were skipped.",
     "applyWarnUnknownPlayers": "{{count}} game(s) had players outside their roster; those entries were dropped.",
     "applyWarnUnknownRoles": "{{count}} game(s) had roles outside the formation; those entries were dropped.",
-    "applyWarnUnreachableSubs": "{{count}} game(s) had subs scheduled past their end; those entries were dropped.",
-    "formationChangeConfirm": "Switching formation will reset your manual assignments. Continue?"
+    "applyWarnUnreachableSubs": "{{count}} game(s) had subs that could not be applied (past game end, empty role, or self-sub); those entries were dropped.",
+    "formationChangeConfirm": "Switching formation will reset your manual assignments and scheduled substitutions. Continue?"
   },
   "planningTimeline": {
     "title": "Timeline",
@@ -1735,7 +1735,8 @@
     "errNoRole": "Pick a role.",
     "errNoPlayer": "Pick a player.",
     "errNoOccupant": "No player at that role at that time. Assign one via the pitch first.",
-    "errSelfSub": "The chosen player is already at that role at that time."
+    "errSelfSub": "The chosen player is already at that role at that time.",
+    "errDoublePosition": "That player is already on the field at another role at that time."
   },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",
