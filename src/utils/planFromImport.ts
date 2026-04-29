@@ -21,6 +21,13 @@ export interface PlanFromImportResult {
    * <player> in two roles; we kept the first." Order: first-seen wins.
    */
   duplicateRoleAssignments: Array<{ role: string; playerId: PlayerId }>;
+  /**
+   * Note on `draft.scheduledSubs`: import passes them through without
+   * roster/role validation — that happens on Apply (applyDraftToGame
+   * filters via unknownPlayerIds + unknownRoles). The editor opens
+   * with stale-id subs visible and the user can clean them up before
+   * Apply; on Apply the broken ones surface in the warning banner.
+   */
 }
 
 /**

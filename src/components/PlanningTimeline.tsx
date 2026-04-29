@@ -118,36 +118,44 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     [preset, draft.startingXI],
   );
 
-  // Compute the would-be outPlayer at a given (role, time): the player
-  // occupying that role just before `timeSeconds`. When editing an
-  // existing sub, exclude that sub from the segment computation so the
-  // "out" doesn't resolve to the sub's own inPlayer (Codex P1).
+  // When editing a sub, exclude it from segment computation so the
+  // outPlayer resolves to the pre-sub occupant, not the sub's own
+  // inPlayer (Codex P1).
+  const draftWithoutSub = useCallback(
+    (excludeSubId: string | null): PlanDraft => {
+      if (excludeSubId === null) return draft;
+      return {
+        ...draft,
+        scheduledSubs: draft.scheduledSubs.filter(
+          (s) => s.id !== excludeSubId,
+        ),
+      };
+    },
+    [draft],
+  );
+
   const playerAtRoleTime = useCallback(
     (
       roleName: RoleName,
       timeSec: number,
       excludeSubId: string | null,
     ): PlayerId | '' => {
-      const filteredSubs =
-        excludeSubId === null
-          ? draft.scheduledSubs
-          : draft.scheduledSubs.filter((s) => s.id !== excludeSubId);
-      const draftForSegs = { ...draft, scheduledSubs: filteredSubs };
-      const segs = getRoleSegments(draftForSegs, roleName, gameDurationSec);
+      const segs = getRoleSegments(
+        draftWithoutSub(excludeSubId),
+        roleName,
+        gameDurationSec,
+      );
       for (const seg of segs) {
         if (timeSec >= seg.startSec && timeSec < seg.endSec) return seg.playerId;
       }
-      // timeSec at/past the last segment: fall back to the last occupant.
       const last = segs[segs.length - 1];
       return last ? last.playerId : '';
     },
-    [draft, gameDurationSec],
+    [draftWithoutSub, gameDurationSec],
   );
 
-  // Eligible "in" players at (role, time): excludes the current
-  // occupant (no-op self-sub) and players on the field at another role
-  // at that time (double-position guard, mirroring the standalone
-  // planner).
+  // Excludes the current occupant (no-op self-sub) and players on the
+  // field at another role at that time (double-position guard).
   const eligibleInPlayers = useCallback(
     (
       roleName: RoleName,
@@ -155,13 +163,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       excludeSubId: string | null,
     ): Player[] => {
       if (!roleName) return [];
+      const draftForSegs = draftWithoutSub(excludeSubId);
       const onFieldElsewhere = new Set<PlayerId>();
-      // Hoist outside the loop — neither expression depends on r.name.
-      const filteredSubs =
-        excludeSubId === null
-          ? draft.scheduledSubs
-          : draft.scheduledSubs.filter((s) => s.id !== excludeSubId);
-      const draftForSegs = { ...draft, scheduledSubs: filteredSubs };
       for (const r of preset.roles ?? []) {
         if (r.name === roleName) continue;
         const segs = getRoleSegments(draftForSegs, r.name, gameDurationSec);
@@ -176,7 +179,13 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
         (p) => !onFieldElsewhere.has(p.id) && p.id !== currentlyAtRole,
       );
     },
-    [draft, gameDurationSec, preset, roster, playerAtRoleTime],
+    [
+      draftWithoutSub,
+      gameDurationSec,
+      preset,
+      roster,
+      playerAtRoleTime,
+    ],
   );
 
   const openAddForm = () => {
@@ -204,11 +213,9 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     setFormError(null);
   };
 
-  // Apply or formation-change can flip `disabled` while a form is open.
-  // Without this gate every form button becomes inert and the coach is
-  // stuck with an open, uncancellable panel. Hide the form while
-  // disabled and re-show it on re-enable — state is preserved, so the
-  // coach picks up where they left off.
+  // Hide (don't disable) while `disabled` is true. Otherwise an open
+  // form's Save/Cancel buttons would be inert and the coach would be
+  // stuck. State survives the cycle so re-enabling restores the form.
   const formVisible = form !== null && !disabled;
 
   const submitForm = () => {
@@ -275,18 +282,16 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     closeForm();
   };
 
-  const sortedMinutes = useMemo(() => {
-    // Show only players who have on-field time OR are referenced by
-    // the draft (starting XI + subs). Pure bench players who never
-    // come on render as 00:00 noise — drop them to keep the panel
-    // scannable as the roster grows.
+  // Filter out pure-bench players to keep the panel scannable as
+  // rosters grow. Match computePlayerMinutes's referenced-set rule.
+  const minuteEntries = useMemo(() => {
     const referenced = new Set<PlayerId>(Object.values(draft.startingXI));
     for (const s of draft.scheduledSubs) {
       referenced.add(s.inPlayer);
       referenced.add(s.outPlayer);
     }
     return roster
-      .filter((p) => referenced.has(p.id) || (minutes.get(p.id) ?? 0) > 0)
+      .filter((p) => referenced.has(p.id))
       .map((p) => ({
         id: p.id,
         label: playerLabel(p.id),
@@ -326,7 +331,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
         className="grid grid-cols-3 gap-1 text-xs"
         data-testid="planning-timeline-minutes"
       >
-        {sortedMinutes.map((entry) => (
+        {minuteEntries.map((entry) => (
           <div
             key={entry.id}
             className="flex justify-between rounded-md bg-slate-800/60 px-2 py-1"
@@ -413,7 +418,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
                   )
                 }
                 disabled={disabled}
-                inputMode="numeric"
                 placeholder="00:00"
                 data-testid="planning-timeline-form-time"
                 className="mt-0.5 w-full rounded bg-slate-800 px-2 py-1 font-mono text-sm text-slate-100"

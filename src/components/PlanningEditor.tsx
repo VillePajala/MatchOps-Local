@@ -238,9 +238,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setSelected(null);
   };
 
-  // Timeline mutation handlers. The draft's `scheduledSubs` array stays
-  // sorted by timeSeconds ascending after every mutation so renderers
-  // and fairness math don't need to re-sort.
+  // Re-sorted on every mutation so callers can treat scheduledSubs as
+  // monotonic (renderers + fairness math skip an extra sort step).
   const handleAddSub = (sub: DraftScheduledSub) => {
     setDraft((d) => ({
       ...d,
@@ -267,13 +266,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     }));
   };
 
-  // Total game duration in seconds for fairness math + form validation.
-  // Uses the MINIMUM duration across all selected games so a sub
-  // scheduled here can't silently land outside a shorter game on
-  // Apply (it would have been dropped via unreachableSubs anyway, but
-  // the timeline header would have lied to the coach about what's
-  // valid). Defaults match CLAUDE.md Rule 10 (createGame's
-  // periodDurationMinutes default is 10).
+  // Use the MIN duration across selected games so the form can't
+  // accept a time that's invalid for a shorter game in the set
+  // (the unreachableSubs filter would have dropped it on Apply anyway,
+  // but the timeline header would have advertised the longer length).
+  // Defaults match CLAUDE.md Rule 10 (createGame's default is 10).
   const gameDurationSec = useMemo(() => {
     const durations = gameIds
       .map((id) => savedGames[id])
