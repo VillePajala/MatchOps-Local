@@ -239,11 +239,12 @@ describe('PlanningModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('resets to list page when Continue is pressed, so re-open lands on list', () => {
-    // Re-opening with isOpen=true after Continue must land on the list
-    // page (with New plan visible), not the picker we just left.
+  it('navigates to the editor when Continue is pressed in the picker', () => {
+    // Continue in the picker hands off the selected ids to the editor;
+    // the modal stays open until Apply (or the editor's Back goes back
+    // to the picker).
     const onClose = jest.fn();
-    const { rerender } = render(
+    render(
       <I18nextProvider i18n={i18n}>
         <PlanningModal
           isOpen
@@ -268,14 +269,17 @@ describe('PlanningModal', () => {
     expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('checkbox')[0]);
     fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId('planning-editor')).toBeInTheDocument();
+    expect(screen.queryByTestId('planning-game-picker')).not.toBeInTheDocument();
+  });
 
-    // Re-render to simulate the modal being re-opened.
-    rerender(
+  it('Back from the editor returns to the picker', () => {
+    render(
       <I18nextProvider i18n={i18n}>
         <PlanningModal
           isOpen
-          onClose={onClose}
+          onClose={jest.fn()}
           savedGames={{
             g1: asSavedGame({
               teamId: 'team_a',
@@ -290,11 +294,14 @@ describe('PlanningModal', () => {
         />
       </I18nextProvider>,
     );
-    // Should be on the list page, not the picker.
-    expect(screen.queryByTestId('planning-game-picker')).not.toBeInTheDocument();
-    expect(
+    fireEvent.click(
       screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
-    ).toBeInTheDocument();
+    );
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    expect(screen.getByTestId('planning-editor')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /back|takaisin/i }));
+    expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
   });
 
   it('passes the active team id to the picker so it filters to that team', () => {

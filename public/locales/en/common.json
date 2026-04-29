@@ -1698,6 +1698,19 @@
     "selectedCount": "{{count}} selected",
     "continueButton": "Continue"
   },
+  "planningEditor": {
+    "subtitle": "Set the lineup. Apply writes it to every game in the plan.",
+    "formation": "Formation",
+    "gameCount_one": "{{count}} game",
+    "gameCount_other": "{{count}} games",
+    "assignedCount": "{{filled}}/{{total}} on field",
+    "bench": "Bench",
+    "benchEmpty": "No players on the bench.",
+    "applyButton_one": "Apply to {{count}} game",
+    "applyButton_other": "Apply to {{count}} games",
+    "applying": "Applying…",
+    "applyFailed": "Apply failed; please try again."
+  },
   "installPrompt": {
     "message": "Install MatchOps Local for a faster, offline experience!",
     "installButton": "Install",

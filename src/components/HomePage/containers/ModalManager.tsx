@@ -257,6 +257,16 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           savedGames={data.savedGames}
           currentTeamId={data.gameSessionState.teamId}
           currentTeamName={data.gameSessionState.teamName}
+          roster={data.masterRoster}
+          applyToGame={async (gameId, updates) => {
+            // Each picked game is mutated independently so a transient
+            // failure on one doesn't lose the rest of the batch — the
+            // editor's Promise.all-style loop awaits each in turn.
+            await data.updateGameDetailsMutation?.mutateAsync({
+              gameId,
+              updates,
+            });
+          }}
         />
 
         <InstructionsModal
