@@ -111,6 +111,12 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   // pending id keeps the controlled <select> on the current preset
   // until the user confirms — no window.confirm anti-pattern.
   const [pendingPresetId, setPendingPresetId] = useState<string | null>(null);
+  // HTML5 drag-drop (desktop). Touch devices don't fire drag events,
+  // so tap-to-swap remains the only path on mobile.
+  const [dragSource, setDragSource] = useState<SelectedSlot | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<
+    SwapTarget | 'bench-drawer' | null
+  >(null);
 
   const rosterMap = useMemo(() => {
     const m = new Map<string, Player>();
@@ -215,6 +221,97 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       }),
     );
     setSelected(null);
+  };
+
+  // Drag-drop primitives. Drag piggybacks on the same `performSwap` engine
+  // that tap-to-swap uses; drop is the same operation as a tap on the
+  // destination after a tap on the source.
+  const isDragInteractive = !isApplying && pendingPresetId === null;
+  const handleDragStart = (source: SelectedSlot) => (e: React.DragEvent) => {
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      // Firefox requires a non-empty payload to actually start a drag.
+      e.dataTransfer.setData('text/plain', '');
+    }
+    setDragSource(source);
+  };
+  const handleDragEnd = () => {
+    setDragSource(null);
+    setDragOverTarget(null);
+  };
+  const handleDragOver =
+    (overKey: SwapTarget | 'bench-drawer') => (e: React.DragEvent) => {
+      if (!dragSource) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      setDragOverTarget(overKey);
+    };
+  const handleDragLeave = () => setDragOverTarget(null);
+  const performDrop = (
+    target: SwapTarget,
+    benchPlayerId?: PlayerId,
+  ) => {
+    if (!dragSource) return;
+    if (dragSource.target === target && dragSource.benchPlayerId === benchPlayerId) {
+      return; // dropped on self
+    }
+    setDraft((d) =>
+      performSwap(d, {
+        source: dragSource.target,
+        target,
+        benchPlayerId:
+          target === BENCH ? benchPlayerId : dragSource.benchPlayerId,
+      }),
+    );
+    setDragSource(null);
+    setDragOverTarget(null);
+    setSelected(null);
+  };
+  const handleDropOnRole = (roleName: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    performDrop(roleName);
+  };
+  const handleDropOnBenchPlayer = (playerId: PlayerId) => (e: React.DragEvent) => {
+    e.preventDefault();
+    // Drop onto a specific bench player mirrors the tap gesture: source's
+    // occupant trades places with this bench player. Engine handles it
+    // via bench→field with the bench player as the new occupant.
+    if (!dragSource) return;
+    if (dragSource.target === BENCH) {
+      // Bench→bench is a no-op; just clear drag state.
+      setDragSource(null);
+      setDragOverTarget(null);
+      return;
+    }
+    setDraft((d) =>
+      performSwap(d, {
+        source: BENCH,
+        target: dragSource.target,
+        benchPlayerId: playerId,
+      }),
+    );
+    setDragSource(null);
+    setDragOverTarget(null);
+    setSelected(null);
+  };
+  const handleDropOnBenchDrawer = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!dragSource) return;
+    if (dragSource.target === BENCH) {
+      setDragSource(null);
+      setDragOverTarget(null);
+      return;
+    }
+    performDrop(BENCH);
+  };
+
+  const isDragSource = (s: SelectedSlot): boolean => {
+    if (!dragSource) return false;
+    if (dragSource.target !== s.target) return false;
+    if (dragSource.target === BENCH) {
+      return dragSource.benchPlayerId === s.benchPlayerId;
+    }
+    return true;
   };
 
   const handleApply = async () => {
@@ -443,6 +540,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         {(preset.roles ?? []).map((role) => {
           const occupant = draft.startingXI[role.name];
           const sel = isSelected({ target: role.name });
+          const isSrc = isDragSource({ target: role.name });
+          const isOver = dragOverTarget === role.name;
+          const draggable = !!occupant && isDragInteractive;
           return (
             <button
               key={role.name}
@@ -450,7 +550,17 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               onClick={() => handleRoleTap(role.name)}
               disabled={isApplying || pendingPresetId !== null}
               data-testid={`planning-editor-role-${role.name}`}
+              draggable={draggable}
+              onDragStart={
+                draggable ? handleDragStart({ target: role.name }) : undefined
+              }
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver(role.name)}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDropOnRole(role.name)}
               className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-[11px] leading-tight whitespace-nowrap shadow ${
+                isSrc ? 'opacity-50 ' : ''
+              }${isOver ? 'ring-2 ring-amber-200 ' : ''}${
                 sel
                   ? 'bg-amber-400 text-slate-900 ring-2 ring-amber-200'
                   : occupant
@@ -473,7 +583,21 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         })}
       </div>
 
-      <div>
+      <div
+        onDragOver={
+          dragSource && dragSource.target !== BENCH
+            ? handleDragOver('bench-drawer')
+            : undefined
+        }
+        onDragLeave={handleDragLeave}
+        onDrop={handleDropOnBenchDrawer}
+        data-testid="planning-editor-bench-drawer"
+        className={
+          dragOverTarget === 'bench-drawer'
+            ? 'rounded-md ring-2 ring-amber-200/60'
+            : undefined
+        }
+      >
         <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2">
           {t('planningEditor.bench', 'Bench')} ({draft.bench.length})
         </h3>
@@ -488,6 +612,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           >
             {draft.bench.map((id) => {
               const sel = isSelected({ target: BENCH, benchPlayerId: id });
+              const isSrc = isDragSource({
+                target: BENCH,
+                benchPlayerId: id,
+              });
+              const draggable = isDragInteractive;
               return (
                 <li key={id}>
                   <button
@@ -495,7 +624,20 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                     onClick={() => handleBenchTap(id)}
                     disabled={isApplying || pendingPresetId !== null}
                     data-testid={`planning-editor-bench-${id}`}
+                    draggable={draggable}
+                    onDragStart={
+                      draggable
+                        ? handleDragStart({
+                            target: BENCH,
+                            benchPlayerId: id,
+                          })
+                        : undefined
+                    }
+                    onDragEnd={handleDragEnd}
+                    onDrop={handleDropOnBenchPlayer(id)}
                     className={`rounded-md px-3 py-1.5 text-sm shadow ${
+                      isSrc ? 'opacity-50 ' : ''
+                    }${
                       sel
                         ? 'bg-amber-400 text-slate-900 ring-2 ring-amber-200'
                         : 'bg-slate-700/70 text-slate-100 hover:bg-slate-700'

@@ -285,6 +285,116 @@ describe('PlanningEditor', () => {
     expect(benchText).not.toMatch(/\bP8\b/);
   });
 
+  // ----- Drag-drop (desktop). Touch devices don't fire drag events,
+  // so tap-to-swap remains the mobile-only path. -----
+
+  it('drag-drop: dragging role A onto role B swaps their players', async () => {
+    renderEditor();
+    const role0 = (PRESET.roles ?? [])[0];
+    const role1 = (PRESET.roles ?? [])[1];
+    const before0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    const before1 = screen.getByTestId(`planning-editor-role-${role1.name}`).textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role0.name}`),
+      ).toHaveTextContent(before1!.replace(role1.name, '').trim());
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role1.name}`),
+    ).toHaveTextContent(before0!.replace(role0.name, '').trim());
+  });
+
+  it('drag-drop: dragging a bench player onto a role brings them on', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P8');
+    });
+  });
+
+  it('drag-drop: dragging a role onto the bench drawer sends the player to bench', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const fieldPlayerLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('—');
+    });
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      fieldPlayerLabel,
+    );
+  });
+
+  it('drag-drop: drop on self is a no-op', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const before = screen.getByTestId(`planning-editor-role-${role.name}`).textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).textContent,
+    ).toBe(before);
+  });
+
+  it('drag-drop: empty role buttons are not draggable', () => {
+    // Build a game whose first preset role is empty.
+    const roster = makeRoster(8);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1)
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const emptyRole = (PRESET.roles ?? [])[0];
+    expect(
+      screen.getByTestId(`planning-editor-role-${emptyRole.name}`),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
   it('Apply calls applyToGame for each picked game and then onApplied', async () => {
     const applyToGame = jest.fn().mockResolvedValue(undefined);
     const onApplied = jest.fn();
