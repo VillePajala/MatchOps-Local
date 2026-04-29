@@ -227,23 +227,25 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   // that tap-to-swap uses; drop is the same operation as a tap on the
   // destination after a tap on the source.
   const isDragInteractive = !isApplying && pendingPresetId === null;
+  const clearDragState = () => {
+    setDragSource(null);
+    setDragOverTarget(null);
+    setSelected(null);
+  };
   const handleDragStart = (source: SelectedSlot) => (e: React.DragEvent) => {
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move';
       // Firefox requires a non-empty payload to actually start a drag.
       e.dataTransfer.setData('text/plain', '');
     }
+    // Drag and tap-select are mutually exclusive gestures. Clearing any
+    // pre-existing tap-selection here makes that explicit and prevents
+    // a cancelled drag from leaving stale state that would auto-swap
+    // with the next role tap.
+    clearDragState();
     setDragSource(source);
   };
-  const clearDragState = () => {
-    setDragSource(null);
-    setDragOverTarget(null);
-    setSelected(null);
-  };
-  const handleDragEnd = () => {
-    setDragSource(null);
-    setDragOverTarget(null);
-  };
+  const handleDragEnd = () => clearDragState();
   const handleDragOver =
     (overKey: SwapTarget | 'bench-drawer') => (e: React.DragEvent) => {
       if (!dragSource) return;
@@ -260,7 +262,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     // child, which causes a single-frame ring flicker without this
     // guard.
     const related = e.relatedTarget as Node | null;
-    if (related && e.currentTarget?.contains(related)) return;
+    if (related && e.currentTarget.contains(related)) return;
     setDragOverTarget(null);
   };
   const performDrop = (

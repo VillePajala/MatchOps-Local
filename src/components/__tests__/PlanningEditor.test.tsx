@@ -569,6 +569,40 @@ describe('PlanningEditor', () => {
     expect(screen.getByTestId('planning-editor-bench').textContent).toBe(before);
   });
 
+  it('drag-drop: cancelled drag does not leak a prior tap-selection into the next tap', async () => {
+    // Sequence the bug needs to fail without the handleDragStart fix:
+    //   1. tap-select role A           → selected = { target: A }
+    //   2. start dragging role B       → dragSource = { target: B }
+    //   3. cancel the drag (dragEnd)
+    //   4. tap role C                  → must NOT swap A↔C
+    // With handleDragStart calling clearDragState, step 2 already
+    // wipes the prior tap-selection so the cancel path is safe.
+    renderEditor();
+    const role0 = (PRESET.roles ?? [])[0];
+    const role1 = (PRESET.roles ?? [])[1];
+    const role2 = (PRESET.roles ?? [])[2];
+    const beforeRole0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    const beforeRole2 = screen.getByTestId(`planning-editor-role-${role2.name}`).textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragEnd(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role2.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role0.name}`).textContent,
+    ).toBe(beforeRole0);
+    expect(
+      screen.getByTestId(`planning-editor-role-${role2.name}`).textContent,
+    ).toBe(beforeRole2);
+  });
+
   it('drag-drop: dragend without drop clears drag state', async () => {
     renderEditor();
     const role = (PRESET.roles ?? [])[1];
