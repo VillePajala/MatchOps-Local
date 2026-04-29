@@ -329,18 +329,17 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
   }, [roster, minutes, playerLabel, draft.startingXI, draft.scheduledSubs]);
 
   // Recomputed on every keystroke when typing into the time input
-  // without memoization; cheap to gate behind useMemo.
-  const eligibleForForm = useMemo(
-    () =>
-      form
-        ? eligibleInPlayers(
-            form.positionRole,
-            parseMMSS(form.timeText) ?? 0,
-            form.subId,
-          )
-        : [],
-    [form, eligibleInPlayers],
-  );
+  // without memoization; cheap to gate behind useMemo. When the time
+  // text is unparseable, return [] so the dropdown empties — falling
+  // back to t=0 would show players eligible at game-start, which can
+  // mislead the coach into picking someone who's actually invalid at
+  // the intended time.
+  const eligibleForForm = useMemo(() => {
+    if (!form) return [];
+    const t = parseMMSS(form.timeText);
+    if (t === null) return [];
+    return eligibleInPlayers(form.positionRole, t, form.subId);
+  }, [form, eligibleInPlayers]);
 
   return (
     <div className="space-y-3" data-testid="planning-timeline">
@@ -444,16 +443,26 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
                 type="text"
                 value={form.timeText}
                 onChange={(e) =>
-                  setForm((f) =>
-                    f && {
+                  setForm((f) => {
+                    if (!f) return f;
+                    const next = e.target.value;
+                    const t = parseMMSS(next);
+                    // Eligibility depends on (role, time). Keep the
+                    // previous inPlayer if it's still eligible at the
+                    // new time so a one-second tweak doesn't force a
+                    // re-pick; clear it otherwise so the empty-player
+                    // guard can fire.
+                    const stillEligible =
+                      t !== null &&
+                      eligibleInPlayers(f.positionRole, t, f.subId).some(
+                        (p) => p.id === f.inPlayer,
+                      );
+                    return {
                       ...f,
-                      timeText: e.target.value,
-                      // Eligibility depends on (role, time); a stale
-                      // inPlayer after a time change can sneak past
-                      // the empty-player guard.
-                      inPlayer: '',
-                    }
-                  )
+                      timeText: next,
+                      inPlayer: stillEligible ? f.inPlayer : '',
+                    };
+                  })
                 }
                 disabled={disabled}
                 placeholder="00:00"
@@ -466,15 +475,21 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
               <select
                 value={form.positionRole}
                 onChange={(e) =>
-                  setForm((f) =>
-                    f && {
+                  setForm((f) => {
+                    if (!f) return f;
+                    const nextRole = e.target.value;
+                    const t = parseMMSS(f.timeText);
+                    const stillEligible =
+                      t !== null &&
+                      eligibleInPlayers(nextRole, t, f.subId).some(
+                        (p) => p.id === f.inPlayer,
+                      );
+                    return {
                       ...f,
-                      positionRole: e.target.value,
-                      // Eligibility depends on (role, time); reset to
-                      // force a fresh pick.
-                      inPlayer: '',
-                    }
-                  )
+                      positionRole: nextRole,
+                      inPlayer: stillEligible ? f.inPlayer : '',
+                    };
+                  })
                 }
                 disabled={disabled}
                 data-testid="planning-timeline-form-role"

@@ -766,7 +766,10 @@ describe('PlanningEditor', () => {
     await waitFor(() => {
       expect(onApplied).toHaveBeenCalledTimes(1);
     });
-    // Both games receive the same scheduledSubs entry.
+    // Both games receive the same scheduledSubs entry. outPlayer must
+    // resolve to role1's pre-sub occupant (p1 from makeGameWithLineup),
+    // proving the lazy outPlayer derivation in applyDraftToGame works
+    // through the full UI → engine → persist path.
     for (const call of applyToGame.mock.calls) {
       const subs = call[1].scheduledSubs;
       expect(subs).toHaveLength(1);
@@ -774,6 +777,7 @@ describe('PlanningEditor', () => {
         timeSeconds: 480,
         positionRole: role1,
         inPlayer: 'p8',
+        outPlayer: 'p1',
         status: 'pending',
       });
     }

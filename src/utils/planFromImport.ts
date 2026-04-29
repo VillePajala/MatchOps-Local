@@ -73,8 +73,7 @@ export function planDraftFromImport(
   // status (drafts have no concept of fired/skipped). Sorted ascending
   // by timeSeconds so the timeline editor can treat the array as
   // monotonic without an additional sort step.
-  const importedSubs = imported.scheduledSubs ?? [];
-  const scheduledSubs = importedSubs
+  const scheduledSubs = imported.scheduledSubs
     .map(({ id, timeSeconds, inPlayer, positionRole }) => ({
       id,
       timeSeconds,
