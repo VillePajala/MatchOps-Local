@@ -1712,7 +1712,8 @@
     "applyFailed": "Käyttö epäonnistui; yritä uudelleen.",
     "applyFailedPartial": "Tallennettu {{saved}}/{{total}} peliä ennen virhettä. Yritä uudelleen.",
     "applyWarnMissing": "{{count}} valittua peliä ei ollut enää saatavilla, ja ne ohitettiin.",
-    "applyWarnUnknown": "Tallennettu, mutta {{players}} pelissä oli kokoonpanon ulkopuolisia pelaajia ja {{roles}} pelissä pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",
+    "applyWarnUnknownPlayers": "{{count}} pelissä oli kokoonpanon ulkopuolisia pelaajia; nämä jätettiin pois.",
+    "applyWarnUnknownRoles": "{{count}} pelissä oli pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",
     "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset. Jatketaanko?"
   },
   "installPrompt": {

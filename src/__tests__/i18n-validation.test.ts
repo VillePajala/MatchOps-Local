@@ -284,10 +284,12 @@ describe('Translation File Validation', () => {
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
       // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
       // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
-      // Planner Phase 1d: planningEditor (15 keys: _one/_other plurals,
-      // applyWarnUnknown, applyWarnMissing, applyFailedPartial,
-      // formationChangeConfirm)
-      expect(enKeys.length).toBe(2478);
+      // Planner Phase 1d: planningEditor split applyWarnUnknown into
+      // applyWarnUnknownPlayers + applyWarnUnknownRoles so each counter
+      // shows only when > 0. Generator now also synthesizes the plural
+      // base key for every `_one`/`_other` pair so dynamic-key call
+      // sites can assert against TranslationKey.
+      expect(enKeys.length).toBe(2479);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -297,8 +299,9 @@ describe('Translation File Validation', () => {
       // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
       // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
       // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
-      // Planner Phase 1d: planningEditor (15 keys incl. applyWarnMissing)
-      expect(fiKeys.length).toBe(2478);
+      // Planner Phase 1d: planningEditor (16 keys; split warning into
+      // applyWarnUnknownPlayers + applyWarnUnknownRoles)
+      expect(fiKeys.length).toBe(2479);
     });
   });
 });
@@ -320,6 +323,16 @@ describe('i18n-types.ts Validation', () => {
     const en = JSON.parse(enContent);
     const enKeys = getAllKeys(en);
 
-    expect(keyCount).toBe(enKeys.length);
+    // The generator synthesizes plural base keys (`foo` from `foo_one` /
+    // `foo_other`) so dynamic-key call sites using i18next pluralization
+    // can assert against TranslationKey. Mirror that synthesis here.
+    const synthesizedBases = new Set<string>();
+    for (const key of enKeys) {
+      const m = key.match(/^(.*)_(one|other|two|few|many|zero)$/);
+      if (m) synthesizedBases.add(m[1]);
+    }
+    const expected = new Set([...enKeys, ...synthesizedBases]).size;
+
+    expect(keyCount).toBe(expected);
   });
 });

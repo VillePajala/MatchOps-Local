@@ -272,6 +272,37 @@ describe('PlanningEditor', () => {
     expect(onApplied).not.toHaveBeenCalled();
   });
 
+  it('Apply reports partial-save count when a later game fails', async () => {
+    // Two-game plan: g1 saves OK, g2 throws. The error banner must
+    // reflect the 1-of-2 success so the coach knows what's already
+    // persisted before retrying.
+    const applyToGame = jest
+      .fn()
+      .mockResolvedValueOnce(undefined) // g1 OK
+      .mockRejectedValueOnce(new Error('network down')); // g2 fails
+    const onApplied = jest.fn();
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2 = makeGameWithLineup(roster, ['p9']);
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Saved 1 of 2|Tallennettu 1\/2/i,
+    );
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
   it('Apply surfaces a sanitized error and does not call onApplied on failure', async () => {
     // Raw error text from the mutation must never reach the user (CLAUDE
     // Quality Bar). The banner shows the translated fallback only.
@@ -389,6 +420,60 @@ describe('PlanningEditor', () => {
     expect(
       screen.queryByTestId('planning-editor-preset-confirm'),
     ).not.toBeInTheDocument();
+  });
+
+  it('warning banner exposes a Done button that calls onApplied', async () => {
+    // Bug fix: previously the warning state had no exit. Coach must
+    // be able to acknowledge and close the modal.
+    const roster = makeRoster(11);
+    const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+    const game1: AppState = {
+      ...(game as AppState),
+      // Drop p10 from the per-game roster → unknownPlayerIds fires.
+      availablePlayers: roster.filter((p) => p.id !== 'p10'),
+    } as AppState;
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-warning-done'));
+    });
+    expect(onApplied).toHaveBeenCalledTimes(1);
+  });
+
+  it('bench → bench tap moves the selection to the new bench player', async () => {
+    // Coverage for the bench-to-bench branch of handleBenchTap. The
+    // engine treats this as a no-op swap; the UI just retargets the
+    // selection so a subsequent role tap acts on the latest bench
+    // choice. We assert by tapping role afterwards and verifying
+    // the second-tapped bench player ends up on the field.
+    renderEditor();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    const role = (PRESET.roles ?? [])[1];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    // Selection retargeted to p9 → p9 lands on the role.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P9');
+    });
   });
 
   it('Apply surfaces the missing-game warning when a picked id is no longer in savedGames', async () => {

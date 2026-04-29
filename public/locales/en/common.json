@@ -1712,7 +1712,8 @@
     "applyFailed": "Apply failed; please try again.",
     "applyFailedPartial": "Saved {{saved}} of {{total}} games before the error. Please try again.",
     "applyWarnMissing": "{{count}} selected game(s) were no longer available and were skipped.",
-    "applyWarnUnknown": "Saved, but {{players}} game(s) had players outside their roster and {{roles}} game(s) had roles outside the formation; those entries were dropped.",
+    "applyWarnUnknownPlayers": "{{count}} game(s) had players outside their roster; those entries were dropped.",
+    "applyWarnUnknownRoles": "{{count}} game(s) had roles outside the formation; those entries were dropped.",
     "formationChangeConfirm": "Switching formation will reset your manual assignments. Continue?"
   },
   "installPrompt": {

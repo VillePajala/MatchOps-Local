@@ -18,7 +18,18 @@ function flatten(obj, prefix = '') {
   return keys;
 }
 
-const keys = flatten(data).sort();
+const flat = flatten(data);
+
+// i18next pluralization: callers invoke `t('foo', { count })` against the
+// base key (`foo`), but the JSON only stores `foo_one`/`foo_other`. Synthesize
+// the base so dynamic-key call sites can assert against it via TranslationKey.
+const synthesizedBases = new Set();
+for (const key of flat) {
+  const m = key.match(/^(.*)_(one|other|two|few|many|zero)$/);
+  if (m) synthesizedBases.add(m[1]);
+}
+
+const keys = [...new Set([...flat, ...synthesizedBases])].sort();
 
 const typeDef = `// AUTO-GENERATED FILE - DO NOT EDIT\n` +
   `export type TranslationKey =\n${keys.map(k => `  | '${k}'`).join('\n')};\n`;

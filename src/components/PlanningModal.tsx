@@ -302,10 +302,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                 />
               )}
 
-              {page === 'editor' && savedGames && (
+              {page === 'editor' && (
                 <PlanningEditor
                   gameIds={editorGameIds}
-                  savedGames={savedGames}
+                  savedGames={savedGames ?? {}}
                   roster={roster ?? []}
                   onBack={handleEditorBack}
                   onApplied={handleEditorApplied}

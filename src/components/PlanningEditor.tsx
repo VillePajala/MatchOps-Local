@@ -46,9 +46,8 @@ export interface PlanningEditorProps {
 }
 
 // Snap each on-field player to a role via `roleForCoord`; off-formation
-// players (legacy coord drift, ad-hoc placements) fall through to bench.
-// TODO(PR 5e or later): also surface roster members not in selectedPlayerIds
-// so a coach can call up freshly added players from this editor.
+// players fall through to bench.
+// TODO(PR 5e+): include roster members not in selectedPlayerIds.
 function draftFromGame(
   game: AppState | undefined,
   preset: FormationPreset,
@@ -135,6 +134,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setDraft(draftFromGame(firstGame, next));
     setSelected(null);
     setPendingPresetId(null);
+    // Stale banners from a previous Apply attempt no longer match the
+    // new draft; clear them.
+    setApplyError(null);
+    setApplyWarning(null);
   };
 
   const handlePresetChange = (id: string) => {
@@ -269,15 +272,21 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             ),
           );
         }
-        if (gamesWithUnknownPlayers > 0 || gamesWithUnknownRoles > 0) {
+        if (gamesWithUnknownPlayers > 0) {
           parts.push(
             t(
-              'planningEditor.applyWarnUnknown',
-              'Saved, but {{players}} game(s) had players outside their roster and {{roles}} game(s) had roles outside the formation; those entries were dropped.',
-              {
-                players: gamesWithUnknownPlayers,
-                roles: gamesWithUnknownRoles,
-              },
+              'planningEditor.applyWarnUnknownPlayers',
+              '{{count}} game(s) had players outside their roster; those entries were dropped.',
+              { count: gamesWithUnknownPlayers },
+            ),
+          );
+        }
+        if (gamesWithUnknownRoles > 0) {
+          parts.push(
+            t(
+              'planningEditor.applyWarnUnknownRoles',
+              '{{count}} game(s) had roles outside the formation; those entries were dropped.',
+              { count: gamesWithUnknownRoles },
             ),
           );
         }
@@ -486,11 +495,23 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       {applyWarning ? (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-md bg-amber-900/30 border border-amber-700/40 p-3 text-sm text-amber-100"
+          className="rounded-md bg-amber-900/30 border border-amber-700/40 p-3 text-sm text-amber-100"
           data-testid="planning-editor-warning"
         >
-          <HiOutlineExclamationTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-          <p>{applyWarning}</p>
+          <div className="flex items-start gap-2">
+            <HiOutlineExclamationTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <p>{applyWarning}</p>
+          </div>
+          <div className="flex justify-end mt-2">
+            <button
+              type="button"
+              onClick={onApplied}
+              data-testid="planning-editor-warning-done"
+              className="rounded-md bg-amber-500/90 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-amber-400"
+            >
+              {t('common.doneButton', 'Done')}
+            </button>
+          </div>
         </div>
       ) : null}
 
