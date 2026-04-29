@@ -642,6 +642,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                 target: BENCH,
                 benchPlayerId: id,
               });
+              // Bench items always have an occupant (an empty bench
+              // renders the empty-state message above instead), so no
+              // !!occupant gate like the role buttons need.
               const draggable = isDragInteractive;
               return (
                 <li key={id}>
