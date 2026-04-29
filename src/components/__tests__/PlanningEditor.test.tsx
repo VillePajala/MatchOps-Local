@@ -398,6 +398,99 @@ describe('PlanningEditor', () => {
     );
   });
 
+  it('drag-drop: dragLeave keeps the highlight when moving from drawer into a child', async () => {
+    // Browsers fire dragleave on the parent <div> before dragover on
+    // a descendant <button>. Without the relatedTarget contains-guard
+    // the ring would disappear for a frame each time the cursor
+    // crossed an internal boundary. Verify the guard stays the
+    // clear, and that a real exit (relatedTarget outside) still clears.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const drawer = screen.getByTestId('planning-editor-bench-drawer');
+    const childBench = screen.getByTestId('planning-editor-bench-p8');
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(drawer);
+    });
+    await waitFor(() => {
+      expect(drawer.className).toContain('ring-amber-200');
+    });
+    // jsdom's DragEvent constructor doesn't honour the `relatedTarget`
+    // init option — fireEvent's plain object is dropped silently — so
+    // we build the event explicitly and pin relatedTarget via
+    // defineProperty before dispatching.
+    const buildDragLeave = (related: Node) => {
+      const ev = new MouseEvent('dragleave', { bubbles: true, cancelable: true });
+      Object.defineProperty(ev, 'relatedTarget', { value: related });
+      return ev;
+    };
+    await act(async () => {
+      fireEvent(drawer, buildDragLeave(childBench));
+    });
+    expect(drawer.className).toContain('ring-amber-200');
+    await act(async () => {
+      fireEvent(drawer, buildDragLeave(document.body));
+    });
+    expect(drawer.className).not.toContain('ring-amber-200');
+  });
+
+  it('drag-drop: bench → bench dragOver does NOT highlight the bench drawer', async () => {
+    // Without the bench <button>'s onDragOver guard, hovering one bench
+    // player while dragging another previously fired the drawer's
+    // 'bench-drawer' highlight even though the drop is a no-op. The
+    // bench drawer wrapper's ring class only applies when dragOverTarget
+    // === 'bench-drawer'; assert it stays off for bench → bench.
+    renderEditor();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    expect(
+      screen.getByTestId('planning-editor-bench-drawer').className,
+    ).not.toContain('ring-amber-200');
+  });
+
+  it('drag-drop: bench → empty role brings the bench player on with no displacement', async () => {
+    // GK role left empty so the bench → role drop has no field
+    // occupant to displace. Bench should shrink by one; GK takes p8.
+    const roster = makeRoster(9);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1)
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const gkRole = (PRESET.roles ?? [])[0];
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${gkRole.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${gkRole.name}`),
+      ).toHaveTextContent('P8');
+    });
+    expect(screen.getByTestId('planning-editor-bench').textContent).not.toMatch(
+      /\bP8\b/,
+    );
+  });
+
   it('drag-drop: bench → bench drag is a no-op', async () => {
     renderEditor();
     const before = screen.getByTestId('planning-editor-bench').textContent;

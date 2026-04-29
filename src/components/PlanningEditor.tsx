@@ -653,7 +653,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                         : undefined
                     }
                     onDragEnd={handleDragEnd}
-                    onDragOver={handleDragOver('bench-drawer')}
+                    onDragOver={
+                      dragSource && dragSource.target !== BENCH
+                        ? handleDragOver('bench-drawer')
+                        : undefined
+                    }
                     onDragLeave={handleDragLeave}
                     onDrop={handleDropOntoBenchPlayer(id)}
                     className={`rounded-md px-3 py-1.5 text-sm shadow ${
