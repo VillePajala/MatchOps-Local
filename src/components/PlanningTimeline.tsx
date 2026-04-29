@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlinePlus,
@@ -87,11 +87,14 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     return m;
   }, [roster]);
 
-  const playerLabel = (id: PlayerId): string => {
-    const p = rosterMap.get(id);
-    if (!p) return id;
-    return p.nickname || p.name || id;
-  };
+  const playerLabel = useCallback(
+    (id: PlayerId): string => {
+      const p = rosterMap.get(id);
+      if (!p) return id;
+      return p.nickname || p.name || id;
+    },
+    [rosterMap],
+  );
 
   // Sort subs ascending by time for stable render order. The draft
   // already maintains this invariant on every mutation, but the sort
@@ -118,55 +121,67 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
   );
 
   // Compute the would-be outPlayer at a given (role, time): the player
-  // currently occupying that role just before `timeSeconds`. Walks the
-  // role's segments and picks the one containing `timeSeconds`.
-  const playerAtRoleTime = (roleName: RoleName, timeSec: number): PlayerId | '' => {
-    const segs = getRoleSegments(draft, roleName, gameDurationSec);
-    for (const seg of segs) {
-      if (timeSec >= seg.startSec && timeSec < seg.endSec) return seg.playerId;
-    }
-    // If timeSec === gameDurationSec or beyond the last segment, fall
-    // back to the last segment's player (most recent sub or starter).
-    const last = segs[segs.length - 1];
-    return last ? last.playerId : '';
-  };
-
-  // Bench-eligible "in" players at the form's selected (role, time).
-  // Excludes the currently-occupying player (subbing the player for
-  // themselves would be a no-op) and players already on the field at
-  // a different role at that time (avoids the standalone's
-  // "double-position" pitfall).
-  const eligibleInPlayers = (
-    roleName: RoleName,
-    timeSec: number,
-    excludeSubId: string | null,
-  ): Player[] => {
-    if (!roleName) return [];
-    const onFieldElsewhere = new Set<PlayerId>();
-    for (const r of preset.roles ?? []) {
-      if (r.name === roleName) continue;
-      // Build a hypothetical draft that excludes the sub being edited
-      // (so editing it doesn't filter itself out).
+  // occupying that role just before `timeSeconds`. When editing an
+  // existing sub, exclude that sub from the segment computation so the
+  // "out" doesn't resolve to the sub's own inPlayer (Codex P1).
+  const playerAtRoleTime = useCallback(
+    (
+      roleName: RoleName,
+      timeSec: number,
+      excludeSubId: string | null,
+    ): PlayerId | '' => {
       const filteredSubs =
         excludeSubId === null
           ? draft.scheduledSubs
           : draft.scheduledSubs.filter((s) => s.id !== excludeSubId);
-      const segs = getRoleSegments(
-        { ...draft, scheduledSubs: filteredSubs },
-        r.name,
-        gameDurationSec,
-      );
+      const draftForSegs = { ...draft, scheduledSubs: filteredSubs };
+      const segs = getRoleSegments(draftForSegs, roleName, gameDurationSec);
       for (const seg of segs) {
-        if (timeSec >= seg.startSec && timeSec < seg.endSec) {
-          onFieldElsewhere.add(seg.playerId);
+        if (timeSec >= seg.startSec && timeSec < seg.endSec) return seg.playerId;
+      }
+      // timeSec at/past the last segment: fall back to the last occupant.
+      const last = segs[segs.length - 1];
+      return last ? last.playerId : '';
+    },
+    [draft, gameDurationSec],
+  );
+
+  // Eligible "in" players at (role, time): excludes the current
+  // occupant (no-op self-sub) and players on the field at another role
+  // at that time (double-position guard, mirroring the standalone
+  // planner).
+  const eligibleInPlayers = useCallback(
+    (
+      roleName: RoleName,
+      timeSec: number,
+      excludeSubId: string | null,
+    ): Player[] => {
+      if (!roleName) return [];
+      const onFieldElsewhere = new Set<PlayerId>();
+      for (const r of preset.roles ?? []) {
+        if (r.name === roleName) continue;
+        const filteredSubs =
+          excludeSubId === null
+            ? draft.scheduledSubs
+            : draft.scheduledSubs.filter((s) => s.id !== excludeSubId);
+        const segs = getRoleSegments(
+          { ...draft, scheduledSubs: filteredSubs },
+          r.name,
+          gameDurationSec,
+        );
+        for (const seg of segs) {
+          if (timeSec >= seg.startSec && timeSec < seg.endSec) {
+            onFieldElsewhere.add(seg.playerId);
+          }
         }
       }
-    }
-    const currentlyAtRole = playerAtRoleTime(roleName, timeSec);
-    return roster.filter(
-      (p) => !onFieldElsewhere.has(p.id) && p.id !== currentlyAtRole,
-    );
-  };
+      const currentlyAtRole = playerAtRoleTime(roleName, timeSec, excludeSubId);
+      return roster.filter(
+        (p) => !onFieldElsewhere.has(p.id) && p.id !== currentlyAtRole,
+      );
+    },
+    [draft, gameDurationSec, preset, roster, playerAtRoleTime],
+  );
 
   const openAddForm = () => {
     setFormError(null);
@@ -200,7 +215,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       setFormError(t('planningTimeline.errBadTime', 'Invalid time. Use MM:SS.'));
       return;
     }
-    if (timeSec < 0 || timeSec > gameDurationSec) {
+    if (timeSec > gameDurationSec) {
       setFormError(
         t(
           'planningTimeline.errTimeOutOfRange',
@@ -217,7 +232,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
       setFormError(t('planningTimeline.errNoPlayer', 'Pick a player.'));
       return;
     }
-    const outPlayer = playerAtRoleTime(form.positionRole, timeSec);
+    const outPlayer = playerAtRoleTime(form.positionRole, timeSec, form.subId);
     if (!outPlayer) {
       setFormError(
         t(
@@ -255,25 +270,29 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
     closeForm();
   };
 
-  const sortedMinutes = useMemo(() => {
-    const entries = roster.map((p) => ({
-      id: p.id,
-      label: playerLabel(p.id),
-      seconds: minutes.get(p.id) ?? 0,
-    }));
-    // Stable: original roster order; minutes column is informational.
-    return entries;
-    // playerLabel depends on rosterMap; both are derived from `roster`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roster, minutes]);
+  const sortedMinutes = useMemo(
+    () =>
+      roster.map((p) => ({
+        id: p.id,
+        label: playerLabel(p.id),
+        seconds: minutes.get(p.id) ?? 0,
+      })),
+    [roster, minutes, playerLabel],
+  );
 
-  const eligibleForForm = form
-    ? eligibleInPlayers(
-        form.positionRole,
-        parseMMSS(form.timeText) ?? 0,
-        form.subId,
-      )
-    : [];
+  // Recomputed on every keystroke when typing into the time input
+  // without memoization; cheap to gate behind useMemo.
+  const eligibleForForm = useMemo(
+    () =>
+      form
+        ? eligibleInPlayers(
+            form.positionRole,
+            parseMMSS(form.timeText) ?? 0,
+            form.subId,
+          )
+        : [],
+    [form, eligibleInPlayers],
+  );
 
   return (
     <div className="space-y-3" data-testid="planning-timeline">
@@ -368,7 +387,16 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
                 type="text"
                 value={form.timeText}
                 onChange={(e) =>
-                  setForm((f) => f && { ...f, timeText: e.target.value })
+                  setForm((f) =>
+                    f && {
+                      ...f,
+                      timeText: e.target.value,
+                      // Eligibility depends on (role, time); a stale
+                      // inPlayerId after a time change can sneak past
+                      // the empty-player guard.
+                      inPlayerId: '',
+                    }
+                  )
                 }
                 disabled={disabled}
                 inputMode="numeric"
@@ -382,7 +410,15 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
               <select
                 value={form.positionRole}
                 onChange={(e) =>
-                  setForm((f) => f && { ...f, positionRole: e.target.value })
+                  setForm((f) =>
+                    f && {
+                      ...f,
+                      positionRole: e.target.value,
+                      // Eligibility depends on (role, time); reset to
+                      // force a fresh pick.
+                      inPlayerId: '',
+                    }
+                  )
                 }
                 disabled={disabled}
                 data-testid="planning-timeline-form-role"

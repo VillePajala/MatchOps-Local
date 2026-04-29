@@ -268,12 +268,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   };
 
   // Total game duration in seconds for fairness math + form validation.
-  // Prefers the first game's authored fields; falls back to a sane
-  // 8v8 default (2 × 25 = 50 minutes) if either is missing so the
-  // editor stays usable even on an under-populated game record.
+  // Defaults match CLAUDE.md Rule 10 (createGame's periodDurationMinutes
+  // default is 10) so an under-populated game record stays usable.
   const gameDurationSec = useMemo(() => {
     const periods = firstGame?.numberOfPeriods ?? 2;
-    const len = firstGame?.periodDurationMinutes ?? 25;
+    const len = firstGame?.periodDurationMinutes ?? 10;
     return Math.max(1, periods * len * 60);
   }, [firstGame]);
 

@@ -1,23 +1,7 @@
-/**
- * Per-player on-field time computation for a PlanDraft.
- *
- * Walks each role's timeline (starting XI + scheduled subs) and sums
- * the seconds each player spends on the field. Mirrors the standalone
- * planner's `getCellSegments` model: between subs at the same role, a
- * single player occupies the slot; the role's first occupant comes
- * from `startingXI`, and each sub at that role hands the slot to its
- * `inPlayer`.
- *
- * Pure. Roster members not assigned to any role and never subbed in
- * report 0 seconds.
- */
+/** Per-player on-field time computation for a PlanDraft. Pure. */
 
 import type { DraftScheduledSub, PlanDraft, PlayerId, RoleName } from './planSwapEngine';
 
-/**
- * Group scheduled subs by role and sort each group ascending by time.
- * Stable across calls; safe to use in render paths.
- */
 function subsByRole(
   subs: readonly DraftScheduledSub[],
 ): Map<RoleName, DraftScheduledSub[]> {
@@ -34,22 +18,8 @@ function subsByRole(
 }
 
 /**
- * Compute the total on-field time (in seconds) for every player
- * referenced by the draft, given the game's total duration.
- *
- * The returned map includes players in `startingXI` and players who
- * appear as a sub's `inPlayer`. Bench players never subbed in are
- * excluded; the caller is responsible for adding them with `0` if
- * they want a roster-complete report.
- *
- * Subs whose time is outside `[0, gameDurationSec]` are clamped to the
- * range — a sub at -10s acts as if it fired at 0; a sub past the end
- * yields zero seconds for the inPlayer at that role.
- *
- * Subs at the same time on the same role: the engine's contract says
- * timeSeconds determines order; ties are broken by array order. The
- * editor doesn't allow exact ties via the UI but the helper handles
- * them deterministically.
+ * Total on-field seconds per player. Subs outside [0, gameDurationSec]
+ * are clamped; bench players never subbed in are excluded from the map.
  */
 export function computePlayerMinutes(
   draft: PlanDraft,
@@ -81,14 +51,7 @@ export function computePlayerMinutes(
   return totals;
 }
 
-/**
- * Per-role timeline segments for rendering.
- *
- * For each role: a contiguous list of `{ startSec, endSec, playerId }`
- * tuples covering `[0, gameDurationSec)`. Empty roles (not present in
- * `startingXI`) are excluded; the caller can render them as a single
- * dashed segment if desired.
- */
+/** Per-role contiguous timeline segments covering [0, gameDurationSec). */
 export interface RoleSegment {
   startSec: number;
   endSec: number;

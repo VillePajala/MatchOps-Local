@@ -286,6 +286,79 @@ describe('PlanningTimeline', () => {
     expect(screen.getByTestId('planning-timeline-add')).toBeDisabled();
   });
 
+  it('editing an existing sub: outPlayer resolves to the pre-sub occupant (Codex P1)', async () => {
+    // Without excluding the edited sub from segment computation, the
+    // outPlayer at sub-time would be the sub's own inPlayer (the segment
+    // immediately AFTER the sub fires) — leading to a self-sub guard
+    // failure or, worse, a persisted swap with the wrong outPlayer.
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const draft = makeDraft({
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 600,
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role1,
+        },
+      ],
+    });
+    const onUpdateSub = jest.fn();
+    renderTimeline({ draft, onUpdateSub });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-sub-edit-s1'));
+    });
+    // Save without changes — this is the precise failure mode Codex
+    // flagged. Should succeed (no self-sub error) and persist
+    // outPlayer === 'p1' (the original starter), not 'p8'.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    expect(onUpdateSub).toHaveBeenCalledTimes(1);
+    expect(onUpdateSub.mock.calls[0][1]).toMatchObject({
+      outPlayer: 'p1',
+      inPlayer: 'p8',
+    });
+  });
+
+  it('changing role/time clears the previously selected inPlayer so empty-validation fires', async () => {
+    const onAddSub = jest.fn();
+    renderTimeline({ onAddSub });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const role2 = (PRESET.roles ?? [])[2].name;
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role1 },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    // Now change the role — the in-player should reset.
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role2 },
+      });
+    });
+    const inSelect = screen.getByTestId(
+      'planning-timeline-form-in',
+    ) as HTMLSelectElement;
+    expect(inSelect.value).toBe('');
+    // Saving without re-picking should hit the empty-player guard.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    expect(onAddSub).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId('planning-timeline-form-error').textContent,
+    ).toMatch(/Pick a player|Valitse pelaaja/i);
+  });
+
   it('per-player minutes split correctly when a sub is in place', () => {
     const role1 = (PRESET.roles ?? [])[1].name;
     const draft = makeDraft({
