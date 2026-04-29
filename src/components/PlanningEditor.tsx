@@ -255,7 +255,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     // child, which causes a single-frame ring flicker without this
     // guard.
     const related = e.relatedTarget as Node | null;
-    if (related && e.currentTarget.contains(related)) return;
+    if (related && e.currentTarget?.contains(related)) return;
     setDragOverTarget(null);
   };
   const performDrop = (
@@ -270,6 +270,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       performSwap(d, {
         source: dragSource.target,
         target,
+        // benchPlayerId identifies which bench player is involved.
+        // When dropping ONTO bench (field→bench), it's the explicit
+        // target arg. When dropping FROM bench onto a role, it's
+        // captured on dragSource at dragstart.
         benchPlayerId:
           target === BENCH ? benchPlayerId : dragSource.benchPlayerId,
       }),
