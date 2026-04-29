@@ -277,7 +277,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       .map(
         (g) => (g.numberOfPeriods ?? 2) * (g.periodDurationMinutes ?? 10) * 60,
       );
-    if (durations.length === 0) return 60 * 20; // Sensible fallback.
+    if (durations.length === 0) return 2 * 10 * 60; // 2 periods × 10 min, matches Rule 10.
     return Math.max(1, Math.min(...durations));
   }, [gameIds, savedGames]);
 

@@ -353,8 +353,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
           </p>
         ) : (
           sortedSubs.map((sub) => {
-            // Lazy outPlayer: pre-sub occupant of this role at this
-            // time. Excluding the sub itself prevents the trivial
+            // Excluding the sub itself prevents the trivial
             // "out resolves to its own inPlayer" loop.
             const outPlayer = playerAtRoleTime(
               sub.positionRole,
@@ -362,39 +361,39 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
               sub.id,
             );
             return (
-            <div
-              key={sub.id}
-              data-testid={`planning-timeline-sub-${sub.id}`}
-              className="flex items-center justify-between gap-2 rounded-md bg-slate-800/60 px-2 py-1.5 text-sm"
-            >
-              <span className="font-mono text-slate-300">
-                {formatMMSS(sub.timeSeconds)}
-              </span>
-              <span className="text-slate-400">{sub.positionRole}</span>
-              <span className="flex-1 truncate text-slate-100">
-                {outPlayer ? playerLabel(outPlayer) : '—'} → {playerLabel(sub.inPlayer)}
-              </span>
-              <button
-                type="button"
-                onClick={() => openEditForm(sub)}
-                disabled={disabled}
-                aria-label={t('planningTimeline.editSub', 'Edit sub')}
-                data-testid={`planning-timeline-sub-edit-${sub.id}`}
-                className="rounded p-1 text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+              <div
+                key={sub.id}
+                data-testid={`planning-timeline-sub-${sub.id}`}
+                className="flex items-center justify-between gap-2 rounded-md bg-slate-800/60 px-2 py-1.5 text-sm"
               >
-                <HiOutlinePencil className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onRemoveSub(sub.id)}
-                disabled={disabled}
-                aria-label={t('planningTimeline.removeSub', 'Remove sub')}
-                data-testid={`planning-timeline-sub-remove-${sub.id}`}
-                className="rounded p-1 text-rose-300 hover:bg-rose-900/40 disabled:opacity-50"
-              >
-                <HiOutlineTrash className="h-4 w-4" />
-              </button>
-            </div>
+                <span className="font-mono text-slate-300">
+                  {formatMMSS(sub.timeSeconds)}
+                </span>
+                <span className="text-slate-400">{sub.positionRole}</span>
+                <span className="flex-1 truncate text-slate-100">
+                  {outPlayer ? playerLabel(outPlayer) : '—'} → {playerLabel(sub.inPlayer)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openEditForm(sub)}
+                  disabled={disabled}
+                  aria-label={t('planningTimeline.editSub', 'Edit sub')}
+                  data-testid={`planning-timeline-sub-edit-${sub.id}`}
+                  className="rounded p-1 text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+                >
+                  <HiOutlinePencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemoveSub(sub.id)}
+                  disabled={disabled}
+                  aria-label={t('planningTimeline.removeSub', 'Remove sub')}
+                  data-testid={`planning-timeline-sub-remove-${sub.id}`}
+                  className="rounded p-1 text-rose-300 hover:bg-rose-900/40 disabled:opacity-50"
+                >
+                  <HiOutlineTrash className="h-4 w-4" />
+                </button>
+              </div>
             );
           })
         )}

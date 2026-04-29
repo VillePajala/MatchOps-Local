@@ -5,9 +5,13 @@
 
 import type { Player } from '@/types';
 import type { FormationPreset } from '@/config/formationPresets';
-import type { DraftScheduledSub, PlanDraft, PlayerId } from '@/utils/planSwapEngine';
+import type {
+  DraftScheduledSub,
+  PlanDraft,
+  PlayerId,
+  RoleName,
+} from '@/utils/planSwapEngine';
 import type { ScheduledSub } from '@/types/game';
-import { getRoleSegments } from '@/utils/planFairness';
 
 export interface ApplyResult {
   /**
@@ -173,27 +177,29 @@ export function applyDraftToGame(
     validForOutPlayer.push(s);
   }
   // outPlayer = the role's occupant just before this sub fires.
-  // Segments built INCLUDING this sub would put its own inPlayer at
-  // its fire time, so we exclude the sub from the segment build for
-  // each lookup (same pattern as PlanningTimeline.playerAtRoleTime).
-  const outPlayerHorizon = Math.max(
-    typeof gameDurationSec === 'number' ? gameDurationSec : 0,
-    ...validForOutPlayer.map((s) => s.timeSeconds + 1),
-  );
+  // Walk each role's subs in chronological order: the first sub's
+  // outPlayer is startingXI[role]; each subsequent sub's outPlayer
+  // is the previous sub's inPlayer. This handles same-time ties
+  // deterministically (insertion order via stable sort) — a segment
+  // lookup at the exact tie time would alias to the next sub's
+  // inPlayer instead.
+  const subsByRoleMap = new Map<RoleName, DraftScheduledSub[]>();
   for (const s of validForOutPlayer) {
-    const otherSubs = validForOutPlayer.filter((x) => x.id !== s.id);
-    const segs = getRoleSegments(
-      { ...draft, scheduledSubs: otherSubs },
-      s.positionRole,
-      outPlayerHorizon,
-    );
-    let outPlayer: PlayerId = '';
-    for (const seg of segs) {
-      if (s.timeSeconds >= seg.startSec && s.timeSeconds < seg.endSec) {
-        outPlayer = seg.playerId;
-        break;
-      }
+    const list = subsByRoleMap.get(s.positionRole) ?? [];
+    list.push(s);
+    subsByRoleMap.set(s.positionRole, list);
+  }
+  const outPlayers = new Map<string, PlayerId>();
+  for (const [role, list] of subsByRoleMap) {
+    list.sort((a, b) => a.timeSeconds - b.timeSeconds);
+    let curPlayer: PlayerId = draft.startingXI[role] ?? '';
+    for (const s of list) {
+      if (curPlayer) outPlayers.set(s.id, curPlayer);
+      curPlayer = s.inPlayer;
     }
+  }
+  for (const s of validForOutPlayer) {
+    const outPlayer = outPlayers.get(s.id);
     if (!outPlayer) {
       // Role empty at sub time. Drop the sub rather than persisting
       // one with no outPlayer — the editor prevents this state but we
@@ -213,7 +219,10 @@ export function applyDraftToGame(
       status: 'pending',
     });
   }
-  // validForOutPlayer was already chronological; scheduledSubs preserves that.
+  // Final sort: validForOutPlayer was sorted by time globally, but
+  // the per-role walk reordered same-time ties. Re-sort to maintain
+  // the global ascending invariant on the persisted list.
+  scheduledSubs.sort((a, b) => a.timeSeconds - b.timeSeconds);
 
   return {
     playersOnField,

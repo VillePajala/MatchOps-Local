@@ -288,6 +288,27 @@ describe('applyDraftToGame — outPlayer derived from current draft state', () =
     });
   });
 
+  it('two subs at the same role at identical timeSeconds: ordered by insertion (V8 stable sort)', () => {
+    // Edge case the UI doesn't normally reach — two subs at the same
+    // role at the exact same time. Both subs persist; the second's
+    // outPlayer correctly resolves to the first's inPlayer because
+    // segment computation excludes the sub being looked up. No
+    // observable bug, but pin the contract so a future sort/segment
+    // refactor doesn't drift.
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 300, inPlayer: 'p4', positionRole: 'LB' },
+        { id: 's2', timeSeconds: 300, inPlayer: 'p5', positionRole: 'LB' },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs).toHaveLength(2);
+    expect(r.scheduledSubs[0].outPlayer).toBe('p2');
+    expect(r.scheduledSubs[1].outPlayer).toBe('p4');
+  });
+
   it('drops a sub whose role is empty at sub-time (no outPlayer to record)', () => {
     // RB is in the preset but isn't assigned in startingXI, so the
     // role has no occupant at sub time. The sub can't fire and is
