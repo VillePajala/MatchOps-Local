@@ -254,10 +254,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                       </div>
                     )}
 
-                  {/* List: !isError prevents stale data rendering alongside the error banner. */}
+                  {/* List: !isError + !isLoading guards against either banner co-rendering with stale data. */}
                   {!importedPlan &&
                     !importError &&
                     !sessionsQuery.isError &&
+                    !sessionsQuery.isLoading &&
                     sessions.length > 0 && (
                       <div
                         className="space-y-2"

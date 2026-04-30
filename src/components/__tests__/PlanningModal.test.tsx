@@ -573,6 +573,26 @@ describe('PlanningModal', () => {
       ).toBeInTheDocument();
     });
 
+    it('shows only the loading indicator when isLoading=true even with stale data', () => {
+      // Symmetric guard for the loading + stale-data case: React Query
+      // can hand back data: [last successful] while isLoading is true on
+      // a remount. The list block must not render alongside the loader.
+      mockUsePlanningSessionsQuery.mockReturnValue({
+        data: [buildSession({ id: 's1', name: 'Stale' })],
+        isLoading: true,
+        isError: false,
+      });
+      renderModal();
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /Loading saved plans|Ladataan tallennettuja suunnitelmia/i,
+        ),
+      ).toBeInTheDocument();
+    });
+
     it('requires a confirm click before calling delete', async () => {
       setSessions([buildSession({ id: 's1', name: 'To delete' })]);
       renderModal();
