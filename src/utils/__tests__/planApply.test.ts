@@ -25,6 +25,7 @@ const roster: Player[] = [
 describe('applyDraftToGame — typical Apply path', () => {
   it('places players at their role coords', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2', RB: 'p3', LF: 'p4', RF: 'p5' },
       bench: [],
     };
@@ -40,6 +41,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 
   it('preserves player metadata (name, jerseyNumber, isGoalie)', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
@@ -54,6 +56,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 
   it('selectedPlayerIds contains every roster member referenced by the draft', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2' },
       bench: ['p3', 'p4', 'p5'],
     };
@@ -63,6 +66,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 
   it('preserves Rule 3: playersOnField ⊆ selectedPlayerIds', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2', RB: 'p3', LF: 'p4', RF: 'p5' },
       bench: [],
     };
@@ -75,6 +79,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 
   it('skips empty role slots without errors', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2' }, // RB/LF/RF empty
       bench: ['p3', 'p4', 'p5'],
     };
@@ -88,6 +93,7 @@ describe('applyDraftToGame — typical Apply path', () => {
 describe('applyDraftToGame — defensive paths', () => {
   it('flags player ids not in the roster (filters them out)', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'pUnknown' },
       bench: ['p3'],
     };
@@ -99,6 +105,7 @@ describe('applyDraftToGame — defensive paths', () => {
 
   it('flags role names not in the preset (filters them out of playersOnField)', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', NotARole: 'p2' },
       bench: ['p3', 'p4', 'p5'],
     };
@@ -112,6 +119,7 @@ describe('applyDraftToGame — defensive paths', () => {
   it('handles a preset with no `roles` map (legacy presets)', () => {
     const noRolesPreset = { ...preset5v5_2_2, roles: undefined };
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p2' },
       bench: ['p3', 'p4', 'p5'],
     };
@@ -125,6 +133,7 @@ describe('applyDraftToGame — defensive paths', () => {
 
   it('handles a null preset gracefully', () => {
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
@@ -139,6 +148,7 @@ describe('applyDraftToGame — defensive paths', () => {
     // dedupes via Set semantics. The editor UI is responsible for
     // preventing this state at the source. See JSDoc on applyDraftToGame.
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', LB: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
@@ -153,6 +163,7 @@ describe('applyDraftToGame — defensive paths', () => {
     // in step 3 of applyDraftToGame deduplicate, so selectedPlayerIds
     // contains p1 exactly once even though the draft references it twice.
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1' },
       bench: ['p1', 'p2', 'p3', 'p4', 'p5'],
     };
@@ -166,11 +177,152 @@ describe('applyDraftToGame — defensive paths', () => {
     // role must still be reported via unknownRoles. Earlier code skipped
     // entries by player id, swallowing the unknown role in this case.
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: { GK: 'p1', NotARole: 'p1' },
       bench: ['p2', 'p3', 'p4', 'p5'],
     };
     const r = applyDraftToGame(draft, preset5v5_2_2, roster);
     expect(r.unknownRoles).toContain('NotARole');
+  });
+});
+
+describe('applyDraftToGame — per-game duration filter', () => {
+  it('drops subs at or past gameDurationSec into unreachableSubs', () => {
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        // Reachable.
+        {
+          id: 's1',
+          timeSeconds: 300,
+          inPlayer: 'p4',
+          positionRole: 'LB',
+        },
+        // At exactly the end — would never fire.
+        {
+          id: 's2',
+          timeSeconds: 600,
+          inPlayer: 'p5',
+          positionRole: 'GK',
+        },
+        // Past the end — would never fire.
+        {
+          id: 's3',
+          timeSeconds: 999,
+          inPlayer: 'p4',
+          positionRole: 'RB',
+        },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs.map((s) => s.id)).toEqual(['s1']);
+    expect(r.unreachableSubs.map((s) => s.id)).toEqual(['s2', 's3']);
+  });
+
+  it('omitting gameDurationSec passes all subs through (legacy callers)', () => {
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 999999,
+          inPlayer: 'p4',
+          positionRole: 'LB',
+        },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster);
+    expect(r.scheduledSubs).toHaveLength(1);
+    expect(r.unreachableSubs).toEqual([]);
+  });
+});
+
+describe('applyDraftToGame — outPlayer derived from current draft state', () => {
+  it('outPlayer reflects the latest startingXI, not what the draft sub may have stored', () => {
+    // The draft has a sub at LB, but startingXI.LB has just been
+    // changed via a pitch swap. The persisted ScheduledSub should
+    // record the NEW startingXI player as outPlayer — the old value
+    // would mean the live-game banner subs out the wrong player.
+    // (DraftScheduledSub no longer carries outPlayer at all; this
+    // test pins the contract.)
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 300,
+          inPlayer: 'p4',
+          positionRole: 'LB',
+        },
+      ],
+      startingXI: { GK: 'p1', LB: 'p3', RB: 'p2' }, // p3 at LB, not p2
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs).toHaveLength(1);
+    expect(r.scheduledSubs[0].outPlayer).toBe('p3');
+    expect(r.scheduledSubs[0].inPlayer).toBe('p4');
+  });
+
+  it('chained subs at the same role: each sub\'s outPlayer is the prior sub\'s inPlayer', () => {
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 200, inPlayer: 'p4', positionRole: 'LB' },
+        { id: 's2', timeSeconds: 400, inPlayer: 'p5', positionRole: 'LB' },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs).toHaveLength(2);
+    expect(r.scheduledSubs[0]).toMatchObject({
+      id: 's1',
+      outPlayer: 'p2', // starter at LB
+      inPlayer: 'p4',
+    });
+    expect(r.scheduledSubs[1]).toMatchObject({
+      id: 's2',
+      outPlayer: 'p4', // s1's inPlayer
+      inPlayer: 'p5',
+    });
+  });
+
+  it('two subs at the same role at identical timeSeconds: ordered by insertion (V8 stable sort)', () => {
+    // Edge case the UI doesn't normally reach — two subs at the same
+    // role at the exact same time. Both subs persist; the second's
+    // outPlayer correctly resolves to the first's inPlayer because
+    // segment computation excludes the sub being looked up. No
+    // observable bug, but pin the contract so a future sort/segment
+    // refactor doesn't drift.
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 300, inPlayer: 'p4', positionRole: 'LB' },
+        { id: 's2', timeSeconds: 300, inPlayer: 'p5', positionRole: 'LB' },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2', RB: 'p3' },
+      bench: ['p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs).toHaveLength(2);
+    expect(r.scheduledSubs[0].outPlayer).toBe('p2');
+    expect(r.scheduledSubs[1].outPlayer).toBe('p4');
+  });
+
+  it('drops a sub whose role is empty at sub-time (no outPlayer to record)', () => {
+    // RB is in the preset but isn't assigned in startingXI, so the
+    // role has no occupant at sub time. The sub can't fire and is
+    // dropped silently. unknownRoles stays empty (RB is a known role).
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 100, inPlayer: 'p4', positionRole: 'RB' },
+      ],
+      startingXI: { GK: 'p1', LB: 'p2' },
+      bench: ['p3', 'p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    expect(r.scheduledSubs).toHaveLength(0);
+    expect(r.unknownRoles).toEqual([]);
   });
 });
 
@@ -183,6 +335,7 @@ describe('applyDraftToGame — 8v8 sanity check', () => {
       { id: 'p8', name: 'Hank', isGoalie: false },
     ] as Player[];
     const draft: PlanDraft = {
+      scheduledSubs: [],
       startingXI: {
         GK: 'p1',
         LB: 'p2',

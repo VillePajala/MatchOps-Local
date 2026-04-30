@@ -26,6 +26,8 @@ import {
   roleForCoord,
 } from '@/utils/planApply';
 import logger from '@/utils/logger';
+import PlanningTimeline from './PlanningTimeline';
+import type { DraftScheduledSub } from '@/utils/planSwapEngine';
 
 export interface PlanningEditorProps {
   /** Game ids picked in the previous page; the editor mutates each on Apply. */
@@ -48,7 +50,7 @@ function draftFromGame(
 ): PlanDraft {
   const startingXI: Record<string, PlayerId> = {};
   const benchSet = new Set<PlayerId>();
-  if (!game) return { startingXI, bench: [] };
+  if (!game) return { startingXI, bench: [], scheduledSubs: [] };
 
   for (const p of game.playersOnField ?? []) {
     const role = roleForCoord(preset, p.relX ?? 0.5, p.relY ?? 0.5);
@@ -64,7 +66,19 @@ function draftFromGame(
       benchSet.add(id);
     }
   }
-  return { startingXI, bench: [...benchSet] };
+  // Hydrate scheduledSubs from the game record. Status is dropped
+  // (the draft has no concept of fired/skipped) and outPlayer is
+  // dropped (it's recomputed lazily — storing it would go stale on
+  // every pitch swap).
+  const scheduledSubs = (game.scheduledSubs ?? [])
+    .map(({ id, timeSeconds, inPlayer, positionRole }) => ({
+      id,
+      timeSeconds,
+      inPlayer,
+      positionRole,
+    }))
+    .sort((a, b) => a.timeSeconds - b.timeSeconds);
+  return { startingXI, bench: [...benchSet], scheduledSubs };
 }
 
 interface SelectedSlot {
@@ -148,11 +162,30 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     // When lengths match, a value-mismatch on any baseline key already
     // covers a different draft key set (the missing key reads as
     // undefined and never equals the baseline's player id).
+    // Also count any draft-side sub change as divergence — add,
+    // remove, or in-place edit (time / role / inPlayer). The id
+    // survives an edit, so a length+ids check would miss it; check
+    // each field by id-keyed lookup instead.
+    const baselineSubsById = new Map(
+      baseline.scheduledSubs.map((s) => [s.id, s] as const),
+    );
+    const subsDiverged =
+      draft.scheduledSubs.length !== baseline.scheduledSubs.length ||
+      draft.scheduledSubs.some((s) => {
+        const b = baselineSubsById.get(s.id);
+        return (
+          !b ||
+          b.timeSeconds !== s.timeSeconds ||
+          b.positionRole !== s.positionRole ||
+          b.inPlayer !== s.inPlayer
+        );
+      });
     const diverged =
       baselineKeys.length !== draftKeys.length ||
       baselineKeys.some(
         (k) => baseline.startingXI[k] !== draft.startingXI[k],
-      );
+      ) ||
+      subsDiverged;
     if (diverged) {
       setPendingPresetId(id);
       return;
@@ -222,6 +255,50 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     );
     setSelected(null);
   };
+
+  // Re-sorted on every mutation so callers can treat scheduledSubs as
+  // monotonic (renderers + fairness math skip an extra sort step).
+  const handleAddSub = (sub: DraftScheduledSub) => {
+    setDraft((d) => ({
+      ...d,
+      scheduledSubs: [...d.scheduledSubs, sub].sort(
+        (a, b) => a.timeSeconds - b.timeSeconds,
+      ),
+    }));
+  };
+  const handleUpdateSub = (
+    subId: string,
+    updates: Partial<DraftScheduledSub>,
+  ) => {
+    setDraft((d) => ({
+      ...d,
+      scheduledSubs: d.scheduledSubs
+        .map((s) => (s.id === subId ? { ...s, ...updates } : s))
+        .sort((a, b) => a.timeSeconds - b.timeSeconds),
+    }));
+  };
+  const handleRemoveSub = (subId: string) => {
+    setDraft((d) => ({
+      ...d,
+      scheduledSubs: d.scheduledSubs.filter((s) => s.id !== subId),
+    }));
+  };
+
+  // Use the MIN duration across selected games so the form can't
+  // accept a time that's invalid for a shorter game in the set
+  // (the unreachableSubs filter would have dropped it on Apply anyway,
+  // but the timeline header would have advertised the longer length).
+  // Defaults match CLAUDE.md Rule 10 (createGame's default is 10).
+  const gameDurationSec = useMemo(() => {
+    const durations = gameIds
+      .map((id) => savedGames[id])
+      .filter((g): g is NonNullable<typeof g> => Boolean(g))
+      .map(
+        (g) => (g.numberOfPeriods ?? 2) * (g.periodDurationMinutes ?? 10) * 60,
+      );
+    if (durations.length === 0) return 2 * 10 * 60; // 2 periods × 10 min, matches Rule 10.
+    return Math.max(1, Math.min(...durations));
+  }, [gameIds, savedGames]);
 
   // Drag-drop primitives. Drag piggybacks on the same `performSwap` engine
   // that tap-to-swap uses; drop is the same operation as a tap on the
@@ -346,6 +423,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setApplyWarning(null);
     let gamesWithUnknownPlayers = 0;
     let gamesWithUnknownRoles = 0;
+    let gamesWithUnreachableSubs = 0;
     let gamesNotFound = 0;
     let savedCount = 0;
     try {
@@ -362,20 +440,34 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         // (playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers) holds
         // without widening any team's roster. Drops surface as unknown*
         // counters and feed the warning banner.
-        const result = applyDraftToGame(draft, preset, game.availablePlayers);
+        const perGameDurationSec = Math.max(
+          1,
+          (game.numberOfPeriods ?? 2) *
+            (game.periodDurationMinutes ?? 10) *
+            60,
+        );
+        const result = applyDraftToGame(
+          draft,
+          preset,
+          game.availablePlayers,
+          perGameDurationSec,
+        );
         await applyToGame(id, {
           playersOnField: result.playersOnField,
           selectedPlayerIds: result.selectedPlayerIds,
+          scheduledSubs: result.scheduledSubs,
         });
         savedCount++;
         // Count drops only on the success path so a throw doesn't claim
         // the failed game had partial saves.
         if (result.unknownPlayerIds.length > 0) gamesWithUnknownPlayers++;
         if (result.unknownRoles.length > 0) gamesWithUnknownRoles++;
+        if (result.unreachableSubs.length > 0) gamesWithUnreachableSubs++;
       }
       if (
         gamesWithUnknownPlayers > 0 ||
         gamesWithUnknownRoles > 0 ||
+        gamesWithUnreachableSubs > 0 ||
         gamesNotFound > 0
       ) {
         // Stay in the editor with a warning banner; coach acknowledges via Done.
@@ -410,6 +502,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               'planningEditor.applyWarnUnknownRoles',
               '{{count}} game(s) had roles outside the formation; those entries were dropped.',
               { count: gamesWithUnknownRoles },
+            ),
+          );
+        }
+        if (gamesWithUnreachableSubs > 0) {
+          parts.push(
+            t(
+              'planningEditor.applyWarnUnreachableSubs',
+              '{{count}} game(s) had subs that could not be applied (past game end, empty role, or self-sub); those entries were dropped.',
+              { count: gamesWithUnreachableSubs },
             ),
           );
         }
@@ -455,6 +556,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             'planningEditor.applyWarnUnknownRoles',
             '{{count}} game(s) had roles outside the formation; those entries were dropped.',
             { count: gamesWithUnknownRoles },
+          ),
+        );
+      }
+      if (gamesWithUnreachableSubs > 0) {
+        errorParts.push(
+          t(
+            'planningEditor.applyWarnUnreachableSubs',
+            '{{count}} game(s) had subs that could not be applied (past game end, empty role, or self-sub); those entries were dropped.',
+            { count: gamesWithUnreachableSubs },
           ),
         );
       }
@@ -692,6 +802,17 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           </ul>
         )}
       </div>
+
+      <PlanningTimeline
+        draft={draft}
+        preset={preset}
+        roster={roster}
+        gameDurationSec={gameDurationSec}
+        onAddSub={handleAddSub}
+        onUpdateSub={handleUpdateSub}
+        onRemoveSub={handleRemoveSub}
+        disabled={isApplying || pendingPresetId !== null}
+      />
 
       {applyError ? (
         <div

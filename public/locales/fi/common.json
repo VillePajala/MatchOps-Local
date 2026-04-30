@@ -1715,7 +1715,29 @@
     "applyWarnMissing": "{{count}} valittua peliä ei ollut enää saatavilla, ja ne ohitettiin.",
     "applyWarnUnknownPlayers": "{{count}} pelissä oli kokoonpanon ulkopuolisia pelaajia; nämä jätettiin pois.",
     "applyWarnUnknownRoles": "{{count}} pelissä oli pelisysteemin ulkopuolisia rooleja; nämä jätettiin pois.",
-    "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset. Jatketaanko?"
+    "applyWarnUnreachableSubs": "{{count}} pelissä oli vaihtoja, joita ei voitu soveltaa (pelin jälkeen, tyhjä rooli tai sama pelaaja); nämä jätettiin pois.",
+    "formationChangeConfirm": "Pelisysteemin vaihto nollaa manuaaliset asetukset ja ajastetut vaihdot. Jatketaanko?"
+  },
+  "planningTimeline": {
+    "title": "Aikajana",
+    "minutesPanel": "Pelaajien minuutit",
+    "totalDuration": "Pelin pituus: {{mmss}}",
+    "empty": "Ei ajastettuja vaihtoja. Lisää uusi painikkeesta \"Lisää vaihto\".",
+    "addSub": "Lisää vaihto",
+    "editSub": "Muokkaa vaihtoa",
+    "removeSub": "Poista vaihto",
+    "time": "Aika (mm:ss)",
+    "role": "Rooli",
+    "inPlayer": "Sisään tuleva pelaaja",
+    "pickPlayer": "— valitse pelaaja —",
+    "noRoles": "— ei sijoitettuja rooleja —",
+    "errBadTime": "Virheellinen aika. Käytä muotoa MM:SS.",
+    "errTimeOutOfRange": "Ajan on oltava välillä 00:00 ja pelin pituus.",
+    "errNoRole": "Valitse rooli.",
+    "errNoPlayer": "Valitse pelaaja.",
+    "errNoOccupant": "Tällä roolilla ei ole pelaajaa kyseisenä aikana. Aseta ensin kentälle.",
+    "errSelfSub": "Valittu pelaaja on jo tällä roolilla kyseisenä aikana.",
+    "errDoublePosition": "Valittu pelaaja on jo kentällä toisella roolilla kyseisenä aikana."
   },
   "installPrompt": {
     "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",

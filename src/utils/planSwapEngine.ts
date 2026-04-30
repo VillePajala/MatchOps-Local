@@ -12,15 +12,40 @@ export type PlayerId = string;
 export type RoleName = string;
 
 /**
+ * Draft-time scheduled substitution. Mirrors AppState's ScheduledSub
+ * but omits two runtime fields:
+ *
+ * - `status`: drafts haven't been applied yet (set on Apply as
+ *   `'pending'`).
+ * - `outPlayer`: the player going off is whatever occupies the role
+ *   immediately before this sub fires. Storing it on the draft makes
+ *   it go stale every time the user edits the pitch — sub at LB
+ *   originally said `outPlayer: 'p1'`, then the coach swapped p2 onto
+ *   LB, and now the sub still pretends p1 is leaving. Computed
+ *   lazily at display + Apply time via `getRoleSegments`.
+ */
+export interface DraftScheduledSub {
+  id: string;
+  /** Game-clock seconds at which the sub fires. Must be >= 0. */
+  timeSeconds: number;
+  inPlayer: PlayerId;
+  /** Role/slot the sub affects. Must match a role name in the formation. */
+  positionRole: RoleName;
+}
+
+/**
  * In-memory plan draft for one game.
  *
  * - `startingXI[roleName] = playerId` for assigned slots.
  *   Empty roles are absent from the map (not present with value `''`).
  * - `bench` = roster − values(startingXI), in stable order.
+ * - `scheduledSubs` = pre-planned substitutions over the game timeline,
+ *   sorted by `timeSeconds` ascending. Status is set on Apply.
  */
 export interface PlanDraft {
   startingXI: Record<RoleName, PlayerId>;
   bench: PlayerId[];
+  scheduledSubs: DraftScheduledSub[];
 }
 
 /**
@@ -87,7 +112,7 @@ export function performSwap(draft: PlanDraft, op: SwapInput): PlanDraft {
       };
       const nextBench = draft.bench.filter((p) => p !== benchPlayerId);
       if (displaced) nextBench.push(displaced);
-      return { startingXI: nextStartingXI, bench: nextBench };
+      return { ...draft, startingXI: nextStartingXI, bench: nextBench };
     }
 
     // Field → bench
@@ -97,6 +122,7 @@ export function performSwap(draft: PlanDraft, op: SwapInput): PlanDraft {
     const nextStartingXI = { ...draft.startingXI };
     delete nextStartingXI[fieldRole];
     return {
+      ...draft,
       startingXI: nextStartingXI,
       bench: [...draft.bench, fieldPlayer],
     };
@@ -127,7 +153,7 @@ export function performSwap(draft: PlanDraft, op: SwapInput): PlanDraft {
  * order.
  */
 export function createEmptyDraft(roster: readonly PlayerId[]): PlanDraft {
-  return { startingXI: {}, bench: [...roster] };
+  return { startingXI: {}, bench: [...roster], scheduledSubs: [] };
 }
 
 /**

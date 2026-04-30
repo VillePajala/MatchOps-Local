@@ -717,11 +717,120 @@ describe('PlanningEditor', () => {
       expect(onApplied).toHaveBeenCalledTimes(1);
     });
     expect(applyToGame).toHaveBeenCalledTimes(2);
-    // Each call carries playersOnField + selectedPlayerIds.
+    // Each call carries playersOnField + selectedPlayerIds + scheduledSubs.
     const [firstId, firstUpdates] = applyToGame.mock.calls[0];
     expect(firstId).toBe('g1');
     expect(firstUpdates).toHaveProperty('playersOnField');
     expect(firstUpdates).toHaveProperty('selectedPlayerIds');
+    expect(firstUpdates).toHaveProperty('scheduledSubs');
+  });
+
+  it('Apply writes scheduledSubs from the timeline to every picked game', async () => {
+    // Add a sub via the timeline form, then Apply, and verify the sub
+    // lands on each picked game's scheduledSubs with status: 'pending'.
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2 = makeGameWithLineup(roster, ['p9']);
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    const role1 = (PRESET.roles ?? [])[1].name;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '08:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role1 },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(onApplied).toHaveBeenCalledTimes(1);
+    });
+    // Both games receive the same scheduledSubs entry. outPlayer must
+    // resolve to role1's pre-sub occupant (p1 from makeGameWithLineup),
+    // proving the lazy outPlayer derivation in applyDraftToGame works
+    // through the full UI → engine → persist path.
+    for (const call of applyToGame.mock.calls) {
+      const subs = call[1].scheduledSubs;
+      expect(subs).toHaveLength(1);
+      expect(subs[0]).toMatchObject({
+        timeSeconds: 480,
+        positionRole: role1,
+        inPlayer: 'p8',
+        outPlayer: 'p1',
+        status: 'pending',
+      });
+    }
+  });
+
+  it('Apply warning banner reports unreachable subs (sub past per-game end)', async () => {
+    // g1 is 40 min, g2 is 10 min. A sub at 14:00 reaches g1 but is
+    // past g2's end. We inject the sub directly via game1.scheduledSubs
+    // (hydrated into the draft) so the form-level min-duration guard
+    // doesn't block it; applyDraftToGame's per-game filter siphons it
+    // into g2's unreachableSubs and the banner surfaces the count.
+    const roster = makeRoster(11);
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const game1: AppState = {
+      ...makeGameWithLineup(roster, ['p8']),
+      numberOfPeriods: 2,
+      periodDurationMinutes: 20, // 40 min total
+      scheduledSubs: [
+        {
+          id: 's_far',
+          timeSeconds: 840, // 14:00 — reachable in g1 only
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role1,
+          status: 'pending',
+        },
+      ],
+    } as AppState;
+    const game2: AppState = {
+      ...makeGameWithLineup(roster, ['p8']),
+      numberOfPeriods: 2,
+      periodDurationMinutes: 5, // 10 min total
+    } as AppState;
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId('planning-editor-warning').textContent,
+    ).toMatch(/could not be applied|joita ei voitu soveltaa/i);
+    expect(onApplied).not.toHaveBeenCalled();
+    // Apply still ran for both games — the dropped sub doesn't
+    // prevent persistence of the lineup.
+    expect(applyToGame).toHaveBeenCalledTimes(2);
   });
 
   it('Apply shows the warning banner and does not call onApplied when a game drops players or roles', async () => {
@@ -973,6 +1082,101 @@ describe('PlanningEditor', () => {
       screen.getByTestId(`planning-editor-role-${roles[0].name}`),
     ).toBeDisabled();
     expect(screen.getByTestId('planning-editor-bench-p4')).toBeDisabled();
+  });
+
+  it('formation change with only scheduled-sub edits prompts the confirm banner (does not silently discard subs)', async () => {
+    // Bug 1: handlePresetChange's diverged check only inspected
+    // startingXI; if the user added a sub without touching the pitch,
+    // the change fired silently and applyPresetChange re-hydrated
+    // from the saved game, wiping the sub. Verify the confirm
+    // banner shows up so the coach can choose.
+    renderEditor();
+    const role1 = (PRESET.roles ?? [])[1].name;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '08:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role1 },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    // Sub is on the draft; pitch is untouched. Switching formation
+    // should prompt confirm rather than silently re-hydrate.
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+  });
+
+  it('formation change with only an in-place sub edit also prompts the confirm banner', async () => {
+    // Bug 2 follow-up: editing an existing sub's time (or any other
+    // field) preserves its id and the array length. Before this fix
+    // the diverged check missed it (length unchanged, id still in
+    // baseline set) → silent re-hydration discarded the edit. Now
+    // the check inspects each field by id-keyed lookup.
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const roster = makeRoster(11);
+    // Hydrate the editor with an existing sub via game1.scheduledSubs;
+    // draftFromGame strips status and brings the rest onto the draft.
+    const game1: AppState = {
+      ...makeGameWithLineup(roster, ['p8']),
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 480,
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role1,
+          status: 'pending',
+        },
+      ],
+    } as AppState;
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+    });
+    // Open the existing sub and bump its time.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-sub-edit-s1'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '12:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    // Switch formation — confirm banner must show.
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
   });
 
   it('confirming the formation-change banner switches the preset', async () => {

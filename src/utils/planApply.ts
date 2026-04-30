@@ -5,7 +5,13 @@
 
 import type { Player } from '@/types';
 import type { FormationPreset } from '@/config/formationPresets';
-import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
+import type {
+  DraftScheduledSub,
+  PlanDraft,
+  PlayerId,
+  RoleName,
+} from '@/utils/planSwapEngine';
+import type { ScheduledSub } from '@/types/game';
 
 export interface ApplyResult {
   /**
@@ -44,6 +50,20 @@ export interface ApplyResult {
    * "X players on the plan are not in the team roster" for the import case.
    */
   unknownPlayerIds: PlayerId[];
+  /**
+   * `Game.scheduledSubs` shape (status: 'pending') derived from the
+   * draft's scheduledSubs. Subs whose `inPlayer` or `outPlayer` aren't
+   * in the roster are dropped (the player ids are also surfaced via
+   * `unknownPlayerIds`). Subs whose `positionRole` isn't in the preset
+   * are dropped (and surfaced via `unknownRoles`).
+   */
+  scheduledSubs: ScheduledSub[];
+  /**
+   * Subs dropped because their `timeSeconds` is at or past the per-game
+   * duration the caller supplied. They'd never fire on the live timer.
+   * Empty when the caller didn't supply a duration.
+   */
+  unreachableSubs: DraftScheduledSub[];
 }
 
 /**
@@ -63,6 +83,15 @@ export function applyDraftToGame(
   draft: PlanDraft,
   preset: FormationPreset | null | undefined,
   roster: readonly Player[],
+  /**
+   * Per-game total duration in seconds. When supplied, subs whose
+   * timeSeconds is at or past this value are dropped from the result —
+   * they'd never fire on the live timer of a shorter game. Caller
+   * passes `numberOfPeriods × periodDurationMinutes × 60`. When
+   * omitted (legacy callers), all subs pass through regardless of
+   * time.
+   */
+  gameDurationSec?: number,
 ): ApplyResult {
   const rosterMap = new Map<PlayerId, Player>();
   for (const p of roster) rosterMap.set(p.id, p);
@@ -115,11 +144,111 @@ export function applyDraftToGame(
     }
   }
 
+  // 4. scheduledSubs: validate roles + inPlayer against the formation
+  //    + roster; siphon time-out-of-range subs into `unreachableSubs`;
+  //    compute outPlayer lazily from the draft's pre-sub segments
+  //    (canonical source of truth — the field state from startingXI +
+  //    earlier subs). The sort order matters: we sort the input by
+  //    timeSeconds first so each sub sees a fresh view of who is at
+  //    its role at its time, then walk in chronological order.
+  const sortedSrc = [...draft.scheduledSubs].sort(
+    (a, b) => a.timeSeconds - b.timeSeconds,
+  );
+  const validForOutPlayer: DraftScheduledSub[] = [];
+  const scheduledSubs: ScheduledSub[] = [];
+  const unreachableSubs: DraftScheduledSub[] = [];
+  for (const s of sortedSrc) {
+    if (!presetRoleNames.has(s.positionRole)) {
+      unknownRolesSet.add(s.positionRole);
+      continue;
+    }
+    if (!rosterMap.has(s.inPlayer)) {
+      unknownPlayerIdsSet.add(s.inPlayer);
+      continue;
+    }
+    if (
+      // Production callers always pass Math.max(1, …) so 0 never
+      // reaches here; the `> 0` guard lets legacy / defensive
+      // callers signal "no duration check" by passing 0 or a
+      // negative value the same way `undefined` does.
+      typeof gameDurationSec === 'number' &&
+      gameDurationSec > 0 &&
+      s.timeSeconds >= gameDurationSec
+    ) {
+      unreachableSubs.push(s);
+      continue;
+    }
+    validForOutPlayer.push(s);
+  }
+  // outPlayer = the role's occupant just before this sub fires.
+  // Walk each role's subs in chronological order: the first sub's
+  // outPlayer is startingXI[role]; each subsequent sub's outPlayer
+  // is the previous sub's inPlayer. This handles same-time ties
+  // deterministically (insertion order via stable sort) — a segment
+  // lookup at the exact tie time would alias to the next sub's
+  // inPlayer instead.
+  const subsByRoleMap = new Map<RoleName, DraftScheduledSub[]>();
+  for (const s of validForOutPlayer) {
+    const list = subsByRoleMap.get(s.positionRole) ?? [];
+    list.push(s);
+    subsByRoleMap.set(s.positionRole, list);
+  }
+  const outPlayers = new Map<string, PlayerId>();
+  for (const [role, list] of subsByRoleMap) {
+    // list is already chronological — validForOutPlayer was sorted
+    // upstream, and per-role appends preserved that order.
+    let curPlayer: PlayerId = draft.startingXI[role] ?? '';
+    for (const s of list) {
+      if (curPlayer) outPlayers.set(s.id, curPlayer);
+      curPlayer = s.inPlayer;
+    }
+  }
+  for (const s of validForOutPlayer) {
+    const outPlayer = outPlayers.get(s.id);
+    if (!outPlayer) {
+      // Role empty at sub time — sub can't fire. Editor doesn't allow
+      // creating one this way, but imported drafts can; surface via
+      // unreachableSubs so the warning banner names it.
+      unreachableSubs.push(s);
+      continue;
+    }
+    if (!rosterMap.has(outPlayer)) {
+      // Computed outPlayer (the role's pre-sub occupant per the draft
+      // chain) isn't in the roster. Route to unreachableSubs rather
+      // than unknownPlayerIds — the cause is sub-related, not a stale
+      // starting-XI assignment, so surfacing it under the
+      // "players outside roster" banner would confuse the coach.
+      unreachableSubs.push(s);
+      continue;
+    }
+    if (outPlayer === s.inPlayer) {
+      // Self-sub (no-op) — the editor's UI guard prevents this, but
+      // an imported draft could carry one. Persisting it would fire
+      // a no-op banner during the live game.
+      unreachableSubs.push(s);
+      continue;
+    }
+    scheduledSubs.push({
+      id: s.id,
+      timeSeconds: s.timeSeconds,
+      outPlayer,
+      inPlayer: s.inPlayer,
+      positionRole: s.positionRole,
+      status: 'pending',
+    });
+  }
+  // scheduledSubs is already in chronological order: appended in
+  // validForOutPlayer's order, which is sorted ascending by
+  // timeSeconds. The per-role walk only populates an outPlayers Map;
+  // it doesn't reorder validForOutPlayer.
+
   return {
     playersOnField,
     selectedPlayerIds,
     unknownRoles: [...unknownRolesSet],
     unknownPlayerIds: [...unknownPlayerIdsSet],
+    scheduledSubs,
+    unreachableSubs,
   };
 }
 
