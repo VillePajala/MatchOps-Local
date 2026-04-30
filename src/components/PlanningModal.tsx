@@ -121,6 +121,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
   const handleEditorApplied = () => {
     setEditorGameIds([]);
+    setPendingDeleteId(null);
     setPage('list');
     onClose();
   };
@@ -274,10 +275,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                     <button
                                       type="button"
                                       onClick={async () => {
-                                        await deleteSession.mutateAsync(
-                                          session.id,
-                                        );
-                                        setPendingDeleteId(null);
+                                        // try/finally: even if the mutation
+                                        // rejects (IndexedDB error, sync
+                                        // failure), the row exits confirm
+                                        // mode so the user isn't stuck
+                                        // staring at "Confirm delete?".
+                                        try {
+                                          await deleteSession.mutateAsync(
+                                            session.id,
+                                          );
+                                        } finally {
+                                          setPendingDeleteId(null);
+                                        }
                                       }}
                                       className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-500"
                                       data-testid={`planning-session-delete-confirm-${session.id}`}

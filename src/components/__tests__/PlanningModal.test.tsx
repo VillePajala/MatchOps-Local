@@ -553,6 +553,34 @@ describe('PlanningModal', () => {
       expect(mockDeleteMutate).not.toHaveBeenCalled();
     });
 
+    it('clears the pending-delete state even when the mutation rejects', async () => {
+      setSessions([buildSession({ id: 's1', name: 'Will fail' })]);
+      // Simulate a backend failure — IndexedDB error, sync failure, etc.
+      // Without try/finally on the click handler this would leave the
+      // row stuck in confirm-delete mode, blocking subsequent actions.
+      mockDeleteMutate.mockRejectedValueOnce(new Error('storage offline'));
+      renderModal();
+
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      const confirm = await screen.findByTestId(
+        'planning-session-delete-confirm-s1',
+      );
+      fireEvent.click(confirm);
+
+      await waitFor(() => {
+        expect(mockDeleteMutate).toHaveBeenCalledWith('s1');
+      });
+      // Row is back to non-pending state — confirm button gone, trash icon back.
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('planning-session-delete-confirm-s1'),
+        ).not.toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId('planning-session-delete-s1'),
+      ).toBeInTheDocument();
+    });
+
     it('passes currentTeamId to the sessions query so the list is team-scoped', () => {
       setSessions([]);
       renderModal({ currentTeamId: 'team_42' });
