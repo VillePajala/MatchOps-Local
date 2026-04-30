@@ -105,6 +105,13 @@ describe('createSyncExecutor', () => {
       saveWarmupPlan: jest.fn().mockResolvedValue(true),
       deleteWarmupPlan: jest.fn().mockResolvedValue(true),
 
+      // Planning Sessions
+      getPlanningSessions: jest.fn().mockResolvedValue([]),
+      savePlanningSession: jest.fn().mockResolvedValue({ id: 'planningSession_1' }),
+      deletePlanningSession: jest.fn().mockResolvedValue(true),
+      setActiveSession: jest.fn().mockResolvedValue(null),
+      upsertPlanningSession: jest.fn().mockResolvedValue({ id: 'planningSession_1' }),
+
       // Timer State
       getTimerState: jest.fn().mockResolvedValue(null),
       saveTimerState: jest.fn().mockResolvedValue(undefined),

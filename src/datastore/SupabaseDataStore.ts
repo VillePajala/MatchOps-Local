@@ -23,6 +23,7 @@ import type {
   TournamentSeries,
   TeamPlacementInfo,
   PlayerStatAdjustment,
+  PlanningSession,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog, ScheduledSub } from '@/types/game';
 import type { PlayerAssessment } from '@/types/playerAssessment';
@@ -42,7 +43,7 @@ import {
   StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -77,6 +78,7 @@ type GameTacticalDataRow = Database['public']['Tables']['game_tactical_data']['R
 type PlayerAssessmentRow = Database['public']['Tables']['player_assessments']['Row'];
 type PlayerAdjustmentRow = Database['public']['Tables']['player_adjustments']['Row'];
 type WarmupPlanRow = Database['public']['Tables']['warmup_plans']['Row'];
+type PlanningSessionRow = Database['public']['Tables']['planning_sessions']['Row'];
 
 // Insert types (data for INSERT operations)
 //
@@ -100,6 +102,7 @@ type GameTacticalDataInsert = Database['public']['Tables']['game_tactical_data']
 type PlayerAssessmentInsert = Database['public']['Tables']['player_assessments']['Insert'];
 type PlayerAdjustmentInsert = Database['public']['Tables']['player_adjustments']['Insert'];
 type WarmupPlanInsert = Database['public']['Tables']['warmup_plans']['Insert'];
+type PlanningSessionInsert = Database['public']['Tables']['planning_sessions']['Insert'];
 
 // Update types (for UPDATE operations without any casts)
 type PlayerUpdate = Database['public']['Tables']['players']['Update'];
@@ -4286,6 +4289,236 @@ export class SupabaseDataStore implements DataStore {
       last_modified: plan.lastModified,
       is_default: plan.isDefault,
       sections: plan.sections as unknown as Database['public']['Tables']['warmup_plans']['Insert']['sections'],
+    };
+  }
+
+  // ==========================================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  // ==========================================================================
+
+  async getPlanningSessions(teamId?: string): Promise<PlanningSession[]> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const result = await this.withRetry(async () => {
+      let query = this.getClient().from('planning_sessions').select('*');
+      if (teamId) {
+        query = query.eq('team_id', teamId);
+      }
+      return throwIfTransient(
+        await query.order('updated_at', { ascending: false }),
+      );
+    }, 'getPlanningSessions');
+
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to load planning sessions');
+    }
+
+    const rows = (result.data || []) as PlanningSessionRow[];
+    return rows.map((row) => this.transformPlanningSessionFromDb(row));
+  }
+
+  async savePlanningSession(
+    session: Omit<PlanningSession, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    },
+  ): Promise<PlanningSession> {
+    this.ensureInitialized();
+    checkOnline();
+
+    validatePlanningSession({ ...session, id: session.id ?? 'pending' });
+
+    const userId = await this.getUserId();
+    const now = new Date().toISOString();
+    const targetId = session.id ?? generateId('planningSession');
+
+    // Preserve the existing createdAt on update when the caller didn't supply
+    // one — matches the LocalDataStore contract and prevents every edit from
+    // rewriting the original creation timestamp. Only one extra round-trip,
+    // and only when both id is present and createdAt is missing.
+    let resolvedCreatedAt: string;
+    if (session.createdAt) {
+      resolvedCreatedAt = session.createdAt;
+    } else if (session.id) {
+      const { data: existing } = await this.withRetry(async () => {
+        const result = await this.getClient()
+          .from('planning_sessions')
+          .select('created_at')
+          .eq('id', session.id as string)
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (result.error && result.error.code !== 'PGRST116') {
+          throwIfTransient(result);
+        }
+        return result;
+      }, 'savePlanningSession-fetchCreatedAt');
+      resolvedCreatedAt = existing?.created_at ?? now;
+    } else {
+      resolvedCreatedAt = now;
+    }
+
+    const normalized: PlanningSession = {
+      id: targetId,
+      teamId: session.teamId,
+      name: session.name.trim(),
+      gameIds: [...session.gameIds],
+      draft: { ...session.draft },
+      isActive: session.isActive,
+      appliedAt: session.appliedAt,
+      createdAt: resolvedCreatedAt,
+      updatedAt: now,
+    };
+
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .upsert(
+          this.transformPlanningSessionToDb(normalized, userId) as unknown as never,
+          { onConflict: 'id' },
+        );
+      throwIfTransient(result);
+      return result;
+    }, 'savePlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to save planning session');
+    }
+
+    return normalized;
+  }
+
+  async deletePlanningSession(id: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to delete planning session');
+    }
+    return (count ?? 0) > 0;
+  }
+
+  async setActiveSession(
+    sessionId: string | null,
+    teamId: string,
+    gameIds: string[],
+  ): Promise<PlanningSession | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    if (!teamId || !Array.isArray(gameIds) || gameIds.length === 0) {
+      throw new ValidationError(
+        'setActiveSession requires teamId and a non-empty gameIds[]',
+        'teamId',
+        { teamId, gameIds },
+      );
+    }
+
+    // Atomic flip via RPC. Two clients activating different sessions for
+    // the same (teamId, gameIds-set) used to be able to interleave the
+    // deactivate + activate UPDATEs and leave multiple rows active. The
+    // RPC consolidates the work into a single UPDATE that PostgreSQL
+    // executes as one transactional step. See migration 033 for the body.
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient().rpc('set_active_planning_session', {
+        p_session_id: sessionId,
+        p_team_id: teamId,
+        p_game_ids: gameIds,
+      });
+      throwIfTransient(result);
+      return result;
+    }, 'setActiveSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to set active planning session');
+    }
+
+    // Empty result = either we asked to deactivate (sessionId === null) or
+    // the target wasn't in scope (the RPC validates that before flipping).
+    const rows = (data ?? []) as PlanningSessionRow[];
+    if (rows.length === 0) {
+      return null;
+    }
+    return this.transformPlanningSessionFromDb(rows[0]);
+  }
+
+  async upsertPlanningSession(session: PlanningSession): Promise<PlanningSession> {
+    this.ensureInitialized();
+    checkOnline();
+
+    validatePlanningSession(session);
+
+    const userId = await this.getUserId();
+    const normalized: PlanningSession = {
+      ...session,
+      name: session.name.trim(),
+      gameIds: [...session.gameIds],
+      draft: { ...session.draft },
+    };
+
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .upsert(
+          this.transformPlanningSessionToDb(normalized, userId) as unknown as never,
+          { onConflict: 'id' },
+        );
+      throwIfTransient(result);
+      return result;
+    }, 'upsertPlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to upsert planning session');
+    }
+
+    return normalized;
+  }
+
+  // Planning session transforms
+  private transformPlanningSessionFromDb(row: PlanningSessionRow): PlanningSession {
+    return {
+      id: row.id,
+      teamId: row.team_id,
+      name: row.name,
+      gameIds: Array.isArray(row.game_ids) ? row.game_ids : [],
+      draft:
+        row.draft && typeof row.draft === 'object' && !Array.isArray(row.draft)
+          ? (row.draft as unknown as PlanningSession['draft'])
+          : {},
+      isActive: row.is_active ?? false,
+      appliedAt: row.applied_at ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private transformPlanningSessionToDb(
+    session: PlanningSession,
+    userId: string,
+  ): PlanningSessionInsert {
+    return {
+      id: session.id,
+      user_id: userId,
+      team_id: session.teamId,
+      name: session.name,
+      game_ids: [...session.gameIds],
+      draft: session.draft as unknown as Json,
+      is_active: session.isActive,
+      applied_at: session.appliedAt ?? null,
+      created_at: session.createdAt,
+      updated_at: session.updatedAt,
     };
   }
 

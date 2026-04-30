@@ -31,7 +31,8 @@ export type SyncEntityType =
   | 'settings' // Note: delete not supported - settings always exist
   | 'teamRoster' // Note: delete clears roster (sets empty array)
   | 'playerAdjustment' // Note: delete requires playerId in data (composite key)
-  | 'warmupPlan';
+  | 'warmupPlan'
+  | 'planningSession';
 
 /**
  * Types of sync operations.

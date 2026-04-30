@@ -194,6 +194,13 @@ function createMockDataStore(): DataStore {
     }),
     deleteWarmupPlan: jest.fn(),
 
+    // Planning Sessions (no-op: fullBackup does not currently include planning sessions)
+    getPlanningSessions: jest.fn().mockResolvedValue([]),
+    savePlanningSession: jest.fn(),
+    deletePlanningSession: jest.fn().mockResolvedValue(false),
+    setActiveSession: jest.fn().mockResolvedValue(null),
+    upsertPlanningSession: jest.fn(),
+
     // Timer State
     getTimerState: jest.fn().mockResolvedValue(null),
     saveTimerState: jest.fn().mockResolvedValue(undefined),

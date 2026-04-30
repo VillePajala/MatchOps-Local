@@ -232,6 +232,7 @@ export * from './personnel';
 export * from './modals';
 export * from './settings';
 export * from './fieldConfig';
+export * from './planningSession';
 
 // Player-level manual stat adjustments (e.g., external games not tracked in app)
 export interface PlayerStatAdjustment {

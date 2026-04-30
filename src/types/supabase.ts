@@ -380,6 +380,45 @@ export type Database = {
         }
         Relationships: []
       }
+      planning_sessions: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          draft: Json
+          game_ids: string[]
+          id: string
+          is_active: boolean
+          name: string
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          draft?: Json
+          game_ids?: string[]
+          id: string
+          is_active?: boolean
+          name: string
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          draft?: Json
+          game_ids?: string[]
+          id?: string
+          is_active?: boolean
+          name?: string
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_adjustments: {
         Row: {
           applied_at: string | null
@@ -1049,6 +1088,14 @@ export type Database = {
           p_tactical_data: Json
         }
         Returns: number
+      }
+      set_active_planning_session: {
+        Args: {
+          p_session_id: string | null
+          p_team_id: string
+          p_game_ids: string[]
+        }
+        Returns: Database["public"]["Tables"]["planning_sessions"]["Row"][]
       }
       set_team_roster: {
         Args: { p_roster: Json[]; p_team_id: string }
