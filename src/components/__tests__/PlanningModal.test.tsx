@@ -9,6 +9,61 @@ import {
   PLAN_EXPORT_KIND,
 } from '@/utils/planExport';
 import type { AppState } from '@/types/game';
+import type { PlanningSession } from '@/types';
+
+// Mock the planning-session hooks so the component tree doesn't need a
+// real QueryClientProvider. Tests can override the returned data per-case
+// via the helpers below.
+const mockUsePlanningSessionsQuery = jest.fn();
+const mockDeleteMutate = jest.fn().mockResolvedValue(true);
+
+jest.mock('@/hooks/usePlanningSessionQueries', () => ({
+  __esModule: true,
+  usePlanningSessionsQuery: (
+    opts?: { teamId?: string; enabled?: boolean },
+  ) => mockUsePlanningSessionsQuery(opts),
+  useDeletePlanningSessionMutation: () => ({
+    mutateAsync: mockDeleteMutate,
+    isPending: false,
+  }),
+}));
+
+const setSessions = (sessions: PlanningSession[], isLoading = false) => {
+  mockUsePlanningSessionsQuery.mockReturnValue({
+    data: sessions,
+    isLoading,
+    isError: false,
+  });
+};
+
+const buildSession = (
+  overrides: Partial<PlanningSession> = {},
+): PlanningSession => ({
+  id: 'planningSession_x',
+  teamId: 't1',
+  name: 'Plan A',
+  gameIds: ['g1', 'g2'],
+  draft: {
+    g1: { startingXI: {}, bench: [], scheduledSubs: [] },
+    g2: { startingXI: {}, bench: [], scheduledSubs: [] },
+  },
+  isActive: false,
+  createdAt: '2026-04-30T10:00:00.000Z',
+  updatedAt: '2026-04-30T10:00:00.000Z',
+  ...overrides,
+});
+
+beforeEach(() => {
+  // Default to empty list — tests opt in to populated cases.
+  setSessions([]);
+  mockDeleteMutate.mockClear();
+  mockUsePlanningSessionsQuery.mockClear();
+  mockUsePlanningSessionsQuery.mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+  });
+});
 
 // Picker reads only a handful of fields off each saved game; this helper
 // builds the minimal shape and casts to AppState so individual tests
@@ -406,5 +461,127 @@ describe('PlanningModal', () => {
         /No saved planning sessions yet|Ei tallennettuja suunnitelmia/i,
       ),
     ).toBeInTheDocument();
+  });
+
+  describe('saved sessions list', () => {
+    it('renders saved sessions on the landing screen', () => {
+      setSessions([
+        buildSession({ id: 's1', name: 'Default plan' }),
+        buildSession({
+          id: 's2',
+          name: 'Jasper-sick contingency',
+          isActive: true,
+        }),
+      ]);
+      renderModal();
+
+      expect(screen.getByTestId('planning-modal-session-list')).toBeInTheDocument();
+      expect(screen.getByText('Default plan')).toBeInTheDocument();
+      expect(screen.getByText('Jasper-sick contingency')).toBeInTheDocument();
+    });
+
+    it('shows the active badge only for sessions with isActive=true', () => {
+      setSessions([
+        buildSession({ id: 's1', name: 'Inactive plan', isActive: false }),
+        buildSession({ id: 's2', name: 'Active plan', isActive: true }),
+      ]);
+      renderModal();
+
+      const badges = screen.getAllByText(/^Active$|^Aktiivinen$/i);
+      expect(badges).toHaveLength(1);
+    });
+
+    it('shows the empty-state when the query returns no sessions', () => {
+      setSessions([]);
+      renderModal();
+      expect(
+        screen.getByText(
+          /No saved planning sessions yet|Ei tallennettuja suunnitelmia/i,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows a loading message while sessions are loading', () => {
+      mockUsePlanningSessionsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      });
+      renderModal();
+      expect(
+        screen.getByText(
+          /Loading saved plans|Ladataan tallennettuja suunnitelmia/i,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('requires a confirm click before calling delete', async () => {
+      setSessions([buildSession({ id: 's1', name: 'To delete' })]);
+      renderModal();
+
+      // First click on the trash icon flips the row into the confirm state.
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      expect(mockDeleteMutate).not.toHaveBeenCalled();
+
+      const confirm = await screen.findByTestId(
+        'planning-session-delete-confirm-s1',
+      );
+      fireEvent.click(confirm);
+
+      await waitFor(() => {
+        expect(mockDeleteMutate).toHaveBeenCalledWith('s1');
+      });
+    });
+
+    it('does not call delete when the user cancels the confirm', async () => {
+      setSessions([buildSession({ id: 's1', name: 'Spared' })]);
+      renderModal();
+
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      const cancel = await screen.findByRole('button', {
+        name: /^Cancel$|^Peruuta$/i,
+      });
+      fireEvent.click(cancel);
+
+      // Confirm button gone after cancel; the trash icon is back.
+      expect(
+        screen.queryByTestId('planning-session-delete-confirm-s1'),
+      ).not.toBeInTheDocument();
+      expect(mockDeleteMutate).not.toHaveBeenCalled();
+    });
+
+    it('passes currentTeamId to the sessions query so the list is team-scoped', () => {
+      setSessions([]);
+      renderModal({ currentTeamId: 'team_42' });
+
+      // The component calls usePlanningSessionsQuery({ teamId: 'team_42', enabled: true })
+      // — verify the teamId arrived intact.
+      expect(mockUsePlanningSessionsQuery).toHaveBeenCalledWith(
+        expect.objectContaining({ teamId: 'team_42' }),
+      );
+    });
+
+    it('disables the sessions query while the modal is closed', () => {
+      setSessions([]);
+      renderModal({ isOpen: false });
+
+      // When the modal is closed, the component should pass enabled=false
+      // so React Query doesn't fire a request the user can't see anyway.
+      // The mock receives every render's call; the most recent one is what
+      // the active mount asked for.
+      const lastCallArgs =
+        mockUsePlanningSessionsQuery.mock.calls.at(-1)?.[0];
+      // When isOpen=false the component returns null *before* invoking
+      // hooks, so usePlanningSessionsQuery may not be called at all.
+      // Either zero calls OR a call with enabled=false is acceptable.
+      if (lastCallArgs) {
+        expect(lastCallArgs.enabled).toBe(false);
+      } else {
+        expect(mockUsePlanningSessionsQuery).not.toHaveBeenCalled();
+      }
+    });
   });
 });

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   HiOutlineArrowUpTray,
   HiOutlinePlus,
+  HiOutlineTrash,
   HiOutlineXMark,
 } from 'react-icons/hi2';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
@@ -13,12 +14,16 @@ import {
   type ImportedPlan,
   type PlanImportError,
 } from '@/utils/planExport';
-import type { Player } from '@/types';
+import type { Player, PlanningSession } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import PlanningGamePicker, {
   type PlanningGamePickerGame,
 } from './PlanningGamePicker';
 import PlanningEditor from './PlanningEditor';
+import {
+  useDeletePlanningSessionMutation,
+  usePlanningSessionsQuery,
+} from '@/hooks/usePlanningSessionQueries';
 
 type PlanningPage = 'list' | 'picker' | 'editor';
 
@@ -60,6 +65,19 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [editorGameIds, setEditorGameIds] = useState<string[]>([]);
   const [importedPlan, setImportedPlan] = useState<ImportedPlan | null>(null);
   const [importError, setImportError] = useState<PlanImportError | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  // Saved sessions are scoped to the active team. The query is gated on
+  // (isOpen && page === 'list') so it doesn't fetch while the modal is
+  // closed or while the user is in the picker / editor — avoids cache
+  // refresh churn during in-flight editing.
+  const sessionsEnabled = isOpen && page === 'list';
+  const sessionsQuery = usePlanningSessionsQuery({
+    teamId: currentTeamId,
+    enabled: sessionsEnabled,
+  });
+  const deleteSession = useDeletePlanningSessionMutation();
+  const sessions: PlanningSession[] = sessionsQuery.data ?? [];
 
   // Convert SavedGamesCollection to the picker's input shape.
   const pickerGames: PlanningGamePickerGame[] = useMemo(() => {
@@ -79,6 +97,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const handleClose = () => {
     resetImportState();
     setEditorGameIds([]);
+    setPendingDeleteId(null);
     setPage('list');
     onClose();
   };
@@ -169,23 +188,135 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-6">
               {page === 'list' && (
                 <>
-                  {/* Empty / saved-list area */}
-                  {!importedPlan && !importError && (
-                    <div className="space-y-3 text-center py-8">
-                      <p className="text-slate-200 text-base">
-                        {t(
-                          'planningModal.emptyTitle',
-                          'No saved planning sessions yet.',
-                        )}
-                      </p>
-                      <p className="text-slate-400 text-sm">
-                        {t(
-                          'planningModal.emptyHint',
-                          'Import a plan exported from the standalone planner to get started. Saved sessions land in a later phase.',
-                        )}
-                      </p>
+                  {/* Saved-session list */}
+                  {!importedPlan && !importError && sessionsQuery.isLoading && (
+                    <div className="text-center py-6 text-slate-300 text-sm">
+                      {t('planningModal.sessionsLoading', 'Loading saved plans…')}
                     </div>
                   )}
+
+                  {!importedPlan &&
+                    !importError &&
+                    !sessionsQuery.isLoading &&
+                    sessions.length === 0 && (
+                      <div className="space-y-3 text-center py-8">
+                        <p className="text-slate-200 text-base">
+                          {t(
+                            'planningModal.emptyTitle',
+                            'No saved planning sessions yet.',
+                          )}
+                        </p>
+                        <p className="text-slate-400 text-sm">
+                          {t(
+                            'planningModal.emptyHint',
+                            'Start a new plan from your saved games, or import a plan exported from the standalone planner.',
+                          )}
+                        </p>
+                      </div>
+                    )}
+
+                  {!importedPlan &&
+                    !importError &&
+                    sessions.length > 0 && (
+                      <div
+                        className="space-y-2"
+                        data-testid="planning-modal-session-list"
+                      >
+                        <h3 className="text-sm font-semibold text-slate-200">
+                          {t(
+                            'planningModal.savedSessionsHeading',
+                            'Saved plans',
+                          )}
+                        </h3>
+                        <ul className="space-y-2">
+                          {sessions.map((session) => {
+                            const isPending = pendingDeleteId === session.id;
+                            return (
+                              <li
+                                key={session.id}
+                                className="flex items-center justify-between gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="truncate text-sm font-medium text-slate-100">
+                                      {session.name}
+                                    </span>
+                                    {session.isActive && (
+                                      <span className="rounded-full bg-emerald-700/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                                        {t(
+                                          'planningModal.activeBadge',
+                                          'Active',
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-400">
+                                    {t(
+                                      'planningModal.gameCountLabel',
+                                      '{{count}} games',
+                                      { count: session.gameIds.length },
+                                    )}
+                                    {' · '}
+                                    {t(
+                                      'planningModal.updatedAtLabel',
+                                      'updated {{date}}',
+                                      {
+                                        date: new Date(
+                                          session.updatedAt,
+                                        ).toLocaleString(),
+                                      },
+                                    )}
+                                  </p>
+                                </div>
+
+                                {isPending ? (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        await deleteSession.mutateAsync(
+                                          session.id,
+                                        );
+                                        setPendingDeleteId(null);
+                                      }}
+                                      className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-500"
+                                      data-testid={`planning-session-delete-confirm-${session.id}`}
+                                    >
+                                      {t(
+                                        'planningModal.deleteConfirm',
+                                        'Confirm delete?',
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPendingDeleteId(null)}
+                                      className="rounded-md bg-slate-700 px-2 py-1 text-xs text-slate-100 hover:bg-slate-600"
+                                    >
+                                      {t('common.cancel', 'Cancel')}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPendingDeleteId(session.id)
+                                    }
+                                    className="rounded-md p-1.5 text-slate-300 hover:bg-rose-900/40 hover:text-rose-200"
+                                    aria-label={t(
+                                      'planningModal.deleteSession',
+                                      'Delete plan',
+                                    )}
+                                    data-testid={`planning-session-delete-${session.id}`}
+                                  >
+                                    <HiOutlineTrash className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
 
                   {/* Import success */}
                   {importedPlan && (

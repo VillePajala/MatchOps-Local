@@ -297,7 +297,11 @@ describe('Translation File Validation', () => {
       // +1 planningEditor.applyWarnUnreachableSubs (per-game end +
       // empty role + self-sub catch-all).
       // +1 planningTimeline.minutesPanel (a11y aria-label).
-      expect(enKeys.length).toBe(2500);
+      // Planner Phase 3b: planningModal saved-sessions list +8
+      // (sessionsLoading, savedSessionsHeading, activeBadge,
+      // gameCountLabel_one, gameCountLabel_other, updatedAtLabel,
+      // deleteSession, deleteConfirm).
+      expect(enKeys.length).toBe(2508);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -314,7 +318,8 @@ describe('Translation File Validation', () => {
       // errDoublePosition).
       // +1 planningEditor.applyWarnUnreachableSubs.
       // +1 planningTimeline.minutesPanel.
-      expect(fiKeys.length).toBe(2500);
+      // Planner Phase 3b: planningModal saved-sessions list +8.
+      expect(fiKeys.length).toBe(2508);
     });
   });
 });
