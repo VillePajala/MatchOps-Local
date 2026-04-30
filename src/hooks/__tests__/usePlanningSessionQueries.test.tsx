@@ -153,10 +153,21 @@ describe('useSavePlanningSessionMutation', () => {
 });
 
 describe('useDeletePlanningSessionMutation', () => {
-  it('invalidates the planningSessions key when the delete succeeds', async () => {
+  it('invalidates live planningSessions queries when the delete succeeds', async () => {
     mockDeletePlanningSession.mockResolvedValue(true);
     const { client, wrapper } = buildWrapper();
-    const invalidateSpy = jest.spyOn(client, 'invalidateQueries');
+
+    // Seed a live team-scoped query into the cache so we can verify the
+    // delete actually invalidates it (vs. just verifying invalidateQueries
+    // was called — which the previous version of this test did, but missed
+    // a real prefix-mismatch bug Claude flagged in PR #391 review).
+    const liveKey: readonly unknown[] = [
+      'planningSessions',
+      'team',
+      'team_1',
+      TEST_USER_ID,
+    ];
+    client.setQueryData(liveKey, [session()]);
 
     const { result } = renderHook(() => useDeletePlanningSessionMutation(), {
       wrapper,
@@ -168,18 +179,9 @@ describe('useDeletePlanningSessionMutation', () => {
     });
 
     expect(mockDeletePlanningSession).toHaveBeenCalledWith('planningSession_x');
-    // Catch-all invalidation: every team-scoped slice gets refreshed.
-    // Key shape includes userId for cache isolation, matching the rest of
-    // the mutations (Claude PR-391 review #B1).
-    const calls = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
-    expect(
-      calls.some(
-        (k) =>
-          Array.isArray(k) &&
-          k[0] === 'planningSessions' &&
-          k.includes(TEST_USER_ID),
-      ),
-    ).toBe(true);
+    // Real prefix-match assertion: confirm the seeded query is now stale.
+    const state = client.getQueryState(liveKey);
+    expect(state?.isInvalidated).toBe(true);
   });
 
   it('does not invalidate when the delete returns false', async () => {

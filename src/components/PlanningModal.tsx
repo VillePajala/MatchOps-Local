@@ -59,7 +59,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   roster,
   applyToGame,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState<PlanningPage>('list');
   const [editorGameIds, setEditorGameIds] = useState<string[]>([]);
@@ -194,10 +194,26 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                     <div
                       className="text-center py-6 text-slate-300 text-sm"
                       role="status"
-                      aria-live="polite"
                     >
                       {t('planningModal.sessionsLoading', 'Loading saved plans…')}
                     </div>
+                  )}
+
+                  {/* Error state — minimal banner so the user isn't left
+                      staring at a blank panel when the fetch fails. Full
+                      retry / error-details UI lands in PR 7c via
+                      sessionsQuery.error. */}
+                  {!importedPlan && !importError && sessionsQuery.isError && (
+                    <p
+                      className="text-center text-sm text-rose-300 py-4"
+                      role="alert"
+                      data-testid="planning-modal-sessions-error"
+                    >
+                      {t(
+                        'planningModal.sessionsLoadError',
+                        'Could not load saved plans. Please try again.',
+                      )}
+                    </p>
                   )}
 
                   {/*
@@ -235,13 +251,19 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                         className="space-y-2"
                         data-testid="planning-modal-session-list"
                       >
-                        <h3 className="text-sm font-semibold text-slate-200">
+                        <h3
+                          id="planning-modal-session-heading"
+                          className="text-sm font-semibold text-slate-200"
+                        >
                           {t(
                             'planningModal.savedSessionsHeading',
                             'Saved plans',
                           )}
                         </h3>
-                        <ul className="space-y-2">
+                        <ul
+                          aria-labelledby="planning-modal-session-heading"
+                          className="space-y-2"
+                        >
                           {sessions.map((session) => {
                             const isPending = pendingDeleteId === session.id;
                             return (
@@ -276,7 +298,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       {
                                         date: new Date(
                                           session.updatedAt,
-                                        ).toLocaleString(),
+                                        ).toLocaleString(i18n.language),
                                       },
                                     )}
                                   </p>

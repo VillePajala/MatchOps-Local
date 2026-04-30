@@ -1456,6 +1456,7 @@ export type TranslationKey =
   | 'planningModal.newPlanButton'
   | 'planningModal.readError'
   | 'planningModal.savedSessionsHeading'
+  | 'planningModal.sessionsLoadError'
   | 'planningModal.sessionsLoading'
   | 'planningModal.subCount'
   | 'planningModal.team'

@@ -1697,7 +1697,8 @@
     "gameCountLabel_other": "{{count}} peliä",
     "updatedAtLabel": "päivitetty {{date}}",
     "deleteSession": "Poista suunnitelma",
-    "deleteConfirm": "Vahvista poisto?"
+    "deleteConfirm": "Vahvista poisto?",
+    "sessionsLoadError": "Tallennettujen suunnitelmien lataus epäonnistui. Yritä uudelleen."
   },
   "planningGamePicker": {
     "subtitle": "Valitse tämän suunnitelman pelit. Niiden tulee jakaa sama joukkue, jaksomäärä ja jakson kesto.",

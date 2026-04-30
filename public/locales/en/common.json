@@ -1697,7 +1697,8 @@
     "gameCountLabel_other": "{{count}} games",
     "updatedAtLabel": "updated {{date}}",
     "deleteSession": "Delete plan",
-    "deleteConfirm": "Confirm delete?"
+    "deleteConfirm": "Confirm delete?",
+    "sessionsLoadError": "Could not load saved plans. Please try again."
   },
   "planningGamePicker": {
     "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",

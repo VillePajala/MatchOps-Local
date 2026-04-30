@@ -301,7 +301,9 @@ describe('Translation File Validation', () => {
       // (sessionsLoading, savedSessionsHeading, activeBadge,
       // gameCountLabel_one, gameCountLabel_other, updatedAtLabel,
       // deleteSession, deleteConfirm).
-      expect(enKeys.length).toBe(2508);
+      // +1 sessionsLoadError (Claude PR-391 review I2: error UI on
+      // failed query, replacing the silent blank state).
+      expect(enKeys.length).toBe(2509);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -319,7 +321,8 @@ describe('Translation File Validation', () => {
       // +1 planningEditor.applyWarnUnreachableSubs.
       // +1 planningTimeline.minutesPanel.
       // Planner Phase 3b: planningModal saved-sessions list +8.
-      expect(fiKeys.length).toBe(2508);
+      // +1 sessionsLoadError (Claude PR-391 review I2).
+      expect(fiKeys.length).toBe(2509);
     });
   });
 });
