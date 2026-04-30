@@ -43,7 +43,7 @@ import {
   StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, validatePlanningSession, normalizeOptionalString, sortedGameIdsKey } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -103,7 +103,6 @@ type PlayerAssessmentInsert = Database['public']['Tables']['player_assessments']
 type PlayerAdjustmentInsert = Database['public']['Tables']['player_adjustments']['Insert'];
 type WarmupPlanInsert = Database['public']['Tables']['warmup_plans']['Insert'];
 type PlanningSessionInsert = Database['public']['Tables']['planning_sessions']['Insert'];
-type PlanningSessionUpdate = Database['public']['Tables']['planning_sessions']['Update'];
 
 // Update types (for UPDATE operations without any casts)
 type PlayerUpdate = Database['public']['Tables']['players']['Update'];
@@ -4335,6 +4334,31 @@ export class SupabaseDataStore implements DataStore {
     const now = new Date().toISOString();
     const targetId = session.id ?? generateId('planningSession');
 
+    // Preserve the existing createdAt on update when the caller didn't supply
+    // one — matches the LocalDataStore contract and prevents every edit from
+    // rewriting the original creation timestamp. Only one extra round-trip,
+    // and only when both id is present and createdAt is missing.
+    let resolvedCreatedAt: string;
+    if (session.createdAt) {
+      resolvedCreatedAt = session.createdAt;
+    } else if (session.id) {
+      const { data: existing } = await this.withRetry(async () => {
+        const result = await this.getClient()
+          .from('planning_sessions')
+          .select('created_at')
+          .eq('id', session.id as string)
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (result.error && result.error.code !== 'PGRST116') {
+          throwIfTransient(result);
+        }
+        return result;
+      }, 'savePlanningSession-fetchCreatedAt');
+      resolvedCreatedAt = existing?.created_at ?? now;
+    } else {
+      resolvedCreatedAt = now;
+    }
+
     const normalized: PlanningSession = {
       id: targetId,
       teamId: session.teamId,
@@ -4343,7 +4367,7 @@ export class SupabaseDataStore implements DataStore {
       draft: { ...session.draft },
       isActive: session.isActive,
       appliedAt: session.appliedAt,
-      createdAt: session.createdAt ?? now,
+      createdAt: resolvedCreatedAt,
       updatedAt: now,
     };
 
@@ -4402,77 +4426,32 @@ export class SupabaseDataStore implements DataStore {
       );
     }
 
-    // Read all sessions for this team and pick the matching gameIds-set in
-    // memory. PostgreSQL has no built-in "sorted-array equality" operator
-    // we can encode efficiently via a single query, and the team-scoped
-    // session count is bounded (a coach typically has a handful of plans
-    // per team), so the cost is negligible.
-    const teamSessions = await this.getPlanningSessions(teamId);
-    const targetKey = sortedGameIdsKey(gameIds);
-    const inScope = teamSessions.filter(
-      (s) => sortedGameIdsKey(s.gameIds) === targetKey,
-    );
+    // Atomic flip via RPC. Two clients activating different sessions for
+    // the same (teamId, gameIds-set) used to be able to interleave the
+    // deactivate + activate UPDATEs and leave multiple rows active. The
+    // RPC consolidates the work into a single UPDATE that PostgreSQL
+    // executes as one transactional step. See migration 033 for the body.
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient().rpc('set_active_planning_session', {
+        p_session_id: sessionId,
+        p_team_id: teamId,
+        p_game_ids: gameIds,
+      });
+      throwIfTransient(result);
+      return result;
+    }, 'setActiveSession');
 
-    const target =
-      sessionId !== null ? inScope.find((s) => s.id === sessionId) ?? null : null;
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to set active planning session');
+    }
 
-    if (sessionId !== null && !target) {
-      // Asked to activate a session that isn't part of the (teamId, gameIds)
-      // scope — surface as null so the UI can re-prompt.
+    // Empty result = either we asked to deactivate (sessionId === null) or
+    // the target wasn't in scope (the RPC validates that before flipping).
+    const rows = (data ?? []) as PlanningSessionRow[];
+    if (rows.length === 0) {
       return null;
     }
-
-    const userId = await this.getUserId();
-    const now = new Date().toISOString();
-
-    // Step 1: deactivate every other in-scope session that is currently active.
-    const toDeactivate = inScope.filter(
-      (s) => s.isActive && (target === null || s.id !== target.id),
-    );
-    if (toDeactivate.length > 0) {
-      const ids = toDeactivate.map((s) => s.id);
-      const { error: deactivateError } = await this.withRetry(async () => {
-        const updatePayload: PlanningSessionUpdate = {
-          is_active: false,
-          updated_at: now,
-        };
-        const result = await this.getClient()
-          .from('planning_sessions')
-          .update(updatePayload)
-          .in('id', ids)
-          .eq('user_id', userId);
-        throwIfTransient(result);
-        return result;
-      }, 'setActiveSession-deactivate');
-      if (deactivateError) {
-        this.classifyAndThrowError(deactivateError, 'Failed to deactivate planning sessions');
-      }
-    }
-
-    if (!target) {
-      return null;
-    }
-
-    if (!target.isActive) {
-      const { error: activateError } = await this.withRetry(async () => {
-        const updatePayload: PlanningSessionUpdate = {
-          is_active: true,
-          updated_at: now,
-        };
-        const result = await this.getClient()
-          .from('planning_sessions')
-          .update(updatePayload)
-          .eq('id', target.id)
-          .eq('user_id', userId);
-        throwIfTransient(result);
-        return result;
-      }, 'setActiveSession-activate');
-      if (activateError) {
-        this.classifyAndThrowError(activateError, 'Failed to activate planning session');
-      }
-      return { ...target, isActive: true, updatedAt: now };
-    }
-    return target;
+    return this.transformPlanningSessionFromDb(rows[0]);
   }
 
   async upsertPlanningSession(session: PlanningSession): Promise<PlanningSession> {

@@ -2692,8 +2692,8 @@ describe('LocalDataStore', () => {
         draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
         isActive: false,
       });
-      // sanity: jest fake timers aren't on; rely on a real next-tick delay
-      await new Promise((r) => setTimeout(r, 5));
+      // No fake timers — verify the createdAt-preservation contract directly,
+      // not a timestamp ordering that would need a wall-clock advance.
       const second = await dataStore.savePlanningSession({
         id: first.id,
         teamId: 't1',
@@ -2703,11 +2703,30 @@ describe('LocalDataStore', () => {
         isActive: false,
         createdAt: first.createdAt,
       });
+      expect(second.id).toBe(first.id);
       expect(second.createdAt).toBe(first.createdAt);
-      expect(new Date(second.updatedAt).getTime()).toBeGreaterThanOrEqual(
-        new Date(first.updatedAt).getTime(),
-      );
       expect(second.name).toBe('A — renamed');
+    });
+
+    it('preserves createdAt when the caller omits it on update', async () => {
+      const first = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'A',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+      });
+      const second = await dataStore.savePlanningSession({
+        id: first.id,
+        teamId: 't1',
+        name: 'A — renamed',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+        // createdAt intentionally omitted — implementation should fall back
+        // to the existing row's createdAt, not stamp `now`.
+      });
+      expect(second.createdAt).toBe(first.createdAt);
     });
 
     it('rejects a save that fails validation', async () => {

@@ -1089,6 +1089,14 @@ export type Database = {
         }
         Returns: number
       }
+      set_active_planning_session: {
+        Args: {
+          p_session_id: string | null
+          p_team_id: string
+          p_game_ids: string[]
+        }
+        Returns: Database["public"]["Tables"]["planning_sessions"]["Row"][]
+      }
       set_team_roster: {
         Args: { p_roster: Json[]; p_team_id: string }
         Returns: undefined

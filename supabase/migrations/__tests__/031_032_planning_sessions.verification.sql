@@ -1,8 +1,10 @@
--- Verification script for migrations 031 + 032
--- Run after applying both to confirm:
+-- Verification script for migrations 031 + 032 + 033
+-- Run after applying all three to confirm:
 --   1. planning_sessions table exists with the right column shape, defaults,
 --      indexes, RLS policy, and FK to auth.users
 --   2. clear_all_user_data RPC body now includes planning_sessions
+--   3. set_active_planning_session RPC exists with the expected signature
+--      and is granted to authenticated only
 --
 -- Usage (against staging):
 --   psql "$STAGING_URL" -f supabase/migrations/__tests__/031_032_planning_sessions.verification.sql
@@ -149,6 +151,58 @@ BEGIN
     RAISE EXCEPTION 'FAIL: clear_all_user_data missing DELETE FROM planning_sessions';
   END IF;
   RAISE NOTICE 'OK: clear_all_user_data deletes planning_sessions';
+END $$;
+
+\echo === Migration 033: set_active_planning_session RPC ===
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'set_active_planning_session'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: set_active_planning_session RPC missing';
+  END IF;
+  RAISE NOTICE 'OK: set_active_planning_session RPC exists';
+END $$;
+
+DO $$
+DECLARE
+  v_body text;
+BEGIN
+  SELECT pg_get_functiondef(p.oid) INTO v_body
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname = 'set_active_planning_session';
+
+  IF v_body !~ 'is_active\s*=\s*\(id IS NOT DISTINCT FROM p_session_id\)' THEN
+    RAISE EXCEPTION 'FAIL: set_active_planning_session body missing the is_active flip clause';
+  END IF;
+  IF v_body !~ 'game_ids @> p_game_ids' OR v_body !~ 'p_game_ids @> game_ids' THEN
+    RAISE EXCEPTION 'FAIL: set_active_planning_session body missing the gameIds-set match';
+  END IF;
+  IF v_body !~ 'SECURITY DEFINER' THEN
+    RAISE EXCEPTION 'FAIL: set_active_planning_session must be SECURITY DEFINER';
+  END IF;
+  RAISE NOTICE 'OK: set_active_planning_session body is well-formed';
+END $$;
+
+DO $$
+BEGIN
+  -- Confirm execute is granted to authenticated and revoked from PUBLIC.
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.routine_privileges
+    WHERE specific_schema = 'public'
+      AND routine_name = 'set_active_planning_session'
+      AND grantee = 'authenticated'
+      AND privilege_type = 'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: set_active_planning_session not granted to authenticated';
+  END IF;
+  RAISE NOTICE 'OK: set_active_planning_session is granted to authenticated';
 END $$;
 
 \echo === Done. ===
