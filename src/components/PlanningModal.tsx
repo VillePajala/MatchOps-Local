@@ -199,10 +199,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                     </div>
                   )}
 
-                  {/* Error state — minimal banner so the user isn't left
-                      staring at a blank panel when the fetch fails. Full
-                      retry / error-details UI lands in PR 7c via
-                      sessionsQuery.error. */}
+                  {/* Error banner: replaces the blank state on fetch failure (full retry UI in PR 7c). */}
                   {!importedPlan && !importError && sessionsQuery.isError && (
                     <p
                       className="text-center text-sm text-rose-300 py-4"
@@ -216,13 +213,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                     </p>
                   )}
 
-                  {/*
-                    Empty-state gating: only show the empty copy when the
-                    query genuinely returned no rows. If the query failed
-                    (isError), suppress the empty copy — surfacing "no saved
-                    plans" on a fetch failure would mislead the user. Full
-                    error UI lands in PR 7c via sessionsQuery.error.
-                  */}
+                  {/* Empty state: reserved for genuine empty-but-successful — !isError keeps it from masking a fetch failure. */}
                   {!importedPlan &&
                     !importError &&
                     !sessionsQuery.isLoading &&
@@ -244,8 +235,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                       </div>
                     )}
 
+                  {/* List: !isError prevents stale data rendering alongside the error banner. */}
                   {!importedPlan &&
                     !importError &&
+                    !sessionsQuery.isError &&
                     sessions.length > 0 && (
                       <div
                         className="space-y-2"
@@ -296,9 +289,21 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       'planningModal.updatedAtLabel',
                                       'updated {{date}}',
                                       {
-                                        date: new Date(
-                                          session.updatedAt,
-                                        ).toLocaleString(i18n.language),
+                                        // Guard against missing / malformed
+                                        // updatedAt — `new Date(undefined)`
+                                        // would render the literal string
+                                        // "Invalid Date" in the UI.
+                                        // toLocaleDateString drops the time
+                                        // component (noise in this row).
+                                        date: (() => {
+                                          if (!session.updatedAt) return '—';
+                                          const d = new Date(session.updatedAt);
+                                          return Number.isNaN(d.getTime())
+                                            ? '—'
+                                            : d.toLocaleDateString(
+                                                i18n.language,
+                                              );
+                                        })(),
                                       },
                                     )}
                                   </p>

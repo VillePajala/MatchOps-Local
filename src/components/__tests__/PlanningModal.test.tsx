@@ -69,10 +69,10 @@ const buildSession = (
 });
 
 beforeEach(() => {
-  // Default to empty list — tests opt in to populated cases.
-  setSessions([]);
   mockDeleteMutate.mockClear();
   mockUsePlanningSessionsQuery.mockClear();
+  // Default: empty list, no error. Tests opt in to populated / error
+  // cases via setSessions / direct mockReturnValue.
   mockUsePlanningSessionsQuery.mockReturnValue({
     data: [],
     isLoading: false,
@@ -554,6 +554,25 @@ describe('PlanningModal', () => {
       ).toBeInTheDocument();
     });
 
+    it('hides the session list when the query has errored, even if stale data is present', () => {
+      // React Query keeps the last successful `data` while a refetch
+      // fails. Without the !isError guard, both the list and the error
+      // banner render at the same time and the user sees a list that
+      // looks fresh while the banner says "could not load."
+      mockUsePlanningSessionsQuery.mockReturnValue({
+        data: [buildSession({ id: 's1', name: 'Stale' })],
+        isLoading: false,
+        isError: true,
+      });
+      renderModal();
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-modal-sessions-error'),
+      ).toBeInTheDocument();
+    });
+
     it('requires a confirm click before calling delete', async () => {
       setSessions([buildSession({ id: 's1', name: 'To delete' })]);
       renderModal();
@@ -645,20 +664,12 @@ describe('PlanningModal', () => {
       setSessions([]);
       renderModal({ isOpen: false });
 
-      // When the modal is closed, the component should pass enabled=false
-      // so React Query doesn't fire a request the user can't see anyway.
-      // The mock receives every render's call; the most recent one is what
-      // the active mount asked for.
-      const lastCallArgs =
-        mockUsePlanningSessionsQuery.mock.calls.at(-1)?.[0];
-      // When isOpen=false the component returns null *before* invoking
-      // hooks, so usePlanningSessionsQuery may not be called at all.
-      // Either zero calls OR a call with enabled=false is acceptable.
-      if (lastCallArgs) {
-        expect(lastCallArgs.enabled).toBe(false);
-      } else {
-        expect(mockUsePlanningSessionsQuery).not.toHaveBeenCalled();
-      }
+      // React's Rules of Hooks force the hook to run on every render —
+      // even when isOpen=false (the early-return JSX comes after hooks).
+      // So we should always see a call, and it should pass enabled=false.
+      expect(mockUsePlanningSessionsQuery).toHaveBeenCalledWith(
+        expect.objectContaining({ enabled: false }),
+      );
     });
   });
 });
