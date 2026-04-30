@@ -27,6 +27,25 @@ import {
 
 type PlanningPage = 'list' | 'picker' | 'editor';
 
+/**
+ * Format a PlanningSession.updatedAt for the row's "updated …" label.
+ *
+ * Guards against:
+ * - missing values (legacy rows or DataStore bugs)
+ * - malformed ISO strings (`new Date(<bad>)` returns Invalid Date)
+ *
+ * Drops the time component — the precise time is noise in this row;
+ * coaches care about which day they last touched the plan.
+ */
+const formatSessionDate = (
+  iso: string | undefined,
+  locale: string,
+): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString(locale);
+};
+
 interface PlanningModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -289,21 +308,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       'planningModal.updatedAtLabel',
                                       'updated {{date}}',
                                       {
-                                        // Guard against missing / malformed
-                                        // updatedAt — `new Date(undefined)`
-                                        // would render the literal string
-                                        // "Invalid Date" in the UI.
-                                        // toLocaleDateString drops the time
-                                        // component (noise in this row).
-                                        date: (() => {
-                                          if (!session.updatedAt) return '—';
-                                          const d = new Date(session.updatedAt);
-                                          return Number.isNaN(d.getTime())
-                                            ? '—'
-                                            : d.toLocaleDateString(
-                                                i18n.language,
-                                              );
-                                        })(),
+                                        date: formatSessionDate(
+                                          session.updatedAt,
+                                          i18n.language,
+                                        ),
                                       },
                                     )}
                                   </p>

@@ -115,13 +115,31 @@ describe('usePlanningSessionsQuery', () => {
 });
 
 describe('useSavePlanningSessionMutation', () => {
-  it('saves and invalidates the team-scoped list', async () => {
+  it('saves and invalidates both the team-scoped and unscoped lists', async () => {
     const saved = session({ id: 'new', teamId: 'team_1' });
     mockSavePlanningSession.mockResolvedValue(saved);
     mockGetPlanningSessions.mockResolvedValue([saved]);
 
     const { client, wrapper } = buildWrapper();
-    const invalidateSpy = jest.spyOn(client, 'invalidateQueries');
+
+    // Seed two live queries — one team-scoped, one unscoped — so we can
+    // verify both branches actually invalidate (not just that
+    // invalidateQueries was called). The unscoped key path catches any
+    // "all sessions" view a future PR adds.
+    const teamScopedKey: readonly unknown[] = [
+      'planningSessions',
+      'team',
+      'team_1',
+      TEST_USER_ID,
+    ];
+    const unscopedKey: readonly unknown[] = [
+      'planningSessions',
+      'team',
+      '_all',
+      TEST_USER_ID,
+    ];
+    client.setQueryData(teamScopedKey, []);
+    client.setQueryData(unscopedKey, []);
 
     const { result } = renderHook(() => useSavePlanningSessionMutation(), {
       wrapper,
@@ -138,17 +156,8 @@ describe('useSavePlanningSessionMutation', () => {
     });
 
     expect(mockSavePlanningSession).toHaveBeenCalledTimes(1);
-    expect(invalidateSpy).toHaveBeenCalled();
-    // At least one invalidation should target the team-scoped key.
-    const calls = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
-    expect(
-      calls.some(
-        (k) =>
-          Array.isArray(k) &&
-          k.includes('planningSessions') &&
-          k.includes('team_1'),
-      ),
-    ).toBe(true);
+    expect(client.getQueryState(teamScopedKey)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(unscopedKey)?.isInvalidated).toBe(true);
   });
 });
 
