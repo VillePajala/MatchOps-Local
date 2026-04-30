@@ -533,6 +533,24 @@ describe('PlanningModal', () => {
       ).toBeInTheDocument();
     });
 
+    it('does not show the empty-state copy when the sessions query failed', () => {
+      // isError + empty data could naively trigger the "No saved planning
+      // sessions yet" copy, which would be misleading on a fetch failure.
+      // Guarding the empty-state on !isError keeps that copy reserved for
+      // a genuine empty-but-successful response.
+      mockUsePlanningSessionsQuery.mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: true,
+      });
+      renderModal();
+      expect(
+        screen.queryByText(
+          /No saved planning sessions yet|Ei tallennettuja suunnitelmia/i,
+        ),
+      ).not.toBeInTheDocument();
+    });
+
     it('requires a confirm click before calling delete', async () => {
       setSessions([buildSession({ id: 's1', name: 'To delete' })]);
       renderModal();

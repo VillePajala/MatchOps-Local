@@ -169,10 +169,15 @@ describe('useDeletePlanningSessionMutation', () => {
 
     expect(mockDeletePlanningSession).toHaveBeenCalledWith('planningSession_x');
     // Catch-all invalidation: every team-scoped slice gets refreshed.
+    // Key shape includes userId for cache isolation, matching the rest of
+    // the mutations (Claude PR-391 review #B1).
     const calls = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
     expect(
       calls.some(
-        (k) => Array.isArray(k) && k[0] === 'planningSessions' && k.length === 1,
+        (k) =>
+          Array.isArray(k) &&
+          k[0] === 'planningSessions' &&
+          k.includes(TEST_USER_ID),
       ),
     ).toBe(true);
   });

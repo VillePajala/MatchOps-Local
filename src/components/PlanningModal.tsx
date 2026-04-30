@@ -191,14 +191,26 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                 <>
                   {/* Saved-session list */}
                   {!importedPlan && !importError && sessionsQuery.isLoading && (
-                    <div className="text-center py-6 text-slate-300 text-sm">
+                    <div
+                      className="text-center py-6 text-slate-300 text-sm"
+                      role="status"
+                      aria-live="polite"
+                    >
                       {t('planningModal.sessionsLoading', 'Loading saved plans…')}
                     </div>
                   )}
 
+                  {/*
+                    Empty-state gating: only show the empty copy when the
+                    query genuinely returned no rows. If the query failed
+                    (isError), suppress the empty copy — surfacing "no saved
+                    plans" on a fetch failure would mislead the user. Full
+                    error UI lands in PR 7c via sessionsQuery.error.
+                  */}
                   {!importedPlan &&
                     !importError &&
                     !sessionsQuery.isLoading &&
+                    !sessionsQuery.isError &&
                     sessions.length === 0 && (
                       <div className="space-y-3 text-center py-8">
                         <p className="text-slate-200 text-base">
@@ -274,23 +286,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                   <div className="flex items-center gap-2">
                                     <button
                                       type="button"
+                                      // `mutate` + onSettled (not mutateAsync)
+                                      // so React Query absorbs rejections
+                                      // rather than letting them escape as
+                                      // unhandled errors. `disabled` on
+                                      // isPending blocks double-submit while
+                                      // the backend round-trip is in flight.
                                       onClick={() => {
-                                        // `mutate` (not `mutateAsync`)
-                                        // routes errors through React Query
-                                        // rather than letting them escape as
-                                        // unhandled rejections. `onSettled`
-                                        // fires on success AND failure, so
-                                        // the row exits confirm mode either
-                                        // way — the user isn't left staring
-                                        // at "Confirm delete?" if the
-                                        // backend rejected. Error UI lands
-                                        // in PR 7c via deleteSession.error.
                                         deleteSession.mutate(session.id, {
                                           onSettled: () =>
                                             setPendingDeleteId(null),
                                         });
                                       }}
-                                      className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-500"
+                                      disabled={deleteSession.isPending}
+                                      className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                       data-testid={`planning-session-delete-confirm-${session.id}`}
                                     >
                                       {t(

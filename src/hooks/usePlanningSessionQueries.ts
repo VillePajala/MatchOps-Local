@@ -97,10 +97,11 @@ export const useDeletePlanningSessionMutation = () => {
     onSuccess: (deleted) => {
       if (!deleted) return;
       // Refresh every team-scoped slice — the deleted session may have been
-      // displayed under any team filter. The query keys are short, so the
-      // catch-all invalidation is cheap.
+      // displayed under any team filter. Include userId in the prefix so
+      // the invalidation respects the per-user cache contract that the
+      // other mutations follow.
       queryClient.invalidateQueries({
-        queryKey: queryKeys.planningSessions,
+        queryKey: [...queryKeys.planningSessions, userId],
       });
     },
   });

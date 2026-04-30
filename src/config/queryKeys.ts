@@ -29,4 +29,4 @@ export const queryKeys = {
 
   // Example for a detail query if needed later:
   // gameById: (gameId: string) => ['games', 'detail', gameId] as const,
-}; 
+};
