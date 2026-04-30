@@ -297,11 +297,10 @@ describe('Translation File Validation', () => {
       // +1 planningEditor.applyWarnUnreachableSubs (per-game end +
       // empty role + self-sub catch-all).
       // +1 planningTimeline.minutesPanel (a11y aria-label).
-      // Planner Phase 3b: planningModal saved-sessions list +8
+      // Planner Phase 3b: planningModal saved-sessions list +9
       // (sessionsLoading, savedSessionsHeading, activeBadge,
       // gameCountLabel_one, gameCountLabel_other, updatedAtLabel,
-      // deleteSession, deleteConfirm).
-      // +1 sessionsLoadError — error banner on failed sessions query.
+      // deleteSession, deleteConfirm, sessionsLoadError).
       expect(enKeys.length).toBe(2509);
     });
 
@@ -319,8 +318,7 @@ describe('Translation File Validation', () => {
       // errDoublePosition).
       // +1 planningEditor.applyWarnUnreachableSubs.
       // +1 planningTimeline.minutesPanel.
-      // Planner Phase 3b: planningModal saved-sessions list +8.
-      // +1 sessionsLoadError — error banner on failed sessions query.
+      // Planner Phase 3b: planningModal saved-sessions list +9.
       expect(fiKeys.length).toBe(2509);
     });
   });

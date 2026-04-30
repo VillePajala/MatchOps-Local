@@ -31,16 +31,23 @@ const mockDeleteMutate = jest.fn<
   Promise.resolve().then(() => opts?.onSettled?.(true, null, id));
 });
 
+// Default mutation return — tests override via mockDeleteMutationReturn.
+let mockDeleteMutationReturn: {
+  mutate: typeof mockDeleteMutate;
+  isPending: boolean;
+  error: Error | null;
+} = {
+  mutate: mockDeleteMutate,
+  isPending: false,
+  error: null,
+};
+
 jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   __esModule: true,
   usePlanningSessionsQuery: (
     opts?: { teamId?: string; enabled?: boolean },
   ) => mockUsePlanningSessionsQuery(opts),
-  useDeletePlanningSessionMutation: () => ({
-    mutate: mockDeleteMutate,
-    isPending: false,
-    error: null,
-  }),
+  useDeletePlanningSessionMutation: () => mockDeleteMutationReturn,
 }));
 
 const setSessions = (sessions: PlanningSession[], isLoading = false) => {
@@ -71,6 +78,11 @@ const buildSession = (
 beforeEach(() => {
   mockDeleteMutate.mockClear();
   mockUsePlanningSessionsQuery.mockClear();
+  mockDeleteMutationReturn = {
+    mutate: mockDeleteMutate,
+    isPending: false,
+    error: null,
+  };
   // Default: empty list, no error. Tests opt in to populated / error
   // cases via setSessions / direct mockReturnValue.
   mockUsePlanningSessionsQuery.mockReturnValue({
@@ -631,6 +643,24 @@ describe('PlanningModal', () => {
         screen.queryByTestId('planning-session-delete-confirm-s1'),
       ).not.toBeInTheDocument();
       expect(mockDeleteMutate).not.toHaveBeenCalled();
+    });
+
+    it('disables the confirm button while the delete mutation is pending', async () => {
+      // Block double-submit during a slow backend round-trip — without
+      // disabled={isPending}, a frustrated tap could fire the mutation
+      // multiple times.
+      setSessions([buildSession({ id: 's1', name: 'Slow delete' })]);
+      mockDeleteMutationReturn = {
+        mutate: mockDeleteMutate,
+        isPending: true,
+        error: null,
+      };
+      renderModal();
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      const confirm = await screen.findByTestId(
+        'planning-session-delete-confirm-s1',
+      );
+      expect(confirm).toBeDisabled();
     });
 
     it('clears the pending-delete state even when the mutation rejects', async () => {

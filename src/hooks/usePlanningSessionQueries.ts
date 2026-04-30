@@ -15,18 +15,10 @@ import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import type { PlanningSession } from '@/types';
 
-/**
- * Argument shape for `usePlanningSessionsQuery`. Listed as an object so future
- * filter additions (e.g., `includeApplied`) don't break callers.
- */
 export interface UsePlanningSessionsQueryOptions {
   /** Filter by team. When undefined, returns all of the user's sessions. */
   teamId?: string;
-  /**
-   * When false, the query is disabled and won't fetch. Useful for screens
-   * that mount the hook before the data is needed (e.g., PlanningModal
-   * not yet open).
-   */
+  /** When false, skip the fetch (e.g., modal closed). */
   enabled?: boolean;
 }
 
@@ -96,14 +88,7 @@ export const useDeletePlanningSessionMutation = () => {
     },
     onSuccess: (deleted) => {
       if (!deleted) return;
-      // Use the bare root key for the catch-all — React Query's prefix
-      // matcher checks segments left-to-right, so `['planningSessions']`
-      // prefix-matches every live query regardless of team scope or
-      // userId. Adding userId at index 1 would NOT match the live keys
-      // `['planningSessions', 'team', teamId, userId]` (segment 1 is
-      // 'team', not userId). User-isolation is already enforced at the
-      // DataStore layer (LocalDataStore userId filter, Supabase RLS),
-      // so the catch-all sweep is safe.
+      // Bare root key prefix-matches every live planning-session query (segment-by-segment match); user isolation is enforced at the DataStore layer.
       queryClient.invalidateQueries({
         queryKey: queryKeys.planningSessions,
       });

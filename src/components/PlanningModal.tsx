@@ -27,16 +27,7 @@ import {
 
 type PlanningPage = 'list' | 'picker' | 'editor';
 
-/**
- * Format a PlanningSession.updatedAt for the row's "updated …" label.
- *
- * Guards against:
- * - missing values (legacy rows or DataStore bugs)
- * - malformed ISO strings (`new Date(<bad>)` returns Invalid Date)
- *
- * Drops the time component — the precise time is noise in this row;
- * coaches care about which day they last touched the plan.
- */
+// Guard against missing / malformed updatedAt; `new Date(<bad>)` would render as "Invalid Date".
 const formatSessionDate = (
   iso: string | undefined,
   locale: string,
@@ -322,12 +313,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                   <div className="flex items-center gap-2">
                                     <button
                                       type="button"
-                                      // `mutate` + onSettled (not mutateAsync)
-                                      // so React Query absorbs rejections
-                                      // rather than letting them escape as
-                                      // unhandled errors. `disabled` on
-                                      // isPending blocks double-submit while
-                                      // the backend round-trip is in flight.
+                                      // mutate (not mutateAsync) so React Query absorbs rejections; isPending blocks double-submit.
                                       onClick={() => {
                                         deleteSession.mutate(session.id, {
                                           onSettled: () =>

@@ -37,7 +37,6 @@ jest.mock('@/hooks/useDataStore', () => ({
   useDataStore: () => ({
     userId: TEST_USER_ID,
     getStore: jest.fn(async () => stubStore),
-    isUserScoped: true,
   }),
 }));
 
@@ -257,10 +256,26 @@ describe('useSetActiveSessionMutation', () => {
     expect(mockSetActiveSession).toHaveBeenCalledWith(null, 'team_1', ['g1']);
   });
 
-  it('invalidates the team-scoped session list on success', async () => {
+  it('invalidates both the team-scoped and unscoped session lists on success', async () => {
     mockSetActiveSession.mockResolvedValue(session({ id: 's1', isActive: true }));
     const { client, wrapper } = buildWrapper();
-    const invalidateSpy = jest.spyOn(client, 'invalidateQueries');
+
+    // Seed both keys so the test asserts actual invalidation, mirroring
+    // the save-mutation test.
+    const teamScopedKey: readonly unknown[] = [
+      'planningSessions',
+      'team',
+      'team_42',
+      TEST_USER_ID,
+    ];
+    const unscopedKey: readonly unknown[] = [
+      'planningSessions',
+      'team',
+      '_all',
+      TEST_USER_ID,
+    ];
+    client.setQueryData(teamScopedKey, []);
+    client.setQueryData(unscopedKey, []);
 
     const { result } = renderHook(() => useSetActiveSessionMutation(), {
       wrapper,
@@ -274,14 +289,7 @@ describe('useSetActiveSessionMutation', () => {
       });
     });
 
-    const calls = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
-    expect(
-      calls.some(
-        (k) =>
-          Array.isArray(k) &&
-          k.includes('planningSessions') &&
-          k.includes('team_42'),
-      ),
-    ).toBe(true);
+    expect(client.getQueryState(teamScopedKey)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(unscopedKey)?.isInvalidated).toBe(true);
   });
 });
