@@ -8,9 +8,12 @@
  */
 
 import type { AppState, ScheduledSub, ScheduledSubStatus } from '@/types/game';
+import type { PlanningSession } from '@/types';
 import { ValidationError } from '@/interfaces/DataStoreErrors';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
+
+const PLANNING_SESSION_NAME_MAX = 200;
 
 const SCHEDULED_SUB_STATUSES: readonly ScheduledSubStatus[] = ['pending', 'fired', 'skipped'];
 
@@ -185,3 +188,233 @@ export const validateGame = (game: AppState, context?: string): void => {
 
   validateScheduledSubs(game.scheduledSubs, prefix);
 };
+
+/**
+ * Validate a PlanningSession's required fields and draft shape.
+ *
+ * Used by both LocalDataStore and SupabaseDataStore at the save boundary
+ * (CLAUDE.md Rule 14 — saveGame validation parity, applied here to plans).
+ *
+ * Validation scope:
+ * - `name` non-empty after trim, ≤ {@link PLANNING_SESSION_NAME_MAX} chars
+ * - `teamId` non-empty (every plan is team-scoped)
+ * - `gameIds` non-empty array of unique non-empty strings
+ * - `draft` is an object keyed only by gameIds in the gameIds array
+ * - Each draft value has `startingXI` (object), `bench` (string[]), and
+ *   `scheduledSubs` (validated as drafts — no `status` or `outPlayer` per
+ *   `DraftScheduledSub`)
+ *
+ * Roster membership of player ids is NOT validated here: a saved plan
+ * can outlive the roster that created it (a player removed from the team
+ * would otherwise block reload), and the editor surfaces unknown ids on
+ * Apply via `applyDraftToGame.unknownPlayerIds`. That's the right place
+ * for the soft check.
+ */
+export const validatePlanningSession = (
+  session: Partial<PlanningSession>,
+  context?: string,
+): void => {
+  const prefix = context ? `PlanningSession ${context}: ` : '';
+
+  if (!isNonEmptyString(session.name)) {
+    throw new ValidationError(
+      `${prefix}name must be a non-empty string`,
+      'name',
+      session.name,
+    );
+  }
+  if (session.name.trim().length > PLANNING_SESSION_NAME_MAX) {
+    throw new ValidationError(
+      `${prefix}name cannot exceed ${PLANNING_SESSION_NAME_MAX} characters (got ${session.name.trim().length})`,
+      'name',
+      session.name,
+    );
+  }
+
+  if (!isNonEmptyString(session.teamId)) {
+    throw new ValidationError(
+      `${prefix}teamId must be a non-empty string`,
+      'teamId',
+      session.teamId,
+    );
+  }
+
+  if (!Array.isArray(session.gameIds) || session.gameIds.length === 0) {
+    throw new ValidationError(
+      `${prefix}gameIds must be a non-empty array`,
+      'gameIds',
+      session.gameIds,
+    );
+  }
+  const seenGameIds = new Set<string>();
+  session.gameIds.forEach((gid, idx) => {
+    if (!isNonEmptyString(gid)) {
+      throw new ValidationError(
+        `${prefix}gameIds[${idx}] must be a non-empty string`,
+        `gameIds[${idx}]`,
+        gid,
+      );
+    }
+    if (seenGameIds.has(gid)) {
+      throw new ValidationError(
+        `${prefix}gameIds contains duplicate id "${gid}"`,
+        `gameIds[${idx}]`,
+        gid,
+      );
+    }
+    seenGameIds.add(gid);
+  });
+
+  if (
+    !session.draft ||
+    typeof session.draft !== 'object' ||
+    Array.isArray(session.draft)
+  ) {
+    throw new ValidationError(
+      `${prefix}draft must be an object keyed by gameId`,
+      'draft',
+      session.draft,
+    );
+  }
+
+  for (const gameId of Object.keys(session.draft)) {
+    if (!seenGameIds.has(gameId)) {
+      // A draft entry for a game outside gameIds is dead weight that would
+      // mislead anyone inspecting the session — surface the inconsistency
+      // rather than silently dropping it.
+      throw new ValidationError(
+        `${prefix}draft contains entry for gameId "${gameId}" not present in gameIds`,
+        `draft.${gameId}`,
+        gameId,
+      );
+    }
+    const planDraft = (session.draft as Record<string, unknown>)[gameId];
+    const draftPath = `draft.${gameId}`;
+    if (!planDraft || typeof planDraft !== 'object' || Array.isArray(planDraft)) {
+      throw new ValidationError(
+        `${prefix}${draftPath} must be an object`,
+        draftPath,
+        planDraft,
+      );
+    }
+    const pd = planDraft as {
+      startingXI?: unknown;
+      bench?: unknown;
+      scheduledSubs?: unknown;
+    };
+
+    if (
+      !pd.startingXI ||
+      typeof pd.startingXI !== 'object' ||
+      Array.isArray(pd.startingXI)
+    ) {
+      throw new ValidationError(
+        `${prefix}${draftPath}.startingXI must be a Record<roleName, playerId>`,
+        `${draftPath}.startingXI`,
+        pd.startingXI,
+      );
+    }
+    for (const [role, pid] of Object.entries(
+      pd.startingXI as Record<string, unknown>,
+    )) {
+      if (!isNonEmptyString(pid)) {
+        throw new ValidationError(
+          `${prefix}${draftPath}.startingXI[${role}] must be a non-empty playerId`,
+          `${draftPath}.startingXI.${role}`,
+          pid,
+        );
+      }
+    }
+
+    if (!Array.isArray(pd.bench)) {
+      throw new ValidationError(
+        `${prefix}${draftPath}.bench must be an array`,
+        `${draftPath}.bench`,
+        pd.bench,
+      );
+    }
+    pd.bench.forEach((pid, idx) => {
+      if (!isNonEmptyString(pid)) {
+        throw new ValidationError(
+          `${prefix}${draftPath}.bench[${idx}] must be a non-empty playerId`,
+          `${draftPath}.bench[${idx}]`,
+          pid,
+        );
+      }
+    });
+
+    if (!Array.isArray(pd.scheduledSubs)) {
+      throw new ValidationError(
+        `${prefix}${draftPath}.scheduledSubs must be an array`,
+        `${draftPath}.scheduledSubs`,
+        pd.scheduledSubs,
+      );
+    }
+    const seenSubIds = new Set<string>();
+    pd.scheduledSubs.forEach((sub: unknown, idx: number) => {
+      const at = `${draftPath}.scheduledSubs[${idx}]`;
+      if (!sub || typeof sub !== 'object' || Array.isArray(sub)) {
+        throw new ValidationError(`${prefix}${at} must be an object`, at, sub);
+      }
+      const s = sub as {
+        id?: unknown;
+        timeSeconds?: unknown;
+        inPlayer?: unknown;
+        positionRole?: unknown;
+      };
+      if (!isNonEmptyString(s.id)) {
+        throw new ValidationError(
+          `${prefix}${at}.id must be a non-empty string`,
+          `${at}.id`,
+          s.id,
+        );
+      }
+      if (seenSubIds.has(s.id)) {
+        throw new ValidationError(
+          `${prefix}${at}.id "${s.id}" duplicates an earlier entry`,
+          `${at}.id`,
+          s.id,
+        );
+      }
+      seenSubIds.add(s.id);
+      if (
+        typeof s.timeSeconds !== 'number' ||
+        !Number.isInteger(s.timeSeconds) ||
+        s.timeSeconds < 0
+      ) {
+        throw new ValidationError(
+          `${prefix}${at}.timeSeconds must be a non-negative integer`,
+          `${at}.timeSeconds`,
+          s.timeSeconds,
+        );
+      }
+      if (!isNonEmptyString(s.inPlayer)) {
+        throw new ValidationError(
+          `${prefix}${at}.inPlayer must be a non-empty playerId`,
+          `${at}.inPlayer`,
+          s.inPlayer,
+        );
+      }
+      if (!isNonEmptyString(s.positionRole)) {
+        throw new ValidationError(
+          `${prefix}${at}.positionRole must be a non-empty role name`,
+          `${at}.positionRole`,
+          s.positionRole,
+        );
+      }
+    });
+  }
+};
+
+export { PLANNING_SESSION_NAME_MAX };
+
+/**
+ * Stable string key for a gameIds-set, used by `setActiveSession` to find
+ * other sessions covering the *same* games regardless of array order.
+ * Sorting before joining means [a, b] and [b, a] hash identically.
+ *
+ * Exported here (not in a dedicated utility) because it pairs with the
+ * planning-session validator and lives at the same conceptual layer.
+ */
+export const sortedGameIdsKey = (gameIds: readonly string[]): string =>
+  [...gameIds].sort().join(' ');

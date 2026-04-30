@@ -5,8 +5,9 @@
  * so a regression here breaks both backends silently.
  */
 
-import { validateGame } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, sortedGameIdsKey } from '@/datastore/validation';
 import type { ScheduledSub } from '@/types/game';
+import type { PlanningSession } from '@/types';
 import { TestFixtures } from '../../../tests/fixtures';
 
 const baseGame = () => TestFixtures.games.newGame({
@@ -155,5 +156,164 @@ describe('validateGame — scheduledSubs', () => {
   it('still validates other fields when scheduledSubs is OK', () => {
     const game = { ...baseGame(), teamName: '', scheduledSubs: [] };
     expect(() => validateGame(game)).toThrow(/Missing required game fields/);
+  });
+});
+
+const baseSession = (
+  overrides: Partial<PlanningSession> = {},
+): PlanningSession => ({
+  id: 'planningSession_1',
+  teamId: 'team_1',
+  name: 'Lauto 80 Verne-5',
+  gameIds: ['g1', 'g2'],
+  draft: {
+    g1: {
+      startingXI: { GK: 'p1', LB: 'p2' },
+      bench: ['p3'],
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 600, inPlayer: 'p3', positionRole: 'LB' },
+      ],
+    },
+    g2: {
+      startingXI: { GK: 'p1' },
+      bench: ['p2', 'p3'],
+      scheduledSubs: [],
+    },
+  },
+  isActive: false,
+  createdAt: '2026-04-30T12:00:00.000Z',
+  updatedAt: '2026-04-30T12:00:00.000Z',
+  ...overrides,
+});
+
+describe('validatePlanningSession', () => {
+  it('accepts a well-formed session', () => {
+    expect(() => validatePlanningSession(baseSession())).not.toThrow();
+  });
+
+  it('rejects an empty name', () => {
+    expect(() =>
+      validatePlanningSession(baseSession({ name: '   ' })),
+    ).toThrow(/name must be a non-empty string/);
+  });
+
+  it('rejects a name exceeding the max length', () => {
+    expect(() =>
+      validatePlanningSession(baseSession({ name: 'x'.repeat(201) })),
+    ).toThrow(/cannot exceed 200 characters/);
+  });
+
+  it('rejects a missing teamId', () => {
+    expect(() =>
+      validatePlanningSession(baseSession({ teamId: '' })),
+    ).toThrow(/teamId must be a non-empty string/);
+  });
+
+  it('rejects an empty gameIds array', () => {
+    expect(() =>
+      validatePlanningSession(baseSession({ gameIds: [], draft: {} })),
+    ).toThrow(/gameIds must be a non-empty array/);
+  });
+
+  it('rejects duplicate gameIds', () => {
+    expect(() =>
+      validatePlanningSession(
+        baseSession({
+          gameIds: ['g1', 'g1'],
+          draft: {
+            g1: {
+              startingXI: {},
+              bench: [],
+              scheduledSubs: [],
+            },
+          },
+        }),
+      ),
+    ).toThrow(/gameIds contains duplicate id "g1"/);
+  });
+
+  it('rejects a draft entry for a game not in gameIds', () => {
+    const session = baseSession();
+    session.draft.g3 = { startingXI: {}, bench: [], scheduledSubs: [] };
+    expect(() => validatePlanningSession(session)).toThrow(
+      /draft contains entry for gameId "g3" not present in gameIds/,
+    );
+  });
+
+  it('rejects a non-object draft value', () => {
+    expect(() =>
+      validatePlanningSession({
+        ...baseSession(),
+        draft: { g1: 'oops' as unknown as PlanningSession['draft'][string] },
+      } as PlanningSession),
+    ).toThrow(/draft.g1 must be an object/);
+  });
+
+  it('rejects a non-object startingXI', () => {
+    const session = baseSession();
+    (session.draft.g1.startingXI as unknown) = 'oops';
+    expect(() => validatePlanningSession(session)).toThrow(
+      /startingXI must be a Record/,
+    );
+  });
+
+  it('rejects a non-string playerId in startingXI', () => {
+    const session = baseSession();
+    (session.draft.g1.startingXI as Record<string, unknown>).GK = 42;
+    expect(() => validatePlanningSession(session)).toThrow(
+      /startingXI\.GK must be a non-empty playerId/,
+    );
+  });
+
+  it('rejects a bench that is not an array', () => {
+    const session = baseSession();
+    (session.draft.g1.bench as unknown) = 'oops';
+    expect(() => validatePlanningSession(session)).toThrow(
+      /bench must be an array/,
+    );
+  });
+
+  it('rejects a draft scheduledSub with negative timeSeconds', () => {
+    const session = baseSession();
+    session.draft.g1.scheduledSubs[0].timeSeconds = -1;
+    expect(() => validatePlanningSession(session)).toThrow(
+      /timeSeconds must be a non-negative integer/,
+    );
+  });
+
+  it('rejects a draft scheduledSub with duplicate id', () => {
+    const session = baseSession();
+    session.draft.g1.scheduledSubs.push({
+      id: session.draft.g1.scheduledSubs[0].id,
+      timeSeconds: 1200,
+      inPlayer: 'p4',
+      positionRole: 'LB',
+    });
+    expect(() => validatePlanningSession(session)).toThrow(
+      /duplicates an earlier entry/,
+    );
+  });
+
+  it('does not require status or outPlayer (these are draft-only)', () => {
+    // Drafts intentionally omit `status` and `outPlayer` per
+    // DraftScheduledSub (status set on Apply, outPlayer computed lazily).
+    const session = baseSession();
+    expect(session.draft.g1.scheduledSubs[0]).not.toHaveProperty('status');
+    expect(session.draft.g1.scheduledSubs[0]).not.toHaveProperty('outPlayer');
+    expect(() => validatePlanningSession(session)).not.toThrow();
+  });
+});
+
+describe('sortedGameIdsKey', () => {
+  it('produces the same key for the same set in different order', () => {
+    expect(sortedGameIdsKey(['b', 'a', 'c'])).toBe(sortedGameIdsKey(['c', 'a', 'b']));
+  });
+
+  it('produces a different key for different sets', () => {
+    expect(sortedGameIdsKey(['a', 'b'])).not.toBe(sortedGameIdsKey(['a', 'c']));
+  });
+
+  it('handles a single-element array', () => {
+    expect(sortedGameIdsKey(['only'])).toBe('only');
   });
 });

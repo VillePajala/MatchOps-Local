@@ -21,5 +21,8 @@ export const PREMIUM_LICENSE_KEY = 'soccerPremiumLicense';
 // Warm-up plan storage key
 export const WARMUP_PLAN_KEY = 'soccerWarmupPlan';
 
+// Planning sessions storage key (tournament-planner Phase 3)
+export const PLANNING_SESSIONS_KEY = 'soccerPlanningSessions';
+
 // UI state storage keys
 export const INSTALL_PROMPT_DISMISSED_KEY = 'installPromptDismissed';

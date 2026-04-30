@@ -20,6 +20,7 @@ import type {
   Season,
   Tournament,
   PlayerStatAdjustment,
+  PlanningSession,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
@@ -976,6 +977,75 @@ export class SyncedDataStore implements DataStore {
       await this.queueSync('warmupPlan', 'default', 'delete', null);
     }
     return deleted;
+  }
+
+  // ==========================================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  // ==========================================================================
+
+  async getPlanningSessions(teamId?: string): Promise<PlanningSession[]> {
+    return this.localStore.getPlanningSessions(teamId);
+  }
+
+  async savePlanningSession(
+    session: Omit<PlanningSession, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    },
+  ): Promise<PlanningSession> {
+    const saved = await this.localStore.savePlanningSession(session);
+    await this.queueSync('planningSession', saved.id, 'create', saved);
+    return saved;
+  }
+
+  async deletePlanningSession(id: string): Promise<boolean> {
+    const deleted = await this.localStore.deletePlanningSession(id);
+    if (deleted) {
+      await this.queueSync('planningSession', id, 'delete', null);
+    }
+    return deleted;
+  }
+
+  async setActiveSession(
+    sessionId: string | null,
+    teamId: string,
+    gameIds: string[],
+  ): Promise<PlanningSession | null> {
+    // Toggle activation locally so the UI reflects the change immediately;
+    // queue a single sync per affected session so the cloud catches up to
+    // the same state. We don't queue for sessions that didn't change
+    // (handler is idempotent: sessions already in the desired isActive
+    // state are returned as-is by LocalDataStore).
+    const before = await this.localStore.getPlanningSessions(teamId);
+    const result = await this.localStore.setActiveSession(
+      sessionId,
+      teamId,
+      gameIds,
+    );
+    const after = await this.localStore.getPlanningSessions(teamId);
+
+    const beforeById = new Map(before.map((s) => [s.id, s]));
+    for (const session of after) {
+      const prev = beforeById.get(session.id);
+      if (prev && prev.isActive !== session.isActive) {
+        await this.queueSync(
+          'planningSession',
+          session.id,
+          'update',
+          session,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  async upsertPlanningSession(session: PlanningSession): Promise<PlanningSession> {
+    const result = await this.localStore.upsertPlanningSession(session);
+    // Queue as 'create' — cloud uses upsert, so this dedupes to the latest write.
+    await this.queueSync('planningSession', session.id, 'create', result);
+    return result;
   }
 
   // ==========================================================================

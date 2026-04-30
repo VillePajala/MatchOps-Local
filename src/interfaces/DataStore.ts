@@ -18,7 +18,7 @@
  * @see docs/03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md
  */
 
-import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment } from '@/types';
+import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment, PlanningSession } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -555,6 +555,81 @@ export interface DataStore {
    * @returns true if deleted, false if not found
    */
   deleteWarmupPlan(): Promise<boolean>;
+
+  // ==========================================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  //
+  // A PlanningSession is a persistent, coach-facing "plan" that holds a
+  // per-game draft snapshot for one or more games. Plans are reopenable,
+  // renamable, and versionable; Apply is the explicit action that writes a
+  // draft into Game.playersOnField / Game.scheduledSubs.
+  //
+  // Error handling pattern:
+  // - Return null: Session not found (valid query, no result)
+  // - Throw ValidationError: Bad input (empty name, invalid draft shape, etc.)
+  // - Throw Error: Storage/system failures
+  //
+  // @see src/types/planningSession.ts
+  // @see docs/03-active-plans/tournament-planner-integration.md
+  // ==========================================================================
+
+  /**
+   * Get all planning sessions, newest first.
+   * Sessions are user-scoped; cloud backends filter by user_id at the RLS layer.
+   * @param teamId - Optional team filter; when provided, only sessions for that team
+   * @returns All planning sessions
+   */
+  getPlanningSessions(teamId?: string): Promise<PlanningSession[]>;
+
+  /**
+   * Save a planning session (create or update).
+   * Validates name length, gameIds non-empty, and draft shape.
+   * @param session - Full session object. `id`, `createdAt`, `updatedAt` may be omitted; the implementation generates/refreshes them.
+   * @returns The saved session with timestamps populated
+   * @throws {ValidationError} If session is malformed
+   */
+  savePlanningSession(
+    session: Omit<PlanningSession, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    }
+  ): Promise<PlanningSession>;
+
+  /**
+   * Delete a planning session.
+   * @param id - Session ID
+   * @returns true if deleted, false if not found
+   */
+  deletePlanningSession(id: string): Promise<boolean>;
+
+  /**
+   * Mark one session active and deactivate any other active sessions
+   * covering the same (teamId, gameIds-set). Pass `null` to deactivate
+   * the currently-active session for that team+game-set without
+   * activating another.
+   *
+   * Implementations must perform this atomically: at most one session per
+   * (teamId, gameIds-set) ends up with `isActive === true`.
+   *
+   * @param sessionId - The session to activate, or null to deactivate the active one
+   * @param teamId - Team scope used to find the gameIds-set
+   * @param gameIds - The game-set the active session must cover
+   * @returns The newly active session, or null if `sessionId` was null
+   */
+  setActiveSession(
+    sessionId: string | null,
+    teamId: string,
+    gameIds: string[]
+  ): Promise<PlanningSession | null>;
+
+  /**
+   * Upsert a planning session - insert if not exists, update if exists.
+   * Used by sync conflict resolution to preserve cloud IDs.
+   * @param session - Full session with ID
+   * @returns The upserted session
+   */
+  upsertPlanningSession(session: PlanningSession): Promise<PlanningSession>;
 
   // ==========================================================================
   // TIMER STATE

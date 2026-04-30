@@ -23,6 +23,7 @@ import type {
   TournamentSeries,
   TeamPlacementInfo,
   PlayerStatAdjustment,
+  PlanningSession,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog, ScheduledSub } from '@/types/game';
 import type { PlayerAssessment } from '@/types/playerAssessment';
@@ -42,7 +43,7 @@ import {
   StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString, sortedGameIdsKey } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -77,6 +78,7 @@ type GameTacticalDataRow = Database['public']['Tables']['game_tactical_data']['R
 type PlayerAssessmentRow = Database['public']['Tables']['player_assessments']['Row'];
 type PlayerAdjustmentRow = Database['public']['Tables']['player_adjustments']['Row'];
 type WarmupPlanRow = Database['public']['Tables']['warmup_plans']['Row'];
+type PlanningSessionRow = Database['public']['Tables']['planning_sessions']['Row'];
 
 // Insert types (data for INSERT operations)
 //
@@ -100,6 +102,8 @@ type GameTacticalDataInsert = Database['public']['Tables']['game_tactical_data']
 type PlayerAssessmentInsert = Database['public']['Tables']['player_assessments']['Insert'];
 type PlayerAdjustmentInsert = Database['public']['Tables']['player_adjustments']['Insert'];
 type WarmupPlanInsert = Database['public']['Tables']['warmup_plans']['Insert'];
+type PlanningSessionInsert = Database['public']['Tables']['planning_sessions']['Insert'];
+type PlanningSessionUpdate = Database['public']['Tables']['planning_sessions']['Update'];
 
 // Update types (for UPDATE operations without any casts)
 type PlayerUpdate = Database['public']['Tables']['players']['Update'];
@@ -4286,6 +4290,256 @@ export class SupabaseDataStore implements DataStore {
       last_modified: plan.lastModified,
       is_default: plan.isDefault,
       sections: plan.sections as unknown as Database['public']['Tables']['warmup_plans']['Insert']['sections'],
+    };
+  }
+
+  // ==========================================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  // ==========================================================================
+
+  async getPlanningSessions(teamId?: string): Promise<PlanningSession[]> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const result = await this.withRetry(async () => {
+      let query = this.getClient().from('planning_sessions').select('*');
+      if (teamId) {
+        query = query.eq('team_id', teamId);
+      }
+      return throwIfTransient(
+        await query.order('updated_at', { ascending: false }),
+      );
+    }, 'getPlanningSessions');
+
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to load planning sessions');
+    }
+
+    const rows = (result.data || []) as PlanningSessionRow[];
+    return rows.map((row) => this.transformPlanningSessionFromDb(row));
+  }
+
+  async savePlanningSession(
+    session: Omit<PlanningSession, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    },
+  ): Promise<PlanningSession> {
+    this.ensureInitialized();
+    checkOnline();
+
+    validatePlanningSession({ ...session, id: session.id ?? 'pending' });
+
+    const userId = await this.getUserId();
+    const now = new Date().toISOString();
+    const targetId = session.id ?? generateId('planningSession');
+
+    const normalized: PlanningSession = {
+      id: targetId,
+      teamId: session.teamId,
+      name: session.name.trim(),
+      gameIds: [...session.gameIds],
+      draft: { ...session.draft },
+      isActive: session.isActive,
+      appliedAt: session.appliedAt,
+      createdAt: session.createdAt ?? now,
+      updatedAt: now,
+    };
+
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .upsert(
+          this.transformPlanningSessionToDb(normalized, userId) as unknown as never,
+          { onConflict: 'id' },
+        );
+      throwIfTransient(result);
+      return result;
+    }, 'savePlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to save planning session');
+    }
+
+    return normalized;
+  }
+
+  async deletePlanningSession(id: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to delete planning session');
+    }
+    return (count ?? 0) > 0;
+  }
+
+  async setActiveSession(
+    sessionId: string | null,
+    teamId: string,
+    gameIds: string[],
+  ): Promise<PlanningSession | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    if (!teamId || !Array.isArray(gameIds) || gameIds.length === 0) {
+      throw new ValidationError(
+        'setActiveSession requires teamId and a non-empty gameIds[]',
+        'teamId',
+        { teamId, gameIds },
+      );
+    }
+
+    // Read all sessions for this team and pick the matching gameIds-set in
+    // memory. PostgreSQL has no built-in "sorted-array equality" operator
+    // we can encode efficiently via a single query, and the team-scoped
+    // session count is bounded (a coach typically has a handful of plans
+    // per team), so the cost is negligible.
+    const teamSessions = await this.getPlanningSessions(teamId);
+    const targetKey = sortedGameIdsKey(gameIds);
+    const inScope = teamSessions.filter(
+      (s) => sortedGameIdsKey(s.gameIds) === targetKey,
+    );
+
+    const target =
+      sessionId !== null ? inScope.find((s) => s.id === sessionId) ?? null : null;
+
+    if (sessionId !== null && !target) {
+      // Asked to activate a session that isn't part of the (teamId, gameIds)
+      // scope — surface as null so the UI can re-prompt.
+      return null;
+    }
+
+    const userId = await this.getUserId();
+    const now = new Date().toISOString();
+
+    // Step 1: deactivate every other in-scope session that is currently active.
+    const toDeactivate = inScope.filter(
+      (s) => s.isActive && (target === null || s.id !== target.id),
+    );
+    if (toDeactivate.length > 0) {
+      const ids = toDeactivate.map((s) => s.id);
+      const { error: deactivateError } = await this.withRetry(async () => {
+        const updatePayload: PlanningSessionUpdate = {
+          is_active: false,
+          updated_at: now,
+        };
+        const result = await this.getClient()
+          .from('planning_sessions')
+          .update(updatePayload)
+          .in('id', ids)
+          .eq('user_id', userId);
+        throwIfTransient(result);
+        return result;
+      }, 'setActiveSession-deactivate');
+      if (deactivateError) {
+        this.classifyAndThrowError(deactivateError, 'Failed to deactivate planning sessions');
+      }
+    }
+
+    if (!target) {
+      return null;
+    }
+
+    if (!target.isActive) {
+      const { error: activateError } = await this.withRetry(async () => {
+        const updatePayload: PlanningSessionUpdate = {
+          is_active: true,
+          updated_at: now,
+        };
+        const result = await this.getClient()
+          .from('planning_sessions')
+          .update(updatePayload)
+          .eq('id', target.id)
+          .eq('user_id', userId);
+        throwIfTransient(result);
+        return result;
+      }, 'setActiveSession-activate');
+      if (activateError) {
+        this.classifyAndThrowError(activateError, 'Failed to activate planning session');
+      }
+      return { ...target, isActive: true, updatedAt: now };
+    }
+    return target;
+  }
+
+  async upsertPlanningSession(session: PlanningSession): Promise<PlanningSession> {
+    this.ensureInitialized();
+    checkOnline();
+
+    validatePlanningSession(session);
+
+    const userId = await this.getUserId();
+    const normalized: PlanningSession = {
+      ...session,
+      name: session.name.trim(),
+      gameIds: [...session.gameIds],
+      draft: { ...session.draft },
+    };
+
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .upsert(
+          this.transformPlanningSessionToDb(normalized, userId) as unknown as never,
+          { onConflict: 'id' },
+        );
+      throwIfTransient(result);
+      return result;
+    }, 'upsertPlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to upsert planning session');
+    }
+
+    return normalized;
+  }
+
+  // Planning session transforms
+  private transformPlanningSessionFromDb(row: PlanningSessionRow): PlanningSession {
+    return {
+      id: row.id,
+      teamId: row.team_id,
+      name: row.name,
+      gameIds: Array.isArray(row.game_ids) ? row.game_ids : [],
+      draft:
+        row.draft && typeof row.draft === 'object' && !Array.isArray(row.draft)
+          ? (row.draft as PlanningSession['draft'])
+          : {},
+      isActive: row.is_active ?? false,
+      appliedAt: row.applied_at ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private transformPlanningSessionToDb(
+    session: PlanningSession,
+    userId: string,
+  ): PlanningSessionInsert {
+    return {
+      id: session.id,
+      user_id: userId,
+      team_id: session.teamId,
+      name: session.name,
+      game_ids: [...session.gameIds],
+      draft: session.draft as unknown as Json,
+      is_active: session.isActive,
+      applied_at: session.appliedAt ?? null,
+      created_at: session.createdAt,
+      updated_at: session.updatedAt,
     };
   }
 

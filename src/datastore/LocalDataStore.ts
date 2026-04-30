@@ -13,6 +13,7 @@ import type {
   Tournament,
   TournamentSeries,
   PlayerStatAdjustment,
+  PlanningSession,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
@@ -26,7 +27,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString, sortedGameIdsKey } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import { validateUserId } from '@/datastore/userDatabase';
 import {
@@ -41,6 +42,7 @@ import {
   TEAM_ROSTERS_KEY,
   PERSONNEL_KEY,
   WARMUP_PLAN_KEY,
+  PLANNING_SESSIONS_KEY,
   TIMER_STATE_KEY,
 } from '@/config/storageKeys';
 import { AGE_GROUPS } from '@/config/gameOptions';
@@ -2331,6 +2333,185 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  // ==========================================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  // ==========================================================================
+
+  async getPlanningSessions(teamId?: string): Promise<PlanningSession[]> {
+    this.ensureInitialized();
+
+    const sessions = await this.loadPlanningSessions();
+    const filtered = teamId
+      ? sessions.filter((session) => session.teamId === teamId)
+      : sessions;
+    // Newest-first ordering: cheaper to read latest plans first in the UI list.
+    return [...filtered].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+  }
+
+  async savePlanningSession(
+    session: Omit<PlanningSession, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    },
+  ): Promise<PlanningSession> {
+    this.ensureInitialized();
+
+    validatePlanningSession({ ...session, id: session.id ?? 'pending' });
+
+    return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const current = await this.loadPlanningSessions();
+      const now = new Date().toISOString();
+
+      const targetId = session.id ?? generateId('planningSession');
+      const existingIndex = current.findIndex((s) => s.id === targetId);
+
+      const normalized: PlanningSession = {
+        id: targetId,
+        teamId: session.teamId,
+        name: session.name.trim(),
+        gameIds: [...session.gameIds],
+        draft: { ...session.draft },
+        isActive: session.isActive,
+        appliedAt: session.appliedAt,
+        createdAt:
+          session.createdAt ??
+          (existingIndex !== -1 ? current[existingIndex].createdAt : now),
+        updatedAt: now,
+      };
+
+      if (existingIndex !== -1) {
+        current[existingIndex] = normalized;
+      } else {
+        current.push(normalized);
+      }
+      await this.storageSetItem(
+        PLANNING_SESSIONS_KEY,
+        JSON.stringify(current),
+      );
+      return normalized;
+    });
+  }
+
+  async deletePlanningSession(id: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const current = await this.loadPlanningSessions();
+      const next = current.filter((session) => session.id !== id);
+      if (next.length === current.length) {
+        return false;
+      }
+      await this.storageSetItem(
+        PLANNING_SESSIONS_KEY,
+        JSON.stringify(next),
+      );
+      return true;
+    });
+  }
+
+  async setActiveSession(
+    sessionId: string | null,
+    teamId: string,
+    gameIds: string[],
+  ): Promise<PlanningSession | null> {
+    this.ensureInitialized();
+
+    if (!teamId || !Array.isArray(gameIds) || gameIds.length === 0) {
+      throw new ValidationError(
+        'setActiveSession requires teamId and a non-empty gameIds[]',
+        'teamId',
+        { teamId, gameIds },
+      );
+    }
+
+    const targetKey = sortedGameIdsKey(gameIds);
+
+    return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const current = await this.loadPlanningSessions();
+      const now = new Date().toISOString();
+      let activated: PlanningSession | null = null;
+      let mutated = false;
+
+      const updated = current.map((session) => {
+        const matchesScope =
+          session.teamId === teamId &&
+          sortedGameIdsKey(session.gameIds) === targetKey;
+        if (!matchesScope) return session;
+
+        if (sessionId !== null && session.id === sessionId) {
+          if (!session.isActive) {
+            mutated = true;
+            const next = { ...session, isActive: true, updatedAt: now };
+            activated = next;
+            return next;
+          }
+          activated = session;
+          return session;
+        }
+        if (session.isActive) {
+          mutated = true;
+          return { ...session, isActive: false, updatedAt: now };
+        }
+        return session;
+      });
+
+      if (sessionId !== null && !activated) {
+        // The caller asked to activate a session that doesn't exist or is
+        // outside the (teamId, gameIds-set) scope. Surfacing as null lets the
+        // UI prompt re-fetch / re-pick rather than silently mis-activating.
+        return null;
+      }
+
+      if (mutated) {
+        await this.storageSetItem(
+          PLANNING_SESSIONS_KEY,
+          JSON.stringify(updated),
+        );
+      }
+      return activated;
+    });
+  }
+
+  async upsertPlanningSession(
+    session: PlanningSession,
+  ): Promise<PlanningSession> {
+    this.ensureInitialized();
+
+    validatePlanningSession(session);
+
+    return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const current = await this.loadPlanningSessions();
+      const existingIndex = current.findIndex((s) => s.id === session.id);
+      const now = new Date().toISOString();
+
+      const normalized: PlanningSession = {
+        ...session,
+        name: session.name.trim(),
+        gameIds: [...session.gameIds],
+        draft: { ...session.draft },
+        createdAt:
+          session.createdAt ??
+          (existingIndex !== -1 ? current[existingIndex].createdAt : now),
+        updatedAt: session.updatedAt ?? now,
+      };
+
+      if (existingIndex !== -1) {
+        current[existingIndex] = normalized;
+      } else {
+        current.push(normalized);
+      }
+      await this.storageSetItem(
+        PLANNING_SESSIONS_KEY,
+        JSON.stringify(current),
+      );
+      return normalized;
+    });
+  }
+
   async getTimerState(): Promise<TimerState | null> {
     this.ensureInitialized();
 
@@ -2595,6 +2776,20 @@ export class LocalDataStore implements DataStore {
       return Array.isArray(parsed) ? (parsed as Tournament[]) : [];
     } catch (error) {
       logger.error('[LocalDataStore] Failed to load tournaments', error);
+      return [];
+    }
+  }
+
+  private async loadPlanningSessions(): Promise<PlanningSession[]> {
+    try {
+      const json = await this.storageGetItem(PLANNING_SESSIONS_KEY);
+      if (!json) {
+        return [];
+      }
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? (parsed as PlanningSession[]) : [];
+    } catch (error) {
+      logger.error('[LocalDataStore] Failed to load planning sessions', error);
       return [];
     }
   }
