@@ -1720,6 +1720,7 @@
   },
   "planningTimeline": {
     "title": "Aikajana",
+    "minutesPanel": "Pelaajien minuutit",
     "totalDuration": "Pelin pituus: {{mmss}}",
     "empty": "Ei ajastettuja vaihtoja. Lisää uusi painikkeesta \"Lisää vaihto\".",
     "addSub": "Lisää vaihto",

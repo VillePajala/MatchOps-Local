@@ -557,30 +557,16 @@ describe('PlanningTimeline', () => {
     expect(inSelect.value).toBe('p8');
   });
 
-  it('clears the inPlayer on role change when the player is no longer eligible at the new role', async () => {
-    // Pick the current role-1 occupant (p1) by switching to a role
-    // where p1 is NOT the current occupant — the form lets you pick
-    // p1 there. Then change the role TO role-1 — at role-1, p1 IS
-    // the current occupant, so the smart-reset should clear it
-    // (self-sub would otherwise fire).
+  it('clears the inPlayer when the time field becomes unparseable', async () => {
+    // Smart reset: keep the previous inPlayer if it's still eligible
+    // at the new (role, time); clear otherwise. parseMMSS returning
+    // null is the simplest way to drive `stillEligible=false`, and
+    // it's the most common reachable path: the user is mid-typing.
     renderTimeline();
     await act(async () => {
       fireEvent.click(screen.getByTestId('planning-timeline-add'));
     });
-    const role1 = (PRESET.roles ?? [])[1].name;
     const role2 = (PRESET.roles ?? [])[2].name;
-    // Start at role2; pick p1 (who occupies role1, ineligible at role1
-    // but fine at role2 since p1 isn't on field at any other role).
-    // Actually p1 IS on the field at role1, so by the
-    // double-position guard p1 is INELIGIBLE at role2 too. Use p8
-    // (bench) → role2 → role1 instead, where role1 has its own
-    // occupant; p8 stays eligible (still bench), so this scenario
-    // doesn't reach the clear path. Fall back to: self-sub case
-    // — pick role2, pick role2's occupant from another path...
-    // Simpler: trigger via time change to put p8 on field elsewhere.
-    // Skip this hard-to-set-up case in favour of the simpler
-    // "form opens with stale role" test below — both validate the
-    // same guard.
     await act(async () => {
       fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
         target: { value: role2 },
@@ -591,9 +577,6 @@ describe('PlanningTimeline', () => {
         target: { value: 'p8' },
       });
     });
-    // Bad time text: parseMMSS returns null → eligibleInPlayers
-    // returns [] (Issue 1) → stillEligible is false → inPlayer
-    // clears.
     await act(async () => {
       fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
         target: { value: 'banana' },
@@ -603,7 +586,6 @@ describe('PlanningTimeline', () => {
       'planning-timeline-form-in',
     ) as HTMLSelectElement;
     expect(inSelect.value).toBe('');
-    void role1; // referenced above for context
   });
 
   it('per-player minutes split correctly when a sub is in place', () => {

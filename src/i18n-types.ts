@@ -1463,6 +1463,7 @@ export type TranslationKey =
   | 'planningTimeline.errSelfSub'
   | 'planningTimeline.errTimeOutOfRange'
   | 'planningTimeline.inPlayer'
+  | 'planningTimeline.minutesPanel'
   | 'planningTimeline.noRoles'
   | 'planningTimeline.pickPlayer'
   | 'planningTimeline.removeSub'

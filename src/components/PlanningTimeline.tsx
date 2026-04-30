@@ -336,9 +336,9 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
   // the intended time.
   const eligibleForForm = useMemo(() => {
     if (!form) return [];
-    const t = parseMMSS(form.timeText);
-    if (t === null) return [];
-    return eligibleInPlayers(form.positionRole, t, form.subId);
+    const timeSec = parseMMSS(form.timeText);
+    if (timeSec === null) return [];
+    return eligibleInPlayers(form.positionRole, timeSec, form.subId);
   }, [form, eligibleInPlayers]);
 
   return (
@@ -356,6 +356,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
 
       {/* Per-player minutes summary */}
       <div
+        role="region"
+        aria-label={t('planningTimeline.minutesPanel', 'Player minutes')}
         className="grid grid-cols-3 gap-1 text-xs"
         data-testid="planning-timeline-minutes"
       >
@@ -446,15 +448,15 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
                   setForm((f) => {
                     if (!f) return f;
                     const next = e.target.value;
-                    const t = parseMMSS(next);
+                    const timeSec = parseMMSS(next);
                     // Eligibility depends on (role, time). Keep the
                     // previous inPlayer if it's still eligible at the
                     // new time so a one-second tweak doesn't force a
                     // re-pick; clear it otherwise so the empty-player
                     // guard can fire.
                     const stillEligible =
-                      t !== null &&
-                      eligibleInPlayers(f.positionRole, t, f.subId).some(
+                      timeSec !== null &&
+                      eligibleInPlayers(f.positionRole, timeSec, f.subId).some(
                         (p) => p.id === f.inPlayer,
                       );
                     return {
@@ -478,10 +480,10 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = ({
                   setForm((f) => {
                     if (!f) return f;
                     const nextRole = e.target.value;
-                    const t = parseMMSS(f.timeText);
+                    const timeSec = parseMMSS(f.timeText);
                     const stillEligible =
-                      t !== null &&
-                      eligibleInPlayers(nextRole, t, f.subId).some(
+                      timeSec !== null &&
+                      eligibleInPlayers(nextRole, timeSec, f.subId).some(
                         (p) => p.id === f.inPlayer,
                       );
                     return {

@@ -296,7 +296,8 @@ describe('Translation File Validation', () => {
       // errNoPlayer, errNoOccupant, errSelfSub, errDoublePosition)
       // +1 planningEditor.applyWarnUnreachableSubs (per-game end +
       // empty role + self-sub catch-all).
-      expect(enKeys.length).toBe(2499);
+      // +1 planningTimeline.minutesPanel (a11y aria-label).
+      expect(enKeys.length).toBe(2500);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -312,7 +313,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 2: planningTimeline section (18 keys, incl.
       // errDoublePosition).
       // +1 planningEditor.applyWarnUnreachableSubs.
-      expect(fiKeys.length).toBe(2499);
+      // +1 planningTimeline.minutesPanel.
+      expect(fiKeys.length).toBe(2500);
     });
   });
 });
