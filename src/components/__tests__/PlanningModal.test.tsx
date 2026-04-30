@@ -15,7 +15,21 @@ import type { PlanningSession } from '@/types';
 // real QueryClientProvider. Tests can override the returned data per-case
 // via the helpers below.
 const mockUsePlanningSessionsQuery = jest.fn();
-const mockDeleteMutate = jest.fn().mockResolvedValue(true);
+// The component calls `deleteSession.mutate(id, { onSettled })`. The mock
+// simulates a settled mutation by invoking onSettled in a microtask so
+// that `waitFor` assertions in the tests resolve correctly.
+type MutateCallback = (
+  data: boolean | undefined,
+  error: Error | null,
+  variables: string,
+) => void;
+const mockDeleteMutate = jest.fn<
+  void,
+  [string, { onSettled?: MutateCallback }?]
+>((id, opts) => {
+  // Default: success — true signals the row was deleted on the backend.
+  Promise.resolve().then(() => opts?.onSettled?.(true, null, id));
+});
 
 jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   __esModule: true,
@@ -23,8 +37,9 @@ jest.mock('@/hooks/usePlanningSessionQueries', () => ({
     opts?: { teamId?: string; enabled?: boolean },
   ) => mockUsePlanningSessionsQuery(opts),
   useDeletePlanningSessionMutation: () => ({
-    mutateAsync: mockDeleteMutate,
+    mutate: mockDeleteMutate,
     isPending: false,
+    error: null,
   }),
 }));
 
@@ -532,7 +547,12 @@ describe('PlanningModal', () => {
       fireEvent.click(confirm);
 
       await waitFor(() => {
-        expect(mockDeleteMutate).toHaveBeenCalledWith('s1');
+        // mutate(id, { onSettled }) — second arg is the options object the
+        // component passes so the row's pendingDeleteId resets either way.
+        expect(mockDeleteMutate).toHaveBeenCalledWith(
+          's1',
+          expect.objectContaining({ onSettled: expect.any(Function) }),
+        );
       });
     });
 
@@ -555,10 +575,15 @@ describe('PlanningModal', () => {
 
     it('clears the pending-delete state even when the mutation rejects', async () => {
       setSessions([buildSession({ id: 's1', name: 'Will fail' })]);
-      // Simulate a backend failure — IndexedDB error, sync failure, etc.
-      // Without try/finally on the click handler this would leave the
-      // row stuck in confirm-delete mode, blocking subsequent actions.
-      mockDeleteMutate.mockRejectedValueOnce(new Error('storage offline'));
+      // Simulate a backend failure: React Query catches the rejection
+      // internally and calls `onSettled` with the error. The component must
+      // clear pendingDeleteId from onSettled so the row recovers without
+      // leaving the user staring at "Confirm delete?".
+      mockDeleteMutate.mockImplementationOnce((id, opts) => {
+        Promise.resolve().then(() =>
+          opts?.onSettled?.(undefined, new Error('storage offline'), id),
+        );
+      });
       renderModal();
 
       fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
@@ -568,9 +593,12 @@ describe('PlanningModal', () => {
       fireEvent.click(confirm);
 
       await waitFor(() => {
-        expect(mockDeleteMutate).toHaveBeenCalledWith('s1');
+        expect(mockDeleteMutate).toHaveBeenCalledWith(
+          's1',
+          expect.objectContaining({ onSettled: expect.any(Function) }),
+        );
       });
-      // Row is back to non-pending state — confirm button gone, trash icon back.
+      // Row recovers — confirm button gone, trash icon back.
       await waitFor(() => {
         expect(
           screen.queryByTestId('planning-session-delete-confirm-s1'),

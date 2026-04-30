@@ -274,19 +274,21 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                   <div className="flex items-center gap-2">
                                     <button
                                       type="button"
-                                      onClick={async () => {
-                                        // try/finally: even if the mutation
-                                        // rejects (IndexedDB error, sync
-                                        // failure), the row exits confirm
-                                        // mode so the user isn't stuck
-                                        // staring at "Confirm delete?".
-                                        try {
-                                          await deleteSession.mutateAsync(
-                                            session.id,
-                                          );
-                                        } finally {
-                                          setPendingDeleteId(null);
-                                        }
+                                      onClick={() => {
+                                        // `mutate` (not `mutateAsync`)
+                                        // routes errors through React Query
+                                        // rather than letting them escape as
+                                        // unhandled rejections. `onSettled`
+                                        // fires on success AND failure, so
+                                        // the row exits confirm mode either
+                                        // way — the user isn't left staring
+                                        // at "Confirm delete?" if the
+                                        // backend rejected. Error UI lands
+                                        // in PR 7c via deleteSession.error.
+                                        deleteSession.mutate(session.id, {
+                                          onSettled: () =>
+                                            setPendingDeleteId(null),
+                                        });
                                       }}
                                       className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-500"
                                       data-testid={`planning-session-delete-confirm-${session.id}`}
