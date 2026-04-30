@@ -261,7 +261,7 @@ describe('validatePlanningSession', () => {
     const session = baseSession();
     (session.draft.g1.startingXI as Record<string, unknown>).GK = 42;
     expect(() => validatePlanningSession(session)).toThrow(
-      /startingXI\.GK must be a non-empty playerId/,
+      /startingXI\[GK\] must be a non-empty playerId/,
     );
   });
 

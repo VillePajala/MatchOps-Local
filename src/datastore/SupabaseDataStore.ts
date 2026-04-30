@@ -4516,7 +4516,7 @@ export class SupabaseDataStore implements DataStore {
       gameIds: Array.isArray(row.game_ids) ? row.game_ids : [],
       draft:
         row.draft && typeof row.draft === 'object' && !Array.isArray(row.draft)
-          ? (row.draft as PlanningSession['draft'])
+          ? (row.draft as unknown as PlanningSession['draft'])
           : {},
       isActive: row.is_active ?? false,
       appliedAt: row.applied_at ?? undefined,

@@ -45,6 +45,7 @@ const ENTITY_SYNC_PRIORITY: Record<SyncEntityType, number> = {
   game: 3,        // Games reference seasons/tournaments/teams via FK
   teamRoster: 4,  // Rosters reference teams and players
   playerAdjustment: 4, // Adjustments reference games and players
+  planningSession: 4,  // Sessions reference teams + games (soft FK); sync after both
 };
 
 /**

@@ -26,7 +26,7 @@
 
 import type { DataStore } from '@/interfaces/DataStore';
 import type { AppState, SavedGamesCollection } from '@/types/game';
-import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment } from '@/types';
+import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment, PlanningSession } from '@/types';
 import type { Personnel } from '@/types/personnel';
 import type { AppSettings } from '@/types/settings';
 
@@ -205,6 +205,26 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     getWarmupPlan: jest.fn(async () => null),
     saveWarmupPlan: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['saveWarmupPlan']>,
     deleteWarmupPlan: jest.fn(async () => false),
+
+    // Planning Sessions
+    getPlanningSessions: jest.fn(async () => []) as unknown as jest.MockedFunction<DataStore['getPlanningSessions']>,
+    savePlanningSession: jest.fn(async (session: Parameters<DataStore['savePlanningSession']>[0]) => {
+      const now = new Date().toISOString();
+      return {
+        id: session.id ?? `planningSession_${Date.now()}`,
+        teamId: session.teamId,
+        name: session.name,
+        gameIds: [...session.gameIds],
+        draft: { ...session.draft },
+        isActive: session.isActive,
+        appliedAt: session.appliedAt,
+        createdAt: session.createdAt ?? now,
+        updatedAt: now,
+      };
+    }) as unknown as jest.MockedFunction<DataStore['savePlanningSession']>,
+    deletePlanningSession: jest.fn(async () => false) as unknown as jest.MockedFunction<DataStore['deletePlanningSession']>,
+    setActiveSession: jest.fn(async () => null) as unknown as jest.MockedFunction<DataStore['setActiveSession']>,
+    upsertPlanningSession: jest.fn(async (session: PlanningSession) => session) as unknown as jest.MockedFunction<DataStore['upsertPlanningSession']>,
 
     // Timer State
     getTimerState: jest.fn(async () => null),
