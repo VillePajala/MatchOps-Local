@@ -96,7 +96,13 @@ const subDiffFromSaved = (s: ScheduledSub): SubDiffEntry => ({
   outPlayer: s.outPlayer,
 });
 
-const subsDiffer = (a: SubDiffEntry, b: SubDiffEntry): boolean =>
+// Second param is the draft side which never carries outPlayer (drafts
+// compute it lazily). Encoding the asymmetry in the type makes the
+// outPlayer omission visible at the signature, not just in the comment.
+const subsDiffer = (
+  a: SubDiffEntry,
+  b: Omit<SubDiffEntry, 'outPlayer'>,
+): boolean =>
   a.timeSeconds !== b.timeSeconds ||
   a.positionRole !== b.positionRole ||
   a.inPlayer !== b.inPlayer;

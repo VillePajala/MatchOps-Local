@@ -65,6 +65,8 @@ describe('computeApplyDiff', () => {
       scheduledSubs: [],
     };
     const diff = computeApplyDiff('g1', game, draft, preset5v5);
+    // gameId passes through unchanged — used by PR 8b for per-game opt-out.
+    expect(diff.gameId).toBe('g1');
     expect(diff.isEmpty).toBe(true);
     expect(countDiffChanges(diff)).toBe(0);
   });
