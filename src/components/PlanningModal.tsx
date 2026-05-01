@@ -78,9 +78,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [importedPlan, setImportedPlan] = useState<ImportedPlan | null>(null);
   const [importError, setImportError] = useState<PlanImportError | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  // PR 7c — Reopen flow. When set, the editor hydrates from the saved
-  // session's draft and Save updates that session by id rather than
-  // creating a new one.
+  // Reopen flow: when set, the editor hydrates from the saved session's
+  // draft and Save updates that session by id rather than creating new.
   const [editingSession, setEditingSession] = useState<PlanningSession | null>(
     null,
   );
@@ -103,6 +102,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const deleteSession = useDeletePlanningSessionMutation();
   const saveSession = useSavePlanningSessionMutation();
   const sessions: PlanningSession[] = sessionsQuery.data ?? [];
+
+  // The editor pulls draft + presetId off this; deriving once keeps the
+  // JSX clean (no inline IIFE / no duplicate map lookup).
+  const sessionFirstDraft = editingSession
+    ? editingSession.draft[editingSession.gameIds[0]]
+    : undefined;
 
   // Convert SavedGamesCollection to the picker's input shape.
   const pickerGames: PlanningGamePickerGame[] = useMemo(() => {
@@ -198,6 +203,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const handleNewPlan = () => {
     resetImportState();
     setEditingSession(null);
+    // Clear the list-error banner so a stale "could not delete" or
+    // "could not open" doesn't follow the user into the picker → editor
+    // flow and reappear when they navigate back.
+    setListErrorMessage(null);
     setPage('picker');
   };
 
@@ -210,10 +219,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   };
 
   const handleEditorBack = () => {
-    // Reset editingSession so a reopen→back→pick-different-games flow
-    // doesn't silently overwrite the original session on Save (Claude
-    // PR-392 Bug: the picker bypasses handleNewPlan, so editingSession
-    // would otherwise leak from the reopened session into the next plan).
+    // Reset editingSession: the reopen path bypasses the picker, so
+    // without this clear, "back from editor → pick different games →
+    // Save" would silently overwrite the original session.
     setEditingSession(null);
     setPage('picker');
   };
@@ -301,7 +309,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                     </div>
                   )}
 
-                  {/* Error banner: replaces the blank state on fetch failure (full retry UI in PR 7c). */}
+                  {/* Error banner: replaces the blank state on fetch failure. */}
                   {!importedPlan && !importError && sessionsQuery.isError && (
                     <p
                       className="text-center text-sm text-rose-300 py-4"
@@ -613,14 +621,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                 />
               )}
 
-              {page === 'editor' && (() => {
-                // Single map lookup; both initialDraft and initialPresetId
-                // pull from this entry (avoids the duplicate property
-                // access Claude flagged).
-                const sessionFirstDraft = editingSession
-                  ? editingSession.draft[editingSession.gameIds[0]]
-                  : undefined;
-                return (
+              {page === 'editor' && (
                 <PlanningEditor
                   gameIds={editorGameIds}
                   savedGames={savedGames ?? {}}
@@ -632,22 +633,21 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   // hydrate the editor; otherwise these are undefined and
                   // the editor falls back to its game-derived initial state.
                   initialDraft={sessionFirstDraft}
-                  // Lift the preset out of the saved draft so the editor
-                  // renders against the SAME formation it was authored
-                  // under — role keys differ across presets, so a
-                  // mis-matched preset drops assignments.
+                  // Preset is stored on the draft so reopen renders the
+                  // SAME role grid the user authored under — role keys
+                  // differ across presets (LM/RM vs LB/RB), so a
+                  // mismatched preset would drop assignments.
                   initialPresetId={sessionFirstDraft?.presetId}
                   initialName={editingSession?.name}
                   editingSessionId={editingSession?.id}
-                  // currentTeamId is required for Save (the entity is
-                  // team-scoped). When absent, the Save button is
-                  // hidden — user can still Apply but not persist.
+                  // currentTeamId required for Save (the entity is
+                  // team-scoped). When absent, Save button is hidden —
+                  // user can still Apply but not persist.
                   onSavePlan={
                     currentTeamId ? handleSavePlan : undefined
                   }
                 />
-                );
-              })()}
+              )}
             </div>
           </div>
 

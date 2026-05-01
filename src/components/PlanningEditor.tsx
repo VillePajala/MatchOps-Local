@@ -42,7 +42,7 @@ export interface PlanningEditorProps {
   /** Persists one game's lineup; called once per `gameIds` entry on Apply. */
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 
-  // ── Reopen / Save flow (PR 7c) ────────────────────────────────────────
+  // ── Reopen / Save flow ───────────────────────────────────────────────
   // When the editor is opened from a saved PlanningSession, the parent
   // hydrates these props so the user picks up where they left off.
   /** Pre-existing draft (from a saved session). Overrides the game-derived default. */
@@ -166,8 +166,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applyWarning, setApplyWarning] = useState<string | null>(null);
-  // Save flow (PR 7c): inline name-input form. Null = form hidden;
-  // otherwise the string is the draft name the user is typing.
+  // Save form state. Null = form hidden; otherwise the string is the
+  // draft name the user is typing.
   const [savePlanName, setSavePlanName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -493,8 +493,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setSaveError(null);
     try {
       // Stamp the current preset onto the draft so reopen restores the
-      // same role grid (Codex PR-392 P1: prevents role-key mismatch
-      // when the saved formation differs from the game-derived default).
+      // same role grid; role keys differ across presets (LM/RM vs LB/RB)
+      // and a mismatched preset would drop assignments.
       await onSavePlan({
         sessionId: editingSessionId,
         name: trimmed,
