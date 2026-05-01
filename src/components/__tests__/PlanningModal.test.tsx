@@ -9,6 +9,88 @@ import {
   PLAN_EXPORT_KIND,
 } from '@/utils/planExport';
 import type { AppState } from '@/types/game';
+import type { PlanningSession } from '@/types';
+
+// Mock the planning-session hooks so the component tree doesn't need a
+// real QueryClientProvider. Tests can override the returned data per-case
+// via the helpers below.
+const mockUsePlanningSessionsQuery = jest.fn();
+// The component calls `deleteSession.mutate(id, { onSettled })`. The mock
+// simulates a settled mutation by invoking onSettled in a microtask so
+// that `waitFor` assertions in the tests resolve correctly.
+type MutateCallback = (
+  data: boolean | undefined,
+  error: Error | null,
+  variables: string,
+) => void;
+const mockDeleteMutate = jest.fn<
+  void,
+  [string, { onSettled?: MutateCallback }?]
+>((id, opts) => {
+  // Default: success — true signals the row was deleted on the backend.
+  Promise.resolve().then(() => opts?.onSettled?.(true, null, id));
+});
+
+// Default mutation return — tests override via mockDeleteMutationReturn.
+let mockDeleteMutationReturn: {
+  mutate: typeof mockDeleteMutate;
+  isPending: boolean;
+  error: Error | null;
+} = {
+  mutate: mockDeleteMutate,
+  isPending: false,
+  error: null,
+};
+
+jest.mock('@/hooks/usePlanningSessionQueries', () => ({
+  __esModule: true,
+  usePlanningSessionsQuery: (
+    opts?: { teamId?: string; enabled?: boolean },
+  ) => mockUsePlanningSessionsQuery(opts),
+  useDeletePlanningSessionMutation: () => mockDeleteMutationReturn,
+}));
+
+const setSessions = (sessions: PlanningSession[], isLoading = false) => {
+  mockUsePlanningSessionsQuery.mockReturnValue({
+    data: sessions,
+    isLoading,
+    isError: false,
+  });
+};
+
+const buildSession = (
+  overrides: Partial<PlanningSession> = {},
+): PlanningSession => ({
+  id: 'planningSession_x',
+  teamId: 't1',
+  name: 'Plan A',
+  gameIds: ['g1', 'g2'],
+  draft: {
+    g1: { startingXI: {}, bench: [], scheduledSubs: [] },
+    g2: { startingXI: {}, bench: [], scheduledSubs: [] },
+  },
+  isActive: false,
+  createdAt: '2026-04-30T10:00:00.000Z',
+  updatedAt: '2026-04-30T10:00:00.000Z',
+  ...overrides,
+});
+
+beforeEach(() => {
+  mockDeleteMutate.mockClear();
+  mockUsePlanningSessionsQuery.mockClear();
+  mockDeleteMutationReturn = {
+    mutate: mockDeleteMutate,
+    isPending: false,
+    error: null,
+  };
+  // Default: empty list, no error. Tests opt in to populated / error
+  // cases via setSessions / direct mockReturnValue.
+  mockUsePlanningSessionsQuery.mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+  });
+});
 
 // Picker reads only a handful of fields off each saved game; this helper
 // builds the minimal shape and casts to AppState so individual tests
@@ -406,5 +488,238 @@ describe('PlanningModal', () => {
         /No saved planning sessions yet|Ei tallennettuja suunnitelmia/i,
       ),
     ).toBeInTheDocument();
+  });
+
+  describe('saved sessions list', () => {
+    it('renders saved sessions on the landing screen', () => {
+      setSessions([
+        buildSession({ id: 's1', name: 'Default plan' }),
+        buildSession({
+          id: 's2',
+          name: 'Jasper-sick contingency',
+          isActive: true,
+        }),
+      ]);
+      renderModal();
+
+      expect(screen.getByTestId('planning-modal-session-list')).toBeInTheDocument();
+      expect(screen.getByText('Default plan')).toBeInTheDocument();
+      expect(screen.getByText('Jasper-sick contingency')).toBeInTheDocument();
+    });
+
+    it('shows the active badge only for sessions with isActive=true', () => {
+      setSessions([
+        buildSession({ id: 's1', name: 'Inactive plan', isActive: false }),
+        buildSession({ id: 's2', name: 'Active plan', isActive: true }),
+      ]);
+      renderModal();
+
+      const badges = screen.getAllByText(/^Active$|^Aktiivinen$/i);
+      expect(badges).toHaveLength(1);
+    });
+
+    it('shows the empty-state when the query returns no sessions', () => {
+      setSessions([]);
+      renderModal();
+      expect(
+        screen.getByText(
+          /No saved planning sessions yet|Ei tallennettuja suunnitelmia/i,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows a loading message while sessions are loading', () => {
+      mockUsePlanningSessionsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      });
+      renderModal();
+      expect(
+        screen.getByText(
+          /Loading saved plans|Ladataan tallennettuja suunnitelmia/i,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('shows an error banner — not empty-state — when the sessions query failed', () => {
+      // isError + empty data could naively trigger the "No saved planning
+      // sessions yet" copy, which would be misleading on a fetch failure.
+      // The user should see a clear error message; full retry UI lands in
+      // PR 7c via sessionsQuery.error.
+      mockUsePlanningSessionsQuery.mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: true,
+      });
+      renderModal();
+      expect(
+        screen.queryByText(
+          /No saved planning sessions yet|Ei tallennettuja suunnitelmia/i,
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-modal-sessions-error'),
+      ).toBeInTheDocument();
+    });
+
+    it('hides the session list when the query has errored, even if stale data is present', () => {
+      // React Query keeps the last successful `data` while a refetch
+      // fails. Without the !isError guard, both the list and the error
+      // banner render at the same time and the user sees a list that
+      // looks fresh while the banner says "could not load."
+      mockUsePlanningSessionsQuery.mockReturnValue({
+        data: [buildSession({ id: 's1', name: 'Stale' })],
+        isLoading: false,
+        isError: true,
+      });
+      renderModal();
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-modal-sessions-error'),
+      ).toBeInTheDocument();
+    });
+
+    it('shows only the loading indicator when isLoading=true even with stale data', () => {
+      // Symmetric guard for the loading + stale-data case: React Query
+      // can hand back data: [last successful] while isLoading is true on
+      // a remount. The list block must not render alongside the loader.
+      mockUsePlanningSessionsQuery.mockReturnValue({
+        data: [buildSession({ id: 's1', name: 'Stale' })],
+        isLoading: true,
+        isError: false,
+      });
+      renderModal();
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /Loading saved plans|Ladataan tallennettuja suunnitelmia/i,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('requires a confirm click before calling delete', async () => {
+      setSessions([buildSession({ id: 's1', name: 'To delete' })]);
+      renderModal();
+
+      // First click on the trash icon flips the row into the confirm state.
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      expect(mockDeleteMutate).not.toHaveBeenCalled();
+
+      const confirm = await screen.findByTestId(
+        'planning-session-delete-confirm-s1',
+      );
+      fireEvent.click(confirm);
+
+      await waitFor(() => {
+        // mutate(id, { onSettled }) — second arg is the options object the
+        // component passes so the row's pendingDeleteId resets either way.
+        expect(mockDeleteMutate).toHaveBeenCalledWith(
+          's1',
+          expect.objectContaining({ onSettled: expect.any(Function) }),
+        );
+      });
+    });
+
+    it('does not call delete when the user cancels the confirm', async () => {
+      setSessions([buildSession({ id: 's1', name: 'Spared' })]);
+      renderModal();
+
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      const cancel = await screen.findByRole('button', {
+        name: /^Cancel$|^Peruuta$/i,
+      });
+      fireEvent.click(cancel);
+
+      // Confirm button gone after cancel; the trash icon is back.
+      expect(
+        screen.queryByTestId('planning-session-delete-confirm-s1'),
+      ).not.toBeInTheDocument();
+      expect(mockDeleteMutate).not.toHaveBeenCalled();
+    });
+
+    it('disables the confirm button while the delete mutation is pending', async () => {
+      // Block double-submit during a slow backend round-trip — without
+      // disabled={isPending}, a frustrated tap could fire the mutation
+      // multiple times.
+      setSessions([buildSession({ id: 's1', name: 'Slow delete' })]);
+      mockDeleteMutationReturn = {
+        mutate: mockDeleteMutate,
+        isPending: true,
+        error: null,
+      };
+      renderModal();
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      const confirm = await screen.findByTestId(
+        'planning-session-delete-confirm-s1',
+      );
+      expect(confirm).toBeDisabled();
+    });
+
+    it('clears the pending-delete state even when the mutation rejects', async () => {
+      setSessions([buildSession({ id: 's1', name: 'Will fail' })]);
+      // Simulate a backend failure: React Query catches the rejection
+      // internally and calls `onSettled` with the error. The component must
+      // clear pendingDeleteId from onSettled so the row recovers without
+      // leaving the user staring at "Confirm delete?".
+      mockDeleteMutate.mockImplementationOnce((id, opts) => {
+        Promise.resolve().then(() =>
+          opts?.onSettled?.(undefined, new Error('storage offline'), id),
+        );
+      });
+      renderModal();
+
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      const confirm = await screen.findByTestId(
+        'planning-session-delete-confirm-s1',
+      );
+      fireEvent.click(confirm);
+
+      await waitFor(() => {
+        expect(mockDeleteMutate).toHaveBeenCalledWith(
+          's1',
+          expect.objectContaining({ onSettled: expect.any(Function) }),
+        );
+      });
+      // Row recovers — confirm button gone, trash icon back.
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('planning-session-delete-confirm-s1'),
+        ).not.toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId('planning-session-delete-s1'),
+      ).toBeInTheDocument();
+    });
+
+    it('passes currentTeamId to the sessions query so the list is team-scoped', () => {
+      setSessions([]);
+      renderModal({ currentTeamId: 'team_42' });
+
+      // The component calls usePlanningSessionsQuery({ teamId: 'team_42', enabled: true })
+      // — verify the teamId arrived intact.
+      expect(mockUsePlanningSessionsQuery).toHaveBeenCalledWith(
+        expect.objectContaining({ teamId: 'team_42' }),
+      );
+    });
+
+    it('disables the sessions query while the modal is closed', () => {
+      setSessions([]);
+      renderModal({ isOpen: false });
+
+      // React's Rules of Hooks force the hook to run on every render —
+      // even when isOpen=false (the early-return JSX comes after hooks).
+      // So we should always see a call, and it should pass enabled=false.
+      expect(mockUsePlanningSessionsQuery).toHaveBeenCalledWith(
+        expect.objectContaining({ enabled: false }),
+      );
+    });
   });
 });

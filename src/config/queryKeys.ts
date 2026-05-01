@@ -22,6 +22,11 @@ export const queryKeys = {
   // Warm-up plan
   warmupPlan: ['warmupPlan'] as const,
 
+  // Planning sessions (tournament-planner Phase 3)
+  planningSessions: ['planningSessions'] as const,
+  planningSessionsByTeam: (teamId: string | undefined) =>
+    ['planningSessions', 'team', teamId ?? '_all'] as const,
+
   // Example for a detail query if needed later:
   // gameById: (gameId: string) => ['games', 'detail', gameId] as const,
-}; 
+};

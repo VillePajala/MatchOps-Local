@@ -1676,7 +1676,7 @@
   "planningModal": {
     "title": "Planning",
     "emptyTitle": "No saved planning sessions yet.",
-    "emptyHint": "Import a plan exported from the standalone planner to get started. Saved sessions land in a later phase.",
+    "emptyHint": "Start a new plan from your saved games, or import a plan exported from the standalone planner.",
     "newPlanButton": "New plan",
     "importButton": "Import plan from JSON",
     "importSuccessTitle": "Plan imported",
@@ -1689,7 +1689,16 @@
     "errorPath": "at",
     "dismissImport": "Dismiss",
     "readError": "Failed to read file.",
-    "fileTooLarge": "File is too large (over 1 MB). Plans should be a few KB; please check the file."
+    "fileTooLarge": "File is too large (over 1 MB). Plans should be a few KB; please check the file.",
+    "sessionsLoading": "Loading saved plans…",
+    "savedSessionsHeading": "Saved plans",
+    "activeBadge": "Active",
+    "gameCountLabel_one": "{{count}} game",
+    "gameCountLabel_other": "{{count}} games",
+    "updatedAtLabel": "updated {{date}}",
+    "deleteSession": "Delete plan",
+    "deleteConfirm": "Confirm delete?",
+    "sessionsLoadError": "Could not load saved plans. Please try again."
   },
   "planningGamePicker": {
     "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",
