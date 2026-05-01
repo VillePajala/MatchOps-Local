@@ -599,7 +599,7 @@ describe('PlanningModal', () => {
       ).toBeInTheDocument();
     });
 
-    it('handleNewPlan clears the listErrorMessage so a stale banner does not follow into picker→back→list', async () => {
+    it('handleNewPlan clears listErrorMessage so the stale banner does not reappear after picker→back→list', async () => {
       // Set up a failed delete so the error banner is visible on the list.
       setSessions([buildSession({ id: 's1', name: 'Will fail' })]);
       mockDeleteMutate.mockImplementationOnce((id, opts) => {
@@ -612,32 +612,31 @@ describe('PlanningModal', () => {
       fireEvent.click(
         await screen.findByTestId('planning-session-delete-confirm-s1'),
       );
-      // Banner present.
       await waitFor(() =>
         expect(
           screen.getByTestId('planning-modal-list-error'),
         ).toBeInTheDocument(),
       );
 
-      // Click "New plan" — this navigates to the picker and should also
-      // clear the stale list-error so it doesn't reappear after returning.
+      // Navigate: list → "New plan" (picker) → Back (list).
       fireEvent.click(
         screen.getByRole('button', {
           name: /New plan|Uusi suunnitelma/i,
         }),
       );
-
-      // Picker is now mounted (list is gone); the Open buttons are absent.
+      // On picker now; banner element is absent because the whole list
+      // block unmounts.
       expect(
-        screen.queryByTestId('planning-modal-session-list'),
-      ).not.toBeInTheDocument();
-
-      // We can't directly observe listErrorMessage from outside, but the
-      // contract is that handleNewPlan clears it. The simplest assertion
-      // is that the banner element (which lives inside the list block)
-      // is gone — which it is, because the list block doesn't render on
-      // page='picker'. The behavior is verified upstream by the state
-      // reset call; this test locks in the navigation transition.
+        screen.getByTestId('planning-game-picker'),
+      ).toBeInTheDocument();
+      // Press Back from the picker — returns to the list. The clear
+      // inside handleNewPlan is what prevents the stale banner from
+      // reappearing here. Without it, this assertion would fail.
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /^Back$|^Takaisin$/i,
+        }),
+      );
       expect(
         screen.queryByTestId('planning-modal-list-error'),
       ).not.toBeInTheDocument();
@@ -666,8 +665,35 @@ describe('PlanningModal', () => {
         screen.queryByTestId('planning-modal-session-list'),
       ).not.toBeInTheDocument();
       // Editor's Save button shows "Update plan" because editingSessionId is set.
+      // getByTestId fails loudly if the button is absent (better than
+      // getAllByText[0] which would TypeError on a missing element).
+      expect(screen.getByTestId('planning-editor-save')).toHaveTextContent(
+        /Update plan|Päivitä suunnitelma/i,
+      );
+    });
+
+    it('shows the corrupt-session banner when gameIds is empty (not just empty draft map)', () => {
+      // Other corrupt path: gameIds is [] entirely. Without the
+      // length>0 guard, session.draft[undefined] would silently return
+      // undefined and the user would see a blank editor instead of
+      // the explicit error.
+      const corrupt = buildSession({
+        id: 's1',
+        name: 'Empty gameIds',
+        gameIds: [],
+        draft: {},
+      });
+      setSessions([corrupt]);
+      renderModal();
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
       expect(
-        screen.getAllByText(/Update plan|Päivitä suunnitelma/i)[0],
+        screen.getByTestId('planning-modal-list-error'),
+      ).toHaveTextContent(
+        /Could not open this plan|Tämän suunnitelman avaaminen epäonnistui/i,
+      );
+      // Editor did not mount — saved-session list still visible.
+      expect(
+        screen.getByTestId('planning-modal-session-list'),
       ).toBeInTheDocument();
     });
 

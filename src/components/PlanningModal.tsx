@@ -172,10 +172,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     draft: PlanDraft;
     gameIds: string[];
   }) => {
-    // currentTeamId is gated upstream (onSavePlan is only set when it
-    // exists), but the cast lets TypeScript narrow it for the .mutateAsync
-    // call without leaving an unreachable runtime guard.
-    if (!currentTeamId) return;
+    // currentTeamId is gated upstream (onSavePlan is only wired when
+    // it exists). If the gate is bypassed somehow (rapid sign-out
+    // between click and async settle), throwing surfaces an error to
+    // the editor's existing catch — silently returning would let the
+    // form close as if the save succeeded when nothing was written.
+    if (!currentTeamId) {
+      throw new Error('Cannot save planning session without a team scope');
+    }
     // The editor produces ONE PlanDraft applied to all picked games; the
     // session entity stores draft per gameId. Deep-copy each entry so
     // future per-game divergence won't accidentally mutate shared

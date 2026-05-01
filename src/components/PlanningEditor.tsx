@@ -478,6 +478,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   };
 
   const handleConfirmSave = async () => {
+    // Form-render gate ({onSavePlan && savePlanName !== null && ...})
+    // already guarantees both are present when this fires; this remains
+    // for the type narrowing.
     if (!onSavePlan || savePlanName === null) return;
     const trimmed = savePlanName.trim();
     if (!trimmed) {
