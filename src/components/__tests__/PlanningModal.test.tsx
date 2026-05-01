@@ -50,6 +50,16 @@ const mockSaveMutateAsync = jest.fn(async (vars: Partial<PlanningSession>) => ({
   id: vars.id ?? 'planningSession_new',
 }));
 
+// Active-toggle mutation mock (PR 7d).
+type SetActiveCallbacks = {
+  onError?: (err: Error) => void;
+  onSettled?: () => void;
+};
+const mockSetActiveMutate = jest.fn<
+  void,
+  [unknown, SetActiveCallbacks?]
+>();
+
 jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   __esModule: true,
   usePlanningSessionsQuery: (
@@ -58,6 +68,11 @@ jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   useDeletePlanningSessionMutation: () => mockDeleteMutationReturn,
   useSavePlanningSessionMutation: () => ({
     mutateAsync: mockSaveMutateAsync,
+    isPending: false,
+    error: null,
+  }),
+  useSetActiveSessionMutation: () => ({
+    mutate: mockSetActiveMutate,
     isPending: false,
     error: null,
   }),
@@ -91,6 +106,7 @@ const buildSession = (
 beforeEach(() => {
   mockDeleteMutate.mockClear();
   mockSaveMutateAsync.mockClear();
+  mockSetActiveMutate.mockClear();
   mockUsePlanningSessionsQuery.mockClear();
   mockDeleteMutationReturn = {
     mutate: mockDeleteMutate,
@@ -837,6 +853,142 @@ describe('PlanningModal', () => {
       expect(draft.g1).not.toBe(draft.g2);
       expect(draft.g1.startingXI).not.toBe(draft.g2.startingXI);
       expect(draft.g1.bench).not.toBe(draft.g2.bench);
+    });
+
+    // ── PR 7d: row-level actions ────────────────────────────────────
+    describe('Rename / Duplicate / Active-toggle (PR 7d)', () => {
+      it('Rename swaps the row to an inline form and saves with the new name', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: 'Renamed' } });
+        await act(async () => {
+          fireEvent.submit(
+            screen.getByTestId('planning-session-rename-form-s1'),
+          );
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        const payload = mockSaveMutateAsync.mock.calls[0][0];
+        expect(payload).toMatchObject({
+          id: 's1',
+          name: 'Renamed',
+        });
+      });
+
+      it('Rename rejects empty input with an inline error and does not call mutate', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: '   ' } });
+        fireEvent.submit(
+          screen.getByTestId('planning-session-rename-form-s1'),
+        );
+
+        expect(mockSaveMutateAsync).not.toHaveBeenCalled();
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toHaveTextContent(
+          /Plan name is required|Suunnitelman nimi vaaditaan/i,
+        );
+      });
+
+      it('Rename Cancel discards the edit and exits rename mode', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: 'Discarded' } });
+        fireEvent.click(
+          screen.getByRole('button', { name: /^Cancel$|^Peruuta$/i }),
+        );
+        expect(
+          screen.queryByTestId('planning-session-rename-form-s1'),
+        ).not.toBeInTheDocument();
+        expect(mockSaveMutateAsync).not.toHaveBeenCalled();
+      });
+
+      it('Duplicate creates a new session via mutateAsync (no id, "(copy)" suffix, isActive false)', async () => {
+        setSessions([
+          buildSession({
+            id: 's1',
+            name: 'Default',
+            isActive: true,
+            appliedAt: '2026-04-25T10:00:00.000Z',
+          }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-session-duplicate-s1'));
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        const payload = mockSaveMutateAsync.mock.calls[0][0];
+        expect(payload.id).toBeUndefined();
+        expect(payload.name).toMatch(/Default \(copy\)|Default \(kopio\)/i);
+        expect(payload.isActive).toBe(false);
+        expect(payload.appliedAt).toBeUndefined();
+      });
+
+      it('Active-toggle on an inactive session calls setActiveSession with the id', () => {
+        setSessions([
+          buildSession({ id: 's1', name: 'A', isActive: false }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(
+          screen.getByTestId('planning-session-active-toggle-s1'),
+        );
+        expect(mockSetActiveMutate).toHaveBeenCalledTimes(1);
+        const variables = mockSetActiveMutate.mock.calls[0][0] as {
+          sessionId: string | null;
+          teamId: string;
+          gameIds: string[];
+        };
+        expect(variables.sessionId).toBe('s1');
+        expect(variables.teamId).toBe('t1');
+      });
+
+      it('Active-toggle on an active session calls setActiveSession with null (deactivate)', () => {
+        setSessions([
+          buildSession({ id: 's1', name: 'A', isActive: true }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(
+          screen.getByTestId('planning-session-active-toggle-s1'),
+        );
+        const variables = mockSetActiveMutate.mock.calls[0][0] as {
+          sessionId: string | null;
+        };
+        expect(variables.sessionId).toBeNull();
+      });
+
+      it('Active-toggle failure surfaces an inline error', () => {
+        setSessions([buildSession({ id: 's1', isActive: false })]);
+        // Override default mutate to invoke onError.
+        mockSetActiveMutate.mockImplementationOnce((_vars, opts) => {
+          opts?.onError?.(new Error('storage offline'));
+        });
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(
+          screen.getByTestId('planning-session-active-toggle-s1'),
+        );
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toHaveTextContent(
+          /Could not change the active plan|Aktiivisen suunnitelman vaihto epäonnistui/i,
+        );
+      });
     });
 
     it('shows the corrupt-session banner when gameIds is empty (not just empty draft map)', () => {

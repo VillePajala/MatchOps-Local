@@ -1702,7 +1702,17 @@
     "openSession": "Open",
     "openSessionAriaLabel": "Open {{name}}",
     "deleteFailed": "Could not delete the plan. Please try again.",
-    "openSessionFailed": "Could not open this plan. Its data may be corrupt."
+    "openSessionFailed": "Could not open this plan. Its data may be corrupt.",
+    "renameAriaLabel": "Rename {{name}}",
+    "renameInputAriaLabel": "New name",
+    "renameNameRequired": "Plan name is required.",
+    "renameFailed": "Could not rename the plan. Please try again.",
+    "duplicateAriaLabel": "Duplicate {{name}}",
+    "duplicateNameSuffix": "{{name}} (copy)",
+    "duplicateFailed": "Could not duplicate the plan. Please try again.",
+    "activateAriaLabel": "Activate {{name}}",
+    "deactivateAriaLabel": "Deactivate {{name}}",
+    "activeToggleFailed": "Could not change the active plan. Please try again."
   },
   "planningGamePicker": {
     "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",
