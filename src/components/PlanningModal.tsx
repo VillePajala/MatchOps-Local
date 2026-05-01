@@ -140,8 +140,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // the first gameId's draft. PR 7d may relax this if per-game divergence
   // becomes a real product need.
   const handleOpenSession = (session: PlanningSession) => {
+    // Empty gameIds is corrupt-session territory — treat it the same as
+    // missing draft so the user gets explicit feedback rather than an
+    // empty editor.
     const firstDraft: PlanDraft | undefined =
-      session.draft[session.gameIds[0]];
+      session.gameIds.length > 0
+        ? session.draft[session.gameIds[0]]
+        : undefined;
     if (!firstDraft) {
       // Surface the failure rather than silently no-op'ing — a missing
       // draft entry indicates a corrupt session that the user should know
@@ -173,9 +178,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     if (!currentTeamId) return;
     // The editor produces ONE PlanDraft applied to all picked games; the
     // session entity stores draft per gameId. Deep-copy each entry so
-    // PR 7d's per-game divergence won't accidentally mutate shared
-    // references — startingXI (object), bench (array), and scheduledSubs
-    // (array of objects) all need their own copies.
+    // future per-game divergence won't accidentally mutate shared
+    // references. Shallow-copy at each layer is sufficient because
+    // DraftScheduledSub fields are all primitives — if a nested object
+    // ever gets added, this needs to recurse one level deeper.
     const replicated: Record<string, PlanDraft> = {};
     for (const gid of data.gameIds) {
       replicated[gid] = {
