@@ -8,7 +8,7 @@ import {
   PLAN_FORMAT_VERSION,
   PLAN_EXPORT_KIND,
 } from '@/utils/planExport';
-import type { AppState } from '@/types/game';
+import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { PlanningSession } from '@/types';
 
 // Mock the planning-session hooks so the component tree doesn't need a
@@ -685,7 +685,7 @@ describe('PlanningModal', () => {
         createdAt: '2026-04-20T10:00:00.000Z',
       });
       setSessions([session]);
-      const savedGames = {
+      const savedGames: SavedGamesCollection = {
         g1: asSavedGame({
           teamId: 't1',
           teamName: 'Pepo U10',
@@ -694,7 +694,7 @@ describe('PlanningModal', () => {
           numberOfPeriods: 2,
           periodDurationMinutes: 12,
         }),
-      } as never;
+      };
       renderModal({ currentTeamId: 't1', savedGames });
 
       // Reopen → click Save (form opens, name pre-filled) → confirm.

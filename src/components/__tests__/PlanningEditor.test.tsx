@@ -1391,6 +1391,23 @@ describe('PlanningEditor', () => {
       ).toBeInTheDocument();
     });
 
+    it('Enter key in the name input submits the save form', async () => {
+      const onSavePlan = jest.fn().mockResolvedValue(undefined);
+      renderEditor({ onSavePlan });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      const input = screen.getByTestId('planning-editor-save-name');
+      fireEvent.change(input, { target: { value: 'Keyboard plan' } });
+
+      // <form onSubmit> fires when Enter is pressed in the input;
+      // wrapping in submit on the form is the a11y-correct pattern.
+      const form = screen.getByTestId('planning-editor-save-form');
+      await act(async () => {
+        fireEvent.submit(form);
+      });
+      expect(onSavePlan).toHaveBeenCalledTimes(1);
+      expect(onSavePlan.mock.calls[0][0].name).toBe('Keyboard plan');
+    });
+
     it('Save button label says "Update plan" when editingSessionId is set', () => {
       renderEditor({
         onSavePlan: jest.fn(),

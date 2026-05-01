@@ -474,7 +474,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
   const handleStartSave = () => {
     setSaveError(null);
-    setSavePlanName(initialName ?? '');
+    // Trim so a "  " initialName doesn't open the form pre-filled with
+    // whitespace the user has to manually clear before typing.
+    setSavePlanName((initialName ?? '').trim());
   };
 
   const handleCancelSave = () => {

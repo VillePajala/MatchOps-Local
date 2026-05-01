@@ -134,12 +134,19 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage('list');
   };
 
-  const handleClose = () => {
-    resetImportState();
+  // Shared reset for every path that returns the modal to the list page.
+  // Extracted so adding new state to the modal can't drift between
+  // handleClose / handleEditorApplied / similar callers.
+  const resetEditorState = () => {
     setEditorGameIds([]);
     setPendingDeleteId(null);
     setEditingSession(null);
     setListErrorMessage(null);
+  };
+
+  const handleClose = () => {
+    resetImportState();
+    resetEditorState();
     setPage('list');
     onClose();
   };
@@ -160,7 +167,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     if (!firstDraft) {
       // Surface the failure rather than silently no-op'ing — a missing
       // draft entry indicates a corrupt session that the user should know
-      // about so they can delete it and start over.
+      // about so they can delete it and start over. Also clear any
+      // editingSession from a prior valid Open so stale state doesn't
+      // linger behind the error banner.
+      setEditingSession(null);
       setListErrorMessage(
         t(
           'planningModal.openSessionFailed',
@@ -243,18 +253,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // without this clear, "back from editor → pick different games →
     // Save" would silently overwrite the original session.
     setEditingSession(null);
+    // TODO(PR 7d): Reopen path bypasses the picker; Back should return
+    // to the list when editorEnteredFrom === 'list', not always to
+    // the picker. Tracked alongside Rename/Duplicate routing work.
     setPage('picker');
   };
 
   const handleEditorApplied = () => {
-    setEditorGameIds([]);
-    setPendingDeleteId(null);
-    setEditingSession(null);
     // The modal stays mounted across opens (`isOpen={false}` early-returns
-    // null but doesn't unmount), so state is NOT auto-reset by React's
-    // unmount lifecycle — explicit clears are needed to prevent stale
-    // banners from following the user into the next session.
-    setListErrorMessage(null);
+    // null but doesn't unmount), so explicit resets are required to
+    // prevent stale banners / editingSession from leaking into the next
+    // open. Shared with handleClose via resetEditorState.
+    resetEditorState();
     setPage('list');
     onClose();
   };
