@@ -964,6 +964,61 @@ describe('PlanningModal', () => {
         ).not.toBeInTheDocument();
       });
 
+      it('handleOpenSession clears in-progress rename on a different row', () => {
+        // Companion to the Open-clears-pendingDeleteId test from PR 7c
+        // round 8. Without this clear, the user could start renaming A,
+        // click Open on B, then press Back from the editor and find
+        // row A still showing the inline rename form.
+        const sessionA = buildSession({
+          id: 'a',
+          name: 'Plan A',
+          gameIds: ['g1'],
+          draft: {
+            g1: { startingXI: {}, bench: [], scheduledSubs: [] },
+          },
+        });
+        const sessionB = buildSession({
+          id: 'b',
+          name: 'Plan B',
+          gameIds: ['g1'],
+          draft: {
+            g1: { startingXI: { GK: 'p1' }, bench: [], scheduledSubs: [] },
+          },
+        });
+        setSessions([sessionA, sessionB]);
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 't1',
+            teamName: 'Pepo U10',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 12,
+          }),
+        };
+        renderModal({ currentTeamId: 't1', savedGames });
+
+        // Start renaming A.
+        fireEvent.click(screen.getByTestId('planning-session-rename-a'));
+        expect(
+          screen.getByTestId('planning-session-rename-form-a'),
+        ).toBeInTheDocument();
+
+        // Open B → editor mounts, list unmounts.
+        fireEvent.click(screen.getByTestId('planning-session-open-b'));
+        expect(
+          screen.queryByTestId('planning-modal-session-list'),
+        ).not.toBeInTheDocument();
+
+        // Back to the list. A's rename form must NOT be there.
+        fireEvent.click(
+          screen.getByRole('button', { name: /^Back$|^Takaisin$/i }),
+        );
+        expect(
+          screen.queryByTestId('planning-session-rename-form-a'),
+        ).not.toBeInTheDocument();
+      });
+
       it('Pressing Escape in the rename input cancels (a11y keyboard hatch)', async () => {
         setSessions([buildSession({ id: 's1', name: 'Original' })]);
         renderModal({ currentTeamId: 't1' });

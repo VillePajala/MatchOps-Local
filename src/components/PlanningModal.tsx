@@ -332,7 +332,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       await saveSession.mutateAsync({
         // id omitted → DataStore generates a new one. Clone everything
         // else but reset isActive (only one active plan per scope) and
-        // appliedAt (the duplicate hasn't been applied yet).
+        // appliedAt (the duplicate hasn't been applied yet). createdAt
+        // is also omitted on purpose so the DataStore stamps a fresh
+        // timestamp for the new copy rather than carrying the original's.
         teamId: session.teamId,
         name: t(
           'planningModal.duplicateNameSuffix',
