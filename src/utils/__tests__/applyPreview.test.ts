@@ -320,6 +320,82 @@ describe('computeApplyDiff', () => {
     expect(diff.lineupRemoved).toEqual([{ playerId: 'p1', role: 'GK' }]);
   });
 
+  it('fired/skipped saved subs are excluded from the diff (historical events)', () => {
+    // A saved sub with status='fired' has already played out during
+    // live play and can't be undone by Apply. The diff should ignore it
+    // entirely — neither modify nor remove — so the preview UI doesn't
+    // dangle a "removed" entry the user can't actually reverse.
+    const game: AppState = {
+      teamId: 't1',
+      teamName: 'Pepo',
+      opponentName: 'Opp',
+      gameDate: '2026-04-30',
+      numberOfPeriods: 2,
+      periodDurationMinutes: 12,
+      playersOnField: [{ id: 'p1', name: 'GK', relX: 0.5, relY: 0.95 }],
+      selectedPlayerIds: ['p1'],
+      availablePlayers: [],
+      scheduledSubs: [
+        sub({ id: 'fired_sub', status: 'fired' }),
+        sub({ id: 'skipped_sub', status: 'skipped' }),
+        sub({ id: 'pending_sub', status: 'pending' }),
+      ],
+    } as unknown as AppState;
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p1' },
+      bench: [],
+      // Draft only contains the pending sub. fired/skipped saved subs
+      // would otherwise surface as `removed` if not filtered.
+      scheduledSubs: [
+        {
+          id: 'pending_sub',
+          timeSeconds: 600,
+          inPlayer: 'p6',
+          positionRole: 'LB',
+        },
+      ],
+    };
+    const diff = computeApplyDiff('g1', game, draft, preset5v5);
+    expect(diff.subsRemoved).toEqual([]);
+    expect(diff.subsModified).toEqual([]);
+    expect(diff.subsAdded).toEqual([]);
+    expect(diff.isEmpty).toBe(true);
+  });
+
+  it('two distinct players at the same coords: second loses role, surfaces as off-formation removal', () => {
+    // Defensive: corrupt data with two different players at the same
+    // role coords (e.g., both at GK). The occupiedRoles guard records
+    // the first one with the role; the second falls through to
+    // onFieldPlayerIds without a role. If neither is in the draft,
+    // both surface in lineupRemoved — first with role, second with
+    // role=undefined (off-formation).
+    const game: AppState = {
+      teamId: 't1',
+      teamName: 'Pepo',
+      opponentName: 'Opp',
+      gameDate: '2026-04-30',
+      numberOfPeriods: 2,
+      periodDurationMinutes: 12,
+      playersOnField: [
+        { id: 'p1', name: 'First', relX: 0.5, relY: 0.95 },
+        { id: 'p2', name: 'Second', relX: 0.5, relY: 0.95 }, // same coords
+      ],
+      selectedPlayerIds: ['p1', 'p2'],
+      availablePlayers: [],
+      scheduledSubs: [],
+    } as unknown as AppState;
+    const draft: PlanDraft = {
+      startingXI: {},
+      bench: ['p1', 'p2'],
+      scheduledSubs: [],
+    };
+    const diff = computeApplyDiff('g1', game, draft, preset5v5);
+    expect(diff.lineupRemoved).toEqual([
+      { playerId: 'p1', role: 'GK' },
+      { playerId: 'p2', role: undefined },
+    ]);
+  });
+
   it('countDiffChanges sums every category', () => {
     const diff: ApplyDiff = {
       gameId: 'g1',

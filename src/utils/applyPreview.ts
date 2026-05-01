@@ -57,9 +57,15 @@ export interface SubDiffEntry {
   outPlayer?: PlayerId;
 }
 
+/**
+ * The `after` half of a sub modification comes from a DraftScheduledSub,
+ * which never carries `outPlayer` (it's recomputed lazily at apply time).
+ * Encoding that asymmetry in the type prevents the preview UI in PR 8b
+ * from rendering an undefined outPlayer as if it were a real value.
+ */
 export interface SubModifyChange {
   before: SubDiffEntry;
-  after: SubDiffEntry;
+  after: Omit<SubDiffEntry, 'outPlayer'>;
 }
 
 export interface ApplyDiff {
@@ -174,11 +180,18 @@ export function computeApplyDiff(
     }
   }
 
-  // Scheduled-sub diff by id.
+  // Scheduled-sub diff by id. Filter saved subs to `pending` only —
+  // `fired`/`skipped` are historical events that already played out
+  // during the live game and can't be undone by Apply. Including them
+  // would cause the preview to surface "removed" entries the user
+  // can't actually act on (and that Apply's underlying transform
+  // wouldn't reverse).
   const draftSubsById = new Map<string, DraftScheduledSub>();
   for (const s of draft.scheduledSubs) draftSubsById.set(s.id, s);
   const savedSubsById = new Map<string, ScheduledSub>();
-  for (const s of game.scheduledSubs ?? []) savedSubsById.set(s.id, s);
+  for (const s of game.scheduledSubs ?? []) {
+    if (s.status === 'pending') savedSubsById.set(s.id, s);
+  }
 
   const subsAdded: SubDiffEntry[] = [];
   const subsModified: SubModifyChange[] = [];
