@@ -286,6 +286,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       );
       return;
     }
+    // Clear any prior error from a previous failed attempt — without
+    // this, a "name required" warning would persist past a successful
+    // retry and incorrectly signal failure.
+    setListErrorMessage(null);
     try {
       await saveSession.mutateAsync({
         id: session.id,

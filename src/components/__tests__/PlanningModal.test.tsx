@@ -901,6 +901,42 @@ describe('PlanningModal', () => {
         );
       });
 
+      it('Rename clears a stale validation banner on a successful retry', async () => {
+        // First submit fails client-side (empty name) → listErrorMessage
+        // is set. Second submit with a real name should both succeed
+        // AND clear the banner; otherwise the user sees an error
+        // message that no longer applies.
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: '   ' } });
+        fireEvent.submit(
+          screen.getByTestId('planning-session-rename-form-s1'),
+        );
+        // Banner up.
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toBeInTheDocument();
+
+        // Retry with a valid name.
+        fireEvent.change(input, { target: { value: 'Renamed' } });
+        await act(async () => {
+          fireEvent.submit(
+            screen.getByTestId('planning-session-rename-form-s1'),
+          );
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        // Stale banner should be gone after the successful save.
+        expect(
+          screen.queryByTestId('planning-modal-list-error'),
+        ).not.toBeInTheDocument();
+      });
+
       it('Rename Cancel discards the edit and exits rename mode', async () => {
         setSessions([buildSession({ id: 's1', name: 'Original' })]);
         renderModal({ currentTeamId: 't1' });
