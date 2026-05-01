@@ -76,7 +76,12 @@ export interface ApplyDiff {
   lineupAdded: LineupAddChange[];
   lineupRemoved: LineupRemoveChange[];
   lineupMoved: LineupMoveChange[];
-  subsAdded: SubDiffEntry[];
+  /**
+   * Drafts never carry outPlayer (computed lazily at apply time), so
+   * the type drops it explicitly — same modeling as
+   * SubModifyChange.after.
+   */
+  subsAdded: Omit<SubDiffEntry, 'outPlayer'>[];
   subsRemoved: SubDiffEntry[];
   subsModified: SubModifyChange[];
 }
@@ -199,7 +204,7 @@ export function computeApplyDiff(
     if (s.status === 'pending') savedSubsById.set(s.id, s);
   }
 
-  const subsAdded: SubDiffEntry[] = [];
+  const subsAdded: Omit<SubDiffEntry, 'outPlayer'>[] = [];
   const subsModified: SubModifyChange[] = [];
   const subsRemoved: SubDiffEntry[] = [];
 
@@ -221,24 +226,19 @@ export function computeApplyDiff(
     }
   }
 
-  const isEmpty =
-    lineupAdded.length === 0 &&
-    lineupRemoved.length === 0 &&
-    lineupMoved.length === 0 &&
-    subsAdded.length === 0 &&
-    subsRemoved.length === 0 &&
-    subsModified.length === 0;
-
-  return {
+  // Derived via countDiffChanges (defined below) so a future category
+  // added to ApplyDiff doesn't silently leave isEmpty stale.
+  const partial = {
     gameId,
-    isEmpty,
     lineupAdded,
     lineupRemoved,
     lineupMoved,
     subsAdded,
     subsRemoved,
     subsModified,
+    isEmpty: false,
   };
+  return { ...partial, isEmpty: countDiffChanges(partial) === 0 };
 }
 
 /**
