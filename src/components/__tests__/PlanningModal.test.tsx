@@ -977,6 +977,49 @@ describe('PlanningModal', () => {
         expect(payload.appliedAt).toBeUndefined();
       });
 
+      it('Rename failure surfaces an inline error and keeps rename mode open', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        mockSaveMutateAsync.mockRejectedValueOnce(new Error('storage offline'));
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        fireEvent.change(
+          screen.getByTestId('planning-session-rename-input-s1'),
+          { target: { value: 'Renamed' } },
+        );
+        await act(async () => {
+          fireEvent.submit(
+            screen.getByTestId('planning-session-rename-form-s1'),
+          );
+        });
+        await waitFor(() =>
+          expect(
+            screen.getByTestId('planning-modal-list-error'),
+          ).toHaveTextContent(
+            /Could not rename the plan|Suunnitelman uudelleennimeäminen epäonnistui/i,
+          ),
+        );
+        // Form stays open so the user can retry.
+        expect(
+          screen.getByTestId('planning-session-rename-form-s1'),
+        ).toBeInTheDocument();
+      });
+
+      it('Duplicate failure surfaces an inline error', async () => {
+        setSessions([buildSession({ id: 's1', name: 'A' })]);
+        mockSaveMutateAsync.mockRejectedValueOnce(new Error('storage offline'));
+        renderModal({ currentTeamId: 't1' });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-session-duplicate-s1'));
+        });
+        await waitFor(() =>
+          expect(
+            screen.getByTestId('planning-modal-list-error'),
+          ).toHaveTextContent(
+            /Could not duplicate the plan|Suunnitelman monistaminen epäonnistui/i,
+          ),
+        );
+      });
+
       it('Active-toggle on an inactive session calls setActiveSession with the id', () => {
         setSessions([
           buildSession({ id: 's1', name: 'A', isActive: false }),

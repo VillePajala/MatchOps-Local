@@ -209,6 +209,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // would return to the list later with A's "Confirm delete?" row
     // still visible.
     setPendingDeleteId(null);
+    // Clear any in-progress rename on a different row — without this,
+    // pressing Back from the editor returns the user to a list where
+    // the prior row is still showing the rename form.
+    setRenamingSessionId(null);
+    setRenameDraft('');
     setEditingSession(session);
     setEditorGameIds([...session.gameIds]);
     setEditorEntryPage('list');
@@ -591,6 +596,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       type="button"
                                       onClick={handleCancelRename}
                                       className="rounded-md bg-slate-700 px-2 py-1 text-xs text-slate-100 hover:bg-slate-600"
+                                      data-testid={`planning-session-rename-cancel-${session.id}`}
                                     >
                                       {t('common.cancel', 'Cancel')}
                                     </button>
@@ -696,6 +702,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => handleToggleActive(session)}
+                                      // Single mutation instance → all rows
+                                      // share isPending. Acceptable at this
+                                      // scale (the operation is fast); per-
+                                      // row gating would require tracking
+                                      // which session is in flight.
                                       disabled={setActiveSession.isPending}
                                       className={
                                         session.isActive
