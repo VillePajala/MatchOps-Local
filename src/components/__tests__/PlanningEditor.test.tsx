@@ -1418,5 +1418,49 @@ describe('PlanningEditor', () => {
       const gkButton = screen.getByTestId('planning-editor-role-GK');
       expect(gkButton).toHaveTextContent(/P5/);
     });
+
+    it('initialPresetId overrides the game-derived default preset (Codex PR-392 P1)', () => {
+      // The fixture lineup has 8 field players → editor's default would
+      // pick an 8v8 preset. Forcing initialPresetId to a different preset
+      // should change the role grid the editor renders.
+      const elevenVsEleven = getPresetById('11v11-4-3-3');
+      expect(elevenVsEleven).toBeDefined();
+
+      renderEditor({ initialPresetId: '11v11-4-3-3' });
+      const pitch = screen.getByTestId('planning-editor-pitch');
+      // 11v11-4-3-3 has 11 roles incl. GK; 8v8-3-3-1 has 8.
+      expect(pitch.querySelectorAll('button').length).toBe(
+        elevenVsEleven!.roles!.length,
+      );
+    });
+
+    it('falls back to the default preset when initialPresetId is unknown', () => {
+      // Stale saved sessions could carry a preset id no longer in the
+      // registry. The editor should not crash; it should fall back
+      // silently to the game-derived default.
+      renderEditor({ initialPresetId: 'NOT_A_REAL_PRESET' });
+      // Renders successfully — pitch buttons match the default 8v8 count.
+      const pitch = screen.getByTestId('planning-editor-pitch');
+      expect(pitch.querySelectorAll('button').length).toBe(
+        PRESET.roles!.length,
+      );
+    });
+
+    it('saved draft carries presetId so reopen can restore the same grid', async () => {
+      const onSavePlan = jest.fn().mockResolvedValue(undefined);
+      renderEditor({
+        onSavePlan,
+        initialPresetId: '11v11-4-3-3',
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      fireEvent.change(screen.getByTestId('planning-editor-save-name'), {
+        target: { value: 'My Plan' },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+      });
+      const call = onSavePlan.mock.calls[0][0];
+      expect(call.draft.presetId).toBe('11v11-4-3-3');
+    });
   });
 });

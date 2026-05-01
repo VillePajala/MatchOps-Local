@@ -47,6 +47,13 @@ export interface PlanningEditorProps {
   // hydrates these props so the user picks up where they left off.
   /** Pre-existing draft (from a saved session). Overrides the game-derived default. */
   initialDraft?: PlanDraft;
+  /**
+   * Formation preset the draft was authored against. When provided,
+   * overrides the game-derived default — without this, reopening a
+   * session can mis-render against a different preset and drop role
+   * assignments whose role names don't exist in the new preset.
+   */
+  initialPresetId?: string;
   /** Pre-fills the Save form's name input; also displayed in the editor header. */
   initialName?: string;
   /** When set, Save updates that session instead of creating a new one. */
@@ -54,7 +61,9 @@ export interface PlanningEditorProps {
   /**
    * Save handler — called when the user submits the inline name form.
    * Implementations call `savePlanningSession` and either create or
-   * update based on whether `sessionId` is provided.
+   * update based on whether `sessionId` is provided. The draft carries
+   * `presetId` so reopen can rehydrate the same role grid the user
+   * authored under.
    */
   onSavePlan?: (data: {
     sessionId: string | undefined;
@@ -116,6 +125,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   onApplied,
   applyToGame,
   initialDraft,
+  initialPresetId,
   initialName,
   editingSessionId,
   onSavePlan,
@@ -136,7 +146,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     );
   }, [firstGame]);
 
-  const [presetId, setPresetId] = useState(defaultPreset.id);
+  // Reopen path: explicit `initialPresetId` wins; the draft's own
+  // `presetId` annotation is the secondary source; the game-derived
+  // default is the fallback. If the saved id no longer exists in the
+  // registry (preset removed/renamed), fall through to the default.
+  const [presetId, setPresetId] = useState<string>(() => {
+    const candidate = initialPresetId ?? initialDraft?.presetId;
+    if (candidate && getPresetById(candidate)) return candidate;
+    return defaultPreset.id;
+  });
   const preset = getPresetById(presetId) ?? defaultPreset;
 
   // Reopened sessions hydrate from the saved draft; fresh plans derive
@@ -474,10 +492,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setIsSaving(true);
     setSaveError(null);
     try {
+      // Stamp the current preset onto the draft so reopen restores the
+      // same role grid (Codex PR-392 P1: prevents role-key mismatch
+      // when the saved formation differs from the game-derived default).
       await onSavePlan({
         sessionId: editingSessionId,
         name: trimmed,
-        draft,
+        draft: { ...draft, presetId },
         gameIds,
       });
       setSavePlanName(null);

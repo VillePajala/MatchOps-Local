@@ -196,6 +196,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setEditorGameIds([]);
     setPendingDeleteId(null);
     setEditingSession(null);
+    // Clear stale delete-error banner so it doesn't reappear on next open.
+    setDeleteErrorMessage(null);
     setPage('list');
     onClose();
   };
@@ -589,6 +591,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   initialDraft={
                     editingSession
                       ? editingSession.draft[editingSession.gameIds[0]]
+                      : undefined
+                  }
+                  // Lift the preset out of the saved draft so the editor
+                  // renders against the SAME formation it was authored
+                  // under (Codex PR-392 P1: role keys differ across
+                  // presets, so a mis-matched preset drops assignments).
+                  initialPresetId={
+                    editingSession
+                      ? editingSession.draft[editingSession.gameIds[0]]
+                          ?.presetId
                       : undefined
                   }
                   initialName={editingSession?.name}
