@@ -1698,7 +1698,9 @@
     "updatedAtLabel": "updated {{date}}",
     "deleteSession": "Delete plan",
     "deleteConfirm": "Confirm delete?",
-    "sessionsLoadError": "Could not load saved plans. Please try again."
+    "sessionsLoadError": "Could not load saved plans. Please try again.",
+    "openSession": "Open",
+    "deleteFailed": "Could not delete the plan. Please try again."
   },
   "planningGamePicker": {
     "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",
@@ -1719,6 +1721,14 @@
     "applyButton_other": "Apply to {{count}} games",
     "applying": "Applying…",
     "applyFailed": "Apply failed; please try again.",
+    "savePlanButton": "Save plan",
+    "savePlanCreate": "Save plan",
+    "savePlanUpdate": "Update plan",
+    "savePlanLabel": "Plan name",
+    "savePlanNamePlaceholder": "e.g. Lauto 80 Verne-5",
+    "saveNameRequired": "Plan name is required.",
+    "saving": "Saving…",
+    "saveFailed": "Could not save plan. Please try again.",
     "applyFailedPartial": "Saved {{saved}} of {{total}} games before the error. Please try again.",
     "applySavedSummary": "Saved {{saved}} of {{total}} games.",
     "applyWarnMissing": "{{count}} selected game(s) were no longer available and were skipped.",

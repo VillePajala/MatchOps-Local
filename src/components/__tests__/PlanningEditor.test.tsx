@@ -1297,4 +1297,126 @@ describe('PlanningEditor', () => {
       /no longer available|ei ollut enää saatavilla/i,
     );
   });
+
+  // ── PR 7c: Save flow ────────────────────────────────────────────────
+  describe('Save plan (PR 7c)', () => {
+    it('does not render Save button when onSavePlan is undefined', () => {
+      renderEditor();
+      expect(
+        screen.queryByTestId('planning-editor-save'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('clicking Save opens the inline name form', () => {
+      renderEditor({ onSavePlan: jest.fn() });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      expect(screen.getByTestId('planning-editor-save-form')).toBeInTheDocument();
+      expect(screen.getByTestId('planning-editor-save-name')).toBeInTheDocument();
+    });
+
+    it('Save form pre-fills name from initialName', () => {
+      renderEditor({
+        onSavePlan: jest.fn(),
+        initialName: 'Existing plan',
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      const input = screen.getByTestId(
+        'planning-editor-save-name',
+      ) as HTMLInputElement;
+      expect(input.value).toBe('Existing plan');
+    });
+
+    it('Save form rejects empty name with inline error', async () => {
+      const onSavePlan = jest.fn();
+      renderEditor({ onSavePlan });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      // Don't type anything; click confirm.
+      fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+
+      expect(
+        await screen.findByTestId('planning-editor-save-error'),
+      ).toHaveTextContent(/Plan name is required|Suunnitelman nimi vaaditaan/i);
+      expect(onSavePlan).not.toHaveBeenCalled();
+    });
+
+    it('successful save calls onSavePlan with sessionId, name, draft, gameIds', async () => {
+      const onSavePlan = jest.fn().mockResolvedValue(undefined);
+      renderEditor({
+        onSavePlan,
+        gameIds: ['g1', 'g2'],
+        editingSessionId: 'planningSession_existing',
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      const input = screen.getByTestId('planning-editor-save-name');
+      fireEvent.change(input, { target: { value: 'My Plan' } });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+      });
+
+      expect(onSavePlan).toHaveBeenCalledTimes(1);
+      const call = onSavePlan.mock.calls[0][0];
+      expect(call.sessionId).toBe('planningSession_existing');
+      expect(call.name).toBe('My Plan');
+      expect(call.gameIds).toEqual(['g1', 'g2']);
+      expect(call.draft).toBeDefined();
+      // Form closes on success.
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('planning-editor-save-form'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('failed save surfaces an inline error and keeps the form open', async () => {
+      const onSavePlan = jest
+        .fn()
+        .mockRejectedValue(new Error('storage offline'));
+      renderEditor({ onSavePlan });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      fireEvent.change(screen.getByTestId('planning-editor-save-name'), {
+        target: { value: 'My Plan' },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+      });
+
+      expect(
+        await screen.findByTestId('planning-editor-save-error'),
+      ).toHaveTextContent(
+        /Could not save plan|Suunnitelman tallentaminen epäonnistui/i,
+      );
+      // Form remains open so the user can retry.
+      expect(
+        screen.getByTestId('planning-editor-save-form'),
+      ).toBeInTheDocument();
+    });
+
+    it('Save button label says "Update plan" when editingSessionId is set', () => {
+      renderEditor({
+        onSavePlan: jest.fn(),
+        editingSessionId: 'planningSession_existing',
+      });
+      const button = screen.getByTestId('planning-editor-save');
+      expect(button).toHaveTextContent(/Update plan|Päivitä suunnitelma/i);
+    });
+  });
+
+  // ── PR 7c: Reopen flow ──────────────────────────────────────────────
+  describe('Reopen with initialDraft (PR 7c)', () => {
+    it('uses initialDraft when provided instead of deriving from the game', () => {
+      const roster = makeRoster(11);
+      // Build a custom draft different from what draftFromGame would yield.
+      const initialDraft = {
+        startingXI: { GK: 'p5' }, // p5 placed as GK explicitly
+        bench: ['p0', 'p1'],
+        scheduledSubs: [],
+      };
+      renderEditor({ initialDraft, roster });
+
+      // p5 should appear on the GK button (rather than p0 which would be
+      // the default from makeGameWithLineup).
+      const gkButton = screen.getByTestId('planning-editor-role-GK');
+      expect(gkButton).toHaveTextContent(/P5/);
+    });
+  });
 });

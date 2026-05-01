@@ -42,12 +42,25 @@ let mockDeleteMutationReturn: {
   error: null,
 };
 
+// Save mutation mock — default resolves with the input as if the backend
+// stamped id/createdAt/updatedAt and returned the full session.
+const mockSaveMutateAsync = jest.fn(async (vars: Partial<PlanningSession>) => ({
+  ...buildSession(),
+  ...vars,
+  id: vars.id ?? 'planningSession_new',
+}));
+
 jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   __esModule: true,
   usePlanningSessionsQuery: (
     opts?: { teamId?: string; enabled?: boolean },
   ) => mockUsePlanningSessionsQuery(opts),
   useDeletePlanningSessionMutation: () => mockDeleteMutationReturn,
+  useSavePlanningSessionMutation: () => ({
+    mutateAsync: mockSaveMutateAsync,
+    isPending: false,
+    error: null,
+  }),
 }));
 
 const setSessions = (sessions: PlanningSession[], isLoading = false) => {
@@ -77,6 +90,7 @@ const buildSession = (
 
 beforeEach(() => {
   mockDeleteMutate.mockClear();
+  mockSaveMutateAsync.mockClear();
   mockUsePlanningSessionsQuery.mockClear();
   mockDeleteMutationReturn = {
     mutate: mockDeleteMutate,
@@ -582,6 +596,54 @@ describe('PlanningModal', () => {
       ).not.toBeInTheDocument();
       expect(
         screen.getByTestId('planning-modal-sessions-error'),
+      ).toBeInTheDocument();
+    });
+
+    it('Open button hydrates the editor with the session data (PR 7c reopen)', () => {
+      const session = buildSession({
+        id: 's1',
+        name: 'Default plan',
+        gameIds: ['g1'],
+        draft: {
+          g1: {
+            startingXI: { GK: 'p1' },
+            bench: ['p2'],
+            scheduledSubs: [],
+          },
+        },
+      });
+      setSessions([session]);
+      renderModal({ currentTeamId: 't1' });
+
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+
+      // Saved-session list disappears; editor mounts.
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+      // Editor's Save button shows "Update plan" because editingSessionId is set.
+      expect(
+        screen.getAllByText(/Update plan|Päivitä suunnitelma/i)[0],
+      ).toBeInTheDocument();
+    });
+
+    it('shows an inline error when the delete mutation rejects (PR 7c)', async () => {
+      setSessions([buildSession({ id: 's1', name: 'Will fail' })]);
+      mockDeleteMutate.mockImplementationOnce((id, opts) => {
+        Promise.resolve().then(() =>
+          opts?.onSettled?.(undefined, new Error('storage offline'), id),
+        );
+      });
+      renderModal();
+
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      fireEvent.click(
+        await screen.findByTestId('planning-session-delete-confirm-s1'),
+      );
+
+      // Failure message appears once the rejection settles.
+      expect(
+        await screen.findByTestId('planning-modal-delete-error'),
       ).toBeInTheDocument();
     });
 
