@@ -258,6 +258,68 @@ describe('computeApplyDiff', () => {
     expect(diff.lineupMoved).toEqual([]);
   });
 
+  it('malformed playersOnField with missing coords are treated as off-formation, not snapped to center', () => {
+    // Without the explicit null check, undefined relX/relY would default
+    // to (0.5, 0.5) — which can be a recognized role. The diff would
+    // then misclassify the player as "in role X" and silently skip
+    // surfacing them in lineupRemoved when not in the draft.
+    const game: AppState = {
+      teamId: 't1',
+      teamName: 'Pepo',
+      opponentName: 'Opp',
+      gameDate: '2026-04-30',
+      numberOfPeriods: 2,
+      periodDurationMinutes: 12,
+      playersOnField: [
+        // Mappable.
+        { id: 'p1', name: 'GK', relX: 0.5, relY: 0.95 },
+        // Malformed: undefined coords. Must surface as off-formation.
+        { id: 'pX', name: 'Malformed' },
+      ],
+      selectedPlayerIds: ['p1', 'pX'],
+      availablePlayers: [],
+      scheduledSubs: [],
+    } as unknown as AppState;
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p1' },
+      bench: [],
+      scheduledSubs: [],
+    };
+    const diff = computeApplyDiff('g1', game, draft, preset5v5);
+    // pX must be reported as removed with role=undefined, NOT silently
+    // mapped to a center-field role.
+    expect(diff.lineupRemoved).toEqual([{ playerId: 'pX', role: undefined }]);
+  });
+
+  it('duplicate player id in playersOnField does not produce duplicate diff entries', () => {
+    // Defensive: corrupt data with the same id twice should be
+    // de-duped by the onFieldPlayerIds.has guard.
+    const game: AppState = {
+      teamId: 't1',
+      teamName: 'Pepo',
+      opponentName: 'Opp',
+      gameDate: '2026-04-30',
+      numberOfPeriods: 2,
+      periodDurationMinutes: 12,
+      playersOnField: [
+        { id: 'p1', name: 'GK', relX: 0.5, relY: 0.95 },
+        // Duplicate id — bug in upstream data.
+        { id: 'p1', name: 'GK dup', relX: 0.5, relY: 0.95 },
+      ],
+      selectedPlayerIds: ['p1'],
+      availablePlayers: [],
+      scheduledSubs: [],
+    } as unknown as AppState;
+    const draft: PlanDraft = {
+      startingXI: {},
+      bench: ['p1'],
+      scheduledSubs: [],
+    };
+    const diff = computeApplyDiff('g1', game, draft, preset5v5);
+    // Exactly one removal entry, not two.
+    expect(diff.lineupRemoved).toEqual([{ playerId: 'p1', role: 'GK' }]);
+  });
+
   it('countDiffChanges sums every category', () => {
     const diff: ApplyDiff = {
       gameId: 'g1',

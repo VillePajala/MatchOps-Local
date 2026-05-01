@@ -128,7 +128,15 @@ export function computeApplyDiff(
     if (!p.id) continue;
     if (onFieldPlayerIds.has(p.id)) continue;
     onFieldPlayerIds.add(p.id);
-    const role = roleForCoord(preset, p.relX ?? 0.5, p.relY ?? 0.5);
+    // Skip the role lookup entirely when coords are missing — defaulting
+    // to (0.5, 0.5) would snap malformed players onto whatever role is
+    // closest to center, defeating the off-formation safety path. The
+    // player still appears in onFieldPlayerIds → surfaces as removed
+    // with role=undefined when not in the draft.
+    const role =
+      p.relX != null && p.relY != null
+        ? roleForCoord(preset, p.relX, p.relY)
+        : null;
     if (role && !occupiedRoles.has(role.name)) {
       occupiedRoles.add(role.name);
       currentRolesByPlayer.set(p.id, role.name);
