@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../../i18n.test';
@@ -670,6 +670,52 @@ describe('PlanningModal', () => {
       expect(screen.getByTestId('planning-editor-save')).toHaveTextContent(
         /Update plan|Päivitä suunnitelma/i,
       );
+    });
+
+    it('preserves isActive / appliedAt / createdAt when saving an existing session (Reopen → Save)', async () => {
+      const session = buildSession({
+        id: 's1',
+        name: 'Existing plan',
+        gameIds: ['g1'],
+        draft: {
+          g1: { startingXI: { GK: 'p1' }, bench: [], scheduledSubs: [] },
+        },
+        isActive: true,
+        appliedAt: '2026-04-25T10:00:00.000Z',
+        createdAt: '2026-04-20T10:00:00.000Z',
+      });
+      setSessions([session]);
+      const savedGames = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      } as never;
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      // Reopen → click Save (form opens, name pre-filled) → confirm.
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-save-confirm'),
+        );
+      });
+
+      // mutateAsync should have been called preserving the metadata
+      // fields (the editor only changes name/draft/gameIds/updatedAt).
+      expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+      const payload = mockSaveMutateAsync.mock.calls[0][0];
+      expect(payload).toMatchObject({
+        id: 's1',
+        isActive: true,
+        appliedAt: '2026-04-25T10:00:00.000Z',
+        createdAt: '2026-04-20T10:00:00.000Z',
+      });
     });
 
     it('shows the corrupt-session banner when gameIds is empty (not just empty draft map)', () => {

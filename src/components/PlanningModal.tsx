@@ -83,9 +83,15 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [editingSession, setEditingSession] = useState<PlanningSession | null>(
     null,
   );
-  // Inline error message rendered below the saved-session list. Used for
-  // both delete failures and open failures (corrupt session). Cleared on
-  // the next interaction or when the modal closes.
+  /**
+   * Inline error message rendered below the saved-session list.
+   * Dual-purpose:
+   * 1. Delete failures (Codex/Claude PR-391 follow-up) — set in the
+   *    delete mutation's `onSettled` error branch.
+   * 2. Open failures (corrupt session — empty gameIds, missing draft
+   *    for first gameId) — set by handleOpenSession.
+   * Cleared on next interaction or when the modal closes.
+   */
   const [listErrorMessage, setListErrorMessage] = useState<string | null>(
     null,
   );
@@ -104,10 +110,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const sessions: PlanningSession[] = sessionsQuery.data ?? [];
 
   // The editor pulls draft + presetId off this; deriving once keeps the
-  // JSX clean (no inline IIFE / no duplicate map lookup).
-  const sessionFirstDraft = editingSession
-    ? editingSession.draft[editingSession.gameIds[0]]
-    : undefined;
+  // JSX clean. Mirrors the length-guard from handleOpenSession so a
+  // malformed session (empty gameIds returned from a partial backend
+  // write into setEditingSession(saved)) silently hydrates with
+  // undefined rather than reading session.draft[undefined].
+  const sessionFirstDraft =
+    editingSession && editingSession.gameIds.length > 0
+      ? editingSession.draft[editingSession.gameIds[0]]
+      : undefined;
 
   // Convert SavedGamesCollection to the picker's input shape.
   const pickerGames: PlanningGamePickerGame[] = useMemo(() => {
@@ -240,7 +250,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setEditorGameIds([]);
     setPendingDeleteId(null);
     setEditingSession(null);
-    // Clear stale delete-error banner so it doesn't reappear on next open.
+    // The modal stays mounted across opens (`isOpen={false}` early-returns
+    // null but doesn't unmount), so state is NOT auto-reset by React's
+    // unmount lifecycle — explicit clears are needed to prevent stale
+    // banners from following the user into the next session.
     setListErrorMessage(null);
     setPage('list');
     onClose();

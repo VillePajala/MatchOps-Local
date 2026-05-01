@@ -64,13 +64,18 @@ export interface PlanningEditorProps {
    * update based on whether `sessionId` is provided. The draft carries
    * `presetId` so reopen can rehydrate the same role grid the user
    * authored under.
+   *
+   * Must return a Promise: the editor `await`s it to drive the
+   * isSaving spinner + close-on-success behavior, and a synchronous
+   * implementation could close the form before the persistence call
+   * settled.
    */
   onSavePlan?: (data: {
     sessionId: string | undefined;
     name: string;
     draft: PlanDraft;
     gameIds: string[];
-  }) => Promise<void> | void;
+  }) => Promise<void>;
 }
 
 // TODO(PR 5e+): include roster members not in selectedPlayerIds.
