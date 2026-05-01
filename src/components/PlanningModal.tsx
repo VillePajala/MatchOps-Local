@@ -181,6 +181,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     }
     resetImportState();
     setListErrorMessage(null);
+    // Clear any half-confirmed delete from the list — without this, a
+    // user who clicks Delete on session A, then Open on session B,
+    // would return to the list later with A's "Confirm delete?" row
+    // still visible.
+    setPendingDeleteId(null);
     setEditingSession(session);
     setEditorGameIds([...session.gameIds]);
     setPage('editor');

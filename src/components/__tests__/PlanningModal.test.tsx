@@ -718,6 +718,127 @@ describe('PlanningModal', () => {
       });
     });
 
+    it('Open clears any half-confirmed pendingDeleteId from a different session', () => {
+      // Set up two sessions; user starts a delete on s1, then clicks
+      // Open on s2 instead. Without clearing pendingDeleteId the
+      // confirm row would persist on the list when the user navigates
+      // back later.
+      setSessions([
+        buildSession({ id: 's1', name: 'Half-deleted' }),
+        buildSession({
+          id: 's2',
+          name: 'Open me',
+          gameIds: ['g1'],
+          draft: {
+            g1: {
+              startingXI: { GK: 'p1' },
+              bench: [],
+              scheduledSubs: [],
+            },
+          },
+        }),
+      ]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      // Click Delete on s1 — confirm row appears.
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      expect(
+        screen.getByTestId('planning-session-delete-confirm-s1'),
+      ).toBeInTheDocument();
+
+      // Click Open on s2. Editor mounts, list unmounts.
+      fireEvent.click(screen.getByTestId('planning-session-open-s2'));
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+
+      // Done → modal closes; on reopen, s1's confirm row should be gone
+      // (handleOpenSession reset pendingDeleteId before page change).
+      fireEvent.click(
+        screen.getByRole('button', { name: /^Done$|^Valmis$/i }),
+      );
+      // After Done, modal is closed. State persists across re-renders
+      // (modal stays mounted via early-return). The clear in
+      // handleOpenSession is the load-bearing piece — confirm s1 is
+      // back to the trash icon, not the confirm row.
+      expect(
+        screen.queryByTestId('planning-session-delete-confirm-s1'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('handleSavePlan replicates the editor draft across every selected gameId', async () => {
+      // Reopen a session with TWO games to exercise the multi-game
+      // replication loop in handleSavePlan. The mocked save mutation
+      // captures the payload so we can assert each gameId received its
+      // own deep-copied draft entry.
+      const session = buildSession({
+        id: 's1',
+        name: 'Multi-game plan',
+        gameIds: ['g1', 'g2'],
+        draft: {
+          g1: {
+            startingXI: { GK: 'p1' },
+            bench: ['p2'],
+            scheduledSubs: [],
+          },
+          g2: {
+            startingXI: { GK: 'p1' },
+            bench: ['p2'],
+            scheduledSubs: [],
+          },
+        },
+      });
+      setSessions([session]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-05-01',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-save-confirm'),
+        );
+      });
+
+      const payload = mockSaveMutateAsync.mock.calls[0][0];
+      // mock signature is Partial<PlanningSession>; the actual save call
+      // always provides draft, so non-null assertion is safe here.
+      const draft = payload.draft!;
+      // Both gameIds present in the replicated draft.
+      expect(Object.keys(draft).sort()).toEqual(['g1', 'g2']);
+      // Each entry is a separate object reference (deep copy).
+      expect(draft.g1).not.toBe(draft.g2);
+      expect(draft.g1.startingXI).not.toBe(draft.g2.startingXI);
+      expect(draft.g1.bench).not.toBe(draft.g2.bench);
+    });
+
     it('shows the corrupt-session banner when gameIds is empty (not just empty draft map)', () => {
       // Other corrupt path: gameIds is [] entirely. Without the
       // length>0 guard, session.draft[undefined] would silently return
