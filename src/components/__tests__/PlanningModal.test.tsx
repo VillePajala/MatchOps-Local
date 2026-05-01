@@ -1009,6 +1009,59 @@ describe('PlanningModal', () => {
         expect(variables.sessionId).toBeNull();
       });
 
+      it('Open → Back returns to the saved-session list (not the picker)', () => {
+        // Resolves the round-7 deferred Issue from PR #392: the Reopen
+        // path bypasses the picker, so Back from the editor should
+        // route back to the list. A regression to the old hardcoded
+        // `setPage('picker')` would silently hand the user to the
+        // picker with their original gameIds pre-selected.
+        const session = buildSession({
+          id: 's1',
+          name: 'A Plan',
+          gameIds: ['g1'],
+          draft: {
+            g1: {
+              startingXI: { GK: 'p1' },
+              bench: [],
+              scheduledSubs: [],
+            },
+          },
+        });
+        setSessions([session]);
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 't1',
+            teamName: 'Pepo U10',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 12,
+          }),
+        };
+        renderModal({ currentTeamId: 't1', savedGames });
+
+        // Reopen the session; editor mounts.
+        fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+        expect(
+          screen.getByTestId('planning-editor-save'),
+        ).toBeInTheDocument();
+
+        // Click the editor's Back button. The editor renders one Back
+        // labeled "Back" / "Takaisin"; multiple back-button matches on
+        // the page would break getByRole, so we assert specifically.
+        fireEvent.click(
+          screen.getByRole('button', { name: /^Back$|^Takaisin$/i }),
+        );
+
+        // Land on the saved-session list, NOT the picker.
+        expect(
+          screen.getByTestId('planning-modal-session-list'),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByTestId('planning-game-picker'),
+        ).not.toBeInTheDocument();
+      });
+
       it('Active-toggle failure surfaces an inline error', () => {
         setSessions([buildSession({ id: 's1', isActive: false })]);
         // Override default mutate to invoke onError.

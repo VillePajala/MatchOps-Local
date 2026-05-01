@@ -11,6 +11,8 @@ import {
   HiOutlineTrash,
   HiOutlineXMark,
 } from 'react-icons/hi2';
+// Filled star is absent from `hi2`'s solid set under this name; pulling
+// from v1 keeps the active-toggle's filled/outline pair visually consistent.
 import { HiStar } from 'react-icons/hi';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import {
@@ -345,6 +347,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
   const handleToggleActive = async (session: PlanningSession) => {
     setListErrorMessage(null);
+    // Fire-and-forget: errors are surfaced via the onError callback
+    // rather than a try/catch around mutateAsync. Either pattern works
+    // with React Query; the onError style keeps the handler synchronous
+    // for the common case where the user clicks and walks away.
+    //
     // Pass null when the session is currently active to deactivate;
     // pass the id to activate (the RPC also deactivates other in-scope
     // sessions atomically).
@@ -720,7 +727,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => handleStartRename(session)}
-                                      className="rounded-md p-1.5 text-slate-300 hover:bg-slate-700"
+                                      // Match Duplicate's pending-state gate
+                                      // — opening the rename form while a
+                                      // save is in flight gives the user a
+                                      // form whose Save button is already
+                                      // disabled, with no explanation.
+                                      disabled={saveSession.isPending}
+                                      className="rounded-md p-1.5 text-slate-300 hover:bg-slate-700 disabled:opacity-60"
                                       aria-label={t(
                                         'planningModal.renameAriaLabel',
                                         'Rename {{name}}',
