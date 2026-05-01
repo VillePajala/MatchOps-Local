@@ -301,7 +301,13 @@ describe('Translation File Validation', () => {
       // (sessionsLoading, savedSessionsHeading, activeBadge,
       // gameCountLabel_one, gameCountLabel_other, updatedAtLabel,
       // deleteSession, deleteConfirm, sessionsLoadError).
-      expect(enKeys.length).toBe(2509);
+      // Planner Phase 3c (PR 7c):
+      //   +4 planningModal: openSession, openSessionAriaLabel,
+      //     deleteFailed, openSessionFailed.
+      //   +7 planningEditor: savePlanButton, savePlanUpdate,
+      //     savePlanLabel, savePlanNamePlaceholder, saveNameRequired,
+      //     saving, saveFailed.
+      expect(enKeys.length).toBe(2520);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -319,7 +325,8 @@ describe('Translation File Validation', () => {
       // +1 planningEditor.applyWarnUnreachableSubs.
       // +1 planningTimeline.minutesPanel.
       // Planner Phase 3b: planningModal saved-sessions list +9.
-      expect(fiKeys.length).toBe(2509);
+      // Planner Phase 3c (PR 7c): +4 planningModal +7 planningEditor.
+      expect(fiKeys.length).toBe(2520);
     });
   });
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../../i18n.test';
@@ -8,7 +8,7 @@ import {
   PLAN_FORMAT_VERSION,
   PLAN_EXPORT_KIND,
 } from '@/utils/planExport';
-import type { AppState } from '@/types/game';
+import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { PlanningSession } from '@/types';
 
 // Mock the planning-session hooks so the component tree doesn't need a
@@ -42,12 +42,25 @@ let mockDeleteMutationReturn: {
   error: null,
 };
 
+// Save mutation mock — default resolves with the input as if the backend
+// stamped id/createdAt/updatedAt and returned the full session.
+const mockSaveMutateAsync = jest.fn(async (vars: Partial<PlanningSession>) => ({
+  ...buildSession(),
+  ...vars,
+  id: vars.id ?? 'planningSession_new',
+}));
+
 jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   __esModule: true,
   usePlanningSessionsQuery: (
     opts?: { teamId?: string; enabled?: boolean },
   ) => mockUsePlanningSessionsQuery(opts),
   useDeletePlanningSessionMutation: () => mockDeleteMutationReturn,
+  useSavePlanningSessionMutation: () => ({
+    mutateAsync: mockSaveMutateAsync,
+    isPending: false,
+    error: null,
+  }),
 }));
 
 const setSessions = (sessions: PlanningSession[], isLoading = false) => {
@@ -77,6 +90,7 @@ const buildSession = (
 
 beforeEach(() => {
   mockDeleteMutate.mockClear();
+  mockSaveMutateAsync.mockClear();
   mockUsePlanningSessionsQuery.mockClear();
   mockDeleteMutationReturn = {
     mutate: mockDeleteMutate,
@@ -582,6 +596,317 @@ describe('PlanningModal', () => {
       ).not.toBeInTheDocument();
       expect(
         screen.getByTestId('planning-modal-sessions-error'),
+      ).toBeInTheDocument();
+    });
+
+    it('handleNewPlan clears listErrorMessage so the stale banner does not reappear after picker→back→list', async () => {
+      // Set up a failed delete so the error banner is visible on the list.
+      setSessions([buildSession({ id: 's1', name: 'Will fail' })]);
+      mockDeleteMutate.mockImplementationOnce((id, opts) => {
+        Promise.resolve().then(() =>
+          opts?.onSettled?.(undefined, new Error('storage offline'), id),
+        );
+      });
+      renderModal({ currentTeamId: 't1' });
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      fireEvent.click(
+        await screen.findByTestId('planning-session-delete-confirm-s1'),
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toBeInTheDocument(),
+      );
+
+      // Navigate: list → "New plan" (picker) → Back (list).
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /New plan|Uusi suunnitelma/i,
+        }),
+      );
+      // On picker now; banner element is absent because the whole list
+      // block unmounts.
+      expect(
+        screen.getByTestId('planning-game-picker'),
+      ).toBeInTheDocument();
+      // Press Back from the picker — returns to the list. The clear
+      // inside handleNewPlan is what prevents the stale banner from
+      // reappearing here. Without it, this assertion would fail.
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /^Back$|^Takaisin$/i,
+        }),
+      );
+      expect(
+        screen.queryByTestId('planning-modal-list-error'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('Open button hydrates the editor with the session data (PR 7c reopen)', () => {
+      const session = buildSession({
+        id: 's1',
+        name: 'Default plan',
+        gameIds: ['g1'],
+        draft: {
+          g1: {
+            startingXI: { GK: 'p1' },
+            bench: ['p2'],
+            scheduledSubs: [],
+          },
+        },
+      });
+      setSessions([session]);
+      renderModal({ currentTeamId: 't1' });
+
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+
+      // Saved-session list disappears; editor mounts.
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+      // Editor's Save button shows "Update plan" because editingSessionId is set.
+      // getByTestId fails loudly if the button is absent (better than
+      // getAllByText[0] which would TypeError on a missing element).
+      expect(screen.getByTestId('planning-editor-save')).toHaveTextContent(
+        /Update plan|Päivitä suunnitelma/i,
+      );
+    });
+
+    it('preserves isActive / appliedAt / createdAt when saving an existing session (Reopen → Save)', async () => {
+      const session = buildSession({
+        id: 's1',
+        name: 'Existing plan',
+        gameIds: ['g1'],
+        draft: {
+          g1: { startingXI: { GK: 'p1' }, bench: [], scheduledSubs: [] },
+        },
+        isActive: true,
+        appliedAt: '2026-04-25T10:00:00.000Z',
+        createdAt: '2026-04-20T10:00:00.000Z',
+      });
+      setSessions([session]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      // Reopen → click Save (form opens, name pre-filled) → confirm.
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-save-confirm'),
+        );
+      });
+
+      // mutateAsync should have been called preserving the metadata
+      // fields (the editor only changes name/draft/gameIds/updatedAt).
+      expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+      const payload = mockSaveMutateAsync.mock.calls[0][0];
+      expect(payload).toMatchObject({
+        id: 's1',
+        isActive: true,
+        appliedAt: '2026-04-25T10:00:00.000Z',
+        createdAt: '2026-04-20T10:00:00.000Z',
+      });
+    });
+
+    it('Open clears any half-confirmed pendingDeleteId from a different session', () => {
+      // Set up two sessions; user starts a delete on s1, then clicks
+      // Open on s2 instead. Without clearing pendingDeleteId the
+      // confirm row would persist on the list when the user navigates
+      // back later.
+      setSessions([
+        buildSession({ id: 's1', name: 'Half-deleted' }),
+        buildSession({
+          id: 's2',
+          name: 'Open me',
+          gameIds: ['g1'],
+          draft: {
+            g1: {
+              startingXI: { GK: 'p1' },
+              bench: [],
+              scheduledSubs: [],
+            },
+          },
+        }),
+      ]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      // Click Delete on s1 — confirm row appears.
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      expect(
+        screen.getByTestId('planning-session-delete-confirm-s1'),
+      ).toBeInTheDocument();
+
+      // Click Open on s2. Editor mounts, list unmounts.
+      fireEvent.click(screen.getByTestId('planning-session-open-s2'));
+      expect(
+        screen.queryByTestId('planning-modal-session-list'),
+      ).not.toBeInTheDocument();
+
+      // Done → modal closes; on reopen, s1's confirm row should be gone
+      // (handleOpenSession reset pendingDeleteId before page change).
+      fireEvent.click(
+        screen.getByRole('button', { name: /^Done$|^Valmis$/i }),
+      );
+      // After Done, modal is closed. State persists across re-renders
+      // (modal stays mounted via early-return). The clear in
+      // handleOpenSession is the load-bearing piece — confirm s1 is
+      // back to the trash icon, not the confirm row.
+      expect(
+        screen.queryByTestId('planning-session-delete-confirm-s1'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('handleSavePlan replicates the editor draft across every selected gameId', async () => {
+      // Reopen a session with TWO games to exercise the multi-game
+      // replication loop in handleSavePlan. The mocked save mutation
+      // captures the payload so we can assert each gameId received its
+      // own deep-copied draft entry.
+      const session = buildSession({
+        id: 's1',
+        name: 'Multi-game plan',
+        gameIds: ['g1', 'g2'],
+        draft: {
+          g1: {
+            startingXI: { GK: 'p1' },
+            bench: ['p2'],
+            scheduledSubs: [],
+          },
+          g2: {
+            startingXI: { GK: 'p1' },
+            bench: ['p2'],
+            scheduledSubs: [],
+          },
+        },
+      });
+      setSessions([session]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-05-01',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-save-confirm'),
+        );
+      });
+
+      const payload = mockSaveMutateAsync.mock.calls[0][0];
+      // mock signature is Partial<PlanningSession>; the actual save call
+      // always provides draft, so non-null assertion is safe here.
+      const draft = payload.draft!;
+      // Both gameIds present in the replicated draft.
+      expect(Object.keys(draft).sort()).toEqual(['g1', 'g2']);
+      // Each entry is a separate object reference (deep copy).
+      expect(draft.g1).not.toBe(draft.g2);
+      expect(draft.g1.startingXI).not.toBe(draft.g2.startingXI);
+      expect(draft.g1.bench).not.toBe(draft.g2.bench);
+    });
+
+    it('shows the corrupt-session banner when gameIds is empty (not just empty draft map)', () => {
+      // Other corrupt path: gameIds is [] entirely. Without the
+      // length>0 guard, session.draft[undefined] would silently return
+      // undefined and the user would see a blank editor instead of
+      // the explicit error.
+      const corrupt = buildSession({
+        id: 's1',
+        name: 'Empty gameIds',
+        gameIds: [],
+        draft: {},
+      });
+      setSessions([corrupt]);
+      renderModal();
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+      expect(
+        screen.getByTestId('planning-modal-list-error'),
+      ).toHaveTextContent(
+        /Could not open this plan|Tämän suunnitelman avaaminen epäonnistui/i,
+      );
+      // Editor did not mount — saved-session list still visible.
+      expect(
+        screen.getByTestId('planning-modal-session-list'),
+      ).toBeInTheDocument();
+    });
+
+    it('shows an inline error when Open targets a corrupt session (no draft for first gameId)', () => {
+      // Synthesize a corrupt session: gameIds references "g1" but the
+      // draft map is empty. Without the inline-error fallback, Open
+      // would silently no-op and the user would think the click failed.
+      const corrupt = buildSession({
+        id: 's1',
+        name: 'Corrupt session',
+        gameIds: ['g1'],
+        draft: {},
+      });
+      setSessions([corrupt]);
+      renderModal();
+
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+
+      // List error banner appears with the corrupt-open copy.
+      const banner = screen.getByTestId('planning-modal-list-error');
+      expect(banner).toHaveTextContent(
+        /Could not open this plan|Tämän suunnitelman avaaminen epäonnistui/i,
+      );
+      // Editor did NOT mount — saved-session list still rendered.
+      expect(
+        screen.getByTestId('planning-modal-session-list'),
+      ).toBeInTheDocument();
+    });
+
+    it('shows an inline error when the delete mutation rejects (PR 7c)', async () => {
+      setSessions([buildSession({ id: 's1', name: 'Will fail' })]);
+      mockDeleteMutate.mockImplementationOnce((id, opts) => {
+        Promise.resolve().then(() =>
+          opts?.onSettled?.(undefined, new Error('storage offline'), id),
+        );
+      });
+      renderModal();
+
+      fireEvent.click(screen.getByTestId('planning-session-delete-s1'));
+      fireEvent.click(
+        await screen.findByTestId('planning-session-delete-confirm-s1'),
+      );
+
+      // Failure message appears once the rejection settles.
+      expect(
+        await screen.findByTestId('planning-modal-list-error'),
       ).toBeInTheDocument();
     });
 

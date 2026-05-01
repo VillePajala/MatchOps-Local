@@ -23,7 +23,9 @@ import PlanningEditor from './PlanningEditor';
 import {
   useDeletePlanningSessionMutation,
   usePlanningSessionsQuery,
+  useSavePlanningSessionMutation,
 } from '@/hooks/usePlanningSessionQueries';
+import type { PlanDraft } from '@/utils/planSwapEngine';
 
 type PlanningPage = 'list' | 'picker' | 'editor';
 
@@ -76,6 +78,23 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [importedPlan, setImportedPlan] = useState<ImportedPlan | null>(null);
   const [importError, setImportError] = useState<PlanImportError | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  // Reopen flow: when set, the editor hydrates from the saved session's
+  // draft and Save updates that session by id rather than creating new.
+  const [editingSession, setEditingSession] = useState<PlanningSession | null>(
+    null,
+  );
+  /**
+   * Inline error message rendered below the saved-session list.
+   * Dual-purpose:
+   * 1. Delete failures (Codex/Claude PR-391 follow-up) — set in the
+   *    delete mutation's `onSettled` error branch.
+   * 2. Open failures (corrupt session — empty gameIds, missing draft
+   *    for first gameId) — set by handleOpenSession.
+   * Cleared on next interaction or when the modal closes.
+   */
+  const [listErrorMessage, setListErrorMessage] = useState<string | null>(
+    null,
+  );
 
   // Saved sessions are scoped to the active team. The query is gated on
   // (isOpen && page === 'list') so it doesn't fetch while the modal is
@@ -87,7 +106,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     enabled: sessionsEnabled,
   });
   const deleteSession = useDeletePlanningSessionMutation();
+  const saveSession = useSavePlanningSessionMutation();
   const sessions: PlanningSession[] = sessionsQuery.data ?? [];
+
+  // The editor pulls draft + presetId off this; deriving once keeps the
+  // JSX clean. Mirrors the length-guard from handleOpenSession so a
+  // malformed session (empty gameIds returned from a partial backend
+  // write into setEditingSession(saved)) silently hydrates with
+  // undefined rather than reading session.draft[undefined].
+  const sessionFirstDraft =
+    editingSession && editingSession.gameIds.length > 0
+      ? editingSession.draft[editingSession.gameIds[0]]
+      : undefined;
 
   // Convert SavedGamesCollection to the picker's input shape.
   const pickerGames: PlanningGamePickerGame[] = useMemo(() => {
@@ -104,16 +134,114 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage('list');
   };
 
-  const handleClose = () => {
-    resetImportState();
+  // Shared reset for every path that returns the modal to the list page.
+  // Extracted so adding new state to the modal can't drift between
+  // handleClose / handleEditorApplied / similar callers.
+  const resetEditorState = () => {
     setEditorGameIds([]);
     setPendingDeleteId(null);
+    setEditingSession(null);
+    setListErrorMessage(null);
+  };
+
+  const handleClose = () => {
+    resetImportState();
+    resetEditorState();
     setPage('list');
     onClose();
   };
 
+  // Reopen flow: load the session's draft into the editor. The session's
+  // draft map is keyed by gameId; current editor edits a single PlanDraft
+  // applied to all picked games (homogeneous-set constraint), so we pick
+  // the first gameId's draft. PR 7d may relax this if per-game divergence
+  // becomes a real product need.
+  const handleOpenSession = (session: PlanningSession) => {
+    // Empty gameIds is corrupt-session territory — treat it the same as
+    // missing draft so the user gets explicit feedback rather than an
+    // empty editor.
+    const firstDraft: PlanDraft | undefined =
+      session.gameIds.length > 0
+        ? session.draft[session.gameIds[0]]
+        : undefined;
+    if (!firstDraft) {
+      // Surface the failure rather than silently no-op'ing — a missing
+      // draft entry indicates a corrupt session that the user should know
+      // about so they can delete it and start over. Also clear any
+      // editingSession from a prior valid Open so stale state doesn't
+      // linger behind the error banner.
+      setEditingSession(null);
+      setListErrorMessage(
+        t(
+          'planningModal.openSessionFailed',
+          'Could not open this plan. Its data may be corrupt.',
+        ),
+      );
+      return;
+    }
+    resetImportState();
+    setListErrorMessage(null);
+    // Clear any half-confirmed delete from the list — without this, a
+    // user who clicks Delete on session A, then Open on session B,
+    // would return to the list later with A's "Confirm delete?" row
+    // still visible.
+    setPendingDeleteId(null);
+    setEditingSession(session);
+    setEditorGameIds([...session.gameIds]);
+    setPage('editor');
+  };
+
+  const handleSavePlan = async (data: {
+    sessionId: string | undefined;
+    name: string;
+    draft: PlanDraft;
+    gameIds: string[];
+  }) => {
+    // currentTeamId is gated upstream (onSavePlan is only wired when
+    // it exists). If the gate is bypassed somehow (rapid sign-out
+    // between click and async settle), throwing surfaces an error to
+    // the editor's existing catch — silently returning would let the
+    // form close as if the save succeeded when nothing was written.
+    if (!currentTeamId) {
+      throw new Error('Cannot save planning session without a team scope');
+    }
+    // The editor produces ONE PlanDraft applied to all picked games; the
+    // session entity stores draft per gameId. Deep-copy each entry so
+    // future per-game divergence won't accidentally mutate shared
+    // references. Shallow-copy at each layer is sufficient because
+    // DraftScheduledSub fields are all primitives — if a nested object
+    // ever gets added, this needs to recurse one level deeper.
+    const replicated: Record<string, PlanDraft> = {};
+    for (const gid of data.gameIds) {
+      replicated[gid] = {
+        ...data.draft,
+        startingXI: { ...data.draft.startingXI },
+        bench: [...data.draft.bench],
+        scheduledSubs: data.draft.scheduledSubs.map((s) => ({ ...s })),
+      };
+    }
+    const saved = await saveSession.mutateAsync({
+      id: data.sessionId,
+      teamId: currentTeamId,
+      name: data.name,
+      gameIds: [...data.gameIds],
+      draft: replicated,
+      isActive: editingSession?.isActive ?? false,
+      appliedAt: editingSession?.appliedAt,
+      createdAt: editingSession?.createdAt,
+    });
+    // Stay in the editor with the (possibly newly-created) session
+    // attached so subsequent edits update in place.
+    setEditingSession(saved);
+  };
+
   const handleNewPlan = () => {
     resetImportState();
+    setEditingSession(null);
+    // Clear the list-error banner so a stale "could not delete" or
+    // "could not open" doesn't follow the user into the picker → editor
+    // flow and reappear when they navigate back.
+    setListErrorMessage(null);
     setPage('picker');
   };
 
@@ -126,12 +254,22 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   };
 
   const handleEditorBack = () => {
+    // Reset editingSession: the reopen path bypasses the picker, so
+    // without this clear, "back from editor → pick different games →
+    // Save" would silently overwrite the original session.
+    setEditingSession(null);
+    // TODO(PR 7d): Reopen path bypasses the picker; Back should return
+    // to the list when editorEnteredFrom === 'list', not always to
+    // the picker. Tracked alongside Rename/Duplicate routing work.
     setPage('picker');
   };
 
   const handleEditorApplied = () => {
-    setEditorGameIds([]);
-    setPendingDeleteId(null);
+    // The modal stays mounted across opens (`isOpen={false}` early-returns
+    // null but doesn't unmount), so explicit resets are required to
+    // prevent stale banners / editingSession from leaking into the next
+    // open. Shared with handleClose via resetEditorState.
+    resetEditorState();
     setPage('list');
     onClose();
   };
@@ -209,7 +347,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                     </div>
                   )}
 
-                  {/* Error banner: replaces the blank state on fetch failure (full retry UI in PR 7c). */}
+                  {/* Error banner: replaces the blank state on fetch failure. */}
                   {!importedPlan && !importError && sessionsQuery.isError && (
                     <p
                       className="text-center text-sm text-rose-300 py-4"
@@ -315,9 +453,23 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       type="button"
                                       // mutate (not mutateAsync) so React Query absorbs rejections; isPending blocks double-submit.
                                       onClick={() => {
+                                        setListErrorMessage(null);
                                         deleteSession.mutate(session.id, {
-                                          onSettled: () =>
-                                            setPendingDeleteId(null),
+                                          onSettled: (
+                                            _data,
+                                            err,
+                                          ) => {
+                                            setPendingDeleteId(null);
+                                            // Surface delete failures inline; success path leaves message null.
+                                            if (err) {
+                                              setListErrorMessage(
+                                                t(
+                                                  'planningModal.deleteFailed',
+                                                  'Could not delete the plan. Please try again.',
+                                                ),
+                                              );
+                                            }
+                                          },
                                         });
                                       }}
                                       disabled={deleteSession.isPending}
@@ -338,25 +490,62 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                     </button>
                                   </div>
                                 ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setPendingDeleteId(session.id)
-                                    }
-                                    className="rounded-md p-1.5 text-slate-300 hover:bg-rose-900/40 hover:text-rose-200"
-                                    aria-label={t(
-                                      'planningModal.deleteSession',
-                                      'Delete plan',
-                                    )}
-                                    data-testid={`planning-session-delete-${session.id}`}
-                                  >
-                                    <HiOutlineTrash className="h-4 w-4" />
-                                  </button>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleOpenSession(session)
+                                      }
+                                      className="rounded-md bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-600"
+                                      // Without the per-session aria-label,
+                                      // a screen-reader user gets a column
+                                      // of identical "Open" buttons with
+                                      // no way to tell which plan each
+                                      // belongs to. Mirrors the Delete
+                                      // button's labeling pattern.
+                                      aria-label={t(
+                                        'planningModal.openSessionAriaLabel',
+                                        'Open {{name}}',
+                                        { name: session.name },
+                                      )}
+                                      data-testid={`planning-session-open-${session.id}`}
+                                    >
+                                      {t(
+                                        'planningModal.openSession',
+                                        'Open',
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setListErrorMessage(null);
+                                        setPendingDeleteId(session.id);
+                                      }}
+                                      className="rounded-md p-1.5 text-slate-300 hover:bg-rose-900/40 hover:text-rose-200"
+                                      aria-label={t(
+                                        'planningModal.deleteSession',
+                                        'Delete plan',
+                                      )}
+                                      data-testid={`planning-session-delete-${session.id}`}
+                                    >
+                                      <HiOutlineTrash className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 )}
                               </li>
                             );
                           })}
                         </ul>
+                        {/* Inline error banner: delete failures, open failures (corrupt session), etc. */}
+                        {listErrorMessage && (
+                          <p
+                            className="text-sm text-rose-300"
+                            role="alert"
+                            data-testid="planning-modal-list-error"
+                          >
+                            {listErrorMessage}
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -478,6 +667,23 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   onBack={handleEditorBack}
                   onApplied={handleEditorApplied}
                   applyToGame={applyToGame}
+                  // When the user picked an existing session via Open,
+                  // hydrate the editor; otherwise these are undefined and
+                  // the editor falls back to its game-derived initial state.
+                  initialDraft={sessionFirstDraft}
+                  // Preset is stored on the draft so reopen renders the
+                  // SAME role grid the user authored under — role keys
+                  // differ across presets (LM/RM vs LB/RB), so a
+                  // mismatched preset would drop assignments.
+                  initialPresetId={sessionFirstDraft?.presetId}
+                  initialName={editingSession?.name}
+                  editingSessionId={editingSession?.id}
+                  // currentTeamId required for Save (the entity is
+                  // team-scoped). When absent, Save button is hidden —
+                  // user can still Apply but not persist.
+                  onSavePlan={
+                    currentTeamId ? handleSavePlan : undefined
+                  }
                 />
               )}
             </div>

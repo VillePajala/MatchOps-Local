@@ -41,6 +41,41 @@ export interface PlanningEditorProps {
   onApplied: () => void;
   /** Persists one game's lineup; called once per `gameIds` entry on Apply. */
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
+
+  // ── Reopen / Save flow ───────────────────────────────────────────────
+  // When the editor is opened from a saved PlanningSession, the parent
+  // hydrates these props so the user picks up where they left off.
+  /** Pre-existing draft (from a saved session). Overrides the game-derived default. */
+  initialDraft?: PlanDraft;
+  /**
+   * Formation preset the draft was authored against. When provided,
+   * overrides the game-derived default — without this, reopening a
+   * session can mis-render against a different preset and drop role
+   * assignments whose role names don't exist in the new preset.
+   */
+  initialPresetId?: string;
+  /** Pre-fills the Save form's name input; also displayed in the editor header. */
+  initialName?: string;
+  /** When set, Save updates that session instead of creating a new one. */
+  editingSessionId?: string;
+  /**
+   * Save handler — called when the user submits the inline name form.
+   * Implementations call `savePlanningSession` and either create or
+   * update based on whether `sessionId` is provided. The draft carries
+   * `presetId` so reopen can rehydrate the same role grid the user
+   * authored under.
+   *
+   * Must return a Promise: the editor `await`s it to drive the
+   * isSaving spinner + close-on-success behavior, and a synchronous
+   * implementation could close the form before the persistence call
+   * settled.
+   */
+  onSavePlan?: (data: {
+    sessionId: string | undefined;
+    name: string;
+    draft: PlanDraft;
+    gameIds: string[];
+  }) => Promise<void>;
 }
 
 // TODO(PR 5e+): include roster members not in selectedPlayerIds.
@@ -94,6 +129,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   onBack,
   onApplied,
   applyToGame,
+  initialDraft,
+  initialPresetId,
+  initialName,
+  editingSessionId,
+  onSavePlan,
 }) => {
   const { t } = useTranslation();
   // Picker guarantees ≥1 game; firstGame is undefined-tolerant regardless.
@@ -111,16 +151,31 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     );
   }, [firstGame]);
 
-  const [presetId, setPresetId] = useState(defaultPreset.id);
+  // Reopen path: explicit `initialPresetId` wins; the draft's own
+  // `presetId` annotation is the secondary source; the game-derived
+  // default is the fallback. If the saved id no longer exists in the
+  // registry (preset removed/renamed), fall through to the default.
+  const [presetId, setPresetId] = useState<string>(() => {
+    const candidate = initialPresetId ?? initialDraft?.presetId;
+    if (candidate && getPresetById(candidate)) return candidate;
+    return defaultPreset.id;
+  });
   const preset = getPresetById(presetId) ?? defaultPreset;
 
-  const [draft, setDraft] = useState<PlanDraft>(() =>
-    draftFromGame(firstGame, preset),
+  // Reopened sessions hydrate from the saved draft; fresh plans derive
+  // the starting XI from the first picked game's existing lineup.
+  const [draft, setDraft] = useState<PlanDraft>(
+    () => initialDraft ?? draftFromGame(firstGame, preset),
   );
   const [selected, setSelected] = useState<SelectedSlot | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applyWarning, setApplyWarning] = useState<string | null>(null);
+  // Save form state. Null = form hidden; otherwise the string is the
+  // draft name the user is typing.
+  const [savePlanName, setSavePlanName] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // Inline-banner confirmation for formation change. Storing the
   // pending id keeps the controlled <select> on the current preset
   // until the user confirms — no window.confirm anti-pattern.
@@ -415,6 +470,59 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     }
     // Field roles are unique per role name, so matching target is enough.
     return true;
+  };
+
+  const handleStartSave = () => {
+    setSaveError(null);
+    // Trim so a "  " initialName doesn't open the form pre-filled with
+    // whitespace the user has to manually clear before typing.
+    setSavePlanName((initialName ?? '').trim());
+  };
+
+  const handleCancelSave = () => {
+    setSavePlanName(null);
+    setSaveError(null);
+  };
+
+  const handleConfirmSave = async () => {
+    // Form-render gate ({onSavePlan && savePlanName !== null && ...})
+    // already guarantees both are present when this fires; this remains
+    // for the type narrowing.
+    if (!onSavePlan || savePlanName === null) return;
+    const trimmed = savePlanName.trim();
+    if (!trimmed) {
+      setSaveError(
+        t(
+          'planningEditor.saveNameRequired',
+          'Plan name is required.',
+        ),
+      );
+      return;
+    }
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      // Stamp the current preset onto the draft so reopen restores the
+      // same role grid; role keys differ across presets (LM/RM vs LB/RB)
+      // and a mismatched preset would drop assignments.
+      await onSavePlan({
+        sessionId: editingSessionId,
+        name: trimmed,
+        draft: { ...draft, presetId },
+        gameIds,
+      });
+      setSavePlanName(null);
+    } catch (err) {
+      logger.error('[PlanningEditor] Save plan failed', err);
+      setSaveError(
+        t(
+          'planningEditor.saveFailed',
+          'Could not save plan. Please try again.',
+        ),
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleApply = async () => {
@@ -848,7 +956,88 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         </div>
       ) : null}
 
-      <div className="flex justify-end pt-2">
+      {/* Inline Save form: name input + Save / Cancel. <form onSubmit>
+          gives Enter-to-submit + native a11y for free; matches the rest
+          of the editor's no-nested-modal convention. */}
+      {onSavePlan && savePlanName !== null && (
+        <form
+          className="rounded-md bg-slate-800/60 border border-slate-700 p-3 space-y-2"
+          data-testid="planning-editor-save-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleConfirmSave();
+          }}
+        >
+          <label
+            htmlFor="planning-editor-save-name"
+            className="block text-xs font-semibold text-slate-200"
+          >
+            {t('planningEditor.savePlanLabel', 'Plan name')}
+          </label>
+          <input
+            id="planning-editor-save-name"
+            type="text"
+            value={savePlanName}
+            onChange={(e) => setSavePlanName(e.target.value)}
+            placeholder={t(
+              'planningEditor.savePlanNamePlaceholder',
+              'e.g. Lauto 80 Verne-5',
+            )}
+            disabled={isSaving}
+            // Auto-focus on form open so the user can start typing
+            // immediately without an extra click.
+            autoFocus
+            className="w-full rounded-md bg-slate-900/60 border border-slate-700 px-2 py-1 text-sm text-slate-100 disabled:opacity-60"
+            data-testid="planning-editor-save-name"
+          />
+          {saveError && (
+            <p
+              className="text-xs text-rose-300"
+              role="alert"
+              data-testid="planning-editor-save-error"
+            >
+              {saveError}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCancelSave}
+              disabled={isSaving}
+              className="rounded-md bg-slate-700 px-3 py-1 text-xs text-slate-100 hover:bg-slate-600 disabled:opacity-60"
+            >
+              {t('common.cancel', 'Cancel')}
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              data-testid="planning-editor-save-confirm"
+              className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+            >
+              {isSaving
+                ? t('planningEditor.saving', 'Saving…')
+                : editingSessionId
+                  ? t('planningEditor.savePlanUpdate', 'Update plan')
+                  : t('planningEditor.savePlanButton', 'Save plan')}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="flex justify-end gap-2 pt-2">
+        {onSavePlan && savePlanName === null && (
+          <button
+            type="button"
+            onClick={handleStartSave}
+            disabled={isApplying || isSaving || gameIds.length === 0}
+            data-testid="planning-editor-save"
+            className="inline-flex items-center gap-2 rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 shadow hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {editingSessionId
+              ? t('planningEditor.savePlanUpdate', 'Update plan')
+              : t('planningEditor.savePlanButton', 'Save plan')}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleApply}

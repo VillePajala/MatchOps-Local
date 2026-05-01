@@ -41,11 +41,17 @@ export interface DraftScheduledSub {
  * - `bench` = roster − values(startingXI), in stable order.
  * - `scheduledSubs` = pre-planned substitutions over the game timeline,
  *   sorted by `timeSeconds` ascending. Status is set on Apply.
+ * - `presetId` = formation preset the draft was authored against. Saved
+ *   sessions persist this so reopen renders the same role grid the user
+ *   originally edited (drops happen when role names differ across
+ *   presets, e.g., LM/RM vs LB/RB). Optional for backwards compat with
+ *   sessions saved before this field existed.
  */
 export interface PlanDraft {
   startingXI: Record<RoleName, PlayerId>;
   bench: PlayerId[];
   scheduledSubs: DraftScheduledSub[];
+  presetId?: string;
 }
 
 /**
