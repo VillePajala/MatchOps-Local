@@ -1700,7 +1700,8 @@
     "deleteConfirm": "Vahvista poisto?",
     "sessionsLoadError": "Tallennettujen suunnitelmien lataus epäonnistui. Yritä uudelleen.",
     "openSession": "Avaa",
-    "deleteFailed": "Suunnitelman poistaminen epäonnistui. Yritä uudelleen."
+    "deleteFailed": "Suunnitelman poistaminen epäonnistui. Yritä uudelleen.",
+    "openSessionFailed": "Tämän suunnitelman avaaminen epäonnistui. Tiedot saattavat olla vioittuneet."
   },
   "planningGamePicker": {
     "subtitle": "Valitse tämän suunnitelman pelit. Niiden tulee jakaa sama joukkue, jaksomäärä ja jakson kesto.",
@@ -1722,7 +1723,6 @@
     "applying": "Käytetään…",
     "applyFailed": "Käyttö epäonnistui; yritä uudelleen.",
     "savePlanButton": "Tallenna suunnitelma",
-    "savePlanCreate": "Tallenna suunnitelma",
     "savePlanUpdate": "Päivitä suunnitelma",
     "savePlanLabel": "Suunnitelman nimi",
     "savePlanNamePlaceholder": "esim. Lauto 80 Verne-5",

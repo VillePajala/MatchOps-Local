@@ -84,9 +84,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [editingSession, setEditingSession] = useState<PlanningSession | null>(
     null,
   );
-  // Inline error message from the most recent failed delete; cleared on
-  // any new mutation attempt or when the modal closes.
-  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(
+  // Inline error message rendered below the saved-session list. Used for
+  // both delete failures and open failures (corrupt session). Cleared on
+  // the next interaction or when the modal closes.
+  const [listErrorMessage, setListErrorMessage] = useState<string | null>(
     null,
   );
 
@@ -123,7 +124,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setEditorGameIds([]);
     setPendingDeleteId(null);
     setEditingSession(null);
-    setDeleteErrorMessage(null);
+    setListErrorMessage(null);
     setPage('list');
     onClose();
   };
@@ -136,8 +137,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const handleOpenSession = (session: PlanningSession) => {
     const firstDraft: PlanDraft | undefined =
       session.draft[session.gameIds[0]];
-    if (!firstDraft) return;
+    if (!firstDraft) {
+      // Surface the failure rather than silently no-op'ing — a missing
+      // draft entry indicates a corrupt session that the user should know
+      // about so they can delete it and start over.
+      setListErrorMessage(
+        t(
+          'planningModal.openSessionFailed',
+          'Could not open this plan. Its data may be corrupt.',
+        ),
+      );
+      return;
+    }
     resetImportState();
+    setListErrorMessage(null);
     setEditingSession(session);
     setEditorGameIds([...session.gameIds]);
     setPage('editor');
@@ -154,10 +167,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     }
     // The editor produces ONE PlanDraft applied to all picked games; the
     // session entity stores draft per gameId. Replicate the draft across
-    // gameIds for now.
+    // gameIds — shallow-copy each entry so future per-game divergence
+    // (PR 7d+) doesn't accidentally mutate the shared object.
     const replicated: Record<string, PlanDraft> = {};
     for (const gid of data.gameIds) {
-      replicated[gid] = data.draft;
+      replicated[gid] = { ...data.draft };
     }
     const saved = await saveSession.mutateAsync({
       id: data.sessionId,
@@ -189,6 +203,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   };
 
   const handleEditorBack = () => {
+    // Reset editingSession so a reopen→back→pick-different-games flow
+    // doesn't silently overwrite the original session on Save (Claude
+    // PR-392 Bug: the picker bypasses handleNewPlan, so editingSession
+    // would otherwise leak from the reopened session into the next plan).
+    setEditingSession(null);
     setPage('picker');
   };
 
@@ -197,7 +216,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPendingDeleteId(null);
     setEditingSession(null);
     // Clear stale delete-error banner so it doesn't reappear on next open.
-    setDeleteErrorMessage(null);
+    setListErrorMessage(null);
     setPage('list');
     onClose();
   };
@@ -381,7 +400,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       type="button"
                                       // mutate (not mutateAsync) so React Query absorbs rejections; isPending blocks double-submit.
                                       onClick={() => {
-                                        setDeleteErrorMessage(null);
+                                        setListErrorMessage(null);
                                         deleteSession.mutate(session.id, {
                                           onSettled: (
                                             _data,
@@ -390,7 +409,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                             setPendingDeleteId(null);
                                             // Surface delete failures inline; success path leaves message null.
                                             if (err) {
-                                              setDeleteErrorMessage(
+                                              setListErrorMessage(
                                                 t(
                                                   'planningModal.deleteFailed',
                                                   'Could not delete the plan. Please try again.',
@@ -435,7 +454,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        setDeleteErrorMessage(null);
+                                        setListErrorMessage(null);
                                         setPendingDeleteId(session.id);
                                       }}
                                       className="rounded-md p-1.5 text-slate-300 hover:bg-rose-900/40 hover:text-rose-200"
@@ -453,14 +472,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                             );
                           })}
                         </ul>
-                        {/* Inline delete-failure banner — addresses Claude PR-391 follow-up. */}
-                        {deleteErrorMessage && (
+                        {/* Inline error banner: delete failures, open failures (corrupt session), etc. */}
+                        {listErrorMessage && (
                           <p
                             className="text-sm text-rose-300"
                             role="alert"
-                            data-testid="planning-modal-delete-error"
+                            data-testid="planning-modal-list-error"
                           >
-                            {deleteErrorMessage}
+                            {listErrorMessage}
                           </p>
                         )}
                       </div>

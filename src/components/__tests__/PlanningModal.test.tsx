@@ -643,7 +643,7 @@ describe('PlanningModal', () => {
 
       // Failure message appears once the rejection settles.
       expect(
-        await screen.findByTestId('planning-modal-delete-error'),
+        await screen.findByTestId('planning-modal-list-error'),
       ).toBeInTheDocument();
     });
 

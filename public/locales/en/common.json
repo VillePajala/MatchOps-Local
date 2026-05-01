@@ -1700,7 +1700,8 @@
     "deleteConfirm": "Confirm delete?",
     "sessionsLoadError": "Could not load saved plans. Please try again.",
     "openSession": "Open",
-    "deleteFailed": "Could not delete the plan. Please try again."
+    "deleteFailed": "Could not delete the plan. Please try again.",
+    "openSessionFailed": "Could not open this plan. Its data may be corrupt."
   },
   "planningGamePicker": {
     "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",
@@ -1722,7 +1723,6 @@
     "applying": "Applying…",
     "applyFailed": "Apply failed; please try again.",
     "savePlanButton": "Save plan",
-    "savePlanCreate": "Save plan",
     "savePlanUpdate": "Update plan",
     "savePlanLabel": "Plan name",
     "savePlanNamePlaceholder": "e.g. Lauto 80 Verne-5",

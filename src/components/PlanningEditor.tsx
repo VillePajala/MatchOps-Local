@@ -946,13 +946,17 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         </div>
       ) : null}
 
-      {/* Inline Save form: name input + Save / Cancel. Shown only when the
-          user clicked "Save plan". Inline-form pattern matches the rest of
-          the editor (no nested modal). */}
+      {/* Inline Save form: name input + Save / Cancel. <form onSubmit>
+          gives Enter-to-submit + native a11y for free; matches the rest
+          of the editor's no-nested-modal convention. */}
       {onSavePlan && savePlanName !== null && (
-        <div
+        <form
           className="rounded-md bg-slate-800/60 border border-slate-700 p-3 space-y-2"
           data-testid="planning-editor-save-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleConfirmSave();
+          }}
         >
           <label
             htmlFor="planning-editor-save-name"
@@ -970,6 +974,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               'e.g. Lauto 80 Verne-5',
             )}
             disabled={isSaving}
+            // Auto-focus on form open so the user can start typing
+            // immediately without an extra click.
+            autoFocus
             className="w-full rounded-md bg-slate-900/60 border border-slate-700 px-2 py-1 text-sm text-slate-100 disabled:opacity-60"
             data-testid="planning-editor-save-name"
           />
@@ -992,8 +999,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               {t('common.cancel', 'Cancel')}
             </button>
             <button
-              type="button"
-              onClick={handleConfirmSave}
+              type="submit"
               disabled={isSaving}
               data-testid="planning-editor-save-confirm"
               className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
@@ -1002,10 +1008,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                 ? t('planningEditor.saving', 'Saving…')
                 : editingSessionId
                   ? t('planningEditor.savePlanUpdate', 'Update plan')
-                  : t('planningEditor.savePlanCreate', 'Save plan')}
+                  : t('planningEditor.savePlanButton', 'Save plan')}
             </button>
           </div>
-        </div>
+        </form>
       )}
 
       <div className="flex justify-end gap-2 pt-2">
