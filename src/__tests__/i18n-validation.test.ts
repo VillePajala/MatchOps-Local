@@ -307,7 +307,12 @@ describe('Translation File Validation', () => {
       //   +7 planningEditor: savePlanButton, savePlanUpdate,
       //     savePlanLabel, savePlanNamePlaceholder, saveNameRequired,
       //     saving, saveFailed.
-      expect(enKeys.length).toBe(2520);
+      // Planner Phase 3d (PR 7d): +10 planningModal row actions:
+      //   renameAriaLabel, renameInputAriaLabel, renameNameRequired,
+      //   renameFailed, duplicateAriaLabel, duplicateNameSuffix,
+      //   duplicateFailed, activateAriaLabel, deactivateAriaLabel,
+      //   activeToggleFailed.
+      expect(enKeys.length).toBe(2530);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -326,7 +331,8 @@ describe('Translation File Validation', () => {
       // +1 planningTimeline.minutesPanel.
       // Planner Phase 3b: planningModal saved-sessions list +9.
       // Planner Phase 3c (PR 7c): +4 planningModal +7 planningEditor.
-      expect(fiKeys.length).toBe(2520);
+      // Planner Phase 3d (PR 7d): +10 planningModal row-action keys.
+      expect(fiKeys.length).toBe(2530);
     });
   });
 });

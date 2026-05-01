@@ -50,6 +50,16 @@ const mockSaveMutateAsync = jest.fn(async (vars: Partial<PlanningSession>) => ({
   id: vars.id ?? 'planningSession_new',
 }));
 
+// Active-toggle mutation mock (PR 7d).
+type SetActiveCallbacks = {
+  onError?: (err: Error) => void;
+  onSettled?: () => void;
+};
+const mockSetActiveMutate = jest.fn<
+  void,
+  [unknown, SetActiveCallbacks?]
+>();
+
 jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   __esModule: true,
   usePlanningSessionsQuery: (
@@ -58,6 +68,11 @@ jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   useDeletePlanningSessionMutation: () => mockDeleteMutationReturn,
   useSavePlanningSessionMutation: () => ({
     mutateAsync: mockSaveMutateAsync,
+    isPending: false,
+    error: null,
+  }),
+  useSetActiveSessionMutation: () => ({
+    mutate: mockSetActiveMutate,
     isPending: false,
     error: null,
   }),
@@ -91,6 +106,7 @@ const buildSession = (
 beforeEach(() => {
   mockDeleteMutate.mockClear();
   mockSaveMutateAsync.mockClear();
+  mockSetActiveMutate.mockClear();
   mockUsePlanningSessionsQuery.mockClear();
   mockDeleteMutationReturn = {
     mutate: mockDeleteMutate,
@@ -837,6 +853,405 @@ describe('PlanningModal', () => {
       expect(draft.g1).not.toBe(draft.g2);
       expect(draft.g1.startingXI).not.toBe(draft.g2.startingXI);
       expect(draft.g1.bench).not.toBe(draft.g2.bench);
+    });
+
+    // ── PR 7d: row-level actions ────────────────────────────────────
+    describe('Rename / Duplicate / Active-toggle (PR 7d)', () => {
+      it('Rename swaps the row to an inline form and saves with the new name', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: 'Renamed' } });
+        await act(async () => {
+          fireEvent.submit(
+            screen.getByTestId('planning-session-rename-form-s1'),
+          );
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        const payload = mockSaveMutateAsync.mock.calls[0][0];
+        expect(payload).toMatchObject({
+          id: 's1',
+          name: 'Renamed',
+        });
+      });
+
+      it('Rename rejects empty input with an inline error and does not call mutate', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: '   ' } });
+        fireEvent.submit(
+          screen.getByTestId('planning-session-rename-form-s1'),
+        );
+
+        expect(mockSaveMutateAsync).not.toHaveBeenCalled();
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toHaveTextContent(
+          /Plan name is required|Suunnitelman nimi vaaditaan/i,
+        );
+      });
+
+      it('Rename clears a stale validation banner on a successful retry', async () => {
+        // First submit fails client-side (empty name) → listErrorMessage
+        // is set. Second submit with a real name should both succeed
+        // AND clear the banner; otherwise the user sees an error
+        // message that no longer applies.
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: '   ' } });
+        fireEvent.submit(
+          screen.getByTestId('planning-session-rename-form-s1'),
+        );
+        // Banner up.
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toBeInTheDocument();
+
+        // Retry with a valid name.
+        fireEvent.change(input, { target: { value: 'Renamed' } });
+        await act(async () => {
+          fireEvent.submit(
+            screen.getByTestId('planning-session-rename-form-s1'),
+          );
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        // Stale banner should be gone after the successful save.
+        expect(
+          screen.queryByTestId('planning-modal-list-error'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('Cancel after a validation failure clears the stale banner', async () => {
+        // Repro for the Cancel-doesn't-clear-banner bug: user hits Empty
+        // name → banner up → Cancel → banner used to persist.
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        fireEvent.change(
+          screen.getByTestId('planning-session-rename-input-s1'),
+          { target: { value: '   ' } },
+        );
+        fireEvent.submit(
+          screen.getByTestId('planning-session-rename-form-s1'),
+        );
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toBeInTheDocument();
+
+        // Cancel — banner should be gone, not lingering.
+        fireEvent.click(
+          screen.getByTestId('planning-session-rename-cancel-s1'),
+        );
+        expect(
+          screen.queryByTestId('planning-modal-list-error'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('handleOpenSession clears in-progress rename on a different row', () => {
+        // Companion to the Open-clears-pendingDeleteId test from PR 7c
+        // round 8. Without this clear, the user could start renaming A,
+        // click Open on B, then press Back from the editor and find
+        // row A still showing the inline rename form.
+        const sessionA = buildSession({
+          id: 'a',
+          name: 'Plan A',
+          gameIds: ['g1'],
+          draft: {
+            g1: { startingXI: {}, bench: [], scheduledSubs: [] },
+          },
+        });
+        const sessionB = buildSession({
+          id: 'b',
+          name: 'Plan B',
+          gameIds: ['g1'],
+          draft: {
+            g1: { startingXI: { GK: 'p1' }, bench: [], scheduledSubs: [] },
+          },
+        });
+        setSessions([sessionA, sessionB]);
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 't1',
+            teamName: 'Pepo U10',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 12,
+          }),
+        };
+        renderModal({ currentTeamId: 't1', savedGames });
+
+        // Start renaming A.
+        fireEvent.click(screen.getByTestId('planning-session-rename-a'));
+        expect(
+          screen.getByTestId('planning-session-rename-form-a'),
+        ).toBeInTheDocument();
+
+        // Open B → editor mounts, list unmounts.
+        fireEvent.click(screen.getByTestId('planning-session-open-b'));
+        expect(
+          screen.queryByTestId('planning-modal-session-list'),
+        ).not.toBeInTheDocument();
+
+        // Back to the list. A's rename form must NOT be there.
+        fireEvent.click(
+          screen.getByRole('button', { name: /^Back$|^Takaisin$/i }),
+        );
+        expect(
+          screen.queryByTestId('planning-session-rename-form-a'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('Pressing Escape in the rename input cancels (a11y keyboard hatch)', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = screen.getByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: 'Discarded' } });
+        fireEvent.keyDown(input, { key: 'Escape' });
+        expect(
+          screen.queryByTestId('planning-session-rename-form-s1'),
+        ).not.toBeInTheDocument();
+        expect(mockSaveMutateAsync).not.toHaveBeenCalled();
+      });
+
+      it('Clicking Rename on row B closes the rename form on row A (single-row state)', async () => {
+        // renamingSessionId is a single nullable string, so opening
+        // rename on B should overwrite (close) A's form. Document this
+        // contract with a test so an accidental switch to a Set or
+        // per-row substate is caught.
+        setSessions([
+          buildSession({ id: 'a', name: 'Plan A' }),
+          buildSession({ id: 'b', name: 'Plan B' }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-a'));
+        expect(
+          screen.getByTestId('planning-session-rename-form-a'),
+        ).toBeInTheDocument();
+
+        // Now open rename on B.
+        fireEvent.click(screen.getByTestId('planning-session-rename-b'));
+
+        // A's form should be gone; B's should be visible.
+        expect(
+          screen.queryByTestId('planning-session-rename-form-a'),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByTestId('planning-session-rename-form-b'),
+        ).toBeInTheDocument();
+      });
+
+      it('Rename Cancel discards the edit and exits rename mode', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: 'Discarded' } });
+        fireEvent.click(
+          screen.getByRole('button', { name: /^Cancel$|^Peruuta$/i }),
+        );
+        expect(
+          screen.queryByTestId('planning-session-rename-form-s1'),
+        ).not.toBeInTheDocument();
+        expect(mockSaveMutateAsync).not.toHaveBeenCalled();
+      });
+
+      it('Duplicate creates a new session via mutateAsync (no id, "(copy)" suffix, isActive false)', async () => {
+        setSessions([
+          buildSession({
+            id: 's1',
+            name: 'Default',
+            isActive: true,
+            appliedAt: '2026-04-25T10:00:00.000Z',
+          }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-session-duplicate-s1'));
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        const payload = mockSaveMutateAsync.mock.calls[0][0];
+        expect(payload.id).toBeUndefined();
+        expect(payload.name).toMatch(/Default \(copy\)|Default \(kopio\)/i);
+        expect(payload.isActive).toBe(false);
+        expect(payload.appliedAt).toBeUndefined();
+      });
+
+      it('Rename failure surfaces an inline error and keeps rename mode open', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        mockSaveMutateAsync.mockRejectedValueOnce(new Error('storage offline'));
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        fireEvent.change(
+          screen.getByTestId('planning-session-rename-input-s1'),
+          { target: { value: 'Renamed' } },
+        );
+        await act(async () => {
+          fireEvent.submit(
+            screen.getByTestId('planning-session-rename-form-s1'),
+          );
+        });
+        await waitFor(() =>
+          expect(
+            screen.getByTestId('planning-modal-list-error'),
+          ).toHaveTextContent(
+            /Could not rename the plan|Suunnitelman uudelleennimeäminen epäonnistui/i,
+          ),
+        );
+        // Form stays open so the user can retry.
+        expect(
+          screen.getByTestId('planning-session-rename-form-s1'),
+        ).toBeInTheDocument();
+      });
+
+      it('Duplicate failure surfaces an inline error', async () => {
+        setSessions([buildSession({ id: 's1', name: 'A' })]);
+        mockSaveMutateAsync.mockRejectedValueOnce(new Error('storage offline'));
+        renderModal({ currentTeamId: 't1' });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-session-duplicate-s1'));
+        });
+        await waitFor(() =>
+          expect(
+            screen.getByTestId('planning-modal-list-error'),
+          ).toHaveTextContent(
+            /Could not duplicate the plan|Suunnitelman monistaminen epäonnistui/i,
+          ),
+        );
+      });
+
+      it('Active-toggle on an inactive session calls setActiveSession with the id', () => {
+        setSessions([
+          buildSession({ id: 's1', name: 'A', isActive: false }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(
+          screen.getByTestId('planning-session-active-toggle-s1'),
+        );
+        expect(mockSetActiveMutate).toHaveBeenCalledTimes(1);
+        const variables = mockSetActiveMutate.mock.calls[0][0] as {
+          sessionId: string | null;
+          teamId: string;
+          gameIds: string[];
+        };
+        expect(variables.sessionId).toBe('s1');
+        expect(variables.teamId).toBe('t1');
+      });
+
+      it('Active-toggle on an active session calls setActiveSession with null (deactivate)', () => {
+        setSessions([
+          buildSession({ id: 's1', name: 'A', isActive: true }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(
+          screen.getByTestId('planning-session-active-toggle-s1'),
+        );
+        const variables = mockSetActiveMutate.mock.calls[0][0] as {
+          sessionId: string | null;
+        };
+        expect(variables.sessionId).toBeNull();
+      });
+
+      it('Open → Back returns to the saved-session list (not the picker)', () => {
+        // Resolves the round-7 deferred Issue from PR #392: the Reopen
+        // path bypasses the picker, so Back from the editor should
+        // route back to the list. A regression to the old hardcoded
+        // `setPage('picker')` would silently hand the user to the
+        // picker with their original gameIds pre-selected.
+        const session = buildSession({
+          id: 's1',
+          name: 'A Plan',
+          gameIds: ['g1'],
+          draft: {
+            g1: {
+              startingXI: { GK: 'p1' },
+              bench: [],
+              scheduledSubs: [],
+            },
+          },
+        });
+        setSessions([session]);
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 't1',
+            teamName: 'Pepo U10',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 12,
+          }),
+        };
+        renderModal({ currentTeamId: 't1', savedGames });
+
+        // Reopen the session; editor mounts.
+        fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+        expect(
+          screen.getByTestId('planning-editor-save'),
+        ).toBeInTheDocument();
+
+        // Click the editor's Back button. The editor renders one Back
+        // labeled "Back" / "Takaisin"; multiple back-button matches on
+        // the page would break getByRole, so we assert specifically.
+        fireEvent.click(
+          screen.getByRole('button', { name: /^Back$|^Takaisin$/i }),
+        );
+
+        // Land on the saved-session list, NOT the picker.
+        expect(
+          screen.getByTestId('planning-modal-session-list'),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByTestId('planning-game-picker'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('Active-toggle failure surfaces an inline error', async () => {
+        setSessions([buildSession({ id: 's1', isActive: false })]);
+        // Override default mutate to invoke onError.
+        mockSetActiveMutate.mockImplementationOnce((_vars, opts) => {
+          opts?.onError?.(new Error('storage offline'));
+        });
+        renderModal({ currentTeamId: 't1' });
+        // Wrap in act() for consistency with the rename/duplicate
+        // failure tests; the onError currently fires synchronously,
+        // but harmonising the pattern guards against silent breakage
+        // if the mock becomes async later.
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-session-active-toggle-s1'),
+          );
+        });
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toHaveTextContent(
+          /Could not change the active plan|Aktiivisen suunnitelman vaihto epäonnistui/i,
+        );
+      });
     });
 
     it('shows the corrupt-session banner when gameIds is empty (not just empty draft map)', () => {
