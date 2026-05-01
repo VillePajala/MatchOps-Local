@@ -278,6 +278,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const handleCancelRename = () => {
     setRenamingSessionId(null);
     setRenameDraft('');
+    // Clear any rename-time validation banner — without this, a user
+    // who hit "Plan name is required" then Cancel would see the banner
+    // persist past their explicit abandon.
+    setListErrorMessage(null);
   };
 
   const handleConfirmRename = async (session: PlanningSession) => {
@@ -580,6 +584,15 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       onChange={(e) =>
                                         setRenameDraft(e.target.value)
                                       }
+                                      // Esc cancels — keyboard-only users
+                                      // shouldn't have to Tab to the Cancel
+                                      // button to abandon the edit.
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Escape') {
+                                          e.preventDefault();
+                                          handleCancelRename();
+                                        }
+                                      }}
                                       autoFocus
                                       className="flex-1 rounded-md bg-slate-900/60 border border-slate-700 px-2 py-1 text-sm text-slate-100"
                                       aria-label={t(

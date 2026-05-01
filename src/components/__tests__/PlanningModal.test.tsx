@@ -937,6 +937,48 @@ describe('PlanningModal', () => {
         ).not.toBeInTheDocument();
       });
 
+      it('Cancel after a validation failure clears the stale banner', async () => {
+        // Repro for the Cancel-doesn't-clear-banner bug: user hits Empty
+        // name → banner up → Cancel → banner used to persist.
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        fireEvent.change(
+          screen.getByTestId('planning-session-rename-input-s1'),
+          { target: { value: '   ' } },
+        );
+        fireEvent.submit(
+          screen.getByTestId('planning-session-rename-form-s1'),
+        );
+        expect(
+          screen.getByTestId('planning-modal-list-error'),
+        ).toBeInTheDocument();
+
+        // Cancel — banner should be gone, not lingering.
+        fireEvent.click(
+          screen.getByTestId('planning-session-rename-cancel-s1'),
+        );
+        expect(
+          screen.queryByTestId('planning-modal-list-error'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('Pressing Escape in the rename input cancels (a11y keyboard hatch)', async () => {
+        setSessions([buildSession({ id: 's1', name: 'Original' })]);
+        renderModal({ currentTeamId: 't1' });
+        fireEvent.click(screen.getByTestId('planning-session-rename-s1'));
+        const input = screen.getByTestId(
+          'planning-session-rename-input-s1',
+        );
+        fireEvent.change(input, { target: { value: 'Discarded' } });
+        fireEvent.keyDown(input, { key: 'Escape' });
+        expect(
+          screen.queryByTestId('planning-session-rename-form-s1'),
+        ).not.toBeInTheDocument();
+        expect(mockSaveMutateAsync).not.toHaveBeenCalled();
+      });
+
       it('Clicking Rename on row B closes the rename form on row A (single-row state)', async () => {
         // renamingSessionId is a single nullable string, so opening
         // rename on B should overwrite (close) A's form. Document this
@@ -1133,16 +1175,22 @@ describe('PlanningModal', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('Active-toggle failure surfaces an inline error', () => {
+      it('Active-toggle failure surfaces an inline error', async () => {
         setSessions([buildSession({ id: 's1', isActive: false })]);
         // Override default mutate to invoke onError.
         mockSetActiveMutate.mockImplementationOnce((_vars, opts) => {
           opts?.onError?.(new Error('storage offline'));
         });
         renderModal({ currentTeamId: 't1' });
-        fireEvent.click(
-          screen.getByTestId('planning-session-active-toggle-s1'),
-        );
+        // Wrap in act() for consistency with the rename/duplicate
+        // failure tests; the onError currently fires synchronously,
+        // but harmonising the pattern guards against silent breakage
+        // if the mock becomes async later.
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-session-active-toggle-s1'),
+          );
+        });
         expect(
           screen.getByTestId('planning-modal-list-error'),
         ).toHaveTextContent(
