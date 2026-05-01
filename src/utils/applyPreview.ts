@@ -25,8 +25,16 @@ export interface LineupAddChange {
   role: RoleName;
 }
 
-/** Player leaving the field. The role is the role they currently occupy. */
-export type LineupRemoveChange = LineupAddChange;
+/**
+ * Player leaving the field. `role` is undefined when the player was on
+ * the field with off-formation coords (legacy data, coord drift) — the
+ * preview UI should render that case explicitly so the user understands
+ * the player is being removed even though they had no recognized role.
+ */
+export interface LineupRemoveChange {
+  playerId: PlayerId;
+  role?: RoleName;
+}
 
 /** Player staying on the field but switching roles. */
 export interface LineupMoveChange {
@@ -108,22 +116,30 @@ export function computeApplyDiff(
   draft: PlanDraft,
   preset: FormationPreset,
 ): ApplyDiff {
-  // Build the current role→player map from playersOnField + preset coords.
-  const currentByRole = new Map<RoleName, PlayerId>();
+  // Track every on-field player id, regardless of whether their coords
+  // map to a recognized preset role. Off-formation players (legacy
+  // coord drift) would otherwise be silently dropped from the diff and
+  // Apply would still remove them — defeating the preview's safety
+  // purpose. Mapped players also get a role recorded for display.
+  const onFieldPlayerIds = new Set<PlayerId>();
+  const currentRolesByPlayer = new Map<PlayerId, RoleName>();
+  const occupiedRoles = new Set<RoleName>();
   for (const p of game.playersOnField ?? []) {
     if (!p.id) continue;
+    if (onFieldPlayerIds.has(p.id)) continue;
+    onFieldPlayerIds.add(p.id);
     const role = roleForCoord(preset, p.relX ?? 0.5, p.relY ?? 0.5);
-    if (role && !currentByRole.has(role.name)) {
-      currentByRole.set(role.name, p.id);
+    if (role && !occupiedRoles.has(role.name)) {
+      occupiedRoles.add(role.name);
+      currentRolesByPlayer.set(p.id, role.name);
     }
+    // Off-formation players land in onFieldPlayerIds without a role;
+    // the removed-loop below renders role=undefined for them.
   }
 
   const draftByRole = new Map<RoleName, PlayerId>(
     Object.entries(draft.startingXI),
   );
-
-  const currentRolesByPlayer = new Map<PlayerId, RoleName>();
-  for (const [role, pid] of currentByRole) currentRolesByPlayer.set(pid, role);
   const draftRolesByPlayer = new Map<PlayerId, RoleName>();
   for (const [role, pid] of draftByRole) draftRolesByPlayer.set(pid, role);
 
@@ -131,8 +147,8 @@ export function computeApplyDiff(
   const lineupMoved: LineupMoveChange[] = [];
   const lineupRemoved: LineupRemoveChange[] = [];
 
-  // Players in the draft: either added (not on field) or moved
-  // (different role from current).
+  // Players in the draft: either added (no recognized current role —
+  // either not on field, or off-formation) or moved (different role).
   for (const [role, pid] of draftByRole) {
     const currentRole = currentRolesByPlayer.get(pid);
     if (!currentRole) {
@@ -141,10 +157,12 @@ export function computeApplyDiff(
       lineupMoved.push({ playerId: pid, fromRole: currentRole, toRole: role });
     }
   }
-  // Players currently on the field but not in the draft → removed.
-  for (const [role, pid] of currentByRole) {
+  // Players on the field but missing from the draft → removed (going to
+  // bench). Iterates the full on-field set so off-formation players
+  // surface here too. Role may be undefined for off-formation entries.
+  for (const pid of onFieldPlayerIds) {
     if (!draftRolesByPlayer.has(pid)) {
-      lineupRemoved.push({ playerId: pid, role });
+      lineupRemoved.push({ playerId: pid, role: currentRolesByPlayer.get(pid) });
     }
   }
 

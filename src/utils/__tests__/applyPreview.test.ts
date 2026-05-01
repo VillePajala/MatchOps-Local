@@ -195,6 +195,69 @@ describe('computeApplyDiff', () => {
     expect(diff.isEmpty).toBe(true);
   });
 
+  it('off-formation player not in the draft is reported as removed (Codex P1)', () => {
+    // Game has a player at coords that don't snap to any preset role
+    // (legacy data / coord drift). Without the on-field-id tracking,
+    // Apply would silently remove them while the diff said isEmpty.
+    const game: AppState = {
+      teamId: 't1',
+      teamName: 'Pepo',
+      opponentName: 'Opp',
+      gameDate: '2026-04-30',
+      numberOfPeriods: 2,
+      periodDurationMinutes: 12,
+      playersOnField: [
+        // GK at canonical coords (mappable).
+        { id: 'p1', name: 'GK', relX: 0.5, relY: 0.95 },
+        // Off-formation: no preset role at (0.99, 0.01).
+        { id: 'p99', name: 'Drift', relX: 0.99, relY: 0.01 },
+      ],
+      selectedPlayerIds: ['p1', 'p99'],
+      availablePlayers: [],
+      scheduledSubs: [],
+    } as unknown as AppState;
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p1' },
+      bench: [],
+      scheduledSubs: [],
+    };
+    const diff = computeApplyDiff('g1', game, draft, preset5v5);
+    expect(diff.isEmpty).toBe(false);
+    expect(diff.lineupRemoved).toEqual([
+      { playerId: 'p99', role: undefined },
+    ]);
+  });
+
+  it('off-formation player placed at a real role in the draft is reported as added', () => {
+    // Drifted-coord player has no recognized current role; placing them
+    // at a draft role surfaces as a clean "add" rather than a confusing
+    // "moved from off-formation" entry.
+    const game: AppState = {
+      teamId: 't1',
+      teamName: 'Pepo',
+      opponentName: 'Opp',
+      gameDate: '2026-04-30',
+      numberOfPeriods: 2,
+      periodDurationMinutes: 12,
+      playersOnField: [
+        { id: 'p1', name: 'GK', relX: 0.5, relY: 0.95 },
+        { id: 'p99', name: 'Drift', relX: 0.99, relY: 0.01 },
+      ],
+      selectedPlayerIds: ['p1', 'p99'],
+      availablePlayers: [],
+      scheduledSubs: [],
+    } as unknown as AppState;
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p1', LB: 'p99' },
+      bench: [],
+      scheduledSubs: [],
+    };
+    const diff = computeApplyDiff('g1', game, draft, preset5v5);
+    expect(diff.lineupAdded).toEqual([{ playerId: 'p99', role: 'LB' }]);
+    expect(diff.lineupRemoved).toEqual([]);
+    expect(diff.lineupMoved).toEqual([]);
+  });
+
   it('countDiffChanges sums every category', () => {
     const diff: ApplyDiff = {
       gameId: 'g1',
