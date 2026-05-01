@@ -1700,6 +1700,7 @@
     "deleteConfirm": "Confirm delete?",
     "sessionsLoadError": "Could not load saved plans. Please try again.",
     "openSession": "Open",
+    "openSessionAriaLabel": "Open {{name}}",
     "deleteFailed": "Could not delete the plan. Please try again.",
     "openSessionFailed": "Could not open this plan. Its data may be corrupt."
   },

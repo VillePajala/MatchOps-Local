@@ -162,16 +162,23 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     draft: PlanDraft;
     gameIds: string[];
   }) => {
-    if (!currentTeamId) {
-      throw new Error('Cannot save planning session without a team scope');
-    }
+    // currentTeamId is gated upstream (onSavePlan is only set when it
+    // exists), but the cast lets TypeScript narrow it for the .mutateAsync
+    // call without leaving an unreachable runtime guard.
+    if (!currentTeamId) return;
     // The editor produces ONE PlanDraft applied to all picked games; the
-    // session entity stores draft per gameId. Replicate the draft across
-    // gameIds — shallow-copy each entry so future per-game divergence
-    // (PR 7d+) doesn't accidentally mutate the shared object.
+    // session entity stores draft per gameId. Deep-copy each entry so
+    // PR 7d's per-game divergence won't accidentally mutate shared
+    // references — startingXI (object), bench (array), and scheduledSubs
+    // (array of objects) all need their own copies.
     const replicated: Record<string, PlanDraft> = {};
     for (const gid of data.gameIds) {
-      replicated[gid] = { ...data.draft };
+      replicated[gid] = {
+        ...data.draft,
+        startingXI: { ...data.draft.startingXI },
+        bench: [...data.draft.bench],
+        scheduledSubs: data.draft.scheduledSubs.map((s) => ({ ...s })),
+      };
     }
     const saved = await saveSession.mutateAsync({
       id: data.sessionId,
@@ -444,6 +451,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                         handleOpenSession(session)
                                       }
                                       className="rounded-md bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-600"
+                                      // Without the per-session aria-label,
+                                      // a screen-reader user gets a column
+                                      // of identical "Open" buttons with
+                                      // no way to tell which plan each
+                                      // belongs to. Mirrors the Delete
+                                      // button's labeling pattern.
+                                      aria-label={t(
+                                        'planningModal.openSessionAriaLabel',
+                                        'Open {{name}}',
+                                        { name: session.name },
+                                      )}
                                       data-testid={`planning-session-open-${session.id}`}
                                     >
                                       {t(
@@ -595,7 +613,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                 />
               )}
 
-              {page === 'editor' && (
+              {page === 'editor' && (() => {
+                // Single map lookup; both initialDraft and initialPresetId
+                // pull from this entry (avoids the duplicate property
+                // access Claude flagged).
+                const sessionFirstDraft = editingSession
+                  ? editingSession.draft[editingSession.gameIds[0]]
+                  : undefined;
+                return (
                 <PlanningEditor
                   gameIds={editorGameIds}
                   savedGames={savedGames ?? {}}
@@ -603,25 +628,15 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   onBack={handleEditorBack}
                   onApplied={handleEditorApplied}
                   applyToGame={applyToGame}
-                  // Reopen + Save (PR 7c). When the user picked an existing
-                  // session via Open, hydrate the editor; otherwise these
-                  // are undefined and the editor falls back to its game-
-                  // derived initial state.
-                  initialDraft={
-                    editingSession
-                      ? editingSession.draft[editingSession.gameIds[0]]
-                      : undefined
-                  }
+                  // When the user picked an existing session via Open,
+                  // hydrate the editor; otherwise these are undefined and
+                  // the editor falls back to its game-derived initial state.
+                  initialDraft={sessionFirstDraft}
                   // Lift the preset out of the saved draft so the editor
                   // renders against the SAME formation it was authored
-                  // under (Codex PR-392 P1: role keys differ across
-                  // presets, so a mis-matched preset drops assignments).
-                  initialPresetId={
-                    editingSession
-                      ? editingSession.draft[editingSession.gameIds[0]]
-                          ?.presetId
-                      : undefined
-                  }
+                  // under — role keys differ across presets, so a
+                  // mis-matched preset drops assignments.
+                  initialPresetId={sessionFirstDraft?.presetId}
                   initialName={editingSession?.name}
                   editingSessionId={editingSession?.id}
                   // currentTeamId is required for Save (the entity is
@@ -631,7 +646,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                     currentTeamId ? handleSavePlan : undefined
                   }
                 />
-              )}
+                );
+              })()}
             </div>
           </div>
 

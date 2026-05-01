@@ -1463,6 +1463,7 @@ export type TranslationKey =
   | 'planningModal.importSuccessTitle'
   | 'planningModal.newPlanButton'
   | 'planningModal.openSession'
+  | 'planningModal.openSessionAriaLabel'
   | 'planningModal.openSessionFailed'
   | 'planningModal.readError'
   | 'planningModal.savedSessionsHeading'

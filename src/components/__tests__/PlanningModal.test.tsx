@@ -627,6 +627,32 @@ describe('PlanningModal', () => {
       ).toBeInTheDocument();
     });
 
+    it('shows an inline error when Open targets a corrupt session (no draft for first gameId)', () => {
+      // Synthesize a corrupt session: gameIds references "g1" but the
+      // draft map is empty. Without the inline-error fallback, Open
+      // would silently no-op and the user would think the click failed.
+      const corrupt = buildSession({
+        id: 's1',
+        name: 'Corrupt session',
+        gameIds: ['g1'],
+        draft: {},
+      });
+      setSessions([corrupt]);
+      renderModal();
+
+      fireEvent.click(screen.getByTestId('planning-session-open-s1'));
+
+      // List error banner appears with the corrupt-open copy.
+      const banner = screen.getByTestId('planning-modal-list-error');
+      expect(banner).toHaveTextContent(
+        /Could not open this plan|Tämän suunnitelman avaaminen epäonnistui/i,
+      );
+      // Editor did NOT mount — saved-session list still rendered.
+      expect(
+        screen.getByTestId('planning-modal-session-list'),
+      ).toBeInTheDocument();
+    });
+
     it('shows an inline error when the delete mutation rejects (PR 7c)', async () => {
       setSessions([buildSession({ id: 's1', name: 'Will fail' })]);
       mockDeleteMutate.mockImplementationOnce((id, opts) => {
