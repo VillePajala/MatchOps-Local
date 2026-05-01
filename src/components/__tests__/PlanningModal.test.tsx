@@ -937,6 +937,34 @@ describe('PlanningModal', () => {
         ).not.toBeInTheDocument();
       });
 
+      it('Clicking Rename on row B closes the rename form on row A (single-row state)', async () => {
+        // renamingSessionId is a single nullable string, so opening
+        // rename on B should overwrite (close) A's form. Document this
+        // contract with a test so an accidental switch to a Set or
+        // per-row substate is caught.
+        setSessions([
+          buildSession({ id: 'a', name: 'Plan A' }),
+          buildSession({ id: 'b', name: 'Plan B' }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-a'));
+        expect(
+          screen.getByTestId('planning-session-rename-form-a'),
+        ).toBeInTheDocument();
+
+        // Now open rename on B.
+        fireEvent.click(screen.getByTestId('planning-session-rename-b'));
+
+        // A's form should be gone; B's should be visible.
+        expect(
+          screen.queryByTestId('planning-session-rename-form-a'),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByTestId('planning-session-rename-form-b'),
+        ).toBeInTheDocument();
+      });
+
       it('Rename Cancel discards the edit and exits rename mode', async () => {
         setSessions([buildSession({ id: 's1', name: 'Original' })]);
         renderModal({ currentTeamId: 't1' });

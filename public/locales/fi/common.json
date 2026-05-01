@@ -1703,15 +1703,15 @@
     "openSessionAriaLabel": "Avaa {{name}}",
     "deleteFailed": "Suunnitelman poistaminen epäonnistui. Yritä uudelleen.",
     "openSessionFailed": "Tämän suunnitelman avaaminen epäonnistui. Tiedot saattavat olla vioittuneet.",
-    "renameAriaLabel": "Nimeä uudelleen: {{name}}",
+    "renameAriaLabel": "Nimeä uudelleen {{name}}",
     "renameInputAriaLabel": "Uusi nimi",
     "renameNameRequired": "Suunnitelman nimi vaaditaan.",
     "renameFailed": "Suunnitelman uudelleennimeäminen epäonnistui. Yritä uudelleen.",
-    "duplicateAriaLabel": "Monista: {{name}}",
+    "duplicateAriaLabel": "Monista {{name}}",
     "duplicateNameSuffix": "{{name}} (kopio)",
     "duplicateFailed": "Suunnitelman monistaminen epäonnistui. Yritä uudelleen.",
     "activateAriaLabel": "Aktivoi {{name}}",
-    "deactivateAriaLabel": "Poista käytöstä: {{name}}",
+    "deactivateAriaLabel": "Poista käytöstä {{name}}",
     "activeToggleFailed": "Aktiivisen suunnitelman vaihto epäonnistui. Yritä uudelleen."
   },
   "planningGamePicker": {

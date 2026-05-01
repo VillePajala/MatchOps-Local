@@ -338,6 +338,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         gameIds: [...session.gameIds],
         draft: session.draft,
         isActive: false,
+        // PlanningSession.appliedAt is `string | undefined`; passing
+        // undefined is the canonical "not yet applied" sentinel.
+        // SupabaseDataStore.transformPlanningSessionToDb maps this to
+        // SQL NULL, so the round-trip is preserved across both backends.
         appliedAt: undefined,
       });
     } catch {
@@ -687,6 +691,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                         handleOpenSession(session)
                                       }
                                       className="rounded-md bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-600"
+                                      // Per-session aria-label so screen
+                                      // readers can disambiguate the column
+                                      // of identical "Open" buttons.
                                       aria-label={t(
                                         'planningModal.openSessionAriaLabel',
                                         'Open {{name}}',
@@ -738,11 +745,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => handleStartRename(session)}
-                                      // Match Duplicate's pending-state gate
-                                      // — opening the rename form while a
-                                      // save is in flight gives the user a
-                                      // form whose Save button is already
-                                      // disabled, with no explanation.
+                                      // saveSession is shared across rename
+                                      // and duplicate, so a Duplicate in
+                                      // flight disables every row's Rename
+                                      // button (and vice versa). Acceptable
+                                      // at this scale; per-row gating would
+                                      // need separate mutation instances.
                                       disabled={saveSession.isPending}
                                       className="rounded-md p-1.5 text-slate-300 hover:bg-slate-700 disabled:opacity-60"
                                       aria-label={t(
