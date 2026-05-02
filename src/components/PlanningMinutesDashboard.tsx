@@ -49,6 +49,8 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
   );
   const playerLabel = (id: string): string => {
     const p = playerMap.get(id);
+    // `||` (not `??`) so an empty-string nickname falls through to
+    // `name` rather than rendering an empty pill.
     return p?.nickname || p?.name || id;
   };
 
@@ -69,6 +71,9 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
     [aggregate],
   );
 
+  // perPlayer === [] also covers the gameIds: [] case via
+  // aggregatePlanMinutes' early exit, so a single check captures
+  // both empty-input paths.
   if (aggregate.perPlayer.length === 0) {
     return (
       <div

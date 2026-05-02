@@ -95,6 +95,50 @@ describe('PlanningMinutesDashboard', () => {
     ).toHaveAttribute('data-band', 'fair');
   });
 
+  it('renders the fair-share header value as mm:ss', () => {
+    // 3 starters × 1200s game = 3600s total field time. Fair share =
+    // 3600 / 3 = 1200s = 20:00. Guards against accidental key renames
+    // or format drift on the header.
+    renderDashboard();
+    expect(screen.getByText('Fair share: 20:00')).toBeInTheDocument();
+  });
+
+  it('marks a low-share player with the low band', () => {
+    // p1 plays 0–17:00 (1020s) of a 20:00 game. Fair share with 4
+    // referenced players = (1200 * 3) / 4 = 900s. shareRatio =
+    // 1020/900 = 1.133… → over. To hit `low` (0.7 ≤ ratio < 0.9):
+    // p1 plays 13:00 (780s) → 780/900 = 0.866 → low.
+    renderDashboard({
+      draft: {
+        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+        bench: ['p3'],
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 780, inPlayer: 'p3', positionRole: 'LB' },
+        ],
+      },
+    });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p1'),
+    ).toHaveAttribute('data-band', 'low');
+  });
+
+  it('marks an over-share player with the over band', () => {
+    // Setup as above with sub at 17:00 → p1 plays 1020s,
+    // 1020/900 = 1.133 → over.
+    renderDashboard({
+      draft: {
+        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+        bench: ['p3'],
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 1020, inPlayer: 'p3', positionRole: 'LB' },
+        ],
+      },
+    });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p1'),
+    ).toHaveAttribute('data-band', 'over');
+  });
+
   it('marks a heavy-over player with the heavy-over band', () => {
     // 4 players in the rotation, but p3 plays both LB AND RB across
     // sub events — they accumulate well over their fair share.
