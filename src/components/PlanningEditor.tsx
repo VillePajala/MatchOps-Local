@@ -28,6 +28,7 @@ import {
 import logger from '@/utils/logger';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningMinutesDashboard from './PlanningMinutesDashboard';
+import PlanningChipGrid from './PlanningChipGrid';
 import type { DraftScheduledSub } from '@/utils/planSwapEngine';
 import PlanningApplyPreview from './PlanningApplyPreview';
 import { computeApplyDiff, type ApplyDiff } from '@/utils/applyPreview';
@@ -1033,6 +1034,14 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
       <PlanningMinutesDashboard
         draft={draft}
+        gameIds={gameIds}
+        savedGames={savedGames}
+        roster={roster}
+      />
+
+      <PlanningChipGrid
+        draft={draft}
+        preset={preset}
         gameIds={gameIds}
         savedGames={savedGames}
         roster={roster}

@@ -326,7 +326,10 @@ describe('Translation File Validation', () => {
       // Planner Phase 5a: +4 planningMinutesDashboard keys for the
       //   plan-level minutes dashboard (title, fairShare, empty,
       //   entryAria).
-      expect(enKeys.length).toBe(2565);
+      // Planner Phase 5b: +5 planningChipGrid keys for the per-game
+      //   chip-grid view (title, empty, clearHighlight, chipAria,
+      //   gameMissing).
+      expect(enKeys.length).toBe(2570);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -349,7 +352,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 4b: +23 planningApplyPreview keys (see EN block).
       // Planner Phase 4c: +8 planningUndoBanner keys (see EN block).
       // Planner Phase 5a: +4 planningMinutesDashboard keys.
-      expect(fiKeys.length).toBe(2565);
+      // Planner Phase 5b: +5 planningChipGrid keys.
+      expect(fiKeys.length).toBe(2570);
     });
   });
 });
