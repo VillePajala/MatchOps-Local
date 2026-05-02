@@ -8,6 +8,7 @@ import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { FormationPreset } from '@/config/formationPresets';
 import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
 import { getRoleSegments } from '@/utils/planFairness';
+import { formatMMSS, gameDurationSec } from '@/utils/planFormatters';
 
 export interface PlanningChipGridProps {
   draft: PlanDraft;
@@ -16,18 +17,6 @@ export interface PlanningChipGridProps {
   savedGames: SavedGamesCollection;
   roster: Player[];
 }
-
-const formatMMSS = (totalSec: number): string => {
-  const m = Math.floor(totalSec / 60);
-  const s = Math.floor(totalSec % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-};
-
-const gameDurationSec = (game: AppState): number => {
-  const periods = game.numberOfPeriods ?? 2;
-  const minutes = game.periodDurationMinutes ?? 10;
-  return Math.max(0, periods * minutes * 60);
-};
 
 const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
   draft,
@@ -183,23 +172,26 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
                           : isDimmed
                             ? 'border-slate-700 bg-slate-800/40 text-slate-500 opacity-60'
                             : 'border-slate-600 bg-slate-700/60 text-slate-100 hover:bg-slate-600/60';
-                        const label = `${playerLabel(seg.playerId)} ${formatMMSS(seg.startSec)}–${formatMMSS(seg.endSec)}`;
+                        const chipText = t(
+                          'planningChipGrid.chipAria',
+                          '{{player}} from {{from}} to {{to}}',
+                          {
+                            player: playerLabel(seg.playerId),
+                            from: formatMMSS(seg.startSec),
+                            to: formatMMSS(seg.endSec),
+                          },
+                        );
                         return (
                           <button
                             key={`${seg.playerId}-${seg.startSec}`}
                             type="button"
                             onClick={() => togglePlayer(seg.playerId)}
                             aria-pressed={isHighlighted}
-                            aria-label={t(
-                              'planningChipGrid.chipAria',
-                              '{{player}} from {{from}} to {{to}}',
-                              {
-                                player: playerLabel(seg.playerId),
-                                from: formatMMSS(seg.startSec),
-                                to: formatMMSS(seg.endSec),
-                              },
-                            )}
-                            title={label}
+                            // Same translated string for both AT and
+                            // sighted hover so the two never drift in
+                            // any locale.
+                            aria-label={chipText}
+                            title={chipText}
                             data-player-id={seg.playerId}
                             data-highlighted={isHighlighted ? 'true' : 'false'}
                             data-testid={`planning-chip-grid-chip-${gid}-${role.name}-${seg.playerId}`}

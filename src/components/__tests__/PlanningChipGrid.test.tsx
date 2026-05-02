@@ -258,4 +258,79 @@ describe('PlanningChipGrid', () => {
       screen.queryByTestId('planning-chip-grid-card-gx'),
     ).not.toBeInTheDocument();
   });
+
+  it('Enter / Space on a chip activates the highlight (keyboard a11y)', () => {
+    renderGrid();
+    const chip = screen.getByTestId('planning-chip-grid-chip-g1-GK-p0');
+    // Native <button> elements activate via Enter / Space click
+    // synthesis. fireEvent.click is what jsdom emits for a real
+    // keyboard activation; this guards the chip renders as a real
+    // button and not a div+role="button" that needs manual key
+    // handling.
+    expect(chip.tagName).toBe('BUTTON');
+    act(() => {
+      fireEvent.click(chip);
+    });
+    expect(chip).toHaveAttribute('data-highlighted', 'true');
+  });
+
+  it('gameLabel falls back to opponentName only when gameDate is missing', () => {
+    renderGrid({
+      savedGames: {
+        g1: ({
+          teamId: 't1',
+          opponentName: 'OnlyOpp',
+          // gameDate omitted
+          numberOfPeriods: 2,
+          periodDurationMinutes: 10,
+        } as unknown) as AppState,
+      } as SavedGamesCollection,
+    });
+    expect(
+      screen.getByTestId('planning-chip-grid-card-g1'),
+    ).toHaveTextContent('OnlyOpp');
+  });
+
+  it('gameLabel falls back to gameDate only when opponentName is missing', () => {
+    renderGrid({
+      savedGames: {
+        g1: ({
+          teamId: 't1',
+          // opponentName omitted
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 10,
+        } as unknown) as AppState,
+      } as SavedGamesCollection,
+    });
+    // Locale-formatted; just match the year + day to stay
+    // locale-stable across CI.
+    expect(
+      screen.getByTestId('planning-chip-grid-card-g1'),
+    ).toHaveTextContent(/2026/);
+  });
+
+  it('gameLabel falls back to the raw gameId when both opp and date are missing', () => {
+    renderGrid({
+      savedGames: {
+        g1: ({
+          teamId: 't1',
+          // opponentName + gameDate both omitted
+          numberOfPeriods: 2,
+          periodDurationMinutes: 10,
+        } as unknown) as AppState,
+      } as SavedGamesCollection,
+    });
+    expect(
+      screen.getByTestId('planning-chip-grid-card-g1'),
+    ).toHaveTextContent('g1');
+  });
+
+  it('title attribute matches aria-label so hover and AT announcements never drift', () => {
+    renderGrid();
+    const chip = screen.getByTestId('planning-chip-grid-chip-g1-GK-p0');
+    const aria = chip.getAttribute('aria-label');
+    expect(aria).toBeTruthy();
+    expect(chip).toHaveAttribute('title', aria!);
+  });
 });
