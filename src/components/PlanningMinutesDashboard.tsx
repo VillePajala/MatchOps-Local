@@ -43,14 +43,14 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const playerLabel = useMemo(() => {
-    const map = new Map<string, Player>();
-    for (const p of roster) map.set(p.id, p);
-    return (id: string): string => {
-      const p = map.get(id);
-      return p?.nickname || p?.name || id;
-    };
-  }, [roster]);
+  const playerMap = useMemo(
+    () => new Map(roster.map((p) => [p.id, p])),
+    [roster],
+  );
+  const playerLabel = (id: string): string => {
+    const p = playerMap.get(id);
+    return p?.nickname || p?.name || id;
+  };
 
   const aggregate = useMemo(
     () => aggregatePlanMinutes(draft, gameIds, savedGames),
@@ -105,6 +105,10 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
         </span>
       </header>
       <ul
+        // Tailwind preflight strips list-style; Safari VoiceOver and
+        // some NVDA configs then drop the implicit list semantic.
+        // Explicit role="list" keeps AT users hearing "list, N items".
+        role="list"
         className="grid grid-cols-2 gap-1 text-xs sm:grid-cols-3"
         data-testid="planning-minutes-dashboard-grid"
       >

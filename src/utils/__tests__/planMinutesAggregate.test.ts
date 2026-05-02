@@ -72,6 +72,20 @@ describe('aggregatePlanMinutes', () => {
     expect(out.totalFieldSeconds).toBe(12_600); // 4200 * 3 starters
   });
 
+  it('returns an empty aggregate when every gameId is missing from savedGames', () => {
+    // Every id is missing — totals stays empty, fair share is 0, no
+    // perPlayer entries. The dashboard's empty-state fires from this.
+    const out = aggregatePlanMinutes(
+      draftBasic,
+      ['missing1', 'missing2'],
+      {},
+    );
+    expect(out.perPlayer).toEqual([]);
+    expect(out.referencedPlayerIds).toEqual([]);
+    expect(out.fairShareSeconds).toBe(0);
+    expect(out.totalFieldSeconds).toBe(0);
+  });
+
   it('skips games whose savedGames entry is missing', () => {
     // gx not in savedGames — must not throw, must contribute 0.
     const out = aggregatePlanMinutes(

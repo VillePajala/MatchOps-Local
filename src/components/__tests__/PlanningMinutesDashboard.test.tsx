@@ -182,9 +182,18 @@ describe('PlanningMinutesDashboard', () => {
     const row = screen.getByTestId(
       'planning-minutes-dashboard-entry-p0',
     );
+    // Exact match — the test i18n stub has the entryAria fallback
+    // string, so any drift in the key (typo, accidental rename) fails
+    // here rather than passing a permissive regex.
     expect(row).toHaveAttribute(
       'aria-label',
-      expect.stringMatching(/Alice.*20:00.*100/),
+      'Alice: 20:00, 100 percent of fair share',
+    );
+    // title attribute mirrors aria-label so hover and AT
+    // announcements never drift.
+    expect(row).toHaveAttribute(
+      'title',
+      'Alice: 20:00, 100 percent of fair share',
     );
   });
 });

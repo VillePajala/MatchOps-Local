@@ -21,8 +21,9 @@ export interface PlanMinutesAggregate {
   totalFieldSeconds: number;
   /**
    * Players who actually accumulate non-zero seconds across the plan,
-   * sorted by id for deterministic equality assertions. Use
-   * `perPlayer` (sorted by minutes) for display order.
+   * ordered by player id for deterministic equality assertions.
+   * `perPlayer` is in the same order; sort by minutes in the consumer
+   * before display.
    */
   referencedPlayerIds: PlayerId[];
 }
@@ -118,11 +119,12 @@ export const aggregatePlanMinutes = (
  *
  * Float precision: the ratio is `entry.totalSeconds /
  * fairShareSeconds`, both derived from integer seconds. With odd
- * denominators (e.g. 7-player rotations) the IEEE-754 result can
- * land at e.g. 1.0999999999999999 instead of 1.1, dropping a "fair"
- * player one band too high. This is rare in soccer rotations
- * (typical 10–15 players, often divisible) and the visual impact is
- * one tile of color drift, not a correctness break.
+ * denominators (e.g. 7-player rotations) a value that should be
+ * exactly 1.1 can land at e.g. 1.10000000000000009, fail the
+ * `<= 1.1` guard, and be classified as `over` instead of `fair`.
+ * This is rare in soccer rotations (typical 10–15 players, often
+ * divisible) and the visual impact is one tile of color drift, not
+ * a correctness break.
  */
 export type FairShareBand = 'under' | 'low' | 'fair' | 'over' | 'heavy-over';
 
