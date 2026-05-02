@@ -2,7 +2,10 @@
 
 import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
+import {
+  HiOutlineExclamationTriangle,
+  HiOutlineInformationCircle,
+} from 'react-icons/hi2';
 import type { Player } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import {
@@ -370,10 +373,13 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
         </ul>
       )}
 
-      {/* Hint only makes sense when there are cards to uncheck. */}
+      {/* Hint only makes sense when there are cards to uncheck.
+          Slate styling (informational) — amber would imply a warning,
+          but this copy is purely instructional. The rose missing-games
+          notice above is the one that warrants warning color. */}
       {visibleDiffs.length > 0 && (
-        <div className="flex items-start gap-2 rounded-md bg-amber-900/20 border border-amber-700/30 p-2 text-xs text-amber-100">
-          <HiOutlineExclamationTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-2 rounded-md bg-slate-700/40 border border-slate-600/40 p-2 text-xs text-slate-300">
+          <HiOutlineInformationCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
           <p>
             {t(
               'planningApplyPreview.applyHint',
