@@ -4,9 +4,21 @@ import '@testing-library/jest-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../../i18n.test';
 import PlanningModal from '../PlanningModal';
+// Mock parsePlanExport with a jest.fn that delegates to the real
+// implementation by default; individual tests can mockReturnValueOnce
+// to bypass validation and exercise downstream defense-in-depth
+// guards (e.g. an empty-games envelope).
+jest.mock('@/utils/planExport', () => {
+  const actual = jest.requireActual('@/utils/planExport');
+  return {
+    ...actual,
+    parsePlanExport: jest.fn(actual.parsePlanExport),
+  };
+});
 import {
   PLAN_FORMAT_VERSION,
   PLAN_EXPORT_KIND,
+  parsePlanExport,
 } from '@/utils/planExport';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { PlanningSession } from '@/types';
@@ -277,6 +289,56 @@ describe('PlanningModal', () => {
     expect(
       screen.queryByText(/Plan imported|Suunnitelma tuotu/i),
     ).not.toBeInTheDocument();
+  });
+
+  it('"Use this plan" with a 0-game envelope renders the inline handoff error', async () => {
+    // parsePlanExport rejects 0-game envelopes upfront, so the
+    // handler's `if (!firstGame)` guard is defense-in-depth. To
+    // exercise the inline alert path, stub the parser to return a
+    // synthetic empty-games plan and drive the handoff click.
+    (parsePlanExport as jest.Mock).mockReturnValueOnce({
+      ok: true,
+      plan: {
+        formatVersion: PLAN_FORMAT_VERSION,
+        kind: PLAN_EXPORT_KIND,
+        savedAt: '2026-04-28T12:00:00.000Z',
+        teamName: 'Pepo U10',
+        formationId: '8v8-2-1-2-1-1',
+        rosterSize: 11,
+        games: [],
+        included: [],
+        currentVersionName: null,
+      },
+    });
+    {
+      renderModal();
+      const file = fileFromText('plan.json', '{}'); // body irrelevant; spy intercepts
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+        ).toBeInTheDocument();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-modal-import-use'));
+      });
+      // Inline role="alert" element renders next to the button.
+      const err = screen.getByTestId(
+        'planning-modal-import-handoff-error',
+      );
+      expect(err).toBeInTheDocument();
+      expect(err).toHaveAttribute('role', 'alert');
+      expect(err).toHaveTextContent(
+        /Imported plan has no games|Tuodussa suunnitelmassa ei ole pelejä/i,
+      );
+      // Picker is NOT entered — the handoff was rejected.
+      expect(
+        screen.queryByTestId('planning-game-picker'),
+      ).not.toBeInTheDocument();
+    }
   });
 
   it('import → picker → Back → New Plan does not leak the import draft into the next flow', async () => {

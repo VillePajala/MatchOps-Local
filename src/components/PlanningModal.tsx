@@ -203,6 +203,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // Shared reset for every path that returns the modal to the list page.
   // Extracted so adding new state to the modal can't drift between
   // handleClose / handleEditorApplied / similar callers.
+  // Centralized clear for the standalone-import handoff state. Shared
+  // by resetEditorState (full editor exits) and the open-existing-
+  // session path (which needs to drop pending-import remnants without
+  // touching unrelated editor state like undo snapshots).
+  const resetPendingImport = () => {
+    setPendingImportDraft(undefined);
+    setPendingImportPresetId(undefined);
+    setPendingImportName(undefined);
+    setImportHandoffError(null);
+  };
+
   const resetEditorState = () => {
     setEditorGameIds([]);
     setPendingDeleteId(null);
@@ -215,10 +226,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setIsUndoing(false);
     isUndoingRef.current = false;
     setUndoCursor(0);
-    setPendingImportDraft(undefined);
-    setPendingImportPresetId(undefined);
-    setPendingImportName(undefined);
-    setImportHandoffError(null);
+    resetPendingImport();
   };
 
   const handleClose = () => {
@@ -264,10 +272,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // the import's preset (the second `??` in the editor's
     // initialPresetId chain wins when sessionFirstDraft.presetId
     // is undefined).
-    setPendingImportDraft(undefined);
-    setPendingImportPresetId(undefined);
-    setPendingImportName(undefined);
-    setImportHandoffError(null);
+    resetPendingImport();
     setListErrorMessage(null);
     // Clear any half-confirmed delete from the list — without this, a
     // user who clicks Delete on session A, then Open on session B,
@@ -499,9 +504,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     const draft: PlanDraft = {
       startingXI: { ...firstGame.startingXI },
       // Bench is empty — the editor derives it from each saved game's
-      // selectedPlayerIds at open time. Scheduled subs lose their
-      // outPlayer + status; the swap engine recomputes outPlayer at
-      // apply time and status defaults to 'pending'.
+      // selectedPlayerIds at open time. The map below projects the
+      // imported ScheduledSub down to DraftScheduledSub, dropping
+      // outPlayer (computed lazily by the swap engine at apply time)
+      // and status (defaults to 'pending').
       bench: [],
       scheduledSubs: firstGame.scheduledSubs.map((s) => ({
         id: s.id,
