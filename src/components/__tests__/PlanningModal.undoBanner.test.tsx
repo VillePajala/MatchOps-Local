@@ -341,8 +341,10 @@ describe('PlanningModal — post-Apply undo banner (PR 8c)', () => {
       lastEditorOnApplied?.(buildSnapshot());
     });
     expect(screen.getByTestId('planning-undo-banner')).toBeInTheDocument();
-    // External close: click the modal-level Done button.
-    fireEvent.click(screen.getByRole('button', { name: /Done|Valmis/i }));
+    // External close: click the modal-level Done button (NOT the
+    // banner's own Dismiss — both close, but this asserts the
+    // outer-chrome path also routes through resetEditorState).
+    fireEvent.click(screen.getByTestId('planning-modal-done'));
     expect(onClose).toHaveBeenCalledTimes(1);
     // Reopen the same modal — the banner must NOT come back from
     // stale state. We simulate the reopen by toggling isOpen via a

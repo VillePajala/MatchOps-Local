@@ -1085,7 +1085,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           </div>
 
           <ModalFooter>
-            <button type="button" onClick={handleClose} className={primaryButtonStyle}>
+            <button
+              type="button"
+              onClick={handleClose}
+              className={primaryButtonStyle}
+              data-testid="planning-modal-done"
+            >
               {t('common.doneButton', 'Done')}
             </button>
           </ModalFooter>

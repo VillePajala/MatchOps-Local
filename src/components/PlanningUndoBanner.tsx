@@ -121,7 +121,13 @@ const PlanningUndoBanner: React.FC<PlanningUndoBannerProps> = ({
             )}
           </p>
           {undoError && (
+            // Dedicated assertive live region — outer role="status"
+            // is already polite for the initial banner, but some AT
+            // combos miss dynamic children added after first render.
+            // Assertive ensures the failure is announced reliably.
             <p
+              role="alert"
+              aria-live="assertive"
               className="mt-1 text-xs text-rose-200"
               data-testid="planning-undo-banner-error"
             >
