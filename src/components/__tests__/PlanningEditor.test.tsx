@@ -1631,6 +1631,56 @@ describe('PlanningEditor', () => {
       });
     });
 
+    it('preview enables Confirm and surfaces the warning when ALL games are missing', async () => {
+      // Cloud-sync wipe edge case: every gameId in the plan is absent
+      // from savedGames. Without the special-case, visibleDiffs is
+      // empty AND checkedCount is 0, so the original
+      // `disabled={checkedCount === 0}` gate would lock the user out
+      // of triggering the post-apply applyWarnMissing banner — a
+      // regression vs. the pre-PR direct-apply path.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        savedGames: {} as SavedGamesCollection,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Both ids surface in the inline notice.
+      expect(
+        screen.getByTestId('planning-apply-preview-missing'),
+      ).toBeInTheDocument();
+      // No game cards (all empty/missing); empty-state copy renders.
+      expect(
+        screen.getByTestId('planning-apply-preview-empty'),
+      ).toBeInTheDocument();
+      const confirm = screen.getByTestId(
+        'planning-apply-preview-confirm',
+      ) as HTMLButtonElement;
+      // Critical: Confirm must be enabled so the user can trigger the
+      // post-apply warning instead of being trapped at Cancel.
+      expect(confirm).not.toBeDisabled();
+      await act(async () => {
+        fireEvent.click(confirm);
+      });
+      // applyToGame never fires (no real games to save) but the
+      // warning banner does — and the !game branch in handleApply
+      // increments gamesNotFound for both g1 and g2.
+      expect(applyToGame).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(
+          screen.getByText(/2 selected game.*were skipped|2 .*ei.*ohitettiin/i),
+        ).toBeInTheDocument();
+      });
+    });
+
     it('handleStartApply surfaces applyError when computeApplyDiff throws', async () => {
       // computeApplyDiff is pure today but a malformed game state (or a
       // future regression) could make it throw. The catch in
@@ -1655,15 +1705,13 @@ describe('PlanningEditor', () => {
       ).not.toBeInTheDocument();
       // The error banner is the same applyError surfaced by the
       // direct apply path: "Could not apply plan. Please try again."
+      // mockImplementationOnce auto-restores after the call, so no
+      // manual teardown is needed.
       await waitFor(() => {
         expect(
           screen.getByText(/Could not apply plan|Suunnitelman.*ei voitu/i),
         ).toBeInTheDocument();
       });
-      // Restore default behavior so later tests aren't affected.
-      computeApplyDiff.mockImplementation(
-        jest.requireActual('@/utils/applyPreview').computeApplyDiff,
-      );
     });
 
     it('Apply button is disabled while the preview is open', () => {

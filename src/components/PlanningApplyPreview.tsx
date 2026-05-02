@@ -358,15 +358,18 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
         </ul>
       )}
 
-      <div className="flex items-start gap-2 rounded-md bg-amber-900/20 border border-amber-700/30 p-2 text-xs text-amber-100">
-        <HiOutlineExclamationTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-        <p>
-          {t(
-            'planningApplyPreview.applyHint',
-            'Unchecking a game skips its update. The plan you saved is not changed by Apply.',
-          )}
-        </p>
-      </div>
+      {/* Hint only makes sense when there are cards to uncheck. */}
+      {visibleDiffs.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md bg-amber-900/20 border border-amber-700/30 p-2 text-xs text-amber-100">
+          <HiOutlineExclamationTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+          <p>
+            {t(
+              'planningApplyPreview.applyHint',
+              'Unchecking a game skips its update. The plan you saved is not changed by Apply.',
+            )}
+          </p>
+        </div>
+      )}
 
       <div className="flex justify-end gap-2 pt-1">
         <button
@@ -390,7 +393,15 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
                 .map((d) => d.gameId),
             )
           }
-          disabled={isApplying || checkedCount === 0}
+          // Allow Confirm even with checkedCount === 0 when there are
+          // missing games — the parent re-injects them into the apply
+          // payload so the existing applyWarnMissing post-apply banner
+          // still fires. Pre-PR-8b, handleApply(gameIds) always
+          // iterated the full set; this preserves that safety net.
+          disabled={
+            isApplying ||
+            (checkedCount === 0 && missingGameIds.length === 0)
+          }
           className="rounded-md bg-amber-500/90 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
           data-testid="planning-apply-preview-confirm"
         >
