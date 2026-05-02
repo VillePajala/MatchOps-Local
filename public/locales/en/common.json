@@ -1721,6 +1721,13 @@
     "selectedCount": "{{count}} selected",
     "continueButton": "Continue"
   },
+  "planningChipGrid": {
+    "title": "Per-game chip view",
+    "empty": "Pick at least one game and a formation to see the per-game chip view.",
+    "clearHighlight": "Clear highlight ({{count}})",
+    "chipAria": "{{player}} from {{from}} to {{to}}",
+    "gameMissing": "Game ({{id}})"
+  },
   "planningMinutesDashboard": {
     "title": "Plan minutes",
     "fairShare": "Fair share: {{mmss}}",

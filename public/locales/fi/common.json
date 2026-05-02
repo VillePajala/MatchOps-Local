@@ -1721,6 +1721,13 @@
     "selectedCount": "{{count}} valittu",
     "continueButton": "Jatka"
   },
+  "planningChipGrid": {
+    "title": "Pelikohtainen sirunäkymä",
+    "empty": "Valitse vähintään yksi peli ja pelisysteemi nähdäksesi pelikohtaisen sirunäkymän.",
+    "clearHighlight": "Tyhjennä korostus ({{count}})",
+    "chipAria": "{{player}} kohdasta {{from}} kohtaan {{to}}",
+    "gameMissing": "Peli ({{id}})"
+  },
   "planningMinutesDashboard": {
     "title": "Suunnitelman peliminuutit",
     "fairShare": "Reilu osuus: {{mmss}}",

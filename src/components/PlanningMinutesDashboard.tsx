@@ -10,6 +10,7 @@ import {
   fairShareBand,
   type FairShareBand,
 } from '@/utils/planMinutesAggregate';
+import { formatMMSS } from '@/utils/planFormatters';
 
 export interface PlanningMinutesDashboardProps {
   draft: PlanDraft;
@@ -17,12 +18,6 @@ export interface PlanningMinutesDashboardProps {
   savedGames: SavedGamesCollection;
   roster: Player[];
 }
-
-const formatMMSS = (totalSec: number): string => {
-  const m = Math.floor(totalSec / 60);
-  const s = Math.floor(totalSec % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-};
 
 // Tailwind classes per band — matched to the existing emerald (success)
 // / amber (info) / rose (warn) palette used elsewhere in the planner so

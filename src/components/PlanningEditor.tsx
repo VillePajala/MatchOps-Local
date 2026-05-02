@@ -28,6 +28,7 @@ import {
 import logger from '@/utils/logger';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningMinutesDashboard from './PlanningMinutesDashboard';
+import PlanningChipGrid from './PlanningChipGrid';
 import type { DraftScheduledSub } from '@/utils/planSwapEngine';
 import PlanningApplyPreview from './PlanningApplyPreview';
 import { computeApplyDiff, type ApplyDiff } from '@/utils/applyPreview';
@@ -1033,6 +1034,19 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
       <PlanningMinutesDashboard
         draft={draft}
+        gameIds={gameIds}
+        savedGames={savedGames}
+        roster={roster}
+      />
+
+      <PlanningChipGrid
+        // Force a remount on preset change so the chip grid's local
+        // highlight set drops players whose roles no longer exist in
+        // the new formation. Without this, "Clear highlight (1)"
+        // would surface for an invisible selection.
+        key={presetId}
+        draft={draft}
+        preset={preset}
         gameIds={gameIds}
         savedGames={savedGames}
         roster={roster}

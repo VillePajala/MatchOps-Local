@@ -4,6 +4,7 @@
 import type { AppState } from '@/types/game';
 import type { PlanDraft, PlayerId } from './planSwapEngine';
 import { computePlayerSeconds } from './planFairness';
+import { gameDurationSec } from './planFormatters';
 
 export interface PlanMinutesEntry {
   playerId: PlayerId;
@@ -27,12 +28,6 @@ export interface PlanMinutesAggregate {
    */
   referencedPlayerIds: PlayerId[];
 }
-
-const gameDurationSec = (game: AppState): number => {
-  const periods = game.numberOfPeriods ?? 2;
-  const minutes = game.periodDurationMinutes ?? 10;
-  return Math.max(0, periods * minutes * 60);
-};
 
 /**
  * Aggregates per-player minutes across every game in the plan and
