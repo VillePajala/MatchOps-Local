@@ -1683,7 +1683,6 @@
     "importButton": "Import plan from JSON",
     "importSuccessTitle": "Plan imported",
     "importFailedTitle": "Import failed",
-    "importNoApply": "Apply-to-games lands in a later phase. The plan is currently in memory only.",
     "importNextStep": "Pick the saved games to bind this plan to, then Save to create a planning session.",
     "useImportedPlan": "Use this plan →",
     "importedPlanDefaultName": "Imported plan",

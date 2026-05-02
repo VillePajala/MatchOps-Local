@@ -1504,7 +1504,6 @@ export type TranslationKey =
   | 'planningModal.importButton'
   | 'planningModal.importFailedTitle'
   | 'planningModal.importNextStep'
-  | 'planningModal.importNoApply'
   | 'planningModal.importNoGamesError'
   | 'planningModal.importSuccessTitle'
   | 'planningModal.importedPlanDefaultName'

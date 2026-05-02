@@ -123,7 +123,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // plan" on the import success card, the imported draft + preset +
   // suggested name are stashed here and surfaced to the editor as
   // initialDraft / initialPresetId / initialName once the user picks
-  // saved games via the picker. Cleared on save, cancel, and close.
+  // saved games via the picker. Cleared by resetEditorState (apply,
+  // dismiss, expire, close) — after a save, the state is shadowed
+  // by sessionFirstDraft taking priority and cleared on the next
+  // editor exit.
   const [pendingImportDraft, setPendingImportDraft] =
     useState<PlanDraft | null>(null);
   const [pendingImportPresetId, setPendingImportPresetId] =
@@ -205,6 +208,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPendingImportDraft(null);
     setPendingImportPresetId(undefined);
     setPendingImportName(undefined);
+    setImportHandoffError(null);
   };
 
   const handleClose = () => {
@@ -431,11 +435,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
   const handleNewPlan = () => {
     resetImportState();
-    setEditingSession(null);
-    // Clear the list-error banner so a stale "could not delete" or
-    // "could not open" doesn't follow the user into the picker → editor
-    // flow and reappear when they navigate back.
-    setListErrorMessage(null);
+    // resetEditorState clears every editor-adjacent state field
+    // (editingSession, listErrorMessage, pendingImport*, undo*).
+    // Without it, an import whose picker the user backed out of
+    // would leak pendingImportDraft into the next New Plan flow
+    // and inject the stale draft into a brand-new editor session.
+    resetEditorState();
     setPage('picker');
   };
 
@@ -448,6 +453,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage('editor');
   };
 
+  // Inline error displayed within the import success card when
+  // handleUseImportedPlan rejects the envelope (e.g. zero games).
+  // Distinct from listErrorMessage — that banner sits on the list
+  // page and the user wouldn't see it from inside the import card.
+  const [importHandoffError, setImportHandoffError] = useState<string | null>(
+    null,
+  );
   // Hands an imported standalone plan off to the editor: derive a
   // PlanDraft from the first imported game's startingXI + scheduledSubs
   // (the editor uses one shared draft across the picked games), stash
@@ -456,9 +468,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // PlanningSession via the existing handleSavePlan flow.
   const handleUseImportedPlan = () => {
     if (!importedPlan) return;
+    setImportHandoffError(null);
     const firstGame = importedPlan.games[0];
     if (!firstGame) {
-      setListErrorMessage(
+      // parsePlanExport already rejects zero-game envelopes, so this
+      // is defense-in-depth. Inline to the success card so the user
+      // sees the failure next to the button they just pressed.
+      setImportHandoffError(
         t(
           'planningModal.importNoGamesError',
           'Imported plan has no games. Pick a different file.',
@@ -1039,6 +1055,15 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                           'Pick the saved games to bind this plan to, then Save to create a planning session.',
                         )}
                       </p>
+                      {importHandoffError && (
+                        <p
+                          role="alert"
+                          className="text-xs text-rose-200"
+                          data-testid="planning-modal-import-handoff-error"
+                        >
+                          {importHandoffError}
+                        </p>
+                      )}
                       <div className="flex justify-end pt-1">
                         <button
                           type="button"
@@ -1142,6 +1167,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   // Three initial-state sources, checked in priority
                   // order: reopen of an existing session, then the
                   // standalone-import handoff, then game-derived default.
+                  // Trailing `?? undefined` coerces the
+                  // pendingImportDraft `null` initial value to
+                  // undefined since the prop is `PlanDraft | undefined`.
                   initialDraft={sessionFirstDraft ?? pendingImportDraft ?? undefined}
                   // Preset is stored on the draft so reopen renders the
                   // SAME role grid the user authored under — role keys
