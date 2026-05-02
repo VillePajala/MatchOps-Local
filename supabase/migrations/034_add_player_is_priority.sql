@@ -10,14 +10,17 @@
 -- — same pattern as the existing is_goalie / received_fair_play_card
 -- snapshot fields.
 --
--- All existing rows default to false. The save_game_with_relations
--- RPC (migration 030) does not currently reference is_priority on
--- game_players; it'll start including it once the SupabaseDataStore
--- transform is updated, with the column default providing safety
--- for any legacy in-flight saves.
+-- Nullable with DEFAULT false matches the existing boolean snapshot
+-- fields (is_goalie, received_fair_play_card, is_selected, on_field).
+-- save_game_with_relations (migration 030) inserts via
+-- jsonb_populate_recordset, which produces NULL for keys absent in
+-- the JSON payload — older clients that haven't been updated to
+-- include is_priority must still be able to save without violating
+-- a NOT NULL constraint. Reads always coalesce via `?? false` so the
+-- nullable column behaves like a non-null boolean to consumers.
 
 ALTER TABLE players
-  ADD COLUMN IF NOT EXISTS is_priority boolean NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS is_priority boolean DEFAULT false;
 
 ALTER TABLE game_players
-  ADD COLUMN IF NOT EXISTS is_priority boolean NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS is_priority boolean DEFAULT false;

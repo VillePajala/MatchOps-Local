@@ -21,6 +21,7 @@ export const playerSchema = z.object({
     .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex code')
     .optional(),
   isGoalie: z.boolean().optional(),
+  isPriority: z.boolean().optional(),
   jerseyNumber: z.string()
     .regex(/^\d{1,3}$/, 'Jersey number must be 1-3 digits')
     .optional(),

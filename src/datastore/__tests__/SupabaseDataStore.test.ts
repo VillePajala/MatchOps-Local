@@ -529,6 +529,37 @@ describe('SupabaseDataStore', () => {
         const result = await dataStore.updatePlayer('nonexistent', { name: 'New Name' });
         expect(result).toBeNull();
       });
+
+      it('forwards isPriority into the PATCH payload', async () => {
+        const existingRow = {
+          id: 'player_123',
+          name: 'Existing',
+          nickname: null,
+          jersey_number: null,
+          is_goalie: false,
+          is_priority: false,
+          color: null,
+          notes: null,
+          received_fair_play_card: false,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: existingRow,
+          error: null,
+        });
+        const updateMock = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        });
+        mockQueryBuilder.update = updateMock;
+
+        await dataStore.updatePlayer('player_123', { isPriority: true });
+        const patchPayload = (updateMock as jest.Mock).mock.calls[0][0];
+        expect(patchPayload.is_priority).toBe(true);
+      });
     });
 
     describe('deletePlayer', () => {

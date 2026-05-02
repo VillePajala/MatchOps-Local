@@ -29,13 +29,15 @@ BEGIN
   IF v_data_type <> 'boolean' THEN
     RAISE EXCEPTION 'FAIL: players.is_priority expected boolean, got %', v_data_type;
   END IF;
-  IF v_is_nullable <> 'NO' THEN
-    RAISE EXCEPTION 'FAIL: players.is_priority must be NOT NULL';
+  -- Intentionally nullable to match the existing boolean snapshot
+  -- fields (is_goalie etc.) — see migration 034 comment.
+  IF v_is_nullable <> 'YES' THEN
+    RAISE EXCEPTION 'FAIL: players.is_priority must be nullable (DEFAULT false handles defaults)';
   END IF;
   IF v_default IS NULL OR v_default !~* 'false' THEN
     RAISE EXCEPTION 'FAIL: players.is_priority default expected false, got %', v_default;
   END IF;
-  RAISE NOTICE 'OK: players.is_priority is boolean NOT NULL DEFAULT false';
+  RAISE NOTICE 'OK: players.is_priority is boolean DEFAULT false (nullable)';
 END $$;
 
 \echo === Migration 034: game_players.is_priority ===
@@ -59,13 +61,16 @@ BEGIN
   IF v_data_type <> 'boolean' THEN
     RAISE EXCEPTION 'FAIL: game_players.is_priority expected boolean, got %', v_data_type;
   END IF;
-  IF v_is_nullable <> 'NO' THEN
-    RAISE EXCEPTION 'FAIL: game_players.is_priority must be NOT NULL';
+  -- Intentionally nullable so save_game_with_relations
+  -- (jsonb_populate_recordset, migration 030) doesn't fail when an
+  -- older client omits is_priority from the JSON payload.
+  IF v_is_nullable <> 'YES' THEN
+    RAISE EXCEPTION 'FAIL: game_players.is_priority must be nullable (DEFAULT false handles defaults)';
   END IF;
   IF v_default IS NULL OR v_default !~* 'false' THEN
     RAISE EXCEPTION 'FAIL: game_players.is_priority default expected false, got %', v_default;
   END IF;
-  RAISE NOTICE 'OK: game_players.is_priority is boolean NOT NULL DEFAULT false';
+  RAISE NOTICE 'OK: game_players.is_priority is boolean DEFAULT false (nullable)';
 END $$;
 
 \echo === Done. ===

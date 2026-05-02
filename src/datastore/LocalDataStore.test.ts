@@ -362,6 +362,27 @@ describe('LocalDataStore', () => {
         expect(savedPlayers).toHaveLength(2);
         expect(savedPlayers.find((p: Player) => p.id === 'player_456').name).toBe('Another');
       });
+
+      it('defaults isPriority to false when omitted', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player: Player = {
+          id: 'player_pending',
+          name: 'Player Without Flag',
+        };
+        const result = await dataStore.upsertPlayer(player);
+        expect(result.isPriority).toBe(false);
+      });
+
+      it('preserves isPriority when explicitly set to true', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player: Player = {
+          id: 'player_priority',
+          name: 'Priority Player',
+          isPriority: true,
+        };
+        const result = await dataStore.upsertPlayer(player);
+        expect(result.isPriority).toBe(true);
+      });
     });
   });
 
