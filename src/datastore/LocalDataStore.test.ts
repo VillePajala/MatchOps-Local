@@ -2868,9 +2868,12 @@ describe('LocalDataStore', () => {
         ]);
         await dataStore.setActiveSession('b', 'team_1', ['g1', 'g2']);
         const all = await dataStore.getPlanningSessions();
-        const inScopeActive = all.filter((s) => s.isActive);
-        expect(inScopeActive).toHaveLength(1);
-        expect(inScopeActive[0].id).toBe('b');
+        // All seeded sessions share the same (teamId, gameIds-set), so
+        // filtering by isActive is equivalent to in-scope filtering
+        // here. Out-of-scope-isolation is pinned by an earlier test.
+        const stillActive = all.filter((s) => s.isActive);
+        expect(stillActive).toHaveLength(1);
+        expect(stillActive[0].id).toBe('b');
       });
 
       it('post-condition: exactly one in-scope session is active after any sequence of toggles', async () => {
@@ -2883,23 +2886,30 @@ describe('LocalDataStore', () => {
           baseSession({ id: 'b', isActive: false }),
           baseSession({ id: 'c', isActive: false }),
         ]);
-        const inScopeActiveCount = async (): Promise<number> => {
-          const all = await dataStore.getPlanningSessions();
-          return all.filter((s) => s.isActive).length;
-        };
         const sequence: Array<string | null> = [
           'a',
           'b',
           null,
           'c',
-          'c', // re-activate same — should stay active, no extra writes
+          'c', // idempotent re-activate
           'a',
         ];
         for (const target of sequence) {
           await dataStore.setActiveSession(target, 'team_1', ['g1', 'g2']);
-          // Either 0 (after deactivate-all via null) or 1 (after activate).
-          const count = await inScopeActiveCount();
-          expect(count).toBeLessThanOrEqual(1);
+          const all = await dataStore.getPlanningSessions();
+          const active = all.filter((s) => s.isActive);
+          if (target === null) {
+            // After deactivate-all, no in-scope session is active.
+            expect(active).toHaveLength(0);
+          } else {
+            // For a concrete target, exactly that one is active.
+            // Asserting the identity (not just count) catches a
+            // regression where the toggle deactivates everything
+            // instead of activating the target — count<=1 alone
+            // would pass that broken behavior.
+            expect(active).toHaveLength(1);
+            expect(active[0].id).toBe(target);
+          }
         }
       });
 
