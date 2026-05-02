@@ -127,12 +127,22 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // dismiss, expire, close) — after a save, the state is shadowed
   // by sessionFirstDraft taking priority and cleared on the next
   // editor exit.
+  // All three use `undefined` (not `null`) as the empty value so they
+  // can flow straight into the editor's `PlanDraft | undefined` /
+  // `string | undefined` props with no coercion at the call site.
   const [pendingImportDraft, setPendingImportDraft] =
-    useState<PlanDraft | null>(null);
+    useState<PlanDraft | undefined>(undefined);
   const [pendingImportPresetId, setPendingImportPresetId] =
     useState<string | undefined>(undefined);
   const [pendingImportName, setPendingImportName] =
     useState<string | undefined>(undefined);
+  // Inline error displayed within the import success card when
+  // handleUseImportedPlan rejects the envelope (e.g. zero games).
+  // Distinct from listErrorMessage — that banner sits on the list
+  // page and the user wouldn't see it from inside the import card.
+  const [importHandoffError, setImportHandoffError] = useState<string | null>(
+    null,
+  );
   // Post-apply undo state. Snapshot held for the UNDO_WINDOW_MS span;
   // banner is rendered when page === 'undoBanner'. Cleared on undo
   // success, dismiss, expire, or modal close.
@@ -205,7 +215,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setIsUndoing(false);
     isUndoingRef.current = false;
     setUndoCursor(0);
-    setPendingImportDraft(null);
+    setPendingImportDraft(undefined);
     setPendingImportPresetId(undefined);
     setPendingImportName(undefined);
     setImportHandoffError(null);
@@ -247,6 +257,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       return;
     }
     resetImportState();
+    // Clear any pending standalone-import handoff — otherwise an
+    // import whose picker the user backed out of would leak its
+    // pendingImportPresetId into the reopen path, and a session
+    // whose draft has no presetId would silently render against
+    // the import's preset (the second `??` in the editor's
+    // initialPresetId chain wins when sessionFirstDraft.presetId
+    // is undefined).
+    setPendingImportDraft(undefined);
+    setPendingImportPresetId(undefined);
+    setPendingImportName(undefined);
+    setImportHandoffError(null);
     setListErrorMessage(null);
     // Clear any half-confirmed delete from the list — without this, a
     // user who clicks Delete on session A, then Open on session B,
@@ -453,13 +474,6 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage('editor');
   };
 
-  // Inline error displayed within the import success card when
-  // handleUseImportedPlan rejects the envelope (e.g. zero games).
-  // Distinct from listErrorMessage — that banner sits on the list
-  // page and the user wouldn't see it from inside the import card.
-  const [importHandoffError, setImportHandoffError] = useState<string | null>(
-    null,
-  );
   // Hands an imported standalone plan off to the editor: derive a
   // PlanDraft from the first imported game's startingXI + scheduledSubs
   // (the editor uses one shared draft across the picked games), stash
@@ -1167,10 +1181,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   // Three initial-state sources, checked in priority
                   // order: reopen of an existing session, then the
                   // standalone-import handoff, then game-derived default.
-                  // Trailing `?? undefined` coerces the
-                  // pendingImportDraft `null` initial value to
-                  // undefined since the prop is `PlanDraft | undefined`.
-                  initialDraft={sessionFirstDraft ?? pendingImportDraft ?? undefined}
+                  initialDraft={sessionFirstDraft ?? pendingImportDraft}
                   // Preset is stored on the draft so reopen renders the
                   // SAME role grid the user authored under — role keys
                   // differ across presets (LM/RM vs LB/RB), so a
