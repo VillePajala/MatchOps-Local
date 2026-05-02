@@ -2855,6 +2855,76 @@ describe('LocalDataStore', () => {
         const all = await dataStore.getPlanningSessions();
         expect(all.find((s) => s.id === 'a')?.isActive).toBe(false);
       });
+
+      it('recovers from a corrupt multi-active state by collapsing to one', async () => {
+        // Storage already has 3 in-scope sessions all flagged active —
+        // could happen via direct savePlanningSession calls (which don't
+        // enforce exclusivity) or hand-edited storage. setActiveSession
+        // must collapse the state so exactly one is active afterwards.
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: true }),
+          baseSession({ id: 'b', isActive: true }),
+          baseSession({ id: 'c', isActive: true }),
+        ]);
+        await dataStore.setActiveSession('b', 'team_1', ['g1', 'g2']);
+        const all = await dataStore.getPlanningSessions();
+        // All seeded sessions share the same (teamId, gameIds-set), so
+        // filtering by isActive is equivalent to in-scope filtering
+        // here. Out-of-scope-isolation is pinned by an earlier test.
+        const stillActive = all.filter((s) => s.isActive);
+        expect(stillActive).toHaveLength(1);
+        expect(stillActive[0].id).toBe('b');
+      });
+
+      it('post-condition: exactly one in-scope session is active after any sequence of toggles', async () => {
+        // Property-style test — sweep a few orderings and assert the
+        // invariant ("at most one active per (teamId, gameIds-set)")
+        // holds after each step. Cheap belt-and-braces against future
+        // refactors that might lose the deactivation-on-flip behavior.
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: false }),
+          baseSession({ id: 'b', isActive: false }),
+          baseSession({ id: 'c', isActive: false }),
+        ]);
+        const sequence: Array<string | null> = [
+          'a',
+          'b',
+          null,
+          'c',
+          'c', // idempotent re-activate
+          'a',
+        ];
+        for (const target of sequence) {
+          await dataStore.setActiveSession(target, 'team_1', ['g1', 'g2']);
+          const all = await dataStore.getPlanningSessions();
+          const active = all.filter((s) => s.isActive);
+          if (target === null) {
+            // After deactivate-all, no in-scope session is active.
+            expect(active).toHaveLength(0);
+          } else {
+            // For a concrete target, exactly that one is active.
+            // Asserting the identity (not just count) catches a
+            // regression where the toggle deactivates everything
+            // instead of activating the target — count<=1 alone
+            // would pass that broken behavior.
+            expect(active).toHaveLength(1);
+            expect(active[0].id).toBe(target);
+          }
+        }
+      });
+
+      it('re-activating the same session is a no-op (no write)', async () => {
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: true }),
+        ]);
+        const writesBefore = mockSetStorageItem.mock.calls.length;
+        const result = await dataStore.setActiveSession('a', 'team_1', ['g1', 'g2']);
+        // Returns the already-active session.
+        expect(result?.id).toBe('a');
+        expect(result?.isActive).toBe(true);
+        // No write — the lock guard short-circuits when nothing mutated.
+        expect(mockSetStorageItem.mock.calls.length).toBe(writesBefore);
+      });
     });
   });
 });
