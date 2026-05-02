@@ -170,9 +170,11 @@ describe('PlanningMinutesDashboard', () => {
         '',
       ),
     );
-    // p3 plays 15m, p0 & p2 play 20m, p1 plays 5m.
-    // Order: p0 or p2 (tied 20m) → p3 (15m) → p1 (5m).
-    expect(ids[ids.length - 1]).toBe('p1');
+    // p3 plays 15m, p0 & p2 play 20m, p1 plays 5m. The two 20-minute
+    // entries (p0, p2) tie for first; their relative order depends on
+    // referencedPlayerIds insertion order (now sorted by id, so p0
+    // before p2). Then p3 (15m), then p1 (5m).
+    expect(ids).toEqual(['p0', 'p2', 'p3', 'p1']);
   });
 
   it('exposes an aria-label per row that bundles player + mm:ss + percent', () => {

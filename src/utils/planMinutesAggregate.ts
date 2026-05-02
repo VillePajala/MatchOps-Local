@@ -19,7 +19,11 @@ export interface PlanMinutesAggregate {
   fairShareSeconds: number;
   /** Sum of game capacities across the plan (gameDuration * startingXI count). */
   totalFieldSeconds: number;
-  /** Players who appear in any startingXI or as a sub.inPlayer. */
+  /**
+   * Players who actually accumulate non-zero seconds across the plan,
+   * sorted by id for deterministic equality assertions. Use
+   * `perPlayer` (sorted by minutes) for display order.
+   */
   referencedPlayerIds: PlayerId[];
 }
 
@@ -80,7 +84,10 @@ export const aggregatePlanMinutes = (
   // Referenced = players who actually played for > 0s across the
   // plan. Pure-bench squad members and inPlayers of unreachable subs
   // are excluded, so the denominator reflects who's on the field.
-  const referencedPlayerIds = [...totals.keys()];
+  // Sorted so the contract is deterministic — Map insertion order
+  // depends on which game's computePlayerSeconds inserted each id
+  // first, which leaks gameIds order into the return value.
+  const referencedPlayerIds = [...totals.keys()].sort();
   const fairShareSeconds =
     referencedPlayerIds.length > 0
       ? totalFieldSeconds / referencedPlayerIds.length
@@ -108,6 +115,14 @@ export const aggregatePlanMinutes = (
  * The bounds use mixed `<` / `<=` so each integer ratio falls into
  * exactly one band: 0.7 → low, 0.9 → fair, 1.1 → fair (still in
  * the ±10% window), 1.3 → over.
+ *
+ * Float precision: the ratio is `entry.totalSeconds /
+ * fairShareSeconds`, both derived from integer seconds. With odd
+ * denominators (e.g. 7-player rotations) the IEEE-754 result can
+ * land at e.g. 1.0999999999999999 instead of 1.1, dropping a "fair"
+ * player one band too high. This is rare in soccer rotations
+ * (typical 10–15 players, often divisible) and the visual impact is
+ * one tile of color drift, not a correctness break.
  */
 export type FairShareBand = 'under' | 'low' | 'fair' | 'over' | 'heavy-over';
 

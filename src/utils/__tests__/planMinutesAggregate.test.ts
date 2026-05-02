@@ -123,7 +123,8 @@ describe('aggregatePlanMinutes', () => {
     // 3 active players, 1200s each = 3600s total. Fair share = 3600 / 3
     // = 1200s, NOT 3600 / 4 = 900s.
     expect(out.fairShareSeconds).toBe(1200);
-    expect(out.referencedPlayerIds.sort()).toEqual(['p0', 'p1', 'p2']);
+    // referencedPlayerIds is sorted by id for deterministic equality.
+    expect(out.referencedPlayerIds).toEqual(['p0', 'p1', 'p2']);
     expect(out.referencedPlayerIds).not.toContain('p3');
     // Active players are at exactly fair share.
     for (const entry of out.perPlayer) expect(entry.shareRatio).toBe(1);

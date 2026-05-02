@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
-import type { AppState, SavedGamesCollection } from '@/types/game';
+import type { SavedGamesCollection } from '@/types/game';
 import type { PlanDraft } from '@/utils/planSwapEngine';
 import {
   aggregatePlanMinutes,
@@ -52,13 +52,9 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
     };
   }, [roster]);
 
-  // Type-narrowing cast only — SavedGamesCollection's structural shape
-  // matches Record<string, AppState | undefined> at the call site.
-  const savedGamesMap = savedGames as Record<string, AppState | undefined>;
-
   const aggregate = useMemo(
-    () => aggregatePlanMinutes(draft, gameIds, savedGamesMap),
-    [draft, gameIds, savedGamesMap],
+    () => aggregatePlanMinutes(draft, gameIds, savedGames),
+    [draft, gameIds, savedGames],
   );
 
   // Sort by total seconds desc so over-played players cluster at the
@@ -115,9 +111,8 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
         {sorted.map((entry) => {
           const band = fairShareBand(entry.shareRatio);
           const pct = Math.round(entry.shareRatio * 100);
-          // Title attribute carries the precise mm:ss + percent for
-          // non-AT users; AT users get an aria-label that bundles the
-          // same data into a single announceable string.
+          // Single string used for both `title` (sighted hover) and
+          // `aria-label` (AT announcement) so the two never drift.
           const ariaLabel = t(
             'planningMinutesDashboard.entryAria',
             '{{player}}: {{mmss}}, {{pct}} percent of fair share',
@@ -133,6 +128,7 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
               data-testid={`planning-minutes-dashboard-entry-${entry.playerId}`}
               data-band={band}
               aria-label={ariaLabel}
+              title={ariaLabel}
               className={`flex items-center justify-between rounded-md border px-2 py-1 ${bandClass[band]}`}
             >
               <span className="truncate">{playerLabel(entry.playerId)}</span>
