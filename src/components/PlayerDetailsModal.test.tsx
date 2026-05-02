@@ -354,8 +354,10 @@ describe('PlayerDetailsModal', () => {
       // so no save call should fire.
       const onUpdatePlayer = jest.fn().mockResolvedValue(undefined);
       const user = userEvent.setup();
-      const playerWithoutFlag: Player = { ...mockPlayer };
-      delete (playerWithoutFlag as Partial<Player>).isPriority;
+      // Strip isPriority via rest destructure rather than mutating
+      // a spread copy.
+      const { isPriority: _ip, ...playerWithoutFlag } = mockPlayer;
+      void _ip;
       await act(async () => {
         renderWithProviders({ onUpdatePlayer, player: playerWithoutFlag });
       });

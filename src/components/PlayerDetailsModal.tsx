@@ -42,10 +42,8 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
     if (isOpen) {
       setNameError(null);
       if (mode === 'create') {
-        // Reset form for create mode. isPriority is intentionally not
-        // reset here — the toggle isn't rendered in create mode, so
-        // its state is unobservable until the modal next opens in
-        // edit mode where the player.isPriority init below applies.
+        // Reset form for create mode. isPriority is skipped because
+        // the toggle is edit-mode only; init below covers re-opens.
         setName('');
         setNickname('');
         setJerseyNumber('');
@@ -218,7 +216,10 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   existing player via a follow-up edit. */}
               {mode === 'edit' && (
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-slate-300 cursor-pointer">
+                  <label
+                    htmlFor="player-details-modal-priority-input"
+                    className="flex items-center gap-2 text-sm font-medium text-slate-300 cursor-pointer"
+                  >
                     <input
                       id="player-details-modal-priority-input"
                       type="checkbox"
