@@ -82,6 +82,7 @@ export type Database = {
           game_id: string
           id: string
           is_goalie: boolean | null
+          is_priority: boolean | null
           is_selected: boolean | null
           jersey_number: string | null
           nickname: string | null
@@ -100,6 +101,7 @@ export type Database = {
           game_id: string
           id: string
           is_goalie?: boolean | null
+          is_priority?: boolean | null
           is_selected?: boolean | null
           jersey_number?: string | null
           nickname?: string | null
@@ -118,6 +120,7 @@ export type Database = {
           game_id?: string
           id?: string
           is_goalie?: boolean | null
+          is_priority?: boolean | null
           is_selected?: boolean | null
           jersey_number?: string | null
           nickname?: string | null
@@ -586,6 +589,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_goalie: boolean | null
+          is_priority: boolean | null
           jersey_number: string | null
           name: string
           nickname: string | null
@@ -599,6 +603,7 @@ export type Database = {
           created_at?: string | null
           id: string
           is_goalie?: boolean | null
+          is_priority?: boolean | null
           jersey_number?: string | null
           name: string
           nickname?: string | null
@@ -612,6 +617,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_goalie?: boolean | null
+          is_priority?: boolean | null
           jersey_number?: string | null
           name?: string
           nickname?: string | null

@@ -8,6 +8,12 @@ export interface Player {
   relY?: number; // Relative Y (0.0 to 1.0)
   color?: string; // Optional: Specific color for the disk
   isGoalie?: boolean; // Optional: Is this player the goalie?
+  // Priority players surface a ★ marker in planner views and feed the
+  // standalone's "fair share for the players that matter" heuristic.
+  // Persistent because coaches set it once at the roster level —
+  // priority is a property of the player to the coach, not of any
+  // individual plan.
+  isPriority?: boolean;
   jerseyNumber?: string; // Optional: Player's jersey number
   notes?: string; // Optional: Notes specific to this player
   receivedFairPlayCard?: boolean; // Optional: Did this player receive the fair play card?

@@ -880,6 +880,7 @@ export class SupabaseDataStore implements DataStore {
       name: trimmedName,
       nickname: player.nickname?.trim() || undefined,
       isGoalie: player.isGoalie ?? false,
+      isPriority: player.isPriority ?? false,
       receivedFairPlayCard: player.receivedFairPlayCard ?? false,
     };
 
@@ -958,6 +959,7 @@ export class SupabaseDataStore implements DataStore {
       nickname: updatedPlayer.nickname ?? null,
       jersey_number: updatedPlayer.jerseyNumber ?? null,
       is_goalie: updatedPlayer.isGoalie ?? false,
+      is_priority: updatedPlayer.isPriority ?? false,
       color: updatedPlayer.color ?? null,
       notes: updatedPlayer.notes ?? null,
       received_fair_play_card: updatedPlayer.receivedFairPlayCard ?? false,
@@ -1011,6 +1013,7 @@ export class SupabaseDataStore implements DataStore {
       nickname: row.nickname ?? undefined,
       jerseyNumber: row.jersey_number ?? undefined,
       isGoalie: row.is_goalie ?? false,
+      isPriority: row.is_priority ?? false,
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
       receivedFairPlayCard: row.received_fair_play_card ?? false,
@@ -1027,6 +1030,7 @@ export class SupabaseDataStore implements DataStore {
       nickname: player.nickname ?? null,
       jersey_number: player.jerseyNumber ?? null,
       is_goalie: player.isGoalie ?? false,
+      is_priority: player.isPriority ?? false,
       color: player.color ?? null,
       notes: player.notes ?? null,
       received_fair_play_card: player.receivedFairPlayCard ?? false,
@@ -1066,6 +1070,7 @@ export class SupabaseDataStore implements DataStore {
       name: trimmedName,
       nickname: player.nickname?.trim() || undefined,
       isGoalie: player.isGoalie ?? false,
+      isPriority: player.isPriority ?? false,
       receivedFairPlayCard: player.receivedFairPlayCard ?? false,
     };
 
@@ -2846,6 +2851,7 @@ export class SupabaseDataStore implements DataStore {
         nickname: onFieldPlayer?.nickname ?? player.nickname ?? '',
         jersey_number: onFieldPlayer?.jerseyNumber ?? player.jerseyNumber ?? '',
         is_goalie: onFieldPlayer?.isGoalie ?? player.isGoalie ?? false,
+        is_priority: onFieldPlayer?.isPriority ?? player.isPriority ?? false,
         color: onFieldPlayer?.color ?? player.color,
         notes: onFieldPlayer?.notes ?? player.notes ?? '',
         received_fair_play_card: onFieldPlayer?.receivedFairPlayCard ?? player.receivedFairPlayCard ?? false,
@@ -3061,6 +3067,7 @@ export class SupabaseDataStore implements DataStore {
       nickname: p.nickname || undefined,
       jerseyNumber: p.jersey_number ?? '',
       isGoalie: p.is_goalie ?? false,
+      isPriority: p.is_priority ?? false,
       color: p.color ?? undefined,
       notes: p.notes || undefined,
       receivedFairPlayCard: p.received_fair_play_card ?? false,
@@ -3076,6 +3083,7 @@ export class SupabaseDataStore implements DataStore {
         nickname: p.nickname || undefined,
         jerseyNumber: p.jersey_number ?? '',
         isGoalie: p.is_goalie ?? false,
+        isPriority: p.is_priority ?? false,
         color: p.color ?? undefined,
         notes: p.notes || undefined,
         receivedFairPlayCard: p.received_fair_play_card ?? false,

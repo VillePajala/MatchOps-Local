@@ -464,6 +464,28 @@ describe('SupabaseDataStore', () => {
           })
         ).rejects.toThrow(ValidationError);
       });
+
+      it('forwards isPriority through the insert payload (round-trip via transformPlayerToDb)', async () => {
+        await dataStore.createPlayer({
+          name: 'Priority Player',
+          isGoalie: false,
+          isPriority: true,
+          receivedFairPlayCard: false,
+        });
+        const insertCall = (mockQueryBuilder.insert as jest.Mock).mock.calls[0][0];
+        expect(insertCall.is_priority).toBe(true);
+      });
+
+      it('defaults isPriority to false when omitted (matches isGoalie / receivedFairPlayCard pattern)', async () => {
+        const player = await dataStore.createPlayer({
+          name: 'Regular Player',
+          isGoalie: false,
+          receivedFairPlayCard: false,
+        });
+        expect(player.isPriority).toBe(false);
+        const insertCall = (mockQueryBuilder.insert as jest.Mock).mock.calls[0][0];
+        expect(insertCall.is_priority).toBe(false);
+      });
     });
 
     describe('updatePlayer', () => {
