@@ -649,6 +649,7 @@ export class LocalDataStore implements DataStore {
         name: trimmedName,
         nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
+        isPriority: player.isPriority ?? false,
         receivedFairPlayCard: player.receivedFairPlayCard ?? false,
       };
 
@@ -742,6 +743,7 @@ export class LocalDataStore implements DataStore {
         name: trimmedName,
         nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
+        isPriority: player.isPriority ?? false,
         receivedFairPlayCard: player.receivedFairPlayCard ?? false,
         // Set timestamps: preserve createdAt if exists, always update updatedAt
         createdAt: player.createdAt ?? (existingIndex !== -1 ? roster[existingIndex].createdAt : now),

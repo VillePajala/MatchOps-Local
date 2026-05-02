@@ -8,7 +8,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { TeamPlayer, Season, Tournament } from '@/types';
+import type { Player, TeamPlayer, Season, Tournament } from '@/types';
 import type { AppState } from '@/types/game';
 import type { PersonnelRole } from '@/types/personnel';
 import type { AppSettings } from '@/types/settings';
@@ -464,6 +464,28 @@ describe('SupabaseDataStore', () => {
           })
         ).rejects.toThrow(ValidationError);
       });
+
+      it('forwards isPriority through the insert payload (round-trip via transformPlayerToDb)', async () => {
+        await dataStore.createPlayer({
+          name: 'Priority Player',
+          isGoalie: false,
+          isPriority: true,
+          receivedFairPlayCard: false,
+        });
+        const insertCall = (mockQueryBuilder.insert as jest.Mock).mock.calls[0][0];
+        expect(insertCall.is_priority).toBe(true);
+      });
+
+      it('defaults isPriority to false when omitted (matches isGoalie / receivedFairPlayCard pattern)', async () => {
+        const player = await dataStore.createPlayer({
+          name: 'Regular Player',
+          isGoalie: false,
+          receivedFairPlayCard: false,
+        });
+        expect(player.isPriority).toBe(false);
+        const insertCall = (mockQueryBuilder.insert as jest.Mock).mock.calls[0][0];
+        expect(insertCall.is_priority).toBe(false);
+      });
     });
 
     describe('updatePlayer', () => {
@@ -506,6 +528,37 @@ describe('SupabaseDataStore', () => {
 
         const result = await dataStore.updatePlayer('nonexistent', { name: 'New Name' });
         expect(result).toBeNull();
+      });
+
+      it('forwards isPriority into the PATCH payload', async () => {
+        const existingRow = {
+          id: 'player_123',
+          name: 'Existing',
+          nickname: null,
+          jersey_number: null,
+          is_goalie: false,
+          is_priority: false,
+          color: null,
+          notes: null,
+          received_fair_play_card: false,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: existingRow,
+          error: null,
+        });
+        const updateMock = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        });
+        mockQueryBuilder.update = updateMock;
+
+        await dataStore.updatePlayer('player_123', { isPriority: true });
+        const patchPayload = (updateMock as jest.Mock).mock.calls[0][0];
+        expect(patchPayload.is_priority).toBe(true);
       });
     });
 
@@ -4007,6 +4060,110 @@ describe('SupabaseDataStore', () => {
         expect(result.selectedPlayerIds).toHaveLength(2);
         expect(result.selectedPlayerIds[0]).toBe('p1'); // on-field first
         expect(result.selectedPlayerIds[1]).toBe('p2');
+      });
+
+      it('preserves is_priority through the game_players round-trip', () => {
+        // Both reverse-transform paths (availablePlayers and
+        // playersOnField) read p.is_priority. Without this test,
+        // the `?? false` fallback would mask a regression where the
+        // mapping silently dropped the field.
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'inProgress',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [
+            {
+              id: 'game_123_p1',
+              game_id: 'game_123',
+              player_id: 'p1',
+              user_id: 'user_123',
+              player_name: 'Priority On Field',
+              is_goalie: false,
+              is_priority: true,
+              is_selected: true,
+              on_field: true,
+              rel_x: 0.5,
+              rel_y: 0.5,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+            {
+              id: 'game_123_p2',
+              game_id: 'game_123',
+              player_id: 'p2',
+              user_id: 'user_123',
+              player_name: 'Priority Bench',
+              is_goalie: false,
+              is_priority: true,
+              is_selected: true,
+              on_field: false,
+              rel_x: null,
+              rel_y: null,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+            {
+              id: 'game_123_p3',
+              game_id: 'game_123',
+              player_id: 'p3',
+              user_id: 'user_123',
+              player_name: 'Regular',
+              is_goalie: false,
+              is_priority: false,
+              is_selected: true,
+              on_field: false,
+              rel_x: null,
+              rel_y: null,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+          ],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        // availablePlayers covers both reverse paths.
+        const byId = new Map<string, Player>(
+          result.availablePlayers.map(
+            (p: Player) => [p.id, p] as [string, Player],
+          ),
+        );
+        expect(byId.get('p1')?.isPriority).toBe(true);
+        expect(byId.get('p2')?.isPriority).toBe(true);
+        expect(byId.get('p3')?.isPriority).toBe(false);
+
+        // playersOnField is its own map() call site — assert the
+        // priority flag survives that path independently.
+        expect(result.playersOnField).toHaveLength(1);
+        expect(result.playersOnField[0].id).toBe('p1');
+        expect(result.playersOnField[0].isPriority).toBe(true);
+        // selectedPlayerIds is built from the same rows in a third
+        // construction in the same function — keeping a presence
+        // assertion here pins the full reverse-transform output
+        // against future divergence between the three blocks.
+        expect(new Set(result.selectedPlayerIds)).toEqual(
+          new Set(['p1', 'p2', 'p3']),
+        );
       });
 
       it('should sort events by order_index', () => {

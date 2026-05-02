@@ -245,6 +245,27 @@ describe('LocalDataStore', () => {
         expect(player.isGoalie).toBe(false);
         expect(player.receivedFairPlayCard).toBe(false);
       });
+
+      it('defaults isPriority to false when omitted', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player = await dataStore.createPlayer({
+          name: 'New Player',
+        });
+        expect(player.isPriority).toBe(false);
+      });
+
+      it('preserves isPriority when explicitly set to true', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player = await dataStore.createPlayer({
+          name: 'Priority Player',
+          isPriority: true,
+        });
+        expect(player.isPriority).toBe(true);
+        // Confirm the saved roster carries the flag through to storage.
+        const lastCall = mockSetStorageItem.mock.calls.at(-1);
+        const saved: Player[] = JSON.parse(lastCall![1] as string);
+        expect(saved[0].isPriority).toBe(true);
+      });
     });
 
     describe('updatePlayer', () => {
@@ -283,6 +304,21 @@ describe('LocalDataStore', () => {
         });
 
         expect(updated?.name).toBe('Trimmed Name');
+      });
+
+      it('preserves isPriority through an unrelated field update', async () => {
+        // updatePlayer round-trips via { ...existing, ...updates } —
+        // a future refactor adding field-level merge logic could
+        // silently drop the flag without an explicit guard.
+        const priorityPlayer: Player = {
+          ...mockPlayer,
+          isPriority: true,
+        };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([priorityPlayer]));
+        const updated = await dataStore.updatePlayer('player_123', {
+          name: 'Renamed',
+        });
+        expect(updated?.isPriority).toBe(true);
       });
     });
 
@@ -340,6 +376,27 @@ describe('LocalDataStore', () => {
         const savedPlayers = JSON.parse(saveCall[1] as string);
         expect(savedPlayers).toHaveLength(2);
         expect(savedPlayers.find((p: Player) => p.id === 'player_456').name).toBe('Another');
+      });
+
+      it('defaults isPriority to false when omitted', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player: Player = {
+          id: 'player_pending',
+          name: 'Player Without Flag',
+        };
+        const result = await dataStore.upsertPlayer(player);
+        expect(result.isPriority).toBe(false);
+      });
+
+      it('preserves isPriority when explicitly set to true', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player: Player = {
+          id: 'player_priority',
+          name: 'Priority Player',
+          isPriority: true,
+        };
+        const result = await dataStore.upsertPlayer(player);
+        expect(result.isPriority).toBe(true);
       });
     });
   });
