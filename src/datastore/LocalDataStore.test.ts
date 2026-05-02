@@ -305,6 +305,21 @@ describe('LocalDataStore', () => {
 
         expect(updated?.name).toBe('Trimmed Name');
       });
+
+      it('preserves isPriority through an unrelated field update', async () => {
+        // updatePlayer round-trips via { ...existing, ...updates } —
+        // a future refactor adding field-level merge logic could
+        // silently drop the flag without an explicit guard.
+        const priorityPlayer: Player = {
+          ...mockPlayer,
+          isPriority: true,
+        };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([priorityPlayer]));
+        const updated = await dataStore.updatePlayer('player_123', {
+          name: 'Renamed',
+        });
+        expect(updated?.isPriority).toBe(true);
+      });
     });
 
     describe('deletePlayer', () => {

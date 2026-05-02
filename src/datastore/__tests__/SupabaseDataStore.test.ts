@@ -4157,6 +4157,13 @@ describe('SupabaseDataStore', () => {
         expect(result.playersOnField).toHaveLength(1);
         expect(result.playersOnField[0].id).toBe('p1');
         expect(result.playersOnField[0].isPriority).toBe(true);
+        // selectedPlayerIds is built from the same rows in a third
+        // construction in the same function — keeping a presence
+        // assertion here pins the full reverse-transform output
+        // against future divergence between the three blocks.
+        expect(new Set(result.selectedPlayerIds)).toEqual(
+          new Set(['p1', 'p2', 'p3']),
+        );
       });
 
       it('should sort events by order_index', () => {
