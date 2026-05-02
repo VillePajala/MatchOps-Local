@@ -1728,13 +1728,15 @@
     "empty": "Pick at least one game and a formation to see the per-game chip view.",
     "clearHighlight": "Clear highlight ({{count}})",
     "chipAria": "{{player}} from {{from}} to {{to}}",
+    "chipAriaPriority": "Priority {{player}} from {{from}} to {{to}}",
     "gameMissing": "Game ({{id}})"
   },
   "planningMinutesDashboard": {
     "title": "Plan minutes",
     "fairShare": "Fair share: {{mmss}}",
     "empty": "Pick at least one game and assign players to a starting XI to see the minutes breakdown.",
-    "entryAria": "{{player}}: {{mmss}}, {{pct}} percent of fair share"
+    "entryAria": "{{player}}: {{mmss}}, {{pct}} percent of fair share",
+    "entryAriaPriority": "Priority {{player}}: {{mmss}}, {{pct}} percent of fair share"
   },
   "planningUndoBanner": {
     "title_one": "Plan applied to {{count}} game.",

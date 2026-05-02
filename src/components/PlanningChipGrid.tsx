@@ -40,6 +40,10 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
     },
     [playerMap],
   );
+  const isPriorityPlayer = useCallback(
+    (id: PlayerId): boolean => playerMap.get(id)?.isPriority === true,
+    [playerMap],
+  );
 
   // Multi-select highlight set. Click a chip → toggle that player.
   // Clear button resets the whole set. Empty set = no focus mode.
@@ -191,15 +195,31 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
                           : isDimmed
                             ? 'border-slate-700 bg-slate-800/40 text-slate-500 opacity-60'
                             : 'border-slate-600 bg-slate-700/60 text-slate-100 hover:bg-slate-600/60';
-                        const chipText = t(
-                          'planningChipGrid.chipAria',
-                          '{{player}} from {{from}} to {{to}}',
-                          {
-                            player: playerLabel(seg.playerId),
-                            from: formatMMSS(seg.startSec),
-                            to: formatMMSS(seg.endSec),
-                          },
-                        );
+                        const isPriority = isPriorityPlayer(seg.playerId);
+                        // Bake "Priority " prefix into the AT label
+                        // when the flag is set so the visual ★ glyph
+                        // (decorative, aria-hidden) doesn't get
+                        // announced as "star" or "white star" by
+                        // screen readers.
+                        const chipText = isPriority
+                          ? t(
+                              'planningChipGrid.chipAriaPriority',
+                              'Priority {{player}} from {{from}} to {{to}}',
+                              {
+                                player: playerLabel(seg.playerId),
+                                from: formatMMSS(seg.startSec),
+                                to: formatMMSS(seg.endSec),
+                              },
+                            )
+                          : t(
+                              'planningChipGrid.chipAria',
+                              '{{player}} from {{from}} to {{to}}',
+                              {
+                                player: playerLabel(seg.playerId),
+                                from: formatMMSS(seg.startSec),
+                                to: formatMMSS(seg.endSec),
+                              },
+                            );
                         return (
                           <button
                             // Role name in the key guards the (today
@@ -216,10 +236,16 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
                             aria-label={chipText}
                             title={chipText}
                             data-player-id={seg.playerId}
+                            data-priority={isPriority ? 'true' : 'false'}
                             data-highlighted={isHighlighted ? 'true' : 'false'}
                             data-testid={`planning-chip-grid-chip-${gid}-${role.name}-${seg.playerId}`}
-                            className={`rounded-md border px-2 py-0.5 font-medium transition-colors ${chipClass}`}
+                            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-medium transition-colors ${chipClass}`}
                           >
+                            {isPriority && (
+                              <span aria-hidden="true" className="text-amber-300">
+                                ★
+                              </span>
+                            )}
                             <span className="truncate">
                               {playerLabel(seg.playerId)}
                             </span>

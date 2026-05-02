@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
@@ -42,12 +42,19 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
     () => new Map(roster.map((p) => [p.id, p])),
     [roster],
   );
-  const playerLabel = (id: string): string => {
-    const p = playerMap.get(id);
-    // `||` (not `??`) so an empty-string nickname falls through to
-    // `name` rather than rendering an empty pill.
-    return p?.nickname || p?.name || id;
-  };
+  const playerLabel = useCallback(
+    (id: string): string => {
+      const p = playerMap.get(id);
+      // `||` (not `??`) so an empty-string nickname falls through to
+      // `name` rather than rendering an empty pill.
+      return p?.nickname || p?.name || id;
+    },
+    [playerMap],
+  );
+  const isPriorityPlayer = useCallback(
+    (id: string): boolean => playerMap.get(id)?.isPriority === true,
+    [playerMap],
+  );
 
   const aggregate = useMemo(
     () => aggregatePlanMinutes(draft, gameIds, savedGames),
@@ -115,27 +122,52 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
         {sorted.map((entry) => {
           const band = fairShareBand(entry.shareRatio);
           const pct = Math.round(entry.shareRatio * 100);
+          const isPriority = isPriorityPlayer(entry.playerId);
           // Single string used for both `title` (sighted hover) and
           // `aria-label` (AT announcement) so the two never drift.
-          const ariaLabel = t(
-            'planningMinutesDashboard.entryAria',
-            '{{player}}: {{mmss}}, {{pct}} percent of fair share',
-            {
-              player: playerLabel(entry.playerId),
-              mmss: formatMMSS(entry.totalSeconds),
-              pct,
-            },
-          );
+          // Priority gets a "Priority " prefix so the visual ★ glyph
+          // (decorative, aria-hidden) doesn't get announced as "star".
+          const ariaLabel = isPriority
+            ? t(
+                'planningMinutesDashboard.entryAriaPriority',
+                'Priority {{player}}: {{mmss}}, {{pct}} percent of fair share',
+                {
+                  player: playerLabel(entry.playerId),
+                  mmss: formatMMSS(entry.totalSeconds),
+                  pct,
+                },
+              )
+            : t(
+                'planningMinutesDashboard.entryAria',
+                '{{player}}: {{mmss}}, {{pct}} percent of fair share',
+                {
+                  player: playerLabel(entry.playerId),
+                  mmss: formatMMSS(entry.totalSeconds),
+                  pct,
+                },
+              );
           return (
             <li
               key={entry.playerId}
               data-testid={`planning-minutes-dashboard-entry-${entry.playerId}`}
               data-band={band}
+              data-priority={isPriority ? 'true' : 'false'}
               aria-label={ariaLabel}
               title={ariaLabel}
               className={`flex items-center justify-between rounded-md border px-2 py-1 ${bandClass[band]}`}
             >
-              <span className="truncate">{playerLabel(entry.playerId)}</span>
+              {/* min-w-0 lets the flex container shrink below its
+                  intrinsic content width so the inner truncate can
+                  fire — `truncate` (overflow-hidden + ellipsis) on
+                  the outer is dead code in flex without it. */}
+              <span className="flex min-w-0 items-center gap-1">
+                {isPriority && (
+                  <span aria-hidden="true" className="text-amber-300">
+                    ★
+                  </span>
+                )}
+                <span className="truncate">{playerLabel(entry.playerId)}</span>
+              </span>
               <span className="font-mono text-[11px] tabular-nums">
                 {formatMMSS(entry.totalSeconds)}
               </span>

@@ -221,6 +221,47 @@ describe('PlanningMinutesDashboard', () => {
     expect(ids).toEqual(['p0', 'p2', 'p3', 'p1']);
   });
 
+  it('renders a ★ glyph + "Priority" aria-label prefix for priority players', () => {
+    renderDashboard({
+      roster: [
+        { id: 'p0', name: 'Alice', isPriority: true },
+        { id: 'p1', name: 'Bob', nickname: 'Bobby' },
+        { id: 'p2', name: 'Cara' },
+        { id: 'p3', name: 'Dan' },
+      ] as Player[],
+    });
+    const priorityRow = screen.getByTestId(
+      'planning-minutes-dashboard-entry-p0',
+    );
+    expect(priorityRow).toHaveAttribute('data-priority', 'true');
+    expect(priorityRow).toHaveTextContent('★');
+    expect(priorityRow.getAttribute('aria-label')).toMatch(/^Priority Alice/);
+    // Non-priority players don't get the glyph or prefix.
+    const regular = screen.getByTestId(
+      'planning-minutes-dashboard-entry-p1',
+    );
+    expect(regular).toHaveAttribute('data-priority', 'false');
+    expect(regular).not.toHaveTextContent('★');
+    expect(regular.getAttribute('aria-label')).toMatch(/^Bobby:/);
+  });
+
+  it('the ★ glyph is aria-hidden so screen readers don\'t announce it as "star"', () => {
+    renderDashboard({
+      roster: [
+        { id: 'p0', name: 'Alice', isPriority: true },
+        { id: 'p1', name: 'Bob' },
+        { id: 'p2', name: 'Cara' },
+        { id: 'p3', name: 'Dan' },
+      ] as Player[],
+    });
+    const row = screen.getByTestId(
+      'planning-minutes-dashboard-entry-p0',
+    );
+    const star = row.querySelector('span[aria-hidden="true"]');
+    expect(star).not.toBeNull();
+    expect(star).toHaveTextContent('★');
+  });
+
   it('exposes an aria-label per row that bundles player + mm:ss + percent', () => {
     renderDashboard();
     const row = screen.getByTestId(

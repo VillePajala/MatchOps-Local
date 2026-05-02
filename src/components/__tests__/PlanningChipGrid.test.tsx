@@ -360,6 +360,52 @@ describe('PlanningChipGrid', () => {
     }
   });
 
+  it('renders a ★ glyph and "Priority" aria-label prefix for priority players', () => {
+    renderGrid({
+      roster: [
+        { id: 'p0', name: 'Alice', isPriority: true },
+        { id: 'p1', name: 'Bob', nickname: 'Bobby' },
+        { id: 'p2', name: 'Cara' },
+        { id: 'p3', name: 'Dan' },
+        { id: 'p4', name: 'Eli' },
+        { id: 'p5', name: 'Fran' },
+      ] as Player[],
+    });
+    const priorityChip = screen.getByTestId(
+      'planning-chip-grid-chip-g1-GK-p0',
+    );
+    expect(priorityChip).toHaveAttribute('data-priority', 'true');
+    expect(priorityChip).toHaveTextContent('★');
+    // aria-label gets "Priority" prefix so screen readers announce
+    // the role status without parsing the decorative glyph.
+    expect(priorityChip.getAttribute('aria-label')).toMatch(/^Priority Alice/);
+    // Non-priority players neither show the glyph nor get the
+    // prefix.
+    const regular = screen.getByTestId('planning-chip-grid-chip-g1-LB-p1');
+    expect(regular).toHaveAttribute('data-priority', 'false');
+    expect(regular).not.toHaveTextContent('★');
+    expect(regular.getAttribute('aria-label')).toMatch(/^Bobby from/);
+  });
+
+  it('the ★ glyph is aria-hidden so it isn\'t announced redundantly', () => {
+    renderGrid({
+      roster: [
+        { id: 'p0', name: 'Alice', isPriority: true },
+        { id: 'p1', name: 'Bob' },
+        { id: 'p2', name: 'Cara' },
+        { id: 'p3', name: 'Dan' },
+        { id: 'p4', name: 'Eli' },
+        { id: 'p5', name: 'Fran' },
+      ] as Player[],
+    });
+    const priorityChip = screen.getByTestId(
+      'planning-chip-grid-chip-g1-GK-p0',
+    );
+    const star = priorityChip.querySelector('span[aria-hidden="true"]');
+    expect(star).not.toBeNull();
+    expect(star).toHaveTextContent('★');
+  });
+
   it('title attribute matches aria-label so hover and AT announcements never drift', () => {
     renderGrid();
     const chip = screen.getByTestId('planning-chip-grid-chip-g1-GK-p0');
