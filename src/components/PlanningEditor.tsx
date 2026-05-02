@@ -1054,9 +1054,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           <div className="flex justify-end mt-2">
             <button
               type="button"
-              // No snapshot from the warning path — partial-success and
-              // skipped games stay in the editor's existing warning
-              // banner, not the modal-level undo banner.
+              // Warning-path Done: exits the warning view with no
+              // snapshot. The wrapping arrow is required so the click
+              // event isn't passed where onApplied expects an
+              // ApplySnapshot.
               onClick={() => onApplied()}
               data-testid="planning-editor-warning-done"
               className="rounded-md bg-amber-500/90 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-amber-400"

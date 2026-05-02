@@ -110,4 +110,57 @@ describe('PlanningUndoBanner', () => {
       screen.getByTestId('planning-undo-banner-undo'),
     ).toBeDisabled();
   });
+
+  it('does not re-fire onExpire when an unstable onExpire reference re-renders the banner', () => {
+    // Regression for the race Claude flagged on PR #396: handlers
+    // declared inline on PlanningModal recreate on every render, so
+    // setIsUndoing(true) → re-render → effect cleanup + restart →
+    // expiredRef.current = false → next tick fires onExpire again.
+    // Fix is the onExpireRef wrapper inside the banner that decouples
+    // the timer effect from the onExpire callback identity.
+    const onExpire = jest.fn();
+    const appliedAt = Date.now();
+    const { rerender } = render(
+      <I18nextProvider i18n={i18n}>
+        <PlanningUndoBanner
+          gameCount={1}
+          appliedAt={appliedAt}
+          isUndoing={false}
+          undoError={null}
+          onUndo={jest.fn()}
+          onDismiss={jest.fn()}
+          onExpire={onExpire}
+        />
+      </I18nextProvider>,
+    );
+    // Run out the window once.
+    act(() => {
+      jest.advanceTimersByTime(UNDO_WINDOW_MS + 100);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(1);
+    // Simulate the parent re-rendering with a fresh onExpire identity
+    // (e.g. PlanningModal's setIsUndoing(true) returns a new closure).
+    const onExpire2 = jest.fn();
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlanningUndoBanner
+          gameCount={1}
+          appliedAt={appliedAt}
+          isUndoing
+          undoError={null}
+          onUndo={jest.fn()}
+          onDismiss={jest.fn()}
+          onExpire={onExpire2}
+        />
+      </I18nextProvider>,
+    );
+    act(() => {
+      jest.advanceTimersByTime(2_000);
+    });
+    // Neither the original nor the new onExpire fires again — the
+    // banner already expired once for this `appliedAt` and the
+    // effect's stable deps prevent a reset.
+    expect(onExpire).toHaveBeenCalledTimes(1);
+    expect(onExpire2).not.toHaveBeenCalled();
+  });
 });

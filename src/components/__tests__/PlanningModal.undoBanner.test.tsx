@@ -197,6 +197,54 @@ describe('PlanningModal — post-Apply undo banner (PR 8c)', () => {
     ).not.toBeDisabled();
   });
 
+  it('mid-loop partial undo: retry resumes from the failed entry, not the start', async () => {
+    // First-call sequence: g1 succeeds, g2 throws → partial state.
+    // Retry: cursor sits at index 1, so applyToGame is called with g2
+    // only (g1 not re-restored — it's already at its pre-apply state).
+    const applyToGame = jest
+      .fn<Promise<void>, [string, unknown]>()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('IDB fail'))
+      .mockResolvedValue(undefined);
+    const onClose = jest.fn();
+    const { snapshot } = driveToBanner({ applyToGame, onClose });
+    // First Undo click: g1 ok, g2 fails.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-undo-banner-undo'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('planning-undo-banner-error'),
+      ).toBeInTheDocument();
+    });
+    // Partial-undo error message includes the resume hint.
+    expect(
+      screen.getByTestId('planning-undo-banner-error'),
+    ).toHaveTextContent(/Restored 1 of 2|Peruutettu 1\/2/i);
+    expect(applyToGame).toHaveBeenCalledTimes(2);
+    expect(applyToGame).toHaveBeenNthCalledWith(
+      1,
+      'g1',
+      snapshot!.games[0].before,
+    );
+    expect(applyToGame).toHaveBeenNthCalledWith(
+      2,
+      'g2',
+      snapshot!.games[1].before,
+    );
+    // Retry: g2 only — g1 is NOT replayed.
+    applyToGame.mockClear();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-undo-banner-undo'));
+    });
+    expect(applyToGame).toHaveBeenCalledTimes(1);
+    expect(applyToGame).toHaveBeenCalledWith(
+      'g2',
+      snapshot!.games[1].before,
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('Dismiss closes the modal without restoring', () => {
     const applyToGame = jest.fn().mockResolvedValue(undefined);
     const onClose = jest.fn();
@@ -204,6 +252,54 @@ describe('PlanningModal — post-Apply undo banner (PR 8c)', () => {
     fireEvent.click(screen.getByTestId('planning-undo-banner-dismiss'));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(applyToGame).not.toHaveBeenCalled();
+  });
+
+  it('timer expiry during in-flight Undo does NOT close the modal mid-restore', async () => {
+    // Race Claude flagged: user clicks Undo near 29s; the parent
+    // re-renders for setIsUndoing(true); the timer fires onExpire
+    // shortly after; without the isUndoing guard, the modal would
+    // tear down while applyToGame is still in flight.
+    jest.useFakeTimers();
+    try {
+      // First call defers (we hold it pending while time advances);
+      // subsequent calls resolve immediately so the loop can finish
+      // once we release the first one.
+      let resolveApply: () => void = () => {};
+      const applyToGame = jest
+        .fn<Promise<void>, [string, unknown]>()
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((resolve) => {
+              resolveApply = resolve;
+            }),
+        )
+        .mockResolvedValue(undefined);
+      const onClose = jest.fn();
+      driveToBanner({ applyToGame, onClose });
+      // Click Undo — applyToGame pends, isUndoing=true is now true.
+      act(() => {
+        fireEvent.click(screen.getByTestId('planning-undo-banner-undo'));
+      });
+      // Run past the 30s window while applyToGame is still pending.
+      act(() => {
+        jest.advanceTimersByTime(UNDO_WINDOW_MS + 2_000);
+      });
+      // Modal must still be open — onExpire should have been a no-op
+      // because isUndoing=true.
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByTestId('planning-undo-banner')).toBeInTheDocument();
+      // Now resolve the in-flight restore — modal closes via the
+      // success path, exactly once.
+      await act(async () => {
+        resolveApply();
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
+      jest.useRealTimers();
+    }
   });
 
   it('auto-dismisses (closes the modal) after UNDO_WINDOW_MS elapses', () => {

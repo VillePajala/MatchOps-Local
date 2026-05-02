@@ -50,24 +50,31 @@ const PlanningUndoBanner: React.FC<PlanningUndoBannerProps> = ({
   const { t } = useTranslation();
   const [now, setNow] = useState(() => Date.now());
   const expiredRef = useRef(false);
+  // Latest onExpire — kept in a ref so the timer effect doesn't have
+  // to depend on it. Without this, the effect cleanup + restart fires
+  // on every parent re-render (e.g. setIsUndoing(true) flips the
+  // parent), which resets `expiredRef` to false and lets the timer
+  // re-fire onExpire after the user already clicked Undo. The race
+  // is narrow but real (Claude PR #396 review).
+  const onExpireRef = useRef(onExpire);
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
   useEffect(() => {
     expiredRef.current = false;
     const tick = () => {
       const next = Date.now();
       setNow(next);
-      // Fire onExpire exactly once per banner instance. The interval
-      // keeps running until the parent unmounts us, which it'll do
-      // synchronously on the onExpire callback — but ref-guarding is
-      // cheap insurance against a second tick slipping through.
+      // Fire onExpire exactly once per banner instance.
       if (!expiredRef.current && next >= appliedAt + UNDO_WINDOW_MS) {
         expiredRef.current = true;
-        onExpire();
+        onExpireRef.current();
       }
     };
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [appliedAt, onExpire]);
+  }, [appliedAt]);
 
   const seconds = remainingSeconds(appliedAt, now);
 

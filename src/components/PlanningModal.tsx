@@ -124,6 +124,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [undoSnapshot, setUndoSnapshot] = useState<ApplySnapshot | null>(null);
   const [isUndoing, setIsUndoing] = useState(false);
   const [undoError, setUndoError] = useState<string | null>(null);
+  // Index of the next snapshot entry to restore. Advances on each
+  // successful applyToGame so a mid-loop failure doesn't redo the
+  // already-restored games on retry.
+  const [undoCursor, setUndoCursor] = useState(0);
 
   // Saved sessions are scoped to the active team. The query is gated on
   // (isOpen && page === 'list') so it doesn't fetch while the modal is
@@ -177,6 +181,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setUndoSnapshot(null);
     setUndoError(null);
     setIsUndoing(false);
+    setUndoCursor(0);
   };
 
   const handleClose = () => {
@@ -449,6 +454,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       setUndoSnapshot(snapshot);
       setUndoError(null);
       setIsUndoing(false);
+      setUndoCursor(0);
       setPage('undoBanner');
       return;
     }
@@ -467,6 +473,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   };
 
   const handleUndoExpire = () => {
+    // Don't tear down the modal while an undo is in flight; the
+    // applyToGame loop will resolve and either close cleanly on
+    // success or surface undoError on the still-mounted banner for
+    // retry. Without this guard the 30s expiry could close the
+    // modal mid-restore.
+    if (isUndoing) return;
     // Same effect as Dismiss: close the modal and forget the snapshot.
     // Kept as a separate name so the test suite can assert which path
     // fired (timeout vs. user click).
@@ -479,23 +491,38 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     if (!undoSnapshot || isUndoing) return;
     setIsUndoing(true);
     setUndoError(null);
+    // Resume from undoCursor so a retry after a mid-loop failure
+    // doesn't re-restore the games that already succeeded — those
+    // are already at their pre-apply state.
+    let cursor = undoCursor;
     try {
-      // Sequential restores so a mid-loop failure leaves the user with
-      // a partial-undo state but a clear error — same shape as the
-      // forward apply path.
-      for (const entry of undoSnapshot.games) {
+      while (cursor < undoSnapshot.games.length) {
+        const entry = undoSnapshot.games[cursor];
         await applyToGame(entry.gameId, entry.before);
+        cursor++;
       }
       resetEditorState();
       setPage('list');
       onClose();
     } catch (err) {
       logger.error('[PlanningModal] Undo failed', err);
+      setUndoCursor(cursor);
+      // Different copy when at least one game has been restored
+      // already so the user knows where the retry will pick up,
+      // versus the all-or-nothing first-game failure.
+      const messageKey =
+        cursor > 0
+          ? 'planningUndoBanner.undoFailedPartial'
+          : 'planningUndoBanner.undoFailed';
+      const messageDefault =
+        cursor > 0
+          ? 'Restored {{done}} of {{total}} games. Retry to continue.'
+          : 'Could not undo the apply. Please try again.';
       setUndoError(
-        t(
-          'planningUndoBanner.undoFailed',
-          'Could not undo the apply. Please try again.',
-        ),
+        t(messageKey, messageDefault, {
+          done: cursor,
+          total: undoSnapshot.games.length,
+        }),
       );
       setIsUndoing(false);
     }

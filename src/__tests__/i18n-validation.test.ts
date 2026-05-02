@@ -319,10 +319,11 @@ describe('Translation File Validation', () => {
       //   missingGames plural pair for the inline cloud-sync-race
       //   notice, confirm plural pair + confirmMissingOnly fallback
       //   for the all-missing edge case, cancel/empty/missing-game).
-      // Planner Phase 4c: +7 planningUndoBanner keys for the
+      // Planner Phase 4c: +8 planningUndoBanner keys for the
       //   post-Apply undo banner (title plural pair, countdown,
-      //   undo/undoing/dismiss labels, undoFailed error).
-      expect(enKeys.length).toBe(2560);
+      //   undo/undoing/dismiss labels, undoFailed + undoFailedPartial
+      //   error variants).
+      expect(enKeys.length).toBe(2561);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -343,8 +344,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 3c (PR 7c): +4 planningModal +7 planningEditor.
       // Planner Phase 3d (PR 7d): +10 planningModal row-action keys.
       // Planner Phase 4b: +23 planningApplyPreview keys (see EN block).
-      // Planner Phase 4c: +7 planningUndoBanner keys (see EN block).
-      expect(fiKeys.length).toBe(2560);
+      // Planner Phase 4c: +8 planningUndoBanner keys (see EN block).
+      expect(fiKeys.length).toBe(2561);
     });
   });
 });

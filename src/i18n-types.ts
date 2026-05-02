@@ -1536,6 +1536,7 @@ export type TranslationKey =
   | 'planningUndoBanner.title_other'
   | 'planningUndoBanner.undo'
   | 'planningUndoBanner.undoFailed'
+  | 'planningUndoBanner.undoFailedPartial'
   | 'planningUndoBanner.undoing'
   | 'playBilling.noPurchases'
   | 'playBilling.restoreFailed'

@@ -1728,7 +1728,8 @@
     "undo": "Undo",
     "undoing": "Undoing…",
     "dismiss": "Dismiss",
-    "undoFailed": "Could not undo the apply. Please try again."
+    "undoFailed": "Could not undo the apply. Please try again.",
+    "undoFailedPartial": "Restored {{done}} of {{total}} games. Retry to continue."
   },
   "planningApplyPreview": {
     "title": "Review changes before applying",
