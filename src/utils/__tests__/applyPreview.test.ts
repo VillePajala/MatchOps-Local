@@ -13,7 +13,16 @@ import type { AppState, ScheduledSub } from '@/types/game';
 import type { Player } from '@/types';
 import type { PlanDraft } from '@/utils/planSwapEngine';
 
-const preset5v5 = FORMATION_PRESETS.find((p) => p.id === '5v5-2-2')!;
+// Explicit guard so a future preset rename surfaces a clear diagnostic
+// rather than a downstream "Cannot read properties of undefined" — every
+// test in this file depends on `preset5v5.roles`.
+const preset5v5Lookup = FORMATION_PRESETS.find((p) => p.id === '5v5-2-2');
+if (!preset5v5Lookup) {
+  throw new Error(
+    'Test setup: preset "5v5-2-2" not found in FORMATION_PRESETS',
+  );
+}
+const preset5v5 = preset5v5Lookup;
 
 // Helper: build a saved game with given playersOnField roster mapped via
 // preset role coords. Each player id is placed at the matching preset
