@@ -69,12 +69,12 @@ export const aggregatePlanMinutes = (
     const dur = gameDurationSec(game);
     if (dur === 0) continue;
     totalFieldSeconds += dur * startingXISize;
-    // computePlayerSeconds clamps subs to [0, dur] internally, so a
-    // sub scheduled past the end contributes nothing to the inPlayer's
-    // total — matches the apply path.
+    // computePlayerSeconds clamps subs to [0, dur] internally and
+    // only inserts a player when they accumulate positive time, so a
+    // sub past the end never lands in the map. Matches the apply path.
     const perPlayer = computePlayerSeconds(draft, dur);
     for (const [pid, secs] of perPlayer) {
-      if (secs > 0) totals.set(pid, (totals.get(pid) ?? 0) + secs);
+      totals.set(pid, (totals.get(pid) ?? 0) + secs);
     }
   }
   // Referenced = players who actually played for > 0s across the
@@ -100,10 +100,14 @@ export const aggregatePlanMinutes = (
 };
 
 /**
- * Maps a fair-share ratio to a Tailwind background color band.
- * Bands chosen to match the standalone's red/yellow/green gradient
- * intuition: under 70% red, 70-90% amber, 90-110% emerald (fair),
- * 110-130% lime (mild over), >130% indigo (heavy over).
+ * Maps a fair-share ratio to a discrete band. Color mapping is the
+ * component's responsibility (see PlanningMinutesDashboard); this
+ * util stays display-agnostic. Cutoffs match the standalone's
+ * intuition: ±10% of fair share is "fair".
+ *
+ * The bounds use mixed `<` / `<=` so each integer ratio falls into
+ * exactly one band: 0.7 → low, 0.9 → fair, 1.1 → fair (still in
+ * the ±10% window), 1.3 → over.
  */
 export type FairShareBand = 'under' | 'low' | 'fair' | 'over' | 'heavy-over';
 

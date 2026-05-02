@@ -52,15 +52,25 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
     };
   }, [roster]);
 
-  // Stable savedGames signature — Object.keys/values order is
-  // implementation-defined for non-numeric keys, but JS engines have
-  // historically respected insertion order. Casting to a record for
-  // the calculator keeps the type contract narrow.
+  // Type-narrowing cast only — SavedGamesCollection's structural shape
+  // matches Record<string, AppState | undefined> at the call site.
   const savedGamesMap = savedGames as Record<string, AppState | undefined>;
 
   const aggregate = useMemo(
     () => aggregatePlanMinutes(draft, gameIds, savedGamesMap),
     [draft, gameIds, savedGamesMap],
+  );
+
+  // Sort by total seconds desc so over-played players cluster at the
+  // top, under-played at the bottom — answers "who's getting too
+  // much/little time?" at a glance. Memoised on aggregate so a
+  // parent re-render doesn't re-sort.
+  const sorted = useMemo(
+    () =>
+      [...aggregate.perPlayer].sort(
+        (a, b) => b.totalSeconds - a.totalSeconds,
+      ),
+    [aggregate],
   );
 
   if (aggregate.perPlayer.length === 0) {
@@ -76,13 +86,6 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
       </div>
     );
   }
-
-  // Sort by totalSeconds descending so the over/under players are
-  // visually grouped at the top/bottom rather than interleaved by
-  // referenced-set insertion order.
-  const sorted = [...aggregate.perPlayer].sort(
-    (a, b) => b.totalSeconds - a.totalSeconds,
-  );
 
   return (
     <section

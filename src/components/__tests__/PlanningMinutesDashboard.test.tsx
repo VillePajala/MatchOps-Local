@@ -95,6 +95,28 @@ describe('PlanningMinutesDashboard', () => {
     ).toHaveAttribute('data-band', 'fair');
   });
 
+  it('marks a heavy-over player with the heavy-over band', () => {
+    // 4 players in the rotation, but p3 plays both LB AND RB across
+    // sub events — they accumulate well over their fair share.
+    // Subs at t=0 swap p1→p3 and p2→p3 so p3 plays the full 20 min
+    // on both LB and RB = 40 min, while p1+p2 each play 0 min.
+    // Fair share = (1200 * 3 starters) / 2 active = 1800s.
+    // p3 = 2400s, ratio = 2400/1800 = 1.33 → heavy-over.
+    renderDashboard({
+      draft: {
+        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+        bench: ['p3'],
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 0, inPlayer: 'p3', positionRole: 'LB' },
+          { id: 's2', timeSeconds: 0, inPlayer: 'p3', positionRole: 'RB' },
+        ],
+      },
+    });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p3'),
+    ).toHaveAttribute('data-band', 'heavy-over');
+  });
+
   it('marks an under-share player with the under band', () => {
     // p1 plays 0-5 min then p3 takes over. p1 ends at 5min/20min total
     // = 25% of fair share = under band.
