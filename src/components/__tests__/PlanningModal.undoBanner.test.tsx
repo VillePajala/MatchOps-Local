@@ -319,6 +319,51 @@ describe('PlanningModal — post-Apply undo banner (PR 8c)', () => {
     }
   });
 
+  it('clears undo state when the user closes the modal externally during the banner window', () => {
+    // Closing the modal via Done (or any external close path that
+    // routes through handleClose → resetEditorState) must clear the
+    // undoSnapshot + isUndoing + cursor so the next open of the
+    // mounted-across-opens modal doesn't leak stale undo state.
+    const onClose = jest.fn();
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const { rerender } = renderModal({
+      onClose,
+      applyToGame,
+      savedGames: { g1: { teamId: 'team_a' } as never },
+      currentTeamId: 'team_a',
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+    );
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    act(() => {
+      lastEditorOnApplied?.(buildSnapshot());
+    });
+    expect(screen.getByTestId('planning-undo-banner')).toBeInTheDocument();
+    // External close: click the modal-level Done button.
+    fireEvent.click(screen.getByRole('button', { name: /Done|Valmis/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    // Reopen the same modal — the banner must NOT come back from
+    // stale state. We simulate the reopen by toggling isOpen via a
+    // rerender (the parent's state-driven flow).
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlanningModal
+          isOpen
+          onClose={onClose}
+          applyToGame={applyToGame}
+          roster={[]}
+          savedGames={{ g1: { teamId: 'team_a' } as never }}
+          currentTeamId="team_a"
+        />
+      </I18nextProvider>,
+    );
+    expect(
+      screen.queryByTestId('planning-undo-banner'),
+    ).not.toBeInTheDocument();
+  });
+
   it('skips the banner when the snapshot is undefined (no full-success apply)', () => {
     const onClose = jest.fn();
     driveToBanner({ onClose }, NO_SNAPSHOT);

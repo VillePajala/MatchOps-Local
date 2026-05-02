@@ -1569,16 +1569,25 @@ describe('PlanningEditor', () => {
       expect(snapshot.games[0].gameId).toBe('g1');
       // The snapshot preserves undefined fields verbatim (not
       // normalized to []) so a legacy game whose scheduledSubs was
-      // never set restores losslessly.
-      expect(snapshot.games[0].before.playersOnField).toBe(
+      // never set restores losslessly. Arrays are shallow-cloned at
+      // capture time so future in-place mutations on the live game
+      // can't retroactively corrupt the snapshot — assert equal
+      // contents but NOT the same reference.
+      expect(snapshot.games[0].before.playersOnField).toEqual(
         game1.playersOnField,
       );
-      expect(snapshot.games[0].before.selectedPlayerIds).toBe(
+      expect(snapshot.games[0].before.playersOnField).not.toBe(
+        game1.playersOnField,
+      );
+      expect(snapshot.games[0].before.selectedPlayerIds).toEqual(
         game1.selectedPlayerIds,
       );
-      expect(snapshot.games[0].before.scheduledSubs).toBe(
-        game1.scheduledSubs,
+      expect(snapshot.games[0].before.selectedPlayerIds).not.toBe(
+        game1.selectedPlayerIds,
       );
+      // scheduledSubs was undefined on game1 — undefined stays
+      // undefined (not promoted to []) so undo is lossless.
+      expect(snapshot.games[0].before.scheduledSubs).toBeUndefined();
       expect(typeof snapshot.appliedAt).toBe('number');
     });
 

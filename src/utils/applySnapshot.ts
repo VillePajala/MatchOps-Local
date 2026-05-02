@@ -22,11 +22,15 @@ export interface ApplySnapshot {
   games: ApplySnapshotEntry[];
 }
 
-// No defaulting — undefined fields stay undefined so undo is lossless.
+// Shallow-clone existing arrays so future in-place mutations on the
+// live game can't retroactively corrupt the snapshot. undefined stays
+// undefined so undo is lossless.
 export const captureApplyableFields = (game: AppState): ApplyableFields => ({
-  playersOnField: game.playersOnField,
-  selectedPlayerIds: game.selectedPlayerIds,
-  scheduledSubs: game.scheduledSubs,
+  playersOnField: game.playersOnField ? [...game.playersOnField] : undefined,
+  selectedPlayerIds: game.selectedPlayerIds
+    ? [...game.selectedPlayerIds]
+    : undefined,
+  scheduledSubs: game.scheduledSubs ? [...game.scheduledSubs] : undefined,
 });
 
 export const UNDO_WINDOW_MS = 30_000;
