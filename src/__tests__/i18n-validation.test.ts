@@ -323,7 +323,10 @@ describe('Translation File Validation', () => {
       //   post-Apply undo banner (title plural pair, countdown,
       //   undo/undoing/dismiss labels, undoFailed + undoFailedPartial
       //   error variants).
-      expect(enKeys.length).toBe(2561);
+      // Planner Phase 5a: +4 planningMinutesDashboard keys for the
+      //   plan-level minutes dashboard (title, fairShare, empty,
+      //   entryAria).
+      expect(enKeys.length).toBe(2565);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -345,7 +348,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 3d (PR 7d): +10 planningModal row-action keys.
       // Planner Phase 4b: +23 planningApplyPreview keys (see EN block).
       // Planner Phase 4c: +8 planningUndoBanner keys (see EN block).
-      expect(fiKeys.length).toBe(2561);
+      // Planner Phase 5a: +4 planningMinutesDashboard keys.
+      expect(fiKeys.length).toBe(2565);
     });
   });
 });

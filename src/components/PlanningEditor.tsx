@@ -27,6 +27,7 @@ import {
 } from '@/utils/planApply';
 import logger from '@/utils/logger';
 import PlanningTimeline from './PlanningTimeline';
+import PlanningMinutesDashboard from './PlanningMinutesDashboard';
 import type { DraftScheduledSub } from '@/utils/planSwapEngine';
 import PlanningApplyPreview from './PlanningApplyPreview';
 import { computeApplyDiff, type ApplyDiff } from '@/utils/applyPreview';
@@ -1028,6 +1029,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         onUpdateSub={handleUpdateSub}
         onRemoveSub={handleRemoveSub}
         disabled={isApplying || pendingPresetId !== null}
+      />
+
+      <PlanningMinutesDashboard
+        draft={draft}
+        gameIds={gameIds}
+        savedGames={savedGames}
+        roster={roster}
       />
 
       {applyError ? (

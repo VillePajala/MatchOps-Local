@@ -1721,6 +1721,12 @@
     "selectedCount": "{{count}} selected",
     "continueButton": "Continue"
   },
+  "planningMinutesDashboard": {
+    "title": "Plan minutes",
+    "fairShare": "Fair share: {{mmss}}",
+    "empty": "Pick at least one game and assign players to a starting XI to see the minutes breakdown.",
+    "entryAria": "{{player}}: {{mmss}}, {{pct}} percent of fair share"
+  },
   "planningUndoBanner": {
     "title_one": "Plan applied to {{count}} game.",
     "title_other": "Plan applied to {{count}} games.",
