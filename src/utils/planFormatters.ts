@@ -1,7 +1,4 @@
-// Shared formatters for planner components. Keeps the M:SS time and
-// per-game duration math in one place so 5a/5b/future slices don't
-// drift. PlanningTimeline uses an MM:SS variant by design and is not
-// shared here.
+// Shared M:SS time + per-game duration helpers for planner components.
 
 import type { AppState } from '@/types/game';
 

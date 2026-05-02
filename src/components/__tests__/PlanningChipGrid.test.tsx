@@ -329,6 +329,37 @@ describe('PlanningChipGrid', () => {
     ).toHaveTextContent('g1');
   });
 
+  it('renders all roles as placeholders when the game has 0 duration (corrupt data)', () => {
+    // periodDurationMinutes: 0 → gameDurationSec returns 0 →
+    // getRoleSegments returns []. Component must NOT crash; every
+    // role row falls through to the em-dash placeholder.
+    renderGrid({
+      savedGames: {
+        g1: ({
+          teamId: 't1',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 0,
+        } as unknown) as AppState,
+      } as SavedGamesCollection,
+    });
+    // Card renders.
+    expect(
+      screen.getByTestId('planning-chip-grid-card-g1'),
+    ).toBeInTheDocument();
+    // No chips for any role.
+    expect(
+      screen.queryByTestId(/planning-chip-grid-chip-g1-/),
+    ).not.toBeInTheDocument();
+    // Each role row shows the em-dash placeholder.
+    for (const role of ['GK', 'LB', 'RB', 'CM', 'ST']) {
+      expect(
+        screen.getByTestId(`planning-chip-grid-role-g1-${role}`),
+      ).toHaveTextContent('—');
+    }
+  });
+
   it('title attribute matches aria-label so hover and AT announcements never drift', () => {
     renderGrid();
     const chip = screen.getByTestId('planning-chip-grid-chip-g1-GK-p0');

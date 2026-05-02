@@ -31,10 +31,15 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
     () => new Map(roster.map((p) => [p.id, p])),
     [roster],
   );
-  const playerLabel = (id: PlayerId): string => {
-    const p = playerMap.get(id);
-    return p?.nickname || p?.name || id;
-  };
+  const playerLabel = useCallback(
+    (id: PlayerId): string => {
+      const p = playerMap.get(id);
+      // `||` (not `??`) so an empty-string nickname falls through to
+      // `name` rather than rendering an empty chip.
+      return p?.nickname || p?.name || id;
+    },
+    [playerMap],
+  );
 
   // Multi-select highlight set. Click a chip → toggle that player.
   // Clear button resets the whole set. Empty set = no focus mode.
@@ -59,20 +64,23 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
 
   const roles = preset.roles ?? [];
 
-  const gameLabel = (gameId: string): string => {
-    const game: AppState | undefined = savedGames[gameId];
-    if (!game) return t('planningChipGrid.gameMissing', 'Game ({{id}})', { id: gameId });
-    const opp = game.opponentName || '';
-    let date = '';
-    if (game.gameDate) {
-      const parsed = new Date(game.gameDate);
-      if (!Number.isNaN(parsed.getTime())) {
-        date = parsed.toLocaleDateString(i18n.language);
+  const gameLabel = useCallback(
+    (gameId: string): string => {
+      const game: AppState | undefined = savedGames[gameId];
+      if (!game) return t('planningChipGrid.gameMissing', 'Game ({{id}})', { id: gameId });
+      const opp = game.opponentName || '';
+      let date = '';
+      if (game.gameDate) {
+        const parsed = new Date(game.gameDate);
+        if (!Number.isNaN(parsed.getTime())) {
+          date = parsed.toLocaleDateString(i18n.language);
+        }
       }
-    }
-    if (opp && date) return `${opp} · ${date}`;
-    return opp || date || gameId;
-  };
+      if (opp && date) return `${opp} · ${date}`;
+      return opp || date || gameId;
+    },
+    [savedGames, t, i18n.language],
+  );
 
   if (gameIds.length === 0 || roles.length === 0) {
     return (
@@ -139,9 +147,13 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
               className="rounded-md border border-slate-700 bg-slate-800/40 p-2"
               data-testid={`planning-chip-grid-card-${gid}`}
             >
-              <header className="mb-1 text-xs font-medium text-slate-200">
+              {/* Plain div rather than <header> — landmark element
+                  inside <li> can confuse screen-reader navigation,
+                  and the outer <section aria-labelledby> already
+                  carries the structural semantics. */}
+              <div className="mb-1 text-xs font-medium text-slate-200">
                 {gameLabel(gid)}
-              </header>
+              </div>
               <ul className="space-y-1" role="list">
                 {roles.map((role) => {
                   const segs = getRoleSegments(draft, role.name, dur);
@@ -190,7 +202,11 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
                         );
                         return (
                           <button
-                            key={`${seg.playerId}-${seg.startSec}`}
+                            // Role name in the key guards the (today
+                            // impossible, tomorrow maybe) case where
+                            // the same player appears in two roles
+                            // starting at the same time.
+                            key={`${role.name}-${seg.playerId}-${seg.startSec}`}
                             type="button"
                             onClick={() => togglePlayer(seg.playerId)}
                             aria-pressed={isHighlighted}
