@@ -347,6 +347,41 @@ describe('PlayerDetailsModal', () => {
       expect(onUpdatePlayer).toHaveBeenCalledWith('p1', { isPriority: true });
     });
 
+    it('toggling on-then-off from undefined initial state is a no-op', async () => {
+      // Inverse of the off-then-on case below. Player.isPriority is
+      // undefined (legacy data); the diff guard treats undefined ==
+      // false. Toggle on then off → back to original-equivalent (false),
+      // so no save call should fire.
+      const onUpdatePlayer = jest.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      const playerWithoutFlag: Player = { ...mockPlayer };
+      delete (playerWithoutFlag as Partial<Player>).isPriority;
+      await act(async () => {
+        renderWithProviders({ onUpdatePlayer, player: playerWithoutFlag });
+      });
+      const toggle = screen.getByTestId(
+        'player-details-modal-priority-toggle',
+      );
+      await user.click(toggle); // on
+      await user.click(toggle); // off (back to undefined-equivalent)
+      await user.click(screen.getByRole('button', { name: /Save/i }));
+      expect(onUpdatePlayer).not.toHaveBeenCalled();
+    });
+
+    it('aria-describedby links the hint paragraph to the checkbox', async () => {
+      await act(async () => {
+        renderWithProviders();
+      });
+      const toggle = screen.getByTestId(
+        'player-details-modal-priority-toggle',
+      );
+      const describedBy = toggle.getAttribute('aria-describedby');
+      expect(describedBy).toBe('player-details-modal-priority-hint');
+      // The referenced element must actually exist in the DOM —
+      // otherwise screen readers would announce nothing.
+      expect(document.getElementById(describedBy!)).not.toBeNull();
+    });
+
     it('flipping back to original state does NOT include isPriority in updates', async () => {
       // Player started as priority=true. User toggles off then back
       // on. The compare-against-original check should treat this as

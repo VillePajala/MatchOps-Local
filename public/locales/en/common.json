@@ -1087,7 +1087,7 @@
     "notesPlaceholder": "Optional notes about this player",
     "goalieLabel": "Goalkeeper",
     "priorityLabel": "Priority player ★",
-    "priorityHint": "Surfaces a star on chips and minutes pills in the planner.",
+    "priorityHint": "Marks this player as a priority on the roster.",
     "duplicateNameError": "A player with this name already exists"
   },
   "personnelDetailsModal": {

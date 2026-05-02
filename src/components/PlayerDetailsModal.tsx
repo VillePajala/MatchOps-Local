@@ -34,9 +34,6 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [nickname, setNickname] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [notes, setNotes] = useState('');
-  // Priority is edit-mode only — coaches mark a created player as
-  // priority via a follow-up edit. Keeps the create signature
-  // unchanged across the existing onAddPlayer chain.
   const [isPriority, setIsPriority] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -45,12 +42,14 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
     if (isOpen) {
       setNameError(null);
       if (mode === 'create') {
-        // Reset form for create mode
+        // Reset form for create mode. isPriority is intentionally not
+        // reset here — the toggle isn't rendered in create mode, so
+        // its state is unobservable until the modal next opens in
+        // edit mode where the player.isPriority init below applies.
         setName('');
         setNickname('');
         setJerseyNumber('');
         setNotes('');
-        setIsPriority(false);
       } else if (player) {
         // Load existing player data for edit mode
         setName(player.name || '');
@@ -214,16 +213,18 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                 />
               </div>
 
-              {/* Priority — edit-mode only; the create-flow signature
-                  doesn't carry this field, so coaches mark priority on
-                  an existing player via a follow-up edit. */}
+              {/* Edit-mode only — the create-flow signature doesn't
+                  carry this field, so coaches mark priority on an
+                  existing player via a follow-up edit. */}
               {mode === 'edit' && (
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium text-slate-300 cursor-pointer">
                     <input
+                      id="player-details-modal-priority-input"
                       type="checkbox"
                       checked={isPriority}
                       onChange={(e) => setIsPriority(e.target.checked)}
+                      aria-describedby="player-details-modal-priority-hint"
                       className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
                       data-testid="player-details-modal-priority-toggle"
                     />
@@ -231,10 +232,13 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                       {t('playerDetailsModal.priorityLabel', 'Priority player ★')}
                     </span>
                   </label>
-                  <p className="mt-1 ml-6 text-xs text-slate-400">
+                  <p
+                    id="player-details-modal-priority-hint"
+                    className="mt-1 ml-6 text-xs text-slate-400"
+                  >
                     {t(
                       'playerDetailsModal.priorityHint',
-                      'Surfaces a star on chips and minutes pills in the planner.',
+                      'Marks this player as a priority on the roster.',
                     )}
                   </p>
                 </div>

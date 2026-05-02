@@ -985,7 +985,7 @@
     "notesPlaceholder": "Valinnaiset muistiinpanot pelaajasta",
     "goalieLabel": "Maalivahti",
     "priorityLabel": "Tärkeä pelaaja ★",
-    "priorityHint": "Näyttää tähden pelaajan siruissa ja peliminuuttipalkeissa.",
+    "priorityHint": "Merkitsee pelaajan tärkeäksi roolinvalinnoissa.",
     "duplicateNameError": "Samanniminen pelaaja on jo olemassa"
   },
   "personnelDetailsModal": {
