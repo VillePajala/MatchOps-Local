@@ -34,6 +34,10 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [nickname, setNickname] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [notes, setNotes] = useState('');
+  // Priority is edit-mode only — coaches mark a created player as
+  // priority via a follow-up edit. Keeps the create signature
+  // unchanged across the existing onAddPlayer chain.
+  const [isPriority, setIsPriority] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
 
   // Initialize form when player changes or modal opens
@@ -46,12 +50,14 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         setNickname('');
         setJerseyNumber('');
         setNotes('');
+        setIsPriority(false);
       } else if (player) {
         // Load existing player data for edit mode
         setName(player.name || '');
         setNickname(player.nickname || '');
         setJerseyNumber(player.jerseyNumber || '');
         setNotes(player.notes || '');
+        setIsPriority(player.isPriority ?? false);
       }
     }
   }, [mode, player, isOpen]);
@@ -96,6 +102,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         if (trimmedNickname !== (player.nickname || '')) updates.nickname = trimmedNickname;
         if (jerseyNumber !== (player.jerseyNumber || '')) updates.jerseyNumber = jerseyNumber;
         if (notes !== (player.notes || '')) updates.notes = notes;
+        if (isPriority !== (player.isPriority ?? false)) updates.isPriority = isPriority;
 
         if (Object.keys(updates).length > 0) {
           await onUpdatePlayer(player.id, updates);
@@ -206,6 +213,32 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
+
+              {/* Priority — edit-mode only; the create-flow signature
+                  doesn't carry this field, so coaches mark priority on
+                  an existing player via a follow-up edit. */}
+              {mode === 'edit' && (
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isPriority}
+                      onChange={(e) => setIsPriority(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
+                      data-testid="player-details-modal-priority-toggle"
+                    />
+                    <span>
+                      {t('playerDetailsModal.priorityLabel', 'Priority player ★')}
+                    </span>
+                  </label>
+                  <p className="mt-1 ml-6 text-xs text-slate-400">
+                    {t(
+                      'playerDetailsModal.priorityHint',
+                      'Surfaces a star on chips and minutes pills in the planner.',
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
