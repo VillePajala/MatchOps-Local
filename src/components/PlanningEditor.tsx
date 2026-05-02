@@ -183,7 +183,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   // When non-null, the preview is shown and the pitch/Apply button
   // are gated behind it. Null = direct edit mode.
   const [previewDiffs, setPreviewDiffs] = useState<ApplyDiff[] | null>(null);
-  const previewRef = useRef<HTMLDivElement | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   // The preview is appended below the editor's content; on tall plans
   // the user would otherwise have to scroll to see the confirmation
   // step appear after clicking Apply. The function check skips JSDOM
@@ -1106,7 +1106,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         <button
           type="button"
           onClick={handleStartApply}
-          disabled={isApplying || gameIds.length === 0}
+          // Gate against re-clicking Apply while the preview is open —
+          // a second click would reset previewDiffs but the existing
+          // PlanningApplyPreview instance keeps its checked state, so
+          // the user could confirm against stale toggles.
+          disabled={
+            isApplying || gameIds.length === 0 || previewDiffs !== null
+          }
           data-testid="planning-editor-apply"
           className="inline-flex items-center gap-2 rounded-md bg-amber-500/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
         >

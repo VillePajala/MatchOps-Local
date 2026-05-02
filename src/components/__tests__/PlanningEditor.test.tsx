@@ -1568,5 +1568,28 @@ describe('PlanningEditor', () => {
       ).not.toBeInTheDocument();
       expect(applyToGame).not.toHaveBeenCalled();
     });
+
+    it('Apply button is disabled while the preview is open', () => {
+      // Without this guard a second click would reset previewDiffs but
+      // the existing preview instance keeps its checked state, so the
+      // user could confirm against stale toggles.
+      renderEditor({
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      const applyBtn = screen.getByTestId(
+        'planning-editor-apply',
+      ) as HTMLButtonElement;
+      expect(applyBtn).not.toBeDisabled();
+      fireEvent.click(applyBtn);
+      expect(
+        screen.getByTestId('planning-apply-preview'),
+      ).toBeInTheDocument();
+      expect(applyBtn).toBeDisabled();
+    });
   });
 });

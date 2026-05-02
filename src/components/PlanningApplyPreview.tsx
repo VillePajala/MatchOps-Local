@@ -206,7 +206,6 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
       data-testid="planning-apply-preview"
       role="region"
       aria-labelledby={titleId}
-      aria-live="polite"
     >
       <header className="flex items-center justify-between gap-3">
         <h3 id={titleId} className="text-base font-semibold text-slate-100">
@@ -215,7 +214,9 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
             'Review changes before applying',
           )}
         </h3>
-        <span className="text-xs text-slate-400">
+        {/* Live region scoped to the dynamic count text — wider scope
+            would announce every checkbox toggle and card reflow. */}
+        <span className="text-xs text-slate-400" aria-live="polite">
           {t(
             'planningApplyPreview.gameSelectedCount',
             '{{checked}} of {{count}} games selected',
@@ -275,30 +276,44 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
                       </span>
                     </div>
                     <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                      {/* The +/-/→/✎ glyphs are decorative — the
+                          surrounding copy ("Add …", "Remove …") already
+                          states the change type, so screen readers
+                          should skip them. */}
                       {d.lineupAdded.map((c) => (
                         <li key={`add-${c.playerId}-${c.role}`}>
-                          + {renderLineupAdded(c)}
+                          <span aria-hidden="true">+ </span>
+                          {renderLineupAdded(c)}
                         </li>
                       ))}
                       {d.lineupRemoved.map((c) => (
                         <li key={`rem-${c.playerId}-${c.role ?? 'off'}`}>
-                          − {renderLineupRemoved(c)}
+                          <span aria-hidden="true">− </span>
+                          {renderLineupRemoved(c)}
                         </li>
                       ))}
                       {d.lineupMoved.map((c) => (
                         <li key={`mv-${c.playerId}-${c.toRole}`}>
-                          → {renderLineupMoved(c)}
+                          <span aria-hidden="true">→ </span>
+                          {renderLineupMoved(c)}
                         </li>
                       ))}
                       {d.subsAdded.map((s) => (
-                        <li key={`sa-${s.id}`}>+ {renderSubAdded(s)}</li>
+                        <li key={`sa-${s.id}`}>
+                          <span aria-hidden="true">+ </span>
+                          {renderSubAdded(s)}
+                        </li>
                       ))}
                       {d.subsRemoved.map((s) => (
-                        <li key={`sr-${s.id}`}>− {renderSubRemoved(s)}</li>
+                        <li key={`sr-${s.id}`}>
+                          <span aria-hidden="true">− </span>
+                          {renderSubRemoved(s)}
+                        </li>
                       ))}
                       {d.subsModified.map((m) => (
                         <li key={`sm-${m.before.id}`}>
-                          ✎ {renderSubModified(m)}
+                          <span aria-hidden="true">✎ </span>
+                          {renderSubModified(m)}
                         </li>
                       ))}
                     </ul>
@@ -332,7 +347,16 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => onConfirm([...checked])}
+          // Derive the payload from visibleDiffs so a future caller
+          // that pre-checks ids outside the visible set can't pass
+          // along ids the user never saw in the preview.
+          onClick={() =>
+            onConfirm(
+              visibleDiffs
+                .filter((d) => checked.has(d.gameId))
+                .map((d) => d.gameId),
+            )
+          }
           disabled={isApplying || checkedCount === 0}
           className="rounded-md bg-amber-500/90 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
           data-testid="planning-apply-preview-confirm"

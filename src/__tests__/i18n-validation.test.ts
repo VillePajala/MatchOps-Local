@@ -312,14 +312,11 @@ describe('Translation File Validation', () => {
       //   renameFailed, duplicateAriaLabel, duplicateNameSuffix,
       //   duplicateFailed, activateAriaLabel, deactivateAriaLabel,
       //   activeToggleFailed.
-      // Planner Phase 4b (PR 8b): +18 planningApplyPreview keys for
-      //   the per-game diff preview component (title, change copy,
-      //   confirm/cancel labels, plural variants).
-      // Planner Phase 4b review pass: +2 net for review fixes
-      //   (split gameSelectedCount into _one/_other, dropped
-      //   lineupRemovedOffFormation + offFormation in favor of a
-      //   single lineupRemovedNoRole, added subRemovedWithOut +
-      //   subRefWithOut so out-player surfaces in cancel/modify).
+      // Planner Phase 4b: +20 planningApplyPreview keys for the
+      //   per-game diff preview component (title + selected-count
+      //   plural pair, change-type copy incl. lineupRemovedNoRole and
+      //   subRemovedWithOut/subRefWithOut for out-player surfacing,
+      //   confirm plural pair, cancel/empty/missing-game labels).
       expect(enKeys.length).toBe(2550);
     });
 
@@ -340,8 +337,7 @@ describe('Translation File Validation', () => {
       // Planner Phase 3b: planningModal saved-sessions list +9.
       // Planner Phase 3c (PR 7c): +4 planningModal +7 planningEditor.
       // Planner Phase 3d (PR 7d): +10 planningModal row-action keys.
-      // Planner Phase 4b (PR 8b): +18 planningApplyPreview keys.
-      // Planner Phase 4b review pass: +2 net for review fixes (see EN block).
+      // Planner Phase 4b: +20 planningApplyPreview keys (see EN block).
       expect(fiKeys.length).toBe(2550);
     });
   });
