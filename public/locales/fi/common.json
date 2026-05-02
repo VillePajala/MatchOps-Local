@@ -1728,13 +1728,15 @@
     "empty": "Valitse vähintään yksi peli ja pelisysteemi nähdäksesi pelikohtaisen sirunäkymän.",
     "clearHighlight": "Tyhjennä korostus ({{count}})",
     "chipAria": "{{player}} kohdasta {{from}} kohtaan {{to}}",
+    "chipAriaPriority": "Tärkeä pelaaja {{player}} kohdasta {{from}} kohtaan {{to}}",
     "gameMissing": "Peli ({{id}})"
   },
   "planningMinutesDashboard": {
     "title": "Suunnitelman peliminuutit",
     "fairShare": "Reilu osuus: {{mmss}}",
     "empty": "Valitse vähintään yksi peli ja aseta avauskokoonpano nähdäksesi peliminuutit.",
-    "entryAria": "{{player}}: {{mmss}}, {{pct}} prosenttia reilusta osuudesta"
+    "entryAria": "{{player}}: {{mmss}}, {{pct}} prosenttia reilusta osuudesta",
+    "entryAriaPriority": "Tärkeä pelaaja {{player}}: {{mmss}}, {{pct}} prosenttia reilusta osuudesta"
   },
   "planningUndoBanner": {
     "title_one": "Suunnitelma sovellettu {{count}} peliin.",
