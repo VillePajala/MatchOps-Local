@@ -22,6 +22,13 @@ export interface PlanningApplyPreviewProps {
   savedGames: SavedGamesCollection;
   /** Master roster — used to render player ids as names. */
   roster: Player[];
+  /**
+   * Game ids the parent couldn't load from savedGames (cloud sync race,
+   * IndexedDB eviction). Surfaced inline so the user knows they'll be
+   * skipped; the parent re-includes them on confirm so the post-apply
+   * warning still fires.
+   */
+  missingGameIds?: string[];
   /** True while the parent is awaiting persistence. Disables Confirm. */
   isApplying: boolean;
   /** Called with the gameIds the user kept checked. */
@@ -41,6 +48,7 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
   diffs,
   savedGames,
   roster,
+  missingGameIds = [],
   isApplying,
   onConfirm,
   onCancel,
@@ -64,6 +72,11 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
     for (const d of diffs) if (!d.isEmpty) s.add(d.gameId);
     return s;
   }, [diffs]);
+  // useState only consumes the initializer on mount. Safe here because
+  // the parent (PlanningEditor) always toggles previewDiffs null →
+  // array → null, which unmounts and remounts this component for each
+  // open. If a future caller passes updated diffs to a still-mounted
+  // instance, derive checked from props instead.
   const [checked, setChecked] = useState<Set<string>>(initialChecked);
 
   const toggleGame = (gameId: string) => {
@@ -148,6 +161,9 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
           },
         );
 
+  // beforeStr / afterStr below are plain strings (no HTML, no
+  // unresolved {{tokens}}), so embedding them via i18next interpolation
+  // into subModified is safe — i18next escapes plain strings.
   const renderSubModified = (m: SubModifyChange): string => {
     const beforeStr = m.before.outPlayer
       ? t(
@@ -227,6 +243,23 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
           )}
         </span>
       </header>
+
+      {missingGameIds.length > 0 && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded-md bg-rose-900/20 border border-rose-700/40 p-2 text-xs text-rose-100"
+          data-testid="planning-apply-preview-missing"
+        >
+          <HiOutlineExclamationTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+          <p>
+            {t(
+              'planningApplyPreview.missingGames',
+              "{{count}} game can't be loaded and will be skipped.",
+              { count: missingGameIds.length },
+            )}
+          </p>
+        </div>
+      )}
 
       {visibleDiffs.length === 0 ? (
         <p

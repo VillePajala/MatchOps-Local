@@ -312,12 +312,13 @@ describe('Translation File Validation', () => {
       //   renameFailed, duplicateAriaLabel, duplicateNameSuffix,
       //   duplicateFailed, activateAriaLabel, deactivateAriaLabel,
       //   activeToggleFailed.
-      // Planner Phase 4b: +20 planningApplyPreview keys for the
+      // Planner Phase 4b: +22 planningApplyPreview keys for the
       //   per-game diff preview component (title + selected-count
       //   plural pair, change-type copy incl. lineupRemovedNoRole and
       //   subRemovedWithOut/subRefWithOut for out-player surfacing,
-      //   confirm plural pair, cancel/empty/missing-game labels).
-      expect(enKeys.length).toBe(2550);
+      //   missingGames plural pair for the inline cloud-sync-race
+      //   notice, confirm plural pair, cancel/empty/missing-game).
+      expect(enKeys.length).toBe(2552);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -337,8 +338,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 3b: planningModal saved-sessions list +9.
       // Planner Phase 3c (PR 7c): +4 planningModal +7 planningEditor.
       // Planner Phase 3d (PR 7d): +10 planningModal row-action keys.
-      // Planner Phase 4b: +20 planningApplyPreview keys (see EN block).
-      expect(fiKeys.length).toBe(2550);
+      // Planner Phase 4b: +22 planningApplyPreview keys (see EN block).
+      expect(fiKeys.length).toBe(2552);
     });
   });
 });

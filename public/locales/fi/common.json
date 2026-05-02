@@ -1739,6 +1739,8 @@
     "subRef": "{{time}} {{player}} {{role}}",
     "subRefWithOut": "{{time}} {{player}}↔{{outPlayer}} {{role}}",
     "applyHint": "Pelin valinnan poistaminen ohittaa sen päivityksen. Tallennettua suunnitelmaa ei muuteta Sovellettaessa.",
+    "missingGames_one": "{{count}} peliä ei voitu ladata, ja se ohitetaan.",
+    "missingGames_other": "{{count}} peliä ei voitu ladata, ja ne ohitetaan.",
     "confirm_one": "Sovella {{count}} peliin",
     "confirm_other": "Sovella {{count}} peliin",
     "gameMissing": "Peli ({{id}})"

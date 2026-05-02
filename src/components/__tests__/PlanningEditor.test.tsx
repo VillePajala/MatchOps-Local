@@ -1569,6 +1569,56 @@ describe('PlanningEditor', () => {
       expect(applyToGame).not.toHaveBeenCalled();
     });
 
+    it('preview surfaces missing-game notice and routes the id through Confirm so the post-apply warning fires', async () => {
+      // Cloud-sync race / IndexedDB eviction: gameIds includes 'g2'
+      // but savedGames lacks it. Pre-PR 8b, handleApply(gameIds) hit
+      // the !game guard on g2 and surfaced applyWarnMissing. The
+      // preview must not silently drop g2 — it should appear in the
+      // inline notice AND be re-included on confirm so the warning
+      // banner fires.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      const roster = makeRoster(11);
+      const game1 = makeGameWithLineup(roster);
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        // g2 intentionally absent.
+        savedGames: { g1: game1 },
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+        roster,
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Inline notice for the missing g2.
+      expect(
+        screen.getByTestId('planning-apply-preview-missing'),
+      ).toBeInTheDocument();
+      // g2 doesn't get its own card (no diff was computed).
+      expect(
+        screen.queryByTestId('planning-apply-preview-card-g2'),
+      ).not.toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-apply-preview-confirm'));
+      });
+      // applyToGame fired only for g1 (the only resolved game).
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+      expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+      // The post-apply warning surfaces the missing-game count via the
+      // existing applyWarnMissing path: "N selected game(s) were no
+      // longer available and were skipped."
+      await waitFor(() => {
+        expect(
+          screen.getByText(/1 selected game.*were skipped|1 .*ei.*ohitettiin/i),
+        ).toBeInTheDocument();
+      });
+    });
+
     it('Apply button is disabled while the preview is open', () => {
       // Without this guard a second click would reset previewDiffs but
       // the existing preview instance keeps its checked state, so the

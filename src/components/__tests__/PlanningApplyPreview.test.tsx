@@ -238,6 +238,38 @@ describe('PlanningApplyPreview', () => {
     expect(screen.getByText(/Update sub:.*Alice↔Bobby.*→/i)).toBeInTheDocument();
   });
 
+  it('renders the missing-games inline notice when missingGameIds is non-empty', () => {
+    renderPreview({
+      missingGameIds: ['gx', 'gy'],
+      diffs: [
+        makeDiff({
+          gameId: 'g1',
+          lineupAdded: [{ playerId: 'p1', role: 'GK' }],
+        }),
+      ],
+    });
+    const notice = screen.getByTestId('planning-apply-preview-missing');
+    expect(notice).toBeInTheDocument();
+    // EN plural variant interpolates count.
+    expect(notice).toHaveTextContent(
+      /2 games can't be loaded|2 peliä ei voitu ladata/i,
+    );
+  });
+
+  it('hides the missing-games notice when missingGameIds is empty', () => {
+    renderPreview({
+      diffs: [
+        makeDiff({
+          gameId: 'g1',
+          lineupAdded: [{ playerId: 'p1', role: 'GK' }],
+        }),
+      ],
+    });
+    expect(
+      screen.queryByTestId('planning-apply-preview-missing'),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the gameMissing fallback when savedGames lacks the gameId', () => {
     renderPreview({
       diffs: [

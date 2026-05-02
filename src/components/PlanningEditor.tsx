@@ -183,6 +183,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   // When non-null, the preview is shown and the pitch/Apply button
   // are gated behind it. Null = direct edit mode.
   const [previewDiffs, setPreviewDiffs] = useState<ApplyDiff[] | null>(null);
+  // gameIds that no longer resolve (cloud sync race / IndexedDB
+  // eviction). Tracked separately so the preview can surface an
+  // inline notice and the post-apply warning still fires when the
+  // user confirms.
+  const [missingGameIds, setMissingGameIds] = useState<string[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
   // The preview is appended below the editor's content; on tall plans
   // the user would otherwise have to scroll to see the confirmation
@@ -550,9 +555,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
   // Compute per-game diffs against the saved games and switch the
   // editor into preview mode. The preview's Confirm runs handleApply
-  // with only the checked game ids; Cancel returns to edit mode.
-  // When enableApplyPreview is false, this falls through to the
-  // direct apply path so callers that don't opt in are unaffected.
+  // with only the checked game ids (plus the missing ids tracked
+  // here so the post-apply warning still fires). Cancel returns to
+  // edit mode. When enableApplyPreview is false this falls through
+  // to the direct apply path.
   const handleStartApply = () => {
     if (!enableApplyPreview) {
       void handleApply();
@@ -560,30 +566,36 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     }
     setApplyError(null);
     setApplyWarning(null);
-    const diffs: ApplyDiff[] = gameIds.map((id) => {
-      const game = savedGames[id];
-      if (!game) {
-        // Surface the missing game as an empty diff with the gameId so
-        // the preview can hide it (the existing Apply path already
-        // handles missing games as warnings).
-        return {
-          gameId: id,
-          isEmpty: true,
-          lineupAdded: [],
-          lineupRemoved: [],
-          lineupMoved: [],
-          subsAdded: [],
-          subsRemoved: [],
-          subsModified: [],
-        };
+    try {
+      const diffs: ApplyDiff[] = [];
+      const missing: string[] = [];
+      for (const id of gameIds) {
+        const game = savedGames[id];
+        if (!game) {
+          missing.push(id);
+          continue;
+        }
+        diffs.push(computeApplyDiff(id, game, draft, preset));
       }
-      return computeApplyDiff(id, game, draft, preset);
-    });
-    setPreviewDiffs(diffs);
+      setPreviewDiffs(diffs);
+      setMissingGameIds(missing);
+    } catch (err) {
+      // computeApplyDiff is pure but malformed game state could still
+      // throw; the sync handler would otherwise swallow the click
+      // silently with no user feedback. Mirror handleApply's pattern.
+      logger.error('[PlanningEditor] Diff calculation failed', err);
+      setApplyError(
+        t(
+          'planningEditor.applyFailed',
+          'Could not apply plan. Please try again.',
+        ),
+      );
+    }
   };
 
   const handleCancelPreview = () => {
     setPreviewDiffs(null);
+    setMissingGameIds([]);
   };
 
   const handleApply = async (applyGameIds: string[] = gameIds) => {
@@ -744,6 +756,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       // outcome — leaving it open would let the user re-confirm against
       // already-applied state.
       setPreviewDiffs(null);
+      setMissingGameIds([]);
     }
   };
 
@@ -1134,9 +1147,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             diffs={previewDiffs}
             savedGames={savedGames}
             roster={roster}
+            missingGameIds={missingGameIds}
             isApplying={isApplying}
             onConfirm={(checkedGameIds) => {
-              void handleApply(checkedGameIds);
+              // Re-include missing ids so handleApply hits its !game
+              // path and surfaces the applyWarnMissing banner; the
+              // preview already informed the user inline.
+              void handleApply([...checkedGameIds, ...missingGameIds]);
             }}
             onCancel={handleCancelPreview}
           />
